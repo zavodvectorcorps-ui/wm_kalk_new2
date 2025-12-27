@@ -101,3 +101,138 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Test the hot tub calculator application functionality including language switcher, calculator page forms, orders page, pricing page, and navigation"
+
+frontend:
+  - task: "Language Switcher"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/LanguageSwitcher.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test language switching between RU and PL"
+
+  - task: "Calculator Page - Customer Info Form"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/CustomerInfoForm.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test form fields: name, phone, address, date"
+
+  - task: "Calculator Page - Configuration Form"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/ConfigurationForm.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test dropdown selections: shell model, wood type, shell color, lid type, wood color"
+
+  - task: "Calculator Page - Features Form"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/FeaturesForm.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test sand filter dropdown and feature checkboxes"
+
+  - task: "Calculator Page - Order Summary"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/OrderSummary.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test order summary updates and total calculation"
+
+  - task: "Calculator Page - Action Buttons"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/CalculatorPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test Save Order, Generate PDF, and Clear Form buttons"
+
+  - task: "Orders Page"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/OrdersPage.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test orders page display and no orders message"
+
+  - task: "Pricing Page"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/PricingPage.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test pricing fields display and update functionality"
+
+  - task: "Navigation Between Tabs"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Header.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test tab navigation between Calculator, Orders, and Pricing"
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+
+test_plan:
+  current_focus:
+    - "Language Switcher"
+    - "Calculator Page - Customer Info Form"
+    - "Calculator Page - Configuration Form"
+    - "Calculator Page - Features Form"
+    - "Calculator Page - Order Summary"
+    - "Calculator Page - Action Buttons"
+    - "Orders Page"
+    - "Pricing Page"
+    - "Navigation Between Tabs"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "testing"
+    -message: "Starting comprehensive testing of hot tub calculator application. Will test all functionality including language switching, form interactions, navigation, and button actions."
