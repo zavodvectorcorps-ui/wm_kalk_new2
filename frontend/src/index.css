@@ -2,10 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 body {
     margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
         "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
         sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -19,57 +20,103 @@ code {
 
 @layer base {
     :root {
-        --background: 0 0% 100%;
-        --foreground: 0 0% 3.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 0 0% 3.9%;
+        /* Clean Minimalist Palette - Soft Blues & Grays */
+        --background: 210 17% 98%;              /* Light soft gray background */
+        --foreground: 215 25% 27%;              /* Deep blue-gray for text */
+        
+        --card: 0 0% 100%;                      /* Pure white cards */
+        --card-foreground: 215 25% 27%;
+        
         --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 3.9%;
-        --primary: 0 0% 9%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 0 0% 96.1%;
-        --secondary-foreground: 0 0% 9%;
-        --muted: 0 0% 96.1%;
-        --muted-foreground: 0 0% 45.1%;
-        --accent: 0 0% 96.1%;
-        --accent-foreground: 0 0% 9%;
-        --destructive: 0 84.2% 60.2%;
+        --popover-foreground: 215 25% 27%;
+        
+        /* Primary: Calm Blue - Professional & Modern */
+        --primary: 210 85% 56%;                 /* Soft sky blue */
+        --primary-foreground: 0 0% 100%;
+        --primary-light: 210 85% 75%;           /* Lighter blue for hover */
+        --primary-dark: 210 85% 42%;            /* Darker blue */
+        
+        /* Secondary: Sophisticated Slate */
+        --secondary: 215 15% 92%;               /* Light gray-blue */
+        --secondary-foreground: 215 25% 27%;
+        
+        /* Accent: Soft Teal for highlights */
+        --accent: 195 70% 60%;                  /* Soft teal */
+        --accent-foreground: 0 0% 100%;
+        
+        --muted: 215 15% 95%;                   /* Very light gray */
+        --muted-foreground: 215 15% 50%;        /* Medium gray */
+        
+        --destructive: 0 72% 51%;
         --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 89.8%;
-        --input: 0 0% 89.8%;
-        --ring: 0 0% 3.9%;
-        --chart-1: 12 76% 61%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 197 37% 24%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 27 87% 67%;
-        --radius: 0.5rem;
+        
+        --border: 215 15% 88%;                  /* Subtle border */
+        --input: 215 15% 88%;
+        --ring: 210 85% 56%;                    /* Primary color for focus */
+        
+        /* Custom Design Tokens */
+        --success: 142 71% 45%;                 /* Green for success states */
+        --warning: 38 92% 50%;                  /* Orange for warnings */
+        
+        /* Gradients - Subtle & Professional */
+        --gradient-primary: linear-gradient(135deg, hsl(210 85% 56%), hsl(195 70% 60%));
+        --gradient-subtle: linear-gradient(180deg, hsl(210 17% 98%), hsl(215 15% 95%));
+        --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(210 17% 98%));
+        
+        /* Shadows - Elegant depth */
+        --shadow-sm: 0 1px 2px 0 hsl(215 25% 27% / 0.05);
+        --shadow-md: 0 4px 6px -1px hsl(215 25% 27% / 0.1), 0 2px 4px -1px hsl(215 25% 27% / 0.06);
+        --shadow-lg: 0 10px 15px -3px hsl(215 25% 27% / 0.1), 0 4px 6px -2px hsl(215 25% 27% / 0.05);
+        --shadow-elegant: 0 10px 30px -10px hsl(210 85% 56% / 0.2);
+        
+        /* Animations */
+        --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        
+        --radius: 0.75rem;                      /* Slightly rounded for modern feel */
+        --radius-sm: 0.5rem;
+        --radius-lg: 1rem;
     }
+    
     .dark {
-        --background: 0 0% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 0 0% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 0 0% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 0 0% 98%;
-        --primary-foreground: 0 0% 9%;
-        --secondary: 0 0% 14.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 0 0% 14.9%;
-        --muted-foreground: 0 0% 63.9%;
-        --accent: 0 0% 14.9%;
-        --accent-foreground: 0 0% 98%;
+        --background: 215 28% 17%;              /* Dark blue-gray */
+        --foreground: 210 17% 98%;              /* Light text */
+        
+        --card: 215 25% 20%;
+        --card-foreground: 210 17% 98%;
+        
+        --popover: 215 25% 20%;
+        --popover-foreground: 210 17% 98%;
+        
+        --primary: 210 85% 56%;
+        --primary-foreground: 0 0% 100%;
+        --primary-light: 210 85% 65%;
+        --primary-dark: 210 85% 45%;
+        
+        --secondary: 215 25% 25%;
+        --secondary-foreground: 210 17% 98%;
+        
+        --accent: 195 70% 60%;
+        --accent-foreground: 0 0% 100%;
+        
+        --muted: 215 25% 23%;
+        --muted-foreground: 215 15% 65%;
+        
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 14.9%;
-        --input: 0 0% 14.9%;
-        --ring: 0 0% 83.1%;
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
+        
+        --border: 215 25% 25%;
+        --input: 215 25% 25%;
+        --ring: 210 85% 56%;
+        
+        --gradient-primary: linear-gradient(135deg, hsl(210 85% 56%), hsl(195 70% 60%));
+        --gradient-subtle: linear-gradient(180deg, hsl(215 28% 17%), hsl(215 25% 20%));
+        --gradient-card: linear-gradient(135deg, hsl(215 25% 20%), hsl(215 28% 17%));
+        
+        --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
+        --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+        --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.4), 0 4px 6px -2px hsl(0 0% 0% / 0.3);
+        --shadow-elegant: 0 10px 30px -10px hsl(210 85% 56% / 0.4);
     }
 }
 
@@ -77,8 +124,53 @@ code {
     * {
         @apply border-border;
     }
+    
     body {
         @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        font-weight: 600;
+    }
+}
+
+@layer components {
+    /* Custom scrollbar for modern look */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: hsl(var(--muted));
+        border-radius: 4px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: hsl(var(--muted-foreground) / 0.3);
+        border-radius: 4px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: hsl(var(--muted-foreground) / 0.5);
+    }
+    
+    /* Smooth transitions for interactive elements */
+    button, a, input, select, textarea {
+        transition: var(--transition-smooth);
+        transition-property: background-color, border-color, color, box-shadow, transform;
+    }
+    
+    /* Card hover effect */
+    .card-hover {
+        transition: var(--transition-smooth);
+    }
+    
+    .card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
     }
 }
 
