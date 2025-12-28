@@ -920,6 +920,47 @@ def test_update_sauna_prices():
         print(f"❌ GET /api/sauna/orders error: {str(e)}")
         return False
 
+def test_get_sauna_orders():
+    """Test GET /api/sauna/orders endpoint"""
+    print("\n🔍 Testing GET /api/sauna/orders...")
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/sauna/orders")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            orders = response.json()
+            print(f"✅ GET /api/sauna/orders successful")
+            print(f"✅ Found {len(orders)} sauna orders")
+            
+            if orders:
+                # Check structure of first order
+                first_order = orders[0]
+                required_fields = ['id', 'fullName', 'phoneNumber', 'selectedModel', 'total']
+                for field in required_fields:
+                    if field in first_order:
+                        print(f"✅ Sauna order field '{field}' present")
+                    else:
+                        print(f"❌ Sauna order field '{field}' missing")
+                        return False
+                
+                # Check if our test order is there
+                test_orders = [order for order in orders if order.get('fullName') == 'Test User']
+                if test_orders:
+                    print("✅ Test sauna order found in list")
+                else:
+                    print("❌ Test sauna order not found in list")
+            
+            return True
+        else:
+            print(f"❌ GET /api/sauna/orders failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ GET /api/sauna/orders error: {str(e)}")
+        return False
+
 def test_generate_sauna_pdf():
     """Test POST /api/sauna/generate-pdf endpoint with discount applied (NEW FORMAT)"""
     print("\n🔍 Testing POST /api/sauna/generate-pdf with discount applied...")
