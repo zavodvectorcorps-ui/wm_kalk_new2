@@ -64,6 +64,41 @@ export const PricingPage = () => {
     }
   };
 
+  const handleAddOption = () => {
+    if (!newOption.key || !newOption.label) {
+      toast.error(t('fillRequired') || 'Заполните все поля');
+      return;
+    }
+
+    setPrices((prev) => ({
+      ...prev,
+      [editingCategory]: {
+        ...prev[editingCategory],
+        [newOption.key]: parseFloat(newOption.price) || 0,
+      },
+    }));
+
+    // Save to translations (simplified - in production would update translation files)
+    toast.success(`Опция "${newOption.label}" добавлена!`);
+    
+    setNewOption({ key: '', label: '', price: 0 });
+    setIsDialogOpen(false);
+  };
+
+  const handleDeleteOption = (category, key) => {
+    if (window.confirm(`Удалить опцию "${key}"?`)) {
+      setPrices((prev) => {
+        const newCategory = { ...prev[category] };
+        delete newCategory[key];
+        return {
+          ...prev,
+          [category]: newCategory,
+        };
+      });
+      toast.success('Опция удалена');
+    }
+  };
+
   const renderPriceSection = (title, category, items) => (
     <div className="space-y-3">
       <h3 className="font-semibold text-lg text-foreground">{title}</h3>
