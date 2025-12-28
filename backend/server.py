@@ -358,10 +358,16 @@ async def generate_pdf(request: PDFRequest):
     buffer.close()
     
     # Return as streaming response
+    # Create safe filename by removing non-ASCII characters
+    import re
+    safe_filename = re.sub(r'[^\w\-_\.]', '_', request.fullName)
+    if not safe_filename:
+        safe_filename = "customer"
+    
     return StreamingResponse(
         io.BytesIO(pdf_data),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=order_{request.fullName}.pdf"}
+        headers={"Content-Disposition": f"attachment; filename=order_{safe_filename}.pdf"}
     )
 
 # Include the router in the main app
