@@ -924,7 +924,7 @@ def test_authentication_system():
 
 def run_all_tests():
     """Run all backend tests"""
-    print("🚀 Starting Backend API Tests for Hot Tub Calculator with Authentication System")
+    print("🚀 Starting Backend API Tests for Hot Tub Calculator with Sauna Calculator and Authentication System")
     print("=" * 80)
     
     # Run existing category management tests
@@ -937,11 +937,14 @@ def run_all_tests():
         "Category Order Functionality": test_category_order_functionality()
     }
     
+    # Run sauna calculator tests
+    sauna_results = test_sauna_calculator_system()
+    
     # Run authentication system tests
     auth_results = test_authentication_system()
     
     # Combine all results
-    all_results = {**test_results, **auth_results}
+    all_results = {**test_results, **sauna_results, **auth_results}
     
     print("\n" + "=" * 80)
     print("📊 TEST RESULTS SUMMARY")
@@ -953,6 +956,16 @@ def run_all_tests():
     # Show category management results
     print("\n📦 CATEGORY MANAGEMENT TESTS:")
     for test_name, result in test_results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
+    # Show sauna calculator results
+    print("\n🌿 SAUNA CALCULATOR TESTS:")
+    for test_name, result in sauna_results.items():
         status = "✅ PASS" if result else "❌ FAIL"
         print(f"  {test_name}: {status}")
         if result:
