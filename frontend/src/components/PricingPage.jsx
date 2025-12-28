@@ -7,7 +7,8 @@ import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { DollarSign, Save, Loader2, Plus, Trash2, Edit, List, CheckSquare } from 'lucide-react';
+import { DollarSign, Save, Loader2, Plus, Trash2, Edit, List, CheckSquare, FolderPlus, Folder } from 'lucide-react';
+import { CategoryManager } from './CategoryManager';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -23,11 +24,20 @@ export const PricingPage = () => {
     lidTypes: {},
     woodColors: {},
     features: {},
-    displayTypes: {}, // New: stores display type for each option
+    displayTypes: {},
+    categories: {},
+    optionCategories: {},
   });
-  const [newOption, setNewOption] = useState({ key: '', label: '', price: 0, displayType: 'dropdown' });
+  const [newOption, setNewOption] = useState({ 
+    key: '', 
+    label: '', 
+    price: 0, 
+    displayType: 'dropdown',
+    category: '' 
+  });
   const [editingCategory, setEditingCategory] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchPrices();
