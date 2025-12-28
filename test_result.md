@@ -279,9 +279,9 @@ frontend:
 
   - task: "Add Option Feature - Calculator Integration"
     implemented: true
-    working: false
+    working: true
     file: "/app/frontend/src/components/ConfigurationForm.jsx"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
@@ -291,6 +291,9 @@ frontend:
         -working: false
         -agent: "testing"
         -comment: "❌ CRITICAL ISSUE: New options added in Pricing page do not appear in Calculator page shell model dropdown. Added 'extra_large_model' option successfully in Pricing page, but it's missing from Calculator dropdown which only shows 6 standard options. This breaks the user workflow as custom options cannot be selected in orders."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ COMPLETE WORKFLOW SUCCESS! Tested complete workflow: 1) Added 'premium_xxl' option (Премиум XXL модель, 5000€) in Pricing page Shell Model section, 2) Successfully saved prices with 'Обновить цены' button, 3) Navigated to Calculator page, 4) Verified new option appears in Shell Model dropdown as 'premium xxl +5000€' (7th option), 5) Integration between Pricing and Calculator pages working correctly. The App.js key prop successfully forces Calculator page reload and custom options persist properly."
 
   - task: "Add Option Feature - Delete Functionality"
     implemented: true
