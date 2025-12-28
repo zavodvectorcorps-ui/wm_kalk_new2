@@ -892,6 +892,25 @@ def test_authentication_system():
         print("❌ Cannot proceed with admin tests - login failed")
         return {"Admin Login": False}
     
+    # Try to create 'ivan' employee if it doesn't exist
+    print("\n🔍 Creating test employee 'ivan' if not exists...")
+    try:
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        ivan_data = {
+            "username": "ivan",
+            "password": "test123",
+            "access": "balia"
+        }
+        create_response = requests.post(f"{BACKEND_URL}/users", json=ivan_data, headers=headers)
+        if create_response.status_code == 200:
+            print("✅ Created test employee 'ivan'")
+        elif create_response.status_code == 400:
+            print("✅ Test employee 'ivan' already exists")
+        else:
+            print(f"⚠️ Could not create test employee: {create_response.status_code}")
+    except Exception as e:
+        print(f"⚠️ Error creating test employee: {e}")
+    
     # Test employee login
     employee_token = test_employee_login()
     if not employee_token:
