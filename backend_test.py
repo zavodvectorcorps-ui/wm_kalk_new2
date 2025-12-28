@@ -626,7 +626,7 @@ def test_delete_user(admin_token, user_id):
 # ============================================================================
 
 def test_get_sauna_prices():
-    """Test GET /api/sauna/prices endpoint - should return 13 models and 14 categories"""
+    """Test GET /api/sauna/prices endpoint - should return 13 models and 14 categories with all required fields"""
     print("\n🔍 Testing GET /api/sauna/prices...")
     
     try:
@@ -657,6 +657,43 @@ def test_get_sauna_prices():
                 print(f"❌ Expected 14 categories, found {len(categories)}")
                 return False
             
+            # Verify data structure includes all required fields
+            print("🔍 Verifying data structure...")
+            
+            # Check model structure
+            if models:
+                first_model = models[0]
+                required_model_fields = ['id', 'name', 'basePrice', 'foundationPrice', 'discount', 'imageUrl']
+                for field in required_model_fields:
+                    if field in first_model:
+                        print(f"✅ Model field '{field}' present")
+                    else:
+                        print(f"❌ Model field '{field}' missing")
+                        return False
+            
+            # Check category structure
+            if categories:
+                first_category = categories[0]
+                required_category_fields = ['id', 'name', 'inputType', 'options']
+                for field in required_category_fields:
+                    if field in first_category:
+                        print(f"✅ Category field '{field}' present")
+                    else:
+                        print(f"❌ Category field '{field}' missing")
+                        return False
+                
+                # Check option structure
+                options = first_category.get('options', [])
+                if options:
+                    first_option = options[0]
+                    required_option_fields = ['id', 'name', 'price', 'inputType']
+                    for field in required_option_fields:
+                        if field in first_option:
+                            print(f"✅ Option field '{field}' present")
+                        else:
+                            print(f"❌ Option field '{field}' missing")
+                            return False
+            
             # Verify some key models exist
             model_ids = [model.get('id') for model in models]
             expected_models = [
@@ -666,7 +703,8 @@ def test_get_sauna_prices():
             
             for model_id in expected_models:
                 if model_id in model_ids:
-                    print(f"✅ Model '{model_id}' found")
+                    model = next(m for m in models if m.get('id') == model_id)
+                    print(f"✅ Model '{model_id}' found - Price: {model.get('basePrice')} PLN, Discount: {model.get('discount')}%")
                 else:
                     print(f"❌ Model '{model_id}' missing")
                     return False
@@ -677,7 +715,9 @@ def test_get_sauna_prices():
             
             for cat_id in expected_categories:
                 if cat_id in category_ids:
-                    print(f"✅ Category '{cat_id}' found")
+                    category = next(c for c in categories if c.get('id') == cat_id)
+                    option_count = len(category.get('options', []))
+                    print(f"✅ Category '{cat_id}' found with {option_count} options")
                 else:
                     print(f"❌ Category '{cat_id}' missing")
                     return False
