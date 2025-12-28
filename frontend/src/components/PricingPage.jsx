@@ -96,13 +96,29 @@ export const PricingPage = () => {
       setPrices((prev) => {
         const newCategory = { ...prev[category] };
         delete newCategory[key];
+        
+        const newDisplayTypes = { ...prev.displayTypes };
+        delete newDisplayTypes[key];
+        
         return {
           ...prev,
           [category]: newCategory,
+          displayTypes: newDisplayTypes,
         };
       });
       toast.success('Опция удалена');
     }
+  };
+
+  const handleChangeDisplayType = (key, newType) => {
+    setPrices((prev) => ({
+      ...prev,
+      displayTypes: {
+        ...prev.displayTypes,
+        [key]: newType,
+      },
+    }));
+    toast.success(`Тип отображения изменен на ${newType === 'dropdown' ? 'выпадающий список' : 'чекбокс'}`);
   };
 
   const renderPriceSection = (title, category, items) => (
