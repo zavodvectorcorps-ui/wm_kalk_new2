@@ -215,6 +215,13 @@ async def generate_pdf(request: PDFRequest):
     """Generate PDF order form"""
     buffer = io.BytesIO()
     
+    # Register Unicode fonts (DejaVu for Cyrillic support)
+    try:
+        pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+        pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+    except Exception as e:
+        logger.warning(f"Could not register fonts: {e}")
+    
     # Create PDF
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                           rightMargin=20*mm, leftMargin=20*mm,
@@ -223,11 +230,12 @@ async def generate_pdf(request: PDFRequest):
     # Container for the 'Flowable' objects
     elements = []
     
-    # Define styles
+    # Define styles with Unicode font
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
+        fontName='DejaVuSans-Bold',
         fontSize=24,
         textColor=colors.HexColor('#3B82F6'),
         spaceAfter=30,
@@ -237,13 +245,19 @@ async def generate_pdf(request: PDFRequest):
     heading_style = ParagraphStyle(
         'CustomHeading',
         parent=styles['Heading2'],
+        fontName='DejaVuSans-Bold',
         fontSize=14,
         textColor=colors.HexColor('#1E40AF'),
         spaceAfter=12,
         spaceBefore=20,
     )
     
-    normal_style = styles['Normal']
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontName='DejaVuSans',
+        fontSize=10,
+    )
     
     # Title
     if request.type == 'customer':
