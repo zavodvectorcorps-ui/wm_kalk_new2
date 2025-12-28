@@ -876,9 +876,11 @@ class SaunaOrder(BaseModel):
     basePrice: int = 0
     foundationPrice: int = 0
     discount: int = 0
+    discountPercent: float = 0.0
     selections: Dict[str, Any] = {}
     notes: str = ""
     optionsTotal: int = 0
+    subtotal: float = 0.0
     total: float = 0.0
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -887,16 +889,19 @@ class SaunaPDFRequest(BaseModel):
     
     fullName: str
     phoneNumber: str
-    fullAddress: str
+    fullAddress: str = ""
+    email: str = ""
     orderDate: str
     selectedModel: str
     modelName: str = ""
     basePrice: int = 0
     foundationPrice: int = 0
     discount: int = 0
+    discountPercent: float = 0.0
     selections: Dict[str, Any] = {}
     notes: str = ""
     optionsTotal: int = 0
+    subtotal: float = 0.0
     total: float = 0.0
     language: str = "pl"
     categories: List[Dict[str, Any]] = []
