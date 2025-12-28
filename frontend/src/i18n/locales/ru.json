@@ -1,5 +1,5 @@
 {
-  "appTitle": "Калькулятор Купели с Джакузи",
+  "appTitle": "Калькулятор купелей",
   "calculator": "Калькулятор",
   "orders": "Заказы",
   "pricing": "Цены",
@@ -125,5 +125,38 @@
   "error": "Ошибка",
   "success": "Успех",
   "select": "Выберите",
-  "selectOptions": "Выберите опции для расчета стоимости"
+  "selectOptions": "Выберите опции для расчета стоимости",
+  
+  "categoryManagement": "Управление категориями",
+  "newCategory": "Новая категория",
+  "createCategory": "Создать категорию",
+  "deleteCategory": "Удалить категорию",
+  "categoryId": "ID категории",
+  "categoryName": "Название категории",
+  "displayType": "Тип отображения",
+  "dropdown": "Выпадающий список",
+  "checkbox": "Чекбокс",
+  "required": "Обязательная",
+  "system": "Системная",
+  "order": "Порядок",
+  "addOption": "Добавить опцию",
+  "optionKey": "Ключ опции",
+  "optionLabel": "Название опции",
+  "cancel": "Отмена",
+  "add": "Добавить",
+  "delete": "Удалить",
+  "custom": "пользовательская",
+  
+  "shellModels": "Модель купели",
+  "woodTypes": "Тип дерева",
+  "shellColors": "Цвет оболочки",
+  "lidTypes": "Тип крышки",
+  "woodColors": "Цвет дерева",
+  
+  "admin": "Админ",
+  "login": "Войти",
+  "logout": "Выйти",
+  "password": "Пароль",
+  "wrongPassword": "Неверный пароль!",
+  "loginSuccess": "Вход выполнен успешно!"
 }
