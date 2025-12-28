@@ -192,7 +192,7 @@ export const Header = ({
             )}
             
             {/* Mobile Admin Section */}
-            {isAdminAuthenticated && (
+            {isAdminAuthenticated ? (
               <div className="pt-2 mt-2 border-t flex items-center justify-between">
                 <Badge variant="secondary" className="gap-1">
                   <Lock className="h-3 w-3" />
@@ -206,6 +206,22 @@ export const Header = ({
                     setMobileMenuOpen(false);
                   }}
                   className="text-muted-foreground hover:text-foreground gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {t('logout')}
+                </Button>
+              </div>
+            ) : (
+              /* Mobile Logout for regular employees */
+              <div className="pt-2 mt-2 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onAdminLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full justify-start text-muted-foreground hover:text-foreground gap-2"
                 >
                   <LogOut className="h-4 w-4" />
                   {t('logout')}
