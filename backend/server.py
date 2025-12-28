@@ -358,10 +358,14 @@ async def generate_pdf(request: PDFRequest):
     buffer.close()
     
     # Return as streaming response
-    # Create safe filename by removing non-ASCII characters
-    import re
-    safe_filename = re.sub(r'[^\w\-_\.]', '_', request.fullName)
-    if not safe_filename:
+    # Create safe filename by URL encoding or using ASCII-safe name
+    import urllib.parse
+    try:
+        # Try to create a safe ASCII filename
+        safe_filename = ''.join(c for c in request.fullName if c.isascii() and (c.isalnum() or c in '-_.'))
+        if not safe_filename:
+            safe_filename = "customer"
+    except:
         safe_filename = "customer"
     
     return StreamingResponse(
