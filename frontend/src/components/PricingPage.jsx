@@ -86,7 +86,7 @@ const defaultOptionLabels = {
 };
 
 export const PricingPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [prices, setPrices] = useState({
     shellModels: {},
