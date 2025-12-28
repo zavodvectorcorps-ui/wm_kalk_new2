@@ -1114,7 +1114,7 @@ async def get_sauna_orders():
 
 @api_router.post("/sauna/generate-pdf")
 async def generate_sauna_pdf(request: SaunaPDFRequest):
-    """Generate PDF for sauna order"""
+    """Generate PDF for sauna order - Professional offer format"""
     buffer = io.BytesIO()
     
     # Register Unicode fonts
@@ -1124,161 +1124,310 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     except Exception as e:
         logger.warning(f"Could not register fonts: {e}")
     
+    # Colors
+    BROWN = colors.HexColor('#97724E')
+    BROWN_LIGHT = colors.HexColor('#FAF6F0')
+    BROWN_BORDER = colors.HexColor('#D4C4B0')
+    BROWN_DARK = colors.HexColor('#6B5038')
+    GREEN = colors.HexColor('#2D7A3E')
+    GREEN_LIGHT = colors.HexColor('#F0F9F5')
+    RED = colors.HexColor('#C53030')
+    RED_LIGHT = colors.HexColor('#FFF5F5')
+    TEXT_COLOR = colors.HexColor('#323232')
+    MUTED = colors.HexColor('#888888')
+    
     # Create PDF
     doc = SimpleDocTemplate(buffer, pagesize=A4,
-                          rightMargin=15*mm, leftMargin=15*mm,
-                          topMargin=15*mm, bottomMargin=15*mm)
+                          rightMargin=20, leftMargin=20,
+                          topMargin=20, bottomMargin=20)
     
     elements = []
     
     # Styles
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'SaunaTitle',
-        parent=styles['Heading1'],
+    
+    section_title_style = ParagraphStyle(
+        'SectionTitle',
         fontName='DejaVuSans-Bold',
-        fontSize=20,
-        textColor=colors.HexColor('#16A34A'),
-        spaceAfter=20,
-        alignment=TA_CENTER,
+        fontSize=13,
+        textColor=BROWN_DARK,
     )
     
-    heading_style = ParagraphStyle(
-        'SaunaHeading',
-        parent=styles['Heading2'],
+    label_bold_style = ParagraphStyle(
+        'LabelBold',
         fontName='DejaVuSans-Bold',
-        fontSize=12,
-        textColor=colors.HexColor('#166534'),
-        spaceAfter=8,
-        spaceBefore=12,
+        fontSize=11,
+        textColor=BROWN_DARK,
+    )
+    
+    info_style = ParagraphStyle(
+        'InfoText',
+        fontName='DejaVuSans',
+        fontSize=10,
+        textColor=colors.HexColor('#505050'),
     )
     
     normal_style = ParagraphStyle(
-        'SaunaNormal',
-        parent=styles['Normal'],
+        'Normal',
         fontName='DejaVuSans',
         fontSize=9,
+        textColor=TEXT_COLOR,
     )
     
-    # Title
-    elements.append(Paragraph('Zamówienie Sauny', title_style))
-    elements.append(Spacer(1, 10))
+    small_muted_style = ParagraphStyle(
+        'SmallMuted',
+        fontName='DejaVuSans',
+        fontSize=8,
+        textColor=MUTED,
+    )
     
-    # Customer Info
-    elements.append(Paragraph('Dane klienta', heading_style))
-    customer_data = [
-        ['Imię i nazwisko:', request.fullName],
-        ['Telefon:', request.phoneNumber],
-        ['Adres:', request.fullAddress],
-        ['Data zamówienia:', request.orderDate],
-    ]
-    customer_table = Table(customer_data, colWidths=[50*mm, 120*mm])
-    customer_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F0FDF4')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1E293B')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
-        ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#BBF7D0')),
+    # Calculate dates
+    current_date = datetime.now().strftime('%d.%m.%Y')
+    valid_until = (datetime.now() + timedelta(days=30)).strftime('%d.%m.%Y')
+    promo_until = (datetime.now() + timedelta(days=7)).strftime('%d.%m.%Y')
+    offer_number = f"WMS-{datetime.now().strftime('%H%M%S')}"
+    
+    # Get discount info
+    discount_percent = getattr(request, 'discountPercent', 0) or 0
+    subtotal = getattr(request, 'subtotal', request.total / (1 - discount_percent/100) if discount_percent else request.total) or request.total
+    total_after_discount = request.total
+    
+    # ========== HEADER ==========
+    header_data = [[
+        Paragraph('<b>WM-SAUNA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BROWN)),
+        '',
+        Paragraph('''<b>OFERTA HANDLOWA</b><br/>
+        <font size="9" color="#95856e">Tel: +48 732 099 201</font><br/>
+        <font size="9" color="#95856e">Email: wmsauna@gmail.com</font><br/>
+        <font size="9" color="#95856e">www.wm-sauna.pl</font>''',
+        ParagraphStyle('HeaderRight', fontName='DejaVuSans', fontSize=16, alignment=TA_RIGHT, textColor=BROWN))
+    ]]
+    header_table = Table(header_data, colWidths=[200, 130, 200])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
     ]))
-    elements.append(customer_table)
+    elements.append(header_table)
+    
+    # Divider line
+    elements.append(Spacer(1, 4))
+    elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+    elements.append(Spacer(1, 8))
+    
+    # ========== CLIENT + OFFER INFO ==========
+    email_line = f"Email: {request.email}<br/>" if hasattr(request, 'email') and request.email else ""
+    client_info = Paragraph(f'''<b>DANE KLIENTA:</b><br/>
+    Imię i nazwisko: {request.fullName}<br/>
+    {email_line}Telefon: {request.phoneNumber}''', 
+    ParagraphStyle('ClientInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR))
+    
+    offer_info = Paragraph(f'''<b>INFORMACJE O OFERCIE:</b><br/>
+    Data wystawienia: {current_date}<br/>
+    Ważność oferty: {valid_until}<br/>
+    <b>Nr oferty: {offer_number}</b>''',
+    ParagraphStyle('OfferInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, alignment=TA_RIGHT))
+    
+    info_table = Table([[client_info, offer_info]], colWidths=[265, 265])
+    info_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, BROWN),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 8))
+    
+    # ========== DISCOUNT OR PROMO SECTION ==========
+    if discount_percent > 0:
+        savings = subtotal - total_after_discount
+        discount_content = Paragraph(f'''<b><font color="#2D7A3E" size="14">ZASTOSOWANA ZNIŻKA</font></b><br/><br/>
+        <font size="12" color="#2D7A3E"><b>Rabat: {discount_percent:.0f}%</b></font><br/>
+        <font size="11">Cena przed rabatem: {subtotal:,.0f} PLN</font><br/>
+        <font size="11" color="#2D7A3E"><b>Cena po rabacie: {total_after_discount:,.0f} PLN</b></font><br/>
+        <font size="10" color="#666666"><i>Oszczędzasz: {savings:,.0f} PLN</i></font>'''.replace(',', ' '),
+        ParagraphStyle('Discount', fontName='DejaVuSans', fontSize=11))
+        
+        promo_table = Table([[discount_content]], colWidths=[530])
+        promo_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), GREEN_LIGHT),
+            ('BOX', (0, 0), (-1, -1), 2, GREEN),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ]))
+    else:
+        promo_content = Paragraph(f'''<b><font color="#C53030" size="13">PROMOCJA SPECJALNA</font></b><br/><br/>
+        <font size="9">Zamów do {promo_until} i wybierz swój super gratis świąteczny:<br/>
+        Darmowa balia do schłodzenia albo rabat do 10% od zamówienia</font><br/>
+        <font size="8" color="#888888">Oferta ważna tylko przy zakupie w tym terminie</font>''',
+        ParagraphStyle('Promo', fontName='DejaVuSans', fontSize=11))
+        
+        promo_table = Table([[promo_content]], colWidths=[530])
+        promo_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), RED_LIGHT),
+            ('BOX', (0, 0), (-1, -1), 1.5, RED),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ]))
+    elements.append(promo_table)
     elements.append(Spacer(1, 10))
     
-    # Model Info
-    elements.append(Paragraph('Model sauny', heading_style))
-    model_data = [
-        ['Model:', request.modelName],
-        ['Cena podstawowa:', f'{request.basePrice:,} PLN'.replace(',', ' ')],
-    ]
-    if request.foundationPrice > 0:
-        model_data.append(['Fundament:', f'+{request.foundationPrice:,} PLN'.replace(',', ' ')])
-    if request.discount > 0:
-        model_data.append(['Rabat:', f'-{request.discount}%'])
+    # ========== MODEL SECTION ==========
+    elements.append(Paragraph('MODEL', section_title_style))
+    elements.append(Spacer(1, 4))
+    elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
+    elements.append(Spacer(1, 4))
     
-    model_table = Table(model_data, colWidths=[50*mm, 120*mm])
+    model_data = [[
+        Paragraph(f'<b>{request.modelName or "-"}</b>', ParagraphStyle('Model', fontName='DejaVuSans-Bold', fontSize=12)),
+        Paragraph(f'<b><font color="#97724E">{request.basePrice:,} PLN</font></b>'.replace(',', ' '), 
+                 ParagraphStyle('Price', fontName='DejaVuSans-Bold', fontSize=12, alignment=TA_RIGHT))
+    ]]
+    model_table = Table(model_data, colWidths=[380, 150])
     model_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F0FDF4')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1E293B')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
-        ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
         ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#BBF7D0')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
     ]))
     elements.append(model_table)
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 8))
     
-    # Selected Options
-    elements.append(Paragraph('Wybrane opcje', heading_style))
+    # ========== COMMENT SECTION ==========
+    if request.notes:
+        elements.append(Paragraph('KOMENTARZ DO ZAMÓWIENIA', section_title_style))
+        elements.append(Spacer(1, 4))
+        comment_table = Table([[Paragraph(request.notes, normal_style)]], colWidths=[530])
+        comment_table.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 0.8, BROWN),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(comment_table)
+        elements.append(Spacer(1, 8))
     
-    options_data = []
+    # ========== OPTIONS SECTION (Two columns) ==========
+    options_items = []
     for category in request.categories:
         cat_id = category.get('id', '')
-        cat_name = category.get('name', '')
         selection = request.selections.get(cat_id)
         
         if not selection:
             continue
         
         if category.get('inputType') == 'checkbox':
-            # Multiple selections
             for opt_id, is_selected in selection.items():
                 if is_selected:
                     opt = next((o for o in category.get('options', []) if o.get('id') == opt_id), None)
                     if opt:
-                        price_str = f"+{opt.get('price', 0):,} PLN".replace(',', ' ') if opt.get('price', 0) > 0 else 'gratis'
-                        options_data.append([cat_name, opt.get('name', ''), price_str])
+                        price = opt.get('price', 0)
+                        price_str = f"{price:,} PLN".replace(',', ' ') if price > 0 else '0 PLN'
+                        options_items.append({'name': opt.get('name', ''), 'price': price_str})
         else:
-            # Single selection
             opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
             if opt:
-                price_str = f"+{opt.get('price', 0):,} PLN".replace(',', ' ') if opt.get('price', 0) > 0 else 'gratis'
-                options_data.append([cat_name, opt.get('name', ''), price_str])
+                price = opt.get('price', 0)
+                price_str = f"{price:,} PLN".replace(',', ' ') if price > 0 else '0 PLN'
+                options_items.append({'name': opt.get('name', ''), 'price': price_str})
     
-    if options_data:
-        options_table = Table(options_data, colWidths=[40*mm, 95*mm, 35*mm])
-        options_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F0FDF4')),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1E293B')),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
-            ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
-            ('FONTNAME', (1, 0), (-1, -1), 'DejaVuSans'),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#BBF7D0')),
-        ]))
+    if options_items:
+        elements.append(Paragraph('DODATKOWE OPCJE', section_title_style))
+        elements.append(Spacer(1, 4))
+        elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
+        elements.append(Spacer(1, 4))
+        
+        # Determine font size based on option count
+        opt_count = len(options_items)
+        if opt_count > 40:
+            fs = 7
+        elif opt_count > 28:
+            fs = 8
+        elif opt_count > 18:
+            fs = 9
+        else:
+            fs = 10
+        
+        # Create two-column layout
+        options_body = [[
+            Paragraph('<b>OPCJA</b>', ParagraphStyle('OptHeader', fontName='DejaVuSans-Bold', fontSize=fs, textColor=colors.white)),
+            '',
+            Paragraph('<b>OPCJA</b>', ParagraphStyle('OptHeader', fontName='DejaVuSans-Bold', fontSize=fs, textColor=colors.white)),
+            ''
+        ]]
+        
+        # Split into rows of two
+        for i in range(0, len(options_items), 2):
+            left = options_items[i]
+            right = options_items[i + 1] if i + 1 < len(options_items) else None
+            
+            fill_color = BROWN_LIGHT if (i // 2) % 2 == 0 else None
+            
+            row = [
+                Paragraph(left['name'], ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=fs)),
+                Paragraph(left['price'], ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, alignment=TA_RIGHT)),
+                Paragraph(right['name'] if right else '', ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=fs)),
+                Paragraph(right['price'] if right else '', ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, alignment=TA_RIGHT)),
+            ]
+            options_body.append(row)
+        
+        options_table = Table(options_body, colWidths=[180, 80, 180, 80])
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), BROWN),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('LINEBELOW', (0, 0), (-1, -1), 0.4, BROWN_BORDER),
+        ]
+        # Add alternating row colors
+        for i in range(1, len(options_body)):
+            if (i - 1) % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (-1, i), BROWN_LIGHT))
+        
+        options_table.setStyle(TableStyle(table_style))
         elements.append(options_table)
-    
-    elements.append(Spacer(1, 10))
-    
-    # Notes
-    if request.notes:
-        elements.append(Paragraph('Uwagi', heading_style))
-        elements.append(Paragraph(request.notes, normal_style))
         elements.append(Spacer(1, 10))
     
-    # Total
-    elements.append(Spacer(1, 5))
-    total_data = [['RAZEM:', f'{request.total:,.0f} PLN'.replace(',', ' ')]]
-    total_table = Table(total_data, colWidths=[120*mm, 50*mm])
+    # ========== TOTAL SECTION ==========
+    discount_note = ''
+    if discount_percent > 0:
+        discount_note = f'<br/><font size="8" color="#F0F9F5">Rabat: {discount_percent:.0f}% (cena bez rabatu: {subtotal:,.0f} PLN)</font>'.replace(',', ' ')
+    
+    total_left = Paragraph(f'''<b><font color="white">WARTOŚĆ CAŁKOWITA OFERTY</font></b><br/>
+    <font size="20" color="white"><b>{total_after_discount:,.0f} PLN</b></font>{discount_note}'''.replace(',', ' '),
+    ParagraphStyle('TotalLeft', fontName='DejaVuSans', fontSize=11))
+    
+    total_right = Paragraph('''<font size="8">TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni</font><br/>
+    <font size="8">ZALICZKA: 50% przed produkcją, 50% przed wysyłką</font><br/>
+    <font size="8">GWARANCJA: 12 miesiące od daty montażu</font>''',
+    ParagraphStyle('TotalRight', fontName='DejaVuSans', fontSize=8))
+    
+    total_table = Table([[total_left, total_right]], colWidths=[280, 250])
     total_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#16A34A')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
-        ('ALIGN', (0, 0), (0, 0), 'RIGHT'),
-        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-        ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('BACKGROUND', (0, 0), (0, 0), BROWN),
+        ('BACKGROUND', (1, 0), (1, 0), BROWN_LIGHT),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
     ]))
     elements.append(total_table)
+    
+    # ========== FOOTER ==========
+    elements.append(Spacer(1, 10))
+    elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+    elements.append(Spacer(1, 4))
+    elements.append(Paragraph('Oferta ważna 30 dni od daty wystawienia.', 
+                             ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)))
     
     # Build PDF
     doc.build(elements)
@@ -1287,17 +1436,21 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     buffer.close()
     
     # Safe filename
+    current_date_file = datetime.now().strftime('%d-%m-%Y')
     try:
-        safe_filename = ''.join(c for c in request.fullName if c.isascii() and (c.isalnum() or c in '-_.'))
-        if not safe_filename:
-            safe_filename = "sauna"
+        safe_name = ''.join(c for c in request.fullName if c.isascii() and (c.isalnum() or c in '-_. '))
+        safe_name = safe_name.replace(' ', '_')
+        if not safe_name:
+            safe_name = "Klient"
     except:
-        safe_filename = "sauna"
+        safe_name = "Klient"
+    
+    filename = f"Oferta_{safe_name}_{current_date_file}.pdf"
     
     return StreamingResponse(
         io.BytesIO(pdf_data),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=sauna_{safe_filename}.pdf"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 # Include the router in the main app
