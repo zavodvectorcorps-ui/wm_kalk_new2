@@ -901,6 +901,7 @@ def test_authentication_system():
             "password": "test123",
             "access": "balia"
         }
+        import requests
         create_response = requests.post(f"{BACKEND_URL}/users", json=ivan_data, headers=headers)
         if create_response.status_code == 200:
             print("✅ Created test employee 'ivan'")
