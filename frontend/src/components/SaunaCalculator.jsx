@@ -822,12 +822,12 @@ export const SaunaCalculator = () => {
                         id="discountPercent"
                         type="number"
                         min="0"
-                        max="100"
+                        max="10"
                         value={appliedDiscount}
                         onChange={handleDiscountChange}
                         className="w-20 h-8"
                       />
-                      <span className="text-sm text-muted-foreground">%</span>
+                      <span className="text-sm text-muted-foreground">% (max 10)</span>
                     </div>
                     <Button
                       type="button"
