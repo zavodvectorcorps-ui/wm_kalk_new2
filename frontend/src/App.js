@@ -182,7 +182,7 @@ const AppContent = () => {
     );
   }
 
-  // Sauna Calculator (placeholder for now)
+  // Sauna Calculator
   if (currentCalculator === 'sauna') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -191,8 +191,9 @@ const AppContent = () => {
           onTabChange={handleTabChange}
           isAdminAuthenticated={isAdmin()}
           onAdminLogout={handleLogout}
-          showNavigation={false}
+          showNavigation={true}
           showUsers={isAdmin()}
+          calculatorType="sauna"
         />
         
         {/* Back Button */}
@@ -210,8 +211,12 @@ const AppContent = () => {
         
         {activeTab === 'users' && isAdmin() ? (
           <UserManagement />
+        ) : activeTab === 'orders' ? (
+          <OrdersPage calculatorType="sauna" />
+        ) : activeTab === 'pricing' && isAdmin() ? (
+          <PricingPage calculatorType="sauna" />
         ) : (
-          <SaunaPlaceholder />
+          <SaunaCalculator />
         )}
         
         <Toaster position="top-right" richColors />
