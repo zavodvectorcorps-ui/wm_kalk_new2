@@ -1120,6 +1120,9 @@ async def get_sauna_orders():
 @api_router.post("/sauna/generate-pdf")
 async def generate_sauna_pdf(request: SaunaPDFRequest):
     """Generate PDF for sauna order - Professional offer format"""
+    import base64
+    import os
+    
     buffer = io.BytesIO()
     
     # Register Unicode fonts
@@ -1158,32 +1161,11 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         textColor=BROWN_DARK,
     )
     
-    label_bold_style = ParagraphStyle(
-        'LabelBold',
-        fontName='DejaVuSans-Bold',
-        fontSize=11,
-        textColor=BROWN_DARK,
-    )
-    
-    info_style = ParagraphStyle(
-        'InfoText',
-        fontName='DejaVuSans',
-        fontSize=10,
-        textColor=colors.HexColor('#505050'),
-    )
-    
     normal_style = ParagraphStyle(
         'Normal',
         fontName='DejaVuSans',
         fontSize=9,
         textColor=TEXT_COLOR,
-    )
-    
-    small_muted_style = ParagraphStyle(
-        'SmallMuted',
-        fontName='DejaVuSans',
-        fontSize=8,
-        textColor=MUTED,
     )
     
     # Calculate dates
@@ -1197,9 +1179,29 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     subtotal = getattr(request, 'subtotal', request.total / (1 - discount_percent/100) if discount_percent else request.total) or request.total
     total_after_discount = request.total
     
+    # Load logo image
+    logo_path = '/app/assets/logo7.png'
+    logo_img = None
+    if os.path.exists(logo_path):
+        try:
+            logo_img = RLImage(logo_path, width=180, height=36)
+        except Exception as e:
+            logger.warning(f"Could not load logo: {e}")
+    
+    # Load promo image
+    promo_path = '/app/assets/Prezent2.jpg'
+    promo_img = None
+    if os.path.exists(promo_path):
+        try:
+            promo_img = RLImage(promo_path, width=100, height=100)
+        except Exception as e:
+            logger.warning(f"Could not load promo image: {e}")
+    
     # ========== HEADER ==========
+    logo_cell = logo_img if logo_img else Paragraph('<b>WM-SAUNA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BROWN))
+    
     header_data = [[
-        Paragraph('<b>WM-SAUNA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BROWN)),
+        logo_cell,
         '',
         Paragraph('''<b>OFERTA HANDLOWA</b><br/>
         <font size="9" color="#95856e">Tel: +48 732 099 201</font><br/>
@@ -1213,6 +1215,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (0, 0), 10),
     ]))
     elements.append(header_table)
     
@@ -1264,22 +1267,38 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
             ('LEFTPADDING', (0, 0), (-1, -1), 12),
         ]))
+        elements.append(promo_table)
     else:
-        promo_content = Paragraph(f'''<b><font color="#C53030" size="13">PROMOCJA SPECJALNA</font></b><br/><br/>
+        # Promo section with gift image
+        promo_text = Paragraph(f'''<b><font color="#C53030" size="13">PROMOCJA SPECJALNA</font></b><br/><br/>
         <font size="9">Zamów do {promo_until} i wybierz swój super gratis świąteczny:<br/>
-        Darmowa balia do schłodzenia albo rabat do 10% od zamówienia</font><br/>
+        Darmowa balia do schłodzenia<br/>
+        albo rabat do 10% od zamówienia</font><br/><br/>
         <font size="8" color="#888888">Oferta ważna tylko przy zakupie w tym terminie</font>''',
-        ParagraphStyle('Promo', fontName='DejaVuSans', fontSize=11))
+        ParagraphStyle('PromoText', fontName='DejaVuSans', fontSize=11))
         
-        promo_table = Table([[promo_content]], colWidths=[530])
-        promo_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), RED_LIGHT),
-            ('BOX', (0, 0), (-1, -1), 1.5, RED),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('LEFTPADDING', (0, 0), (-1, -1), 12),
-        ]))
-    elements.append(promo_table)
+        if promo_img:
+            promo_data = [[promo_img, promo_text]]
+            promo_table = Table(promo_data, colWidths=[120, 400])
+            promo_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), RED_LIGHT),
+                ('BOX', (0, 0), (-1, -1), 1.5, RED),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ]))
+        else:
+            promo_table = Table([[promo_text]], colWidths=[530])
+            promo_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), RED_LIGHT),
+                ('BOX', (0, 0), (-1, -1), 1.5, RED),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ]))
+        elements.append(promo_table)
     elements.append(Spacer(1, 10))
     
     # ========== MODEL SECTION ==========
@@ -1316,6 +1335,67 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             ('LEFTPADDING', (0, 0), (-1, -1), 10),
         ]))
         elements.append(comment_table)
+        elements.append(Spacer(1, 8))
+    
+    # ========== BENCH IMAGE SECTION ==========
+    # Find bench selection and its image
+    bench_image_url = None
+    bench_name = None
+    bench_price = 0
+    
+    selected_options = getattr(request, 'selectedOptions', []) or []
+    for opt in selected_options:
+        if opt.get('categoryId') == 'lawki' and opt.get('imageUrl'):
+            bench_image_url = opt.get('imageUrl')
+            bench_name = opt.get('optionName')
+            bench_price = opt.get('price', 0)
+            break
+    
+    # Also check categories for bench image
+    if not bench_image_url:
+        for category in request.categories:
+            if category.get('id') == 'lawki':
+                selection = request.selections.get('lawki')
+                if selection:
+                    opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
+                    if opt and opt.get('imageUrl'):
+                        bench_image_url = opt.get('imageUrl')
+                        bench_name = opt.get('name')
+                        bench_price = opt.get('price', 0)
+                break
+    
+    if bench_image_url and bench_name:
+        elements.append(Paragraph('ŁAWKI', section_title_style))
+        elements.append(Spacer(1, 4))
+        
+        # Try to load bench image from URL
+        bench_img = None
+        try:
+            import urllib.request
+            import tempfile
+            
+            # Download image to temp file
+            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+                urllib.request.urlretrieve(bench_image_url, tmp.name)
+                bench_img = RLImage(tmp.name, width=140, height=100)
+        except Exception as e:
+            logger.warning(f"Could not load bench image: {e}")
+        
+        bench_info = Paragraph(f'''<b>{bench_name}</b><br/>
+        <font color="#97724E">{bench_price:,} PLN</font>'''.replace(',', ' '),
+        ParagraphStyle('BenchInfo', fontName='DejaVuSans', fontSize=11))
+        
+        if bench_img:
+            bench_data = [[bench_img, bench_info]]
+            bench_table = Table(bench_data, colWidths=[160, 370])
+            bench_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('LEFTPADDING', (1, 0), (1, 0), 15),
+            ]))
+            elements.append(bench_table)
+        else:
+            elements.append(bench_info)
         elements.append(Spacer(1, 8))
     
     # ========== OPTIONS SECTION (Two columns) ==========
@@ -1372,8 +1452,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             left = options_items[i]
             right = options_items[i + 1] if i + 1 < len(options_items) else None
             
-            fill_color = BROWN_LIGHT if (i // 2) % 2 == 0 else None
-            
             row = [
                 Paragraph(left['name'], ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=fs)),
                 Paragraph(left['price'], ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, alignment=TA_RIGHT)),
@@ -1401,29 +1479,45 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         elements.append(options_table)
         elements.append(Spacer(1, 10))
     
-    # ========== TOTAL SECTION ==========
+    # ========== TOTAL SECTION (FIXED) ==========
+    total_price_str = f"{total_after_discount:,.0f}".replace(',', ' ')
+    
     discount_note = ''
     if discount_percent > 0:
-        discount_note = f'<br/><font size="8" color="#F0F9F5">Rabat: {discount_percent:.0f}% (cena bez rabatu: {subtotal:,.0f} PLN)</font>'.replace(',', ' ')
+        discount_note = f"Rabat: {discount_percent:.0f}% (cena bez rabatu: {subtotal:,.0f} PLN)".replace(',', ' ')
     
-    total_left = Paragraph(f'''<b><font color="white">WARTOŚĆ CAŁKOWITA OFERTY</font></b><br/>
-    <font size="20" color="white"><b>{total_after_discount:,.0f} PLN</b></font>{discount_note}'''.replace(',', ' '),
-    ParagraphStyle('TotalLeft', fontName='DejaVuSans', fontSize=11))
+    # Left cell with total
+    total_left_content = [
+        Paragraph('<font color="white"><b>WARTOŚĆ CAŁKOWITA OFERTY</b></font>', 
+                  ParagraphStyle('TotalTitle', fontName='DejaVuSans-Bold', fontSize=11, textColor=colors.white)),
+        Spacer(1, 4),
+        Paragraph(f'<font color="white"><b>{total_price_str} PLN</b></font>', 
+                  ParagraphStyle('TotalValue', fontName='DejaVuSans-Bold', fontSize=20, textColor=colors.white)),
+    ]
+    if discount_note:
+        total_left_content.append(Spacer(1, 4))
+        total_left_content.append(Paragraph(f'<font color="#F0F9F5" size="8">{discount_note}</font>', 
+                                           ParagraphStyle('DiscountNote', fontName='DejaVuSans', fontSize=8)))
     
-    total_right = Paragraph('''<font size="8">TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni</font><br/>
-    <font size="8">ZALICZKA: 50% przed produkcją, 50% przed wysyłką</font><br/>
-    <font size="8">GWARANCJA: 12 miesiące od daty montażu</font>''',
-    ParagraphStyle('TotalRight', fontName='DejaVuSans', fontSize=8))
+    # Right cell with terms
+    total_right_content = [
+        Paragraph('TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni', 
+                  ParagraphStyle('Terms', fontName='DejaVuSans', fontSize=8)),
+        Paragraph('ZALICZKA: 50% przed produkcją, 50% przed wysyłką', 
+                  ParagraphStyle('Terms', fontName='DejaVuSans', fontSize=8)),
+        Paragraph('GWARANCJA: 12 miesiące od daty montażu', 
+                  ParagraphStyle('Terms', fontName='DejaVuSans', fontSize=8)),
+    ]
     
-    total_table = Table([[total_left, total_right]], colWidths=[280, 250])
+    total_table = Table([[[*total_left_content], [*total_right_content]]], colWidths=[280, 250])
     total_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (0, 0), BROWN),
         ('BACKGROUND', (1, 0), (1, 0), BROWN_LIGHT),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-        ('LEFTPADDING', (0, 0), (-1, -1), 12),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ('TOPPADDING', (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+        ('LEFTPADDING', (0, 0), (-1, -1), 15),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 15),
     ]))
     elements.append(total_table)
     
