@@ -94,6 +94,7 @@
   
   "generatePDF": "Generuj PDF",
   "saveOrder": "Zapisz zamówienie",
+  "saveAndGeneratePDF": "Zapisz i generuj PDF",
   "clearForm": "Wyczyść formularz",
   
   "orderSaved": "Zamówienie zostało zapisane!",
