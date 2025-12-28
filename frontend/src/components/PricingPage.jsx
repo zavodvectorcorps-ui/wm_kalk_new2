@@ -288,6 +288,20 @@ export const PricingPage = () => {
     });
   };
 
+  const handleToggleRequired = (categoryId, required) => {
+    setPrices((prev) => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        [categoryId]: {
+          ...prev.categories[categoryId],
+          required: required,
+        },
+      },
+    }));
+    toast.success(required ? 'Категория теперь обязательная' : 'Категория теперь необязательная');
+  };
+
   const handleDeleteOption = (category, key) => {
     if (window.confirm(`Удалить опцию "${key}"?`)) {
       setPrices((prev) => {
