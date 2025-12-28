@@ -245,6 +245,7 @@ export const CalculatorPage = () => {
         notes: formData.notes,
         total: calculateTotal(),
         type: type,
+        language: i18n.language,  // Send current language for PDF generation
       };
 
       const response = await axios.post(`${API_URL}/api/generate-pdf`, orderData, {
