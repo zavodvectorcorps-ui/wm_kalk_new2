@@ -41,14 +41,36 @@ export const Header = ({ activeTab, onTabChange, isAdminAuthenticated, onAdminLo
             variant={activeTab === 'pricing' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onTabChange('pricing')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 relative"
           >
             <DollarSign className="h-4 w-4" />
             {t('pricing')}
+            {!isAdminAuthenticated && (
+              <Lock className="h-3 w-3 ml-1" />
+            )}
           </Button>
         </nav>
         
-        <LanguageSwitcher />
+        <div className="flex items-center gap-2">
+          {isAdminAuthenticated && (
+            <div className="hidden md:flex items-center gap-2 mr-2">
+              <Badge variant="secondary" className="gap-1">
+                <Lock className="h-3 w-3" />
+                Админ
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onAdminLogout}
+                className="text-muted-foreground hover:text-foreground"
+                title="Выйти из режима администратора"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          <LanguageSwitcher />
+        </div>
       </div>
     </header>
   );
