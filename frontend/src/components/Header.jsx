@@ -1,10 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { Calculator, FileText, DollarSign } from 'lucide-react';
+import { Calculator, FileText, DollarSign, LogOut, Lock } from 'lucide-react';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 
-export const Header = ({ activeTab, onTabChange }) => {
+export const Header = ({ activeTab, onTabChange, isAdminAuthenticated, onAdminLogout }) => {
   const { t } = useTranslation();
 
   return (
