@@ -531,7 +531,7 @@ export const PricingPage = () => {
               </div>
               <Button onClick={() => setIsAddOptionDialogOpen(true)} className="gap-2">
                 <Plus className="h-4 w-4" />
-                Добавить опцию
+                {t('addOption')}
               </Button>
             </CardTitle>
           </CardHeader>
