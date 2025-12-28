@@ -9,7 +9,7 @@ import { CalculatorPage } from './components/CalculatorPage';
 import { OrdersPage } from './components/OrdersPage';
 import { PricingPage } from './components/PricingPage';
 import { UserManagement } from './components/UserManagement';
-import { SaunaPlaceholder } from './components/SaunaPlaceholder';
+import { SaunaCalculator } from './components/SaunaCalculator';
 import { Toaster } from './components/ui/sonner';
 import { Button } from './components/ui/button';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
