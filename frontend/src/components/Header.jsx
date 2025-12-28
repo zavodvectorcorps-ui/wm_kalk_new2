@@ -94,8 +94,8 @@ export const Header = ({
         
         {/* Right side: Admin badge, Language Switcher, Mobile Menu Button */}
         <div className="flex items-center gap-2">
-          {/* Desktop Admin Badge */}
-          {isAdminAuthenticated && (
+          {/* Desktop Admin Badge and Logout */}
+          {isAdminAuthenticated ? (
             <div className="hidden md:flex items-center gap-2 mr-2">
               <Badge variant="secondary" className="gap-1">
                 <Lock className="h-3 w-3" />
@@ -111,6 +111,17 @@ export const Header = ({
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
+          ) : (
+            /* Logout button for regular employees */
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onAdminLogout}
+              className="hidden md:flex text-muted-foreground hover:text-foreground"
+              title={t('logout')}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           )}
           
           <LanguageSwitcher />
