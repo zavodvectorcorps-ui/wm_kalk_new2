@@ -604,46 +604,6 @@ export const SaunaCalculator = () => {
             </CardContent>
           </Card>
 
-          {/* Discount Section */}
-          <Card className="shadow-md border-green-200">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-              <CardTitle className="flex items-center gap-2 text-lg text-green-700">
-                <Percent className="h-5 w-5" />
-                {txt.discount}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="discountPercent">{txt.discountPercent}</Label>
-                  <Input
-                    id="discountPercent"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={appliedDiscount}
-                    onChange={handleDiscountChange}
-                    className="w-24"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleApplyStandardDiscount}
-                  className="border-green-300 text-green-700 hover:bg-green-50"
-                >
-                  <Tag className="h-4 w-4 mr-2" />
-                  {txt.applyStandardDiscount}
-                </Button>
-                {appliedDiscount > 0 && (
-                  <div className="text-sm text-green-600 font-medium">
-                    {txt.youSave}: {discountAmount.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Option Categories */}
           {prices.categories?.map((category) => {
             const Icon = categoryIcons[category.name] || Package;
