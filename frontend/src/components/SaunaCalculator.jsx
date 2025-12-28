@@ -403,13 +403,15 @@ export const SaunaCalculator = () => {
         total: total,
       };
 
-      // 1. Save order
-      await axios.post(`${API_URL}/api/sauna/orders`, orderData);
+      // 1. Save order and get the order ID
+      const orderResponse = await axios.post(`${API_URL}/api/sauna/orders`, orderData);
+      const orderId = orderResponse.data?.id || '';
       toast.success(txt.orderSaved);
 
-      // 2. Generate PDF
+      // 2. Generate PDF with order ID
       const pdfData = {
         ...orderData,
+        orderId: orderId,
         language: 'pl',
         categories: prices.categories,
       };
