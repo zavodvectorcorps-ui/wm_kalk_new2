@@ -120,6 +120,9 @@ sauna_calculator:
         -working: true
         -agent: "testing"
         -comment: "✅ BACKEND TESTING COMPLETE - GET /api/sauna/prices working perfectly. Returns exactly 13 sauna models as expected (Kwadro-Beczka and Beczka variants). All models have correct structure with basePrice, foundationPrice, discount, and imageUrl. Key models verified: sauna_kwadro_beczka_235x300_cm (24100 PLN, 8% discount), sauna_beczka_235x200_cm (12800 PLN, 0% discount)."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ FRONTEND UI TESTING COMPLETE - Comprehensive Playwright testing completed successfully. Model selection grid displays all 13 sauna models with images, prices, and discounts. Target model 'Sauna Kwadro-Beczka 235x300 cm' found and selectable with proper visual feedback (blue highlighted border). Model shows correct price (24,100 PLN) and 8% discount. Model selection updates order summary correctly showing selected model name and price."
 
   - task: "Sauna Calculator - Options Selection"
     implemented: true
@@ -135,6 +138,9 @@ sauna_calculator:
         -working: true
         -agent: "testing"
         -comment: "✅ BACKEND TESTING COMPLETE - GET /api/sauna/prices returns exactly 14 option categories as expected. All key categories verified: piece (6 options including piec_elektryczny_9kw +2600 PLN), drzwi (3 door options), okna (6 window options), dostawa (5 delivery options). Categories have correct inputType (radio/checkbox) and options with proper pricing structure."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ FRONTEND UI TESTING COMPLETE - Option selection working perfectly. Successfully tested 'Печь' (Piece) category with 'Piec Elektryczne 9 kW' (+2600 PLN) selection and 'Расположение печи' category with 'Piec lewo' (+350 PLN) selection. Both options display proper visual feedback when selected (highlighted with blue border) and show correct pricing. All 14 option categories render with proper Russian translations and appropriate input types (radio/checkbox)."
 
   - task: "Sauna Calculator - Price Calculation with Discount"
     implemented: true
@@ -150,6 +156,9 @@ sauna_calculator:
         -working: true
         -agent: "testing"
         -comment: "✅ BACKEND TESTING COMPLETE - Price calculation verified working correctly. Test order created with sauna_kwadro_beczka_235x300_cm (24100 PLN base + 250 PLN foundation), piec_elektryczny_9kw (+2600 PLN), piec_lewo (+350 PLN). Total options: 2950 PLN. Final calculation: (24100 + 250 + 2950) × 0.92 = 24886 PLN. Backend correctly calculated and saved total as 24886.0 PLN."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ FRONTEND UI TESTING COMPLETE - Price calculation with discount working perfectly. Order summary correctly displays: Model (24,100 PLN), Piece (+2600 PLN), Location (+350 PLN), Discount 8% (-2164 PLN), Final Total: 24,886 PLN. Real-time calculation updates as options are selected. PLN currency displayed consistently throughout. Discount calculation formula verified: (24100 + 2600 + 350) × 0.92 = 24,886 PLN."
 
   - task: "Sauna Calculator - Order Saving"
     implemented: true
@@ -165,6 +174,9 @@ sauna_calculator:
         -working: true
         -agent: "testing"
         -comment: "✅ BACKEND TESTING COMPLETE - POST /api/sauna/orders working perfectly. Successfully created test order with customer 'Test User', phone '+48 111 222 333', address 'Warszawa'. Order saved with all required fields: id, fullName, phoneNumber, selectedModel, modelName, basePrice, foundationPrice, discount, selections, total. Order ID generated correctly and retrievable via GET /api/sauna/orders."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ FRONTEND UI TESTING COMPLETE - Order saving working perfectly. Customer form accepts Cyrillic input ('Тест Пользователь', '+48 111 222 333', 'Краков, ул. Флориньска 1'). 'Сохранить и создать PDF' button functional and displays success toast 'Заказ сауны сохранён!' after successful save. Form validation working (requires name, phone, address, and model selection)."
 
   - task: "Sauna Calculator - PDF Generation"
     implemented: true
@@ -180,6 +192,9 @@ sauna_calculator:
         -working: true
         -agent: "testing"
         -comment: "✅ BACKEND TESTING COMPLETE - POST /api/sauna/generate-pdf working perfectly. Successfully generated PDF with test data (customer: Test User, model: Sauna Kwadro-Beczka 235x300 cm, options: piec_elektryczny_9kw, piec_lewo, total: 24886 PLN). PDF returned with correct content-type (application/pdf), size 44402 bytes, and Polish language support. Categories array properly processed for option display."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ FRONTEND UI TESTING COMPLETE - PDF generation working perfectly. After clicking 'Сохранить и создать PDF' button, success toast 'PDF успешно создан!' appears confirming PDF generation. Integration between frontend form data and backend PDF generation working correctly with Cyrillic character support."
 
   - task: "Sauna Orders Page"
     implemented: true
@@ -195,6 +210,9 @@ sauna_calculator:
         -working: true
         -agent: "testing"
         -comment: "✅ BACKEND TESTING COMPLETE - GET /api/sauna/orders working perfectly. Successfully retrieves sauna orders with all required fields (id, fullName, phoneNumber, selectedModel, total). Found 3 sauna orders in database. Test order properly saved and retrievable. Backend supports separate sauna orders collection from regular hot tub orders."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ FRONTEND UI TESTING COMPLETE - Sauna Orders page working perfectly. Navigation to 'Заказы' tab successful. Orders page displays 'Заказы саун' title with count badge (6 orders). Table shows all required columns: Order #, Client, Model, Date, Total, Actions. New test order appears in list with correct data: 'Тест Пользователь', 'Sauna Kwadro-Beczka 235x300 cm', '24 886 PLN'. PLN currency displayed consistently. 'Скачать PDF' buttons functional for each order."
 
 frontend:
   - task: "Language Switcher"
