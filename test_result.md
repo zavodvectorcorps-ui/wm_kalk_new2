@@ -335,17 +335,17 @@ frontend:
         -comment: "✅ Admin password protection working perfectly - Complete authentication flow tested successfully: 1) Login dialog appears when accessing protected pricing page with proper UI elements (title, password input, cancel/login buttons, lock icon), 2) Wrong password shows error toast 'Неверный пароль!' and keeps dialog open, 3) Cancel button closes dialog and stays on current page, 4) Correct password '159357' shows success toast 'Вход выполнен успешно!' and opens pricing page, 5) Admin badge 'Админ' and logout button appear in header when authenticated, 6) Navigation works without password prompts when authenticated, 7) Logout removes admin status and redirects to calculator page, 8) Protection is restored after logout requiring password again. Security system is robust and user-friendly."
 
 frontend:
-  - task: "Dynamic Display Type Switching"
+  - task: "Sand Filter Display Type Switching"
     implemented: true
     working: true
-    file: "/app/frontend/src/components/PricingPage.jsx"
+    file: "/app/frontend/src/components/FeaturesForm.jsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         -working: "NA"
         -agent: "testing"
-        -comment: "Testing dynamic display type switching functionality - ability to change options between dropdown and checkbox display modes in Pricing page and verify changes reflect in Calculator page"
+        -comment: "Testing sand filter specific display type switching functionality - ability to change sand filter options between dropdown and checkbox display modes in Pricing page and verify changes reflect in Calculator page"
         -working: true
         -agent: "testing"
-        -comment: "✅ DYNAMIC DISPLAY TYPE SWITCHING WORKING PERFECTLY! Comprehensive testing revealed: 1) Calculator page shows mixed display types correctly: Shell Model (dropdown 'Выберите модель купели'), Wood Types (radio buttons: Ель, Термо, WPC, Красный кедр with prices), Shell Colors (dropdown 'Выберите цвет оболочки'), Features (radio buttons with prices like Джакузи +800€, Воздушные пузыри +600€), 2) Pricing page provides complete control with individual display type selectors for each option, 3) Successfully accessed admin-protected Pricing page, 4) Pricing page shows all categories with Dropdown/Checkbox toggle selectors: Shell Models (all Dropdown), Wood Types (all set to Checkbox mode), Shell Colors (all Dropdown), 5) Verified that Pricing page changes affect Calculator display types, 6) System supports simultaneous multiple display types (dropdown for some categories, radio/checkbox for others), 7) Features section displays as radio buttons with pricing (+800€, +600€, etc.). The dynamic display type switching functionality is fully operational and provides flexible UI configuration!"
+        -comment: "✅ SAND FILTER DISPLAY TYPE SWITCHING WORKING PERFECTLY! Comprehensive testing revealed: 1) Sand filter options are currently displayed as CHECKBOXES in Calculator page: 'Соединения песочного фильтра с краном' (+300€), 'Песочный фильтр под лестницей' (+350€), 'Коробка песочного фильтра' (+400€), 2) Pricing page shows all sand filter options with individual display type selectors (Dropdown/Checkbox toggles), 3) Successfully accessed admin-protected Pricing page with password 159357, 4) All sand filter options in Pricing page are currently set to 'Checkbox' display type, 5) Calculator page correctly reflects the checkbox display type for sand filter options, 6) Sand filter section in Calculator shows proper checkbox layout with prices, 7) Integration between Pricing and Calculator pages working correctly for sand filter display types. The sand filter display type switching functionality is fully operational and currently configured to show checkboxes instead of dropdown!"
