@@ -1,13 +1,32 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X } from 'lucide-react';
+import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
-export const Header = ({ activeTab, onTabChange, isAdminAuthenticated, onAdminLogout }) => {
-  const { t } = useTranslation();
+export const Header = ({ 
+  activeTab, 
+  onTabChange, 
+  isAdminAuthenticated, 
+  onAdminLogout,
+  showNavigation = true,
+  showUsers = false
+}) => {
+  const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const texts = {
+    ru: {
+      users: 'Сотрудники',
+    },
+    pl: {
+      users: 'Pracownicy',
+    },
+  };
+
+  const lang = i18n.language === 'pl' ? 'pl' : 'ru';
+  const txt = texts[lang];
 
   const handleTabChange = (tab) => {
     onTabChange(tab);
@@ -27,36 +46,50 @@ export const Header = ({ activeTab, onTabChange, isAdminAuthenticated, onAdminLo
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-2">
-          <Button
-            variant={activeTab === 'calculator' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => handleTabChange('calculator')}
-            className="flex items-center gap-2"
-          >
-            <Calculator className="h-4 w-4" />
-            {t('calculator')}
-          </Button>
-          <Button
-            variant={activeTab === 'orders' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => handleTabChange('orders')}
-            className="flex items-center gap-2"
-          >
-            <FileText className="h-4 w-4" />
-            {t('orders')}
-          </Button>
-          <Button
-            variant={activeTab === 'pricing' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => handleTabChange('pricing')}
-            className="flex items-center gap-2 relative"
-          >
-            <DollarSign className="h-4 w-4" />
-            {t('pricing')}
-            {!isAdminAuthenticated && (
-              <Lock className="h-3 w-3 ml-1" />
-            )}
-          </Button>
+          {showNavigation && (
+            <>
+              <Button
+                variant={activeTab === 'calculator' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleTabChange('calculator')}
+                className="flex items-center gap-2"
+              >
+                <Calculator className="h-4 w-4" />
+                {t('calculator')}
+              </Button>
+              <Button
+                variant={activeTab === 'orders' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleTabChange('orders')}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                {t('orders')}
+              </Button>
+              {isAdminAuthenticated && (
+                <Button
+                  variant={activeTab === 'pricing' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('pricing')}
+                  className="flex items-center gap-2"
+                >
+                  <DollarSign className="h-4 w-4" />
+                  {t('pricing')}
+                </Button>
+              )}
+            </>
+          )}
+          {showUsers && isAdminAuthenticated && (
+            <Button
+              variant={activeTab === 'users' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => handleTabChange('users')}
+              className="flex items-center gap-2"
+            >
+              <Users className="h-4 w-4" />
+              {txt.users}
+            </Button>
+          )}
         </nav>
         
         {/* Right side: Admin badge, Language Switcher, Mobile Menu Button */}
@@ -102,36 +135,50 @@ export const Header = ({ activeTab, onTabChange, isAdminAuthenticated, onAdminLo
       {mobileMenuOpen && (
         <div className="md:hidden border-t bg-card">
           <nav className="container px-4 py-3 space-y-1 mx-auto max-w-7xl">
-            <Button
-              variant={activeTab === 'calculator' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleTabChange('calculator')}
-              className="w-full justify-start gap-2"
-            >
-              <Calculator className="h-4 w-4" />
-              {t('calculator')}
-            </Button>
-            <Button
-              variant={activeTab === 'orders' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleTabChange('orders')}
-              className="w-full justify-start gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              {t('orders')}
-            </Button>
-            <Button
-              variant={activeTab === 'pricing' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleTabChange('pricing')}
-              className="w-full justify-start gap-2"
-            >
-              <DollarSign className="h-4 w-4" />
-              {t('pricing')}
-              {!isAdminAuthenticated && (
-                <Lock className="h-3 w-3 ml-1" />
-              )}
-            </Button>
+            {showNavigation && (
+              <>
+                <Button
+                  variant={activeTab === 'calculator' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('calculator')}
+                  className="w-full justify-start gap-2"
+                >
+                  <Calculator className="h-4 w-4" />
+                  {t('calculator')}
+                </Button>
+                <Button
+                  variant={activeTab === 'orders' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('orders')}
+                  className="w-full justify-start gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  {t('orders')}
+                </Button>
+                {isAdminAuthenticated && (
+                  <Button
+                    variant={activeTab === 'pricing' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleTabChange('pricing')}
+                    className="w-full justify-start gap-2"
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    {t('pricing')}
+                  </Button>
+                )}
+              </>
+            )}
+            {showUsers && isAdminAuthenticated && (
+              <Button
+                variant={activeTab === 'users' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleTabChange('users')}
+                className="w-full justify-start gap-2"
+              >
+                <Users className="h-4 w-4" />
+                {txt.users}
+              </Button>
+            )}
             
             {/* Mobile Admin Section */}
             {isAdminAuthenticated && (
