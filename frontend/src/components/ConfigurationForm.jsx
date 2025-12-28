@@ -72,7 +72,7 @@ export const ConfigurationForm = ({ formData, onChange, prices }) => {
     { value: 'natural', label: t('natural') },
     { value: 'painted', label: t('painted') },
     { value: 'oiled', label: t('oiled') },
-  ];
+  ]);
 
   return (
     <Card className="shadow-md">
