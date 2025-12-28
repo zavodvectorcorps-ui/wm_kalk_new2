@@ -17,9 +17,38 @@ import { toast } from 'sonner';
 const ADMIN_PASSWORD = '159357';
 
 export const AdminLogin = ({ isOpen, onClose, onSuccess }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Get localized texts
+  const texts = {
+    ru: {
+      title: 'Вход для администратора',
+      description: 'Введите пароль для доступа к разделу управления ценами',
+      passwordLabel: 'Пароль администратора',
+      placeholder: 'Введите пароль',
+      cancel: 'Отмена',
+      login: 'Войти',
+      checking: 'Проверка...',
+      success: 'Вход выполнен успешно!',
+      error: 'Неверный пароль!',
+    },
+    pl: {
+      title: 'Logowanie administratora',
+      description: 'Wprowadź hasło, aby uzyskać dostęp do zarządzania cenami',
+      passwordLabel: 'Hasło administratora',
+      placeholder: 'Wprowadź hasło',
+      cancel: 'Anuluj',
+      login: 'Zaloguj',
+      checking: 'Sprawdzanie...',
+      success: 'Zalogowano pomyślnie!',
+      error: 'Nieprawidłowe hasło!',
+    },
+  };
+
+  const lang = i18n.language === 'pl' ? 'pl' : 'ru';
+  const txt = texts[lang];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -29,11 +58,11 @@ export const AdminLogin = ({ isOpen, onClose, onSuccess }) => {
       if (password === ADMIN_PASSWORD) {
         // Save auth state
         sessionStorage.setItem('adminAuth', 'true');
-        toast.success('Вход выполнен успешно!');
+        toast.success(txt.success);
         onSuccess();
         setPassword('');
       } else {
-        toast.error('Неверный пароль!');
+        toast.error(txt.error);
       }
       setIsLoading(false);
     }, 500);
@@ -50,23 +79,23 @@ export const AdminLogin = ({ isOpen, onClose, onSuccess }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
-            Вход для администратора
+            {txt.title}
           </DialogTitle>
           <DialogDescription>
-            Введите пароль для доступа к разделу управления ценами
+            {txt.description}
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="admin-password">Пароль администратора</Label>
+              <Label htmlFor="admin-password">{txt.passwordLabel}</Label>
               <Input
                 id="admin-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Введите пароль"
+                placeholder={txt.placeholder}
                 autoFocus
                 required
                 disabled={isLoading}
@@ -81,18 +110,18 @@ export const AdminLogin = ({ isOpen, onClose, onSuccess }) => {
               onClick={handleClose}
               disabled={isLoading}
             >
-              Отмена
+              {txt.cancel}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                  Проверка...
+                  {txt.checking}
                 </>
               ) : (
                 <>
                   <LogIn className="h-4 w-4 mr-2" />
-                  Войти
+                  {txt.login}
                 </>
               )}
             </Button>
