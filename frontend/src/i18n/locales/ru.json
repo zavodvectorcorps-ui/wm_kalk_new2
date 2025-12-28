@@ -94,6 +94,7 @@
   
   "generatePDF": "Создать PDF",
   "saveOrder": "Сохранить заказ",
+  "saveAndGeneratePDF": "Сохранить и создать PDF",
   "clearForm": "Очистить форму",
   
   "orderSaved": "Заказ успешно сохранен!",
