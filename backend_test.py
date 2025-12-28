@@ -749,7 +749,97 @@ def test_create_sauna_order():
         print(f"❌ POST /api/sauna/orders error: {str(e)}")
         return False
 
-def test_get_sauna_orders():
+def test_update_sauna_prices():
+    """Test POST /api/sauna/prices - Update sauna pricing"""
+    print("\n🔍 Testing POST /api/sauna/prices (Update sauna pricing)...")
+    
+    try:
+        # First get current prices
+        get_response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        if get_response.status_code != 200:
+            print("❌ Could not get current sauna prices for testing")
+            return False
+        
+        current_data = get_response.json()
+        
+        # Create test data with modifications
+        test_data = current_data.copy()
+        
+        # Modify a model's discount percentage
+        models = test_data.get('models', [])
+        for model in models:
+            if model.get('id') == 'sauna_kwadro_beczka_235x300_cm':
+                original_discount = model.get('discount', 0)
+                model['discount'] = 10  # Change from 8% to 10%
+                print(f"✅ Modified model discount from {original_discount}% to 10%")
+                break
+        
+        # Add a new option to a category
+        categories = test_data.get('categories', [])
+        for category in categories:
+            if category.get('id') == 'piece':
+                new_option = {
+                    "id": "test_piec_premium",
+                    "name": "Test Premium Piec 15kW",
+                    "price": 7500,
+                    "inputType": "radio",
+                    "sortOrder": 99
+                }
+                category['options'].append(new_option)
+                print("✅ Added new option 'Test Premium Piec 15kW' to piece category")
+                break
+        
+        # Send POST request
+        response = requests.post(f"{BACKEND_URL}/sauna/prices", json=test_data)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ POST /api/sauna/prices successful")
+            
+            # Verify the changes were saved by getting data again
+            verify_response = requests.get(f"{BACKEND_URL}/sauna/prices")
+            if verify_response.status_code == 200:
+                saved_data = verify_response.json()
+                
+                # Check if model discount was updated
+                saved_models = saved_data.get('models', [])
+                for model in saved_models:
+                    if model.get('id') == 'sauna_kwadro_beczka_235x300_cm':
+                        if model.get('discount') == 10:
+                            print("✅ Model discount percentage updated successfully")
+                        else:
+                            print(f"❌ Model discount not updated: {model.get('discount')}")
+                            return False
+                        break
+                
+                # Check if new option was added
+                saved_categories = saved_data.get('categories', [])
+                option_found = False
+                for category in saved_categories:
+                    if category.get('id') == 'piece':
+                        for option in category.get('options', []):
+                            if option.get('id') == 'test_piec_premium':
+                                print("✅ New option added to category successfully")
+                                option_found = True
+                                break
+                        break
+                
+                if not option_found:
+                    print("❌ New option not found after save")
+                    return False
+                
+                return True
+            else:
+                print("❌ Could not verify saved sauna pricing data")
+                return False
+        else:
+            print(f"❌ POST /api/sauna/prices failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ POST /api/sauna/prices error: {str(e)}")
+        return False
     """Test GET /api/sauna/orders endpoint"""
     print("\n🔍 Testing GET /api/sauna/orders...")
     
