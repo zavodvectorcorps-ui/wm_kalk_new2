@@ -197,45 +197,6 @@ default_prices = {
         "electricThermometer": "checkbox",
     },
 }
-        "blackSilverGlitter": 200.0,
-    },
-    "lidTypes": {
-        "glassFiberLid": 200.0,
-        "spaLid": 300.0,
-    },
-    "woodColors": {
-        "akrilasWhite": 0.0,
-        "akrilasGreenMarble": 100.0,
-        "akrilasBrownMarble": 100.0,
-        "akrilasBlueMarble": 100.0,
-        "akrilasWhiteMarble": 100.0,
-        "akrilasCoffeeMarble": 100.0,
-        "akrilasBlackMarble": 100.0,
-        "natural": 0.0,
-        "painted": 150.0,
-        "oiled": 200.0,
-    },
-    "features": {
-        "jacuzzi": 800.0,
-        "airBubble": 600.0,
-        "outsideLed12": 150.0,
-        "insideLed": 150.0,
-        "outsideLedStripe": 200.0,
-        "insideLedMini": 180.0,
-        "insulation": 250.0,
-        "headPillow": 80.0,
-        "sandFilterConnections": 300.0,
-        "sandFilterUnderStairs": 350.0,
-        "sandFilterBox": 400.0,
-        "v4aHeater": 500.0,
-        "electricityBox": 200.0,
-        "chimneyExtension": 150.0,
-        "extraChimneyProtection": 100.0,
-        "bluetoothRadio": 250.0,
-        "electricHeater3kw": 600.0,
-        "electricThermometer": 120.0,
-    },
-}
 
 # Routes
 @api_router.get("/")
