@@ -402,11 +402,14 @@ frontend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: "NA"
         -agent: "main"
         -comment: "Updated PDF generation to support both Russian and Polish languages. PDF titles, labels, and feature names are now translated based on selected language."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ PDF generation with language support confirmed working. Backend properly handles both Russian and Polish language contexts for PDF generation. Integration with localization system verified during comprehensive testing."
 
   - task: "Category Management System"
     implemented: true
