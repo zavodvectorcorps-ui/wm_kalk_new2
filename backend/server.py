@@ -102,6 +102,7 @@ class PDFRequest(BaseModel):
     notes: str = ""
     total: float = 0.0
     type: str = "customer"  # customer or technical
+    language: str = "ru"  # ru or pl
 
 # Initialize default prices
 default_prices = {
