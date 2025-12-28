@@ -73,7 +73,7 @@ export const OrderSummary = ({ formData, prices, total, categories = {} }) => {
     } else if (selection) {
       // Dropdown category - single selection
       selectedItems.push({
-        label: category.name || t(categoryId) || categoryId,
+        label: getCategoryName(category, categoryId),
         value: getOptionLabel(selection),
         price: getPrice(categoryId, selection),
       });
