@@ -42,6 +42,7 @@ class PriceData(BaseModel):
     lidTypes: Dict[str, float] = {}
     woodColors: Dict[str, float] = {}
     features: Dict[str, float] = {}
+    displayTypes: Dict[str, str] = {}  # New: display type for each option
 
 class OrderFeatures(BaseModel):
     jacuzzi: bool = False
