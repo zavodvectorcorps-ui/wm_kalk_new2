@@ -36,6 +36,8 @@ api_router = APIRouter(prefix="/api")
 
 # Define Models
 class PriceData(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    
     shellModels: Dict[str, float] = {}
     woodTypes: Dict[str, float] = {}
     shellColors: Dict[str, float] = {}
@@ -45,6 +47,7 @@ class PriceData(BaseModel):
     displayTypes: Dict[str, str] = {}  # display type for each option
     categories: Dict[str, Dict[str, Any]] = {}  # custom categories: {categoryId: {name, displayType, required, order}}
     optionCategories: Dict[str, str] = {}  # which category each option belongs to: {optionKey: categoryId}
+    optionLabels: Dict[str, str] = {}  # custom labels for options: {optionKey: label}
 
 class OrderFeatures(BaseModel):
     jacuzzi: bool = False
