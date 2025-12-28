@@ -357,19 +357,16 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Sauna Calculator - Model Selection"
-    - "Sauna Calculator - Options Selection"
-    - "Sauna Calculator - Price Calculation with Discount"
-    - "Sauna Calculator - Order Saving"
-    - "Sauna Calculator - PDF Generation"
-    - "Sauna Orders Page"
+    - "Sauna Calculator - Discount Button"
+    - "Sauna Calculator - PDF Generation (new format)"
+    - "Sauna Pricing Page - Models/Categories/Options management"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
     -agent: "main"
-    -message: "🔥 SAUNA CALCULATOR IMPLEMENTATION COMPLETED! Implemented full sauna calculator with: 1) 13 sauna models (Kwadro-Beczka and Beczka) with images, prices (12800-38280 PLN), discounts (0-10%), and foundation prices (150-450 PLN). 2) 14 option categories with 58 options total (Piece, Drzwi, Okna, Ławki, Oświetlenie, Dostawa, etc.). 3) Price calculation: (Base + Foundation + Options) × (1 - Discount%). 4) Backend API: GET/POST /api/sauna/prices, POST /api/sauna/orders, POST /api/sauna/generate-pdf. 5) Russian localization for category names. 6) Updated OrdersPage to support sauna orders. Please test: Login as admin (admin/159357), go to Sauna calculator, select model, add options, verify calculation, save order and generate PDF."
+    -message: "🔥 SAUNA CALCULATOR UPDATES COMPLETED! Changes: 1) Discount is now applied via button 'Стандартная скидка' (not automatic). 2) New PDF format matching original HTML - two-column options, WM-SAUNA header, promo/discount sections, footer with terms. 3) New SaunaPricingPage for admin to manage models, categories, and options (3 tabs). 4) Email field added to customer form. Please test: Login admin, go to Sauna, select model, click 'Стандартная скидка', verify discount applied, go to Цены tab to verify pricing management works."
     -agent: "main"
     -message: "Implemented complete authentication system with JWT. Features: 1) Login page for all users, 2) Admin can manage employees (add/edit/delete), 3) Employees can only access assigned calculator (balia or sauna). Admin credentials: username='admin', password='159357'. Test employee created: username='ivan', password='test123', access='balia'. Please test all authentication flows including login, user management, and access restrictions."
     -agent: "testing"
