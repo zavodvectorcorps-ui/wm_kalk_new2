@@ -1385,10 +1385,22 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             import urllib.request
             import tempfile
             
-            # Download image to temp file
+            # Download image with proper headers to avoid rate limiting
+            req = urllib.request.Request(
+                bench_image_url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Referer': 'https://www.google.com/',
+                }
+            )
+            
             with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-                urllib.request.urlretrieve(bench_image_url, tmp.name)
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    tmp.write(response.read())
                 bench_img = RLImage(tmp.name, width=140, height=100)
+                logger.info(f"Successfully loaded bench image: {bench_image_url}")
         except Exception as e:
             logger.warning(f"Could not load bench image: {e}")
         
