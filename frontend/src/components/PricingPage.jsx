@@ -78,12 +78,16 @@ export const PricingPage = () => {
         ...prev[editingCategory],
         [newOption.key]: parseFloat(newOption.price) || 0,
       },
+      displayTypes: {
+        ...prev.displayTypes,
+        [newOption.key]: newOption.displayType,
+      },
     }));
 
     // Save to translations (simplified - in production would update translation files)
-    toast.success(`Опция "${newOption.label}" добавлена!`);
+    toast.success(`Опция "${newOption.label}" добавлена как ${newOption.displayType === 'dropdown' ? 'выпадающий список' : 'чекбокс'}!`);
     
-    setNewOption({ key: '', label: '', price: 0 });
+    setNewOption({ key: '', label: '', price: 0, displayType: 'dropdown' });
     setIsDialogOpen(false);
   };
 
