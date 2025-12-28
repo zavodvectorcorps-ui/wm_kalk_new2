@@ -2,10 +2,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Bath, Flame, ArrowRight } from 'lucide-react';
+import { Bath, Flame, ArrowRight, Lock } from 'lucide-react';
 
-export const LandingPage = ({ onSelectCalculator }) => {
-  const { t, i18n } = useTranslation();
+export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
+  const { i18n } = useTranslation();
 
   const texts = {
     ru: {
@@ -17,6 +17,7 @@ export const LandingPage = ({ onSelectCalculator }) => {
       saunaDesc: 'Калькулятор для конфигурации и расчёта стоимости саун',
       select: 'Выбрать',
       comingSoon: 'Скоро',
+      noAccess: 'Нет доступа',
     },
     pl: {
       title: 'Wybierz kalkulator',
@@ -27,11 +28,15 @@ export const LandingPage = ({ onSelectCalculator }) => {
       saunaDesc: 'Kalkulator do konfiguracji i wyceny saun',
       select: 'Wybierz',
       comingSoon: 'Wkrótce',
+      noAccess: 'Brak dostępu',
     },
   };
 
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = texts[lang];
+
+  const canAccessBalia = hasAccess ? hasAccess('balia') : true;
+  const canAccessSauna = hasAccess ? hasAccess('sauna') : true;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
@@ -50,13 +55,25 @@ export const LandingPage = ({ onSelectCalculator }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Balia Card */}
           <Card 
-            className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-2 hover:border-primary/50"
-            onClick={() => onSelectCalculator('balia')}
+            className={`group transition-all duration-300 border-2 ${
+              canAccessBalia 
+                ? 'cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-primary/50' 
+                : 'opacity-60 cursor-not-allowed'
+            }`}
+            onClick={() => canAccessBalia && onSelectCalculator('balia')}
           >
             <CardContent className="p-8">
               <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
-                  <Bath className="w-10 h-10 text-primary" />
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors ${
+                  canAccessBalia 
+                    ? 'bg-primary/10 group-hover:bg-primary/20' 
+                    : 'bg-muted'
+                }`}>
+                  {canAccessBalia ? (
+                    <Bath className="w-10 h-10 text-primary" />
+                  ) : (
+                    <Lock className="w-10 h-10 text-muted-foreground" />
+                  )}
                 </div>
                 <h2 className="text-2xl font-bold text-foreground mb-3">
                   {txt.baliaTitle}
@@ -64,23 +81,42 @@ export const LandingPage = ({ onSelectCalculator }) => {
                 <p className="text-muted-foreground mb-6">
                   {txt.baliaDesc}
                 </p>
-                <Button className="w-full gap-2 group-hover:gap-3 transition-all">
-                  {txt.select}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+                {canAccessBalia ? (
+                  <Button className="w-full gap-2 group-hover:gap-3 transition-all">
+                    {txt.select}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <Button disabled className="w-full gap-2" variant="secondary">
+                    <Lock className="w-4 h-4" />
+                    {txt.noAccess}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
 
           {/* Sauna Card */}
           <Card 
-            className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-2 hover:border-orange-500/50"
-            onClick={() => onSelectCalculator('sauna')}
+            className={`group transition-all duration-300 border-2 ${
+              canAccessSauna 
+                ? 'cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-orange-500/50' 
+                : 'opacity-60 cursor-not-allowed'
+            }`}
+            onClick={() => canAccessSauna && onSelectCalculator('sauna')}
           >
             <CardContent className="p-8">
               <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 rounded-full bg-orange-500/10 flex items-center justify-center mb-6 group-hover:bg-orange-500/20 transition-colors">
-                  <Flame className="w-10 h-10 text-orange-500" />
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors ${
+                  canAccessSauna 
+                    ? 'bg-orange-500/10 group-hover:bg-orange-500/20' 
+                    : 'bg-muted'
+                }`}>
+                  {canAccessSauna ? (
+                    <Flame className="w-10 h-10 text-orange-500" />
+                  ) : (
+                    <Lock className="w-10 h-10 text-muted-foreground" />
+                  )}
                 </div>
                 <h2 className="text-2xl font-bold text-foreground mb-3">
                   {txt.saunaTitle}
@@ -88,10 +124,17 @@ export const LandingPage = ({ onSelectCalculator }) => {
                 <p className="text-muted-foreground mb-6">
                   {txt.saunaDesc}
                 </p>
-                <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-orange-500/50 text-orange-600 hover:bg-orange-500/10 hover:text-orange-600">
-                  {txt.select}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+                {canAccessSauna ? (
+                  <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-orange-500/50 text-orange-600 hover:bg-orange-500/10 hover:text-orange-600">
+                    {txt.select}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <Button disabled className="w-full gap-2" variant="secondary">
+                    <Lock className="w-4 h-4" />
+                    {txt.noAccess}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
