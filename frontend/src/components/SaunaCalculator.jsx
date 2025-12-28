@@ -267,7 +267,7 @@ export const SaunaCalculator = () => {
   };
 
   const handleDiscountChange = (e) => {
-    const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+    const value = Math.max(0, Math.min(10, parseFloat(e.target.value) || 0));
     setAppliedDiscount(value);
   };
 
