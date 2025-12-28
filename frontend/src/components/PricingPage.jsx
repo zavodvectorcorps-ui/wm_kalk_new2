@@ -353,11 +353,26 @@ export const PricingPage = () => {
     toast.success('Опция перемещена в другую категорию');
   };
 
+  // Get category name based on current language
+  const getCategoryName = (category, categoryId) => {
+    const lang = i18n.language;
+    if (lang === 'pl' && category?.namePl) {
+      return category.namePl;
+    }
+    if (category?.nameRu) {
+      return category.nameRu;
+    }
+    // Fallback to translation key or ID
+    const translated = t(categoryId);
+    return translated !== categoryId ? translated : category?.name || categoryId;
+  };
+
   // Get label for an option
   const getOptionLabel = (category, key) => {
     // Check custom labels first
     if (prices.optionLabels && prices.optionLabels[key]) {
       return prices.optionLabels[key];
+
     }
     // Check default labels
     if (defaultOptionLabels[category] && defaultOptionLabels[category][key]) {
