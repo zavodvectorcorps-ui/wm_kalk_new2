@@ -120,6 +120,7 @@
   "price": "Cena",
   "currency": "€",
   
+  "none": "Brak",
   "loading": "Ładowanie...",
   "error": "Błąd",
   "success": "Sukces"
