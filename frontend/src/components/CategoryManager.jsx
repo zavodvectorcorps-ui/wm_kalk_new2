@@ -227,15 +227,15 @@ export const CategoryList = ({
                 
                 <div className="flex-1">
                   <div className="font-medium flex items-center gap-2">
-                    {category.name}
+                    {getCategoryName(category)}
                     {isDefaultCategory(category.id) && (
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                        Системная
+                        {t('system')}
                       </span>
                     )}
                     {category.required && (
                       <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
-                        Обязательная
+                        {t('required')}
                       </span>
                     )}
                   </div>
@@ -243,12 +243,12 @@ export const CategoryList = ({
                     <span>ID: {category.id}</span>
                     <span className="flex items-center gap-1">
                       {category.displayType === 'dropdown' ? (
-                        <><List className="h-3 w-3" /> Dropdown</>
+                        <><List className="h-3 w-3" /> {t('dropdown')}</>
                       ) : (
-                        <><CheckSquare className="h-3 w-3" /> Checkbox</>
+                        <><CheckSquare className="h-3 w-3" /> {t('checkbox')}</>
                       )}
                     </span>
-                    <span>Порядок: {category.order}</span>
+                    <span>{t('order')}: {category.order}</span>
                   </div>
                 </div>
                 
