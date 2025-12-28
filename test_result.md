@@ -256,3 +256,51 @@ agent_communication:
     -message: "Starting comprehensive testing of hot tub calculator application. Will test all functionality including language switching, form interactions, navigation, and button actions."
     -agent: "testing"
     -message: "✅ TESTING COMPLETE - All functionality tested successfully! Hot tub calculator application is working excellently. Language switcher, navigation, forms, dropdowns, order summary, and all buttons are functional. Backend API integration confirmed working (200 OK responses). Application ready for production use."
+    -agent: "testing"
+    -message: "🔍 TESTING ADD OPTION FEATURE - Comprehensive test of new 'Add Option' functionality in Pricing page completed. Found critical integration issue between Pricing and Calculator pages."
+
+frontend:
+  - task: "Add Option Feature - Pricing Page Dialog"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/PricingPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Testing Add Option dialog functionality in Pricing page"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ Add Option dialog working perfectly - successfully opens dialog, accepts form input (option key: extra_large_model, label: Экстра большая модель, price: 4500), shows success toast 'Опция 4500 добавлена!', and adds option to pricing list with '(пользовательская)' indicator."
+
+  - task: "Add Option Feature - Calculator Integration"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/ConfigurationForm.jsx"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Testing if newly added options appear in Calculator page dropdowns"
+        -working: false
+        -agent: "testing"
+        -comment: "❌ CRITICAL ISSUE: New options added in Pricing page do not appear in Calculator page shell model dropdown. Added 'extra_large_model' option successfully in Pricing page, but it's missing from Calculator dropdown which only shows 6 standard options. This breaks the user workflow as custom options cannot be selected in orders."
+
+  - task: "Add Option Feature - Delete Functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/PricingPage.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Testing delete functionality for custom options"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ Delete functionality working correctly - delete buttons (trash icons) are present for custom options, confirmation dialog appears when clicked, and options are removed from the pricing list after confirmation."
