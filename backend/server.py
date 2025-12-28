@@ -357,6 +357,97 @@ async def generate_pdf(request: PDFRequest):
     """Generate PDF order form"""
     buffer = io.BytesIO()
     
+    # Language-specific translations
+    translations = {
+        'ru': {
+            'title_customer': 'Заказ купели',
+            'title_technical': 'Технический заказ на производство',
+            'customer_info': 'Информация о клиенте',
+            'full_name': 'Полное имя:',
+            'phone': 'Телефон:',
+            'address': 'Адрес:',
+            'order_date': 'Дата заказа:',
+            'configuration': 'Конфигурация',
+            'shell_model': 'Модель купели:',
+            'wood_type': 'Тип дерева:',
+            'shell_color': 'Цвет оболочки:',
+            'lid_type': 'Тип крышки:',
+            'wood_color': 'Цвет дерева:',
+            'sand_filter': 'Песочный фильтр:',
+            'selected_features': 'Выбранные функции',
+            'additional_notes': 'Дополнительные примечания',
+            'total': 'ИТОГО:',
+        },
+        'pl': {
+            'title_customer': 'Zamówienie bali WM-BALIA',
+            'title_technical': 'Zamówienie techniczne do produkcji',
+            'customer_info': 'Dane klienta',
+            'full_name': 'Imię i nazwisko:',
+            'phone': 'Telefon:',
+            'address': 'Adres:',
+            'order_date': 'Data zamówienia:',
+            'configuration': 'Konfiguracja',
+            'shell_model': 'Model bali:',
+            'wood_type': 'Rodzaj drewna:',
+            'shell_color': 'Kolor wkładu:',
+            'lid_type': 'Rodzaj pokrywy:',
+            'wood_color': 'Kolor drewna:',
+            'sand_filter': 'Filtr piaskowy:',
+            'selected_features': 'Wybrane funkcje',
+            'additional_notes': 'Dodatkowe uwagi',
+            'total': 'SUMA:',
+        }
+    }
+    
+    # Feature translations
+    feature_translations = {
+        'ru': {
+            'jacuzzi': 'Джакузи',
+            'airBubble': 'Воздушные пузыри',
+            'outsideLed12': 'Наружное LED (12 светодиодов)',
+            'insideLed': 'Внутреннее LED',
+            'outsideLedStripe': 'Наружное LED (полоса)',
+            'insideLedMini': 'Внутреннее LED (12 мини)',
+            'insulation': 'Изоляция',
+            'headPillow': 'Подушка для головы',
+            'sandFilterConnections': 'Соединения песочного фильтра с краном',
+            'sandFilterUnderStairs': 'Песочный фильтр под лестницей',
+            'sandFilterBox': 'Коробка песочного фильтра',
+            'v4aHeater': 'Нагреватель V4A',
+            'electricityBox': 'Электрический щит',
+            'chimneyExtension': 'Удлинитель дымохода',
+            'extraChimneyProtection': 'Дополнительная защита дымохода',
+            'bluetoothRadio': 'Bluetooth радио',
+            'electricHeater3kw': 'Электрический нагреватель 3кВт',
+            'electricThermometer': 'Электрический термометр',
+        },
+        'pl': {
+            'jacuzzi': 'Jacuzzi',
+            'airBubble': 'Bąbelki powietrzne',
+            'outsideLed12': 'LED zewnętrzne (12 diod)',
+            'insideLed': 'LED wewnętrzne',
+            'outsideLedStripe': 'LED zewnętrzne (pasek)',
+            'insideLedMini': 'LED wewnętrzne (12 mini)',
+            'insulation': 'Izolacja',
+            'headPillow': 'Poduszka pod głowę',
+            'sandFilterConnections': 'Przyłącza filtra piaskowego z kranem',
+            'sandFilterUnderStairs': 'Filtr piaskowy pod schodami',
+            'sandFilterBox': 'Skrzynka filtra piaskowego',
+            'v4aHeater': 'Grzałka V4A',
+            'electricityBox': 'Skrzynka elektryczna',
+            'chimneyExtension': 'Przedłużenie komina',
+            'extraChimneyProtection': 'Dodatkowa ochrona komina',
+            'bluetoothRadio': 'Radio Bluetooth',
+            'electricHeater3kw': 'Grzałka elektryczna 3kW',
+            'electricThermometer': 'Termometr elektryczny',
+        }
+    }
+    
+    # Get current language translations
+    lang = request.language if request.language in translations else 'ru'
+    t = translations[lang]
+    ft = feature_translations[lang]
+    
     # Register Unicode fonts (DejaVu for Cyrillic support)
     try:
         pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
@@ -403,19 +494,19 @@ async def generate_pdf(request: PDFRequest):
     
     # Title
     if request.type == 'customer':
-        title = Paragraph("Hot Tub Order Form", title_style)
+        title = Paragraph(t['title_customer'], title_style)
     else:
-        title = Paragraph("Technical Production Order", title_style)
+        title = Paragraph(t['title_technical'], title_style)
     elements.append(title)
     elements.append(Spacer(1, 20))
     
     # Customer Information
-    elements.append(Paragraph("Customer Information", heading_style))
+    elements.append(Paragraph(t['customer_info'], heading_style))
     customer_data = [
-        ['Full Name:', request.fullName],
-        ['Phone:', request.phoneNumber],
-        ['Address:', request.fullAddress],
-        ['Order Date:', request.orderDate],
+        [t['full_name'], request.fullName],
+        [t['phone'], request.phoneNumber],
+        [t['address'], request.fullAddress],
+        [t['order_date'], request.orderDate],
     ]
     customer_table = Table(customer_data, colWidths=[60*mm, 110*mm])
     customer_table.setStyle(TableStyle([
@@ -433,17 +524,17 @@ async def generate_pdf(request: PDFRequest):
     elements.append(Spacer(1, 20))
     
     # Configuration
-    elements.append(Paragraph("Configuration", heading_style))
+    elements.append(Paragraph(t['configuration'], heading_style))
     config_data = [
-        ['Shell Model:', request.shellModel],
-        ['Wood Type:', request.woodType],
-        ['Shell Color:', request.shellColor],
-        ['Lid Type:', request.lidType],
-        ['Wood Color:', request.woodColor],
+        [t['shell_model'], request.shellModel],
+        [t['wood_type'], request.woodType],
+        [t['shell_color'], request.shellColor],
+        [t['lid_type'], request.lidType],
+        [t['wood_color'], request.woodColor],
     ]
     
     if request.sandFilter and request.sandFilter != 'none':
-        config_data.append(['Sand Filter:', request.sandFilter])
+        config_data.append([t['sand_filter'], request.sandFilter])
     
     config_table = Table(config_data, colWidths=[60*mm, 110*mm])
     config_table.setStyle(TableStyle([
@@ -463,22 +554,23 @@ async def generate_pdf(request: PDFRequest):
     # Features
     selected_features = [k for k, v in request.features.items() if v]
     if selected_features:
-        elements.append(Paragraph("Selected Features", heading_style))
-        features_text = '<br/>'.join([f'• {feat.replace("_", " ").title()}' for feat in selected_features])
+        elements.append(Paragraph(t['selected_features'], heading_style))
+        # Translate feature names
+        features_text = '<br/>'.join([f'• {ft.get(feat, feat.replace("_", " ").title())}' for feat in selected_features])
         features_para = Paragraph(features_text, normal_style)
         elements.append(features_para)
         elements.append(Spacer(1, 20))
     
     # Notes
     if request.notes:
-        elements.append(Paragraph("Additional Notes", heading_style))
+        elements.append(Paragraph(t['additional_notes'], heading_style))
         notes_para = Paragraph(request.notes, normal_style)
         elements.append(notes_para)
         elements.append(Spacer(1, 20))
     
     # Total
     elements.append(Spacer(1, 10))
-    total_data = [['TOTAL:', f'{request.total:.2f} €']]
+    total_data = [[t['total'], f'{request.total:.2f} €']]
     total_table = Table(total_data, colWidths=[120*mm, 50*mm])
     total_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#3B82F6')),
