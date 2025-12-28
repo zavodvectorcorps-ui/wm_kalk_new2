@@ -1343,26 +1343,37 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     bench_name = None
     bench_price = 0
     
-    selected_options = getattr(request, 'selectedOptions', []) or []
+    # First try from selectedOptions
+    selected_options = getattr(request, 'selectedOptions', None) or []
+    logger.info(f"selectedOptions: {selected_options}")
+    
     for opt in selected_options:
-        if opt.get('categoryId') == 'lawki' and opt.get('imageUrl'):
+        cat_id = opt.get('categoryId', '')
+        if cat_id == 'lawki' and opt.get('imageUrl'):
             bench_image_url = opt.get('imageUrl')
             bench_name = opt.get('optionName')
             bench_price = opt.get('price', 0)
+            logger.info(f"Found bench from selectedOptions: {bench_name}, URL: {bench_image_url}")
             break
     
-    # Also check categories for bench image
+    # If not found, try from categories
     if not bench_image_url:
         for category in request.categories:
             if category.get('id') == 'lawki':
                 selection = request.selections.get('lawki')
+                logger.info(f"Bench selection from categories: {selection}")
                 if selection:
-                    opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
-                    if opt and opt.get('imageUrl'):
-                        bench_image_url = opt.get('imageUrl')
-                        bench_name = opt.get('name')
-                        bench_price = opt.get('price', 0)
+                    for opt in category.get('options', []):
+                        if opt.get('id') == selection:
+                            if opt.get('imageUrl'):
+                                bench_image_url = opt.get('imageUrl')
+                                bench_name = opt.get('name')
+                                bench_price = opt.get('price', 0)
+                                logger.info(f"Found bench from categories: {bench_name}, URL: {bench_image_url}")
+                            break
                 break
+    
+    logger.info(f"Final bench data: name={bench_name}, url={bench_image_url}")
     
     if bench_image_url and bench_name:
         elements.append(Paragraph('ŁAWKI', section_title_style))
