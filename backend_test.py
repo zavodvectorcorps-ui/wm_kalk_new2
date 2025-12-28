@@ -621,6 +621,266 @@ def test_delete_user(admin_token, user_id):
         print(f"❌ Delete user error: {str(e)}")
         return False
 
+# ============================================================================
+# SAUNA CALCULATOR TESTS
+# ============================================================================
+
+def test_get_sauna_prices():
+    """Test GET /api/sauna/prices endpoint - should return 13 models and 14 categories"""
+    print("\n🔍 Testing GET /api/sauna/prices...")
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ GET /api/sauna/prices successful")
+            
+            # Check models
+            models = data.get('models', [])
+            print(f"📊 Found {len(models)} sauna models")
+            
+            if len(models) == 13:
+                print("✅ Correct number of models (13)")
+            else:
+                print(f"❌ Expected 13 models, found {len(models)}")
+                return False
+            
+            # Check categories
+            categories = data.get('categories', [])
+            print(f"📊 Found {len(categories)} sauna categories")
+            
+            if len(categories) == 14:
+                print("✅ Correct number of categories (14)")
+            else:
+                print(f"❌ Expected 14 categories, found {len(categories)}")
+                return False
+            
+            # Verify some key models exist
+            model_ids = [model.get('id') for model in models]
+            expected_models = [
+                'sauna_kwadro_beczka_235x300_cm',
+                'sauna_beczka_235x200_cm'
+            ]
+            
+            for model_id in expected_models:
+                if model_id in model_ids:
+                    print(f"✅ Model '{model_id}' found")
+                else:
+                    print(f"❌ Model '{model_id}' missing")
+                    return False
+            
+            # Verify some key categories exist
+            category_ids = [cat.get('id') for cat in categories]
+            expected_categories = ['piece', 'drzwi', 'okna', 'dostawa']
+            
+            for cat_id in expected_categories:
+                if cat_id in category_ids:
+                    print(f"✅ Category '{cat_id}' found")
+                else:
+                    print(f"❌ Category '{cat_id}' missing")
+                    return False
+            
+            return True
+        else:
+            print(f"❌ GET /api/sauna/prices failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ GET /api/sauna/prices error: {str(e)}")
+        return False
+
+def test_create_sauna_order():
+    """Test POST /api/sauna/orders with specific test data"""
+    print("\n🔍 Testing POST /api/sauna/orders...")
+    
+    try:
+        # Create test order as specified in review request
+        test_order = {
+            "id": str(uuid.uuid4()),
+            "fullName": "Test User",
+            "phoneNumber": "+48 111 222 333",
+            "fullAddress": "Warszawa",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "selectedModel": "sauna_kwadro_beczka_235x300_cm",
+            "modelName": "Sauna Kwadro-Beczka 235x300 cm",
+            "basePrice": 24100,
+            "foundationPrice": 250,
+            "discount": 8,
+            "selections": {
+                "piece": "piec_elektryczny_9kw",
+                "strona_pieca": "piec_lewo"
+            },
+            "notes": "Test sauna order",
+            "optionsTotal": 2950,  # 2600 + 350
+            "total": 24886.0,  # (24100 + 250 + 2950) × 0.92 = 24886
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            saved_order = response.json()
+            print("✅ POST /api/sauna/orders successful")
+            print(f"✅ Order ID: {saved_order.get('id')}")
+            print(f"✅ Customer: {saved_order.get('fullName')}")
+            print(f"✅ Model: {saved_order.get('modelName')}")
+            print(f"✅ Total: {saved_order.get('total')} PLN")
+            
+            # Verify calculation
+            expected_total = 24886.0
+            actual_total = saved_order.get('total', 0)
+            if abs(actual_total - expected_total) < 1:  # Allow small rounding differences
+                print(f"✅ Total calculation correct: {actual_total} PLN")
+            else:
+                print(f"❌ Total calculation incorrect: expected {expected_total}, got {actual_total}")
+                return False
+            
+            return saved_order.get('id')  # Return order ID for verification
+        else:
+            print(f"❌ POST /api/sauna/orders failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ POST /api/sauna/orders error: {str(e)}")
+        return False
+
+def test_get_sauna_orders():
+    """Test GET /api/sauna/orders endpoint"""
+    print("\n🔍 Testing GET /api/sauna/orders...")
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/sauna/orders")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            orders = response.json()
+            print(f"✅ GET /api/sauna/orders successful")
+            print(f"✅ Found {len(orders)} sauna orders")
+            
+            if orders:
+                # Check structure of first order
+                first_order = orders[0]
+                required_fields = ['id', 'fullName', 'phoneNumber', 'selectedModel', 'total']
+                for field in required_fields:
+                    if field in first_order:
+                        print(f"✅ Sauna order field '{field}' present")
+                    else:
+                        print(f"❌ Sauna order field '{field}' missing")
+                        return False
+                
+                # Check if our test order is there
+                test_orders = [order for order in orders if order.get('fullName') == 'Test User']
+                if test_orders:
+                    print("✅ Test sauna order found in list")
+                else:
+                    print("❌ Test sauna order not found in list")
+            
+            return True
+        else:
+            print(f"❌ GET /api/sauna/orders failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ GET /api/sauna/orders error: {str(e)}")
+        return False
+
+def test_generate_sauna_pdf():
+    """Test POST /api/sauna/generate-pdf endpoint"""
+    print("\n🔍 Testing POST /api/sauna/generate-pdf...")
+    
+    try:
+        # Create test PDF request as specified in review request
+        pdf_request = {
+            "fullName": "Test User",
+            "phoneNumber": "+48 111 222 333",
+            "fullAddress": "Warszawa",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "selectedModel": "sauna_kwadro_beczka_235x300_cm",
+            "modelName": "Sauna Kwadro-Beczka 235x300 cm",
+            "basePrice": 24100,
+            "foundationPrice": 250,
+            "discount": 8,
+            "selections": {
+                "piece": "piec_elektryczny_9kw",
+                "strona_pieca": "piec_lewo"
+            },
+            "notes": "Test PDF generation",
+            "optionsTotal": 2950,
+            "total": 24886.0,
+            "language": "pl",
+            "categories": [
+                {
+                    "id": "piece",
+                    "name": "Piece",
+                    "inputType": "radio",
+                    "options": [
+                        {"id": "piec_elektryczny_9kw", "name": "Piec Elektryczne 9 kW", "price": 2600}
+                    ]
+                },
+                {
+                    "id": "strona_pieca",
+                    "name": "Strona Pieca:",
+                    "inputType": "radio",
+                    "options": [
+                        {"id": "piec_lewo", "name": "Piec lewo", "price": 350}
+                    ]
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/generate-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ POST /api/sauna/generate-pdf successful")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                return False
+            
+            # Check content length
+            content_length = len(response.content)
+            if content_length > 1000:  # PDF should be at least 1KB
+                print(f"✅ PDF size: {content_length} bytes")
+            else:
+                print(f"❌ PDF too small: {content_length} bytes")
+                return False
+            
+            return True
+        else:
+            print(f"❌ POST /api/sauna/generate-pdf failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ POST /api/sauna/generate-pdf error: {str(e)}")
+        return False
+
+def test_sauna_calculator_system():
+    """Run comprehensive sauna calculator tests"""
+    print("\n🌿 SAUNA CALCULATOR TESTS")
+    print("=" * 50)
+    
+    # Run all sauna tests
+    sauna_results = {
+        "GET /api/sauna/prices": test_get_sauna_prices(),
+        "POST /api/sauna/orders": test_create_sauna_order(),
+        "GET /api/sauna/orders": test_get_sauna_orders(),
+        "POST /api/sauna/generate-pdf": test_generate_sauna_pdf(),
+    }
+    
+    return sauna_results
+
 def test_authentication_system():
     """Run comprehensive authentication system tests"""
     print("\n🔐 AUTHENTICATION SYSTEM TESTS")
