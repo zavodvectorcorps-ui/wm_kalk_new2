@@ -5,76 +5,123 @@ import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
 import { Receipt } from 'lucide-react';
 
-export const OrderSummary = ({ formData, prices, total }) => {
+export const OrderSummary = ({ formData, prices, total, categories = {} }) => {
   const { t } = useTranslation();
 
-  const getPrice = (category, value) => {
-    if (!value || !prices[category]) return 0;
-    return prices[category][value] || 0;
+  // Get label for an option
+  const getOptionLabel = (key) => {
+    // Check custom labels first
+    if (prices.optionLabels && prices.optionLabels[key]) {
+      return prices.optionLabels[key];
+    }
+    // Try translation
+    const translated = t(key);
+    if (translated !== key) {
+      return translated;
+    }
+    // Fallback to formatted key
+    return key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+  };
+
+  // Get price for an option from its category
+  const getPrice = (categoryId, key) => {
+    if (!key || !prices[categoryId]) return 0;
+    return prices[categoryId][key] || 0;
   };
 
   const selectedItems = [];
 
-  // Add configuration items
-  if (formData.shellModel) {
-    selectedItems.push({
-      label: t('shellModel'),
-      value: t(formData.shellModel),
-      price: getPrice('shellModels', formData.shellModel),
-    });
-  }
+  // Process selections based on categories
+  const selections = formData.selections || {};
+  
+  // Sort categories by order
+  const sortedCategories = Object.entries(categories)
+    .map(([id, cat]) => ({ id, ...cat }))
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  if (formData.woodType) {
-    selectedItems.push({
-      label: t('woodType'),
-      value: t(formData.woodType),
-      price: getPrice('woodTypes', formData.woodType),
-    });
-  }
+  sortedCategories.forEach(category => {
+    const categoryId = category.id;
+    const selection = selections[categoryId];
 
-  if (formData.shellColor) {
-    selectedItems.push({
-      label: t('shellColor'),
-      value: t(formData.shellColor),
-      price: getPrice('shellColors', formData.shellColor),
-    });
-  }
+    if (!selection) return;
 
-  if (formData.lidType) {
-    selectedItems.push({
-      label: t('lidType'),
-      value: t(formData.lidType),
-      price: getPrice('lidTypes', formData.lidType),
-    });
-  }
-
-  if (formData.woodColor) {
-    selectedItems.push({
-      label: t('woodColor'),
-      value: t(formData.woodColor),
-      price: getPrice('woodColors', formData.woodColor),
-    });
-  }
-
-  // Add sand filter if not none
-  if (formData.sandFilter && formData.sandFilter !== 'none') {
-    selectedItems.push({
-      label: t('sandFilter'),
-      value: t(formData.sandFilter),
-      price: getPrice('features', formData.sandFilter),
-    });
-  }
-
-  // Add selected features
-  Object.entries(formData.features).forEach(([key, value]) => {
-    if (value) {
+    if (typeof selection === 'object') {
+      // Checkbox category - list all selected options
+      Object.entries(selection).forEach(([key, isSelected]) => {
+        if (isSelected) {
+          selectedItems.push({
+            label: category.name || t(categoryId) || categoryId,
+            value: getOptionLabel(key),
+            price: getPrice(categoryId, key),
+          });
+        }
+      });
+    } else if (selection) {
+      // Dropdown category - single selection
       selectedItems.push({
-        label: t(key),
-        value: '✓',
-        price: getPrice('features', key),
+        label: category.name || t(categoryId) || categoryId,
+        value: getOptionLabel(selection),
+        price: getPrice(categoryId, selection),
       });
     }
   });
+
+  // Fallback for legacy formData format (for backward compatibility)
+  if (selectedItems.length === 0 && formData.shellModel) {
+    if (formData.shellModel) {
+      selectedItems.push({
+        label: t('shellModel'),
+        value: t(formData.shellModel),
+        price: prices.shellModels?.[formData.shellModel] || 0,
+      });
+    }
+    if (formData.woodType) {
+      selectedItems.push({
+        label: t('woodType'),
+        value: t(formData.woodType),
+        price: prices.woodTypes?.[formData.woodType] || 0,
+      });
+    }
+    if (formData.shellColor) {
+      selectedItems.push({
+        label: t('shellColor'),
+        value: t(formData.shellColor),
+        price: prices.shellColors?.[formData.shellColor] || 0,
+      });
+    }
+    if (formData.lidType) {
+      selectedItems.push({
+        label: t('lidType'),
+        value: t(formData.lidType),
+        price: prices.lidTypes?.[formData.lidType] || 0,
+      });
+    }
+    if (formData.woodColor) {
+      selectedItems.push({
+        label: t('woodColor'),
+        value: t(formData.woodColor),
+        price: prices.woodColors?.[formData.woodColor] || 0,
+      });
+    }
+    if (formData.sandFilter && formData.sandFilter !== 'none') {
+      selectedItems.push({
+        label: t('sandFilter'),
+        value: t(formData.sandFilter),
+        price: prices.features?.[formData.sandFilter] || 0,
+      });
+    }
+    if (formData.features) {
+      Object.entries(formData.features).forEach(([key, value]) => {
+        if (value) {
+          selectedItems.push({
+            label: t(key),
+            value: '✓',
+            price: prices.features?.[key] || 0,
+          });
+        }
+      });
+    }
+  }
 
   return (
     <Card className="shadow-lg sticky top-20">
