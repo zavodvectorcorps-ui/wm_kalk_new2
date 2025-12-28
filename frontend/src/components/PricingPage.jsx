@@ -605,7 +605,7 @@ export const PricingPage = () => {
                   <SelectContent>
                     {getAllCategoryIds().map((catId) => (
                       <SelectItem key={catId} value={catId}>
-                        {prices.categories?.[catId]?.name || t(catId) || catId}
+                        {getCategoryName(prices.categories?.[catId], catId)}
                       </SelectItem>
                     ))}
                   </SelectContent>
