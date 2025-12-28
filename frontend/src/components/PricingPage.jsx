@@ -217,56 +217,47 @@ export const PricingPage = () => {
         </Dialog>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {items.map((item) => (
-          <div key={item.key} className="flex gap-2 items-end">
-            <div className="flex-1 space-y-1.5">
-              <Label htmlFor={`${category}-${item.key}`} className="text-sm">
-                {item.label}
-              </Label>
-              <div className="relative">
-                <Input
-                  id={`${category}-${item.key}`}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={prices[category][item.key] || 0}
-                  onChange={(e) => handlePriceChange(category, item.key, e.target.value)}
-                  className="pr-8"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                  €
-                </span>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDeleteOption(category, item.key)}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              title="Удалить опцию"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-        {/* Show dynamically added options */}
-        {Object.keys(prices[category] || {})
-          .filter(key => !items.find(item => item.key === key))
-          .map((key) => (
-            <div key={key} className="flex gap-2 items-end">
-              <div className="flex-1 space-y-1.5">
-                <Label htmlFor={`${category}-${key}`} className="text-sm flex items-center gap-2">
-                  {key}
-                  <span className="text-xs text-muted-foreground">(пользовательская)</span>
-                </Label>
+        {items.map((item) => {
+          const displayType = prices.displayTypes?.[item.key] || 'dropdown';
+          return (
+            <div key={item.key} className="flex gap-2 items-start border rounded-lg p-3 bg-card">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`${category}-${item.key}`} className="text-sm font-medium">
+                    {item.label}
+                  </Label>
+                  <div className="flex-1" />
+                  <Select
+                    value={displayType}
+                    onValueChange={(value) => handleChangeDisplayType(item.key, value)}
+                  >
+                    <SelectTrigger className="h-7 w-[140px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dropdown">
+                        <div className="flex items-center gap-1.5">
+                          <List className="h-3 w-3" />
+                          <span>Dropdown</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="checkbox">
+                        <div className="flex items-center gap-1.5">
+                          <CheckSquare className="h-3 w-3" />
+                          <span>Checkbox</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="relative">
                   <Input
-                    id={`${category}-${key}`}
+                    id={`${category}-${item.key}`}
                     type="number"
                     step="0.01"
                     min="0"
-                    value={prices[category][key] || 0}
-                    onChange={(e) => handlePriceChange(category, key, e.target.value)}
+                    value={prices[category][item.key] || 0}
+                    onChange={(e) => handlePriceChange(category, item.key, e.target.value)}
                     className="pr-8"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
@@ -277,14 +268,79 @@ export const PricingPage = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleDeleteOption(category, key)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => handleDeleteOption(category, item.key)}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-6"
                 title="Удалить опцию"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-          ))}
+          );
+        })}
+        {/* Show dynamically added options */}
+        {Object.keys(prices[category] || {})
+          .filter(key => !items.find(item => item.key === key))
+          .map((key) => {
+            const displayType = prices.displayTypes?.[key] || 'dropdown';
+            return (
+              <div key={key} className="flex gap-2 items-start border rounded-lg p-3 bg-muted/30">
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`${category}-${key}`} className="text-sm font-medium flex items-center gap-2">
+                      {key}
+                      <span className="text-xs text-muted-foreground">(пользовательская)</span>
+                    </Label>
+                    <div className="flex-1" />
+                    <Select
+                      value={displayType}
+                      onValueChange={(value) => handleChangeDisplayType(key, value)}
+                    >
+                      <SelectTrigger className="h-7 w-[140px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dropdown">
+                          <div className="flex items-center gap-1.5">
+                            <List className="h-3 w-3" />
+                            <span>Dropdown</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="checkbox">
+                          <div className="flex items-center gap-1.5">
+                            <CheckSquare className="h-3 w-3" />
+                            <span>Checkbox</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id={`${category}-${key}`}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={prices[category][key] || 0}
+                      onChange={(e) => handlePriceChange(category, key, e.target.value)}
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                      €
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDeleteOption(category, key)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-6"
+                  title="Удалить опцию"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })}
       </div>
     </div>
   );
