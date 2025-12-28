@@ -121,29 +121,62 @@ export const FeaturesForm = ({ formData, onChange, prices }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Sand Filter Section - render based on displayType */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">{t('sandFilter')}</Label>
-          <Select 
-            name="sandFilter" 
-            value={formData.sandFilter} 
-            onValueChange={(value) => onChange({ target: { name: 'sandFilter', value } })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={t('selectSandFilter') || 'Select sand filter'} />
-            </SelectTrigger>
-            <SelectContent>
-              {sandFilterOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                  {option.value !== 'none' && prices.features?.[option.value] && (
-                    <span className="ml-2 text-muted-foreground">+{prices.features[option.value]}€</span>
-                  )}
-                </SelectItem>
+          
+          {!sandFilterAsCheckbox ? (
+            // Render as dropdown (default behavior)
+            <Select 
+              name="sandFilter" 
+              value={formData.sandFilter} 
+              onValueChange={(value) => onChange({ target: { name: 'sandFilter', value } })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t('selectSandFilter') || 'Select sand filter'} />
+              </SelectTrigger>
+              <SelectContent>
+                {sandFilterOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                    {option.value !== 'none' && option.price > 0 && (
+                      <span className="ml-2 text-muted-foreground">+{option.price}€</span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            // Render as checkboxes (when all set to checkbox)
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {sandFilterOptions.filter(opt => opt.value !== 'none').map((option) => (
+                <div key={option.value} className="flex items-center space-x-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <Checkbox
+                    id={option.value}
+                    checked={formData.sandFilter === option.value}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        onChange({ target: { name: 'sandFilter', value: option.value } });
+                      } else {
+                        onChange({ target: { name: 'sandFilter', value: 'none' } });
+                      }
+                    }}
+                  />
+                  <Label htmlFor={option.value} className="flex-1 cursor-pointer text-sm leading-tight">
+                    {option.label}
+                    {option.price > 0 && (
+                      <span className="block text-xs text-muted-foreground mt-1">
+                        +{option.price}€
+                      </span>
+                    )}
+                  </Label>
+                </div>
               ))}
-            </SelectContent>
-          </Select>
+            </div>
+          )}
         </div>
 
+        {/* Other Features - render based on their individual displayTypes */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
           {features.map((feature) => (
             <div key={feature.key} className="flex items-center space-x-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
@@ -157,9 +190,9 @@ export const FeaturesForm = ({ formData, onChange, prices }) => {
                 className="flex-1 cursor-pointer text-sm leading-tight"
               >
                 {feature.label}
-                {prices.features?.[feature.key] && (
+                {feature.price > 0 && (
                   <span className="block text-xs text-muted-foreground mt-1">
-                    +{prices.features[feature.key]}€
+                    +{feature.price}€
                   </span>
                 )}
               </Label>
