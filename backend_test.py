@@ -327,6 +327,341 @@ def test_category_order_functionality():
         print(f"❌ Category order test error: {str(e)}")
         return False
 
+# ============================================================================
+# AUTHENTICATION SYSTEM TESTS
+# ============================================================================
+
+def test_admin_login():
+    """Test admin login with correct credentials"""
+    print("\n🔍 Testing Admin Login...")
+    
+    try:
+        login_data = {
+            "username": "admin",
+            "password": "159357"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Admin login successful")
+            
+            # Check response structure
+            if 'token' in data and 'user' in data:
+                print("✅ Response contains token and user data")
+                
+                user = data['user']
+                if user.get('role') == 'admin' and user.get('username') == 'admin':
+                    print("✅ Admin user data correct")
+                    return data['token']  # Return token for other tests
+                else:
+                    print(f"❌ Incorrect user data: {user}")
+                    return False
+            else:
+                print("❌ Missing token or user in response")
+                return False
+        else:
+            print(f"❌ Admin login failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Admin login error: {str(e)}")
+        return False
+
+def test_employee_login():
+    """Test employee login with test credentials"""
+    print("\n🔍 Testing Employee Login...")
+    
+    try:
+        login_data = {
+            "username": "ivan",
+            "password": "test123"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Employee login successful")
+            
+            # Check response structure
+            if 'token' in data and 'user' in data:
+                print("✅ Response contains token and user data")
+                
+                user = data['user']
+                if (user.get('role') == 'employee' and 
+                    user.get('username') == 'ivan' and 
+                    user.get('access') == 'balia'):
+                    print("✅ Employee user data correct")
+                    return data['token']  # Return token for other tests
+                else:
+                    print(f"❌ Incorrect user data: {user}")
+                    return False
+            else:
+                print("❌ Missing token or user in response")
+                return False
+        else:
+            print(f"❌ Employee login failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Employee login error: {str(e)}")
+        return False
+
+def test_invalid_login():
+    """Test login with invalid credentials"""
+    print("\n🔍 Testing Invalid Login...")
+    
+    try:
+        login_data = {
+            "username": "invalid_user",
+            "password": "wrong_password"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 401:
+            print("✅ Invalid login correctly rejected")
+            return True
+        else:
+            print(f"❌ Expected 401, got {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Invalid login test error: {str(e)}")
+        return False
+
+def test_get_current_user(token):
+    """Test GET /api/auth/me with valid token"""
+    print("\n🔍 Testing GET /api/auth/me...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(f"{BACKEND_URL}/auth/me", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            user = response.json()
+            print("✅ Get current user successful")
+            print(f"✅ User: {user.get('username')} ({user.get('role')})")
+            return True
+        else:
+            print(f"❌ Get current user failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Get current user error: {str(e)}")
+        return False
+
+def test_verify_token(token):
+    """Test POST /api/auth/verify with valid token"""
+    print("\n🔍 Testing POST /api/auth/verify...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.post(f"{BACKEND_URL}/auth/verify", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('valid') == True:
+                print("✅ Token verification successful")
+                return True
+            else:
+                print("❌ Token marked as invalid")
+                return False
+        else:
+            print(f"❌ Token verification failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Token verification error: {str(e)}")
+        return False
+
+def test_get_users_admin(admin_token):
+    """Test GET /api/users with admin token"""
+    print("\n🔍 Testing GET /api/users (Admin)...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        response = requests.get(f"{BACKEND_URL}/users", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            users = response.json()
+            print(f"✅ Get users successful - found {len(users)} users")
+            
+            # Check if admin and ivan are in the list
+            usernames = [user.get('username') for user in users]
+            if 'admin' in usernames:
+                print("✅ Admin user found in list")
+            else:
+                print("❌ Admin user not found in list")
+                
+            if 'ivan' in usernames:
+                print("✅ Employee 'ivan' found in list")
+            else:
+                print("❌ Employee 'ivan' not found in list")
+                
+            return True
+        else:
+            print(f"❌ Get users failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Get users error: {str(e)}")
+        return False
+
+def test_get_users_employee(employee_token):
+    """Test GET /api/users with employee token (should fail)"""
+    print("\n🔍 Testing GET /api/users (Employee - should fail)...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {employee_token}"}
+        response = requests.get(f"{BACKEND_URL}/users", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 403:
+            print("✅ Employee correctly denied access to users list")
+            return True
+        else:
+            print(f"❌ Expected 403, got {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Employee users access test error: {str(e)}")
+        return False
+
+def test_create_user(admin_token):
+    """Test POST /api/users to create new employee"""
+    print("\n🔍 Testing POST /api/users (Create Employee)...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        new_user_data = {
+            "username": "test_employee",
+            "password": "testpass123",
+            "access": "sauna"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/users", json=new_user_data, headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            user = response.json()
+            print("✅ Create user successful")
+            print(f"✅ Created user: {user.get('username')} with access: {user.get('access')}")
+            return user.get('id')  # Return user ID for update/delete tests
+        else:
+            print(f"❌ Create user failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Create user error: {str(e)}")
+        return False
+
+def test_update_user(admin_token, user_id):
+    """Test PUT /api/users/{user_id} to update employee"""
+    print("\n🔍 Testing PUT /api/users/{user_id} (Update Employee)...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        update_data = {
+            "access": "all",
+            "password": "newpassword123"
+        }
+        
+        response = requests.put(f"{BACKEND_URL}/users/{user_id}", json=update_data, headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            user = response.json()
+            print("✅ Update user successful")
+            print(f"✅ Updated access to: {user.get('access')}")
+            return True
+        else:
+            print(f"❌ Update user failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Update user error: {str(e)}")
+        return False
+
+def test_delete_user(admin_token, user_id):
+    """Test DELETE /api/users/{user_id} to delete employee"""
+    print("\n🔍 Testing DELETE /api/users/{user_id} (Delete Employee)...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        response = requests.delete(f"{BACKEND_URL}/users/{user_id}", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Delete user successful")
+            return True
+        else:
+            print(f"❌ Delete user failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Delete user error: {str(e)}")
+        return False
+
+def test_authentication_system():
+    """Run comprehensive authentication system tests"""
+    print("\n🔐 AUTHENTICATION SYSTEM TESTS")
+    print("=" * 50)
+    
+    # Test admin login first
+    admin_token = test_admin_login()
+    if not admin_token:
+        print("❌ Cannot proceed with admin tests - login failed")
+        return False
+    
+    # Test employee login
+    employee_token = test_employee_login()
+    if not employee_token:
+        print("❌ Cannot proceed with employee tests - login failed")
+        return False
+    
+    # Run all authentication tests
+    auth_results = {
+        "Invalid Login": test_invalid_login(),
+        "Get Current User (Admin)": test_get_current_user(admin_token),
+        "Get Current User (Employee)": test_get_current_user(employee_token),
+        "Verify Token (Admin)": test_verify_token(admin_token),
+        "Verify Token (Employee)": test_verify_token(employee_token),
+        "Get Users (Admin)": test_get_users_admin(admin_token),
+        "Get Users (Employee - should fail)": test_get_users_employee(employee_token),
+    }
+    
+    # Test user management (create, update, delete)
+    created_user_id = test_create_user(admin_token)
+    if created_user_id:
+        auth_results["Create User"] = True
+        auth_results["Update User"] = test_update_user(admin_token, created_user_id)
+        auth_results["Delete User"] = test_delete_user(admin_token, created_user_id)
+    else:
+        auth_results["Create User"] = False
+        auth_results["Update User"] = False
+        auth_results["Delete User"] = False
+    
+    return auth_results
+
 def run_all_tests():
     """Run all backend tests"""
     print("🚀 Starting Backend API Tests for Hot Tub Calculator Category Management System")
