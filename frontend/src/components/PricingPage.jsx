@@ -544,11 +544,11 @@ export const PricingPage = () => {
                   <div className="flex items-center gap-2">
                     <Folder className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold text-lg text-foreground">
-                      {category.name || t(category.id) || category.id}
+                      {getCategoryName(category, category.id)}
                     </h3>
                     {category.required && (
                       <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
-                        Обязательная
+                        {t('required')}
                       </span>
                     )}
                   </div>
