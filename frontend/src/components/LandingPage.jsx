@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Bath, Flame, ArrowRight, Lock } from 'lucide-react';
+import { Waves, Flame, ArrowRight, Lock } from 'lucide-react';
 
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
