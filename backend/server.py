@@ -887,6 +887,7 @@ class SaunaOrder(BaseModel):
 class SaunaPDFRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
     
+    orderId: str = ""
     fullName: str
     phoneNumber: str
     fullAddress: str = ""
