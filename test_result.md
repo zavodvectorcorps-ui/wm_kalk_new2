@@ -447,6 +447,9 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "✅ FRONTEND LOGIN TESTING SKIPPED - Testing agent focused on backend API testing only. Frontend testing should be handled separately as per system limitations."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ COMPREHENSIVE LOGIN PAGE TESTING COMPLETED! All requirements met perfectly: Login form displays correctly when not authenticated with username/password fields and submit button. Language switching works flawlessly (RU ↔ PL) with proper UI translation ('Вход в систему' ↔ 'Logowanie'). Admin login (admin/159357) successful with 'Вход выполнен успешно!' toast. Employee login (ivan/test123) successful with success toast. Invalid credentials properly rejected. All login functionality working correctly."
 
   - task: "Authentication System - User Management"
     implemented: true
@@ -462,6 +465,9 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "✅ FRONTEND USER MANAGEMENT TESTING SKIPPED - Testing agent focused on backend API testing only. Frontend testing should be handled separately as per system limitations."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ USER MANAGEMENT TESTING COMPLETED SUCCESSFULLY! Admin access verified: 'Сотрудники' button visible for admin only, User Management page loads correctly with 'Управление сотрудниками' title, 'Добавить сотрудника' button functional and opens dialog properly, dialog can be opened and closed successfully. Employee restrictions verified: 'Сотрудники' button NOT visible for employees, proper access control implemented."
 
   - task: "Authentication System - Access Control"
     implemented: true
@@ -477,6 +483,9 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "✅ FRONTEND ACCESS CONTROL TESTING SKIPPED - Testing agent focused on backend API testing only. Frontend testing should be handled separately as per system limitations."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ACCESS CONTROL TESTING COMPLETED SUCCESSFULLY! Admin access: Both Balia and Sauna calculators accessible (no lock icons), Admin badge visible, all tabs (Калькулятор, Заказы, Цены) available, logout functionality working. Employee access restrictions: ivan (balia access) can access Balia calculator, Sauna shows lock icon and 'Нет доступа' button (properly restricted), NO admin badge visible, NO 'Сотрудники' button, only Калькулятор and Заказы tabs available (Цены tab properly hidden). Access control system working perfectly!"
 
 backend:
   - task: "Authentication API - Login"
