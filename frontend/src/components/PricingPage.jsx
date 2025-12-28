@@ -5,7 +5,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
-import { DollarSign, Save, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { DollarSign, Save, Loader2, Plus, Trash2, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -22,6 +23,9 @@ export const PricingPage = () => {
     woodColors: {},
     features: {},
   });
+  const [newOption, setNewOption] = useState({ key: '', label: '', price: 0 });
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchPrices();
