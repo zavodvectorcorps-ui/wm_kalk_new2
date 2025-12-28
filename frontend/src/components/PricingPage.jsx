@@ -22,8 +22,9 @@ export const PricingPage = () => {
     lidTypes: {},
     woodColors: {},
     features: {},
+    displayTypes: {}, // New: stores display type for each option
   });
-  const [newOption, setNewOption] = useState({ key: '', label: '', price: 0 });
+  const [newOption, setNewOption] = useState({ key: '', label: '', price: 0, displayType: 'dropdown' });
   const [editingCategory, setEditingCategory] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
