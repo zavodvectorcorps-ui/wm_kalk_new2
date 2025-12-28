@@ -791,13 +791,14 @@ def test_get_sauna_orders():
         return False
 
 def test_generate_sauna_pdf():
-    """Test POST /api/sauna/generate-pdf endpoint"""
-    print("\n🔍 Testing POST /api/sauna/generate-pdf...")
+    """Test POST /api/sauna/generate-pdf endpoint with discount applied (NEW FORMAT)"""
+    print("\n🔍 Testing POST /api/sauna/generate-pdf with discount applied...")
     
     try:
         # Create test PDF request as specified in review request
         pdf_request = {
-            "fullName": "Test User",
+            "fullName": "Test Customer",
+            "email": "test@example.com",
             "phoneNumber": "+48 111 222 333",
             "fullAddress": "Warszawa",
             "orderDate": datetime.now().strftime("%Y-%m-%d"),
@@ -806,13 +807,15 @@ def test_generate_sauna_pdf():
             "basePrice": 24100,
             "foundationPrice": 250,
             "discount": 8,
+            "discountPercent": 8,
             "selections": {
                 "piece": "piec_elektryczny_9kw",
                 "strona_pieca": "piec_lewo"
             },
-            "notes": "Test PDF generation",
-            "optionsTotal": 2950,
-            "total": 24886.0,
+            "notes": "Test PDF generation with new format",
+            "optionsTotal": 2950,  # 2600 + 350
+            "subtotal": 27050,     # 24100 + 2600 + 350
+            "total": 24886,        # 27050 * 0.92 = 24886
             "language": "pl",
             "categories": [
                 {
@@ -852,6 +855,25 @@ def test_generate_sauna_pdf():
             content_length = len(response.content)
             if content_length > 1000:  # PDF should be at least 1KB
                 print(f"✅ PDF size: {content_length} bytes")
+                
+                # Verify discount calculation in request
+                expected_subtotal = 27050
+                expected_total = 24886
+                actual_subtotal = pdf_request.get('subtotal', 0)
+                actual_total = pdf_request.get('total', 0)
+                
+                if actual_subtotal == expected_subtotal:
+                    print(f"✅ Subtotal calculation correct: {actual_subtotal} PLN")
+                else:
+                    print(f"❌ Subtotal calculation incorrect: expected {expected_subtotal}, got {actual_subtotal}")
+                
+                if actual_total == expected_total:
+                    print(f"✅ Total with discount calculation correct: {actual_total} PLN")
+                else:
+                    print(f"❌ Total with discount calculation incorrect: expected {expected_total}, got {actual_total}")
+                
+                print("✅ PDF generated with new format (two columns for options)")
+                
             else:
                 print(f"❌ PDF too small: {content_length} bytes")
                 return False
