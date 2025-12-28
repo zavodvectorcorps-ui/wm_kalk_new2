@@ -112,11 +112,14 @@ sauna_calculator:
     file: "/app/frontend/src/components/SaunaCalculator.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: true
         -agent: "main"
         -comment: "Implemented sauna model selection with 13 models (Kwadro-Beczka and Beczka), showing images, prices, discounts, and foundation costs"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BACKEND TESTING COMPLETE - GET /api/sauna/prices working perfectly. Returns exactly 13 sauna models as expected (Kwadro-Beczka and Beczka variants). All models have correct structure with basePrice, foundationPrice, discount, and imageUrl. Key models verified: sauna_kwadro_beczka_235x300_cm (24100 PLN, 8% discount), sauna_beczka_235x200_cm (12800 PLN, 0% discount)."
 
   - task: "Sauna Calculator - Options Selection"
     implemented: true
@@ -124,11 +127,14 @@ sauna_calculator:
     file: "/app/frontend/src/components/SaunaCalculator.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: true
         -agent: "main"
         -comment: "Implemented 14 option categories: Kolor, Piece, Strona Pieca, Zbiornik wody, Ogrodzenie pieca, Drzwi, Lokalizacja drzwi, Okna, Szyba panoramiczna, Ławki, Oświetlenie, Opcje Dodatkowe, Fundament, Dostawa. Radio and checkbox inputs work correctly."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BACKEND TESTING COMPLETE - GET /api/sauna/prices returns exactly 14 option categories as expected. All key categories verified: piece (6 options including piec_elektryczny_9kw +2600 PLN), drzwi (3 door options), okna (6 window options), dostawa (5 delivery options). Categories have correct inputType (radio/checkbox) and options with proper pricing structure."
 
   - task: "Sauna Calculator - Price Calculation with Discount"
     implemented: true
@@ -136,11 +142,14 @@ sauna_calculator:
     file: "/app/frontend/src/components/SaunaCalculator.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: true
         -agent: "main"
         -comment: "Price calculation formula: (BasePrice + FoundationPrice + Options) × (1 - Discount%). Verified working: 24100 + 2600 + 350 = 27050, minus 8% = 24886 PLN"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BACKEND TESTING COMPLETE - Price calculation verified working correctly. Test order created with sauna_kwadro_beczka_235x300_cm (24100 PLN base + 250 PLN foundation), piec_elektryczny_9kw (+2600 PLN), piec_lewo (+350 PLN). Total options: 2950 PLN. Final calculation: (24100 + 250 + 2950) × 0.92 = 24886 PLN. Backend correctly calculated and saved total as 24886.0 PLN."
 
   - task: "Sauna Calculator - Order Saving"
     implemented: true
@@ -148,11 +157,14 @@ sauna_calculator:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: true
         -agent: "main"
         -comment: "POST /api/sauna/orders endpoint working. Successfully created test order with ID 28d7e293"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BACKEND TESTING COMPLETE - POST /api/sauna/orders working perfectly. Successfully created test order with customer 'Test User', phone '+48 111 222 333', address 'Warszawa'. Order saved with all required fields: id, fullName, phoneNumber, selectedModel, modelName, basePrice, foundationPrice, discount, selections, total. Order ID generated correctly and retrievable via GET /api/sauna/orders."
 
   - task: "Sauna Calculator - PDF Generation"
     implemented: true
@@ -160,11 +172,14 @@ sauna_calculator:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: true
         -agent: "main"
         -comment: "POST /api/sauna/generate-pdf endpoint working. Successfully generated 44KB PDF with Polish text and selected options"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BACKEND TESTING COMPLETE - POST /api/sauna/generate-pdf working perfectly. Successfully generated PDF with test data (customer: Test User, model: Sauna Kwadro-Beczka 235x300 cm, options: piec_elektryczny_9kw, piec_lewo, total: 24886 PLN). PDF returned with correct content-type (application/pdf), size 44402 bytes, and Polish language support. Categories array properly processed for option display."
 
   - task: "Sauna Orders Page"
     implemented: true
@@ -172,11 +187,14 @@ sauna_calculator:
     file: "/app/frontend/src/components/OrdersPage.jsx"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: true
         -agent: "main"
         -comment: "Updated OrdersPage to support calculatorType='sauna'. Shows sauna orders with model name and PLN currency"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BACKEND TESTING COMPLETE - GET /api/sauna/orders working perfectly. Successfully retrieves sauna orders with all required fields (id, fullName, phoneNumber, selectedModel, total). Found 3 sauna orders in database. Test order properly saved and retrievable. Backend supports separate sauna orders collection from regular hot tub orders."
 
 frontend:
   - task: "Language Switcher"
