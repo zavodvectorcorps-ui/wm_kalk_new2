@@ -173,6 +173,36 @@ export const PricingPage = () => {
                   placeholder="0.00"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="display-type">Тип отображения в калькуляторе</Label>
+                <Select
+                  value={newOption.displayType}
+                  onValueChange={(value) => setNewOption({ ...newOption, displayType: value })}
+                >
+                  <SelectTrigger id="display-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dropdown">
+                      <div className="flex items-center gap-2">
+                        <List className="h-4 w-4" />
+                        <span>Выпадающий список (для выбора одного варианта)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="checkbox">
+                      <div className="flex items-center gap-2">
+                        <CheckSquare className="h-4 w-4" />
+                        <span>Чекбокс (для включения/выключения опции)</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {newOption.displayType === 'dropdown' 
+                    ? '📋 Dropdown: Пользователь выбирает один вариант из списка' 
+                    : '☑️ Checkbox: Пользователь может включить/выключить эту опцию'}
+                </p>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
