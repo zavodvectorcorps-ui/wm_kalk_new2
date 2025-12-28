@@ -72,17 +72,88 @@ export const ConfigurationForm = ({ formData, onChange, prices }) => {
   ]);
 
   const woodColors = getOptionsFromPrices('woodColors', [
-    { value: 'akrilasWhite', label: t('akrilasWhite') },
-    { value: 'akrilasGreenMarble', label: t('akrilasGreenMarble') },
-    { value: 'akrilasBrownMarble', label: t('akrilasBrownMarble') },
-    { value: 'akrilasBlueMarble', label: t('akrilasBlueMarble') },
-    { value: 'akrilasWhiteMarble', label: t('akrilasWhiteMarble') },
-    { value: 'akrilasCoffeeMarble', label: t('akrilasCoffeeMarble') },
-    { value: 'akrilasBlackMarble', label: t('akrilasBlackMarble') },
-    { value: 'natural', label: t('natural') },
-    { value: 'painted', label: t('painted') },
-    { value: 'oiled', label: t('oiled') },
+    { key: 'akrilasWhite', value: 'akrilasWhite', label: t('akrilasWhite') },
+    { key: 'akrilasGreenMarble', value: 'akrilasGreenMarble', label: t('akrilasGreenMarble') },
+    { key: 'akrilasBrownMarble', value: 'akrilasBrownMarble', label: t('akrilasBrownMarble') },
+    { key: 'akrilasBlueMarble', value: 'akrilasBlueMarble', label: t('akrilasBlueMarble') },
+    { key: 'akrilasWhiteMarble', value: 'akrilasWhiteMarble', label: t('akrilasWhiteMarble') },
+    { key: 'akrilasCoffeeMarble', value: 'akrilasCoffeeMarble', label: t('akrilasCoffeeMarble') },
+    { key: 'akrilasBlackMarble', value: 'akrilasBlackMarble', label: t('akrilasBlackMarble') },
+    { key: 'natural', value: 'natural', label: t('natural') },
+    { key: 'painted', value: 'painted', label: t('painted') },
+    { key: 'oiled', value: 'oiled', label: t('oiled') },
   ]);
+
+  // Render option based on its display type
+  const renderOption = (fieldName, labelKey, options, required = true) => {
+    // Group by display type
+    const dropdowns = options.filter(opt => opt.displayType === 'dropdown');
+    const checkboxes = options.filter(opt => opt.displayType === 'checkbox');
+
+    return (
+      <div className="space-y-4">
+        {/* Render dropdowns */}
+        {dropdowns.length > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor={fieldName} className="text-sm font-medium">
+              {t(labelKey)} {required && <span className="text-destructive">*</span>}
+            </Label>
+            <Select 
+              name={fieldName} 
+              value={formData[fieldName]} 
+              onValueChange={(value) => onChange({ target: { name: fieldName, value } })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t(`select${labelKey.charAt(0).toUpperCase() + labelKey.slice(1)}`) || `Выберите ${t(labelKey)}`} />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {dropdowns.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                    {option.price > 0 && (
+                      <span className="ml-2 text-muted-foreground">+{option.price}€</span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Render checkboxes */}
+        {checkboxes.length > 0 && (
+          <div className="space-y-2">
+            {dropdowns.length === 0 && (
+              <Label className="text-sm font-medium">{t(labelKey)}</Label>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {checkboxes.map((option) => (
+                <div key={option.key} className="flex items-center space-x-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <Checkbox
+                    id={option.key}
+                    checked={formData[fieldName] === option.key}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        onChange({ target: { name: fieldName, value: option.key } });
+                      }
+                    }}
+                  />
+                  <Label htmlFor={option.key} className="flex-1 cursor-pointer text-sm leading-tight">
+                    {option.label}
+                    {option.price > 0 && (
+                      <span className="block text-xs text-muted-foreground mt-1">
+                        +{option.price}€
+                      </span>
+                    )}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Card className="shadow-md">
