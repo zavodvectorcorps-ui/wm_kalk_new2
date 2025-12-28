@@ -203,7 +203,8 @@ export const CalculatorPage = () => {
     return result;
   };
 
-  const handleSaveOrder = async () => {
+  // Combined function: Save order AND generate PDF (always in Polish)
+  const handleSaveAndGeneratePDF = async (type = 'customer') => {
     if (!validateForm()) return;
 
     setLoading(true);
@@ -220,49 +221,32 @@ export const CalculatorPage = () => {
         createdAt: new Date().toISOString(),
       };
 
+      // 1. Save order to database
       await axios.post(`${API_URL}/api/orders`, orderData);
       toast.success(t('orderSaved'));
-    } catch (error) {
-      console.error('Error saving order:', error);
-      toast.error(t('error'));
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleGeneratePDF = async (type = 'customer') => {
-    if (!validateForm()) return;
-
-    setLoading(true);
-    try {
-      const legacyData = convertToLegacyFormat();
-      const orderData = {
-        fullName: formData.fullName,
-        phoneNumber: formData.phoneNumber,
-        fullAddress: formData.fullAddress,
-        orderDate: formData.orderDate,
-        ...legacyData,
-        notes: formData.notes,
-        total: calculateTotal(),
+      // 2. Generate PDF (always in Polish)
+      const pdfData = {
+        ...orderData,
         type: type,
-        language: i18n.language,  // Send current language for PDF generation
+        language: 'pl',  // Always Polish for PDF
       };
 
-      const response = await axios.post(`${API_URL}/api/generate-pdf`, orderData, {
+      const response = await axios.post(`${API_URL}/api/generate-pdf`, pdfData, {
         responseType: 'blob',
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `order_${formData.fullName}_${type}.pdf`);
+      link.setAttribute('download', `zamowienie_${formData.fullName.replace(/\s+/g, '_')}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
 
       toast.success(t('pdfGenerated'));
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('Error saving order or generating PDF:', error);
       toast.error(t('error'));
     } finally {
       setLoading(false);
