@@ -423,3 +423,64 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "Category management system fully functional with localized category names."
+
+  - task: "Authentication System - Login Page"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/LoginPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Implemented login page with username/password fields. Supports RU/PL localization. Successfully tested via screenshots - login form displays correctly, login as admin works."
+
+  - task: "Authentication System - User Management"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/UserManagement.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Implemented admin panel for managing employees. Features: add/edit/delete employees, assign access (balia/sauna). Tested via screenshots - table displays users, add dialog works."
+
+  - task: "Authentication System - Access Control"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/LandingPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Implemented access control on landing page. Employees see locked calculators they don't have access to. Tested via screenshots - employee with balia access sees sauna as locked."
+
+backend:
+  - task: "Authentication API - Login"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Implemented POST /api/auth/login with JWT tokens. Tested via curl - returns token and user data correctly."
+
+  - task: "Authentication API - User Management"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Implemented CRUD for users (GET/POST/PUT/DELETE /api/users). Admin-only protected. Tested via curl - created employee 'ivan' with balia access successfully."
