@@ -3,24 +3,32 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Checkbox } from './ui/checkbox';
 import { Settings } from 'lucide-react';
 
 export const ConfigurationForm = ({ formData, onChange, prices }) => {
   const { t } = useTranslation();
 
-  // Generate options dynamically from prices
+  // Get display type for an option
+  const getDisplayType = (key) => {
+    return prices.displayTypes?.[key] || 'dropdown';
+  };
+
+  // Generate options with display types from prices
   const getOptionsFromPrices = (category, fallbackOptions) => {
-    // Always prefer prices from backend if available
     if (prices[category] && Object.keys(prices[category]).length > 0) {
       return Object.keys(prices[category]).map(key => {
-        // Try to get translation, fallback to formatted key
         const translationKey = key;
         const label = t(translationKey) !== translationKey ? t(translationKey) : key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
-        return { value: key, label };
+        return { 
+          key,
+          value: key, 
+          label,
+          price: prices[category][key],
+          displayType: getDisplayType(key),
+        };
       });
     }
-    
-    // Only use fallback if prices not loaded yet
     return fallbackOptions;
   };
 
