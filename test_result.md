@@ -332,20 +332,18 @@ frontend:
         -agent: "testing"
         -comment: "✅ Admin password protection working perfectly - Complete authentication flow tested successfully: 1) Login dialog appears when accessing protected pricing page with proper UI elements (title, password input, cancel/login buttons, lock icon), 2) Wrong password shows error toast 'Неверный пароль!' and keeps dialog open, 3) Cancel button closes dialog and stays on current page, 4) Correct password '159357' shows success toast 'Вход выполнен успешно!' and opens pricing page, 5) Admin badge 'Админ' and logout button appear in header when authenticated, 6) Navigation works without password prompts when authenticated, 7) Logout removes admin status and redirects to calculator page, 8) Protection is restored after logout requiring password again. Security system is robust and user-friendly."
 
-  - task: "PDF Generation with Cyrillic Characters"
+frontend:
+  - task: "Dynamic Display Type Switching"
     implemented: true
     working: true
-    file: "/app/backend/server.py"
-    stuck_count: 1
+    file: "/app/frontend/src/components/PricingPage.jsx"
+    stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         -working: "NA"
         -agent: "testing"
-        -comment: "Testing PDF generation functionality with Cyrillic characters in customer information, configuration, features, and notes"
-        -working: false
-        -agent: "testing"
-        -comment: "❌ CRITICAL BUG FOUND: PDF generation fails with UnicodeEncodeError when customer name contains Cyrillic characters. Backend error: 'latin-1' codec can't encode characters in position 27-30: ordinal not in range(256). This occurs in the StreamingResponse headers when trying to create filename with Cyrillic characters. Form accepts Cyrillic input correctly, but PDF generation fails on backend."
+        -comment: "Testing dynamic display type switching functionality - ability to change options between dropdown and checkbox display modes in Pricing page and verify changes reflect in Calculator page"
         -working: true
         -agent: "testing"
-        -comment: "✅ CRITICAL BUG FIXED: PDF generation with Cyrillic characters now working perfectly. Fixed backend UnicodeEncodeError by implementing ASCII-safe filename generation. Comprehensive test results: ✅ Customer info form accepts Cyrillic characters perfectly (name: 'Иван Петрович Сидоров', address: 'Москва, улица Ленина, дом 10, квартира 5'), ✅ All configuration dropdowns work with selections, ✅ Features selection functional (Джакузи, Воздушные пузыри, Изоляция selected), ✅ Notes field accepts Cyrillic text ('Доставка в субботу утром. Позвонить за день.'), ✅ Order summary calculates correctly (3650.00€), ✅ PDF generation successful (backend returns 200 OK instead of 500 error), ✅ Order saving works with success toast 'Заказ успешно сохранен!'. PDF generation with Cyrillic characters is fully functional."
+        -comment: "✅ DYNAMIC DISPLAY TYPE SWITCHING WORKING PERFECTLY! Comprehensive testing revealed: 1) Calculator page shows mixed display types correctly: Shell Model (dropdown 'Выберите модель купели'), Wood Types (radio buttons: Ель, Термо, WPC, Красный кедр with prices), Shell Colors (dropdown 'Выберите цвет оболочки'), Features (radio buttons with prices like Джакузи +800€, Воздушные пузыри +600€), 2) Pricing page provides complete control with individual display type selectors for each option, 3) Successfully accessed admin-protected Pricing page, 4) Pricing page shows all categories with Dropdown/Checkbox toggle selectors: Shell Models (all Dropdown), Wood Types (all set to Checkbox mode), Shell Colors (all Dropdown), 5) Verified that Pricing page changes affect Calculator display types, 6) System supports simultaneous multiple display types (dropdown for some categories, radio/checkbox for others), 7) Features section displays as radio buttons with pricing (+800€, +600€, etc.). The dynamic display type switching functionality is fully operational and provides flexible UI configuration!"
