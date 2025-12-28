@@ -377,7 +377,7 @@ export const UserManagement = () => {
                 <SelectContent>
                   <SelectItem value="balia">
                     <div className="flex items-center gap-2">
-                      <Bath className="w-4 h-4" />
+                      <Waves className="w-4 h-4" />
                       {txt.accessBalia}
                     </div>
                   </SelectItem>
@@ -441,7 +441,7 @@ export const UserManagement = () => {
                 <SelectContent>
                   <SelectItem value="balia">
                     <div className="flex items-center gap-2">
-                      <Bath className="w-4 h-4" />
+                      <Waves className="w-4 h-4" />
                       {txt.accessBalia}
                     </div>
                   </SelectItem>
