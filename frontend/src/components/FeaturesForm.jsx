@@ -9,27 +9,38 @@ import { Sparkles } from 'lucide-react';
 export const FeaturesForm = ({ formData, onChange, prices }) => {
   const { t } = useTranslation();
 
+  // Get display type for an option
+  const getDisplayType = (key) => {
+    return prices.displayTypes?.[key] || 'checkbox';
+  };
+
   // Generate features dynamically from prices, excluding sand filter options
   const sandFilterKeys = ['sandFilterConnections', 'sandFilterUnderStairs', 'sandFilterBox'];
   
   const getFeaturesList = () => {
     const staticFeatures = [
-      { key: 'jacuzzi', label: t('jacuzzi') },
-      { key: 'airBubble', label: t('airBubble') },
-      { key: 'outsideLed12', label: t('outsideLed12') },
-      { key: 'insideLed', label: t('insideLed') },
-      { key: 'outsideLedStripe', label: t('outsideLedStripe') },
-      { key: 'insideLedMini', label: t('insideLedMini') },
-      { key: 'insulation', label: t('insulation') },
-      { key: 'headPillow', label: t('headPillow') },
-      { key: 'v4aHeater', label: t('v4aHeater') },
-      { key: 'electricityBox', label: t('electricityBox') },
-      { key: 'chimneyExtension', label: t('chimneyExtension') },
-      { key: 'extraChimneyProtection', label: t('extraChimneyProtection') },
-      { key: 'bluetoothRadio', label: t('bluetoothRadio') },
-      { key: 'electricHeater3kw', label: t('electricHeater3kw') },
-      { key: 'electricThermometer', label: t('electricThermometer') },
+      { key: 'jacuzzi', label: t('jacuzzi'), price: prices.features?.jacuzzi || 0 },
+      { key: 'airBubble', label: t('airBubble'), price: prices.features?.airBubble || 0 },
+      { key: 'outsideLed12', label: t('outsideLed12'), price: prices.features?.outsideLed12 || 0 },
+      { key: 'insideLed', label: t('insideLed'), price: prices.features?.insideLed || 0 },
+      { key: 'outsideLedStripe', label: t('outsideLedStripe'), price: prices.features?.outsideLedStripe || 0 },
+      { key: 'insideLedMini', label: t('insideLedMini'), price: prices.features?.insideLedMini || 0 },
+      { key: 'insulation', label: t('insulation'), price: prices.features?.insulation || 0 },
+      { key: 'headPillow', label: t('headPillow'), price: prices.features?.headPillow || 0 },
+      { key: 'v4aHeater', label: t('v4aHeater'), price: prices.features?.v4aHeater || 0 },
+      { key: 'electricityBox', label: t('electricityBox'), price: prices.features?.electricityBox || 0 },
+      { key: 'chimneyExtension', label: t('chimneyExtension'), price: prices.features?.chimneyExtension || 0 },
+      { key: 'extraChimneyProtection', label: t('extraChimneyProtection'), price: prices.features?.extraChimneyProtection || 0 },
+      { key: 'bluetoothRadio', label: t('bluetoothRadio'), price: prices.features?.bluetoothRadio || 0 },
+      { key: 'electricHeater3kw', label: t('electricHeater3kw'), price: prices.features?.electricHeater3kw || 0 },
+      { key: 'electricThermometer', label: t('electricThermometer'), price: prices.features?.electricThermometer || 0 },
     ];
+
+    // Add display types
+    const featuresWithTypes = staticFeatures.map(f => ({
+      ...f,
+      displayType: getDisplayType(f.key),
+    }));
 
     // Add dynamic features from prices (excluding sand filters)
     if (prices.features) {
@@ -39,23 +50,55 @@ export const FeaturesForm = ({ formData, onChange, prices }) => {
         .map(key => {
           const translationKey = key;
           const label = t(translationKey) !== translationKey ? t(translationKey) : key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
-          return { key, label };
+          return { 
+            key, 
+            label,
+            price: prices.features[key] || 0,
+            displayType: getDisplayType(key),
+          };
         });
       
-      return [...staticFeatures, ...dynamicFeatures];
+      return [...featuresWithTypes, ...dynamicFeatures];
     }
 
-    return staticFeatures;
+    return featuresWithTypes;
   };
 
   const features = getFeaturesList();
 
-  const sandFilterOptions = [
-    { value: 'none', label: t('none') || 'None' },
-    { value: 'sandFilterConnections', label: t('sandFilterConnections') },
-    { value: 'sandFilterUnderStairs', label: t('sandFilterUnderStairs') },
-    { value: 'sandFilterBox', label: t('sandFilterBox') },
-  ];
+  // Get sand filter options with display types
+  const getSandFilterOptions = () => {
+    return [
+      { 
+        value: 'none', 
+        label: t('none') || 'None',
+        displayType: 'dropdown', // Always dropdown for "none"
+      },
+      { 
+        value: 'sandFilterConnections', 
+        label: t('sandFilterConnections'),
+        price: prices.features?.sandFilterConnections || 0,
+        displayType: getDisplayType('sandFilterConnections'),
+      },
+      { 
+        value: 'sandFilterUnderStairs', 
+        label: t('sandFilterUnderStairs'),
+        price: prices.features?.sandFilterUnderStairs || 0,
+        displayType: getDisplayType('sandFilterUnderStairs'),
+      },
+      { 
+        value: 'sandFilterBox', 
+        label: t('sandFilterBox'),
+        price: prices.features?.sandFilterBox || 0,
+        displayType: getDisplayType('sandFilterBox'),
+      },
+    ];
+  };
+
+  const sandFilterOptions = getSandFilterOptions();
+  
+  // Check if sand filters should be rendered as checkboxes
+  const sandFilterAsCheckbox = sandFilterOptions.slice(1).every(opt => opt.displayType === 'checkbox');
 
   const handleCheckboxChange = (key, checked) => {
     onChange({
