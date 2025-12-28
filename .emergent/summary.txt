@@ -1,72 +1,93 @@
 <analysis>**original_problem_statement:**
-The user's initial goal was to create a price calculator for a hot tub (Balia) business. The requirements evolved to include:
-1.  **Price & Category Management**: A password-protected admin interface to dynamically manage pricing options, categories (including order and display type like dropdown/checkbox), and their required status.
-2.  **Order Processing**: A combined function to save an order to the database and generate a PDF quote.
-3.  **PDF Generation**: All generated PDFs must be in Polish, regardless of the user's selected language.
-4.  **Localization**: The entire UI must support Russian (RU) and Polish (PL).
-5.  **Application Structure**: A main landing page where users can select between two different calculators: Balia (Hot Tub) and Sauna.
-6.  **UI/UX**:
-    - A clean, minimalist design.
-    - A responsive mobile header with a hamburger menu for navigation.
-    - A custom title (Balia Kalkulator) and favicon (🛁).
-    - Removal of the Made with Emergent badge.
+The user's initial goal was to create a price calculator for a hot tub (Balia) business. This evolved to include dynamic category/price management, PDF quote generation (always in Polish), and RU/PL localization. The application was then restructured to have a main landing page to choose between the Balia calculator and a future Sauna calculator.
+
+In the current session, the user added a new, high-priority requirement for a comprehensive **Authorization and User Management System**:
+1.  **Authentication**: The entire application must be behind a login wall.
+2.  **Roles**:
+    *   **Admin**: Can access everything, including a new User Management page.
+    *   **Employee**: Has restricted access.
+3.  **Admin Capabilities**:
+    *   Log in using the existing password ().
+    *   Create, view, edit, and delete employees (username, password).
+    *   Assign each employee access to *either* the Balia or Sauna calculator.
+4.  **Employee Permissions**:
+    *   Can only see and use the calculator they are assigned to.
+    *   Can view the Orders page.
+    *   Cannot access the Pricing admin page.
+5.  **New Feature Request**: Implement the Sauna Calculator based on an HTML file and an Excel spreadsheet provided by the user. This includes migrating data to MongoDB, implementing calculation logic, creating a Russian version, and generating a PDF similar in structure to the original HTML file.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-A full-stack application (React/FastAPI/MongoDB) with a multi-calculator structure.
--   **Frontend**: A main landing page () allows users to navigate to either the Balia calculator or a placeholder for the Sauna calculator.
-    -   The **Balia Calculator ()** is fully functional, with dynamic categories, real-time price calculation, and localization.
-    -   The **Admin Panel ()** provides full CRUD functionality for categories and pricing options. It is password-protected ().
-    -   The **Orders Page ()** lists all submitted orders.
-    -   A responsive header provides navigation, language switching, and a back button to the main landing page.
--   **Backend**: A FastAPI server handles all API requests.
-    -   The logic for saving an order and generating a PDF has been combined into a single endpoint.
-    -   PDF generation is hardcoded to use the Polish language.
-    -   The data model supports dynamic, ordered, and localizable categories.
--   **Database**: MongoDB stores a  document (containing the entire configuration for the Balia calculator) and an  collection.
+The application is a full-stack React/FastAPI app with a newly implemented authentication and authorization layer.
+-   **Authentication**: The app starts at a . No part of the application is accessible without logging in.
+-   **User Roles**: The system supports admin and employee roles with distinct permissions.
+    -   An  user is created on startup with credentials  / .
+-   **Frontend**:
+    -   **Login Page ()**: A new component for user login.
+    -   **Auth Context ()**: Manages user state and JWT token across the application.
+    -   **User Management ()**: An admin-only page for CRUD operations on employees.
+    -   **Landing Page**: After login, users are directed here. It shows available calculators. Calculators a user does not have access to are shown as locked.
+    -   **Header**: Dynamically shows a Users link and Admin badge for admins, and a Logout button for all authenticated users. The Pricing tab is hidden for employees.
+    -   The Balia calculator at  is fully functional but now accessible only after login and with the correct permissions.
+-   **Backend ()**:
+    -   Expanded to include a  collection in MongoDB.
+    -   Uses JWT for secure authentication ().
+    -   Provides API endpoints for user management ().
+    -   The database now contains , , and  collections.
 
 **Last working item**:
--   **Last item agent was working**: The agent created a landing page that allows users to choose between the Balia (Hot Tub) calculator and a future Sauna calculator. This involved restructuring the application's routing and creating new components for the landing page and a placeholder for the sauna section.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y (Verified via screenshots for desktop, mobile, and navigation flows).
--   **Which testing method agent to use?**: frontend testing agent (To be used for the next feature, the Sauna Calculator).
+-   **Last item agent was working**: The agent has just begun the Sauna Calculator implementation. It has received an HTML file and an Excel file with data from the user. The agent analyzed these files, identified the data structure (sauna models, options, categories, prices), noted some potential data inconsistencies in the Excel file, and was in the process of asking the user to confirm the data structure before proceeding with implementation.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N/A (The task is in the analysis/planning phase).
+-   **Which testing method agent to use?**: both (Backend agent for API/DB logic, Frontend agent for UI/calculation logic).
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- There are no pending issues.
+-   **Issue 1: Minor Dropdown Positioning Glitch (P2)**
+    -   **Description**: In , the  dropdown was observed to be misaligned once.
+    -   **Status**: NOT STARTED
+    -   **Why fix this?**: Minor UI polish for a better user experience.
+    -   **Should Test**: frontend
 
 **In progress Task List**:
-- There are no tasks currently in progress.
+-   **Task 1: Implement the Sauna Calculator (P0)**
+    -   **Description**: Build the second calculator for Saunas. The user has provided an old HTML calculator and an Excel sheet with data.
+    -   **Status**: IN PROGRESS
+    -   **Where to resume**: The agent was about to ask the user to confirm the parsed data structure from the Excel file. The next step is to get that confirmation, then plan the implementation steps:
+        1.  Design the MongoDB schema for sauna pricing.
+        2.  Create a script or backend endpoint to migrate data from the Excel file () to MongoDB.
+        3.  Create new backend API endpoints (, ) and update the data model to support multiple calculators.
+        4.  Create the frontend component  to replace the placeholder.
+        5.  Implement the calculation logic, including discounts, based on the original HTML file.
+        6.  Implement PDF generation with images, mimicking the structure of the original file.
+        7.  Add Russian translations for all new UI elements.
+    -   **Blocked on**: User confirmation of the data structure.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **(P0) Build the Sauna Calculator**: The user will provide the code for the sauna calculator. The agent needs to integrate this code, replacing the current placeholder component at . This will likely involve creating new backend models and API endpoints for sauna-specific pricing.
-    -   **(P1) User Verification of Recent Features**: User needs to test and confirm the functionality of all recently added features:
-        -   The new landing page and navigation flow.
-        -   The combined Save and Generate PDF button.
-        -   The mobile hamburger menu.
-        -   The ability to toggle the Required status for categories in the admin panel.
+    -   **(P1) User Verification of Auth System**: Although the user gave informal approval, they should be prompted to formally test and verify the entire authentication and user management flow.
+        -   Admin login (/).
+        -   Creating/editing/deleting an employee.
+        -   Employee login with restricted access (e.g., only ).
+        -   Verifying employees cannot access the  or  pages.
+        -   Testing the  functionality for both roles.
 
 **Completed work in this session**
--   **Feature: Full Category Management**: Completed the system for admins to create, reorder, delete, and manage categories and their properties (e.g., display type, required status).
--   **Feature: Application Restructuring**: Implemented a main landing page to select between Balia and Sauna calculators, refactoring the app's routing and layout.
--   **Feature: Mobile Hamburger Menu**: Added a responsive dropdown menu for navigation on mobile devices.
--   **Enhancement: Combined Save & PDF**: Merged the Save Order and Generate PDF actions into a single user-friendly button.
--   **Enhancement: PDF Localization**: Modified the backend to ensure all generated PDFs are in Polish, as requested.
--   **Enhancement: Admin Flexibility**: Added a switch to toggle the Required status for all categories, including system ones.
--   **UI: Full Localization**: Translated all new components and text into Russian and Polish.
--   **UI: Branding**: Added a custom favicon (🛁), updated the page title to Balia Kalkulator, and removed the Made with Emergent badge.
--   **Testing**: Performed comprehensive backend and frontend testing for the category management feature and used screenshots to validate all subsequent UI changes.
--   **Code Cleanup**: Removed obsolete components (, ).
--   **Support**: Addressed user queries regarding deployment and custom domain setup by invoking the support agent.
+-   **Feature: User Authentication & Authorization**: Implemented a complete login system with JWT, password hashing, and role-based access control.
+-   **Feature: Admin User Management**: Created an admin-only page for full CRUD operations on employee accounts.
+-   **Feature: Role-Based UI**: The UI now dynamically adapts based on user role (Admin vs. Employee), restricting access to calculators and admin pages.
+-   **Feature: Logout Functionality**: Added a logout button for all authenticated users in both desktop and mobile headers.
+-   **Bug Fix**: Added a Back to selection button on the User Management page for better navigation.
+-   **UI Enhancement**: Replaced the  icon with a more appropriate  icon for the Balia calculator.
+-   **Testing**: Performed comprehensive API (), UI (), and automated () tests for the new authentication system.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Minor Dropdown Positioning Glitch**
-    -   **Debug checklist**: In , inspect the styling and positioning of the  component from Shadcn UI. It was observed once to be misaligned on the main calculator page.
-    -   **Why to solve this issue and what will be achieved with this?**: This is a minor UI polish fix to ensure a smooth user experience.
+    -   **Debug checklist**: In , inspect the styling and positioning of the  component.
+    -   **Why to solve this issue and what will be achieved with this?**: UI polish.
     -   **Should Test frontend/backend/both after fix**: frontend
-    -   **Is recurring issue?**: N (Observed once, may have been fixed implicitly).
+    -   **Is recurring issue?**: N (Observed once).
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -77,73 +98,80 @@ A full-stack application (React/FastAPI/MongoDB) with a multi-calculator structu
 **Key Technical Concepts**
 -   **Frontend**: React, React Router, Tailwind CSS, shadcn/ui, i18next
 -   **Backend**: Python, FastAPI, Pydantic, reportlab
--   **Database**: MongoDB (with )
--   **Architecture**: Multi-page/multi-calculator full-stack application with a shared backend and a central landing page.
+-   **Database**: MongoDB ()
+-   **Authentication**: JWT (via ), Password Hashing (via )
 
 **key DB schema**
--   ** collection**: Contains a single document storing all configuration for the Balia calculator.
-    -   : A dictionary mapping category IDs to their properties ( (as a localization key), , , ).
-    -   : A dictionary mapping option keys to their localization keys.
-    -   : Maps option keys to  or .
--   ** collection**: Each document represents a submitted order with customer info, configuration, and total price.
+-   ****: Single document for Balia calculator configuration.
+-   ****: Collection of submitted orders for Balia.
+-   ****: **NEW** collection for user accounts.
+    -   uid=0(root) gid=0(root) groups=0(root): (string, uuid)
+    -   : (string)
+    -   : (string)
+    -   : (string, e.g., balia, sauna, or all for admin)
+    -   : (datetime)
 
 **changes in tech stack**
--   No changes.
+-   **Backend**: Added  for JWT and  for password security.
 
 **All files of reference**
--   : Main application router.
--   : The new entry point of the application.
--   : The component to be replaced in the next task.
--   : The core of the Balia calculator.
--   : The admin panel for the Balia calculator.
--   : The single source of backend logic.
+-   **/app/backend/server.py**: Contains all backend logic, including the new auth and user management endpoints.
+-   **/app/frontend/src/App.js**: Main router, updated with protected routes logic.
+-   **/app/frontend/src/context/AuthContext.jsx**: New file, central to the auth system.
+-   **/app/frontend/src/components/LoginPage.jsx**: New file, the application's entry point UI.
+-   **/app/frontend/src/components/UserManagement.jsx**: New file, for admin to manage users.
+-   **/app/frontend/src/components/Header.jsx**: Significantly modified to reflect auth state.
+-   **/app/frontend/src/components/LandingPage.jsx**: Modified to show locked/unlocked calculators.
+-   **/app/assets/Sauna Calculator Database.xlsx**: User-provided data for the next task.
 
 **Areas that need refactoring**:
--   The  file is becoming large. Consider splitting it into separate files for routes, models, and services, especially before adding the logic for the Sauna calculator.
--   The  database document currently only supports the Balia calculator. A strategy will be needed to manage pricing for the Sauna calculator (e.g., a new collection, or a nested object within the existing document).
+-   ****: This file is now critically oversized, containing logic for Balia prices, Balia orders, authentication, and user management. It MUST be broken down into a proper project structure (e.g., , , ) before adding the sauna logic.
+-   **Pricing Data Model**: The current pricing model ( collection) is hardcoded for the Balia calculator. A new, scalable approach is needed to store configurations for multiple calculators (Balia, Sauna, etc.). A new collection (e.g., ) where each document represents a calculator might be a good approach.
 
 **key api endpoints**
--   : Saves an order to the database and returns a PDF file for download.
--   : Updates the entire pricing and category structure for the Balia calculator.
--   : Fetches the current pricing and category structure.
--   : Retrieves a list of all submitted orders.
+-   : **NEW** - User login, returns JWT.
+-   : **NEW** - Get current user details from token.
+-   : **NEW** - Admin routes to list and create users.
+-   : **NEW** - Admin routes to update and delete users.
+-   : Saves a Balia order and returns a PDF.
+-   : Fetches Balia pricing structure.
 
 **Critical Info for New Agent**
--   **Next Task is Blocked**: The primary task of building the Sauna Calculator is blocked until the user provides the necessary code or specifications.
--   **PDF Generation is Hardcoded**: The backend is configured to **always** generate PDFs in Polish, per a specific user request. This logic is in .
--   **Application Structure**: The application now has a top-level landing page. The existing calculator has been moved to the  route. The next calculator will be at .
+-   You are starting the **Sauna Calculator** implementation. The immediate next step is to formulate a plan based on the user-provided files and confirm the data structure with the user before writing any code.
+-   The user has requested to migrate data from the provided Excel file to MongoDB. You will need to create a new data model for this.
+-   The backend  file urgently needs refactoring to handle the complexity of multiple calculators and user management. Propose this refactoring as part of the sauna implementation plan.
+-   The entire application is now behind an authentication wall. All testing must be done with an authenticated user (either admin or an employee).
 
 **documents and test reports created in this job**
--    was updated during the session for automated testing.
+-    was updated and used for testing the auth feature.
+-   The user uploaded  and .
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: How can I deploy this version to another domain? (Answered via support agent)
-2.  **User**: Create a landing page to choose between a Balia and Sauna calculator. I'll send the sauna code later. (Completed)
-3.  **User**: Allow the required status to be toggled for system categories. (Completed)
-4.  **User**: The mobile version is missing links to Orders and Prices. Can you add a dropdown menu? (Completed)
-5.  **User**: The PDF should always be in Polish, and the order should be saved automatically when the PDF is created. Combine the two buttons. (Completed)
-6.  **User**: Remove the Made with Emergent text. (Completed)
-7.  **User**: Add an icon of a hot tub and change the title to Balia Kalkulator. (Completed)
-8.  **User**: Yes, all points are working. How do I add a favicon? (Completed)
-9.  **User**: After clearing cache, these errors remain. Are they critical? (Answered, non-critical ad-blocker errors)
-10. **User**: After linking the domain, I get these CORS errors. (Answered, identified as a platform-level DNS propagation issue)
+1.  **User**: Everything works. I'm uploading the code for the sauna calculator now. (Task switch)
+2.  **User**: (uploads )
+3.  **Agent**: Analyzed the HTML, asks clarifying questions about data source, discounts, PDF, and localization.
+4.  **User**: I can give you a data table to put in MongoDB. Discounts should be preserved. PDF should be like the original with images. Orders go to Mongo. Make a Russian version.
+5.  **Agent**: Asks for the data file and for confirmation on the implementation plan.
+6.  **User**: (uploads )
+7.  **Agent**: (Current state) Analyzed the Excel data, noted the structure and some potential gaps, and is preparing to ask for final confirmation before starting the build.
 
 **Project Health Check:**
--   **Working**: The Balia calculator and all its features (admin, localization, PDF generation) are fully functional. The new landing page structure is working correctly.
--   **Broken**: No features are currently broken.
--   **Mocked**: The Sauna calculator is a placeholder page awaiting implementation.
+-   **Working**: The Balia calculator and the entire new Authentication/Authorization system are functional.
+-   **Broken**: No features are broken.
+-   **Mocked**: The Sauna calculator at  is a placeholder component, pending implementation.
 
 **3rd Party Integrations**
 -   None.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (for the category management system).
--   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Testing agent used after significant changes**: YES (Backend and Frontend testing agents were used successfully for the auth system).
+-   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: None.
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
--   **Admin password**:  (for the  page)
+-   **Admin**:  / 
+-   **Employee (example)**:  /  (has access to Balia only)
 
 **What agent forgot to execute**
--   The agent noted a minor UI bug where a dropdown menu was misaligned (Chat Message 62) but did not create a specific fix for it. The issue may have been resolved by subsequent changes but should be verified.</analysis>
+-   The minor UI bug concerning a misaligned dropdown in  has not been addressed.</analysis>
