@@ -1026,6 +1026,7 @@ def test_sauna_calculator_system():
     # Run all sauna tests
     sauna_results = {
         "GET /api/sauna/prices": test_get_sauna_prices(),
+        "POST /api/sauna/prices": test_update_sauna_prices(),
         "POST /api/sauna/orders": test_create_sauna_order(),
         "GET /api/sauna/orders": test_get_sauna_orders(),
         "POST /api/sauna/generate-pdf": test_generate_sauna_pdf(),
