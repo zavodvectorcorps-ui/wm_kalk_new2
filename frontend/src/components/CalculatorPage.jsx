@@ -311,28 +311,20 @@ export const CalculatorPage = () => {
           
           <div className="flex flex-wrap gap-3">
             <Button
-              onClick={handleSaveOrder}
+              onClick={() => handleSaveAndGeneratePDF('customer')}
               disabled={loading}
               size="lg"
-              className="flex-1 min-w-[200px]"
+              className="flex-1 min-w-[250px]"
             >
               {loading ? (
                 <Loader2 className="h-5 w-5 mr-2 animate-spin" />
               ) : (
-                <Save className="h-5 w-5 mr-2" />
+                <>
+                  <Save className="h-5 w-5 mr-2" />
+                  <FileDown className="h-5 w-5 mr-2" />
+                </>
               )}
-              {t('saveOrder')}
-            </Button>
-            
-            <Button
-              onClick={() => handleGeneratePDF('customer')}
-              disabled={loading}
-              variant="secondary"
-              size="lg"
-              className="flex-1 min-w-[200px]"
-            >
-              <FileDown className="h-5 w-5 mr-2" />
-              {t('generatePDF')}
+              {t('saveAndGeneratePDF')}
             </Button>
             
             <Button
