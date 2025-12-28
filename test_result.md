@@ -246,12 +246,19 @@ metadata:
   test_sequence: 1
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Authentication System - Login Page"
+    - "Authentication System - User Management"
+    - "Authentication System - Access Control"
+    - "Authentication API - Login"
+    - "Authentication API - User Management"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+    -agent: "main"
+    -message: "Implemented complete authentication system with JWT. Features: 1) Login page for all users, 2) Admin can manage employees (add/edit/delete), 3) Employees can only access assigned calculator (balia or sauna). Admin credentials: username='admin', password='159357'. Test employee created: username='ivan', password='test123', access='balia'. Please test all authentication flows including login, user management, and access restrictions."
     -agent: "testing"
     -message: "Starting comprehensive testing of hot tub calculator application. Will test all functionality including language switching, form interactions, navigation, and button actions."
     -agent: "testing"
