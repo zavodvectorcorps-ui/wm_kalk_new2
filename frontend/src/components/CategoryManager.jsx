@@ -7,7 +7,8 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Checkbox } from './ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Plus, FolderPlus, List, CheckSquare, Trash2, GripVertical, Folder, ChevronUp, ChevronDown } from 'lucide-react';
+import { Switch } from './ui/switch';
+import { Plus, FolderPlus, List, CheckSquare, Trash2, Folder, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const CategoryManager = ({ 
@@ -154,7 +155,8 @@ export const CategoryList = ({
   onDelete, 
   onMoveUp, 
   onMoveDown,
-  onCreateNew 
+  onCreateNew,
+  onToggleRequired
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -233,13 +235,8 @@ export const CategoryList = ({
                         {t('system')}
                       </span>
                     )}
-                    {category.required && (
-                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
-                        {t('required')}
-                      </span>
-                    )}
                   </div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-4">
+                  <div className="text-sm text-muted-foreground flex items-center gap-4 flex-wrap">
                     <span>ID: {category.id}</span>
                     <span className="flex items-center gap-1">
                       {category.displayType === 'dropdown' ? (
@@ -250,6 +247,18 @@ export const CategoryList = ({
                     </span>
                     <span>{t('order')}: {category.order}</span>
                   </div>
+                </div>
+                
+                {/* Required Toggle */}
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`required-${category.id}`} className="text-xs text-muted-foreground cursor-pointer">
+                    {t('required')}
+                  </Label>
+                  <Switch
+                    id={`required-${category.id}`}
+                    checked={category.required || false}
+                    onCheckedChange={(checked) => onToggleRequired(category.id, checked)}
+                  />
                 </div>
                 
                 {!isDefaultCategory(category.id) && (
