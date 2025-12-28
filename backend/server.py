@@ -1173,7 +1173,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     current_date = datetime.now().strftime('%d.%m.%Y')
     valid_until = (datetime.now() + timedelta(days=30)).strftime('%d.%m.%Y')
     promo_until = (datetime.now() + timedelta(days=7)).strftime('%d.%m.%Y')
-    offer_number = f"WMS-{datetime.now().strftime('%H%M%S')}"
+    
+    # Use orderId if provided, otherwise generate a fallback
+    order_id = getattr(request, 'orderId', '') or ''
+    if order_id:
+        # Use first 8 characters of order ID for cleaner display
+        offer_number = f"WMS-{order_id[:8].upper()}"
+    else:
+        offer_number = f"WMS-{datetime.now().strftime('%H%M%S')}"
     
     # Get discount info
     discount_percent = getattr(request, 'discountPercent', 0) or 0
