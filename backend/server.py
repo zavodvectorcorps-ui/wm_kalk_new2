@@ -305,6 +305,8 @@ default_prices = {
         "electricHeater3kw": "features",
         "electricThermometer": "features",
     },
+    # Custom labels for options (empty by default, used for custom options)
+    "optionLabels": {},
 }
 
 # Routes
