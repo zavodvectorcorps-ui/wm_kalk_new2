@@ -101,29 +101,138 @@ export const PricingPage = () => {
 
   const renderPriceSection = (title, category, items) => (
     <div className="space-y-3">
-      <h3 className="font-semibold text-lg text-foreground">{title}</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-lg text-foreground">{title}</h3>
+        <Dialog open={isDialogOpen && editingCategory === category} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (open) setEditingCategory(category);
+        }}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Добавить опцию
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Добавить новую опцию в "{title}"</DialogTitle>
+              <DialogDescription>
+                Введите уникальный ключ (на английском, без пробелов), название и цену
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="option-key">Ключ опции (например: custom_option_1)</Label>
+                <Input
+                  id="option-key"
+                  value={newOption.key}
+                  onChange={(e) => setNewOption({ ...newOption, key: e.target.value.replace(/\s/g, '_').toLowerCase() })}
+                  placeholder="custom_option_1"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="option-label">Название опции</Label>
+                <Input
+                  id="option-label"
+                  value={newOption.label}
+                  onChange={(e) => setNewOption({ ...newOption, label: e.target.value })}
+                  placeholder="Моя новая опция"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="option-price">Цена (€)</Label>
+                <Input
+                  id="option-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={newOption.price}
+                  onChange={(e) => setNewOption({ ...newOption, price: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Отмена
+              </Button>
+              <Button onClick={handleAddOption}>
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {items.map((item) => (
-          <div key={item.key} className="space-y-1.5">
-            <Label htmlFor={`${category}-${item.key}`} className="text-sm">
-              {item.label}
-            </Label>
-            <div className="relative">
-              <Input
-                id={`${category}-${item.key}`}
-                type="number"
-                step="0.01"
-                min="0"
-                value={prices[category][item.key] || 0}
-                onChange={(e) => handlePriceChange(category, item.key, e.target.value)}
-                className="pr-8"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                €
-              </span>
+          <div key={item.key} className="flex gap-2 items-end">
+            <div className="flex-1 space-y-1.5">
+              <Label htmlFor={`${category}-${item.key}`} className="text-sm">
+                {item.label}
+              </Label>
+              <div className="relative">
+                <Input
+                  id={`${category}-${item.key}`}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={prices[category][item.key] || 0}
+                  onChange={(e) => handlePriceChange(category, item.key, e.target.value)}
+                  className="pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                  €
+                </span>
+              </div>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDeleteOption(category, item.key)}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              title="Удалить опцию"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         ))}
+        {/* Show dynamically added options */}
+        {Object.keys(prices[category] || {})
+          .filter(key => !items.find(item => item.key === key))
+          .map((key) => (
+            <div key={key} className="flex gap-2 items-end">
+              <div className="flex-1 space-y-1.5">
+                <Label htmlFor={`${category}-${key}`} className="text-sm flex items-center gap-2">
+                  {key}
+                  <span className="text-xs text-muted-foreground">(пользовательская)</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id={`${category}-${key}`}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={prices[category][key] || 0}
+                    onChange={(e) => handlePriceChange(category, key, e.target.value)}
+                    className="pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                    €
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDeleteOption(category, key)}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                title="Удалить опцию"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
       </div>
     </div>
   );
