@@ -329,3 +329,21 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "✅ Admin password protection working perfectly - Complete authentication flow tested successfully: 1) Login dialog appears when accessing protected pricing page with proper UI elements (title, password input, cancel/login buttons, lock icon), 2) Wrong password shows error toast 'Неверный пароль!' and keeps dialog open, 3) Cancel button closes dialog and stays on current page, 4) Correct password '159357' shows success toast 'Вход выполнен успешно!' and opens pricing page, 5) Admin badge 'Админ' and logout button appear in header when authenticated, 6) Navigation works without password prompts when authenticated, 7) Logout removes admin status and redirects to calculator page, 8) Protection is restored after logout requiring password again. Security system is robust and user-friendly."
+
+  - task: "PDF Generation with Cyrillic Characters"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Testing PDF generation functionality with Cyrillic characters in customer information, configuration, features, and notes"
+        -working: false
+        -agent: "testing"
+        -comment: "❌ CRITICAL BUG FOUND: PDF generation fails with UnicodeEncodeError when customer name contains Cyrillic characters. Backend error: 'latin-1' codec can't encode characters in position 27-30: ordinal not in range(256). This occurs in the StreamingResponse headers when trying to create filename with Cyrillic characters. Form accepts Cyrillic input correctly, but PDF generation fails on backend."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ CRITICAL BUG FIXED: PDF generation with Cyrillic characters now working perfectly. Fixed backend UnicodeEncodeError by implementing ASCII-safe filename generation. Comprehensive test results: ✅ Customer info form accepts Cyrillic characters perfectly (name: 'Иван Петрович Сидоров', address: 'Москва, улица Ленина, дом 10, квартира 5'), ✅ All configuration dropdowns work with selections, ✅ Features selection functional (Джакузи, Воздушные пузыри, Изоляция selected), ✅ Notes field accepts Cyrillic text ('Доставка в субботу утром. Позвонить за день.'), ✅ Order summary calculates correctly (3650.00€), ✅ PDF generation successful (backend returns 200 OK instead of 500 error), ✅ Order saving works with success toast 'Заказ успешно сохранен!'. PDF generation with Cyrillic characters is fully functional."
