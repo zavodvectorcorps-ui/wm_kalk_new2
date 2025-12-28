@@ -77,28 +77,53 @@ export const PricingPage = () => {
   };
 
   const handleAddOption = () => {
-    if (!newOption.key || !newOption.label) {
+    if (!newOption.key || !newOption.label || !newOption.category) {
       toast.error(t('fillRequired') || 'Заполните все поля');
       return;
     }
 
+    const category = newOption.category;
+
     setPrices((prev) => ({
       ...prev,
-      [editingCategory]: {
-        ...prev[editingCategory],
+      [category]: {
+        ...(prev[category] || {}),
         [newOption.key]: parseFloat(newOption.price) || 0,
       },
       displayTypes: {
         ...prev.displayTypes,
         [newOption.key]: newOption.displayType,
       },
+      optionCategories: {
+        ...prev.optionCategories,
+        [newOption.key]: category,
+      },
     }));
 
-    // Save to translations (simplified - in production would update translation files)
-    toast.success(`Опция "${newOption.label}" добавлена как ${newOption.displayType === 'dropdown' ? 'выпадающий список' : 'чекбокс'}!`);
+    toast.success(`Опция "${newOption.label}" добавлена в категорию "${prices.categories?.[category]?.name || category}"!`);
     
-    setNewOption({ key: '', label: '', price: 0, displayType: 'dropdown' });
+    setNewOption({ key: '', label: '', price: 0, displayType: 'dropdown', category: '' });
     setIsDialogOpen(false);
+  };
+
+  const handleCreateCategory = (newCategory) => {
+    setPrices((prev) => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        [newCategory.id]: {
+          name: newCategory.name,
+          displayType: newCategory.displayType,
+          required: newCategory.required,
+          order: newCategory.order,
+        },
+      },
+      // Initialize empty object for this category
+      [newCategory.id]: {},
+    }));
+
+    toast.success(`Категория "${newCategory.name}" создана!`);
+    setIsCategoryDialogOpen(false);
   };
 
   const handleDeleteOption = (category, key) => {
