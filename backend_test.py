@@ -664,9 +664,10 @@ def test_authentication_system():
 
 def run_all_tests():
     """Run all backend tests"""
-    print("🚀 Starting Backend API Tests for Hot Tub Calculator Category Management System")
+    print("🚀 Starting Backend API Tests for Hot Tub Calculator with Authentication System")
     print("=" * 80)
     
+    # Run existing category management tests
     test_results = {
         "GET /api/prices": test_get_prices(),
         "POST /api/prices": test_post_prices(),
@@ -676,6 +677,12 @@ def run_all_tests():
         "Category Order Functionality": test_category_order_functionality()
     }
     
+    # Run authentication system tests
+    auth_results = test_authentication_system()
+    
+    # Combine all results
+    all_results = {**test_results, **auth_results}
+    
     print("\n" + "=" * 80)
     print("📊 TEST RESULTS SUMMARY")
     print("=" * 80)
@@ -683,9 +690,21 @@ def run_all_tests():
     passed = 0
     failed = 0
     
+    # Show category management results
+    print("\n📦 CATEGORY MANAGEMENT TESTS:")
     for test_name, result in test_results.items():
         status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{test_name}: {status}")
+        print(f"  {test_name}: {status}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
+    # Show authentication results
+    print("\n🔐 AUTHENTICATION TESTS:")
+    for test_name, result in auth_results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
         if result:
             passed += 1
         else:
@@ -700,7 +719,7 @@ def run_all_tests():
     else:
         print(f"\n⚠️  {failed} test(s) failed - see details above")
     
-    return test_results
+    return all_results
 
 if __name__ == "__main__":
     run_all_tests()
