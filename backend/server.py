@@ -1487,11 +1487,17 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), BROWN),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('TOPPADDING', (0, 0), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-            ('LEFTPADDING', (0, 0), (-1, -1), 4),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-            ('LINEBELOW', (0, 0), (-1, -1), 0.4, BROWN_BORDER),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            # Horizontal lines between all rows
+            ('LINEBELOW', (0, 0), (-1, -1), 0.8, BROWN_BORDER),
+            ('LINEABOVE', (0, 0), (-1, 0), 1, BROWN),
+            # Vertical line between left and right columns
+            ('LINEBEFORE', (2, 0), (2, -1), 0.8, BROWN_BORDER),
+            # Box around the whole table
+            ('BOX', (0, 0), (-1, -1), 1, BROWN_BORDER),
         ]
         # Add alternating row colors
         for i in range(1, len(options_body)):
