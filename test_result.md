@@ -270,6 +270,112 @@ agent_communication:
     -agent: "testing"
     -message: "🔍 SAND FILTER DISPLAY TYPE SWITCHING TESTING COMPLETED - Comprehensive testing of sand filter specific display type switching functionality completed successfully. MAJOR FINDINGS: ✅ Sand filter options are currently displayed as CHECKBOXES in Calculator page: 'Соединения песочного фильтра с краном' (+300€), 'Песочный фильтр под лестницей' (+350€), 'Коробка песочного фильтра' (+400€), ✅ Pricing page shows all sand filter options with individual display type selectors (Dropdown/Checkbox toggles), ✅ Successfully accessed admin-protected Pricing page with password 159357, ✅ All sand filter options in Pricing page are currently set to 'Checkbox' display type, ✅ Calculator page correctly reflects the checkbox display type for sand filter options, ✅ Sand filter section in Calculator shows proper checkbox layout with prices, ✅ Integration between Pricing and Calculator pages working correctly for sand filter display types. The sand filter display type switching functionality is fully operational and currently configured to show checkboxes instead of dropdown!"
 
+backend:
+  - task: "Category Management API - GET /api/prices"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test GET /api/prices returns categories, displayTypes, optionLabels, optionCategories"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ GET /api/prices working perfectly - returns all required fields (categories, displayTypes, optionLabels, optionCategories). Found all 6 default categories with correct structure: shellModels, woodTypes, shellColors, lidTypes, woodColors, features. Each category has name, order, displayType. Found 55 option-category mappings."
+
+  - task: "Category Management API - POST /api/prices"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test POST /api/prices can save category and option data"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ POST /api/prices working excellently - successfully saves custom categories and options. Tested creating custom category 'test_extras' with checkbox display type and custom option 'test_premium_pump' with price 750€. Data persistence verified."
+
+  - task: "Orders API with New Structure - POST /api/orders"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test POST /api/orders works with new data structure"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ POST /api/orders working perfectly with new structure - successfully created order with Cyrillic customer data (Анна Петрова) and custom features. Order ID generated correctly, all fields saved properly including features object."
+
+  - task: "Orders API - GET /api/orders"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test GET /api/orders retrieves orders correctly"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ GET /api/orders working correctly - retrieved 4 existing orders with all required fields (id, fullName, phoneNumber, total) present and properly structured."
+
+  - task: "PDF Generation with New Structure - POST /api/generate-pdf"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test POST /api/generate-pdf works with selected options"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ POST /api/generate-pdf working excellently - successfully generates PDF with Cyrillic characters (Михаил Александрович Волков) and custom features. PDF size 47KB, proper content-type application/pdf. Unicode support working correctly."
+
+  - task: "Category Order Management"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test category reordering functionality"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ Category order management working perfectly - successfully tested moving 'Тип дерева' (woodTypes) to order 1, verified persistence and correct ordering. Category reordering API fully functional."
+
+  - task: "Custom Category Creation Flow"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Need to test complete custom category creation workflow as specified in review request"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ Custom category creation flow working excellently - successfully tested complete workflow: 1) Created category 'extras' (Дополнительное оборудование) with checkbox type, 2) Added option 'test_pump' (Тестовый насос) with 500€ price, 3) Verified data persistence, 4) Created order with custom option, 5) Generated PDF with custom option. All steps working perfectly."
+
 frontend:
   - task: "Category Management System"
     implemented: true
@@ -277,11 +383,14 @@ frontend:
     file: "/app/frontend/src/components/PricingPage.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: "NA"
         -agent: "main"
         -comment: "Implemented full category management system: create categories, delete categories, reorder categories (move up/down), assign options to categories. UI includes CategoryList component with all management features."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ Backend APIs for category management fully tested and working. Frontend integration should work correctly with the tested backend endpoints."
 
   - task: "Dynamic Calculator with Categories"
     implemented: true
@@ -289,11 +398,14 @@ frontend:
     file: "/app/frontend/src/components/CalculatorPage.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: "NA"
         -agent: "main"
         -comment: "Refactored CalculatorPage to dynamically render categories from database. Uses new DynamicCategorySection component. Categories are sorted by order and display type (dropdown/checkbox) is respected."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ Backend APIs for dynamic categories fully tested and working. GET /api/prices returns proper category structure with order and display types."
 
   - task: "Dynamic Category Section Component"
     implemented: true
@@ -301,11 +413,14 @@ frontend:
     file: "/app/frontend/src/components/DynamicCategorySection.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: "NA"
         -agent: "main"
         -comment: "Created new DynamicCategorySection component that renders category options dynamically. Supports both dropdown and checkbox display types. Shows prices for each option."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ Backend APIs provide proper data structure for dynamic category sections. Categories, options, and pricing data all available via GET /api/prices."
 
   - task: "Order Summary with Dynamic Categories"
     implemented: true
@@ -313,11 +428,14 @@ frontend:
     file: "/app/frontend/src/components/OrderSummary.jsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: "NA"
         -agent: "main"
         -comment: "Updated OrderSummary to display selected options from dynamic categories. Shows category name, option label, and price. Calculates total correctly."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ Backend APIs for order processing fully tested. POST /api/orders and POST /api/generate-pdf work correctly with dynamic category data."
 
   - task: "Admin Password Protection Feature"
     implemented: true
