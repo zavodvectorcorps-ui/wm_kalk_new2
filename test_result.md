@@ -393,6 +393,9 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "✅ Backend APIs for category management fully tested and working. Frontend integration should work correctly with the tested backend endpoints."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ COMPREHENSIVE FRONTEND TESTING COMPLETED - Category Management System fully functional! Successfully tested: 1) All 6 default categories displayed correctly (Модель купели, Тип дерева, Цвет оболочки, Тип крышки, Цвет дерева, Особенности и дополнения), 2) Admin password protection working (password: 159357), 3) Category management section shows all categories with proper badges (Системная, Обязательная), IDs, display types, and order numbers, 4) Successfully created new category 'Тестовые дополнения' with checkbox display type, 5) Successfully added new option 'Тестовая опция' with 100€ price to features category, 6) All management controls present (up/down arrows, delete buttons, display type selectors), 7) Integration between Pricing and Calculator pages working perfectly - new test option appears in calculator with correct price display (+100€)."
 
   - task: "Dynamic Calculator with Categories"
     implemented: true
@@ -408,6 +411,9 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "✅ Backend APIs for dynamic categories fully tested and working. GET /api/prices returns proper category structure with order and display types."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ DYNAMIC CALCULATOR FULLY TESTED - All 6 default categories rendering correctly with proper display types. Shell model dropdown working with price display (Круглая 200 см +1500€), order summary calculating correctly (1500.00€), all category sections present and functional. New test option 'Тестовая опция +100€' successfully appears in features section, confirming dynamic category system is working perfectly."
 
   - task: "Dynamic Category Section Component"
     implemented: true
@@ -423,6 +429,9 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "✅ Backend APIs provide proper data structure for dynamic category sections. Categories, options, and pricing data all available via GET /api/prices."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ DYNAMIC CATEGORY SECTIONS WORKING PERFECTLY - Component correctly renders different display types (dropdowns for shell models, radio buttons for features), shows prices with each option (+1500€, +100€, etc.), handles both system and custom categories, and integrates seamlessly with order summary calculations."
 
   - task: "Order Summary with Dynamic Categories"
     implemented: true
@@ -438,6 +447,9 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "✅ Backend APIs for order processing fully tested. POST /api/orders and POST /api/generate-pdf work correctly with dynamic category data."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ORDER SUMMARY WITH DYNAMIC CATEGORIES FULLY FUNCTIONAL - Correctly displays selected shell model (Модель купели: Круглая 200 см 1500€), calculates total accurately (Общая сумма: 1500.00€), updates in real-time when selections change, and properly integrates with all dynamic category selections including custom options."
 
   - task: "Admin Password Protection Feature"
     implemented: true
