@@ -343,7 +343,7 @@ async def generate_pdf(request: PDFRequest):
         ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
         ('ALIGN', (0, 0), (0, 0), 'RIGHT'),
         ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 16),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
         ('TOPPADDING', (0, 0), (-1, -1), 12),
