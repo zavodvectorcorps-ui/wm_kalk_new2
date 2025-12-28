@@ -364,9 +364,49 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+# NEW SAUNA CALCULATOR DISCOUNT & PDF TESTING TASKS
+sauna_calculator_updates:
+  - task: "Sauna Calculator - Discount Button Backend"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BACKEND TESTING COMPLETE - POST /api/sauna/generate-pdf with discount applied working perfectly. Successfully tested with Test Customer, model sauna_kwadro_beczka_235x300_cm (24100 PLN), options piec_elektryczny_9kw (+2600 PLN) and piec_lewo (+350 PLN), discountPercent: 8%, subtotal: 27050 PLN, total: 24886 PLN. PDF generated successfully with new format (two columns for options) and correct discount calculations."
+
+  - task: "Sauna Calculator - PDF Generation (new format)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BACKEND TESTING COMPLETE - POST /api/sauna/generate-pdf working perfectly with new format. Successfully generated PDF with WM-SAUNA header, two-column options layout, discount section showing 8% discount (subtotal: 27050 PLN, total: 24886 PLN), and professional offer format. PDF size: 46027 bytes with correct content-type application/pdf. Email field support confirmed."
+
+  - task: "Sauna Pricing Page - Models/Categories/Options management"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ BACKEND TESTING COMPLETE - POST /api/sauna/prices working perfectly for updating sauna pricing. Successfully modified model discount percentage from 8% to 10% for sauna_kwadro_beczka_235x300_cm and added new option 'Test Premium Piec 15kW' (7500 PLN) to piece category. GET /api/sauna/prices returns complete data structure with all required fields: 13 models with basePrice/foundationPrice/discount/imageUrl, 14 categories with id/name/inputType/options. All changes saved and verified successfully."
+
 agent_communication:
     -agent: "main"
     -message: "🔥 SAUNA CALCULATOR UPDATES COMPLETED! Changes: 1) Discount is now applied via button 'Стандартная скидка' (not automatic). 2) New PDF format matching original HTML - two-column options, WM-SAUNA header, promo/discount sections, footer with terms. 3) New SaunaPricingPage for admin to manage models, categories, and options (3 tabs). 4) Email field added to customer form. Please test: Login admin, go to Sauna, select model, click 'Стандартная скидка', verify discount applied, go to Цены tab to verify pricing management works."
+    -agent: "testing"
+    -message: "🎉 SAUNA CALCULATOR BACKEND TESTING COMPLETED SUCCESSFULLY! All review request requirements met perfectly: ✅ POST /api/sauna/generate-pdf with discount applied (Test Customer, sauna_kwadro_beczka_235x300_cm, 8% discount, subtotal: 27050 PLN, total: 24886 PLN) - PDF generated with new two-column format, ✅ POST /api/sauna/prices successfully updates model discount percentages and adds new options to categories, ✅ GET /api/sauna/prices returns complete data structure with all 13 models and 14 categories including required fields. All backend APIs for updated Sauna Calculator with discount button and new PDF format are fully functional and production-ready!"
     -agent: "main"
     -message: "Implemented complete authentication system with JWT. Features: 1) Login page for all users, 2) Admin can manage employees (add/edit/delete), 3) Employees can only access assigned calculator (balia or sauna). Admin credentials: username='admin', password='159357'. Test employee created: username='ivan', password='test123', access='balia'. Please test all authentication flows including login, user management, and access restrictions."
     -agent: "testing"
