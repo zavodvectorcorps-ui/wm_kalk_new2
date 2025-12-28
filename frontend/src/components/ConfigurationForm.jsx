@@ -8,23 +8,37 @@ import { Settings } from 'lucide-react';
 export const ConfigurationForm = ({ formData, onChange, prices }) => {
   const { t } = useTranslation();
 
-  const shellModels = [
+  // Generate options dynamically from prices
+  const getOptionsFromPrices = (category, fallbackOptions) => {
+    if (!prices[category] || Object.keys(prices[category]).length === 0) {
+      return fallbackOptions;
+    }
+    
+    return Object.keys(prices[category]).map(key => {
+      // Try to get translation, fallback to key
+      const translationKey = key;
+      const label = t(translationKey) !== translationKey ? t(translationKey) : key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+      return { value: key, label };
+    });
+  };
+
+  const shellModels = getOptionsFromPrices('shellModels', [
     { value: 'round200', label: t('round200') },
     { value: 'round225', label: t('round225') },
     { value: 'square170x200', label: t('square170x200') },
     { value: 'square220x220', label: t('square220x220') },
     { value: 'square230x230', label: t('square230x230') },
     { value: 'square245x245', label: t('square245x245') },
-  ];
+  ]);
 
-  const woodTypes = [
+  const woodTypes = getOptionsFromPrices('woodTypes', [
     { value: 'spruce', label: t('spruce') },
     { value: 'thermo', label: t('thermo') },
     { value: 'wpc', label: t('wpc') },
     { value: 'redCedric', label: t('redCedric') },
-  ];
+  ]);
 
-  const shellColors = [
+  const shellColors = getOptionsFromPrices('shellColors', [
     { value: 'white', label: t('white') },
     { value: 'ivory', label: t('ivory') },
     { value: 'blue', label: t('blue') },
@@ -40,14 +54,14 @@ export const ConfigurationForm = ({ formData, onChange, prices }) => {
     { value: 'blackGoldGlitter', label: t('blackGoldGlitter') },
     { value: 'blackPinkGlitter', label: t('blackPinkGlitter') },
     { value: 'blackSilverGlitter', label: t('blackSilverGlitter') },
-  ];
+  ]);
 
-  const lidTypes = [
+  const lidTypes = getOptionsFromPrices('lidTypes', [
     { value: 'glassFiberLid', label: t('glassFiberLid') },
     { value: 'spaLid', label: t('spaLid') },
-  ];
+  ]);
 
-  const woodColors = [
+  const woodColors = getOptionsFromPrices('woodColors', [
     { value: 'akrilasWhite', label: t('akrilasWhite') },
     { value: 'akrilasGreenMarble', label: t('akrilasGreenMarble') },
     { value: 'akrilasBrownMarble', label: t('akrilasBrownMarble') },
