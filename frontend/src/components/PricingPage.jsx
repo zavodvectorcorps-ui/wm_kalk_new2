@@ -6,7 +6,8 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { DollarSign, Save, Loader2, Plus, Trash2, Edit } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { DollarSign, Save, Loader2, Plus, Trash2, Edit, List, CheckSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
