@@ -89,7 +89,7 @@ export const DynamicCategorySection = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Icon className="h-5 w-5 text-primary" />
-          {category.name || t(categoryId) || categoryId}
+          {getCategoryName()}
           {category.required && <span className="text-destructive">*</span>}
         </CardTitle>
       </CardHeader>
@@ -102,7 +102,7 @@ export const DynamicCategorySection = ({
               onValueChange={(value) => onSelectionChange(categoryId, value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder={`${t('select')} ${category.name || t(categoryId)}`} />
+                <SelectValue placeholder={`${t('select')} ${getCategoryName()}`} />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {dropdownOptions.map((option) => (
