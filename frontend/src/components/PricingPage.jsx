@@ -7,12 +7,83 @@ import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { DollarSign, Save, Loader2, Plus, Trash2, Edit, List, CheckSquare, FolderPlus, Folder } from 'lucide-react';
-import { CategoryManager } from './CategoryManager';
+import { DollarSign, Save, Loader2, Plus, Trash2, List, CheckSquare, Folder } from 'lucide-react';
+import { CategoryManager, CategoryList } from './CategoryManager';
 import { toast } from 'sonner';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+// Default option labels for translation
+const defaultOptionLabels = {
+  shellModels: {
+    round200: 'round200',
+    round225: 'round225',
+    square170x200: 'square170x200',
+    square220x220: 'square220x220',
+    square230x230: 'square230x230',
+    square245x245: 'square245x245',
+  },
+  woodTypes: {
+    spruce: 'spruce',
+    thermo: 'thermo',
+    wpc: 'wpc',
+    redCedric: 'redCedric',
+  },
+  shellColors: {
+    white: 'white',
+    ivory: 'ivory',
+    blue: 'blue',
+    gray: 'gray',
+    pearlRed: 'pearlRed',
+    pearlBlue: 'pearlBlue',
+    pearlBrown: 'pearlBrown',
+    pearlGray: 'pearlGray',
+    pearlWhite: 'pearlWhite',
+    galaxy: 'galaxy',
+    snowflake: 'snowflake',
+    emerald: 'emerald',
+    blackGoldGlitter: 'blackGoldGlitter',
+    blackPinkGlitter: 'blackPinkGlitter',
+    blackSilverGlitter: 'blackSilverGlitter',
+  },
+  lidTypes: {
+    glassFiberLid: 'glassFiberLid',
+    spaLid: 'spaLid',
+  },
+  woodColors: {
+    akrilasWhite: 'akrilasWhite',
+    akrilasGreenMarble: 'akrilasGreenMarble',
+    akrilasBrownMarble: 'akrilasBrownMarble',
+    akrilasBlueMarble: 'akrilasBlueMarble',
+    akrilasWhiteMarble: 'akrilasWhiteMarble',
+    akrilasCoffeeMarble: 'akrilasCoffeeMarble',
+    akrilasBlackMarble: 'akrilasBlackMarble',
+    natural: 'natural',
+    painted: 'painted',
+    oiled: 'oiled',
+  },
+  features: {
+    jacuzzi: 'jacuzzi',
+    airBubble: 'airBubble',
+    outsideLed12: 'outsideLed12',
+    insideLed: 'insideLed',
+    outsideLedStripe: 'outsideLedStripe',
+    insideLedMini: 'insideLedMini',
+    insulation: 'insulation',
+    headPillow: 'headPillow',
+    sandFilterConnections: 'sandFilterConnections',
+    sandFilterUnderStairs: 'sandFilterUnderStairs',
+    sandFilterBox: 'sandFilterBox',
+    v4aHeater: 'v4aHeater',
+    electricityBox: 'electricityBox',
+    chimneyExtension: 'chimneyExtension',
+    extraChimneyProtection: 'extraChimneyProtection',
+    bluetoothRadio: 'bluetoothRadio',
+    electricHeater3kw: 'electricHeater3kw',
+    electricThermometer: 'electricThermometer',
+  },
+};
 
 export const PricingPage = () => {
   const { t } = useTranslation();
@@ -27,6 +98,7 @@ export const PricingPage = () => {
     displayTypes: {},
     categories: {},
     optionCategories: {},
+    optionLabels: {},
   });
   const [newOption, setNewOption] = useState({ 
     key: '', 
@@ -35,8 +107,7 @@ export const PricingPage = () => {
     displayType: 'dropdown',
     category: '' 
   });
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddOptionDialogOpen, setIsAddOptionDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -78,11 +149,20 @@ export const PricingPage = () => {
 
   const handleAddOption = () => {
     if (!newOption.key || !newOption.label || !newOption.category) {
-      toast.error(t('fillRequired') || 'Заполните все поля');
+      toast.error('Заполните все поля');
       return;
     }
 
     const category = newOption.category;
+
+    // Check if key already exists in any category
+    const allCategories = ['shellModels', 'woodTypes', 'shellColors', 'lidTypes', 'woodColors', 'features'];
+    for (const cat of allCategories) {
+      if (prices[cat] && prices[cat][newOption.key]) {
+        toast.error(`Опция с ключом "${newOption.key}" уже существует`);
+        return;
+      }
+    }
 
     setPrices((prev) => ({
       ...prev,
@@ -98,12 +178,16 @@ export const PricingPage = () => {
         ...prev.optionCategories,
         [newOption.key]: category,
       },
+      optionLabels: {
+        ...(prev.optionLabels || {}),
+        [newOption.key]: newOption.label,
+      },
     }));
 
-    toast.success(`Опция "${newOption.label}" добавлена в категорию "${prices.categories?.[category]?.name || category}"!`);
+    toast.success(`Опция "${newOption.label}" добавлена!`);
     
     setNewOption({ key: '', label: '', price: 0, displayType: 'dropdown', category: '' });
-    setIsDialogOpen(false);
+    setIsAddOptionDialogOpen(false);
   };
 
   const handleCreateCategory = (newCategory) => {
@@ -118,12 +202,90 @@ export const PricingPage = () => {
           order: newCategory.order,
         },
       },
-      // Initialize empty object for this category
       [newCategory.id]: {},
     }));
 
     toast.success(`Категория "${newCategory.name}" создана!`);
     setIsCategoryDialogOpen(false);
+  };
+
+  const handleDeleteCategory = (categoryId) => {
+    if (window.confirm(`Удалить категорию? Все опции в ней будут удалены.`)) {
+      setPrices((prev) => {
+        const newCategories = { ...prev.categories };
+        delete newCategories[categoryId];
+        
+        const newPrices = { ...prev };
+        delete newPrices[categoryId];
+        
+        // Remove optionCategories that point to this category
+        const newOptionCategories = { ...prev.optionCategories };
+        Object.keys(newOptionCategories).forEach(key => {
+          if (newOptionCategories[key] === categoryId) {
+            delete newOptionCategories[key];
+          }
+        });
+        
+        return {
+          ...newPrices,
+          categories: newCategories,
+          optionCategories: newOptionCategories,
+        };
+      });
+      toast.success('Категория удалена');
+    }
+  };
+
+  const handleMoveCategoryUp = (categoryId) => {
+    setPrices((prev) => {
+      const sortedCategories = Object.entries(prev.categories)
+        .map(([id, cat]) => ({ id, ...cat }))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      const currentIndex = sortedCategories.findIndex(c => c.id === categoryId);
+      if (currentIndex <= 0) return prev;
+      
+      const currentOrder = sortedCategories[currentIndex].order;
+      const prevOrder = sortedCategories[currentIndex - 1].order;
+      
+      return {
+        ...prev,
+        categories: {
+          ...prev.categories,
+          [categoryId]: { ...prev.categories[categoryId], order: prevOrder },
+          [sortedCategories[currentIndex - 1].id]: { 
+            ...prev.categories[sortedCategories[currentIndex - 1].id], 
+            order: currentOrder 
+          },
+        },
+      };
+    });
+  };
+
+  const handleMoveCategoryDown = (categoryId) => {
+    setPrices((prev) => {
+      const sortedCategories = Object.entries(prev.categories)
+        .map(([id, cat]) => ({ id, ...cat }))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      const currentIndex = sortedCategories.findIndex(c => c.id === categoryId);
+      if (currentIndex >= sortedCategories.length - 1) return prev;
+      
+      const currentOrder = sortedCategories[currentIndex].order;
+      const nextOrder = sortedCategories[currentIndex + 1].order;
+      
+      return {
+        ...prev,
+        categories: {
+          ...prev.categories,
+          [categoryId]: { ...prev.categories[categoryId], order: nextOrder },
+          [sortedCategories[currentIndex + 1].id]: { 
+            ...prev.categories[sortedCategories[currentIndex + 1].id], 
+            order: currentOrder 
+          },
+        },
+      };
+    });
   };
 
   const handleDeleteOption = (category, key) => {
@@ -135,10 +297,18 @@ export const PricingPage = () => {
         const newDisplayTypes = { ...prev.displayTypes };
         delete newDisplayTypes[key];
         
+        const newOptionCategories = { ...prev.optionCategories };
+        delete newOptionCategories[key];
+
+        const newOptionLabels = { ...(prev.optionLabels || {}) };
+        delete newOptionLabels[key];
+        
         return {
           ...prev,
           [category]: newCategory,
           displayTypes: newDisplayTypes,
+          optionCategories: newOptionCategories,
+          optionLabels: newOptionLabels,
         };
       });
       toast.success('Опция удалена');
@@ -156,30 +326,278 @@ export const PricingPage = () => {
     toast.success(`Тип отображения изменен на ${newType === 'dropdown' ? 'выпадающий список' : 'чекбокс'}`);
   };
 
-  const renderPriceSection = (title, category, items) => (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-lg text-foreground">{title}</h3>
-        <Dialog open={isDialogOpen && editingCategory === category} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (open) setEditingCategory(category);
-        }}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Добавить опцию
-            </Button>
-          </DialogTrigger>
+  const handleChangeOptionCategory = (optionKey, newCategoryId, oldCategoryId) => {
+    setPrices((prev) => {
+      const price = prev[oldCategoryId]?.[optionKey] || 0;
+      
+      // Remove from old category
+      const oldCategoryOptions = { ...prev[oldCategoryId] };
+      delete oldCategoryOptions[optionKey];
+      
+      // Add to new category
+      const newCategoryOptions = {
+        ...(prev[newCategoryId] || {}),
+        [optionKey]: price,
+      };
+      
+      return {
+        ...prev,
+        [oldCategoryId]: oldCategoryOptions,
+        [newCategoryId]: newCategoryOptions,
+        optionCategories: {
+          ...prev.optionCategories,
+          [optionKey]: newCategoryId,
+        },
+      };
+    });
+    toast.success('Опция перемещена в другую категорию');
+  };
+
+  // Get label for an option
+  const getOptionLabel = (category, key) => {
+    // Check custom labels first
+    if (prices.optionLabels && prices.optionLabels[key]) {
+      return prices.optionLabels[key];
+    }
+    // Check default labels
+    if (defaultOptionLabels[category] && defaultOptionLabels[category][key]) {
+      const translationKey = defaultOptionLabels[category][key];
+      const translated = t(translationKey);
+      return translated !== translationKey ? translated : key;
+    }
+    // Fallback to key formatting
+    return key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+  };
+
+  // Get all category IDs for the category selector
+  const getAllCategoryIds = () => {
+    const defaultCategories = ['shellModels', 'woodTypes', 'shellColors', 'lidTypes', 'woodColors', 'features'];
+    const customCategories = Object.keys(prices.categories || {}).filter(
+      id => !defaultCategories.includes(id)
+    );
+    return [...defaultCategories, ...customCategories];
+  };
+
+  // Render options for a category
+  const renderCategoryOptions = (categoryId, categoryName) => {
+    const options = prices[categoryId] || {};
+    const optionKeys = Object.keys(options);
+
+    if (optionKeys.length === 0) {
+      return (
+        <p className="text-center text-muted-foreground py-4">
+          Нет опций в этой категории
+        </p>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {optionKeys.map((key) => {
+          const displayType = prices.displayTypes?.[key] || 'dropdown';
+          const label = getOptionLabel(categoryId, key);
+          
+          return (
+            <div key={key} className="flex gap-2 items-start border rounded-lg p-3 bg-card">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Label className="text-sm font-medium">
+                    {label}
+                  </Label>
+                  {!defaultOptionLabels[categoryId]?.[key] && (
+                    <span className="text-xs text-muted-foreground">(пользовательская)</span>
+                  )}
+                  <div className="flex-1" />
+                  <Select
+                    value={displayType}
+                    onValueChange={(value) => handleChangeDisplayType(key, value)}
+                  >
+                    <SelectTrigger className="h-7 w-[130px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dropdown">
+                        <div className="flex items-center gap-1.5">
+                          <List className="h-3 w-3" />
+                          <span>Dropdown</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="checkbox">
+                        <div className="flex items-center gap-1.5">
+                          <CheckSquare className="h-3 w-3" />
+                          <span>Checkbox</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Category selector for option */}
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">Категория:</Label>
+                  <Select
+                    value={categoryId}
+                    onValueChange={(newCatId) => handleChangeOptionCategory(key, newCatId, categoryId)}
+                  >
+                    <SelectTrigger className="h-7 flex-1 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getAllCategoryIds().map((catId) => (
+                        <SelectItem key={catId} value={catId}>
+                          {prices.categories?.[catId]?.name || t(catId) || catId}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={options[key] || 0}
+                    onChange={(e) => handlePriceChange(categoryId, key, e.target.value)}
+                    className="pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                    €
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDeleteOption(categoryId, key)}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-6"
+                title="Удалить опцию"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Get sorted categories
+  const getSortedCategories = () => {
+    const defaultCategories = ['shellModels', 'woodTypes', 'shellColors', 'lidTypes', 'woodColors', 'features'];
+    const allCategories = prices.categories || {};
+    
+    return Object.entries(allCategories)
+      .map(([id, cat]) => ({ id, ...cat }))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  };
+
+  const sortedCategories = getSortedCategories();
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="space-y-6">
+        {/* Category Management Section */}
+        <CategoryList
+          categories={prices.categories || {}}
+          onDelete={handleDeleteCategory}
+          onMoveUp={handleMoveCategoryUp}
+          onMoveDown={handleMoveCategoryDown}
+          onCreateNew={() => setIsCategoryDialogOpen(true)}
+        />
+
+        {/* Add Option Dialog */}
+        <Card className="shadow-lg">
+          <CardHeader className="bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-2xl">
+                <DollarSign className="h-6 w-6 text-primary" />
+                {t('pricingManagement')}
+              </div>
+              <Button onClick={() => setIsAddOptionDialogOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Добавить опцию
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-8">
+            {/* Render each category */}
+            {sortedCategories.map((category, index) => (
+              <div key={category.id}>
+                {index > 0 && <Separator className="mb-6" />}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Folder className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-lg text-foreground">
+                      {category.name || t(category.id) || category.id}
+                    </h3>
+                    {category.required && (
+                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
+                        Обязательная
+                      </span>
+                    )}
+                  </div>
+                  {renderCategoryOptions(category.id, category.name)}
+                </div>
+              </div>
+            ))}
+
+            <div className="flex justify-end pt-6">
+              <Button
+                onClick={handleSavePrices}
+                disabled={loading}
+                size="lg"
+                className="min-w-[200px]"
+              >
+                {loading ? (
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-5 w-5 mr-2" />
+                )}
+                {t('updatePrices')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Category Creation Dialog */}
+        <CategoryManager
+          isOpen={isCategoryDialogOpen}
+          onClose={() => setIsCategoryDialogOpen(false)}
+          onSave={handleCreateCategory}
+          existingCategories={prices.categories || {}}
+        />
+
+        {/* Add Option Dialog */}
+        <Dialog open={isAddOptionDialogOpen} onOpenChange={setIsAddOptionDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Добавить новую опцию в "{title}"</DialogTitle>
+              <DialogTitle>Добавить новую опцию</DialogTitle>
               <DialogDescription>
                 Введите уникальный ключ (на английском, без пробелов), название и цену
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="option-key">Ключ опции (например: custom_option_1)</Label>
+                <Label htmlFor="option-category">Категория <span className="text-destructive">*</span></Label>
+                <Select
+                  value={newOption.category}
+                  onValueChange={(value) => setNewOption({ ...newOption, category: value })}
+                >
+                  <SelectTrigger id="option-category">
+                    <SelectValue placeholder="Выберите категорию" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAllCategoryIds().map((catId) => (
+                      <SelectItem key={catId} value={catId}>
+                        {prices.categories?.[catId]?.name || t(catId) || catId}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="option-key">Ключ опции (например: custom_option_1) <span className="text-destructive">*</span></Label>
                 <Input
                   id="option-key"
                   value={newOption.key}
@@ -188,7 +606,7 @@ export const PricingPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="option-label">Название опции</Label>
+                <Label htmlFor="option-label">Название опции <span className="text-destructive">*</span></Label>
                 <Input
                   id="option-label"
                   value={newOption.label}
@@ -221,26 +639,21 @@ export const PricingPage = () => {
                     <SelectItem value="dropdown">
                       <div className="flex items-center gap-2">
                         <List className="h-4 w-4" />
-                        <span>Выпадающий список (для выбора одного варианта)</span>
+                        <span>Выпадающий список</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="checkbox">
                       <div className="flex items-center gap-2">
                         <CheckSquare className="h-4 w-4" />
-                        <span>Чекбокс (для включения/выключения опции)</span>
+                        <span>Чекбокс</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  {newOption.displayType === 'dropdown' 
-                    ? '📋 Dropdown: Пользователь выбирает один вариант из списка' 
-                    : '☑️ Checkbox: Пользователь может включить/выключить эту опцию'}
-                </p>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsAddOptionDialogOpen(false)}>
                 Отмена
               </Button>
               <Button onClick={handleAddOption}>
@@ -251,269 +664,6 @@ export const PricingPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {items.map((item) => {
-          const displayType = prices.displayTypes?.[item.key] || 'dropdown';
-          return (
-            <div key={item.key} className="flex gap-2 items-start border rounded-lg p-3 bg-card">
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor={`${category}-${item.key}`} className="text-sm font-medium">
-                    {item.label}
-                  </Label>
-                  <div className="flex-1" />
-                  <Select
-                    value={displayType}
-                    onValueChange={(value) => handleChangeDisplayType(item.key, value)}
-                  >
-                    <SelectTrigger className="h-7 w-[140px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="dropdown">
-                        <div className="flex items-center gap-1.5">
-                          <List className="h-3 w-3" />
-                          <span>Dropdown</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="checkbox">
-                        <div className="flex items-center gap-1.5">
-                          <CheckSquare className="h-3 w-3" />
-                          <span>Checkbox</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="relative">
-                  <Input
-                    id={`${category}-${item.key}`}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={prices[category][item.key] || 0}
-                    onChange={(e) => handlePriceChange(category, item.key, e.target.value)}
-                    className="pr-8"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                    €
-                  </span>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDeleteOption(category, item.key)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-6"
-                title="Удалить опцию"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          );
-        })}
-        {/* Show dynamically added options */}
-        {Object.keys(prices[category] || {})
-          .filter(key => !items.find(item => item.key === key))
-          .map((key) => {
-            const displayType = prices.displayTypes?.[key] || 'dropdown';
-            return (
-              <div key={key} className="flex gap-2 items-start border rounded-lg p-3 bg-muted/30">
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={`${category}-${key}`} className="text-sm font-medium flex items-center gap-2">
-                      {key}
-                      <span className="text-xs text-muted-foreground">(пользовательская)</span>
-                    </Label>
-                    <div className="flex-1" />
-                    <Select
-                      value={displayType}
-                      onValueChange={(value) => handleChangeDisplayType(key, value)}
-                    >
-                      <SelectTrigger className="h-7 w-[140px] text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="dropdown">
-                          <div className="flex items-center gap-1.5">
-                            <List className="h-3 w-3" />
-                            <span>Dropdown</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="checkbox">
-                          <div className="flex items-center gap-1.5">
-                            <CheckSquare className="h-3 w-3" />
-                            <span>Checkbox</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      id={`${category}-${key}`}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={prices[category][key] || 0}
-                      onChange={(e) => handlePriceChange(category, key, e.target.value)}
-                      className="pr-8"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                      €
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDeleteOption(category, key)}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-6"
-                  title="Удалить опцию"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            );
-          })}
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-br from-primary/5 to-accent/5">
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <DollarSign className="h-6 w-6 text-primary" />
-            {t('pricingManagement')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-8">
-          {renderPriceSection(
-            t('shellModel'),
-            'shellModels',
-            [
-              { key: 'round200', label: t('round200') },
-              { key: 'round225', label: t('round225') },
-              { key: 'square170x200', label: t('square170x200') },
-              { key: 'square220x220', label: t('square220x220') },
-              { key: 'square230x230', label: t('square230x230') },
-              { key: 'square245x245', label: t('square245x245') },
-            ]
-          )}
-
-          <Separator />
-
-          {renderPriceSection(
-            t('woodType'),
-            'woodTypes',
-            [
-              { key: 'spruce', label: t('spruce') },
-              { key: 'thermo', label: t('thermo') },
-              { key: 'wpc', label: t('wpc') },
-              { key: 'redCedric', label: t('redCedric') },
-            ]
-          )}
-
-          <Separator />
-
-          {renderPriceSection(
-            t('shellColor'),
-            'shellColors',
-            [
-              { key: 'white', label: t('white') },
-              { key: 'ivory', label: t('ivory') },
-              { key: 'blue', label: t('blue') },
-              { key: 'gray', label: t('gray') },
-              { key: 'pearlRed', label: t('pearlRed') },
-              { key: 'pearlBlue', label: t('pearlBlue') },
-              { key: 'pearlBrown', label: t('pearlBrown') },
-              { key: 'pearlGray', label: t('pearlGray') },
-              { key: 'pearlWhite', label: t('pearlWhite') },
-              { key: 'galaxy', label: t('galaxy') },
-              { key: 'snowflake', label: t('snowflake') },
-              { key: 'emerald', label: t('emerald') },
-              { key: 'blackGoldGlitter', label: t('blackGoldGlitter') },
-              { key: 'blackPinkGlitter', label: t('blackPinkGlitter') },
-              { key: 'blackSilverGlitter', label: t('blackSilverGlitter') },
-            ]
-          )}
-
-          <Separator />
-
-          {renderPriceSection(
-            t('lidType'),
-            'lidTypes',
-            [
-              { key: 'glassFiberLid', label: t('glassFiberLid') },
-              { key: 'spaLid', label: t('spaLid') },
-            ]
-          )}
-
-          <Separator />
-
-          {renderPriceSection(
-            t('woodColor'),
-            'woodColors',
-            [
-              { key: 'akrilasWhite', label: t('akrilasWhite') },
-              { key: 'akrilasGreenMarble', label: t('akrilasGreenMarble') },
-              { key: 'akrilasBrownMarble', label: t('akrilasBrownMarble') },
-              { key: 'akrilasBlueMarble', label: t('akrilasBlueMarble') },
-              { key: 'akrilasWhiteMarble', label: t('akrilasWhiteMarble') },
-              { key: 'akrilasCoffeeMarble', label: t('akrilasCoffeeMarble') },
-              { key: 'akrilasBlackMarble', label: t('akrilasBlackMarble') },
-              { key: 'natural', label: t('natural') },
-              { key: 'painted', label: t('painted') },
-              { key: 'oiled', label: t('oiled') },
-            ]
-          )}
-
-          <Separator />
-
-          {renderPriceSection(
-            t('features'),
-            'features',
-            [
-              { key: 'jacuzzi', label: t('jacuzzi') },
-              { key: 'airBubble', label: t('airBubble') },
-              { key: 'outsideLed12', label: t('outsideLed12') },
-              { key: 'insideLed', label: t('insideLed') },
-              { key: 'outsideLedStripe', label: t('outsideLedStripe') },
-              { key: 'insideLedMini', label: t('insideLedMini') },
-              { key: 'insulation', label: t('insulation') },
-              { key: 'headPillow', label: t('headPillow') },
-              { key: 'sandFilterConnections', label: t('sandFilterConnections') },
-              { key: 'sandFilterUnderStairs', label: t('sandFilterUnderStairs') },
-              { key: 'sandFilterBox', label: t('sandFilterBox') },
-              { key: 'v4aHeater', label: t('v4aHeater') },
-              { key: 'electricityBox', label: t('electricityBox') },
-              { key: 'chimneyExtension', label: t('chimneyExtension') },
-              { key: 'extraChimneyProtection', label: t('extraChimneyProtection') },
-              { key: 'bluetoothRadio', label: t('bluetoothRadio') },
-              { key: 'electricHeater3kw', label: t('electricHeater3kw') },
-              { key: 'electricThermometer', label: t('electricThermometer') },
-            ]
-          )}
-
-          <div className="flex justify-end pt-6">
-            <Button
-              onClick={handleSavePrices}
-              disabled={loading}
-              size="lg"
-              className="min-w-[200px]"
-            >
-              {loading ? (
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-5 w-5 mr-2" />
-              )}
-              {t('updatePrices')}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

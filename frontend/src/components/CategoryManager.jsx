@@ -6,10 +6,18 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Checkbox } from './ui/checkbox';
-import { Plus, FolderPlus, List, CheckSquare } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Plus, FolderPlus, List, CheckSquare, Trash2, GripVertical, Folder, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
-export const CategoryManager = ({ isOpen, onClose, onSave, existingCategories = {} }) => {
+export const CategoryManager = ({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  existingCategories = {},
+  onDelete,
+  onReorder 
+}) => {
   const { t } = useTranslation();
   const [categoryId, setCategoryId] = useState('');
   const [categoryName, setCategoryName] = useState('');
@@ -28,12 +36,14 @@ export const CategoryManager = ({ isOpen, onClose, onSave, existingCategories = 
       return;
     }
 
+    const maxOrder = Math.max(0, ...Object.values(existingCategories).map(c => c.order || 0));
+
     const newCategory = {
       id: categoryId,
       name: categoryName,
       displayType,
       required,
-      order: Object.keys(existingCategories).length + 1,
+      order: maxOrder + 1,
     };
 
     onSave(newCategory);
@@ -135,5 +145,114 @@ export const CategoryManager = ({ isOpen, onClose, onSave, existingCategories = 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Component for managing/listing categories with reordering
+export const CategoryList = ({ 
+  categories = {}, 
+  onDelete, 
+  onMoveUp, 
+  onMoveDown,
+  onCreateNew 
+}) => {
+  const sortedCategories = Object.entries(categories)
+    .map(([id, cat]) => ({ id, ...cat }))
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  const isDefaultCategory = (id) => {
+    return ['shellModels', 'woodTypes', 'shellColors', 'lidTypes', 'woodColors', 'features'].includes(id);
+  };
+
+  return (
+    <Card className="shadow-md">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Folder className="h-5 w-5 text-primary" />
+            Управление категориями
+          </div>
+          <Button onClick={onCreateNew} size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Новая категория
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {sortedCategories.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">
+            Нет категорий. Создайте первую категорию.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {sortedCategories.map((category, index) => (
+              <div 
+                key={category.id}
+                className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex flex-col gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    disabled={index === 0}
+                    onClick={() => onMoveUp(category.id)}
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    disabled={index === sortedCategories.length - 1}
+                    onClick={() => onMoveDown(category.id)}
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="flex-1">
+                  <div className="font-medium flex items-center gap-2">
+                    {category.name}
+                    {isDefaultCategory(category.id) && (
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                        Системная
+                      </span>
+                    )}
+                    {category.required && (
+                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
+                        Обязательная
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground flex items-center gap-4">
+                    <span>ID: {category.id}</span>
+                    <span className="flex items-center gap-1">
+                      {category.displayType === 'dropdown' ? (
+                        <><List className="h-3 w-3" /> Dropdown</>
+                      ) : (
+                        <><CheckSquare className="h-3 w-3" /> Checkbox</>
+                      )}
+                    </span>
+                    <span>Порядок: {category.order}</span>
+                  </div>
+                </div>
+                
+                {!isDefaultCategory(category.id) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete(category.id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
