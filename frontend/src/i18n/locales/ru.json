@@ -120,6 +120,7 @@
   "price": "Цена",
   "currency": "€",
   
+  "none": "Нет",
   "loading": "Загрузка...",
   "error": "Ошибка",
   "success": "Успех"
