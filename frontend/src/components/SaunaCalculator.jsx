@@ -765,36 +765,6 @@ export const SaunaCalculator = () => {
               />
             </CardContent>
           </Card>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={handleSaveAndGeneratePDF}
-              disabled={loading}
-              size="lg"
-              className="flex-1 min-w-[250px] bg-amber-600 hover:bg-amber-700"
-            >
-              {loading ? (
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              ) : (
-                <>
-                  <Save className="h-5 w-5 mr-2" />
-                  <FileDown className="h-5 w-5 mr-2" />
-                </>
-              )}
-              {txt.saveAndGeneratePDF}
-            </Button>
-            
-            <Button
-              onClick={handleClearForm}
-              disabled={loading}
-              variant="outline"
-              size="lg"
-            >
-              <RotateCcw className="h-5 w-5 mr-2" />
-              {txt.clearForm}
-            </Button>
-          </div>
         </div>
 
         {/* Right Column - Summary */}
@@ -879,9 +849,35 @@ export const SaunaCalculator = () => {
                     <span className="font-medium">{subtotal.toLocaleString('pl-PL')} PLN</span>
                   </div>
 
-                  {/* Discount */}
-                  {appliedDiscount > 0 && (
-                    <div className="p-2 bg-green-50 rounded-lg border border-green-200">
+                  {/* Discount Section - Moved here */}
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-3">
+                    <div className="flex items-center gap-2 text-green-700 font-medium">
+                      <Percent className="h-4 w-4" />
+                      {txt.discount}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="discountPercent"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={appliedDiscount}
+                        onChange={handleDiscountChange}
+                        className="w-20 h-8"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleApplyStandardDiscount}
+                      className="w-full border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      <Tag className="h-4 w-4 mr-2" />
+                      {txt.applyStandardDiscount}
+                    </Button>
+                    {appliedDiscount > 0 && (
                       <div className="text-sm text-green-700">
                         <div className="flex justify-between">
                           <span>{txt.discount} ({appliedDiscount}%)</span>
@@ -892,8 +888,8 @@ export const SaunaCalculator = () => {
                           <span className="font-bold">{discountAmount.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN</span>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   {/* Total */}
                   <div className="p-3 bg-amber-600 text-white rounded-lg">
@@ -908,6 +904,35 @@ export const SaunaCalculator = () => {
                         {txt.discount}: {appliedDiscount}% ({txt.priceBeforeDiscount}: {subtotal.toLocaleString('pl-PL')} PLN)
                       </div>
                     )}
+                  </div>
+
+                  {/* Action Buttons - Moved here */}
+                  <div className="space-y-2 pt-2">
+                    <Button
+                      onClick={handleSaveAndGeneratePDF}
+                      disabled={loading}
+                      className="w-full bg-amber-600 hover:bg-amber-700"
+                    >
+                      {loading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          <FileDown className="h-4 w-4 mr-2" />
+                        </>
+                      )}
+                      {txt.saveAndGeneratePDF}
+                    </Button>
+                    
+                    <Button
+                      onClick={handleClearForm}
+                      disabled={loading}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      {txt.clearForm}
+                    </Button>
                   </div>
                 </>
               ) : (
