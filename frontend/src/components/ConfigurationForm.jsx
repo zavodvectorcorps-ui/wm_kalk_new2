@@ -10,16 +10,18 @@ export const ConfigurationForm = ({ formData, onChange, prices }) => {
 
   // Generate options dynamically from prices
   const getOptionsFromPrices = (category, fallbackOptions) => {
-    if (!prices[category] || Object.keys(prices[category]).length === 0) {
-      return fallbackOptions;
+    // Always prefer prices from backend if available
+    if (prices[category] && Object.keys(prices[category]).length > 0) {
+      return Object.keys(prices[category]).map(key => {
+        // Try to get translation, fallback to formatted key
+        const translationKey = key;
+        const label = t(translationKey) !== translationKey ? t(translationKey) : key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+        return { value: key, label };
+      });
     }
     
-    return Object.keys(prices[category]).map(key => {
-      // Try to get translation, fallback to key
-      const translationKey = key;
-      const label = t(translationKey) !== translationKey ? t(translationKey) : key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
-      return { value: key, label };
-    });
+    // Only use fallback if prices not loaded yet
+    return fallbackOptions;
   };
 
   const shellModels = getOptionsFromPrices('shellModels', [
