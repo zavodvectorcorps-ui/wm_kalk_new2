@@ -26,10 +26,24 @@ export const DynamicCategorySection = ({
   onSelectionChange,
   onCheckboxChange,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Get icon for category
   const Icon = categoryIcons[categoryId] || Folder;
+
+  // Get category name based on current language
+  const getCategoryName = () => {
+    const lang = i18n.language;
+    if (lang === 'pl' && category.namePl) {
+      return category.namePl;
+    }
+    if (category.nameRu) {
+      return category.nameRu;
+    }
+    // Fallback to translation key or ID
+    const translated = t(categoryId);
+    return translated !== categoryId ? translated : category.name || categoryId;
+  };
 
   // Get label for an option
   const getOptionLabel = (key) => {
