@@ -9,23 +9,46 @@ import { Sparkles } from 'lucide-react';
 export const FeaturesForm = ({ formData, onChange, prices }) => {
   const { t } = useTranslation();
 
-  const features = [
-    { key: 'jacuzzi', label: t('jacuzzi') },
-    { key: 'airBubble', label: t('airBubble') },
-    { key: 'outsideLed12', label: t('outsideLed12') },
-    { key: 'insideLed', label: t('insideLed') },
-    { key: 'outsideLedStripe', label: t('outsideLedStripe') },
-    { key: 'insideLedMini', label: t('insideLedMini') },
-    { key: 'insulation', label: t('insulation') },
-    { key: 'headPillow', label: t('headPillow') },
-    { key: 'v4aHeater', label: t('v4aHeater') },
-    { key: 'electricityBox', label: t('electricityBox') },
-    { key: 'chimneyExtension', label: t('chimneyExtension') },
-    { key: 'extraChimneyProtection', label: t('extraChimneyProtection') },
-    { key: 'bluetoothRadio', label: t('bluetoothRadio') },
-    { key: 'electricHeater3kw', label: t('electricHeater3kw') },
-    { key: 'electricThermometer', label: t('electricThermometer') },
-  ];
+  // Generate features dynamically from prices, excluding sand filter options
+  const sandFilterKeys = ['sandFilterConnections', 'sandFilterUnderStairs', 'sandFilterBox'];
+  
+  const getFeaturesList = () => {
+    const staticFeatures = [
+      { key: 'jacuzzi', label: t('jacuzzi') },
+      { key: 'airBubble', label: t('airBubble') },
+      { key: 'outsideLed12', label: t('outsideLed12') },
+      { key: 'insideLed', label: t('insideLed') },
+      { key: 'outsideLedStripe', label: t('outsideLedStripe') },
+      { key: 'insideLedMini', label: t('insideLedMini') },
+      { key: 'insulation', label: t('insulation') },
+      { key: 'headPillow', label: t('headPillow') },
+      { key: 'v4aHeater', label: t('v4aHeater') },
+      { key: 'electricityBox', label: t('electricityBox') },
+      { key: 'chimneyExtension', label: t('chimneyExtension') },
+      { key: 'extraChimneyProtection', label: t('extraChimneyProtection') },
+      { key: 'bluetoothRadio', label: t('bluetoothRadio') },
+      { key: 'electricHeater3kw', label: t('electricHeater3kw') },
+      { key: 'electricThermometer', label: t('electricThermometer') },
+    ];
+
+    // Add dynamic features from prices (excluding sand filters)
+    if (prices.features) {
+      const dynamicFeatures = Object.keys(prices.features)
+        .filter(key => !sandFilterKeys.includes(key))
+        .filter(key => !staticFeatures.find(f => f.key === key))
+        .map(key => {
+          const translationKey = key;
+          const label = t(translationKey) !== translationKey ? t(translationKey) : key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+          return { key, label };
+        });
+      
+      return [...staticFeatures, ...dynamicFeatures];
+    }
+
+    return staticFeatures;
+  };
+
+  const features = getFeaturesList();
 
   const sandFilterOptions = [
     { value: 'none', label: t('none') || 'None' },
