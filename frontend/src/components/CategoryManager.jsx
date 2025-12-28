@@ -156,6 +156,8 @@ export const CategoryList = ({
   onMoveDown,
   onCreateNew 
 }) => {
+  const { t, i18n } = useTranslation();
+
   const sortedCategories = Object.entries(categories)
     .map(([id, cat]) => ({ id, ...cat }))
     .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -164,24 +166,36 @@ export const CategoryList = ({
     return ['shellModels', 'woodTypes', 'shellColors', 'lidTypes', 'woodColors', 'features'].includes(id);
   };
 
+  // Get category name based on current language
+  const getCategoryName = (category) => {
+    const lang = i18n.language;
+    if (lang === 'pl' && category.namePl) {
+      return category.namePl;
+    }
+    if (category.nameRu) {
+      return category.nameRu;
+    }
+    return category.name || category.id;
+  };
+
   return (
     <Card className="shadow-md">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Folder className="h-5 w-5 text-primary" />
-            Управление категориями
+            {t('categoryManagement')}
           </div>
           <Button onClick={onCreateNew} size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
-            Новая категория
+            {t('newCategory')}
           </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {sortedCategories.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            Нет категорий. Создайте первую категорию.
+            {t('none')}
           </p>
         ) : (
           <div className="space-y-2">
