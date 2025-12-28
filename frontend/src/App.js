@@ -100,7 +100,21 @@ const AppContent = () => {
         />
         
         {activeTab === 'users' && isAdmin() ? (
-          <UserManagement />
+          <>
+            {/* Back Button */}
+            <div className="container mx-auto px-4 pt-4 max-w-7xl">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setActiveTab('calculator')}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {txt.backToSelection}
+              </Button>
+            </div>
+            <UserManagement />
+          </>
         ) : (
           <LandingPage onSelectCalculator={handleSelectCalculator} hasAccess={hasAccess} />
         )}
