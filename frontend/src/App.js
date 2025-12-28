@@ -48,13 +48,24 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <Header activeTab={activeTab} onTabChange={handleTabChange} />
+      <Header 
+        activeTab={activeTab} 
+        onTabChange={handleTabChange}
+        isAdminAuthenticated={isAdminAuthenticated}
+        onAdminLogout={handleAdminLogout}
+      />
       
       <main>
         {activeTab === 'calculator' && <CalculatorPage key={pricesUpdated} />}
         {activeTab === 'orders' && <OrdersPage />}
-        {activeTab === 'pricing' && <PricingPage />}
+        {activeTab === 'pricing' && isAdminAuthenticated && <PricingPage />}
       </main>
+      
+      <AdminLogin 
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        onSuccess={handleAdminLoginSuccess}
+      />
       
       <Toaster position="top-right" richColors />
     </div>
