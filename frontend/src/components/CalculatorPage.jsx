@@ -12,7 +12,7 @@ import axios from 'axios';
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export const CalculatorPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [prices, setPrices] = useState({
     shellModels: {},
