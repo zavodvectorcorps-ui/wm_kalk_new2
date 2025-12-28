@@ -247,7 +247,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Admin Password Protection Feature testing completed successfully"
+    - "PDF Generation with Cyrillic Characters testing completed successfully"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
