@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CustomerInfoForm } from './CustomerInfoForm';
-import { ConfigurationForm } from './ConfigurationForm';
-import { FeaturesForm } from './FeaturesForm';
+import { DynamicCategorySection } from './DynamicCategorySection';
 import { NotesSection } from './NotesSection';
 import { OrderSummary } from './OrderSummary';
 import { Button } from './ui/button';
@@ -22,6 +21,10 @@ export const CalculatorPage = () => {
     lidTypes: {},
     woodColors: {},
     features: {},
+    displayTypes: {},
+    categories: {},
+    optionCategories: {},
+    optionLabels: {},
   });
   
   const [formData, setFormData] = useState({
@@ -29,13 +32,8 @@ export const CalculatorPage = () => {
     phoneNumber: '',
     fullAddress: '',
     orderDate: new Date().toISOString().split('T')[0],
-    shellModel: '',
-    woodType: '',
-    shellColor: '',
-    lidType: '',
-    woodColor: '',
-    sandFilter: 'none',
-    features: {},
+    // Dynamic selections will be stored here
+    selections: {},
     notes: '',
   });
 
@@ -47,6 +45,23 @@ export const CalculatorPage = () => {
     try {
       const response = await axios.get(`${API_URL}/api/prices`);
       setPrices(response.data);
+      
+      // Initialize selections with empty values for each category
+      const categories = response.data.categories || {};
+      const initialSelections = {};
+      Object.keys(categories).forEach(catId => {
+        const category = categories[catId];
+        if (category.displayType === 'checkbox') {
+          initialSelections[catId] = {}; // Object for multiple checkboxes
+        } else {
+          initialSelections[catId] = ''; // Single value for dropdown
+        }
+      });
+      
+      setFormData(prev => ({
+        ...prev,
+        selections: initialSelections,
+      }));
     } catch (error) {
       console.error('Error fetching prices:', error);
       toast.error(t('error'));
@@ -55,33 +70,22 @@ export const CalculatorPage = () => {
 
   const calculateTotal = () => {
     let total = 0;
+    const categories = prices.categories || {};
 
-    // Add configuration prices
-    if (formData.shellModel && prices.shellModels[formData.shellModel]) {
-      total += prices.shellModels[formData.shellModel];
-    }
-    if (formData.woodType && prices.woodTypes[formData.woodType]) {
-      total += prices.woodTypes[formData.woodType];
-    }
-    if (formData.shellColor && prices.shellColors[formData.shellColor]) {
-      total += prices.shellColors[formData.shellColor];
-    }
-    if (formData.lidType && prices.lidTypes[formData.lidType]) {
-      total += prices.lidTypes[formData.lidType];
-    }
-    if (formData.woodColor && prices.woodColors[formData.woodColor]) {
-      total += prices.woodColors[formData.woodColor];
-    }
-
-    // Add sand filter price
-    if (formData.sandFilter && formData.sandFilter !== 'none' && prices.features[formData.sandFilter]) {
-      total += prices.features[formData.sandFilter];
-    }
-
-    // Add feature prices
-    Object.entries(formData.features).forEach(([key, value]) => {
-      if (value && prices.features[key]) {
-        total += prices.features[key];
+    Object.keys(categories).forEach(categoryId => {
+      const categoryOptions = prices[categoryId] || {};
+      const selection = formData.selections[categoryId];
+      
+      if (typeof selection === 'object') {
+        // Checkbox category - sum up all selected options
+        Object.entries(selection).forEach(([key, isSelected]) => {
+          if (isSelected && categoryOptions[key]) {
+            total += categoryOptions[key];
+          }
+        });
+      } else if (selection && categoryOptions[selection]) {
+        // Dropdown category - add single selected option
+        total += categoryOptions[selection];
       }
     });
 
@@ -96,17 +100,107 @@ export const CalculatorPage = () => {
     }));
   };
 
+  const handleSelectionChange = (categoryId, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      selections: {
+        ...prev.selections,
+        [categoryId]: value,
+      },
+    }));
+  };
+
+  const handleCheckboxChange = (categoryId, optionKey, checked) => {
+    setFormData((prev) => ({
+      ...prev,
+      selections: {
+        ...prev.selections,
+        [categoryId]: {
+          ...(prev.selections[categoryId] || {}),
+          [optionKey]: checked,
+        },
+      },
+    }));
+  };
+
   const validateForm = () => {
     if (!formData.fullName || !formData.phoneNumber || !formData.fullAddress) {
       toast.error(t('fillRequired'));
       return false;
     }
-    if (!formData.shellModel || !formData.woodType || !formData.shellColor || 
-        !formData.lidType || !formData.woodColor) {
-      toast.error(t('fillRequired'));
-      return false;
+    
+    // Check required categories
+    const categories = prices.categories || {};
+    for (const [categoryId, category] of Object.entries(categories)) {
+      if (category.required) {
+        const selection = formData.selections[categoryId];
+        if (typeof selection === 'object') {
+          // Checkbox - at least one must be selected
+          const hasSelection = Object.values(selection).some(v => v);
+          if (!hasSelection) {
+            toast.error(`${category.name}: ${t('fillRequired')}`);
+            return false;
+          }
+        } else if (!selection) {
+          toast.error(`${category.name}: ${t('fillRequired')}`);
+          return false;
+        }
+      }
     }
+    
     return true;
+  };
+
+  // Convert selections to legacy format for backend compatibility
+  const convertToLegacyFormat = () => {
+    const categories = prices.categories || {};
+    const result = {
+      shellModel: '',
+      woodType: '',
+      shellColor: '',
+      lidType: '',
+      woodColor: '',
+      sandFilter: 'none',
+      features: {},
+    };
+
+    Object.entries(formData.selections).forEach(([categoryId, selection]) => {
+      if (categoryId === 'shellModels') {
+        result.shellModel = selection || '';
+      } else if (categoryId === 'woodTypes') {
+        result.woodType = selection || '';
+      } else if (categoryId === 'shellColors') {
+        result.shellColor = selection || '';
+      } else if (categoryId === 'lidTypes') {
+        result.lidType = selection || '';
+      } else if (categoryId === 'woodColors') {
+        result.woodColor = selection || '';
+      } else if (categoryId === 'features') {
+        // Features are checkboxes
+        if (typeof selection === 'object') {
+          // Handle sand filter separately
+          const sandFilterOptions = ['sandFilterConnections', 'sandFilterUnderStairs', 'sandFilterBox'];
+          Object.entries(selection).forEach(([key, isSelected]) => {
+            if (sandFilterOptions.includes(key) && isSelected) {
+              result.sandFilter = key;
+            } else {
+              result.features[key] = isSelected;
+            }
+          });
+        }
+      } else {
+        // Custom category - add to features
+        if (typeof selection === 'object') {
+          Object.entries(selection).forEach(([key, isSelected]) => {
+            result.features[key] = isSelected;
+          });
+        } else if (selection) {
+          result.features[selection] = true;
+        }
+      }
+    });
+
+    return result;
   };
 
   const handleSaveOrder = async () => {
@@ -114,8 +208,14 @@ export const CalculatorPage = () => {
 
     setLoading(true);
     try {
+      const legacyData = convertToLegacyFormat();
       const orderData = {
-        ...formData,
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        fullAddress: formData.fullAddress,
+        orderDate: formData.orderDate,
+        ...legacyData,
+        notes: formData.notes,
         total: calculateTotal(),
         createdAt: new Date().toISOString(),
       };
@@ -135,8 +235,14 @@ export const CalculatorPage = () => {
 
     setLoading(true);
     try {
+      const legacyData = convertToLegacyFormat();
       const orderData = {
-        ...formData,
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        fullAddress: formData.fullAddress,
+        orderDate: formData.orderDate,
+        ...legacyData,
+        notes: formData.notes,
         total: calculateTotal(),
         type: type,
       };
@@ -163,30 +269,59 @@ export const CalculatorPage = () => {
   };
 
   const handleClearForm = () => {
+    const categories = prices.categories || {};
+    const initialSelections = {};
+    Object.keys(categories).forEach(catId => {
+      const category = categories[catId];
+      if (category.displayType === 'checkbox') {
+        initialSelections[catId] = {};
+      } else {
+        initialSelections[catId] = '';
+      }
+    });
+
     setFormData({
       fullName: '',
       phoneNumber: '',
       fullAddress: '',
       orderDate: new Date().toISOString().split('T')[0],
-      shellModel: '',
-      woodType: '',
-      shellColor: '',
-      lidType: '',
-      woodColor: '',
-      sandFilter: 'none',
-      features: {},
+      selections: initialSelections,
       notes: '',
     });
     toast.success(t('formCleared'));
   };
+
+  // Get sorted categories
+  const getSortedCategories = () => {
+    const categories = prices.categories || {};
+    return Object.entries(categories)
+      .map(([id, cat]) => ({ id, ...cat }))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  };
+
+  const sortedCategories = getSortedCategories();
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <CustomerInfoForm formData={formData} onChange={handleInputChange} />
-          <ConfigurationForm formData={formData} onChange={handleInputChange} prices={prices} />
-          <FeaturesForm formData={formData} onChange={handleInputChange} prices={prices} />
+          
+          {/* Dynamic Category Sections */}
+          {sortedCategories.map((category) => (
+            <DynamicCategorySection
+              key={category.id}
+              categoryId={category.id}
+              category={category}
+              options={prices[category.id] || {}}
+              displayTypes={prices.displayTypes || {}}
+              optionLabels={prices.optionLabels || {}}
+              selection={formData.selections[category.id]}
+              onSelectionChange={handleSelectionChange}
+              onCheckboxChange={handleCheckboxChange}
+            />
+          ))}
+          
           <NotesSection formData={formData} onChange={handleInputChange} />
           
           <div className="flex flex-wrap gap-3">
@@ -228,7 +363,12 @@ export const CalculatorPage = () => {
         </div>
         
         <div className="lg:col-span-1">
-          <OrderSummary formData={formData} prices={prices} total={calculateTotal()} />
+          <OrderSummary 
+            formData={formData} 
+            prices={prices} 
+            total={calculateTotal()} 
+            categories={prices.categories || {}}
+          />
         </div>
       </div>
     </div>
