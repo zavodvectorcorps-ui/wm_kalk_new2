@@ -246,8 +246,10 @@ metadata:
   test_sequence: 1
 
 test_plan:
-  current_focus: []
-  stuck_tasks: []
+  current_focus:
+    - "Add Option Feature - Calculator Integration"
+  stuck_tasks:
+    - "Add Option Feature - Calculator Integration"
   test_all: false
   test_priority: "high_first"
 
