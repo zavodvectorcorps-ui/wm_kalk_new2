@@ -6,7 +6,21 @@ import { Badge } from './ui/badge';
 import { Receipt } from 'lucide-react';
 
 export const OrderSummary = ({ formData, prices, total, categories = {} }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // Get category name based on current language
+  const getCategoryName = (category, categoryId) => {
+    const lang = i18n.language;
+    if (lang === 'pl' && category.namePl) {
+      return category.namePl;
+    }
+    if (category.nameRu) {
+      return category.nameRu;
+    }
+    // Fallback to translation key or ID
+    const translated = t(categoryId);
+    return translated !== categoryId ? translated : category.name || categoryId;
+  };
 
   // Get label for an option
   const getOptionLabel = (key) => {
@@ -50,7 +64,7 @@ export const OrderSummary = ({ formData, prices, total, categories = {} }) => {
       Object.entries(selection).forEach(([key, isSelected]) => {
         if (isSelected) {
           selectedItems.push({
-            label: category.name || t(categoryId) || categoryId,
+            label: getCategoryName(category, categoryId),
             value: getOptionLabel(key),
             price: getPrice(categoryId, key),
           });
