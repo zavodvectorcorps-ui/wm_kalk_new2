@@ -70,7 +70,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                     : 'bg-muted'
                 }`}>
                   {canAccessBalia ? (
-                    <Bath className="w-10 h-10 text-primary" />
+                    <Waves className="w-10 h-10 text-primary" />
                   ) : (
                     <Lock className="w-10 h-10 text-muted-foreground" />
                   )}

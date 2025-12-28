@@ -244,7 +244,7 @@ export const UserManagement = () => {
       case 'balia':
         return (
           <Badge variant="secondary" className="gap-1">
-            <Bath className="w-3 h-3" />
+            <Waves className="w-3 h-3" />
             Balia
           </Badge>
         );
