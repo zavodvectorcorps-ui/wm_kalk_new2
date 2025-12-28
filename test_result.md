@@ -312,3 +312,18 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "✅ Delete functionality working correctly - delete buttons (trash icons) are present for custom options, confirmation dialog appears when clicked, and options are removed from the pricing list after confirmation."
+
+  - task: "Admin Password Protection Feature"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/AdminLogin.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "testing"
+        -comment: "Testing complete admin authentication flow including login dialog, password validation, admin indicators, navigation, and logout functionality"
+        -working: true
+        -agent: "testing"
+        -comment: "✅ Admin password protection working perfectly - Complete authentication flow tested successfully: 1) Login dialog appears when accessing protected pricing page with proper UI elements (title, password input, cancel/login buttons, lock icon), 2) Wrong password shows error toast 'Неверный пароль!' and keeps dialog open, 3) Cancel button closes dialog and stays on current page, 4) Correct password '159357' shows success toast 'Вход выполнен успешно!' and opens pricing page, 5) Admin badge 'Админ' and logout button appear in header when authenticated, 6) Navigation works without password prompts when authenticated, 7) Logout removes admin status and redirects to calculator page, 8) Protection is restored after logout requiring password again. Security system is robust and user-friendly."
