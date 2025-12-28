@@ -164,110 +164,11 @@ export const ConfigurationForm = ({ formData, onChange, prices }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="shellModel" className="text-sm font-medium">
-            {t('shellModel')} <span className="text-destructive">*</span>
-          </Label>
-          <Select name="shellModel" value={formData.shellModel} onValueChange={(value) => onChange({ target: { name: 'shellModel', value } })}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('selectShellModel')} />
-            </SelectTrigger>
-            <SelectContent>
-              {shellModels.map((model) => (
-                <SelectItem key={model.value} value={model.value}>
-                  {model.label}
-                  {prices.shellModels?.[model.value] && (
-                    <span className="ml-2 text-muted-foreground">+{prices.shellModels[model.value]}€</span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="woodType" className="text-sm font-medium">
-            {t('woodType')} <span className="text-destructive">*</span>
-          </Label>
-          <Select name="woodType" value={formData.woodType} onValueChange={(value) => onChange({ target: { name: 'woodType', value } })}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('selectWoodType')} />
-            </SelectTrigger>
-            <SelectContent>
-              {woodTypes.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                  {prices.woodTypes?.[type.value] && (
-                    <span className="ml-2 text-muted-foreground">+{prices.woodTypes[type.value]}€</span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="shellColor" className="text-sm font-medium">
-            {t('shellColor')} <span className="text-destructive">*</span>
-          </Label>
-          <Select name="shellColor" value={formData.shellColor} onValueChange={(value) => onChange({ target: { name: 'shellColor', value } })}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('selectShellColor')} />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              {shellColors.map((color) => (
-                <SelectItem key={color.value} value={color.value}>
-                  {color.label}
-                  {prices.shellColors?.[color.value] && (
-                    <span className="ml-2 text-muted-foreground">+{prices.shellColors[color.value]}€</span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="lidType" className="text-sm font-medium">
-            {t('lidType')} <span className="text-destructive">*</span>
-          </Label>
-          <Select name="lidType" value={formData.lidType} onValueChange={(value) => onChange({ target: { name: 'lidType', value } })}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('selectLidType')} />
-            </SelectTrigger>
-            <SelectContent>
-              {lidTypes.map((lid) => (
-                <SelectItem key={lid.value} value={lid.value}>
-                  {lid.label}
-                  {prices.lidTypes?.[lid.value] && (
-                    <span className="ml-2 text-muted-foreground">+{prices.lidTypes[lid.value]}€</span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="woodColor" className="text-sm font-medium">
-            {t('woodColor')} <span className="text-destructive">*</span>
-          </Label>
-          <Select name="woodColor" value={formData.woodColor} onValueChange={(value) => onChange({ target: { name: 'woodColor', value } })}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('selectWoodColor')} />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              {woodColors.map((color) => (
-                <SelectItem key={color.value} value={color.value}>
-                  {color.label}
-                  {prices.woodColors?.[color.value] && (
-                    <span className="ml-2 text-muted-foreground">+{prices.woodColors[color.value]}€</span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {renderOption('shellModel', 'shellModel', shellModels, true)}
+        {renderOption('woodType', 'woodType', woodTypes, true)}
+        {renderOption('shellColor', 'shellColor', shellColors, true)}
+        {renderOption('lidType', 'lidType', lidTypes, true)}
+        {renderOption('woodColor', 'woodColor', woodColors, true)}
       </CardContent>
     </Card>
   );
