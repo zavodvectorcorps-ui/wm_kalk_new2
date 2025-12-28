@@ -5,14 +5,13 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Checkbox } from './ui/checkbox';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { toast } from 'sonner';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, MapPin, Calendar,
-  Flame, DoorOpen, Layers, Lightbulb, Package, Truck, Image as ImageIcon,
-  Percent, Calculator, Thermometer
+  Flame, DoorOpen, Layers, Lightbulb, Package, Truck,
+  Percent, Calculator, Thermometer, Tag, Mail
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -41,9 +40,11 @@ export const SaunaCalculator = () => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [prices, setPrices] = useState({ models: [], categories: [] });
+  const [appliedDiscount, setAppliedDiscount] = useState(0); // Скидка применяется по кнопке
   
   const [formData, setFormData] = useState({
     fullName: '',
+    email: '',
     phoneNumber: '',
     fullAddress: '',
     orderDate: new Date().toISOString().split('T')[0],
@@ -56,9 +57,10 @@ export const SaunaCalculator = () => {
   const texts = {
     ru: {
       saunaCalculator: 'Калькулятор саун',
-      customerInfo: 'Информация о клиенте',
-      fullName: 'Полное имя',
-      phoneNumber: 'Номер телефона',
+      customerInfo: 'Данные клиента',
+      fullName: 'Имя и фамилия',
+      email: 'Email',
+      phoneNumber: 'Телефон',
       fullAddress: 'Полный адрес',
       orderDate: 'Дата заказа',
       selectModel: 'Выберите модель сауны',
@@ -66,14 +68,22 @@ export const SaunaCalculator = () => {
       basePrice: 'Базовая цена',
       foundation: 'Фундамент',
       discount: 'Скидка',
-      notes: 'Примечания',
-      notesPlaceholder: 'Добавьте примечания к заказу...',
+      discountPercent: 'Скидка %',
+      applyStandardDiscount: 'Стандартная скидка',
+      noDiscountForModel: 'Для этой модели нет стандартной скидки',
+      discountApplied: 'Скидка применена',
+      notes: 'Комментарий к заказу',
+      notesPlaceholder: 'Добавьте комментарий к заказу...',
       summary: 'Итог заказа',
       subtotal: 'Сумма опций',
       foundationPrice: 'Стоимость фундамента',
       discountAmount: 'Сумма скидки',
+      priceBeforeDiscount: 'Цена до скидки',
+      priceAfterDiscount: 'Цена после скидки',
+      youSave: 'Вы экономите',
       total: 'ИТОГО',
       saveAndGeneratePDF: 'Сохранить и создать PDF',
+      generatePDFOnly: 'Создать PDF',
       clearForm: 'Очистить форму',
       orderSaved: 'Заказ сауны сохранён!',
       pdfGenerated: 'PDF успешно создан!',
@@ -101,22 +111,31 @@ export const SaunaCalculator = () => {
       saunaCalculator: 'Kalkulator saun',
       customerInfo: 'Dane klienta',
       fullName: 'Imię i nazwisko',
-      phoneNumber: 'Numer telefonu',
-      fullAddress: 'Pełny adres',
+      email: 'Email',
+      phoneNumber: 'Telefon',
+      fullAddress: 'Adres',
       orderDate: 'Data zamówienia',
       selectModel: 'Wybierz model sauny',
       model: 'Model sauny',
       basePrice: 'Cena podstawowa',
       foundation: 'Fundament',
       discount: 'Rabat',
-      notes: 'Uwagi',
-      notesPlaceholder: 'Dodaj uwagi do zamówienia...',
+      discountPercent: 'Rabat %',
+      applyStandardDiscount: 'Standardowa zniżka',
+      noDiscountForModel: 'Dla tego modelu nie ma zdefiniowanej standardowej zniżki',
+      discountApplied: 'Rabat zastosowany',
+      notes: 'Komentarz do zamówienia',
+      notesPlaceholder: 'Dodaj komentarz do zamówienia...',
       summary: 'Podsumowanie zamówienia',
       subtotal: 'Suma opcji',
       foundationPrice: 'Koszt fundamentu',
       discountAmount: 'Kwota rabatu',
+      priceBeforeDiscount: 'Cena przed rabatem',
+      priceAfterDiscount: 'Cena po rabacie',
+      youSave: 'Oszczędzasz',
       total: 'RAZEM',
       saveAndGeneratePDF: 'Zapisz i generuj PDF',
+      generatePDFOnly: 'Generuj PDF',
       clearForm: 'Wyczyść formularz',
       orderSaved: 'Zamówienie sauny zapisane!',
       pdfGenerated: 'PDF wygenerowany!',
@@ -189,7 +208,6 @@ export const SaunaCalculator = () => {
       if (!selection) return;
       
       if (category.inputType === 'checkbox') {
-        // Sum all selected checkboxes
         Object.entries(selection).forEach(([optId, isSelected]) => {
           if (isSelected) {
             const option = category.options?.find(o => o.id === optId);
@@ -199,7 +217,6 @@ export const SaunaCalculator = () => {
           }
         });
       } else {
-        // Single selection (radio)
         const option = category.options?.find(o => o.id === selection);
         if (option) {
           total += option.price;
@@ -214,11 +231,9 @@ export const SaunaCalculator = () => {
     const model = getSelectedModel();
     if (!model) return 0;
     
-    // Check if foundation is selected (Belki podłużne)
     const foundationCat = prices.categories?.find(c => c.id === 'fundament');
     if (foundationCat) {
       const selection = formData.selections[foundationCat.id];
-      // If "Dodaj do sauny Belki podłużne" is selected, add foundation price
       if (selection && selection.includes('dodaj')) {
         return model.foundationPrice || 0;
       }
@@ -226,17 +241,20 @@ export const SaunaCalculator = () => {
     return 0;
   };
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     const model = getSelectedModel();
     if (!model) return 0;
     
     const basePrice = model.basePrice || 0;
     const optionsTotal = calculateOptionsTotal();
     const foundationPrice = calculateFoundationPrice();
-    const subtotal = basePrice + optionsTotal + foundationPrice;
-    const discount = model.discount || 0;
-    const discountAmount = subtotal * (discount / 100);
     
+    return basePrice + optionsTotal + foundationPrice;
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const discountAmount = subtotal * (appliedDiscount / 100);
     return subtotal - discountAmount;
   };
 
@@ -248,11 +266,34 @@ export const SaunaCalculator = () => {
     }));
   };
 
+  const handleDiscountChange = (e) => {
+    const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+    setAppliedDiscount(value);
+  };
+
   const handleModelChange = (modelId) => {
     setFormData(prev => ({
       ...prev,
       selectedModel: modelId,
     }));
+    // Reset discount when model changes
+    setAppliedDiscount(0);
+  };
+
+  const handleApplyStandardDiscount = () => {
+    const model = getSelectedModel();
+    if (!model) {
+      toast.error(txt.selectModelFirst);
+      return;
+    }
+    
+    const modelDiscount = model.discount || 0;
+    if (modelDiscount > 0) {
+      setAppliedDiscount(modelDiscount);
+      toast.success(`${txt.discountApplied}: ${modelDiscount}%`);
+    } else {
+      toast.error(txt.noDiscountForModel);
+    }
   };
 
   const handleRadioChange = (categoryId, optionId) => {
@@ -279,7 +320,7 @@ export const SaunaCalculator = () => {
   };
 
   const validateForm = () => {
-    if (!formData.fullName || !formData.phoneNumber || !formData.fullAddress) {
+    if (!formData.fullName || !formData.phoneNumber) {
       toast.error(txt.fillRequired);
       return false;
     }
@@ -290,14 +331,62 @@ export const SaunaCalculator = () => {
     return true;
   };
 
+  // Get selected options for PDF
+  const getSelectedOptions = () => {
+    const options = [];
+    const categories = prices.categories || [];
+    
+    categories.forEach(category => {
+      const selection = formData.selections[category.id];
+      if (!selection) return;
+      
+      if (category.inputType === 'checkbox') {
+        Object.entries(selection).forEach(([optId, isSelected]) => {
+          if (isSelected) {
+            const option = category.options?.find(o => o.id === optId);
+            if (option) {
+              options.push({
+                categoryId: category.id,
+                categoryName: category.name,
+                optionId: option.id,
+                optionName: option.name,
+                price: option.price,
+                imageUrl: option.imageUrl || null,
+              });
+            }
+          }
+        });
+      } else {
+        const option = category.options?.find(o => o.id === selection);
+        if (option) {
+          options.push({
+            categoryId: category.id,
+            categoryName: category.name,
+            optionId: option.id,
+            optionName: option.name,
+            price: option.price,
+            imageUrl: option.imageUrl || null,
+          });
+        }
+      }
+    });
+    
+    return options;
+  };
+
   const handleSaveAndGeneratePDF = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
     try {
       const model = getSelectedModel();
+      const subtotal = calculateSubtotal();
+      const total = calculateTotal();
+      const selectedOptions = getSelectedOptions();
+      
       const orderData = {
         fullName: formData.fullName,
+        email: formData.email,
         phoneNumber: formData.phoneNumber,
         fullAddress: formData.fullAddress,
         orderDate: formData.orderDate,
@@ -305,18 +394,20 @@ export const SaunaCalculator = () => {
         modelName: model?.name || '',
         basePrice: model?.basePrice || 0,
         foundationPrice: calculateFoundationPrice(),
-        discount: model?.discount || 0,
+        discountPercent: appliedDiscount,
         selections: formData.selections,
+        selectedOptions: selectedOptions,
         notes: formData.notes,
         optionsTotal: calculateOptionsTotal(),
-        total: calculateTotal(),
+        subtotal: subtotal,
+        total: total,
       };
 
       // 1. Save order
       await axios.post(`${API_URL}/api/sauna/orders`, orderData);
       toast.success(txt.orderSaved);
 
-      // 2. Generate PDF (always in Polish)
+      // 2. Generate PDF
       const pdfData = {
         ...orderData,
         language: 'pl',
@@ -330,7 +421,8 @@ export const SaunaCalculator = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `sauna_${formData.fullName.replace(/\s+/g, '_')}.pdf`);
+      const currentDate = new Date().toLocaleDateString('pl-PL').replace(/\./g, '-');
+      link.setAttribute('download', `Oferta_${formData.fullName.replace(/\s+/g, '_')}_${currentDate}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -356,6 +448,7 @@ export const SaunaCalculator = () => {
 
     setFormData({
       fullName: '',
+      email: '',
       phoneNumber: '',
       fullAddress: '',
       orderDate: new Date().toISOString().split('T')[0],
@@ -363,6 +456,7 @@ export const SaunaCalculator = () => {
       selections: initialSelections,
       notes: '',
     });
+    setAppliedDiscount(0);
     toast.success(txt.formCleared);
   };
 
@@ -373,8 +467,8 @@ export const SaunaCalculator = () => {
   const model = getSelectedModel();
   const optionsTotal = calculateOptionsTotal();
   const foundationPrice = calculateFoundationPrice();
-  const subtotal = (model?.basePrice || 0) + optionsTotal + foundationPrice;
-  const discountAmount = subtotal * ((model?.discount || 0) / 100);
+  const subtotal = calculateSubtotal();
+  const discountAmount = subtotal * (appliedDiscount / 100);
   const total = calculateTotal();
 
   if (initialLoading) {
@@ -392,13 +486,13 @@ export const SaunaCalculator = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Customer Info */}
           <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <User className="h-5 w-5 text-primary" />
+            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
+              <CardTitle className="flex items-center gap-2 text-lg text-amber-800">
+                <User className="h-5 w-5" />
                 {txt.customerInfo}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">{txt.fullName} *</Label>
@@ -415,6 +509,20 @@ export const SaunaCalculator = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="email">{txt.email}</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="phoneNumber">{txt.phoneNumber} *</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -422,20 +530,6 @@ export const SaunaCalculator = () => {
                       id="phoneNumber"
                       name="phoneNumber"
                       value={formData.phoneNumber}
-                      onChange={handleInputChange}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fullAddress">{txt.fullAddress} *</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="fullAddress"
-                      name="fullAddress"
-                      value={formData.fullAddress}
                       onChange={handleInputChange}
                       className="pl-10"
                       required
@@ -462,13 +556,13 @@ export const SaunaCalculator = () => {
 
           {/* Model Selection */}
           <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Calculator className="h-5 w-5 text-primary" />
+            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
+              <CardTitle className="flex items-center gap-2 text-lg text-amber-800">
+                <Calculator className="h-5 w-5" />
                 {txt.model} *
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {prices.models?.map((m) => (
                   <div
@@ -477,8 +571,8 @@ export const SaunaCalculator = () => {
                     className={`
                       relative cursor-pointer rounded-lg border-2 p-3 transition-all
                       ${formData.selectedModel === m.id 
-                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
-                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                        ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200' 
+                        : 'border-border hover:border-amber-300 hover:bg-amber-50/50'
                       }
                     `}
                   >
@@ -492,11 +586,11 @@ export const SaunaCalculator = () => {
                       </div>
                     )}
                     <div className="text-sm font-medium">{m.name}</div>
-                    <div className="text-lg font-bold text-primary">{m.basePrice.toLocaleString()} PLN</div>
+                    <div className="text-lg font-bold text-amber-700">{m.basePrice.toLocaleString('pl-PL')} PLN</div>
                     {m.discount > 0 && (
                       <div className="flex items-center gap-1 text-xs text-green-600">
-                        <Percent className="h-3 w-3" />
-                        -{m.discount}% {txt.discount}
+                        <Tag className="h-3 w-3" />
+                        {txt.discount}: {m.discount}%
                       </div>
                     )}
                     {m.foundationPrice > 0 && (
@@ -510,21 +604,60 @@ export const SaunaCalculator = () => {
             </CardContent>
           </Card>
 
+          {/* Discount Section */}
+          <Card className="shadow-md border-green-200">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+              <CardTitle className="flex items-center gap-2 text-lg text-green-700">
+                <Percent className="h-5 w-5" />
+                {txt.discount}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="discountPercent">{txt.discountPercent}</Label>
+                  <Input
+                    id="discountPercent"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={appliedDiscount}
+                    onChange={handleDiscountChange}
+                    className="w-24"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleApplyStandardDiscount}
+                  className="border-green-300 text-green-700 hover:bg-green-50"
+                >
+                  <Tag className="h-4 w-4 mr-2" />
+                  {txt.applyStandardDiscount}
+                </Button>
+                {appliedDiscount > 0 && (
+                  <div className="text-sm text-green-600 font-medium">
+                    {txt.youSave}: {discountAmount.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Option Categories */}
           {prices.categories?.map((category) => {
             const Icon = categoryIcons[category.name] || Package;
             
             return (
               <Card key={category.id} className="shadow-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Icon className="h-5 w-5 text-primary" />
+                <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
+                  <CardTitle className="flex items-center gap-2 text-lg text-amber-800">
+                    <Icon className="h-5 w-5" />
                     {getCategoryName(category)}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                   {category.inputType === 'checkbox' ? (
-                    // Checkbox options
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {category.options?.map((option) => {
                         const isChecked = formData.selections[category.id]?.[option.id] || false;
@@ -533,7 +666,7 @@ export const SaunaCalculator = () => {
                             key={option.id}
                             className={`
                               flex items-start space-x-3 p-3 rounded-lg border transition-all
-                              ${isChecked ? 'bg-primary/5 border-primary' : 'bg-muted/30 border-border hover:bg-muted/50'}
+                              ${isChecked ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}
                             `}
                           >
                             <Checkbox
@@ -548,12 +681,11 @@ export const SaunaCalculator = () => {
                               >
                                 {option.name}
                               </Label>
-                              {option.price > 0 && (
-                                <span className="text-xs text-primary font-medium">
-                                  +{option.price} PLN
+                              {option.price > 0 ? (
+                                <span className="text-xs text-amber-700 font-medium">
+                                  +{option.price.toLocaleString('pl-PL')} PLN
                                 </span>
-                              )}
-                              {option.price === 0 && (
+                              ) : (
                                 <span className="text-xs text-green-600">{txt.gratis}</span>
                               )}
                             </div>
@@ -569,7 +701,6 @@ export const SaunaCalculator = () => {
                       })}
                     </div>
                   ) : (
-                    // Radio options
                     <RadioGroup
                       value={formData.selections[category.id] || ''}
                       onValueChange={(value) => handleRadioChange(category.id, value)}
@@ -582,7 +713,7 @@ export const SaunaCalculator = () => {
                             key={option.id}
                             className={`
                               flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer
-                              ${isSelected ? 'bg-primary/5 border-primary' : 'bg-muted/30 border-border hover:bg-muted/50'}
+                              ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}
                             `}
                             onClick={() => handleRadioChange(category.id, option.id)}
                           >
@@ -594,12 +725,11 @@ export const SaunaCalculator = () => {
                               >
                                 {option.name}
                               </Label>
-                              {option.price > 0 && (
-                                <span className="text-xs text-primary font-medium">
-                                  +{option.price} PLN
+                              {option.price > 0 ? (
+                                <span className="text-xs text-amber-700 font-medium">
+                                  +{option.price.toLocaleString('pl-PL')} PLN
                                 </span>
-                              )}
-                              {option.price === 0 && (
+                              ) : (
                                 <span className="text-xs text-green-600">{txt.gratis}</span>
                               )}
                             </div>
@@ -622,10 +752,10 @@ export const SaunaCalculator = () => {
 
           {/* Notes */}
           <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle className="text-lg">{txt.notes}</CardTitle>
+            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
+              <CardTitle className="text-lg text-amber-800">{txt.notes}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <Textarea
                 name="notes"
                 value={formData.notes}
@@ -642,7 +772,7 @@ export const SaunaCalculator = () => {
               onClick={handleSaveAndGeneratePDF}
               disabled={loading}
               size="lg"
-              className="flex-1 min-w-[250px]"
+              className="flex-1 min-w-[250px] bg-amber-600 hover:bg-amber-700"
             >
               {loading ? (
                 <Loader2 className="h-5 w-5 mr-2 animate-spin" />
@@ -669,9 +799,9 @@ export const SaunaCalculator = () => {
 
         {/* Right Column - Summary */}
         <div className="lg:col-span-1">
-          <Card className="shadow-lg sticky top-4">
-            <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
-              <CardTitle className="flex items-center gap-2">
+          <Card className="shadow-lg sticky top-4 border-amber-200">
+            <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100">
+              <CardTitle className="flex items-center gap-2 text-amber-800">
                 <Calculator className="h-5 w-5" />
                 {txt.summary}
               </CardTitle>
@@ -680,10 +810,10 @@ export const SaunaCalculator = () => {
               {model ? (
                 <>
                   {/* Selected Model */}
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="text-sm text-muted-foreground">{txt.model}</div>
+                  <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <div className="text-sm text-amber-700 font-medium">{txt.model}</div>
                     <div className="font-medium">{model.name}</div>
-                    <div className="text-primary font-bold">{model.basePrice.toLocaleString()} PLN</div>
+                    <div className="text-amber-700 font-bold">{model.basePrice.toLocaleString('pl-PL')} PLN</div>
                   </div>
 
                   {/* Selected Options */}
@@ -701,11 +831,13 @@ export const SaunaCalculator = () => {
                       
                       return (
                         <div key={category.id} className="text-sm">
-                          <div className="text-muted-foreground">{getCategoryName(category)}</div>
+                          <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
                           {selectedOpts.map(opt => (
                             <div key={opt.id} className="flex justify-between">
                               <span className="truncate pr-2">{opt.name}</span>
-                              <span className="text-primary whitespace-nowrap">+{opt.price} PLN</span>
+                              <span className="text-amber-700 whitespace-nowrap font-medium">
+                                {opt.price > 0 ? `+${opt.price.toLocaleString('pl-PL')} PLN` : txt.gratis}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -716,10 +848,12 @@ export const SaunaCalculator = () => {
                       
                       return (
                         <div key={category.id} className="text-sm">
-                          <div className="text-muted-foreground">{getCategoryName(category)}</div>
+                          <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
                           <div className="flex justify-between">
                             <span className="truncate pr-2">{opt.name}</span>
-                            <span className="text-primary whitespace-nowrap">+{opt.price} PLN</span>
+                            <span className="text-amber-700 whitespace-nowrap font-medium">
+                              {opt.price > 0 ? `+${opt.price.toLocaleString('pl-PL')} PLN` : txt.gratis}
+                            </span>
                           </div>
                         </div>
                       );
@@ -731,30 +865,49 @@ export const SaunaCalculator = () => {
                     <div className="text-sm">
                       <div className="flex justify-between">
                         <span>{txt.foundationPrice}</span>
-                        <span className="text-primary">+{foundationPrice} PLN</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Discount */}
-                  {model.discount > 0 && (
-                    <div className="text-sm text-green-600">
-                      <div className="flex justify-between">
-                        <span>{txt.discount} ({model.discount}%)</span>
-                        <span>-{discountAmount.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN</span>
+                        <span className="text-amber-700 font-medium">+{foundationPrice.toLocaleString('pl-PL')} PLN</span>
                       </div>
                     </div>
                   )}
 
                   {/* Divider */}
-                  <div className="border-t my-2" />
+                  <div className="border-t border-amber-200 my-2" />
+
+                  {/* Subtotal */}
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">{txt.priceBeforeDiscount}</span>
+                    <span className="font-medium">{subtotal.toLocaleString('pl-PL')} PLN</span>
+                  </div>
+
+                  {/* Discount */}
+                  {appliedDiscount > 0 && (
+                    <div className="p-2 bg-green-50 rounded-lg border border-green-200">
+                      <div className="text-sm text-green-700">
+                        <div className="flex justify-between">
+                          <span>{txt.discount} ({appliedDiscount}%)</span>
+                          <span className="font-medium">-{discountAmount.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN</span>
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <span>{txt.youSave}:</span>
+                          <span className="font-bold">{discountAmount.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Total */}
-                  <div className="flex justify-between items-center text-lg font-bold">
-                    <span>{txt.total}</span>
-                    <span className="text-2xl text-primary">
-                      {total.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN
-                    </span>
+                  <div className="p-3 bg-amber-600 text-white rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{txt.total}</span>
+                      <span className="text-2xl font-bold">
+                        {total.toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN
+                      </span>
+                    </div>
+                    {appliedDiscount > 0 && (
+                      <div className="text-xs text-amber-100 mt-1">
+                        {txt.discount}: {appliedDiscount}% ({txt.priceBeforeDiscount}: {subtotal.toLocaleString('pl-PL')} PLN)
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
