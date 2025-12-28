@@ -102,7 +102,81 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the hot tub calculator application functionality including language switcher, calculator page forms, orders page, pricing page, and navigation"
+user_problem_statement: "Test the hot tub calculator application functionality including language switcher, calculator page forms, orders page, pricing page, and navigation. NEW: Test Sauna Calculator implementation"
+
+# NEW SAUNA CALCULATOR TASKS
+sauna_calculator:
+  - task: "Sauna Calculator - Model Selection"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/SaunaCalculator.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Implemented sauna model selection with 13 models (Kwadro-Beczka and Beczka), showing images, prices, discounts, and foundation costs"
+
+  - task: "Sauna Calculator - Options Selection"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/SaunaCalculator.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Implemented 14 option categories: Kolor, Piece, Strona Pieca, Zbiornik wody, Ogrodzenie pieca, Drzwi, Lokalizacja drzwi, Okna, Szyba panoramiczna, Ławki, Oświetlenie, Opcje Dodatkowe, Fundament, Dostawa. Radio and checkbox inputs work correctly."
+
+  - task: "Sauna Calculator - Price Calculation with Discount"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/SaunaCalculator.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Price calculation formula: (BasePrice + FoundationPrice + Options) × (1 - Discount%). Verified working: 24100 + 2600 + 350 = 27050, minus 8% = 24886 PLN"
+
+  - task: "Sauna Calculator - Order Saving"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "POST /api/sauna/orders endpoint working. Successfully created test order with ID 28d7e293"
+
+  - task: "Sauna Calculator - PDF Generation"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "POST /api/sauna/generate-pdf endpoint working. Successfully generated 44KB PDF with Polish text and selected options"
+
+  - task: "Sauna Orders Page"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/OrdersPage.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Updated OrdersPage to support calculatorType='sauna'. Shows sauna orders with model name and PLN currency"
 
 frontend:
   - task: "Language Switcher"
