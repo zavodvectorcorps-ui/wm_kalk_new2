@@ -890,13 +890,21 @@ def test_authentication_system():
     admin_token = test_admin_login()
     if not admin_token:
         print("❌ Cannot proceed with admin tests - login failed")
-        return False
+        return {"Admin Login": False}
     
     # Test employee login
     employee_token = test_employee_login()
     if not employee_token:
         print("❌ Cannot proceed with employee tests - login failed")
-        return False
+        # Return partial results for admin tests only
+        return {
+            "Admin Login": True,
+            "Employee Login": False,
+            "Invalid Login": test_invalid_login(),
+            "Get Current User (Admin)": test_get_current_user(admin_token),
+            "Verify Token (Admin)": test_verify_token(admin_token),
+            "Get Users (Admin)": test_get_users_admin(admin_token),
+        }
     
     # Run all authentication tests
     auth_results = {
