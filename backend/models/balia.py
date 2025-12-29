@@ -1,23 +1,83 @@
 """Balia calculator models."""
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import uuid
+
+
+class ModelSpec(BaseModel):
+    outerDiameter: Optional[int] = None
+    innerDiameter: Optional[int] = None
+    outerWidth: Optional[int] = None
+    outerLength: Optional[int] = None
+    innerWidth: Optional[int] = None
+    innerLength: Optional[int] = None
+    depth: int
+    totalHeight: int
+    heaterPower: int
+    waterCapacity: int
+
+
+class BaliaModel(BaseModel):
+    id: str
+    name: str
+    nameRu: Optional[str] = ""
+    namePl: Optional[str] = ""
+    type: str
+    shape: str
+    size: str
+    heaterType: str
+    imageUrl: str = ""
+    specs: ModelSpec
+    includes: Optional[List[str]] = []
+    basePrice: float
+    currency: str
+    sortOrder: int
+    active: bool = True
+
+
+class CategoryOption(BaseModel):
+    id: str
+    name: str
+    nameRu: Optional[str] = ""
+    namePl: Optional[str] = ""
+    price: float
+    applicableTo: Optional[str] = None
+    sortOrder: int
+
+
+class BaliaCategory(BaseModel):
+    id: str
+    name: str
+    nameRu: Optional[str] = ""
+    namePl: Optional[str] = ""
+    imageUrl: str = ""
+    inputType: str
+    displayType: str
+    sortOrder: int
+    options: List[CategoryOption]
 
 
 class PriceData(BaseModel):
     model_config = ConfigDict(extra="allow")
     
-    shellModels: Dict[str, float] = {}
-    woodTypes: Dict[str, float] = {}
-    shellColors: Dict[str, float] = {}
-    lidTypes: Dict[str, float] = {}
-    woodColors: Dict[str, float] = {}
-    features: Dict[str, float] = {}
-    displayTypes: Dict[str, str] = {}
-    categories: Dict[str, Dict[str, Any]] = {}
-    optionCategories: Dict[str, str] = {}
-    optionLabels: Dict[str, str] = {}
+    # New structure
+    models: Optional[List[BaliaModel]] = []
+    categories: Optional[List[BaliaCategory]] = []
+    modelsDisplayType: Optional[str] = "grid"
+    currency: Optional[str] = "EUR"
+    currencySymbol: Optional[str] = "€"
+    
+    # Legacy structure (for backward compatibility)
+    shellModels: Optional[Dict[str, float]] = {}
+    woodTypes: Optional[Dict[str, float]] = {}
+    shellColors: Optional[Dict[str, float]] = {}
+    lidTypes: Optional[Dict[str, float]] = {}
+    woodColors: Optional[Dict[str, float]] = {}
+    features: Optional[Dict[str, float]] = {}
+    displayTypes: Optional[Dict[str, str]] = {}
+    optionCategories: Optional[Dict[str, str]] = {}
+    optionLabels: Optional[Dict[str, str]] = {}
 
 
 class OrderFeatures(BaseModel):
