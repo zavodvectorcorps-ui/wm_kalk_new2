@@ -335,9 +335,9 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
               {TECH_SPEC_CATEGORIES.map(renderCategory)}
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="mt-4 flex gap-2">
+        <DialogFooter className="mt-4 flex gap-2 flex-shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Отмена
           </Button>
