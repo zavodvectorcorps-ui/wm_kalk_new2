@@ -356,10 +356,7 @@ metadata:
   test_sequence: 1
 
 test_plan:
-  current_focus:
-    - "Display Type Feature - Calculator rendering based on displayType (Frontend)"
-    - "SaunaPricingPage - Models display type toggle (Frontend)"
-    - "SaunaPricingPage - Categories display type toggle (Frontend)"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
