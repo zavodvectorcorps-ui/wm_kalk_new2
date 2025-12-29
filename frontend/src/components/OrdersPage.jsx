@@ -228,6 +228,18 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                           )}
                         </TableCell>
                       )}
+                      {isSauna && (
+                        <TableCell>
+                          {order.createdBy ? (
+                            <div className="flex items-center gap-1 text-sm">
+                              <UserCircle className="h-4 w-4 text-muted-foreground" />
+                              <span>{order.createdBy}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>{formatDate(order.orderDate)}</TableCell>
                       <TableCell className="text-right font-semibold">
                         {isSauna 
