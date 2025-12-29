@@ -5,8 +5,18 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { User, Phone, MapPin, Calendar } from 'lucide-react';
 
-export const CustomerInfoForm = ({ formData, onChange }) => {
+export const CustomerInfoForm = ({ formData, setFormData, onChange }) => {
   const { t } = useTranslation();
+
+  // Support both onChange prop and setFormData for backward compatibility
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (onChange) {
+      onChange(e);
+    } else if (setFormData) {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
 
   return (
     <Card className="shadow-md">
@@ -27,7 +37,7 @@ export const CustomerInfoForm = ({ formData, onChange }) => {
               id="fullName"
               name="fullName"
               value={formData.fullName}
-              onChange={onChange}
+              onChange={handleChange}
               className="pl-10"
               placeholder={t('fullName')}
               required
@@ -46,7 +56,7 @@ export const CustomerInfoForm = ({ formData, onChange }) => {
               name="phoneNumber"
               type="tel"
               value={formData.phoneNumber}
-              onChange={onChange}
+              onChange={handleChange}
               className="pl-10"
               placeholder="+48 123 456 789"
               required
@@ -64,7 +74,7 @@ export const CustomerInfoForm = ({ formData, onChange }) => {
               id="fullAddress"
               name="fullAddress"
               value={formData.fullAddress}
-              onChange={onChange}
+              onChange={handleChange}
               className="pl-10"
               placeholder={t('fullAddress')}
               required
@@ -83,7 +93,7 @@ export const CustomerInfoForm = ({ formData, onChange }) => {
               name="orderDate"
               type="date"
               value={formData.orderDate}
-              onChange={onChange}
+              onChange={handleChange}
               className="pl-10"
               required
             />
