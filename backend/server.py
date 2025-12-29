@@ -1847,6 +1847,11 @@ async def health_check():
     """Health check endpoint for deployment monitoring"""
     return {"status": "healthy", "service": "wm-calculator-backend"}
 
+@api_router.get("/health")
+async def api_health_check():
+    """Health check endpoint accessible via /api/health"""
+    return {"status": "healthy", "service": "wm-calculator-backend"}
+
 # Include the router in the main app
 app.include_router(api_router)
 
