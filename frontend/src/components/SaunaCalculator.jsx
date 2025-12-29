@@ -287,7 +287,7 @@ export const SaunaCalculator = () => {
       return;
     }
     
-    const modelDiscount = model.discount || 0;
+    const modelDiscount = Math.min(model.discount || 0, 10); // Max 10%
     if (modelDiscount > 0) {
       setAppliedDiscount(modelDiscount);
       toast.success(`${txt.discountApplied}: ${modelDiscount}%`);
