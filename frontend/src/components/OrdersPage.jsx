@@ -109,7 +109,9 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
     const query = searchQuery.toLowerCase();
     const orderId = (order.id || '').toLowerCase();
     const fullName = (order.fullName || '').toLowerCase();
-    return orderId.includes(query) || fullName.includes(query);
+    const phoneNumber = (order.phoneNumber || '').replace(/\s+/g, '').toLowerCase();
+    const queryNormalized = query.replace(/\s+/g, '');
+    return orderId.includes(query) || fullName.includes(query) || phoneNumber.includes(queryNormalized);
   });
 
   const formatDate = (dateString) => {
