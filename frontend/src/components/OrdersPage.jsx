@@ -19,6 +19,10 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Tech Spec Modal state
+  const [techSpecModalOpen, setTechSpecModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const isSauna = calculatorType === 'sauna';
 
