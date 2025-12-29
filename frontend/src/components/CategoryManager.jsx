@@ -156,7 +156,8 @@ export const CategoryList = ({
   onMoveUp, 
   onMoveDown,
   onCreateNew,
-  onToggleRequired
+  onToggleRequired,
+  canEdit = true
 }) => {
   const { t, i18n } = useTranslation();
 
