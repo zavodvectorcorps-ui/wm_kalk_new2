@@ -600,12 +600,12 @@ export const SaunaCalculator = () => {
                   value={formData.selectedModel}
                   onValueChange={(value) => handleModelChange(value)}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={txt.selectModel} />
-                  </SelectTrigger>
-                  <SelectContent>
+                  <SelectTriggerOrange className="w-full">
+                    <SelectValueOrange placeholder={txt.selectModel} />
+                  </SelectTriggerOrange>
+                  <SelectContentOrange>
                     {prices.models?.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
+                      <SelectItemOrange key={m.id} value={m.id}>
                         <div className="flex items-center gap-2">
                           {m.imageUrl && (
                             <img src={m.imageUrl} alt={m.name} className="w-8 h-6 object-cover rounded" />
@@ -618,10 +618,10 @@ export const SaunaCalculator = () => {
                             <span className="text-green-600 text-xs">-{m.discount}%</span>
                           )}
                         </div>
-                      </SelectItem>
+                      </SelectItemOrange>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </SelectContentOrange>
+                </SelectOrange>
               ) : (
                 // Grid/Tile View for Models (default)
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -748,12 +748,12 @@ export const SaunaCalculator = () => {
                       value={formData.selections[category.id] || ''}
                       onValueChange={(value) => handleRadioChange(category.id, value)}
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={getCategoryName(category)} />
-                      </SelectTrigger>
-                      <SelectContent>
+                      <SelectTriggerOrange className="w-full">
+                        <SelectValueOrange placeholder={getCategoryName(category)} />
+                      </SelectTriggerOrange>
+                      <SelectContentOrange>
                         {category.options?.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
+                          <SelectItemOrange key={option.id} value={option.id}>
                             <div className="flex items-center gap-2">
                               {option.imageUrl && (
                                 <img src={option.imageUrl} alt={option.name} className="w-8 h-6 object-cover rounded" />
@@ -763,10 +763,10 @@ export const SaunaCalculator = () => {
                                 {option.price > 0 ? `+${option.price.toLocaleString('pl-PL')} PLN` : (option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
                               </span>
                             </div>
-                          </SelectItem>
+                          </SelectItemOrange>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </SelectContentOrange>
+                    </SelectOrange>
                   ) : (
                     // Grid/Tile View for Radio type (default)
                     <RadioGroupOrange
