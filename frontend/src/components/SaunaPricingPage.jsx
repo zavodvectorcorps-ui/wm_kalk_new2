@@ -42,6 +42,7 @@ export const SaunaPricingPage = () => {
     name: '',
     price: 0,
     imageUrl: '',
+    hasQuantity: false,
   });
   
   const [editingModel, setEditingModel] = useState(null);
