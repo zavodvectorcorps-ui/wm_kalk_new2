@@ -680,30 +680,26 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     discount_note = ''
     if discount_percent > 0:
         subtotal_int = int(round(subtotal))
-        discount_note = f"Rabat: {discount_percent:.0f}% (cena bez rabatu: {subtotal_int:,} PLN)".replace(',', ' ')
+        discount_note = f"<br/><font size='8' color='#F0F9F5'>Rabat: {discount_percent:.0f}% (cena bez rabatu: {subtotal_int:,} PLN)</font>".replace(',', ' ')
     
-    total_left_content = [
-        Paragraph('<font color="white"><b>WARTOŚĆ CAŁKOWITA OFERTY</b></font>', 
-                  ParagraphStyle('TotalTitle', fontName='DejaVuSans-Bold', fontSize=11, textColor=colors.white)),
-        Spacer(1, 4),
-        Paragraph(f'<font color="white"><b>{total_price_str} PLN</b></font>', 
-                  ParagraphStyle('TotalValue', fontName='DejaVuSans-Bold', fontSize=20, textColor=colors.white)),
-    ]
-    if discount_note:
-        total_left_content.append(Spacer(1, 4))
-        total_left_content.append(Paragraph(f'<font color="#F0F9F5" size="8">{discount_note}</font>', 
-                                           ParagraphStyle('DiscountNote', fontName='DejaVuSans', fontSize=8)))
+    # Build left content as a single Paragraph with HTML-like formatting
+    left_html = f'''<font color="white"><b>WARTOŚĆ CAŁKOWITA OFERTY</b></font><br/><br/>
+    <font color="white" size="20"><b>{total_price_str} PLN</b></font>{discount_note}'''
     
-    total_right_content = [
-        Paragraph('TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni', 
-                  ParagraphStyle('Terms', fontName='DejaVuSans', fontSize=8)),
-        Paragraph('ZALICZKA: 50% przed produkcją, 50% przed wysyłką', 
-                  ParagraphStyle('Terms', fontName='DejaVuSans', fontSize=8)),
-        Paragraph('GWARANCJA: 12 miesiące od daty montażu', 
-                  ParagraphStyle('Terms', fontName='DejaVuSans', fontSize=8)),
-    ]
+    total_left = Paragraph(left_html, 
+                           ParagraphStyle('TotalLeft', fontName='DejaVuSans-Bold', fontSize=11, 
+                                         textColor=colors.white, leading=14))
     
-    total_table = Table([[[*total_left_content], [*total_right_content]]], colWidths=[280, 250])
+    # Build right content as a single Paragraph
+    right_html = '''TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni<br/>
+    ZALICZKA: 50% przed produkcją, 50% przed wysyłką<br/>
+    GWARANCJA: 12 miesiące od daty montażu'''
+    
+    total_right = Paragraph(right_html, 
+                            ParagraphStyle('TotalRight', fontName='DejaVuSans', fontSize=8, 
+                                          textColor=TEXT_COLOR, leading=12))
+    
+    total_table = Table([[total_left, total_right]], colWidths=[280, 250])
     total_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (0, 0), BROWN),
         ('BACKGROUND', (1, 0), (1, 0), BROWN_LIGHT),
