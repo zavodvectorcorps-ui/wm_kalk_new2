@@ -596,7 +596,7 @@ export const SaunaCalculator = () => {
             <CardContent className="pt-4">
               {prices.modelsDisplayType === 'dropdown' ? (
                 // Dropdown View for Models
-                <Select
+                <SelectOrange
                   value={formData.selectedModel}
                   onValueChange={(value) => handleModelChange(value)}
                 >
