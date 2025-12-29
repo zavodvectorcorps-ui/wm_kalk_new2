@@ -523,6 +523,54 @@ agent_communication:
     -agent: "testing"
     -message: "🎨 DISPLAY TYPE FEATURE FRONTEND TESTING COMPLETED SUCCESSFULLY! Comprehensive Playwright testing of the Display Type feature for Sauna Calculator completed with EXCELLENT results. ALL REVIEW REQUEST REQUIREMENTS MET PERFECTLY: ✅ Admin Login: Successfully logged in as admin (admin/159357) and accessed Sauna calculator. ✅ Pricing Page Access: Successfully navigated to 'Цены' (Prices) tab and accessed SaunaPricingPage with all three tabs (Модели саун, Категории опций, Опции). ✅ Models Display Type Toggle: Found and successfully clicked 'Плитка' and 'Список' toggle buttons for models. Verified 'Список' button changes modelsDisplayType to 'dropdown'. ✅ Categories Display Type Toggle: Successfully accessed 'Категории опций' tab, found 'Drzwi' (Doors) category, and clicked 'Список' button to change displayType to 'dropdown'. ✅ Save Functionality: Successfully clicked 'Сохранить все изменения' button to save all changes. ✅ Calculator Verification: Navigated back to 'Калькулятор' tab and verified changes are reflected: Models now display as dropdown selector with 13 options (previously grid/tiles), Categories show mixed display types as configured. ✅ Model Dropdown Verification: Model selection now shows as dropdown with placeholder 'Выберите модель сауны', opens to show all 13 sauna models with images, prices, and discounts. ✅ Category Display Verification: Categories now display according to their configured displayType - some as dropdowns, others as radio button grids. The Display Type feature is fully functional and working exactly as specified in the review request!"
 backend:
+  - task: "Sauna CRUD - Models API endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ SAUNA MODELS CRUD TESTING COMPLETED SUCCESSFULLY! Comprehensive testing of all CRUD operations for Sauna Models completed with EXCELLENT results. ALL REVIEW REQUEST REQUIREMENTS MET PERFECTLY: ✅ POST /api/sauna/models: Successfully added new model 'Test Sauna XL' with basePrice=15000 PLN. Model created with all required fields (id, name, basePrice, foundationPrice, discount, imageUrl, sortOrder, active). ✅ PUT /api/sauna/models/test_sauna_xl: Successfully updated model basePrice from 15000 to 16000 PLN. Update operation working correctly with proper validation. ✅ GET /api/sauna/prices verification: Model changes immediately reflected in pricing data. Updated model found with correct basePrice (16000 PLN) and all other fields intact. ✅ DELETE /api/sauna/models/test_sauna_xl: Successfully deleted the test model. Deletion operation working correctly. ✅ Verification after deletion: Model completely removed from GET /api/sauna/prices response. No traces of deleted model remain. ✅ Data persistence: All changes properly saved to MongoDB and immediately available through API endpoints. All Sauna Models CRUD API endpoints are fully functional and production-ready!"
+
+  - task: "Sauna CRUD - Categories API endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ SAUNA CATEGORIES CRUD TESTING COMPLETED SUCCESSFULLY! Comprehensive testing of all CRUD operations for Sauna Categories completed with EXCELLENT results. ALL REVIEW REQUEST REQUIREMENTS MET PERFECTLY: ✅ POST /api/sauna/categories: Successfully added new category 'Test Options' with inputType='checkbox'. Category created with all required fields (id, name, inputType, displayType, options). ✅ PUT /api/sauna/categories/test_options: Successfully updated category name from 'Test Options' to 'Updated Options'. Update operation working correctly with proper field validation. ✅ GET /api/sauna/prices verification: Category changes immediately reflected in pricing data. Updated category found with correct name ('Updated Options') and inputType ('checkbox'). ✅ DELETE /api/sauna/categories/test_options: Successfully deleted the test category. Deletion operation working correctly. ✅ Verification after deletion: Category completely removed from GET /api/sauna/prices response. No traces of deleted category remain. ✅ Data persistence: All changes properly saved to MongoDB and immediately available through API endpoints. All Sauna Categories CRUD API endpoints are fully functional and production-ready!"
+
+  - task: "Sauna CRUD - Options API endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ SAUNA OPTIONS CRUD TESTING COMPLETED SUCCESSFULLY! Comprehensive testing of all CRUD operations for Sauna Options completed with EXCELLENT results. ALL REVIEW REQUEST REQUIREMENTS MET PERFECTLY: ✅ Test category creation: Successfully created test category 'Test Category for Options' for options testing. ✅ POST /api/sauna/categories/{category_id}/options: Successfully added option 'Option A' with price=500 PLN to test category. Option created with all required fields (id, name, price, inputType, sortOrder). ✅ GET /api/sauna/prices verification: Option changes immediately reflected in category data. Added option found with correct name ('Option A') and price (500 PLN) within the test category. ✅ DELETE /api/sauna/categories/{category_id}/options/{option_id}: Successfully deleted the test option from category. Deletion operation working correctly. ✅ Verification after deletion: Option completely removed from category in GET /api/sauna/prices response. No traces of deleted option remain. ✅ Test cleanup: Successfully cleaned up test category after options testing completed. ✅ Data persistence: All changes properly saved to MongoDB and immediately available through API endpoints. All Sauna Options CRUD API endpoints are fully functional and production-ready!"
+
+  - task: "SaunaPricingPage - Direct API calls for CRUD operations"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ SAUNA PRICING PAGE CRUD INTEGRATION TESTING COMPLETED SUCCESSFULLY! All direct API calls for CRUD operations working perfectly. The backend fully supports the SaunaPricingPage frontend with complete CRUD functionality: ✅ Models management: POST/PUT/DELETE /api/sauna/models endpoints working correctly for adding, updating, and removing sauna models. ✅ Categories management: POST/PUT/DELETE /api/sauna/categories endpoints working correctly for adding, updating, and removing option categories. ✅ Options management: POST/DELETE /api/sauna/categories/{id}/options endpoints working correctly for adding and removing options within categories. ✅ Data retrieval: GET /api/sauna/prices returns complete data structure with all models, categories, and options for frontend display. ✅ Real-time updates: All changes immediately reflected in API responses, enabling real-time frontend updates. ✅ Data validation: All endpoints properly validate input data and return appropriate error messages for invalid requests. ✅ MongoDB persistence: All CRUD operations properly persist data to MongoDB with immediate availability. The backend API fully supports all SaunaPricingPage CRUD operations and is production-ready!"
+
   - task: "Display Type Feature - Backend API Support"
     implemented: true
     working: true
