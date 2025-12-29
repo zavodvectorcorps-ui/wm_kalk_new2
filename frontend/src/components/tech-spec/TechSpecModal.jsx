@@ -46,21 +46,112 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
 
   // Initialize form with order data and existing tech spec
   useEffect(() => {
-    if (order && open) {
+    if (order && open && categories.length > 0) {
       const existingTechSpec = order.techSpec || {};
       
-      // Pre-fill selections from order's categories/selections
+      // Pre-fill selections from existing tech spec first
       const initialSelections = { ...existingTechSpec.selections };
       const initialTextInputs = { ...existingTechSpec.textInputs };
       
       // Try to map order selections to tech spec categories
-      if (order.selections) {
-        // Map heater selection
-        if (order.selections.piece) {
-          const heaterOption = categories.find(c => c.id === 'heater')?.options
-            ?.find(o => o.name.toLowerCase().includes(order.selections.piece.toLowerCase()));
-          if (heaterOption) {
-            initialSelections.heater = heaterOption.id;
+      // Map from order.selections (categoryId -> optionId or categoryId -> {optionId: true})
+      if (order.selections && Object.keys(order.selections).length > 0) {
+        Object.entries(order.selections).forEach(([categoryId, value]) => {
+          // Find matching tech spec category by name similarity
+          const orderCategory = order.categories?.find(c => c.categoryId === categoryId);
+          if (!orderCategory) return;
+          
+          // Try to find tech spec category with similar name
+          const techCategory = categories.find(tc => {
+            const tcName = tc.name.toLowerCase();
+            const ocName = orderCategory.categoryName?.toLowerCase() || '';
+            return tcName.includes(ocName) || ocName.includes(tcName) ||
+                   tc.id === categoryId;
+          });
+          
+          if (techCategory && !initialSelections[techCategory.id]) {
+            // For checkbox type in order
+            if (typeof value === 'object') {
+              const selectedIds = Object.entries(value)
+                .filter(([_, isSelected]) => isSelected)
+                .map(([optId]) => {
+                  const orderOpt = orderCategory.options?.find(o => o.id === optId);
+                  const techOpt = techCategory.options?.find(to => 
+                    to.name.toLowerCase().includes(orderOpt?.name?.toLowerCase() || '') ||
+                    (orderOpt?.name?.toLowerCase() || '').includes(to.name.toLowerCase())
+                  );
+                  return techOpt?.id;
+                })
+                .filter(Boolean);
+              
+              if (selectedIds.length > 0) {
+                initialSelections[techCategory.id] = techCategory.inputType === 'checkbox' 
+                  ? selectedIds 
+                  : selectedIds[0];
+              }
+            } else {
+              // For radio type - value is optionId
+              const orderOpt = orderCategory.options?.find(o => o.id === value);
+              const techOpt = techCategory.options?.find(to => 
+                to.name.toLowerCase().includes(orderOpt?.name?.toLowerCase() || '') ||
+                (orderOpt?.name?.toLowerCase() || '').includes(to.name.toLowerCase())
+              );
+              if (techOpt) {
+                initialSelections[techCategory.id] = techOpt.id;
+              }
+            }
+          }
+        });
+      }
+      
+      // Also map from selectedOptions array if available
+      if (order.selectedOptions && order.selectedOptions.length > 0) {
+        order.selectedOptions.forEach(selOpt => {
+          // Find matching tech spec category
+          const techCategory = categories.find(tc => {
+            const tcName = tc.name.toLowerCase();
+            const optName = selOpt.categoryName?.toLowerCase() || '';
+            return tcName.includes(optName) || optName.includes(tcName);
+          });
+          
+          if (techCategory && !initialSelections[techCategory.id]) {
+            // Find matching option
+            const techOpt = techCategory.options?.find(to => {
+              const toName = to.name.toLowerCase();
+              const soName = selOpt.optionName?.toLowerCase() || '';
+              return toName.includes(soName) || soName.includes(toName);
+            });
+            
+            if (techOpt) {
+              if (techCategory.inputType === 'checkbox') {
+                const existing = initialSelections[techCategory.id] || [];
+                if (!existing.includes(techOpt.id)) {
+                  initialSelections[techCategory.id] = [...existing, techOpt.id];
+                }
+              } else {
+                initialSelections[techCategory.id] = techOpt.id;
+              }
+            }
+          }
+        });
+      }
+      
+      // Special mapping for common categories
+      // Map heater/piece selection
+      if (order.selections?.piece || order.selectedOptions?.some(o => o.categoryName?.toLowerCase().includes('piec'))) {
+        const heaterCategory = categories.find(c => c.id === 'heater' || c.name.toLowerCase().includes('piec'));
+        if (heaterCategory && !initialSelections[heaterCategory.id]) {
+          const orderPiece = order.selections?.piece || 
+            order.selectedOptions?.find(o => o.categoryName?.toLowerCase().includes('piec'))?.optionName;
+          
+          if (orderPiece) {
+            const techOpt = heaterCategory.options?.find(o => 
+              o.name.toLowerCase().includes(orderPiece.toLowerCase()) ||
+              orderPiece.toLowerCase().includes(o.name.toLowerCase())
+            );
+            if (techOpt) {
+              initialSelections[heaterCategory.id] = techOpt.id;
+            }
           }
         }
       }
