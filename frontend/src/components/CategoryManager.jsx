@@ -189,10 +189,12 @@ export const CategoryList = ({
             <Folder className="h-5 w-5 text-primary" />
             {t('categoryManagement')}
           </div>
-          <Button onClick={onCreateNew} size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            {t('newCategory')}
-          </Button>
+          {canEdit && (
+            <Button onClick={onCreateNew} size="sm" className="gap-2">
+              <Plus className="h-4 w-4" />
+              {t('newCategory')}
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
