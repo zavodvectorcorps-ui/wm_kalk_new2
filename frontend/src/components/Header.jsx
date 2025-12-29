@@ -70,10 +70,10 @@ export const Header = ({
       <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
         {/* Logo and Title */}
         <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <Calculator className="h-6 w-6 text-primary" />
+          <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${headerConfig.iconBg}`}>
+            {headerConfig.icon}
           </div>
-          <h1 className="text-lg md:text-xl font-bold tracking-tight">{t('appTitle')}</h1>
+          <h1 className="text-lg md:text-xl font-bold tracking-tight">{headerConfig.title}</h1>
         </div>
         
         {/* Desktop Navigation */}
