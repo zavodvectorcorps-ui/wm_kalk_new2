@@ -359,7 +359,7 @@ export const CalculatorPage = () => {
                   </div>
                   
                   {/* Tiles display for categories with images */}
-                  {category.displayType === 'tiles' ? (
+                  {(category.displayType === 'tiles' || category.displayType === 'grid') ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       {category.options?.map(option => {
                         const isSelected = category.inputType === 'checkbox'
