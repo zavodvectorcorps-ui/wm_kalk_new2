@@ -529,7 +529,7 @@ export const SaunaCalculator = () => {
                   <Label htmlFor="fullName">{txt.fullName} *</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <InputOrange
                       id="fullName"
                       name="fullName"
                       value={formData.fullName}
@@ -543,7 +543,7 @@ export const SaunaCalculator = () => {
                   <Label htmlFor="email">{txt.email}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <InputOrange
                       id="email"
                       name="email"
                       type="email"
@@ -557,7 +557,7 @@ export const SaunaCalculator = () => {
                   <Label htmlFor="phoneNumber">{txt.phoneNumber} *</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <InputOrange
                       id="phoneNumber"
                       name="phoneNumber"
                       value={formData.phoneNumber}
@@ -571,7 +571,7 @@ export const SaunaCalculator = () => {
                   <Label htmlFor="orderDate">{txt.orderDate}</Label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <InputOrange
                       id="orderDate"
                       name="orderDate"
                       type="date"
@@ -720,7 +720,7 @@ export const SaunaCalculator = () => {
                                 {option.hasQuantity && isChecked && (
                                   <div className="flex items-center gap-1">
                                     <Label className="text-xs text-muted-foreground">{txt.quantity}:</Label>
-                                    <Input
+                                    <InputOrange
                                       type="number"
                                       min="1"
                                       value={quantity}
@@ -808,7 +808,7 @@ export const SaunaCalculator = () => {
                                 {option.hasQuantity && isSelected && (
                                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                     <Label className="text-xs text-muted-foreground">{txt.quantity}:</Label>
-                                    <Input
+                                    <InputOrange
                                       type="number"
                                       min="1"
                                       value={quantity}
@@ -963,7 +963,7 @@ export const SaunaCalculator = () => {
                       {txt.discount}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Input
+                      <InputOrange
                         id="discountPercent"
                         type="number"
                         min="0"
