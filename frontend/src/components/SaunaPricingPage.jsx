@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { 
   Plus, Save, Trash2, Loader2, Image, Package, Tag,
   Flame, DoorOpen, Layers, Lightbulb, Truck, GripVertical,
-  ArrowUp, ArrowDown, Edit2, X
+  ArrowUp, ArrowDown, Edit2, X, LayoutGrid, List
 } from 'lucide-react';
 import axios from 'axios';
 
