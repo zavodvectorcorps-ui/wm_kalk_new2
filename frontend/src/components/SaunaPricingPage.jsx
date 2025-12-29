@@ -830,13 +830,14 @@ export const SaunaPricingPage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{txt.options}</CardTitle>
-              <Dialog open={isOptionDialogOpen} onOpenChange={setIsOptionDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    {txt.addOption}
-                  </Button>
-                </DialogTrigger>
+              {canEdit() && (
+                <Dialog open={isOptionDialogOpen} onOpenChange={setIsOptionDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="bg-amber-600 hover:bg-amber-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      {txt.addOption}
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>{txt.addOption}</DialogTitle>
