@@ -55,113 +55,42 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
       const initialSelections = { ...existingTechSpec.selections };
       const initialTextInputs = { ...existingTechSpec.textInputs };
       
-      // Get order categories with their options (including techSpecId mappings)
-      const orderCategories = order.categories || [];
-      
-      // Map order selections using techSpecId for precise matching
-      if (order.selections && Object.keys(order.selections).length > 0) {
-        Object.entries(order.selections).forEach(([orderCategoryId, value]) => {
-          // Find order category with its options
-          const orderCategory = orderCategories.find(c => c.categoryId === orderCategoryId || c.id === orderCategoryId);
-          if (!orderCategory) return;
+      // PRIMARY: Map from selectedOptions array which contains techSpecId mappings
+      if (order.selectedOptions && order.selectedOptions.length > 0) {
+        order.selectedOptions.forEach(selOpt => {
+          // Use techSpecCategoryId and techSpecId for direct matching
+          const techSpecCatId = selOpt.techSpecCategoryId;
+          const techSpecOptId = selOpt.techSpecId;
           
-          // Get techSpecCategoryId from order category, or try to find by ID/name
-          const techSpecCatId = orderCategory.techSpecCategoryId;
-          const techCategory = techSpecCatId 
-            ? categories.find(tc => tc.id === techSpecCatId)
-            : categories.find(tc => 
-                tc.id === orderCategoryId || 
-                tc.name.toLowerCase().includes(orderCategory.name?.toLowerCase() || '')
-              );
-          
-          if (!techCategory || initialSelections[techCategory.id]) return;
-          
-          // For checkbox type in order
-          if (typeof value === 'object' && !Array.isArray(value)) {
-            const selectedTechSpecIds = Object.entries(value)
-              .filter(([_, isSelected]) => isSelected)
-              .map(([optId]) => {
-                // Find option in order category
-                const orderOpt = orderCategory.options?.find(o => o.id === optId);
-                if (!orderOpt) return null;
-                
-                // Use techSpecId if available, otherwise try to match by name
-                if (orderOpt.techSpecId) {
-                  return orderOpt.techSpecId;
-                }
-                
-                // Fallback to name matching
-                const techOpt = techCategory.options?.find(to => 
-                  to.name.toLowerCase() === orderOpt.name?.toLowerCase() ||
-                  to.name.toLowerCase().includes(orderOpt.name?.toLowerCase() || '')
-                );
-                return techOpt?.id;
-              })
-              .filter(Boolean);
-            
-            if (selectedTechSpecIds.length > 0) {
-              initialSelections[techCategory.id] = techCategory.inputType === 'checkbox' 
-                ? selectedTechSpecIds 
-                : selectedTechSpecIds[0];
-            }
-          } else {
-            // For radio type - value is optionId
-            const orderOpt = orderCategory.options?.find(o => o.id === value);
-            if (!orderOpt) return;
-            
-            // Use techSpecId if available
-            if (orderOpt.techSpecId) {
-              const techOptExists = techCategory.options?.some(to => to.id === orderOpt.techSpecId);
+          if (techSpecCatId && techSpecOptId) {
+            // Direct match using IDs
+            const techCategory = categories.find(tc => tc.id === techSpecCatId);
+            if (techCategory && !initialSelections[techCategory.id]) {
+              const techOptExists = techCategory.options?.some(to => to.id === techSpecOptId);
               if (techOptExists) {
-                initialSelections[techCategory.id] = orderOpt.techSpecId;
+                if (techCategory.inputType === 'checkbox') {
+                  const existing = initialSelections[techCategory.id] || [];
+                  if (!existing.includes(techSpecOptId)) {
+                    initialSelections[techCategory.id] = [...existing, techSpecOptId];
+                  }
+                } else {
+                  initialSelections[techCategory.id] = techSpecOptId;
+                }
                 return;
               }
             }
-            
-            // Fallback to name matching
-            const techOpt = techCategory.options?.find(to => 
-              to.name.toLowerCase() === orderOpt.name?.toLowerCase() ||
-              to.name.toLowerCase().includes(orderOpt.name?.toLowerCase() || '')
-            );
-            if (techOpt) {
-              initialSelections[techCategory.id] = techOpt.id;
-            }
           }
-        });
-      }
-      
-      // Also map from selectedOptions array if available (with techSpecId support)
-      if (order.selectedOptions && order.selectedOptions.length > 0) {
-        order.selectedOptions.forEach(selOpt => {
-          // Use techSpecCategoryId and techSpecId if available
-          const techSpecCatId = selOpt.techSpecCategoryId;
-          const techCategory = techSpecCatId
-            ? categories.find(tc => tc.id === techSpecCatId)
-            : categories.find(tc => {
-                const tcName = tc.name.toLowerCase();
-                const optName = selOpt.categoryName?.toLowerCase() || '';
-                return tcName.includes(optName) || optName.includes(tcName);
-              });
+          
+          // Fallback: Try to find tech spec category by name similarity
+          const techCategory = categories.find(tc => {
+            const tcName = tc.name.toLowerCase();
+            const optCatName = selOpt.categoryName?.toLowerCase() || '';
+            return tcName.includes(optCatName) || optCatName.includes(tcName);
+          });
           
           if (!techCategory || initialSelections[techCategory.id]) return;
           
-          // Use techSpecId for direct matching
-          if (selOpt.techSpecId) {
-            const techOptExists = techCategory.options?.some(to => to.id === selOpt.techSpecId);
-            if (techOptExists) {
-              if (techCategory.inputType === 'checkbox') {
-                const existing = initialSelections[techCategory.id] || [];
-                if (!existing.includes(selOpt.techSpecId)) {
-                  initialSelections[techCategory.id] = [...existing, selOpt.techSpecId];
-                }
-              } else {
-                initialSelections[techCategory.id] = selOpt.techSpecId;
-              }
-              return;
-            }
-          }
-          
-          // Fallback to name matching
+          // Try to find option by name
           const techOpt = techCategory.options?.find(to => {
             const toName = to.name.toLowerCase();
             const soName = selOpt.optionName?.toLowerCase() || '';
