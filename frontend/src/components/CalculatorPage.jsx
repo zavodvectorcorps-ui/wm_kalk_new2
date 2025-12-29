@@ -604,7 +604,16 @@ export const CalculatorPage = () => {
                   {t('balia.save')}
                 </Button>
                 <Button
+                  onClick={handleGeneratePdf}
+                  disabled={saving || !formData.selectedModel}
                   variant="outline"
+                  className="w-full"
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  {t('balia.generatePdf')}
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={handleClear}
                   className="w-full"
                 >
