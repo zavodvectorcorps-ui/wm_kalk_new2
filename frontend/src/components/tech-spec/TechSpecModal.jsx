@@ -266,8 +266,8 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
     const { id, name, inputType, layout, options, hasImages } = category;
 
     return (
-      <div key={id} className="border rounded-lg p-3 bg-white/50">
-        <Label className="font-semibold text-amber-800 block mb-2">{name}</Label>
+      <div key={id} className="border rounded-lg p-2 bg-white/50">
+        <Label className="font-semibold text-amber-800 block mb-1 text-sm">{name}</Label>
         
         {inputType === 'radio' && (
           <RadioGroup
