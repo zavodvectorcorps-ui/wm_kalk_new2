@@ -11,6 +11,7 @@ import { PricingPage } from './components/PricingPage';
 import { UserManagement } from './components/UserManagement';
 import { SaunaCalculator } from './components/SaunaCalculator';
 import { SaunaPricingPage } from './components/SaunaPricingPage';
+import { TechSpecAdminPage } from './components/TechSpecAdminPage';
 import { Toaster } from './components/ui/sonner';
 import { Button } from './components/ui/button';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
