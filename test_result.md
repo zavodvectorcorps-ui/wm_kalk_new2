@@ -392,7 +392,11 @@ metadata:
   test_sequence: 1
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Sauna CRUD - Models API endpoints"
+    - "Sauna CRUD - Categories API endpoints"
+    - "Sauna CRUD - Options API endpoints"
+    - "SaunaPricingPage - Direct API calls for CRUD operations"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
