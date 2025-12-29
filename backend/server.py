@@ -1841,6 +1841,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+# Health check endpoint for Kubernetes liveness/readiness probes
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for deployment monitoring"""
+    return {"status": "healthy", "service": "wm-calculator-backend"}
+
 # Include the router in the main app
 app.include_router(api_router)
 
