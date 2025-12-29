@@ -96,6 +96,7 @@ export const SaunaCalculator = () => {
       selectModelFirst: 'Сначала выберите модель',
       gratis: 'бесплатно',
       quantity: 'Кол-во',
+      priceDepends: 'цена зависит от модели',
       // Category translations
       'Kolor': 'Цвет / Пропитка',
       'Piece': 'Печь',
