@@ -220,6 +220,16 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                             <FileDown className="h-4 w-4 mr-1" />
                             {t('downloadPDF')}
                           </Button>
+                          {isSauna && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => window.open('http://tk-sauna.wm-kalkulator.pl', '_blank')}
+                            >
+                              <FileText className="h-4 w-4 mr-1" />
+                              Тех.Задание
+                            </Button>
+                          )}
                           {!isSauna && (
                             <Button
                               size="sm"
