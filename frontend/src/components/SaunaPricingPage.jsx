@@ -305,6 +305,22 @@ export const SaunaPricingPage = () => {
     }));
   };
 
+  const handleModelsDisplayTypeChange = (displayType) => {
+    setPrices(prev => ({
+      ...prev,
+      modelsDisplayType: displayType,
+    }));
+  };
+
+  const handleCategoryDisplayTypeChange = (categoryId, displayType) => {
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => 
+        cat.id === categoryId ? { ...cat, displayType } : cat
+      ),
+    }));
+  };
+
   const handleUpdateOptionPrice = (categoryId, optionId, newPrice) => {
     setPrices(prev => ({
       ...prev,
