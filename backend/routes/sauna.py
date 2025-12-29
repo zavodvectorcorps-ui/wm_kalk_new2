@@ -739,3 +739,270 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+# =============================================
+# TECH SPEC (Technical Specification) ENDPOINTS
+# =============================================
+
+@router.put("/orders/{order_id}/tech-spec")
+async def update_order_tech_spec(order_id: str, tech_spec: dict):
+    """Update technical specification for an order"""
+    result = await db.sauna_orders.update_one(
+        {"id": order_id},
+        {"$set": {"techSpec": tech_spec}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return {"message": "Tech spec updated successfully"}
+
+
+@router.get("/orders/{order_id}/tech-spec")
+async def get_order_tech_spec(order_id: str):
+    """Get technical specification for an order"""
+    order = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order.get("techSpec", {})
+
+
+@router.post("/generate-tech-spec-pdf")
+async def generate_tech_spec_pdf(request: dict):
+    """Generate PDF for technical specification - Production format"""
+    order = request.get("order", {})
+    tech_spec = request.get("techSpec", {})
+    
+    buffer = io.BytesIO()
+    
+    try:
+        pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+        pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+    except Exception as e:
+        logger.warning(f"Could not register fonts: {e}")
+    
+    # Colors
+    BROWN = colors.HexColor('#97724E')
+    BROWN_LIGHT = colors.HexColor('#FAF6F0')
+    BROWN_DARK = colors.HexColor('#6B5038')
+    TEXT_COLOR = colors.HexColor('#323232')
+    WHITE = colors.white
+    
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                          rightMargin=30, leftMargin=30,
+                          topMargin=20, bottomMargin=20)
+    
+    elements = []
+    
+    title_style = ParagraphStyle(
+        'Title',
+        fontName='DejaVuSans-Bold',
+        fontSize=16,
+        textColor=BROWN,
+        alignment=TA_CENTER,
+    )
+    
+    section_style = ParagraphStyle(
+        'Section',
+        fontName='DejaVuSans-Bold',
+        fontSize=11,
+        textColor=BROWN_DARK,
+    )
+    
+    normal_style = ParagraphStyle(
+        'Normal',
+        fontName='DejaVuSans',
+        fontSize=9,
+        textColor=TEXT_COLOR,
+    )
+    
+    # ========== TITLE ==========
+    elements.append(Paragraph("Zgłoszenie techniczne - sauna", title_style))
+    elements.append(Spacer(1, 15))
+    
+    # ========== CLIENT INFO ==========
+    elements.append(Paragraph("Dane klienta", section_style))
+    elements.append(Spacer(1, 6))
+    
+    client_data = [
+        ["Imię i nazwisko", "Telefon", "Nr zamówienia"],
+        [order.get("fullName", "-"), order.get("phoneNumber", "-"), order.get("id", "-")]
+    ]
+    
+    client_table = Table(client_data, colWidths=[180, 180, 170])
+    client_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), BROWN),
+        ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+        ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
+        ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BACKGROUND', (0, 1), (-1, -1), BROWN_LIGHT),
+        ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(client_table)
+    elements.append(Spacer(1, 12))
+    
+    # ========== MODEL INFO ==========
+    elements.append(Paragraph("Model bazowy", section_style))
+    elements.append(Spacer(1, 6))
+    
+    model_name = order.get("modelName", "-")
+    model_table = Table([[model_name]], colWidths=[530])
+    model_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, 0), BROWN_LIGHT),
+        ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    elements.append(model_table)
+    elements.append(Spacer(1, 12))
+    
+    # ========== ORDER OPTIONS (from original order, without prices) ==========
+    order_categories = order.get("categories", [])
+    if order_categories:
+        elements.append(Paragraph("Wybrane opcje z zamówienia", section_style))
+        elements.append(Spacer(1, 6))
+        
+        options_data = [["Kategoria", "Opcja", "Ilość"]]
+        for cat in order_categories:
+            qty = cat.get("quantity", 1)
+            qty_str = str(qty) if qty and qty > 1 else "1"
+            options_data.append([cat.get("name", "-"), cat.get("selectedOption", "-"), qty_str])
+        
+        options_table = Table(options_data, colWidths=[180, 280, 70])
+        options_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), BROWN),
+            ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+            ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
+            ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BACKGROUND', (0, 1), (-1, -1), BROWN_LIGHT),
+            ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(options_table)
+        elements.append(Spacer(1, 12))
+    
+    # ========== TECHNICAL SPEC OPTIONS ==========
+    selections = tech_spec.get("selections", {})
+    text_inputs = tech_spec.get("textInputs", {})
+    
+    if selections or text_inputs:
+        elements.append(Paragraph("Elementy techniczne / opcje", section_style))
+        elements.append(Spacer(1, 6))
+        
+        tech_data = [["Kategoria", "Wybór"]]
+        
+        # Technical categories mapping
+        tech_categories = {
+            'base_color': 'Цвет базы',
+            'door_color': 'Цвет дверей',
+            'trim_color': 'Цвет наличника',
+            'roof_color': 'Цвет крыши',
+            'benches': 'Ławki',
+            'shelf_size': 'Размер полков',
+            'stove_guard': 'Ограждение для печи',
+            'stove_base': 'Основание для печи',
+            'drain': 'Трап',
+            'bench_1': 'Скамейка 1',
+            'bench_2': 'Скамейка 2',
+            'table': 'Стол',
+            'additional_elements': 'Дополнительные элементы',
+            'steam_room_lighting': 'Освещение парной',
+            'guest_room_lighting': 'Освещение гостевой',
+            'exterior_lighting': 'Наружное освещение',
+            'entrance_door': 'Входная дверь',
+            'steam_door': 'Дверь в парилку',
+            'ventilation': 'Форточки',
+            'panorama': 'Панорама',
+            'heater': 'Piece',
+            'water_tank': 'Zbiornik na wodę',
+            'shower': 'Душ',
+            'additional_options': 'Opcje Dodatkowe',
+            'frame_beams': 'Belki podłużne',
+        }
+        
+        for cat_id, cat_name in tech_categories.items():
+            value = selections.get(cat_id, "")
+            if isinstance(value, list):
+                value = ", ".join(value)
+            if value:
+                tech_data.append([cat_name, str(value)])
+        
+        # Add text inputs
+        for key, value in text_inputs.items():
+            if value:
+                cat_id = key.split('_')[0] if '_' in key else key
+                cat_name = tech_categories.get(cat_id, key)
+                tech_data.append([cat_name, str(value)])
+        
+        if len(tech_data) > 1:
+            tech_table = Table(tech_data, colWidths=[180, 350])
+            tech_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), BROWN),
+                ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+                ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
+                ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('BACKGROUND', (0, 1), (-1, -1), BROWN_LIGHT),
+                ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            elements.append(tech_table)
+            elements.append(Spacer(1, 12))
+    
+    # ========== COMMENT ==========
+    comment = tech_spec.get("comment", "")
+    if comment:
+        elements.append(Paragraph("Komentarz (wewnętrzny)", section_style))
+        elements.append(Spacer(1, 6))
+        
+        comment_table = Table([[comment]], colWidths=[530])
+        comment_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), BROWN_LIGHT),
+            ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(comment_table)
+        elements.append(Spacer(1, 12))
+    
+    # ========== FOOTER ==========
+    elements.append(Spacer(1, 20))
+    current_date = datetime.now().strftime('%d.%m.%Y')
+    elements.append(Paragraph(f"Data zgłoszenia: {current_date}", 
+                             ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR)))
+    
+    doc.build(elements)
+    
+    pdf_data = buffer.getvalue()
+    buffer.close()
+    
+    order_id = order.get("id", "unknown")
+    try:
+        safe_name = ''.join(c for c in order.get("fullName", "Klient") if c.isascii() and (c.isalnum() or c in '-_. '))
+        safe_name = safe_name.replace(' ', '_')
+        if not safe_name:
+            safe_name = "Klient"
+    except:
+        safe_name = "Klient"
+    
+    filename = f"TechSpec_{order_id}_{safe_name}.pdf"
+    
+    return StreamingResponse(
+        io.BytesIO(pdf_data),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
