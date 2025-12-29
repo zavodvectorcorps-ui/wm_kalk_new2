@@ -1,12 +1,19 @@
 """Default technical specification categories and options."""
 
 default_tech_spec_data = {
+    "masterCategories": [
+        {"id": "master_1", "name": "Мастер 1 - Цвета и материалы", "sortOrder": 1},
+        {"id": "master_2", "name": "Мастер 2 - Конструкция", "sortOrder": 2},
+        {"id": "master_3", "name": "Мастер 3 - Оборудование", "sortOrder": 3},
+    ],
     "categories": [
         {
             "id": "base_color",
             "name": "Цвет базы",
+            "masterCategoryId": "master_1",
             "inputType": "radio",
             "layout": "row",
+            "displayWidth": "half",
             "hasImages": False,
             "sortOrder": 1,
             "options": [
@@ -19,8 +26,10 @@ default_tech_spec_data = {
         {
             "id": "door_color",
             "name": "Цвет дверей",
+            "masterCategoryId": "master_1",
             "inputType": "radio",
             "layout": "row",
+            "displayWidth": "half",
             "hasImages": False,
             "sortOrder": 2,
             "options": [
@@ -33,8 +42,10 @@ default_tech_spec_data = {
         {
             "id": "trim_color",
             "name": "Цвет наличника",
+            "masterCategoryId": "master_1",
             "inputType": "radio",
             "layout": "row",
+            "displayWidth": "half",
             "hasImages": False,
             "sortOrder": 3,
             "options": [
@@ -47,7 +58,10 @@ default_tech_spec_data = {
         {
             "id": "roof_color",
             "name": "Цвет крыши",
+            "masterCategoryId": "master_1",
             "inputType": "radio",
+            "layout": "row",
+            "displayWidth": "half",
             "layout": "row",
             "hasImages": False,
             "sortOrder": 4,
