@@ -331,7 +331,8 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
             value={formData.textInputs[`${id}_${options[0]?.id}`] || ''}
             onChange={(e) => handleTextChange(id, options[0]?.id, e.target.value)}
             placeholder={options[0]?.placeholder}
-            rows={2}
+            rows={1}
+            className="text-sm min-h-[32px]"
           />
         )}
 
