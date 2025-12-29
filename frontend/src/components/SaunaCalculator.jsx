@@ -769,7 +769,7 @@ export const SaunaCalculator = () => {
                     </Select>
                   ) : (
                     // Grid/Tile View for Radio type (default)
-                    <RadioGroup
+                    <RadioGroupOrange
                       value={formData.selections[category.id] || ''}
                       onValueChange={(value) => handleRadioChange(category.id, value)}
                       className="grid grid-cols-1 md:grid-cols-2 gap-3"
@@ -786,7 +786,7 @@ export const SaunaCalculator = () => {
                             `}
                             onClick={() => handleRadioChange(category.id, option.id)}
                           >
-                            <RadioGroupItem value={option.id} id={`${category.id}-${option.id}`} />
+                            <RadioGroupItemOrange value={option.id} id={`${category.id}-${option.id}`} />
                             <div className="flex-1">
                               <Label
                                 htmlFor={`${category.id}-${option.id}`}
