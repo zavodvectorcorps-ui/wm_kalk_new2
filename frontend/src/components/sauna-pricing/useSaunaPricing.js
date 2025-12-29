@@ -465,6 +465,7 @@ export const useSaunaPricing = () => {
     saving,
     prices,
     txt,
+    techSpecCategories,
     handleSaveAll,
     // Models
     handleAddModel,
