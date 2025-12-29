@@ -279,7 +279,7 @@ export const CalculatorPage = () => {
                       <img 
                         src={model.imageUrl} 
                         alt={getModelName(model)}
-                        className="w-full h-32 object-cover rounded mb-2"
+                        className="w-full h-32 object-contain rounded mb-2 bg-gray-50"
                         onError={(e) => e.target.style.display = 'none'}
                       />
                     )}
