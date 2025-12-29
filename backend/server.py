@@ -1351,6 +1351,15 @@ async def get_sauna_orders():
     orders = await db.sauna_orders.find({}, {"_id": 0}).to_list(1000)
     return orders
 
+
+@api_router.delete("/sauna/orders/{order_id}")
+async def delete_sauna_order(order_id: str):
+    """Delete a sauna order"""
+    result = await db.sauna_orders.delete_one({"id": order_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return {"message": "Order deleted successfully"}
+
 @api_router.post("/sauna/generate-pdf")
 async def generate_sauna_pdf(request: SaunaPDFRequest):
     """Generate PDF for sauna order - Professional offer format"""
