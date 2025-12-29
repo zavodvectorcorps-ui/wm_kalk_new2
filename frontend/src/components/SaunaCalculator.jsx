@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
+import { InputOrange } from './ui/input-orange';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { CheckboxOrange } from './ui/checkbox-orange';
