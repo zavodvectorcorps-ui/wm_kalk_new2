@@ -107,6 +107,7 @@ test_plan:
     - "Observer User Login"
     - "Observer Token Verification"
     - "Observer Access to APIs"
+    - "Sauna Image URL Functionality"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
