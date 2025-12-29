@@ -1577,6 +1577,16 @@ def run_all_tests():
         else:
             failed += 1
     
+    # Show observer role results
+    print("\n👁️ OBSERVER ROLE TESTS:")
+    for test_name, result in observer_results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
     print(f"\nTotal: {passed + failed} tests")
     print(f"Passed: {passed}")
     print(f"Failed: {failed}")
