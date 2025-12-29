@@ -926,11 +926,13 @@ default_sauna_prices = {
         {"id": "sauna_beczka_235x400_cm", "name": "Sauna Beczka 235x400 cm", "basePrice": 26800, "foundationPrice": 350, "discount": 0, "imageUrl": "https://i.imgur.com/Ierf7jw.jpeg", "sortOrder": 12, "active": True},
         {"id": "sauna_beczka_235x450_cm", "name": "Sauna Beczka 235x450 cm", "basePrice": 28300, "foundationPrice": 400, "discount": 0, "imageUrl": "https://i.imgur.com/QSWLalW.jpeg", "sortOrder": 13, "active": True},
     ],
+    "modelsDisplayType": "grid",
     "categories": [
         {
             "id": "kolor",
             "name": "Kolor",
             "inputType": "radio",
+            "displayType": "dropdown",
             "options": [
                 {"id": "impregnacja_gratis", "name": "Impregnacja zewnętrzna w dowolnym wybranym kolorze Gratis", "price": 0, "inputType": "radio", "sortOrder": 1}
             ]
@@ -939,6 +941,7 @@ default_sauna_prices = {
             "id": "piece",
             "name": "Piece",
             "inputType": "radio",
+            "displayType": "dropdown",
             "options": [
                 {"id": "bez_pieca", "name": "Bez pieca", "price": 0, "inputType": "radio", "sortOrder": 1},
                 {"id": "piec_elektryczny_9kw", "name": "Piec Elektryczne 9 kW", "price": 2600, "inputType": "radio", "sortOrder": 2},
@@ -952,6 +955,7 @@ default_sauna_prices = {
             "id": "strona_pieca",
             "name": "Strona Pieca:",
             "inputType": "radio",
+            "displayType": "dropdown",
             "options": [
                 {"id": "piec_wprost", "name": "Piec wprost", "price": 0, "inputType": "radio", "sortOrder": 1},
                 {"id": "piec_lewo", "name": "Piec lewo", "price": 350, "inputType": "radio", "sortOrder": 2},
