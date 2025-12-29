@@ -128,6 +128,8 @@ export const SaunaPricingPage = () => {
       displayTypeGrid: 'Kafelki',
       displayTypeDropdown: 'Lista',
       modelsDisplayType: 'Wyświetlanie modeli',
+      hasQuantity: 'Pole ilości',
+      quantityEnabled: 'Włącz ilość',
     },
   };
 
