@@ -82,16 +82,6 @@ export const BaliaPricingPage = () => {
     noCategories: t('baliaPricing.noCategories'),
     noOptions: t('baliaPricing.noOptions'),
   };
-      heaterType: 'Typ grzałki',
-      external: 'Zewnętrzny',
-      integrated: 'Zintegrowany',
-      confirmDelete: 'Czy na pewno chcesz usunąć?',
-      noModels: 'Brak modeli',
-      noCategories: 'Brak kategorii',
-      noOptions: 'Brak opcji w tej kategorii',
-    }
-  };
-  const txt = texts[lang];
 
   useEffect(() => {
     fetchPrices();
