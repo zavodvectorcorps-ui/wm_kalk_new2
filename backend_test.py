@@ -1534,8 +1534,11 @@ def run_all_tests():
     # Run authentication system tests
     auth_results = test_authentication_system()
     
+    # Run observer role tests
+    observer_results = test_observer_role_system()
+    
     # Combine all results
-    all_results = {**test_results, **sauna_results, **auth_results}
+    all_results = {**test_results, **sauna_results, **auth_results, **observer_results}
     
     print("\n" + "=" * 80)
     print("📊 TEST RESULTS SUMMARY")
