@@ -1,0 +1,865 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Separator } from './ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Switch } from './ui/switch';
+import { Badge } from './ui/badge';
+import { 
+  DollarSign, Save, Loader2, Plus, Trash2, Edit2, 
+  Image as ImageIcon, Upload, X, Eye, Droplets, Package, Settings
+} from 'lucide-react';
+import { toast } from 'sonner';
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+export const BaliaPricingPage = () => {
+  const { i18n } = useTranslation();
+  const { canEdit } = useAuth();
+  const lang = i18n.language === 'pl' ? 'pl' : 'ru';
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [prices, setPrices] = useState({ models: [], categories: [], currency: 'EUR', currencySymbol: '€' });
+  
+  // Dialog states
+  const [editModelDialog, setEditModelDialog] = useState({ open: false, model: null, isNew: false });
+  const [editCategoryDialog, setEditCategoryDialog] = useState({ open: false, category: null, isNew: false });
+  const [editOptionDialog, setEditOptionDialog] = useState({ open: false, categoryId: null, option: null, isNew: false });
+  
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const texts = {
+    ru: {
+      title: 'Управление ценами (Купели)',
+      models: 'Модели',
+      categories: 'Категории опций',
+      settings: 'Настройки',
+      addModel: 'Добавить модель',
+      addCategory: 'Добавить категорию',
+      addOption: 'Добавить опцию',
+      editModel: 'Редактировать модель',
+      editCategory: 'Редактировать категорию',
+      editOption: 'Редактировать опцию',
+      newModel: 'Новая модель',
+      newCategory: 'Новая категория',
+      newOption: 'Новая опция',
+      name: 'Название',
+      nameRu: 'Название (RU)',
+      namePl: 'Название (PL)',
+      price: 'Цена',
+      basePrice: 'Базовая цена',
+      image: 'Изображение',
+      uploadImage: 'Загрузить изображение',
+      removeImage: 'Удалить изображение',
+      inputType: 'Тип ввода',
+      dropdown: 'Выпадающий список',
+      checkbox: 'Чекбоксы',
+      save: 'Сохранить',
+      cancel: 'Отмена',
+      delete: 'Удалить',
+      saveAll: 'Сохранить всё',
+      saved: 'Сохранено!',
+      error: 'Ошибка',
+      viewOnly: 'Только просмотр',
+      active: 'Активна',
+      currency: 'Валюта',
+      currencySymbol: 'Символ валюты',
+      options: 'Опции',
+      heaterType: 'Тип нагревателя',
+      external: 'Внешний',
+      integrated: 'Встроенный',
+      confirmDelete: 'Вы уверены, что хотите удалить?',
+      noModels: 'Нет моделей',
+      noCategories: 'Нет категорий',
+      noOptions: 'Нет опций в этой категории',
+    },
+    pl: {
+      title: 'Zarządzanie cenami (Balie)',
+      models: 'Modele',
+      categories: 'Kategorie opcji',
+      settings: 'Ustawienia',
+      addModel: 'Dodaj model',
+      addCategory: 'Dodaj kategorię',
+      addOption: 'Dodaj opcję',
+      editModel: 'Edytuj model',
+      editCategory: 'Edytuj kategorię',
+      editOption: 'Edytuj opcję',
+      newModel: 'Nowy model',
+      newCategory: 'Nowa kategoria',
+      newOption: 'Nowa opcja',
+      name: 'Nazwa',
+      nameRu: 'Nazwa (RU)',
+      namePl: 'Nazwa (PL)',
+      price: 'Cena',
+      basePrice: 'Cena bazowa',
+      image: 'Zdjęcie',
+      uploadImage: 'Prześlij zdjęcie',
+      removeImage: 'Usuń zdjęcie',
+      inputType: 'Typ wejścia',
+      dropdown: 'Lista rozwijana',
+      checkbox: 'Checkboxy',
+      save: 'Zapisz',
+      cancel: 'Anuluj',
+      delete: 'Usuń',
+      saveAll: 'Zapisz wszystko',
+      saved: 'Zapisano!',
+      error: 'Błąd',
+      viewOnly: 'Tylko podgląd',
+      active: 'Aktywny',
+      currency: 'Waluta',
+      currencySymbol: 'Symbol waluty',
+      options: 'Opcje',
+      heaterType: 'Typ grzałki',
+      external: 'Zewnętrzny',
+      integrated: 'Zintegrowany',
+      confirmDelete: 'Czy na pewno chcesz usunąć?',
+      noModels: 'Brak modeli',
+      noCategories: 'Brak kategorii',
+      noOptions: 'Brak opcji w tej kategorii',
+    }
+  };
+  const txt = texts[lang];
+
+  useEffect(() => {
+    fetchPrices();
+  }, []);
+
+  const fetchPrices = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/prices`);
+      setPrices(response.data);
+    } catch (error) {
+      console.error('Error fetching prices:', error);
+      toast.error(txt.error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      await axios.post(`${API_URL}/api/prices`, prices);
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error saving prices:', error);
+      toast.error(txt.error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e, type, targetId, categoryId = null) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(`${API_URL}/api/upload/image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      const imageUrl = `${API_URL}${response.data.url}`;
+      
+      if (type === 'model') {
+        setPrices(prev => ({
+          ...prev,
+          models: prev.models.map(m => m.id === targetId ? { ...m, imageUrl } : m)
+        }));
+      } else if (type === 'category') {
+        setPrices(prev => ({
+          ...prev,
+          categories: prev.categories.map(c => c.id === targetId ? { ...c, imageUrl } : c)
+        }));
+      } else if (type === 'option') {
+        setPrices(prev => ({
+          ...prev,
+          categories: prev.categories.map(c => 
+            c.id === categoryId 
+              ? { ...c, options: c.options.map(o => o.id === targetId ? { ...o, imageUrl } : o) }
+              : c
+          )
+        }));
+      }
+      
+      toast.success('Изображение загружено');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Ошибка загрузки изображения');
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (type, targetId, categoryId = null) => {
+    if (type === 'model') {
+      setPrices(prev => ({
+        ...prev,
+        models: prev.models.map(m => m.id === targetId ? { ...m, imageUrl: '' } : m)
+      }));
+    } else if (type === 'category') {
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(c => c.id === targetId ? { ...c, imageUrl: '' } : c)
+      }));
+    } else if (type === 'option') {
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(c => 
+          c.id === categoryId 
+            ? { ...c, options: c.options.map(o => o.id === targetId ? { ...o, imageUrl: '' } : o) }
+            : c
+        )
+      }));
+    }
+  };
+
+  // Model CRUD
+  const handleSaveModel = (modelData) => {
+    if (editModelDialog.isNew) {
+      const newModel = {
+        ...modelData,
+        id: `model_${Date.now()}`,
+        sortOrder: prices.models.length + 1,
+        active: true,
+        currency: 'EUR'
+      };
+      setPrices(prev => ({ ...prev, models: [...prev.models, newModel] }));
+    } else {
+      setPrices(prev => ({
+        ...prev,
+        models: prev.models.map(m => m.id === modelData.id ? modelData : m)
+      }));
+    }
+    setEditModelDialog({ open: false, model: null, isNew: false });
+  };
+
+  const handleDeleteModel = (modelId) => {
+    if (window.confirm(txt.confirmDelete)) {
+      setPrices(prev => ({
+        ...prev,
+        models: prev.models.filter(m => m.id !== modelId)
+      }));
+    }
+  };
+
+  // Category CRUD
+  const handleSaveCategory = (categoryData) => {
+    if (editCategoryDialog.isNew) {
+      const newCategory = {
+        ...categoryData,
+        id: `cat_${Date.now()}`,
+        sortOrder: prices.categories.length + 1,
+        options: []
+      };
+      setPrices(prev => ({ ...prev, categories: [...prev.categories, newCategory] }));
+    } else {
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(c => c.id === categoryData.id ? { ...c, ...categoryData } : c)
+      }));
+    }
+    setEditCategoryDialog({ open: false, category: null, isNew: false });
+  };
+
+  const handleDeleteCategory = (categoryId) => {
+    if (window.confirm(txt.confirmDelete)) {
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.filter(c => c.id !== categoryId)
+      }));
+    }
+  };
+
+  // Option CRUD
+  const handleSaveOption = (optionData, categoryId) => {
+    if (editOptionDialog.isNew) {
+      const newOption = {
+        ...optionData,
+        id: `opt_${Date.now()}`,
+        sortOrder: (prices.categories.find(c => c.id === categoryId)?.options?.length || 0) + 1
+      };
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(c => 
+          c.id === categoryId 
+            ? { ...c, options: [...(c.options || []), newOption] }
+            : c
+        )
+      }));
+    } else {
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(c => 
+          c.id === categoryId 
+            ? { ...c, options: c.options.map(o => o.id === optionData.id ? optionData : o) }
+            : c
+        )
+      }));
+    }
+    setEditOptionDialog({ open: false, categoryId: null, option: null, isNew: false });
+  };
+
+  const handleDeleteOption = (categoryId, optionId) => {
+    if (window.confirm(txt.confirmDelete)) {
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(c => 
+          c.id === categoryId 
+            ? { ...c, options: c.options.filter(o => o.id !== optionId) }
+            : c
+        )
+      }));
+    }
+  };
+
+  const getName = (item) => {
+    return item[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || item.name || '';
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-blue-800 flex items-center gap-2">
+          <DollarSign className="h-6 w-6" />
+          {txt.title}
+          {!canEdit() && (
+            <Badge variant="outline" className="ml-2">
+              <Eye className="h-3 w-3 mr-1" />
+              {txt.viewOnly}
+            </Badge>
+          )}
+        </h1>
+        
+        {canEdit() && (
+          <Button onClick={handleSaveAll} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            {txt.saveAll}
+          </Button>
+        )}
+      </div>
+
+      <Tabs defaultValue="models" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="models" className="gap-2">
+            <Droplets className="h-4 w-4" />
+            {txt.models}
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="gap-2">
+            <Package className="h-4 w-4" />
+            {txt.categories}
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2">
+            <Settings className="h-4 w-4" />
+            {txt.settings}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Models Tab */}
+        <TabsContent value="models">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{txt.models}</CardTitle>
+              {canEdit() && (
+                <Button 
+                  size="sm" 
+                  onClick={() => setEditModelDialog({ open: true, model: {
+                    name: '', nameRu: '', namePl: '', basePrice: 0, imageUrl: '',
+                    heaterType: 'external', type: 'fiberglass', shape: 'round', size: '',
+                    specs: {}
+                  }, isNew: true })}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {txt.addModel}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {prices.models?.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">{txt.noModels}</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {prices.models?.map(model => (
+                    <div key={model.id} className="border rounded-lg p-4 space-y-3">
+                      {model.imageUrl ? (
+                        <div className="relative">
+                          <img 
+                            src={model.imageUrl} 
+                            alt={getName(model)} 
+                            className="w-full h-32 object-cover rounded"
+                            onError={(e) => e.target.style.display = 'none'}
+                          />
+                          {canEdit() && (
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="absolute top-2 right-2 h-6 w-6"
+                              onClick={() => removeImage('model', model.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-full h-32 bg-muted rounded flex items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      
+                      <div>
+                        <h3 className="font-semibold">{getName(model)}</h3>
+                        <p className="text-lg font-bold text-blue-600">{model.basePrice} {prices.currencySymbol}</p>
+                        <Badge variant="outline" className="mt-1">
+                          {model.heaterType === 'external' ? txt.external : txt.integrated}
+                        </Badge>
+                      </div>
+                      
+                      {canEdit() && (
+                        <div className="flex gap-2">
+                          <label className="flex-1">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleImageUpload(e, 'model', model.id)}
+                            />
+                            <Button variant="outline" size="sm" className="w-full" asChild>
+                              <span>
+                                <Upload className="h-3 w-3 mr-1" />
+                                {txt.uploadImage}
+                              </span>
+                            </Button>
+                          </label>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setEditModelDialog({ open: true, model, isNew: false })}
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleDeleteModel(model.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Categories Tab */}
+        <TabsContent value="categories">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{txt.categories}</CardTitle>
+              {canEdit() && (
+                <Button 
+                  size="sm" 
+                  onClick={() => setEditCategoryDialog({ open: true, category: {
+                    name: '', nameRu: '', namePl: '', imageUrl: '', inputType: 'radio'
+                  }, isNew: true })}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {txt.addCategory}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {prices.categories?.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">{txt.noCategories}</p>
+              ) : (
+                prices.categories?.map(category => (
+                  <div key={category.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {category.imageUrl && (
+                          <img 
+                            src={category.imageUrl} 
+                            alt={getName(category)}
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        )}
+                        <div>
+                          <h3 className="font-semibold">{getName(category)}</h3>
+                          <Badge variant="outline" className="text-xs">
+                            {category.inputType === 'checkbox' ? txt.checkbox : txt.dropdown}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      {canEdit() && (
+                        <div className="flex gap-2">
+                          <label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleImageUpload(e, 'category', category.id)}
+                            />
+                            <Button variant="outline" size="sm" asChild>
+                              <span><Upload className="h-3 w-3" /></span>
+                            </Button>
+                          </label>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setEditCategoryDialog({ open: true, category, isNew: false })}
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleDeleteCategory(category.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* Options list */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-muted-foreground">{txt.options}</h4>
+                        {canEdit() && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setEditOptionDialog({ 
+                              open: true, 
+                              categoryId: category.id, 
+                              option: { name: '', nameRu: '', namePl: '', price: 0, imageUrl: '' }, 
+                              isNew: true 
+                            })}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            {txt.addOption}
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {category.options?.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-2">{txt.noOptions}</p>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {category.options?.map(option => (
+                            <div key={option.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                              <div className="flex items-center gap-2">
+                                {option.imageUrl && (
+                                  <img 
+                                    src={option.imageUrl} 
+                                    alt={getName(option)}
+                                    className="w-8 h-8 object-cover rounded"
+                                  />
+                                )}
+                                <span className="text-sm">{getName(option)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-blue-600">
+                                  {option.price > 0 ? `+${option.price} ${prices.currencySymbol}` : '-'}
+                                </span>
+                                {canEdit() && (
+                                  <>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => setEditOptionDialog({ 
+                                        open: true, 
+                                        categoryId: category.id, 
+                                        option, 
+                                        isNew: false 
+                                      })}
+                                    >
+                                      <Edit2 className="h-3 w-3" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="h-6 w-6 text-destructive"
+                                      onClick={() => handleDeleteOption(category.id, option.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>{txt.settings}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{txt.currency}</Label>
+                  <Input 
+                    value={prices.currency || 'EUR'} 
+                    onChange={(e) => setPrices(prev => ({ ...prev, currency: e.target.value }))}
+                    disabled={!canEdit()}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{txt.currencySymbol}</Label>
+                  <Input 
+                    value={prices.currencySymbol || '€'} 
+                    onChange={(e) => setPrices(prev => ({ ...prev, currencySymbol: e.target.value }))}
+                    disabled={!canEdit()}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Edit Model Dialog */}
+      <ModelEditDialog 
+        open={editModelDialog.open}
+        model={editModelDialog.model}
+        isNew={editModelDialog.isNew}
+        onClose={() => setEditModelDialog({ open: false, model: null, isNew: false })}
+        onSave={handleSaveModel}
+        txt={txt}
+        currencySymbol={prices.currencySymbol}
+      />
+
+      {/* Edit Category Dialog */}
+      <CategoryEditDialog
+        open={editCategoryDialog.open}
+        category={editCategoryDialog.category}
+        isNew={editCategoryDialog.isNew}
+        onClose={() => setEditCategoryDialog({ open: false, category: null, isNew: false })}
+        onSave={handleSaveCategory}
+        txt={txt}
+      />
+
+      {/* Edit Option Dialog */}
+      <OptionEditDialog
+        open={editOptionDialog.open}
+        option={editOptionDialog.option}
+        categoryId={editOptionDialog.categoryId}
+        isNew={editOptionDialog.isNew}
+        onClose={() => setEditOptionDialog({ open: false, categoryId: null, option: null, isNew: false })}
+        onSave={handleSaveOption}
+        txt={txt}
+        currencySymbol={prices.currencySymbol}
+      />
+    </div>
+  );
+};
+
+// Model Edit Dialog Component
+const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySymbol }) => {
+  const [formData, setFormData] = useState(model || {});
+  
+  useEffect(() => {
+    setFormData(model || {});
+  }, [model]);
+
+  if (!model) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{isNew ? txt.newModel : txt.editModel}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>{txt.nameRu}</Label>
+            <Input 
+              value={formData.nameRu || ''} 
+              onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{txt.namePl}</Label>
+            <Input 
+              value={formData.namePl || ''} 
+              onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{txt.basePrice} ({currencySymbol})</Label>
+            <Input 
+              type="number"
+              value={formData.basePrice || 0} 
+              onChange={(e) => setFormData({ ...formData, basePrice: parseFloat(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{txt.heaterType}</Label>
+            <Select 
+              value={formData.heaterType || 'external'} 
+              onValueChange={(v) => setFormData({ ...formData, heaterType: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="external">{txt.external}</SelectItem>
+                <SelectItem value="integrated">{txt.integrated}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
+          <Button onClick={() => onSave(formData)}>{txt.save}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Category Edit Dialog Component
+const CategoryEditDialog = ({ open, category, isNew, onClose, onSave, txt }) => {
+  const [formData, setFormData] = useState(category || {});
+  
+  useEffect(() => {
+    setFormData(category || {});
+  }, [category]);
+
+  if (!category) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{isNew ? txt.newCategory : txt.editCategory}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>{txt.nameRu}</Label>
+            <Input 
+              value={formData.nameRu || ''} 
+              onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{txt.namePl}</Label>
+            <Input 
+              value={formData.namePl || ''} 
+              onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{txt.inputType}</Label>
+            <Select 
+              value={formData.inputType || 'radio'} 
+              onValueChange={(v) => setFormData({ ...formData, inputType: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="radio">{txt.dropdown}</SelectItem>
+                <SelectItem value="checkbox">{txt.checkbox}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
+          <Button onClick={() => onSave(formData)}>{txt.save}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Option Edit Dialog Component
+const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, txt, currencySymbol }) => {
+  const [formData, setFormData] = useState(option || {});
+  
+  useEffect(() => {
+    setFormData(option || {});
+  }, [option]);
+
+  if (!option) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{isNew ? txt.newOption : txt.editOption}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>{txt.nameRu}</Label>
+            <Input 
+              value={formData.nameRu || ''} 
+              onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{txt.namePl}</Label>
+            <Input 
+              value={formData.namePl || ''} 
+              onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{txt.price} ({currencySymbol})</Label>
+            <Input 
+              type="number"
+              value={formData.price || 0} 
+              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
+          <Button onClick={() => onSave(formData, categoryId)}>{txt.save}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
