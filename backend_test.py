@@ -2422,8 +2422,10 @@ if __name__ == "__main__":
             test_sauna_crud_full()
         elif sys.argv[1] == "observer":
             test_observer_role_only()
+        elif sys.argv[1] == "tech-spec":
+            test_tech_spec_feature_only()
         else:
             run_all_tests()
     else:
-        # Run Observer Role tests by default as per review request
-        test_observer_role_only()
+        # Run Tech Spec tests by default as per review request
+        test_tech_spec_feature_only()
