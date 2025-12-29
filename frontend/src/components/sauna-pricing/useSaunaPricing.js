@@ -349,6 +349,8 @@ export const useSaunaPricing = () => {
       sortOrder: 1,
       imageUrl: newOption.imageUrl || null,
       hasQuantity: newOption.hasQuantity || false,
+      techSpecId: newOption.techSpecId || null,
+      techSpecCategoryId: newOption.techSpecCategoryId || null,
     };
     
     try {
