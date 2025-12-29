@@ -3115,8 +3115,27 @@ if __name__ == "__main__":
             test_tech_spec_feature_only()
         elif sys.argv[1] == "tech-spec-admin":
             run_tech_spec_admin_tests_only()
+        elif sys.argv[1] == "techspec-mapping":
+            print("🎯 RUNNING TECHSPEC MAPPING TEST ONLY")
+            print("=" * 50)
+            result = test_techspec_mapping_flow()
+            print("\n" + "=" * 70)
+            print("🏁 TECHSPEC MAPPING TEST RESULT")
+            print("=" * 70)
+            status = "✅ PASS" if result else "❌ FAIL"
+            print(f"{status} TechSpecId Mapping Flow")
+            print("=" * 70)
+            sys.exit(0 if result else 1)
         else:
             run_all_tests()
     else:
-        # Run Tech Spec Admin tests by default as per review request
-        run_tech_spec_admin_tests_only()
+        # Run TechSpec Mapping test by default as per review request
+        print("🎯 RUNNING TECHSPEC MAPPING TEST (DEFAULT)")
+        print("=" * 50)
+        result = test_techspec_mapping_flow()
+        print("\n" + "=" * 70)
+        print("🏁 TECHSPEC MAPPING TEST RESULT")
+        print("=" * 70)
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{status} TechSpecId Mapping Flow")
+        print("=" * 70)
