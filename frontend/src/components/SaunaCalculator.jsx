@@ -888,27 +888,48 @@ export const SaunaCalculator = () => {
                       return (
                         <div key={category.id} className="text-sm">
                           <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
-                          {selectedOpts.map(opt => (
-                            <div key={opt.id} className="flex justify-between">
-                              <span className="truncate pr-2">{opt.name}</span>
-                              <span className="text-amber-700 whitespace-nowrap font-medium">
-                                {opt.price > 0 ? `+${opt.price.toLocaleString('pl-PL')} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
-                              </span>
-                            </div>
-                          ))}
+                          {selectedOpts.map(opt => {
+                            const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
+                            const totalPrice = opt.price * quantity;
+                            return (
+                              <div key={opt.id} className="flex justify-between">
+                                <span className="truncate pr-2">
+                                  {opt.name}
+                                  {opt.hasQuantity && quantity > 1 && ` (×${quantity})`}
+                                </span>
+                                <span className="text-amber-700 whitespace-nowrap font-medium">
+                                  {opt.price > 0 
+                                    ? (quantity > 1 
+                                        ? `+${totalPrice.toLocaleString('pl-PL')} PLN` 
+                                        : `+${opt.price.toLocaleString('pl-PL')} PLN`)
+                                    : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     } else {
                       const opt = category.options?.find(o => o.id === selection);
                       if (!opt) return null;
                       
+                      const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
+                      const totalPrice = opt.price * quantity;
+                      
                       return (
                         <div key={category.id} className="text-sm">
                           <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
                           <div className="flex justify-between">
-                            <span className="truncate pr-2">{opt.name}</span>
+                            <span className="truncate pr-2">
+                              {opt.name}
+                              {opt.hasQuantity && quantity > 1 && ` (×${quantity})`}
+                            </span>
                             <span className="text-amber-700 whitespace-nowrap font-medium">
-                              {opt.price > 0 ? `+${opt.price.toLocaleString('pl-PL')} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                              {opt.price > 0 
+                                ? (quantity > 1 
+                                    ? `+${totalPrice.toLocaleString('pl-PL')} PLN` 
+                                    : `+${opt.price.toLocaleString('pl-PL')} PLN`)
+                                : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
                             </span>
                           </div>
                         </div>
