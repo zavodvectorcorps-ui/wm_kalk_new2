@@ -8,6 +8,7 @@ import { Header } from './components/Header';
 import { CalculatorPage } from './components/CalculatorPage';
 import { OrdersPage } from './components/OrdersPage';
 import { PricingPage } from './components/PricingPage';
+import { BaliaPricingPage } from './components/BaliaPricingPage';
 import { UserManagement } from './components/UserManagement';
 import { SaunaCalculator } from './components/SaunaCalculator';
 import { SaunaPricingPage } from './components/SaunaPricingPage';
