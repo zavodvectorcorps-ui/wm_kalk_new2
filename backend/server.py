@@ -30,6 +30,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(balia_router, prefix="/api")
 app.include_router(sauna_router, prefix="/api")
 app.include_router(health_router, prefix="/api")
+app.include_router(tech_spec_router, prefix="/api")
 
 # Health check endpoint for Kubernetes (without /api prefix)
 @app.get("/health")
