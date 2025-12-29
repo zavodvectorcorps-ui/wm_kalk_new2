@@ -1513,6 +1513,429 @@ def test_authentication_system():
     
     return auth_results
 
+# ============================================================================
+# TECH SPEC ADMIN TESTS (NEW)
+# ============================================================================
+
+def test_get_tech_spec_categories():
+    """Test GET /api/tech-spec/categories - should return list of categories with options"""
+    print("\n🔍 Testing GET /api/tech-spec/categories...")
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ GET /api/tech-spec/categories successful")
+            
+            # Check if categories exist
+            categories = data.get('categories', [])
+            print(f"📊 Found {len(categories)} tech spec categories")
+            
+            if len(categories) > 0:
+                print("✅ Categories list is not empty")
+                
+                # Check structure of first category
+                first_category = categories[0]
+                required_fields = ['id', 'name', 'inputType', 'layout', 'hasImages', 'sortOrder', 'options']
+                for field in required_fields:
+                    if field in first_category:
+                        print(f"✅ Category field '{field}' present")
+                    else:
+                        print(f"❌ Category field '{field}' missing")
+                        return False
+                
+                # Check options structure if options exist
+                options = first_category.get('options', [])
+                if options:
+                    first_option = options[0]
+                    required_option_fields = ['id', 'name', 'required']
+                    for field in required_option_fields:
+                        if field in first_option:
+                            print(f"✅ Option field '{field}' present")
+                        else:
+                            print(f"❌ Option field '{field}' missing")
+                            return False
+                
+                # Verify some expected categories exist
+                category_ids = [cat.get('id') for cat in categories]
+                expected_categories = ['base_color', 'door_color', 'benches', 'heater']
+                
+                for cat_id in expected_categories:
+                    if cat_id in category_ids:
+                        category = next(c for c in categories if c.get('id') == cat_id)
+                        option_count = len(category.get('options', []))
+                        print(f"✅ Category '{cat_id}' found with {option_count} options")
+                    else:
+                        print(f"❌ Expected category '{cat_id}' missing")
+                        return False
+                
+                return True
+            else:
+                print("❌ No categories found")
+                return False
+        else:
+            print(f"❌ GET /api/tech-spec/categories failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ GET /api/tech-spec/categories error: {str(e)}")
+        return False
+
+def test_add_tech_spec_category():
+    """Test POST /api/tech-spec/category - add a new category"""
+    print("\n🔍 Testing POST /api/tech-spec/category...")
+    
+    try:
+        # Create test category
+        test_category = {
+            "id": "test_category",
+            "name": "Test Category",
+            "inputType": "radio",
+            "layout": "row",
+            "hasImages": False,
+            "sortOrder": 99,
+            "options": [
+                {
+                    "id": "test_option_1",
+                    "name": "Test Option 1",
+                    "required": False
+                },
+                {
+                    "id": "test_option_2", 
+                    "name": "Test Option 2",
+                    "required": True
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/tech-spec/category", json=test_category)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ POST /api/tech-spec/category successful")
+            print(f"✅ Message: {data.get('message')}")
+            
+            # Verify the category was added by getting all categories
+            verify_response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
+            if verify_response.status_code == 200:
+                verify_data = verify_response.json()
+                categories = verify_data.get('categories', [])
+                
+                # Check if our test category exists
+                test_cat = next((c for c in categories if c.get('id') == 'test_category'), None)
+                if test_cat:
+                    print("✅ Test category found in categories list")
+                    print(f"✅ Category name: {test_cat.get('name')}")
+                    print(f"✅ Options count: {len(test_cat.get('options', []))}")
+                    return True
+                else:
+                    print("❌ Test category not found after creation")
+                    return False
+            else:
+                print("❌ Could not verify category creation")
+                return False
+        else:
+            print(f"❌ POST /api/tech-spec/category failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ POST /api/tech-spec/category error: {str(e)}")
+        return False
+
+def test_update_tech_spec_category():
+    """Test PUT /api/tech-spec/category/{id} - update category"""
+    print("\n🔍 Testing PUT /api/tech-spec/category/{id}...")
+    
+    try:
+        # Update the test category we created
+        updated_category = {
+            "id": "test_category",
+            "name": "Updated Test Category",
+            "inputType": "checkbox",
+            "layout": "column",
+            "hasImages": True,
+            "sortOrder": 98,
+            "options": [
+                {
+                    "id": "test_option_1",
+                    "name": "Updated Test Option 1",
+                    "required": True
+                },
+                {
+                    "id": "test_option_3",
+                    "name": "New Test Option 3",
+                    "required": False
+                }
+            ]
+        }
+        
+        response = requests.put(f"{BACKEND_URL}/tech-spec/category/test_category", json=updated_category)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ PUT /api/tech-spec/category/{id} successful")
+            print(f"✅ Message: {data.get('message')}")
+            
+            # Verify the category was updated
+            verify_response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
+            if verify_response.status_code == 200:
+                verify_data = verify_response.json()
+                categories = verify_data.get('categories', [])
+                
+                # Check if our test category was updated
+                test_cat = next((c for c in categories if c.get('id') == 'test_category'), None)
+                if test_cat:
+                    if (test_cat.get('name') == 'Updated Test Category' and 
+                        test_cat.get('inputType') == 'checkbox' and
+                        test_cat.get('hasImages') == True):
+                        print("✅ Category successfully updated")
+                        print(f"✅ New name: {test_cat.get('name')}")
+                        print(f"✅ New inputType: {test_cat.get('inputType')}")
+                        return True
+                    else:
+                        print("❌ Category not updated correctly")
+                        return False
+                else:
+                    print("❌ Test category not found after update")
+                    return False
+            else:
+                print("❌ Could not verify category update")
+                return False
+        else:
+            print(f"❌ PUT /api/tech-spec/category/{id} failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ PUT /api/tech-spec/category/{id} error: {str(e)}")
+        return False
+
+def test_add_tech_spec_option():
+    """Test POST /api/tech-spec/category/{id}/option - add option to category"""
+    print("\n🔍 Testing POST /api/tech-spec/category/{id}/option...")
+    
+    try:
+        # Add option to test category
+        test_option = {
+            "id": "test_option_new",
+            "name": "Brand New Test Option",
+            "imageUrl": "https://example.com/image.jpg",
+            "placeholder": "Enter value here",
+            "required": False
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/tech-spec/category/test_category/option", json=test_option)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ POST /api/tech-spec/category/{id}/option successful")
+            print(f"✅ Message: {data.get('message')}")
+            
+            # Verify the option was added
+            verify_response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
+            if verify_response.status_code == 200:
+                verify_data = verify_response.json()
+                categories = verify_data.get('categories', [])
+                
+                # Find our test category and check if option was added
+                test_cat = next((c for c in categories if c.get('id') == 'test_category'), None)
+                if test_cat:
+                    options = test_cat.get('options', [])
+                    new_option = next((o for o in options if o.get('id') == 'test_option_new'), None)
+                    if new_option:
+                        print("✅ New option successfully added to category")
+                        print(f"✅ Option name: {new_option.get('name')}")
+                        print(f"✅ Option imageUrl: {new_option.get('imageUrl')}")
+                        return True
+                    else:
+                        print("❌ New option not found in category")
+                        return False
+                else:
+                    print("❌ Test category not found")
+                    return False
+            else:
+                print("❌ Could not verify option addition")
+                return False
+        else:
+            print(f"❌ POST /api/tech-spec/category/{id}/option failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ POST /api/tech-spec/category/{id}/option error: {str(e)}")
+        return False
+
+def test_update_tech_spec_option():
+    """Test PUT /api/tech-spec/category/{id}/option/{option_id} - update option"""
+    print("\n🔍 Testing PUT /api/tech-spec/category/{id}/option/{option_id}...")
+    
+    try:
+        # Update the option we just added
+        updated_option = {
+            "id": "test_option_new",
+            "name": "Updated Brand New Test Option",
+            "imageUrl": "https://example.com/updated-image.jpg",
+            "placeholder": "Enter updated value here",
+            "required": True
+        }
+        
+        response = requests.put(f"{BACKEND_URL}/tech-spec/category/test_category/option/test_option_new", json=updated_option)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ PUT /api/tech-spec/category/{id}/option/{option_id} successful")
+            print(f"✅ Message: {data.get('message')}")
+            
+            # Verify the option was updated
+            verify_response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
+            if verify_response.status_code == 200:
+                verify_data = verify_response.json()
+                categories = verify_data.get('categories', [])
+                
+                # Find our test category and check if option was updated
+                test_cat = next((c for c in categories if c.get('id') == 'test_category'), None)
+                if test_cat:
+                    options = test_cat.get('options', [])
+                    updated_opt = next((o for o in options if o.get('id') == 'test_option_new'), None)
+                    if updated_opt:
+                        if (updated_opt.get('name') == 'Updated Brand New Test Option' and
+                            updated_opt.get('required') == True and
+                            'updated-image.jpg' in updated_opt.get('imageUrl', '')):
+                            print("✅ Option successfully updated")
+                            print(f"✅ Updated name: {updated_opt.get('name')}")
+                            print(f"✅ Updated required: {updated_opt.get('required')}")
+                            return True
+                        else:
+                            print("❌ Option not updated correctly")
+                            return False
+                    else:
+                        print("❌ Updated option not found in category")
+                        return False
+                else:
+                    print("❌ Test category not found")
+                    return False
+            else:
+                print("❌ Could not verify option update")
+                return False
+        else:
+            print(f"❌ PUT /api/tech-spec/category/{id}/option/{option_id} failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ PUT /api/tech-spec/category/{id}/option/{option_id} error: {str(e)}")
+        return False
+
+def test_delete_tech_spec_option():
+    """Test DELETE /api/tech-spec/category/{id}/option/{option_id} - delete option"""
+    print("\n🔍 Testing DELETE /api/tech-spec/category/{id}/option/{option_id}...")
+    
+    try:
+        response = requests.delete(f"{BACKEND_URL}/tech-spec/category/test_category/option/test_option_new")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ DELETE /api/tech-spec/category/{id}/option/{option_id} successful")
+            print(f"✅ Message: {data.get('message')}")
+            
+            # Verify the option was deleted
+            verify_response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
+            if verify_response.status_code == 200:
+                verify_data = verify_response.json()
+                categories = verify_data.get('categories', [])
+                
+                # Find our test category and check if option was deleted
+                test_cat = next((c for c in categories if c.get('id') == 'test_category'), None)
+                if test_cat:
+                    options = test_cat.get('options', [])
+                    deleted_opt = next((o for o in options if o.get('id') == 'test_option_new'), None)
+                    if deleted_opt is None:
+                        print("✅ Option successfully deleted from category")
+                        return True
+                    else:
+                        print("❌ Option still exists after deletion")
+                        return False
+                else:
+                    print("❌ Test category not found")
+                    return False
+            else:
+                print("❌ Could not verify option deletion")
+                return False
+        else:
+            print(f"❌ DELETE /api/tech-spec/category/{id}/option/{option_id} failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ DELETE /api/tech-spec/category/{id}/option/{option_id} error: {str(e)}")
+        return False
+
+def test_delete_tech_spec_category():
+    """Test DELETE /api/tech-spec/category/{id} - delete category"""
+    print("\n🔍 Testing DELETE /api/tech-spec/category/{id}...")
+    
+    try:
+        response = requests.delete(f"{BACKEND_URL}/tech-spec/category/test_category")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ DELETE /api/tech-spec/category/{id} successful")
+            print(f"✅ Message: {data.get('message')}")
+            
+            # Verify the category was deleted
+            verify_response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
+            if verify_response.status_code == 200:
+                verify_data = verify_response.json()
+                categories = verify_data.get('categories', [])
+                
+                # Check if our test category was deleted
+                test_cat = next((c for c in categories if c.get('id') == 'test_category'), None)
+                if test_cat is None:
+                    print("✅ Test category successfully deleted")
+                    return True
+                else:
+                    print("❌ Test category still exists after deletion")
+                    return False
+            else:
+                print("❌ Could not verify category deletion")
+                return False
+        else:
+            print(f"❌ DELETE /api/tech-spec/category/{id} failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ DELETE /api/tech-spec/category/{id} error: {str(e)}")
+        return False
+
+def test_tech_spec_admin_system():
+    """Run comprehensive tech spec admin tests"""
+    print("\n🔧 TECH SPEC ADMIN TESTS")
+    print("=" * 50)
+    
+    # Run all tech spec admin tests in sequence
+    tech_spec_results = {
+        "GET /api/tech-spec/categories": test_get_tech_spec_categories(),
+        "POST /api/tech-spec/category": test_add_tech_spec_category(),
+        "PUT /api/tech-spec/category/{id}": test_update_tech_spec_category(),
+        "POST /api/tech-spec/category/{id}/option": test_add_tech_spec_option(),
+        "PUT /api/tech-spec/category/{id}/option/{option_id}": test_update_tech_spec_option(),
+        "DELETE /api/tech-spec/category/{id}/option/{option_id}": test_delete_tech_spec_option(),
+        "DELETE /api/tech-spec/category/{id}": test_delete_tech_spec_category(),
+    }
+    
+    return tech_spec_results
+
 def run_all_tests():
     """Run all backend tests"""
     print("🚀 Starting Backend API Tests for Hot Tub Calculator with Sauna Calculator and Authentication System")
