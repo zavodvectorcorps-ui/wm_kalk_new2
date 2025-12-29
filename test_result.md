@@ -285,6 +285,18 @@ frontend:
         agent: "testing"
         comment: "✅ Balia Calculator localization working perfectly. Polish localization verified: 'Kalkulator bali' page title, 'Wybierz model' section, 'SUMA' summary card, 'Zapisz zamówienie' save button, 'Wyczyść' clear button, 'Piec zewnętrzny/zintegrowany' heater types. Russian localization verified: 'Калькулятор купелей' page title, 'Выберите модель' section, 'ИТОГО' summary card, 'Сохранить заказ' save button, 'Очистить' clear button, 'Внешняя печь/Встроенная печь' heater types. Pricing page Russian localization: 'Управление ценами (Купели)' title, 'Модели/Категории опций/Настройки' tabs, 'Сохранить всё' button. Language switching works perfectly in both directions (PL ↔ RU)."
 
+  - task: "Balia Calculator Tiles Display Feature"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/CalculatorPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ TILES DISPLAY FEATURE FULLY WORKING! Comprehensive test completed successfully: 1) Login with admin/159357 ✅, 2) Navigate to Balia calculator ✅, 3) Options section displays correctly ✅, 4) Tiles display verified: Hydromasaż (3 tiles), System bąbelków powietrza (1 tile), Oświetlenie (5 tiles) all display as grid layout ✅, 5) Tile selection working with blue border and checkmark ✅, 6) Package icons for options without images ✅, 7) Images use object-contain styling (not cropped) ✅, 8) Pricing page navigation ✅, 9) Category admin panel accessible ✅, 10) Add option dialog with image upload fields (Zdjęcie, Nazwa RU/PL, Cena) ✅. All requirements from review request verified successfully."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
