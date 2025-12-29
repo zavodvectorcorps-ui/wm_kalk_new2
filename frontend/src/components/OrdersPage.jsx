@@ -166,6 +166,11 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
               <Icon className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
               <p className="text-muted-foreground">{txt.noOrders}</p>
             </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <p className="text-muted-foreground">{txt.noResults}</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -180,10 +185,10 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map((order, index) => (
+                  {filteredOrders.map((order, index) => (
                     <TableRow key={order.id || index}>
-                      <TableCell className="font-medium">
-                        #{(order.id || '').substring(0, 8)}
+                      <TableCell className="font-medium font-mono text-sm">
+                        {order.id || '-'}
                       </TableCell>
                       <TableCell>
                         <div>
@@ -221,6 +226,16 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                             >
                               <FileDown className="h-4 w-4 mr-1" />
                               {t('downloadTechnical')}
+                            </Button>
+                          )}
+                          {isAdmin && isAdmin() && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteOrder(order.id)}
+                              title={txt.deleteOrder}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
                         </div>
