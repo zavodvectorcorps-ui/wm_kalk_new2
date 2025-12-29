@@ -566,44 +566,75 @@ export const SaunaCalculator = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {prices.models?.map((m) => (
-                  <div
-                    key={m.id}
-                    onClick={() => handleModelChange(m.id)}
-                    className={`
-                      relative cursor-pointer rounded-lg border-2 p-3 transition-all
-                      ${formData.selectedModel === m.id 
-                        ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200' 
-                        : 'border-border hover:border-amber-300 hover:bg-amber-50/50'
-                      }
-                    `}
-                  >
-                    {m.imageUrl && (
-                      <div className="aspect-video mb-2 rounded overflow-hidden bg-muted">
-                        <img 
-                          src={m.imageUrl} 
-                          alt={m.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <div className="text-sm font-medium">{m.name}</div>
-                    <div className="text-lg font-bold text-amber-700">{m.basePrice.toLocaleString('pl-PL')} PLN</div>
-                    {m.discount > 0 && (
-                      <div className="flex items-center gap-1 text-xs text-green-600">
-                        <Tag className="h-3 w-3" />
-                        {txt.discount}: {m.discount}%
-                      </div>
-                    )}
-                    {m.foundationPrice > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        {txt.foundation}: +{m.foundationPrice} PLN
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              {prices.modelsDisplayType === 'dropdown' ? (
+                // Dropdown View for Models
+                <Select
+                  value={formData.selectedModel}
+                  onValueChange={(value) => handleModelChange(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={txt.selectModel} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {prices.models?.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        <div className="flex items-center gap-2">
+                          {m.imageUrl && (
+                            <img src={m.imageUrl} alt={m.name} className="w-8 h-6 object-cover rounded" />
+                          )}
+                          <span>{m.name}</span>
+                          <span className="text-amber-700 font-medium ml-auto">
+                            {m.basePrice.toLocaleString('pl-PL')} PLN
+                          </span>
+                          {m.discount > 0 && (
+                            <span className="text-green-600 text-xs">-{m.discount}%</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                // Grid/Tile View for Models (default)
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {prices.models?.map((m) => (
+                    <div
+                      key={m.id}
+                      onClick={() => handleModelChange(m.id)}
+                      className={`
+                        relative cursor-pointer rounded-lg border-2 p-3 transition-all
+                        ${formData.selectedModel === m.id 
+                          ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200' 
+                          : 'border-border hover:border-amber-300 hover:bg-amber-50/50'
+                        }
+                      `}
+                    >
+                      {m.imageUrl && (
+                        <div className="aspect-video mb-2 rounded overflow-hidden bg-muted">
+                          <img 
+                            src={m.imageUrl} 
+                            alt={m.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="text-sm font-medium">{m.name}</div>
+                      <div className="text-lg font-bold text-amber-700">{m.basePrice.toLocaleString('pl-PL')} PLN</div>
+                      {m.discount > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-green-600">
+                          <Tag className="h-3 w-3" />
+                          {txt.discount}: {m.discount}%
+                        </div>
+                      )}
+                      {m.foundationPrice > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          {txt.foundation}: +{m.foundationPrice} PLN
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
