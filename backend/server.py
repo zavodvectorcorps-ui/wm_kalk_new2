@@ -861,6 +861,7 @@ class SaunaOption(BaseModel):
     inputType: str = "radio"
     sortOrder: int = 1
     imageUrl: Optional[str] = None
+    hasQuantity: bool = False  # If true, show quantity input field
 
 class SaunaCategory(BaseModel):
     id: str
