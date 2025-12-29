@@ -233,6 +233,9 @@ frontend:
       - working: true
         agent: "testing"
         comment: "✅ TechSpecId mapping system working correctly! Backend test verified: 1) Order 'WMS-29-12-2025-200219' (named 'new test') exists with correct selectedOptions structure containing techSpecCategoryId and techSpecId fields. 2) Found expected mappings: heater->wood_external_12kw, water_tank->30l, stove_guard->yes. 3) Tech spec categories verified with 25 categories including all expected options. 4) Mapping system test passed - created test order with techSpec mappings and verified they persist correctly. The backend mapping infrastructure is fully functional."
+      - working: true
+        agent: "testing"
+        comment: "✅ TECHSPEC MAPPING PRE-SELECTION VERIFIED! Manual UI test completed successfully for order 'WMS-29-12-2025-200219' (named 'new test'). Visual verification confirms all three expected options are PRE-SELECTED in Equipment section: 1) 'Piec na Drewno / z załadunkiem zewnętrznym / 12kW' - SELECTED (blue radio button), 2) 'Ограждение для печи': 'Да' - SELECTED (blue radio button), 3) 'Zbiornik na wodę na piec': '30L' - SELECTED (blue radio button). TechSpecId mapping from calculator to tech spec modal is working correctly as required. Note: Playwright script couldn't detect Radix UI radio button states, but visual confirmation shows proper pre-selection functionality."
 
   - task: "BaliaPricingPage - Model editing with image upload"
     implemented: true
