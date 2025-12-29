@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame } from 'lucide-react';
+import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame, Settings } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
