@@ -503,6 +503,7 @@ export const PricingPage = () => {
                 onClick={() => handleDeleteOption(categoryId, key)}
                 className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-6"
                 title="Удалить опцию"
+                disabled={!canEdit()}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
