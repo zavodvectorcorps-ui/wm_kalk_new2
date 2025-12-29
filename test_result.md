@@ -357,10 +357,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Display Type Feature - Admin UI for selecting grid/dropdown"
-    - "Display Type Feature - Calculator rendering based on displayType"
-    - "SaunaPricingPage - Models display type toggle"
-    - "SaunaPricingPage - Categories display type toggle"
+    - "Display Type Feature - Calculator rendering based on displayType (Frontend)"
+    - "SaunaPricingPage - Models display type toggle (Frontend)"
+    - "SaunaPricingPage - Categories display type toggle (Frontend)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
