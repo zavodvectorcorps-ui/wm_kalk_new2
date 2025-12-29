@@ -100,7 +100,7 @@ export const Header = ({
                 <FileText className="h-4 w-4" />
                 {t('orders')}
               </Button>
-              {isAdminAuthenticated && (
+              {(isAdminAuthenticated || canViewPricing()) && (
                 <Button
                   variant={activeTab === 'pricing' ? 'default' : 'ghost'}
                   size="sm"
