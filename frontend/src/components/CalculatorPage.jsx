@@ -16,7 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export const CalculatorPage = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   
   const [loading, setLoading] = useState(true);
@@ -32,60 +32,6 @@ export const CalculatorPage = () => {
     selections: {},
     notes: '',
   });
-
-  const texts = {
-    ru: {
-      title: 'Калькулятор купелей',
-      selectModel: 'Выберите модель',
-      modelInfo: 'Характеристики модели',
-      outerDiameter: 'Внешний диаметр',
-      innerDiameter: 'Внутренний диаметр',
-      depth: 'Глубина',
-      heaterPower: 'Мощность печи',
-      waterCapacity: 'Объём воды',
-      options: 'Опции',
-      notes: 'Примечания',
-      notesPlaceholder: 'Дополнительные пожелания...',
-      total: 'ИТОГО',
-      basePrice: 'Базовая цена',
-      optionsPrice: 'Опции',
-      save: 'Сохранить заказ',
-      generatePdf: 'Скачать PDF',
-      clear: 'Очистить',
-      saved: 'Заказ сохранён!',
-      error: 'Ошибка',
-      fillRequired: 'Заполните имя и выберите модель',
-      included: 'Включено в комплект',
-      externalHeater: 'Внешняя печь',
-      integratedHeater: 'Встроенная печь',
-    },
-    pl: {
-      title: 'Kalkulator bali',
-      selectModel: 'Wybierz model',
-      modelInfo: 'Specyfikacja modelu',
-      outerDiameter: 'Średnica zewnętrzna',
-      innerDiameter: 'Średnica wewnętrzna',
-      depth: 'Głębokość',
-      heaterPower: 'Moc pieca',
-      waterCapacity: 'Pojemność wody',
-      options: 'Opcje',
-      notes: 'Uwagi',
-      notesPlaceholder: 'Dodatkowe życzenia...',
-      total: 'SUMA',
-      basePrice: 'Cena bazowa',
-      optionsPrice: 'Opcje',
-      save: 'Zapisz zamówienie',
-      generatePdf: 'Pobierz PDF',
-      clear: 'Wyczyść',
-      saved: 'Zamówienie zapisane!',
-      error: 'Błąd',
-      fillRequired: 'Wypełnij imię i wybierz model',
-      included: 'W zestawie',
-      externalHeater: 'Piec zewnętrzny',
-      integratedHeater: 'Piec zintegrowany',
-    }
-  };
-  const txt = texts[lang];
 
   useEffect(() => {
     fetchPrices();
