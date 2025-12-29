@@ -301,14 +301,27 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                             {t('downloadPDF')}
                           </Button>
                           {isSauna && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => window.open('http://tk-sauna.wm-kalkulator.pl', '_blank')}
-                            >
-                              <FileText className="h-4 w-4 mr-1" />
-                              Тех.Задание
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleOpenTechSpec(order)}
+                                title="Создать/редактировать тех.задание"
+                              >
+                                <Wrench className="h-4 w-4 mr-1" />
+                                Тех.Задание
+                              </Button>
+                              {order.techSpec && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDownloadTechSpec(order)}
+                                  title="Скачать тех.задание PDF"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </>
                           )}
                           {!isSauna && (
                             <Button
