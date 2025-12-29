@@ -138,7 +138,7 @@ export const CalculatorPage = () => {
 
   const handleSaveOrder = async () => {
     if (!formData.fullName || !formData.selectedModel) {
-      toast.error(txt.fillRequired);
+      toast.error(t('balia.fillRequired'));
       return;
     }
     
@@ -194,10 +194,10 @@ export const CalculatorPage = () => {
       };
 
       await axios.post(`${API_URL}/api/orders`, order);
-      toast.success(txt.saved);
+      toast.success(t('balia.saved'));
     } catch (error) {
       console.error('Error saving order:', error);
-      toast.error(txt.error);
+      toast.error(t('balia.error'));
     } finally {
       setSaving(false);
     }
