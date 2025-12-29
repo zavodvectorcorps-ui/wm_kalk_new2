@@ -240,20 +240,28 @@ export const SaunaPricingPage = () => {
   };
 
   // ========== CATEGORIES ==========
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCategory.name) return;
     
     const category = {
       id: newCategory.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
       name: newCategory.name,
       inputType: newCategory.inputType,
+      displayType: 'grid',
       options: [],
     };
     
-    setPrices(prev => ({
-      ...prev,
-      categories: [...(prev.categories || []), category],
-    }));
+    try {
+      await axios.post(`${API_URL}/api/sauna/categories`, category);
+      setPrices(prev => ({
+        ...prev,
+        categories: [...(prev.categories || []), category],
+      }));
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error(error.response?.data?.detail || t('error'));
+    }
     
     setNewCategory({ name: '', inputType: 'radio' });
     setIsCategoryDialogOpen(false);
@@ -263,22 +271,36 @@ export const SaunaPricingPage = () => {
     setEditingCategory({ ...category });
   };
 
-  const handleSaveEditCategory = () => {
+  const handleSaveEditCategory = async () => {
     if (!editingCategory) return;
     
-    setPrices(prev => ({
-      ...prev,
-      categories: prev.categories.map(c => c.id === editingCategory.id ? editingCategory : c),
-    }));
+    try {
+      await axios.put(`${API_URL}/api/sauna/categories/${editingCategory.id}`, editingCategory);
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(c => c.id === editingCategory.id ? editingCategory : c),
+      }));
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast.error(error.response?.data?.detail || t('error'));
+    }
     
     setEditingCategory(null);
   };
 
-  const handleDeleteCategory = (categoryId) => {
-    setPrices(prev => ({
-      ...prev,
-      categories: prev.categories.filter(c => c.id !== categoryId),
-    }));
+  const handleDeleteCategory = async (categoryId) => {
+    try {
+      await axios.delete(`${API_URL}/api/sauna/categories/${categoryId}`);
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.filter(c => c.id !== categoryId),
+      }));
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error(error.response?.data?.detail || t('error'));
+    }
   };
 
   // ========== OPTIONS ==========
