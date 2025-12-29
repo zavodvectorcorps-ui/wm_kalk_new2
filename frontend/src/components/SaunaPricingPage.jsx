@@ -749,26 +749,28 @@ export const SaunaPricingPage = () => {
                       
                       <div className="flex items-center gap-2 flex-wrap">
                         {/* Display Type Selector for Category */}
-                        <div className="flex items-center gap-1 bg-background rounded-md border p-0.5">
-                          <Button
-                            size="sm"
-                            variant={category.displayType === 'grid' ? 'default' : 'ghost'}
-                            onClick={() => handleCategoryDisplayTypeChange(category.id, 'grid')}
-                            className={`h-7 px-2 ${category.displayType === 'grid' ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
-                          >
-                            <LayoutGrid className="h-3 w-3 mr-1" />
-                            {txt.displayTypeGrid}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={category.displayType === 'dropdown' ? 'default' : 'ghost'}
-                            onClick={() => handleCategoryDisplayTypeChange(category.id, 'dropdown')}
-                            className={`h-7 px-2 ${category.displayType === 'dropdown' ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
-                          >
-                            <List className="h-3 w-3 mr-1" />
-                            {txt.displayTypeDropdown}
-                          </Button>
-                        </div>
+                        {canEdit() && (
+                          <div className="flex items-center gap-1 bg-background rounded-md border p-0.5">
+                            <Button
+                              size="sm"
+                              variant={category.displayType === 'grid' ? 'default' : 'ghost'}
+                              onClick={() => handleCategoryDisplayTypeChange(category.id, 'grid')}
+                              className={`h-7 px-2 ${category.displayType === 'grid' ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+                            >
+                              <LayoutGrid className="h-3 w-3 mr-1" />
+                              {txt.displayTypeGrid}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={category.displayType === 'dropdown' ? 'default' : 'ghost'}
+                              onClick={() => handleCategoryDisplayTypeChange(category.id, 'dropdown')}
+                              className={`h-7 px-2 ${category.displayType === 'dropdown' ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+                            >
+                              <List className="h-3 w-3 mr-1" />
+                              {txt.displayTypeDropdown}
+                            </Button>
+                          </div>
+                        )}
                         
                         {editingCategory?.id === category.id ? (
                           <>
@@ -796,7 +798,7 @@ export const SaunaPricingPage = () => {
                               <X className="h-4 w-4" />
                             </Button>
                           </>
-                        ) : (
+                        ) : canEdit() ? (
                           <>
                             <Button
                               size="sm"
@@ -813,7 +815,7 @@ export const SaunaPricingPage = () => {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   ))}
