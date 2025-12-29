@@ -85,6 +85,10 @@ export const SaunaPricingPage = () => {
       noCategories: 'Нет категорий',
       noOptions: 'Нет опций',
       selectCategory: 'Выберите категорию',
+      displayType: 'Тип отображения',
+      displayTypeGrid: 'Плитка',
+      displayTypeDropdown: 'Список',
+      modelsDisplayType: 'Отображение моделей',
     },
     pl: {
       saunaPricing: 'Zarządzanie cenami saun',
@@ -118,6 +122,10 @@ export const SaunaPricingPage = () => {
       noCategories: 'Brak kategorii',
       noOptions: 'Brak opcji',
       selectCategory: 'Wybierz kategorię',
+      displayType: 'Typ wyświetlania',
+      displayTypeGrid: 'Kafelki',
+      displayTypeDropdown: 'Lista',
+      modelsDisplayType: 'Wyświetlanie modeli',
     },
   };
 
