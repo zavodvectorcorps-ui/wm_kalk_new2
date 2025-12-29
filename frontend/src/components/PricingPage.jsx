@@ -491,22 +491,24 @@ export const PricingPage = () => {
                     value={options[key] || 0}
                     onChange={(e) => handlePriceChange(categoryId, key, e.target.value)}
                     className="pr-8"
+                    disabled={!canEdit()}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                     €
                   </span>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDeleteOption(categoryId, key)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-6"
-                title="Удалить опцию"
-                disabled={!canEdit()}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {canEdit() && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDeleteOption(categoryId, key)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-6"
+                  title="Удалить опцию"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           );
         })}
