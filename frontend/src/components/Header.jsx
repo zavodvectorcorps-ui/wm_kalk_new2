@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame } from 'lucide-react';
 import { Button } from './ui/button';
@@ -15,6 +16,7 @@ export const Header = ({
   calculatorType = null
 }) => {
   const { t, i18n } = useTranslation();
+  const { canViewPricing } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const texts = {
