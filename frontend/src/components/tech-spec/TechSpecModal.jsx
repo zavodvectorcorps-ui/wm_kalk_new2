@@ -277,29 +277,46 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
             onValueChange={(value) => handleRadioChange(id, value)}
             className={hasImages ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2' : (layout === 'row' ? 'flex flex-wrap gap-3' : 'space-y-2')}
           >
-            {options.map((option) => (
-              <div 
-                key={option.id} 
-                className={hasImages 
-                  ? 'flex flex-col items-center p-2 border rounded-lg bg-white cursor-pointer hover:border-amber-500 transition-colors' 
-                  : 'flex items-center gap-2'
-                }
-              >
-                <RadioGroupItem value={option.id} id={`${id}-${option.id}`} className={hasImages ? 'sr-only' : ''} />
-                {hasImages && option.imageUrl && (
-                  <label htmlFor={`${id}-${option.id}`} className="cursor-pointer w-full">
-                    <img 
-                      src={option.imageUrl} 
-                      alt={option.name} 
-                      className={`w-full h-16 object-cover rounded mb-1 ${formData.selections[id] === option.id ? 'ring-2 ring-amber-500' : ''}`} 
-                    />
-                  </label>
-                )}
-                <Label htmlFor={`${id}-${option.id}`} className="cursor-pointer text-xs text-center">
-                  {option.name}
-                </Label>
-              </div>
-            ))}
+            {options.map((option) => {
+              const isSelected = formData.selections[id] === option.id;
+              return (
+                <div 
+                  key={option.id} 
+                  className={hasImages 
+                    ? `flex flex-col items-center p-2 border-2 rounded-lg cursor-pointer transition-all ${
+                        isSelected 
+                          ? 'border-amber-500 bg-amber-50 shadow-md' 
+                          : 'border-gray-200 bg-white hover:border-amber-300'
+                      }` 
+                    : 'flex items-center gap-2'
+                  }
+                >
+                  <RadioGroupItem value={option.id} id={`${id}-${option.id}`} className={hasImages ? 'sr-only' : ''} />
+                  {hasImages && option.imageUrl && (
+                    <label htmlFor={`${id}-${option.id}`} className="cursor-pointer w-full">
+                      <img 
+                        src={option.imageUrl} 
+                        alt={option.name} 
+                        className={`w-full h-20 object-contain rounded mb-1 ${isSelected ? 'ring-2 ring-amber-500 ring-offset-1' : ''}`} 
+                      />
+                    </label>
+                  )}
+                  <Label 
+                    htmlFor={`${id}-${option.id}`} 
+                    className={`cursor-pointer text-xs text-center ${isSelected ? 'font-semibold text-amber-700' : ''}`}
+                  >
+                    {option.name}
+                  </Label>
+                  {isSelected && (
+                    <div className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </RadioGroup>
         )}
 
