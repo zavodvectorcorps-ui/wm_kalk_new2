@@ -400,7 +400,17 @@ export const CalculatorPage = () => {
             <CardContent className="space-y-4">
               {prices.categories?.map(category => (
                 <div key={category.id} className="border-b pb-4 last:border-b-0">
-                  <Label className="font-semibold text-sm mb-2 block">{getCategoryName(category)}</Label>
+                  <div className="flex items-center gap-3 mb-2">
+                    {category.imageUrl && (
+                      <img 
+                        src={category.imageUrl} 
+                        alt={getCategoryName(category)}
+                        className="w-10 h-10 object-cover rounded"
+                        onError={(e) => e.target.style.display = 'none'}
+                      />
+                    )}
+                    <Label className="font-semibold text-sm">{getCategoryName(category)}</Label>
+                  </div>
                   
                   {category.inputType === 'checkbox' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
