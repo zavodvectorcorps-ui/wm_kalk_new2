@@ -796,6 +796,19 @@ async def generate_tech_spec_pdf(request: dict):
     order = request.get("order", {})
     tech_spec = request.get("techSpec", {})
     
+    # Load tech spec config to get category and option names
+    tech_config = await db.tech_spec_config.find_one({"_id": "default"})
+    if not tech_config:
+        from data.tech_spec_defaults import default_tech_spec_data
+        tech_config = default_tech_spec_data
+    
+    master_categories = tech_config.get("masterCategories", [])
+    categories_config = tech_config.get("categories", [])
+    
+    # Build lookup dictionaries
+    categories_by_id = {c["id"]: c for c in categories_config}
+    masters_by_id = {m["id"]: m for m in master_categories}
+    
     buffer = io.BytesIO()
     
     try:
@@ -830,6 +843,13 @@ async def generate_tech_spec_pdf(request: dict):
         fontName='DejaVuSans-Bold',
         fontSize=11,
         textColor=BROWN_DARK,
+    )
+    
+    master_section_style = ParagraphStyle(
+        'MasterSection',
+        fontName='DejaVuSans-Bold',
+        fontSize=12,
+        textColor=WHITE,
     )
     
     normal_style = ParagraphStyle(
@@ -886,103 +906,212 @@ async def generate_tech_spec_pdf(request: dict):
     elements.append(model_table)
     elements.append(Spacer(1, 12))
     
-    # ========== ORDER OPTIONS (from original order, without prices) ==========
-    order_categories = order.get("categories", [])
-    if order_categories:
-        elements.append(Paragraph("Wybrane opcje z zamówienia", section_style))
+    # ========== BENCH IMAGE ==========
+    selections = tech_spec.get("selections", {})
+    bench_selection = selections.get("benches", "")
+    bench_image_url = None
+    bench_name = None
+    
+    if bench_selection:
+        benches_cat = categories_by_id.get("benches", {})
+        for opt in benches_cat.get("options", []):
+            if opt.get("id") == bench_selection:
+                bench_image_url = opt.get("imageUrl")
+                bench_name = opt.get("name")
+                break
+    
+    if bench_image_url and bench_name:
+        elements.append(Paragraph("Ławki", section_style))
         elements.append(Spacer(1, 6))
         
-        options_data = [["Kategoria", "Opcja", "Ilość"]]
-        for cat in order_categories:
-            qty = cat.get("quantity", 1)
-            qty_str = str(qty) if qty and qty > 1 else "1"
-            options_data.append([cat.get("name", "-"), cat.get("selectedOption", "-"), qty_str])
+        bench_img = None
+        try:
+            import urllib.request
+            import tempfile
+            
+            req = urllib.request.Request(
+                bench_image_url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+                }
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                img_data = response.read()
+                
+            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+                tmp.write(img_data)
+                tmp_path = tmp.name
+            
+            bench_img = Image(tmp_path, width=120, height=80)
+        except Exception as e:
+            logger.warning(f"Could not load bench image: {e}")
         
-        options_table = Table(options_data, colWidths=[180, 280, 70])
-        options_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), BROWN),
-            ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
-            ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
-            ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BACKGROUND', (0, 1), (-1, -1), BROWN_LIGHT),
-            ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ]))
-        elements.append(options_table)
+        if bench_img:
+            bench_info = [[
+                bench_img,
+                Paragraph(f"<b>{bench_name}</b>", ParagraphStyle('BenchName', fontName='DejaVuSans-Bold', fontSize=10))
+            ]]
+            bench_table = Table(bench_info, colWidths=[130, 400])
+            bench_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
+                ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (1, 0), (1, 0), 15),
+            ]))
+            elements.append(bench_table)
+        else:
+            bench_table = Table([[bench_name]], colWidths=[530])
+            bench_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, 0), BROWN_LIGHT),
+                ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ]))
+            elements.append(bench_table)
         elements.append(Spacer(1, 12))
     
-    # ========== TECHNICAL SPEC OPTIONS ==========
-    selections = tech_spec.get("selections", {})
+    # ========== TECHNICAL SPEC OPTIONS - GROUPED BY MASTER CATEGORIES ==========
     text_inputs = tech_spec.get("textInputs", {})
     
-    if selections or text_inputs:
-        elements.append(Paragraph("Elementy techniczne / opcje", section_style))
-        elements.append(Spacer(1, 6))
+    # Helper function to get option name from category config
+    def get_option_name(cat_id, option_id):
+        cat_config = categories_by_id.get(cat_id, {})
+        for opt in cat_config.get("options", []):
+            if opt.get("id") == option_id:
+                return opt.get("name", option_id)
+        return option_id
+    
+    def get_category_name(cat_id):
+        cat_config = categories_by_id.get(cat_id, {})
+        return cat_config.get("name", cat_id)
+    
+    # Group categories by master category
+    for master in master_categories:
+        master_id = master.get("id")
+        master_name = master.get("name")
         
-        tech_data = [["Kategoria", "Wybór"]]
+        # Get categories for this master
+        master_cats = [c for c in categories_config if c.get("masterCategoryId") == master_id]
         
-        # Technical categories mapping
-        tech_categories = {
-            'base_color': 'Цвет базы',
-            'door_color': 'Цвет дверей',
-            'trim_color': 'Цвет наличника',
-            'roof_color': 'Цвет крыши',
-            'benches': 'Ławki',
-            'shelf_size': 'Размер полков',
-            'stove_guard': 'Ограждение для печи',
-            'stove_base': 'Основание для печи',
-            'drain': 'Трап',
-            'bench_1': 'Скамейка 1',
-            'bench_2': 'Скамейка 2',
-            'table': 'Стол',
-            'additional_elements': 'Дополнительные элементы',
-            'steam_room_lighting': 'Освещение парной',
-            'guest_room_lighting': 'Освещение гостевой',
-            'exterior_lighting': 'Наружное освещение',
-            'entrance_door': 'Входная дверь',
-            'steam_door': 'Дверь в парилку',
-            'ventilation': 'Форточки',
-            'panorama': 'Панорама',
-            'heater': 'Piece',
-            'water_tank': 'Zbiornik na wodę',
-            'shower': 'Душ',
-            'additional_options': 'Opcje Dodatkowe',
-            'frame_beams': 'Belki podłużne',
-        }
-        
-        for cat_id, cat_name in tech_categories.items():
-            value = selections.get(cat_id, "")
+        # Collect data for this master category
+        master_data = []
+        for cat in master_cats:
+            cat_id = cat.get("id")
+            cat_name = cat.get("name")
+            
+            # Skip benches as we show them separately with image
+            if cat_id == "benches":
+                continue
+            
+            value = selections.get(cat_id)
+            if not value:
+                continue
+            
+            # Handle list (checkbox) vs single value (radio)
             if isinstance(value, list):
-                value = ", ".join(value)
-            if value:
-                tech_data.append([cat_name, str(value)])
+                option_names = [get_option_name(cat_id, v) for v in value]
+                value_str = ", ".join(option_names)
+            else:
+                value_str = get_option_name(cat_id, value)
+            
+            master_data.append([cat_name, value_str])
         
-        # Add text inputs
-        for key, value in text_inputs.items():
-            if value:
-                cat_id = key.split('_')[0] if '_' in key else key
-                cat_name = tech_categories.get(cat_id, key)
-                tech_data.append([cat_name, str(value)])
+        # Check text inputs for this master's categories
+        for cat in master_cats:
+            cat_id = cat.get("id")
+            for key, val in text_inputs.items():
+                if key.startswith(cat_id) and val:
+                    cat_name = get_category_name(cat_id)
+                    master_data.append([cat_name, str(val)])
         
-        if len(tech_data) > 1:
-            tech_table = Table(tech_data, colWidths=[180, 350])
-            tech_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), BROWN),
-                ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+        # Add master category section if there's data
+        if master_data:
+            # Master category header
+            master_header = Table([[master_name]], colWidths=[530])
+            master_header.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, 0), BROWN),
+                ('TEXTCOLOR', (0, 0), (0, 0), WHITE),
+                ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 11),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ]))
+            elements.append(master_header)
+            elements.append(Spacer(1, 4))
+            
+            # Data table
+            data_table = Table(master_data, colWidths=[180, 350])
+            data_table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
-                ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
+                ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('BACKGROUND', (0, 1), (-1, -1), BROWN_LIGHT),
+                ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
                 ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
                 ('TOPPADDING', (0, 0), (-1, -1), 5),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
             ]))
-            elements.append(tech_table)
-            elements.append(Spacer(1, 12))
+            elements.append(data_table)
+            elements.append(Spacer(1, 10))
+    
+    # ========== UNASSIGNED CATEGORIES ==========
+    unassigned_cats = [c for c in categories_config if not c.get("masterCategoryId")]
+    unassigned_data = []
+    
+    for cat in unassigned_cats:
+        cat_id = cat.get("id")
+        cat_name = cat.get("name")
+        
+        if cat_id == "benches":
+            continue
+        
+        value = selections.get(cat_id)
+        if not value:
+            continue
+        
+        if isinstance(value, list):
+            option_names = [get_option_name(cat_id, v) for v in value]
+            value_str = ", ".join(option_names)
+        else:
+            value_str = get_option_name(cat_id, value)
+        
+        unassigned_data.append([cat_name, value_str])
+    
+    if unassigned_data:
+        other_header = Table([["Прочее"]], colWidths=[530])
+        other_header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#666666')),
+            ('TEXTCOLOR', (0, 0), (0, 0), WHITE),
+            ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(other_header)
+        elements.append(Spacer(1, 4))
+        
+        data_table = Table(unassigned_data, colWidths=[180, 350])
+        data_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
+            ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
+            ('GRID', (0, 0), (-1, -1), 0.5, BROWN),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(data_table)
+        elements.append(Spacer(1, 10))
     
     # ========== COMMENT ==========
     comment = tech_spec.get("comment", "")
