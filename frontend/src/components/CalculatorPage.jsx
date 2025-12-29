@@ -251,12 +251,13 @@ export const CalculatorPage = () => {
         modelId: selectedModel?.id,
         modelName: getModelName(selectedModel),
         modelPrice: selectedModel?.basePrice || 0,
+        modelImageUrl: selectedModel?.imageUrl || '',
         selections: formData.selections,
         selectedOptions,
         notes: formData.notes,
         total: calculateTotal(),
         currency: prices.currency || 'EUR',
-        language: lang,
+        language: 'pl',
         type: 'customer'
       };
 
@@ -269,7 +270,7 @@ export const CalculatorPage = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `order_${formData.fullName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      a.download = `oferta_${formData.fullName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
