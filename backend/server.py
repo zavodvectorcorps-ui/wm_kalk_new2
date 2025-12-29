@@ -9,6 +9,7 @@ from routes.auth import router as auth_router
 from routes.balia import router as balia_router
 from routes.sauna import router as sauna_router
 from routes.health import router as health_router
+from routes.tech_spec import router as tech_spec_router
 
 # Configure logging
 logging.basicConfig(
