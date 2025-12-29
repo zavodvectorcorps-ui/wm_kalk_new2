@@ -58,7 +58,7 @@ export const CalculatorPage = () => {
       setFormData(prev => ({ ...prev, selections: initialSelections }));
     } catch (error) {
       console.error('Error fetching prices:', error);
-      toast.error(txt.error);
+      toast.error(t('balia.error'));
     } finally {
       setLoading(false);
     }
