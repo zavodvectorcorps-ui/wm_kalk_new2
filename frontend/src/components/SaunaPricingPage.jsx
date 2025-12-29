@@ -562,6 +562,7 @@ export const SaunaPricingPage = () => {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+                )}
               </div>
             </CardHeader>
             <CardContent>
