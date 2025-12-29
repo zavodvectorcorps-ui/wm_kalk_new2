@@ -1427,12 +1427,229 @@ def test_display_type_feature():
         print(f"❌ Display Type Feature test error: {str(e)}")
         return False
 
+def test_techspec_mapping_flow():
+    """Test TechSpecId mapping between Sauna Calculator and TechSpec Modal"""
+    print("\n🔍 Testing TechSpecId Mapping Flow...")
+    print("=" * 60)
+    
+    try:
+        # Step 1: Check if order "WMS-29-12-2025-200219" exists with specific mappings
+        print("\n🔍 Step 1: Checking for order 'WMS-29-12-2025-200219' (named 'new test')...")
+        
+        orders_response = requests.get(f"{BACKEND_URL}/sauna/orders")
+        if orders_response.status_code != 200:
+            print(f"❌ Failed to get sauna orders: {orders_response.status_code}")
+            return False
+        
+        orders = orders_response.json()
+        target_order = None
+        
+        # Look for the specific order
+        for order in orders:
+            if (order.get('id') == 'WMS-29-12-2025-200219' or 
+                order.get('fullName') == 'new test' or
+                'new test' in order.get('fullName', '').lower()):
+                target_order = order
+                break
+        
+        if not target_order:
+            print("❌ Order 'WMS-29-12-2025-200219' (named 'new test') not found")
+            print("Available orders:")
+            for order in orders[:5]:  # Show first 5 orders
+                print(f"  - ID: {order.get('id')}, Name: {order.get('fullName')}")
+            return False
+        
+        print(f"✅ Found target order: ID={target_order.get('id')}, Name={target_order.get('fullName')}")
+        
+        # Step 2: Verify selectedOptions contains techSpecCategoryId and techSpecId fields
+        print("\n🔍 Step 2: Verifying selectedOptions structure...")
+        
+        selected_options = target_order.get('selectedOptions', [])
+        if not selected_options:
+            print("❌ Order has no selectedOptions field or it's empty")
+            print(f"Order structure: {list(target_order.keys())}")
+            return False
+        
+        print(f"✅ Found {len(selected_options)} selectedOptions")
+        
+        # Check for expected mappings
+        expected_mappings = {
+            'heater': 'wood_external_12kw',
+            'water_tank': '30l',
+            'stove_guard': 'yes'
+        }
+        
+        found_mappings = {}
+        for option in selected_options:
+            tech_spec_cat_id = option.get('techSpecCategoryId')
+            tech_spec_id = option.get('techSpecId')
+            
+            if tech_spec_cat_id and tech_spec_id:
+                found_mappings[tech_spec_cat_id] = tech_spec_id
+                print(f"✅ Found mapping: {tech_spec_cat_id} -> {tech_spec_id}")
+            else:
+                print(f"⚠️ Option missing techSpec fields: {option}")
+        
+        # Verify expected mappings
+        mapping_success = True
+        for cat_id, expected_option_id in expected_mappings.items():
+            if cat_id in found_mappings:
+                if found_mappings[cat_id] == expected_option_id:
+                    print(f"✅ Correct mapping: {cat_id} -> {expected_option_id}")
+                else:
+                    print(f"❌ Incorrect mapping: {cat_id} -> {found_mappings[cat_id]} (expected: {expected_option_id})")
+                    mapping_success = False
+            else:
+                print(f"❌ Missing mapping for category: {cat_id}")
+                mapping_success = False
+        
+        # Step 3: Fetch tech spec categories and verify they exist
+        print("\n🔍 Step 3: Verifying tech spec categories...")
+        
+        tech_spec_response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
+        if tech_spec_response.status_code != 200:
+            print(f"❌ Failed to get tech spec categories: {tech_spec_response.status_code}")
+            return False
+        
+        tech_spec_data = tech_spec_response.json()
+        categories = tech_spec_data.get('categories', [])
+        
+        print(f"✅ Found {len(categories)} tech spec categories")
+        
+        # Verify expected categories and options exist
+        categories_by_id = {cat.get('id'): cat for cat in categories}
+        
+        category_verification = True
+        for cat_id, expected_option_id in expected_mappings.items():
+            if cat_id in categories_by_id:
+                category = categories_by_id[cat_id]
+                options = category.get('options', [])
+                option_ids = [opt.get('id') for opt in options]
+                
+                if expected_option_id in option_ids:
+                    option = next(opt for opt in options if opt.get('id') == expected_option_id)
+                    print(f"✅ Category '{cat_id}' has option '{expected_option_id}': {option.get('name')}")
+                else:
+                    print(f"❌ Category '{cat_id}' missing option '{expected_option_id}'")
+                    print(f"   Available options: {option_ids}")
+                    category_verification = False
+            else:
+                print(f"❌ Tech spec category '{cat_id}' not found")
+                print(f"   Available categories: {list(categories_by_id.keys())}")
+                category_verification = False
+        
+        # Step 4: Test the mapping system by creating a test order with techSpec mappings
+        print("\n🔍 Step 4: Testing mapping system with new test order...")
+        
+        test_order = {
+            "id": f"TEST-MAPPING-{datetime.now().strftime('%H%M%S')}",
+            "fullName": "Test TechSpec Mapping",
+            "phoneNumber": "+48 111 222 333",
+            "fullAddress": "Test Address",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "selectedModel": "sauna_kwadro_beczka_235x300_cm",
+            "modelName": "Test Sauna Model",
+            "basePrice": 20000,
+            "foundationPrice": 250,
+            "discount": 0,
+            "selections": {
+                "piece": "piec_na_drewno_12kw",
+                "zbiornik_woda": "30l_tank",
+                "ograniczenie_piec": "tak"
+            },
+            "selectedOptions": [
+                {
+                    "categoryId": "piece",
+                    "optionId": "piec_na_drewno_12kw",
+                    "optionName": "Piec na Drewno 12kW",
+                    "price": 3000,
+                    "techSpecCategoryId": "heater",
+                    "techSpecId": "wood_external_12kw"
+                },
+                {
+                    "categoryId": "zbiornik_woda",
+                    "optionId": "30l_tank",
+                    "optionName": "Zbiornik 30L",
+                    "price": 500,
+                    "techSpecCategoryId": "water_tank",
+                    "techSpecId": "30l"
+                },
+                {
+                    "categoryId": "ograniczenie_piec",
+                    "optionId": "tak",
+                    "optionName": "Ograniczenie Pieca - Tak",
+                    "price": 200,
+                    "techSpecCategoryId": "stove_guard",
+                    "techSpecId": "yes"
+                }
+            ],
+            "notes": "Test order for TechSpec mapping verification",
+            "optionsTotal": 3700,
+            "total": 23950.0,
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        create_response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order)
+        if create_response.status_code == 200:
+            print("✅ Test order with techSpec mappings created successfully")
+            
+            # Verify the order was saved with correct mappings
+            verify_response = requests.get(f"{BACKEND_URL}/sauna/orders")
+            if verify_response.status_code == 200:
+                verify_orders = verify_response.json()
+                test_saved_order = next((o for o in verify_orders if o.get('id') == test_order['id']), None)
+                
+                if test_saved_order:
+                    saved_options = test_saved_order.get('selectedOptions', [])
+                    if saved_options:
+                        print(f"✅ Test order saved with {len(saved_options)} selectedOptions")
+                        for opt in saved_options:
+                            tech_cat = opt.get('techSpecCategoryId')
+                            tech_id = opt.get('techSpecId')
+                            if tech_cat and tech_id:
+                                print(f"✅ Mapping preserved: {tech_cat} -> {tech_id}")
+                            else:
+                                print(f"❌ Mapping lost for option: {opt.get('optionName')}")
+                    else:
+                        print("❌ Test order saved without selectedOptions")
+                        return False
+                else:
+                    print("❌ Test order not found after creation")
+                    return False
+            else:
+                print("❌ Could not verify test order creation")
+                return False
+        else:
+            print(f"❌ Failed to create test order: {create_response.status_code}")
+            print(f"Response: {create_response.text}")
+            return False
+        
+        # Summary
+        print("\n📊 TechSpecId Mapping Test Summary:")
+        print(f"✅ Order structure verification: {'PASS' if target_order else 'FAIL'}")
+        print(f"✅ selectedOptions mapping verification: {'PASS' if mapping_success else 'FAIL'}")
+        print(f"✅ Tech spec categories verification: {'PASS' if category_verification else 'FAIL'}")
+        print(f"✅ Mapping system test: PASS")
+        
+        overall_success = mapping_success and category_verification
+        
+        if overall_success:
+            print("\n🎉 TechSpecId mapping system is working correctly!")
+        else:
+            print("\n❌ TechSpecId mapping system has issues that need to be addressed")
+        
+        return overall_success
+        
+    except Exception as e:
+        print(f"❌ TechSpecId mapping test error: {str(e)}")
+        return False
+
 def test_sauna_calculator_system():
     """Run comprehensive sauna calculator tests"""
     print("\n🌿 SAUNA CALCULATOR TESTS")
     print("=" * 50)
     
-    # Run all sauna tests including the new Display Type feature test
+    # Run all sauna tests including the new TechSpec mapping test
     sauna_results = {
         "GET /api/sauna/prices": test_get_sauna_prices(),
         "POST /api/sauna/prices": test_update_sauna_prices(),
@@ -1440,6 +1657,7 @@ def test_sauna_calculator_system():
         "GET /api/sauna/orders": test_get_sauna_orders(),
         "POST /api/sauna/generate-pdf": test_generate_sauna_pdf(),
         "Display Type Feature": test_display_type_feature(),
+        "TechSpecId Mapping Flow": test_techspec_mapping_flow(),
     }
     
     return sauna_results
