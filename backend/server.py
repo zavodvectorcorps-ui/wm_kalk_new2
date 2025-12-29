@@ -966,6 +966,7 @@ default_sauna_prices = {
             "id": "zbiornik_wody",
             "name": "Zbiornik na wodę na piec",
             "inputType": "radio",
+            "displayType": "dropdown",
             "options": [
                 {"id": "zbiornik_nie", "name": "Zbiornik na wodę na piec - Nie", "price": 0, "inputType": "radio", "sortOrder": 1},
                 {"id": "zbiornik_30l", "name": "Zbiornik na wodę na piec 30L", "price": 890, "inputType": "radio", "sortOrder": 2},
@@ -976,6 +977,7 @@ default_sauna_prices = {
             "id": "ogrodzenie_pieca",
             "name": "Ogrodzenie do pieca (drewniane)",
             "inputType": "checkbox",
+            "displayType": "grid",
             "options": [
                 {"id": "ogrodzenie_drewniane", "name": "Ogrodzenie do pieca (drewniane)", "price": 490, "inputType": "checkbox", "sortOrder": 1}
             ]
@@ -984,6 +986,7 @@ default_sauna_prices = {
             "id": "drzwi",
             "name": "Drzwi",
             "inputType": "radio",
+            "displayType": "dropdown",
             "options": [
                 {"id": "drzwi_szklane_gratis", "name": "Drzwi szklane hartowane 8mm gratis", "price": 0, "inputType": "radio", "sortOrder": 1},
                 {"id": "drzwi_szklane_hartowane", "name": "Drzwi wejściowe do łaźni wykonane są ze szkła hartowanego", "price": 530, "inputType": "radio", "sortOrder": 2},
@@ -994,6 +997,7 @@ default_sauna_prices = {
             "id": "lokalizacja_drzwi",
             "name": "Lokalizacja drzwi",
             "inputType": "radio",
+            "displayType": "dropdown",
             "options": [
                 {"id": "drzwi_wprost", "name": "Lokalizacja drzwi wprost", "price": 0, "inputType": "radio", "sortOrder": 1},
                 {"id": "drzwi_boczne", "name": "Lokalizacja drzwi bocznych", "price": 1170, "inputType": "radio", "sortOrder": 2}
@@ -1003,6 +1007,7 @@ default_sauna_prices = {
             "id": "okna",
             "name": "Okna",
             "inputType": "checkbox",
+            "displayType": "grid",
             "options": [
                 {"id": "okno_42x42", "name": "Okno otwierane 42x42 cm", "price": 420, "inputType": "checkbox", "sortOrder": 1},
                 {"id": "extra_okno_42x42", "name": "Extra Okno otwierane 42x42 cm", "price": 420, "inputType": "checkbox", "sortOrder": 2},
@@ -1016,6 +1021,7 @@ default_sauna_prices = {
             "id": "szyba_panoramiczna",
             "name": "Szyba połpanoramiczna",
             "inputType": "radio",
+            "displayType": "dropdown",
             "options": [
                 {"id": "szyba_nie", "name": "Szyba połpanoramiczna- Nie", "price": 0, "inputType": "radio", "sortOrder": 1},
                 {"id": "szyba_80x160", "name": "Szyba połpanoramiczna 80x160 cm", "price": 980, "inputType": "radio", "sortOrder": 2},
@@ -1026,6 +1032,7 @@ default_sauna_prices = {
             "id": "lawki",
             "name": "Ławki",
             "inputType": "radio",
+            "displayType": "grid",
             "options": [
                 {"id": "lawki_standard_1", "name": "Standart (1 poziom)", "price": 0, "inputType": "radio", "sortOrder": 1, "imageUrl": "https://i.imgur.com/ff4dvj5.jpeg"},
                 {"id": "lawki_standard_katowy", "name": "Standart kątowy (1 poziom)", "price": 0, "inputType": "radio", "sortOrder": 2, "imageUrl": "https://i.imgur.com/EH6e0Oe.jpeg"},
