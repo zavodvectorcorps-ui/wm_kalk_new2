@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users } from 'lucide-react';
+import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
@@ -11,7 +11,8 @@ export const Header = ({
   isAdminAuthenticated, 
   onAdminLogout,
   showNavigation = true,
-  showUsers = false
+  showUsers = false,
+  calculatorType = null
 }) => {
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,14 +20,45 @@ export const Header = ({
   const texts = {
     ru: {
       users: 'Сотрудники',
+      wmCalculator: 'WM калькулятор',
+      wmBalia: 'WM-Balia',
+      wmSauna: 'WM-Sauna',
     },
     pl: {
       users: 'Pracownicy',
+      wmCalculator: 'WM kalkulator',
+      wmBalia: 'WM-Balia',
+      wmSauna: 'WM-Sauna',
     },
   };
 
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = texts[lang];
+
+  // Determine title and icon based on calculator type
+  const getHeaderConfig = () => {
+    if (calculatorType === 'balia') {
+      return {
+        title: txt.wmBalia,
+        icon: <Waves className="h-6 w-6 text-primary" />,
+        iconBg: 'bg-primary/10',
+      };
+    } else if (calculatorType === 'sauna') {
+      return {
+        title: txt.wmSauna,
+        icon: <Flame className="h-6 w-6 text-orange-500" />,
+        iconBg: 'bg-orange-500/10',
+      };
+    } else {
+      return {
+        title: txt.wmCalculator,
+        icon: <Calculator className="h-6 w-6 text-primary" />,
+        iconBg: 'bg-primary/10',
+      };
+    }
+  };
+
+  const headerConfig = getHeaderConfig();
 
   const handleTabChange = (tab) => {
     onTabChange(tab);
