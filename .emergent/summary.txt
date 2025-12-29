@@ -1,70 +1,118 @@
 <analysis>**original_problem_statement:**
-The user initially requested to complete several features in their WM Kalkulator application, including a display type switcher, migrating sauna data to MongoDB, and enhancing order management.
+The user's initial problem statement from the previous session was to complete features in their WM Kalkulator application.
 
-During this session, the user added several new major requests:
-1.  **Backend Refactoring**: Restructure the monolithic  file into a modular architecture for better maintainability and scalability.
-2.  **UI Theming**: Redesign the buttons, switches, and other interactive elements in the Sauna Calculator to use an orange color scheme.
-3.  **Role-Based Access Control (RBAC)**: Introduce a new Наблюдатель (Observer) user role with read-only access to pricing pages but full access to the calculators to create orders.
-4.  **Admin User Management**: Allow administrators to create, edit, and assign the Observer or Employee role to users from the  admin page.
-5.  **Image Management**: Add the ability for admins to include image URLs for sauna models and options.
-6.  **Feature Enhancement**: Implement functionality to reorder categories on the sauna pricing admin page.
-7.  **Localization**: Change the application's default interface language to Polish.
-8.  **Bug Fix**: Correct a number formatting issue in the generated PDF where the total price (with a discount) used a dot instead of a space as a thousands separator.
+In this session, the user's requests evolved significantly:
+1.  **PDF Bug Fix**: The user reported that in the generated PDF, the total price section had overlapping text.
+2.  **Frontend Refactoring**: After the bug fix, the user requested a general refactoring of the frontend code to optimize it and make it work better.
+3.  **New Feature: Technical Specification Calculator**:
+    *   The user requested a new Тех.задание (Technical Specification) calculator to be accessible from the orders page.
+    *   This calculator is intended for the production team and should be more detailed, without prices.
+    *   It should open in a modal window.
+    *   It needs to pre-fill data from the existing order (client info, selected model/options).
+    *   The manager should be able to add more details and comments.
+    *   It should generate a separate PDF for the production team.
+    *   The user provided a standalone HTML/JS file and an Excel sheet as a reference for the calculator's structure and options.
+4.  **UI/UX Feedback**:
+    *   **Scrolling**: The user reported that the new tech spec modal was not scrollable.
+    *   **UI Compactness**: The user asked to make the layout of the tech spec modal more compact, as some fields took up too much vertical space.
+    *   **Data Sync**: The user requested that options selected in the main sauna calculator be automatically pre-selected when opening the tech spec modal.
+5.  **New Feature: Admin Panel for Technical Specification**: The user requested a dedicated admin page to manage the categories and options for the new Technical Specification calculator.
+6.  **New Feature: Master Categories & Layout Control**:
+    *   The user asked to introduce a higher level of hierarchy called Главные категории (Master Categories) to group the existing categories.
+    *   They also requested a layout setting for each subcategory to be displayed either full-width or in a two-column format within the modal.
+7.  **Final Bug Report**: The user reported that when a category with images (like Ławki) is set to a two-column layout, all options are rendered in the left column, leaving the right one empty.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a full-stack React/FastAPI/MongoDB solution for calculating prices for Balia and Sauna products.
+The application is a full-stack React/FastAPI/MongoDB solution for calculating and managing orders for sauna and balia products.
 
--   **Refactored Backend**: The backend has been completely refactored from a single  file into a clean, modular structure with separate directories for , , , and .
--   **Observer Role**: A new observer user role is fully implemented. Observers can view all data (including pricing pages) but cannot make any changes in the admin panels. UI elements like buttons and inputs are disabled or hidden for this role.
--   **Admin Panel Enhancements**:
-    *   The  page now allows admins to assign roles (Сотрудник or Наблюдатель).
-    *   The  now allows reordering of categories and adding/editing image URLs for both models and options, with image previews in the forms.
--   **UI/UX**:
-    *   The Sauna Calculator has been re-skinned with a consistent orange theme for all interactive elements.
-    *   The application's default language is now set to Polish (), with a language switcher in the header.
--   **Bug Fixes**: The PDF number formatting issue for discounted totals has been resolved.
+- **PDF Generation Fix**: The PDF text overlapping issue has been resolved and verified by the user.
+- **Refactored Pricing Page**: The monolithic  component has been successfully refactored into smaller, manageable components and a custom hook, all located in .
+- **Technical Specification Feature**:
+    - A new Тех.Задание (Technical Specification) feature is fully implemented.
+    - A button on the  opens a modal () which loads order data.
+    - The modal allows production-specific details to be added.
+    - Backend endpoints exist to save the tech spec data to the order document and generate a dedicated PDF.
+- **Tech Spec Admin Panel**:
+    - A full admin page () has been created to manage the technical specification options.
+    - It supports a three-tier hierarchy: **Master Categories → Subcategories → Options**.
+    - Admins can create, edit, delete, and reorder all three levels.
+    - Subcategories have a Display Width setting (full-width or two-column).
+- **Data Persistence**: The technical specification configuration (categories, options) is now stored in a  collection in MongoDB, initialized from  if empty.
 
 **Last working item**:
--   **Last item agent was working**: Fixing a PDF generation bug where the total amount after a discount was formatted incorrectly (e.g.,  instead of ). The agent identified the issue in  and corrected the number-to-string formatting logic.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y (Agent tested the fix by generating a new PDF via  and confirmed the format was correct with a Python script and a UI test.)
--   **Which testing method agent to use?**: Manual testing by user. The user should generate a PDF for an order with a discount and verify that the Suma po rabacie (Total after discount) is formatted with a space as the thousands separator.
+-   **Last item agent was working**: Fixing a layout bug in the  component. When a category containing images is configured for a two-column display, all its options are incorrectly rendered in a single vertical column instead of a grid across both columns.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: Frontend testing agent or the screenshot tool to verify the grid layout of options within the two-column category.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Verify PDF Formatting Fix (P0)**
-    -   **Description**: The user needs to confirm that the fix for the total price formatting in the PDF is working as expected.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: N
-    -   **Should Test**: Backend (PDF generation).
+-   **Issue 1: Two-column layout bug for image options (P0)**
+-   **Issue 2: Verify data sync from calculator to tech spec modal (P1)**
+-   **Issue 3: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
 
--   **Issue 2: Minor Dropdown Positioning Glitch (P2)**
-    -   **Description**: In  (used by the Balia calculator), a  dropdown was reported to be misaligned on one occasion. This is a low-priority UI polish item inherited from the previous session.
+**Issues Detail:**
+-   **Issue 1: Two-column layout bug for image options (P0)**
+    -   **Attempted fixes**: The agent was about to start fixing this. The issue was introduced after implementing the  feature.
+    -   **Next debug checklist**:
+        1.  Inspect .
+        2.  Locate the rendering logic for categories with .
+        3.  The container for the options within that category needs to be a grid ( or similar) instead of a flexbox or block-level element.
+    -   **Why fix this issue and what will be achieved with the fix?**: To correctly implement the user-requested two-column layout, improving the UI/UX of the tech spec modal.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: None.
+
+-   **Issue 2: Verify data sync from calculator to tech spec modal (P1)**
+    -   **Description**: The logic to pre-select options in the  based on the parent order was implemented. However, it was never tested end-to-end by creating a new order with selections and then opening the modal.
+    -   **Next debug checklist**:
+        1.  Go to the Sauna Calculator.
+        2.  Select a model and several options from different categories.
+        3.  Create an order.
+        4.  Go to the Orders page.
+        5.  Open the Тех.Задание modal for the newly created order.
+        6.  Verify that the options selected in step 2 are pre-filled in the modal.
+    -   **Why fix this issue and what will be achieved with this?**: This is a core requirement of the tech spec feature and is crucial for user workflow efficiency.
+    -   **Status**: TESTING PENDING
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: None.
+
+-   **Issue 3: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
+    -   **Description**: Inherited from a previous session. In  (used by the Balia calculator), a  dropdown was reported to be misaligned on one occasion. This is a low-priority UI polish item.
+    -   **Next debug checklist**: Inspect styling and positioning of  in .
+    -   **Why fix this issue and what will be achieved with this?**: Minor UI polish for the Balia calculator.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: N
-    -   **Should Test**: Frontend.
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: None.
 
 **In progress Task List**:
 -   None.
 
 **Upcoming and Future Tasks**
--   There are no outstanding feature requests. The next agent should await user verification on the PDF fix and then ask for new tasks.
+-   **Future Task: Refactor  (P2)**
+    -   The agent identified  (over 1000 lines) as a candidate for refactoring, similar to what was done for . This was part of the user's general optimization request but was deferred.
 
 **Completed work in this session**
--   **Backend Refactoring**: Successfully refactored the entire backend from a single  file into a modular structure located in , , and .
--   **Feature**: Implemented a new Observer user role with read-only permissions for admin pages.
--   **Feature**: Added functionality to the  page for admins to create/edit users and assign roles.
--   **Feature**: Added the ability to add/edit image URLs for sauna models and options in .
--   **Feature**: Implemented category reordering (up/down arrows) in .
--   **UI**: Re-skinned the  with a custom orange theme for all interactive components.
--   **Localization**: Set the default application language to Polish.
--   **Bug Fix**: Corrected the number formatting for the total discounted price in the generated PDF.
+-   **Bug Fix**: Fixed and verified the PDF text-overlapping issue in .
+-   **Refactoring**: Refactored the 1200+ line  into 7 smaller components and a custom hook, located in .
+-   **Feature**: Implemented the Technical Specification feature, including:
+    -   A new modal component .
+    -   Backend API endpoints in  to save data and generate PDFs.
+    -   Integration into the .
+-   **Bug Fix**: Fixed a scrolling issue within the .
+-   **UI/UX**: Improved the layout of  to be more compact.
+-   **Feature**: Implemented a complete admin panel () for the technical specification.
+-   **Feature**: Enhanced the tech spec model and UI to support **Master Categories** and per-category layout widths (full vs. half).
+-   **Backend**: Created new data models (), API routes (), and default data ().
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Minor Dropdown Positioning Glitch**
-    -   **Debug checklist**: Inspect the styling and positioning of the  component in .
+    -   **Debug checklist**: Inspect the styling of the  component in .
     -   **Why to solve this issue and what will be achieved with this?**: Minor UI polish for the Balia calculator.
     -   **Should Test frontend/backend/both after fix**: frontend
     -   **Is recurring issue?**: N
@@ -76,83 +124,85 @@ The application is a full-stack React/FastAPI/MongoDB solution for calculating p
 
 
 **Key Technical Concepts**
--   **Frontend**: React, React Router, Tailwind CSS, shadcn/ui, .
--   **Backend**: Python, FastAPI, Pydantic, . Modular architecture with separated concerns (routes, services).
--   **Database**: MongoDB.
--   **State Management & Auth**: React Context () for managing user session and roles (, ).
+- **Frontend**: React, React Hooks (useState, useEffect, useCallback), Custom Hooks, React Context, Tailwind CSS, shadcn/ui, . The agent used CSS Grid () and Flexbox for layout control.
+- **Backend**: Python, FastAPI, Pydantic,  for PDF generation. The modular architecture was extended with new routes and models.
+- **Database**: MongoDB. A new  collection was added to store dynamic configuration. Order documents in the  collection were updated to potentially include a  field.
 
 **key DB schema**
--   ****:
-    -   uid=0(root) gid=0(root) groups=0(root): 
-    -   : 
-    -   :  ('admin', 'employee', or 'observer') (NEW)
-    -   : 
+- ****:
+    - Existing schema...
+    - :  (Optional, contains the saved selections from the technical specification modal)
+- **** (Singleton document):
+    - : 
+    - : 
+    - : 
+    - : 
+    - : 
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   **Backend (Refactored)**:
-    -    (rewritten as an entry point).
-    -   , , : Contain all API endpoints.
-    -   : Handles user creation and password logic.
-    -   : Pydantic models for authentication.
--   **Frontend (Modified for RBAC, UI, and features)**:
-    -   : Added ,  helpers.
-    -   : Major overhaul to support role management.
-    -   : Major overhaul for RBAC, image URLs, and category reordering.
-    -   : Updated for RBAC.
-    -   , : Updated routing and navigation based on user role.
-    -   : Default language changed to .
--   **Frontend (New UI Components)**:
-    -   
-    -   
-    -   
-    -   
+-   **Backend (New/Modified)**:
+    -   : Modified to add  endpoints.
+    -   : **New file** for the tech spec admin API.
+    -   : **New file** defining Pydantic models for tech spec.
+    -   : **New file** holding the default structure for master categories, subcategories, and options.
+    -   : Modified to include the new .
+-   **Frontend (New/Modified)**:
+    -   : **New file**, heavily modified to add scrolling, compact layout, and master category grouping.
+    -   : **New file**, completely rewritten to support the three-tier hierarchy.
+    -   : Modified to handle the opening of the .
+    -    & : Modified to add navigation for the new admin page.
+    -   : Overwritten to act as a container for the refactored tab components.
+    -   : All **new files** from the refactoring effort.
 
 **Areas that need refactoring**:
--   The component  is now over 1200 lines long and handles logic for three separate tabs (Models, Categories, Options) as well as multiple dialogs. It should be broken down into smaller, more focused components to improve readability and maintainability.
--   Similarly,  and  are large and could benefit from component extraction.
+-    is still a large component (over 1000 lines) and could be broken down into smaller, more focused components and a custom hook, as was done for .
 
 **key api endpoints**
--   The API endpoints remain the same, but their implementation has moved from  to the respective files in .
--   : Updated to handle  changes.
--   : Updated to accept  on creation.
+-   : Saves the technical specification data for an order.
+-   : Generates a PDF for the technical specification.
+-   : Retrieves the entire tech spec configuration (master categories, categories, options).
+-   : Saves the entire tech spec configuration.
+-   CRUD endpoints for master categories: , , .
+-   CRUD endpoints for categories: , , .
+-   CRUD endpoints for options: , , .
 
 **Critical Info for New Agent**
 -   **The user's language is Russian. All communication MUST be in Russian.**
--   The backend is now modular. Do not look for endpoint logic in the root ; check the  directory.
--   The new Observer role is key to the access control system. Use the  hook (specifically  and ) to implement any future permission-based UI changes.
--   The default language of the app is Polish (). Keep this in mind when testing UI text.
--   Your first action should be to confirm with the user if the PDF formatting fix is working correctly before proposing new tasks.
+-   The immediate task is to fix the two-column layout bug for categories with images in . The options should render in a grid, not a single column.
+-   The Tech Spec configuration is now managed in a dedicated admin panel and stored in MongoDB. To reset to defaults, the  document must be deleted from the  database.
+-   A crucial but unverified piece of functionality is the pre-filling of options from an order into the tech spec modal. This needs to be tested end-to-end.
 
 **documents and test reports created in this job**
--   : A test PDF generated to verify the discount formatting fix.
+-   
+-   Numerous temporary PDFs were generated in  to test fixes, such as  and .
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Fixes the total amount formatting in the PDF when a discount is applied. (Status: Fix Implemented, Verification Pending)
-2.  **User**: Set the default interface language to Polish. (Status: Completed)
-3.  **User**: Make it possible to move categories in the sauna admin page. (Status: Completed)
-4.  **User**: Add the ability to add/edit image URLs for sauna models and options, using a URL link. (Status: Completed)
-5.  **User**: Allow the Observer role to be assigned to employees from the admin panel. (Status: Completed)
-6.  **User**: Add a new Observer user with read-only permissions. (Status: Completed)
-7.  **User**: Redesign the sauna calculator with orange-themed buttons and controls. (Status: Completed)
-8.  **User**: Agreed to refactor the backend. (Status: Completed)
-9.  **User**: Confirmed the previous quantity feature was working and asked if refactoring was needed. (Status: Acknowledged)
-10. **(Previous Session)**: The quantity must be specified in the PDF file. (Status: Completed and verified by user in this session)
+1.  **User**: Reports a layout bug where a two-column category with images renders all items vertically in one column. (Status: **In Progress**)
+2.  **User**: Requests a Master Category hierarchy and layout control (full-width vs. two-column) for the tech spec. (Status: Completed)
+3.  **User**: Requests that the tech spec modal be more compact and that it pre-selects options from the original order. (Status: Completed, but data sync needs verification)
+4.  **User**: Requests an admin panel for the new technical specification feature. (Status: Completed)
+5.  **User**: Reports that the tech spec modal is not scrollable. (Status: Completed)
+6.  **User**: Requests the Technical Specification calculator feature, providing HTML/Excel examples. (Status: Completed)
+7.  **User**: Asks for general code refactoring and optimization. (Status: Partially Completed -  was refactored)
+8.  **User**: Confirms the PDF text overlap bug is fixed. (Status: Resolved)
+9.  **User**: Reports that the PDF text is still overlapping and provides a sample file. (Status: Addressed and fixed)
+10. **User**: Confirms a previous task was completed and asks about refactoring.
 
 **Project Health Check:**
--   **Working**: All core application features, including the newly refactored backend, RBAC system, UI theming, and admin enhancements.
--   **Broken**: None.
--   **Mocked/Incomplete**: The PDF formatting fix is implemented but awaits final user verification.
+-   **Working**: The application is fully functional. All major features, including the new tech spec admin and modal, are implemented.
+-   **Broken**: No core functionality is broken. There is a minor visual layout bug in the .
+-   **Mocked/Incomplete**: None.
 
 **3rd Party Integrations**
 -   None.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. Used for testing the backend refactoring and the image URL feature.
+-   **Testing agent used after significant changes**: YES. The backend testing agent was used to validate the new  endpoints.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**:  was updated/used for testing the refactored backend.
+-   **Test files created**: 
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
@@ -160,4 +210,5 @@ The application is a full-stack React/FastAPI/MongoDB solution for calculating p
 -   **Observer**:  / 
 
 **What agent forgot to execute**
--   The agent did not address the low-priority Minor Dropdown Positioning Glitch in the Balia calculator, which was carried over from the previous session's summary. This was likely deprioritized in favor of the user's numerous new feature requests.</analysis>
+-   The agent did not refactor , which was identified as a large component during the refactoring analysis.
+-   The agent implemented the logic for synchronizing selected options from the main calculator to the tech spec modal but did not perform an end-to-end test to verify it works.</analysis>
