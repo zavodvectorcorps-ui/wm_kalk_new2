@@ -257,17 +257,21 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                         </TableCell>
                       )}
                       {isSauna && (
-                        <TableCell>
+                        <TableCell className="text-center">
                           {order.discountPercent > 0 ? (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                              <Percent className="h-3 w-3 mr-1" />
-                              {txt.discount} {order.discountPercent}%
-                            </Badge>
+                            <div 
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-600" 
+                              title={`${txt.discount} ${order.discountPercent}%`}
+                            >
+                              <Percent className="h-4 w-4" />
+                            </div>
                           ) : (
-                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                              <Gift className="h-3 w-3 mr-1" />
-                              {txt.gift}
-                            </Badge>
+                            <div 
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-600" 
+                              title={txt.gift}
+                            >
+                              <Gift className="h-4 w-4" />
+                            </div>
                           )}
                         </TableCell>
                       )}
