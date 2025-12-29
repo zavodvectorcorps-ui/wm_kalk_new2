@@ -178,7 +178,8 @@ export const UserManagement = () => {
     try {
       const updateData = {
         username: formData.username,
-        access: formData.access
+        access: formData.access,
+        role: formData.role
       };
       if (formData.password) {
         updateData.password = formData.password;
@@ -197,7 +198,7 @@ export const UserManagement = () => {
         toast.success(txt.userUpdated);
         setIsEditDialogOpen(false);
         setSelectedUser(null);
-        setFormData({ username: '', password: '', access: 'balia' });
+        setFormData({ username: '', password: '', access: 'all', role: 'employee' });
         fetchUsers();
       } else {
         const error = await response.json();
