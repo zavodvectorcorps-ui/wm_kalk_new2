@@ -237,7 +237,7 @@ export const UserManagement = () => {
 
   const openEditDialog = (user) => {
     setSelectedUser(user);
-    setFormData({ username: user.username, password: '', access: user.access });
+    setFormData({ username: user.username, password: '', access: user.access, role: user.role });
     setIsEditDialogOpen(true);
   };
 
