@@ -676,48 +676,24 @@ export const SaunaPricingPage = () => {
                       </div>
                       
                       <div className="flex gap-2">
-                        {editingModel?.id === model.id ? (
+                        {canEdit() && (
                           <>
-                            <Input
-                              type="number"
-                              value={editingModel.basePrice}
-                              onChange={(e) => setEditingModel(prev => ({ ...prev, basePrice: parseInt(e.target.value) || 0 }))}
-                              className="w-24"
-                            />
-                            <Input
-                              type="number"
-                              value={editingModel.discount}
-                              onChange={(e) => setEditingModel(prev => ({ ...prev, discount: parseInt(e.target.value) || 0 }))}
-                              className="w-16"
-                              placeholder="%"
-                            />
-                            <Button size="sm" onClick={handleSaveEditModel}>
-                              <Save className="h-4 w-4" />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditModel(model)}
+                            >
+                              <Edit2 className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => setEditingModel(null)}>
-                              <X className="h-4 w-4" />
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteModel(model.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
-                        ) : (
-                          <>
-                            {canEdit() && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditModel(model)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleDeleteModel(model.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
+                        )}
                           </>
                         )}
                       </div>
