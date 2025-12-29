@@ -678,13 +678,14 @@ export const SaunaPricingPage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{txt.categories}</CardTitle>
-              <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    {txt.addCategory}
-                  </Button>
-                </DialogTrigger>
+              {canEdit() && (
+                <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="bg-amber-600 hover:bg-amber-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      {txt.addCategory}
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>{txt.addCategory}</DialogTitle>
