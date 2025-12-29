@@ -107,16 +107,23 @@ class Order(BaseModel):
     phoneNumber: str
     fullAddress: str
     orderDate: str
-    shellModel: str
-    woodType: str
-    shellColor: str
-    lidType: str
-    woodColor: str
-    sandFilter: str = "none"
-    features: Dict[str, bool] = {}
+    modelId: Optional[str] = None
+    modelName: Optional[str] = None
+    modelPrice: Optional[float] = 0.0
+    selections: Optional[Dict[str, Any]] = {}
+    selectedOptions: Optional[List[Dict[str, Any]]] = []
     notes: str = ""
     total: float = 0.0
+    currency: str = "EUR"
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Legacy fields for backward compatibility
+    shellModel: Optional[str] = None
+    woodType: Optional[str] = None
+    shellColor: Optional[str] = None
+    lidType: Optional[str] = None
+    woodColor: Optional[str] = None
+    sandFilter: Optional[str] = "none"
+    features: Optional[Dict[str, bool]] = {}
 
 
 class PDFRequest(BaseModel):
