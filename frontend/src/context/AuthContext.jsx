@@ -84,6 +84,9 @@ export const AuthProvider = ({ children }) => {
   const isObserver = () => user?.role === 'observer';
   
   const canEdit = () => user?.role === 'admin' || user?.role === 'employee';
+  
+  // Can view pricing pages (admin and observer)
+  const canViewPricing = () => user?.role === 'admin' || user?.role === 'observer';
 
   const hasAccess = (calculator) => {
     if (!user) return false;
@@ -102,6 +105,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin,
     isObserver,
     canEdit,
+    canViewPricing,
     hasAccess,
     isAuthenticated: !!user
   };
