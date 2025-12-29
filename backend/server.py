@@ -576,6 +576,15 @@ async def get_orders():
     orders = await db.orders.find({}, {"_id": 0}).to_list(1000)
     return orders
 
+
+@api_router.delete("/orders/{order_id}")
+async def delete_order(order_id: str):
+    """Delete an order"""
+    result = await db.orders.delete_one({"id": order_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return {"message": "Order deleted successfully"}
+
 @api_router.post("/generate-pdf")
 async def generate_pdf(request: PDFRequest):
     """Generate PDF order form"""
