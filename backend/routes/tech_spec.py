@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 import logging
 
 from database import db
-from models.tech_spec import TechSpecCategory, TechSpecOption, TechSpecData
+from models.tech_spec import TechSpecCategory, TechSpecOption, TechSpecData, TechSpecMasterCategory
 from data.tech_spec_defaults import default_tech_spec_data
 
 logger = logging.getLogger(__name__)
@@ -32,6 +32,116 @@ async def update_tech_spec_categories(data: TechSpecData):
         upsert=True
     )
     return {"message": "Tech spec categories updated successfully"}
+
+
+# =============================================
+# MASTER CATEGORY CRUD
+# =============================================
+@router.get("/master-categories")
+async def get_master_categories():
+    """Get all master categories"""
+    data = await db.tech_spec_config.find_one({"_id": "default"})
+    if not data:
+        await db.tech_spec_config.insert_one({"_id": "default", **default_tech_spec_data})
+        data = default_tech_spec_data.copy()
+    
+    return data.get("masterCategories", [])
+
+
+@router.post("/master-category")
+async def add_master_category(master_category: TechSpecMasterCategory):
+    """Add a new master category"""
+    data = await db.tech_spec_config.find_one({"_id": "default"})
+    if not data:
+        await db.tech_spec_config.insert_one({"_id": "default", **default_tech_spec_data})
+        data = default_tech_spec_data.copy()
+    
+    master_categories = data.get("masterCategories", [])
+    if any(mc["id"] == master_category.id for mc in master_categories):
+        raise HTTPException(status_code=400, detail="Master category with this ID already exists")
+    
+    master_categories.append(master_category.model_dump())
+    await db.tech_spec_config.update_one(
+        {"_id": "default"},
+        {"$set": {"masterCategories": master_categories}}
+    )
+    return {"message": "Master category added successfully", "masterCategory": master_category}
+
+
+@router.put("/master-category/{master_category_id}")
+async def update_master_category(master_category_id: str, master_category: TechSpecMasterCategory):
+    """Update an existing master category"""
+    data = await db.tech_spec_config.find_one({"_id": "default"})
+    if not data:
+        raise HTTPException(status_code=404, detail="Config not found")
+    
+    master_categories = data.get("masterCategories", [])
+    mc_index = next((i for i, mc in enumerate(master_categories) if mc["id"] == master_category_id), None)
+    
+    if mc_index is None:
+        raise HTTPException(status_code=404, detail="Master category not found")
+    
+    master_categories[mc_index] = master_category.model_dump()
+    await db.tech_spec_config.update_one(
+        {"_id": "default"},
+        {"$set": {"masterCategories": master_categories}}
+    )
+    return {"message": "Master category updated successfully", "masterCategory": master_category}
+
+
+@router.delete("/master-category/{master_category_id}")
+async def delete_master_category(master_category_id: str):
+    """Delete a master category"""
+    data = await db.tech_spec_config.find_one({"_id": "default"})
+    if not data:
+        raise HTTPException(status_code=404, detail="Config not found")
+    
+    master_categories = data.get("masterCategories", [])
+    new_master_categories = [mc for mc in master_categories if mc["id"] != master_category_id]
+    
+    if len(new_master_categories) == len(master_categories):
+        raise HTTPException(status_code=404, detail="Master category not found")
+    
+    # Also remove masterCategoryId from categories
+    categories = data.get("categories", [])
+    for cat in categories:
+        if cat.get("masterCategoryId") == master_category_id:
+            cat["masterCategoryId"] = None
+    
+    await db.tech_spec_config.update_one(
+        {"_id": "default"},
+        {"$set": {"masterCategories": new_master_categories, "categories": categories}}
+    )
+    return {"message": "Master category deleted successfully"}
+
+
+@router.post("/master-category/{master_category_id}/move")
+async def move_master_category(master_category_id: str, direction: str):
+    """Move master category up or down"""
+    data = await db.tech_spec_config.find_one({"_id": "default"})
+    if not data:
+        raise HTTPException(status_code=404, detail="Config not found")
+    
+    master_categories = data.get("masterCategories", [])
+    mc_index = next((i for i, mc in enumerate(master_categories) if mc["id"] == master_category_id), None)
+    
+    if mc_index is None:
+        raise HTTPException(status_code=404, detail="Master category not found")
+    
+    if direction == "up" and mc_index > 0:
+        master_categories[mc_index], master_categories[mc_index - 1] = master_categories[mc_index - 1], master_categories[mc_index]
+    elif direction == "down" and mc_index < len(master_categories) - 1:
+        master_categories[mc_index], master_categories[mc_index + 1] = master_categories[mc_index + 1], master_categories[mc_index]
+    
+    # Update sort orders
+    for i, mc in enumerate(master_categories):
+        mc["sortOrder"] = i + 1
+    
+    await db.tech_spec_config.update_one(
+        {"_id": "default"},
+        {"$set": {"masterCategories": master_categories}}
+    )
+    return {"message": "Master category moved successfully"}
 
 
 # =============================================
