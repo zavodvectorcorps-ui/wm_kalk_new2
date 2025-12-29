@@ -641,6 +641,7 @@ export const SaunaCalculator = () => {
           {/* Option Categories */}
           {prices.categories?.map((category) => {
             const Icon = categoryIcons[category.name] || Package;
+            const isDropdownView = category.displayType === 'dropdown';
             
             return (
               <Card key={category.id} className="shadow-md">
@@ -652,6 +653,7 @@ export const SaunaCalculator = () => {
                 </CardHeader>
                 <CardContent className="pt-4">
                   {category.inputType === 'checkbox' ? (
+                    // Checkbox type - always show as grid/tiles (checkboxes don't work well in dropdowns)
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {category.options?.map((option) => {
                         const isChecked = formData.selections[category.id]?.[option.id] || false;
@@ -694,7 +696,33 @@ export const SaunaCalculator = () => {
                         );
                       })}
                     </div>
+                  ) : isDropdownView ? (
+                    // Dropdown/List View for Radio type
+                    <Select
+                      value={formData.selections[category.id] || ''}
+                      onValueChange={(value) => handleRadioChange(category.id, value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={getCategoryName(category)} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {category.options?.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            <div className="flex items-center gap-2">
+                              {option.imageUrl && (
+                                <img src={option.imageUrl} alt={option.name} className="w-8 h-6 object-cover rounded" />
+                              )}
+                              <span>{option.name}</span>
+                              <span className="text-amber-700 font-medium ml-2">
+                                {option.price > 0 ? `+${option.price.toLocaleString('pl-PL')} PLN` : txt.gratis}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
+                    // Grid/Tile View for Radio type (default)
                     <RadioGroup
                       value={formData.selections[category.id] || ''}
                       onValueChange={(value) => handleRadioChange(category.id, value)}
