@@ -269,16 +269,16 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-amber-800">
             <FileText className="h-5 w-5" />
             Techniczne zestawienie sauny
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+          <div className="space-y-4 pb-4">
             {/* Order Info Header */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <h3 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
