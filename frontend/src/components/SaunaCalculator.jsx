@@ -53,6 +53,7 @@ export const SaunaCalculator = () => {
     orderDate: new Date().toISOString().split('T')[0],
     selectedModel: '',
     selections: {},
+    quantities: {},  // Store quantity for options with hasQuantity: true
     notes: '',
   });
 
