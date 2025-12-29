@@ -68,3 +68,16 @@ async def init_admin_user():
             "createdAt": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(admin_user)
+    
+    # Initialize observer user if not exists
+    observer = await db.users.find_one({"role": "observer"})
+    if not observer:
+        observer_user = {
+            "id": str(uuid.uuid4()),
+            "username": "Наблюдатель",
+            "password": hash_password("observer123"),
+            "role": "observer",
+            "access": "all",
+            "createdAt": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(observer_user)
