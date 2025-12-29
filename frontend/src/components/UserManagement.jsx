@@ -43,7 +43,7 @@ export const UserManagement = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [formData, setFormData] = useState({ username: '', password: '', access: 'balia' });
+  const [formData, setFormData] = useState({ username: '', password: '', access: 'all', role: 'employee' });
 
   const texts = {
     ru: {
