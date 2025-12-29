@@ -42,6 +42,7 @@ class CategoryOption(BaseModel):
     nameRu: Optional[str] = ""
     namePl: Optional[str] = ""
     price: float
+    imageUrl: Optional[str] = ""
     applicableTo: Optional[str] = None
     sortOrder: int
 
@@ -53,7 +54,7 @@ class BaliaCategory(BaseModel):
     namePl: Optional[str] = ""
     imageUrl: str = ""
     inputType: str
-    displayType: str
+    displayType: str = "list"  # "list" | "tiles"
     sortOrder: int
     options: List[CategoryOption]
 
