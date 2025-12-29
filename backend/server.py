@@ -41,7 +41,7 @@ api_router = APIRouter(prefix="/api")
 JWT_SECRET = os.environ.get('JWT_SECRET', 'balia-calculator-secret-key-159357')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
-ADMIN_PASSWORD = "159357"
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '159357')
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
