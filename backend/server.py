@@ -1686,6 +1686,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     
     # ========== OPTIONS SECTION (Two columns) ==========
     options_items = []
+    quantities = getattr(request, 'quantities', {}) or {}
+    
     for category in request.categories:
         cat_id = category.get('id', '')
         selection = request.selections.get(cat_id)
@@ -1699,14 +1701,32 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     opt = next((o for o in category.get('options', []) if o.get('id') == opt_id), None)
                     if opt:
                         price = opt.get('price', 0)
-                        price_str = f"{price:,} PLN".replace(',', ' ') if price > 0 else '0 PLN'
-                        options_items.append({'name': opt.get('name', ''), 'price': price_str})
+                        has_quantity = opt.get('hasQuantity', False)
+                        quantity = quantities.get(opt_id, 1) if has_quantity else 1
+                        total_price = price * quantity
+                        
+                        # Format name with quantity
+                        name = opt.get('name', '')
+                        if has_quantity and quantity > 1:
+                            name = f"{name} (×{quantity})"
+                        
+                        price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
+                        options_items.append({'name': name, 'price': price_str})
         else:
             opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
             if opt:
                 price = opt.get('price', 0)
-                price_str = f"{price:,} PLN".replace(',', ' ') if price > 0 else '0 PLN'
-                options_items.append({'name': opt.get('name', ''), 'price': price_str})
+                has_quantity = opt.get('hasQuantity', False)
+                quantity = quantities.get(selection, 1) if has_quantity else 1
+                total_price = price * quantity
+                
+                # Format name with quantity
+                name = opt.get('name', '')
+                if has_quantity and quantity > 1:
+                    name = f"{name} (×{quantity})"
+                
+                price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
+                options_items.append({'name': name, 'price': price_str})
     
     if options_items:
         elements.append(Paragraph('DODATKOWE OPCJE', section_title_style))
