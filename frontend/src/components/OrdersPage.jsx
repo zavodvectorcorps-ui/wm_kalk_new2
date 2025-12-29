@@ -187,6 +187,7 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                     <TableHead>{t('orderNumber')}</TableHead>
                     <TableHead>{t('customer')}</TableHead>
                     {isSauna && <TableHead>Model</TableHead>}
+                    {isSauna && <TableHead>{txt.promo}</TableHead>}
                     <TableHead>{t('date')}</TableHead>
                     <TableHead className="text-right">{t('total')}</TableHead>
                     <TableHead className="text-right">{t('actions')}</TableHead>
