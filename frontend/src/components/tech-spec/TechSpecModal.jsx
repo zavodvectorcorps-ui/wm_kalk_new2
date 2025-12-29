@@ -438,10 +438,53 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
               />
             </div>
 
-            {/* Technical Options */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {categories.map(renderCategory)}
-            </div>
+            {/* Technical Options - Grouped by Master Categories */}
+            {masterCategories.map(master => {
+              const masterCats = categories.filter(c => c.masterCategoryId === master.id);
+              if (masterCats.length === 0) return null;
+              
+              return (
+                <div key={master.id} className="space-y-2">
+                  <h3 className="font-bold text-amber-700 text-sm border-b border-amber-200 pb-1">
+                    {master.name}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {masterCats.map(category => (
+                      <div 
+                        key={category.id} 
+                        className={category.displayWidth === 'full' ? 'md:col-span-2' : ''}
+                      >
+                        {renderCategory(category)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Categories without master */}
+            {(() => {
+              const unassignedCats = categories.filter(c => !c.masterCategoryId);
+              if (unassignedCats.length === 0) return null;
+              
+              return (
+                <div className="space-y-2">
+                  <h3 className="font-bold text-amber-700 text-sm border-b border-amber-200 pb-1">
+                    Прочее
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {unassignedCats.map(category => (
+                      <div 
+                        key={category.id} 
+                        className={category.displayWidth === 'full' ? 'md:col-span-2' : ''}
+                      >
+                        {renderCategory(category)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
