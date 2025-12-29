@@ -12,6 +12,7 @@ default_balia_prices = {
             "shape": "round",
             "size": "200",
             "heaterType": "external",
+            "imageUrl": "",
             "specs": {
                 "outerDiameter": 200,
                 "innerDiameter": 185,
@@ -34,6 +35,7 @@ default_balia_prices = {
             "shape": "round",
             "size": "225",
             "heaterType": "external",
+            "imageUrl": "",
             "specs": {
                 "outerDiameter": 225,
                 "innerDiameter": 204,
@@ -56,6 +58,7 @@ default_balia_prices = {
             "shape": "round",
             "size": "200",
             "heaterType": "integrated",
+            "imageUrl": "",
             "specs": {
                 "outerDiameter": 200,
                 "innerDiameter": 185,
@@ -78,6 +81,7 @@ default_balia_prices = {
             "shape": "round",
             "size": "225",
             "heaterType": "integrated",
+            "imageUrl": "",
             "specs": {
                 "outerDiameter": 225,
                 "innerDiameter": 204,
@@ -100,6 +104,7 @@ default_balia_prices = {
             "shape": "square",
             "size": "230x230",
             "heaterType": "integrated",
+            "imageUrl": "",
             "specs": {
                 "outerWidth": 230,
                 "outerLength": 230,
