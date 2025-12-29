@@ -1,41 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CustomerInfoForm } from './CustomerInfoForm';
-import { DynamicCategorySection } from './DynamicCategorySection';
-import { NotesSection } from './NotesSection';
-import { OrderSummary } from './OrderSummary';
 import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Checkbox } from './ui/checkbox';
+import { Badge } from './ui/badge';
 import { toast } from 'sonner';
-import { FileDown, Save, RotateCcw, Loader2 } from 'lucide-react';
+import { FileDown, Save, RotateCcw, Loader2, Droplets, Check } from 'lucide-react';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export const CalculatorPage = () => {
-  const { t, i18n } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [prices, setPrices] = useState({
-    shellModels: {},
-    woodTypes: {},
-    shellColors: {},
-    lidTypes: {},
-    woodColors: {},
-    features: {},
-    displayTypes: {},
-    categories: {},
-    optionCategories: {},
-    optionLabels: {},
-  });
+  const { i18n } = useTranslation();
+  const lang = i18n.language === 'pl' ? 'pl' : 'ru';
+  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [prices, setPrices] = useState({ models: [], categories: [], currency: 'EUR', currencySymbol: '€' });
   
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
     fullAddress: '',
     orderDate: new Date().toISOString().split('T')[0],
-    // Dynamic selections will be stored here
+    selectedModel: '',
     selections: {},
     notes: '',
   });
+
+  const texts = {
+    ru: {
+      title: 'Калькулятор купелей',
+      selectModel: 'Выберите модель',
+      modelInfo: 'Характеристики модели',
+      outerDiameter: 'Внешний диаметр',
+      innerDiameter: 'Внутренний диаметр',
+      depth: 'Глубина',
+      heaterPower: 'Мощность печи',
+      waterCapacity: 'Объём воды',
+      options: 'Опции',
+      notes: 'Примечания',
+      notesPlaceholder: 'Дополнительные пожелания...',
+      total: 'ИТОГО',
+      basePrice: 'Базовая цена',
+      optionsPrice: 'Опции',
+      save: 'Сохранить заказ',
+      generatePdf: 'Скачать PDF',
+      clear: 'Очистить',
+      saved: 'Заказ сохранён!',
+      error: 'Ошибка',
+      fillRequired: 'Заполните имя и выберите модель',
+      included: 'Включено в комплект',
+      externalHeater: 'Внешняя печь',
+      integratedHeater: 'Встроенная печь',
+    },
+    pl: {
+      title: 'Kalkulator bali',
+      selectModel: 'Wybierz model',
+      modelInfo: 'Specyfikacja modelu',
+      outerDiameter: 'Średnica zewnętrzna',
+      innerDiameter: 'Średnica wewnętrzna',
+      depth: 'Głębokość',
+      heaterPower: 'Moc pieca',
+      waterCapacity: 'Pojemność wody',
+      options: 'Opcje',
+      notes: 'Uwagi',
+      notesPlaceholder: 'Dodatkowe życzenia...',
+      total: 'SUMA',
+      basePrice: 'Cena bazowa',
+      optionsPrice: 'Opcje',
+      save: 'Zapisz zamówienie',
+      generatePdf: 'Pobierz PDF',
+      clear: 'Wyczyść',
+      saved: 'Zamówienie zapisane!',
+      error: 'Błąd',
+      fillRequired: 'Wypełnij imię i wybierz model',
+      included: 'W zestawie',
+      externalHeater: 'Piec zewnętrzny',
+      integratedHeater: 'Piec zintegrowany',
+    }
+  };
+  const txt = texts[lang];
 
   useEffect(() => {
     fetchPrices();
@@ -46,306 +96,407 @@ export const CalculatorPage = () => {
       const response = await axios.get(`${API_URL}/api/prices`);
       setPrices(response.data);
       
-      // Initialize selections with empty values for each category
-      const categories = response.data.categories || {};
+      // Initialize selections
+      const categories = response.data.categories || [];
       const initialSelections = {};
-      Object.keys(categories).forEach(catId => {
-        const category = categories[catId];
-        if (category.displayType === 'checkbox') {
-          initialSelections[catId] = {}; // Object for multiple checkboxes
+      categories.forEach(cat => {
+        if (cat.inputType === 'checkbox') {
+          initialSelections[cat.id] = {};
         } else {
-          initialSelections[catId] = ''; // Single value for dropdown
+          // Set first option as default for dropdowns
+          const firstOption = cat.options?.[0];
+          initialSelections[cat.id] = firstOption?.id || '';
         }
       });
       
-      setFormData(prev => ({
-        ...prev,
-        selections: initialSelections,
-      }));
+      setFormData(prev => ({ ...prev, selections: initialSelections }));
     } catch (error) {
       console.error('Error fetching prices:', error);
-      toast.error(t('error'));
-    }
-  };
-
-  const calculateTotal = () => {
-    let total = 0;
-    const categories = prices.categories || {};
-
-    Object.keys(categories).forEach(categoryId => {
-      const categoryOptions = prices[categoryId] || {};
-      const selection = formData.selections[categoryId];
-      
-      if (typeof selection === 'object') {
-        // Checkbox category - sum up all selected options
-        Object.entries(selection).forEach(([key, isSelected]) => {
-          if (isSelected && categoryOptions[key]) {
-            total += categoryOptions[key];
-          }
-        });
-      } else if (selection && categoryOptions[selection]) {
-        // Dropdown category - add single selected option
-        total += categoryOptions[selection];
-      }
-    });
-
-    return total;
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSelectionChange = (categoryId, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      selections: {
-        ...prev.selections,
-        [categoryId]: value,
-      },
-    }));
-  };
-
-  const handleCheckboxChange = (categoryId, optionKey, checked) => {
-    setFormData((prev) => ({
-      ...prev,
-      selections: {
-        ...prev.selections,
-        [categoryId]: {
-          ...(prev.selections[categoryId] || {}),
-          [optionKey]: checked,
-        },
-      },
-    }));
-  };
-
-  const validateForm = () => {
-    if (!formData.fullName || !formData.phoneNumber || !formData.fullAddress) {
-      toast.error(t('fillRequired'));
-      return false;
-    }
-    
-    // Check required categories
-    const categories = prices.categories || {};
-    for (const [categoryId, category] of Object.entries(categories)) {
-      if (category.required) {
-        const selection = formData.selections[categoryId];
-        if (typeof selection === 'object') {
-          // Checkbox - at least one must be selected
-          const hasSelection = Object.values(selection).some(v => v);
-          if (!hasSelection) {
-            toast.error(`${category.name}: ${t('fillRequired')}`);
-            return false;
-          }
-        } else if (!selection) {
-          toast.error(`${category.name}: ${t('fillRequired')}`);
-          return false;
-        }
-      }
-    }
-    
-    return true;
-  };
-
-  // Convert selections to legacy format for backend compatibility
-  const convertToLegacyFormat = () => {
-    const categories = prices.categories || {};
-    const result = {
-      shellModel: '',
-      woodType: '',
-      shellColor: '',
-      lidType: '',
-      woodColor: '',
-      sandFilter: 'none',
-      features: {},
-    };
-
-    Object.entries(formData.selections).forEach(([categoryId, selection]) => {
-      if (categoryId === 'shellModels') {
-        result.shellModel = selection || '';
-      } else if (categoryId === 'woodTypes') {
-        result.woodType = selection || '';
-      } else if (categoryId === 'shellColors') {
-        result.shellColor = selection || '';
-      } else if (categoryId === 'lidTypes') {
-        result.lidType = selection || '';
-      } else if (categoryId === 'woodColors') {
-        result.woodColor = selection || '';
-      } else if (categoryId === 'features') {
-        // Features are checkboxes
-        if (typeof selection === 'object') {
-          // Handle sand filter separately
-          const sandFilterOptions = ['sandFilterConnections', 'sandFilterUnderStairs', 'sandFilterBox'];
-          Object.entries(selection).forEach(([key, isSelected]) => {
-            if (sandFilterOptions.includes(key) && isSelected) {
-              result.sandFilter = key;
-            } else {
-              result.features[key] = isSelected;
-            }
-          });
-        }
-      } else {
-        // Custom category - add to features
-        if (typeof selection === 'object') {
-          Object.entries(selection).forEach(([key, isSelected]) => {
-            result.features[key] = isSelected;
-          });
-        } else if (selection) {
-          result.features[selection] = true;
-        }
-      }
-    });
-
-    return result;
-  };
-
-  // Combined function: Save order AND generate PDF (always in Polish)
-  const handleSaveAndGeneratePDF = async (type = 'customer') => {
-    if (!validateForm()) return;
-
-    setLoading(true);
-    try {
-      const legacyData = convertToLegacyFormat();
-      const orderData = {
-        fullName: formData.fullName,
-        phoneNumber: formData.phoneNumber,
-        fullAddress: formData.fullAddress,
-        orderDate: formData.orderDate,
-        ...legacyData,
-        notes: formData.notes,
-        total: calculateTotal(),
-        createdAt: new Date().toISOString(),
-      };
-
-      // 1. Save order to database
-      await axios.post(`${API_URL}/api/orders`, orderData);
-      toast.success(t('orderSaved'));
-
-      // 2. Generate PDF (always in Polish)
-      const pdfData = {
-        ...orderData,
-        type: type,
-        language: 'pl',  // Always Polish for PDF
-      };
-
-      const response = await axios.post(`${API_URL}/api/generate-pdf`, pdfData, {
-        responseType: 'blob',
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `zamowienie_${formData.fullName.replace(/\s+/g, '_')}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast.success(t('pdfGenerated'));
-    } catch (error) {
-      console.error('Error saving order or generating PDF:', error);
-      toast.error(t('error'));
+      toast.error(txt.error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClearForm = () => {
-    const categories = prices.categories || {};
-    const initialSelections = {};
-    Object.keys(categories).forEach(catId => {
-      const category = categories[catId];
-      if (category.displayType === 'checkbox') {
-        initialSelections[catId] = {};
+  const selectedModel = prices.models?.find(m => m.id === formData.selectedModel);
+
+  const calculateTotal = () => {
+    let total = selectedModel?.basePrice || 0;
+    
+    prices.categories?.forEach(category => {
+      const selection = formData.selections[category.id];
+      
+      if (category.inputType === 'checkbox') {
+        // Sum all selected checkboxes
+        Object.entries(selection || {}).forEach(([optId, isSelected]) => {
+          if (isSelected) {
+            const opt = category.options?.find(o => o.id === optId);
+            if (opt) total += opt.price || 0;
+          }
+        });
       } else {
-        initialSelections[catId] = '';
+        // Single selection
+        const opt = category.options?.find(o => o.id === selection);
+        if (opt) total += opt.price || 0;
       }
     });
+    
+    return total;
+  };
 
+  const getOptionsTotal = () => {
+    let total = 0;
+    
+    prices.categories?.forEach(category => {
+      const selection = formData.selections[category.id];
+      
+      if (category.inputType === 'checkbox') {
+        Object.entries(selection || {}).forEach(([optId, isSelected]) => {
+          if (isSelected) {
+            const opt = category.options?.find(o => o.id === optId);
+            if (opt) total += opt.price || 0;
+          }
+        });
+      } else {
+        const opt = category.options?.find(o => o.id === selection);
+        if (opt) total += opt.price || 0;
+      }
+    });
+    
+    return total;
+  };
+
+  const handleModelSelect = (modelId) => {
+    setFormData(prev => ({ ...prev, selectedModel: modelId }));
+  };
+
+  const handleSelectionChange = (categoryId, value) => {
+    setFormData(prev => ({
+      ...prev,
+      selections: { ...prev.selections, [categoryId]: value }
+    }));
+  };
+
+  const handleCheckboxChange = (categoryId, optionId, checked) => {
+    setFormData(prev => ({
+      ...prev,
+      selections: {
+        ...prev.selections,
+        [categoryId]: {
+          ...prev.selections[categoryId],
+          [optionId]: checked
+        }
+      }
+    }));
+  };
+
+  const handleSaveOrder = async () => {
+    if (!formData.fullName || !formData.selectedModel) {
+      toast.error(txt.fillRequired);
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const selectedOptions = [];
+      prices.categories?.forEach(cat => {
+        const selection = formData.selections[cat.id];
+        if (cat.inputType === 'checkbox') {
+          Object.entries(selection || {}).forEach(([optId, isSelected]) => {
+            if (isSelected) {
+              const opt = cat.options?.find(o => o.id === optId);
+              if (opt) {
+                selectedOptions.push({
+                  categoryId: cat.id,
+                  categoryName: cat[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || cat.name,
+                  optionId: opt.id,
+                  optionName: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
+                  price: opt.price
+                });
+              }
+            }
+          });
+        } else if (selection) {
+          const opt = cat.options?.find(o => o.id === selection);
+          if (opt && opt.price > 0) {
+            selectedOptions.push({
+              categoryId: cat.id,
+              categoryName: cat[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || cat.name,
+              optionId: opt.id,
+              optionName: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
+              price: opt.price
+            });
+          }
+        }
+      });
+
+      const order = {
+        id: uuidv4(),
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        fullAddress: formData.fullAddress,
+        orderDate: formData.orderDate,
+        modelId: selectedModel?.id,
+        modelName: selectedModel?.[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || selectedModel?.name,
+        modelPrice: selectedModel?.basePrice || 0,
+        selections: formData.selections,
+        selectedOptions,
+        notes: formData.notes,
+        total: calculateTotal(),
+        currency: prices.currency || 'EUR',
+        createdAt: new Date().toISOString(),
+      };
+
+      await axios.post(`${API_URL}/api/orders`, order);
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error saving order:', error);
+      toast.error(txt.error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClear = () => {
+    const initialSelections = {};
+    prices.categories?.forEach(cat => {
+      if (cat.inputType === 'checkbox') {
+        initialSelections[cat.id] = {};
+      } else {
+        const firstOption = cat.options?.[0];
+        initialSelections[cat.id] = firstOption?.id || '';
+      }
+    });
+    
     setFormData({
       fullName: '',
       phoneNumber: '',
       fullAddress: '',
       orderDate: new Date().toISOString().split('T')[0],
+      selectedModel: '',
       selections: initialSelections,
       notes: '',
     });
-    toast.success(t('formCleared'));
   };
 
-  // Get sorted categories
-  const getSortedCategories = () => {
-    const categories = prices.categories || {};
-    return Object.entries(categories)
-      .map(([id, cat]) => ({ id, ...cat }))
-      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  const getOptionName = (option) => {
+    return option[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || option.name;
   };
 
-  const sortedCategories = getSortedCategories();
+  const getCategoryName = (category) => {
+    return category[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || category.name;
+  };
+
+  const getModelName = (model) => {
+    return model[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || model.name;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <h1 className="text-2xl font-bold text-blue-800 mb-6 flex items-center gap-2">
+        <Droplets className="h-6 w-6" />
+        {txt.title}
+      </h1>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Customer & Model */}
         <div className="lg:col-span-2 space-y-6">
-          <CustomerInfoForm formData={formData} onChange={handleInputChange} />
-          
-          {/* Dynamic Category Sections */}
-          {sortedCategories.map((category) => (
-            <DynamicCategorySection
-              key={category.id}
-              categoryId={category.id}
-              category={category}
-              options={prices[category.id] || {}}
-              displayTypes={prices.displayTypes || {}}
-              optionLabels={prices.optionLabels || {}}
-              selection={formData.selections[category.id]}
-              onSelectionChange={handleSelectionChange}
-              onCheckboxChange={handleCheckboxChange}
-            />
-          ))}
-          
-          <NotesSection formData={formData} onChange={handleInputChange} />
-          
-          <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={() => handleSaveAndGeneratePDF('customer')}
-              disabled={loading}
-              size="lg"
-              className="flex-1 min-w-[250px]"
-            >
-              {loading ? (
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              ) : (
+          {/* Customer Info */}
+          <CustomerInfoForm formData={formData} setFormData={setFormData} />
+
+          {/* Model Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-blue-700">{txt.selectModel}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {prices.models?.map(model => (
+                  <div
+                    key={model.id}
+                    onClick={() => handleModelSelect(model.id)}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      formData.selectedModel === model.id
+                        ? 'border-blue-500 bg-blue-50 shadow-md'
+                        : 'border-gray-200 hover:border-blue-300'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-semibold text-sm">{getModelName(model)}</span>
+                      {formData.selectedModel === model.id && (
+                        <Check className="h-5 w-5 text-blue-500" />
+                      )}
+                    </div>
+                    <div className="text-lg font-bold text-blue-600">
+                      {model.basePrice} {prices.currencySymbol}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {model.heaterType === 'external' ? txt.externalHeater : txt.integratedHeater}
+                    </div>
+                    {model.type === 'acrylic' && (
+                      <Badge variant="outline" className="mt-2 text-xs">Acrylic</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Model Specs */}
+              {selectedModel && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-semibold text-blue-800 mb-2">{txt.modelInfo}</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                    {selectedModel.specs?.outerDiameter && (
+                      <div><span className="text-muted-foreground">{txt.outerDiameter}:</span> {selectedModel.specs.outerDiameter} cm</div>
+                    )}
+                    {selectedModel.specs?.outerWidth && (
+                      <div><span className="text-muted-foreground">Размер:</span> {selectedModel.specs.outerWidth}×{selectedModel.specs.outerLength} cm</div>
+                    )}
+                    {selectedModel.specs?.depth && (
+                      <div><span className="text-muted-foreground">{txt.depth}:</span> {selectedModel.specs.depth} cm</div>
+                    )}
+                    {selectedModel.specs?.heaterPower && (
+                      <div><span className="text-muted-foreground">{txt.heaterPower}:</span> {selectedModel.specs.heaterPower} kW</div>
+                    )}
+                    {selectedModel.specs?.waterCapacity && (
+                      <div><span className="text-muted-foreground">{txt.waterCapacity}:</span> {selectedModel.specs.waterCapacity} L</div>
+                    )}
+                  </div>
+                  {selectedModel.includes && selectedModel.includes.length > 0 && (
+                    <div className="mt-3">
+                      <span className="text-muted-foreground text-sm">{txt.included}:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {selectedModel.includes.map(item => (
+                          <Badge key={item} variant="secondary" className="text-xs">{item.replace(/_/g, ' ')}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Options */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-blue-700">{txt.options}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {prices.categories?.map(category => (
+                <div key={category.id} className="border-b pb-4 last:border-b-0">
+                  <Label className="font-semibold text-sm mb-2 block">{getCategoryName(category)}</Label>
+                  
+                  {category.inputType === 'checkbox' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {category.options?.map(option => (
+                        <div key={option.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={option.id}
+                            checked={formData.selections[category.id]?.[option.id] || false}
+                            onCheckedChange={(checked) => handleCheckboxChange(category.id, option.id, checked)}
+                          />
+                          <Label htmlFor={option.id} className="text-sm cursor-pointer flex-1">
+                            {getOptionName(option)}
+                            {option.price > 0 && (
+                              <span className="text-blue-600 ml-1">+{option.price} {prices.currencySymbol}</span>
+                            )}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.selections[category.id] || ''}
+                      onValueChange={(value) => handleSelectionChange(category.id, value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {category.options?.map(option => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {getOptionName(option)}
+                            {option.price > 0 && ` (+${option.price} ${prices.currencySymbol})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-blue-700">{txt.notes}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder={txt.notesPlaceholder}
+                rows={3}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Summary */}
+        <div className="lg:col-span-1">
+          <Card className="sticky top-4">
+            <CardHeader className="bg-blue-600 text-white rounded-t-lg">
+              <CardTitle>{txt.total}</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3">
+              {selectedModel && (
                 <>
-                  <Save className="h-5 w-5 mr-2" />
-                  <FileDown className="h-5 w-5 mr-2" />
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{txt.basePrice}:</span>
+                    <span className="font-semibold">{selectedModel.basePrice} {prices.currencySymbol}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{txt.optionsPrice}:</span>
+                    <span className="font-semibold">{getOptionsTotal()} {prices.currencySymbol}</span>
+                  </div>
+                  <div className="border-t pt-3 flex justify-between">
+                    <span className="font-bold text-lg">{txt.total}:</span>
+                    <span className="font-bold text-lg text-blue-600">
+                      {calculateTotal()} {prices.currencySymbol}
+                    </span>
+                  </div>
                 </>
               )}
-              {t('saveAndGeneratePDF')}
-            </Button>
-            
-            <Button
-              onClick={handleClearForm}
-              disabled={loading}
-              variant="outline"
-              size="lg"
-            >
-              <RotateCcw className="h-5 w-5 mr-2" />
-              {t('clearForm')}
-            </Button>
-          </div>
-        </div>
-        
-        <div className="lg:col-span-1">
-          <OrderSummary 
-            formData={formData} 
-            prices={prices} 
-            total={calculateTotal()} 
-            categories={prices.categories || {}}
-          />
+
+              <div className="space-y-2 pt-4">
+                <Button
+                  onClick={handleSaveOrder}
+                  disabled={saving || !formData.selectedModel}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  {txt.save}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleClear}
+                  className="w-full"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  {txt.clear}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
