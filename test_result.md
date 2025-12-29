@@ -102,3 +102,5 @@ test_plan:
 agent_communication:
   - agent: "testing"
     message: "✅ All Observer Role backend tests PASSED. Observer user can login with correct credentials (Наблюдатель/observer123), token verification works, and observer has read access to all pricing APIs (sauna/prices, sauna/orders, balia/prices). Admin comparison test confirms proper user management access control. Backend implementation is working correctly."
+  - agent: "testing"
+    message: "✅ SAUNA IMAGE URL FUNCTIONALITY TEST COMPLETED - All image URL features are working correctly in admin pricing page. Add Model dialog has image URL field with preview functionality. Add Option dialog has image URL field and quantity checkbox. Both dialogs show proper hint text and image previews work when URLs are entered. Edit dialogs may use page navigation instead of modals (by design)."
