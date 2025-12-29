@@ -698,10 +698,35 @@ export const BaliaPricingPage = () => {
 // Model Edit Dialog Component
 const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySymbol }) => {
   const [formData, setFormData] = useState(model || {});
+  const [uploading, setUploading] = useState(false);
   
   useEffect(() => {
     setFormData(model || {});
   }, [model]);
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formDataUpload
+      });
+      const data = await response.json();
+      const imageUrl = `${API_URL}${data.url}`;
+      setFormData(prev => ({ ...prev, imageUrl }));
+    } catch (error) {
+      console.error('Upload error:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (!model) return null;
 
@@ -712,6 +737,50 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
           <DialogTitle>{isNew ? txt.newModel : txt.editModel}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {/* Image upload */}
+          <div className="space-y-2">
+            <Label>{txt.image}</Label>
+            <div className="flex items-center gap-3">
+              {formData.imageUrl ? (
+                <div className="relative">
+                  <img 
+                    src={formData.imageUrl} 
+                    alt="Model"
+                    className="w-20 h-20 object-cover rounded border"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-5 w-5"
+                    onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="w-20 h-20 bg-muted rounded border flex items-center justify-center">
+                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                </div>
+              )}
+              <label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleUpload}
+                  disabled={uploading}
+                />
+                <Button type="button" variant="outline" size="sm" asChild disabled={uploading}>
+                  <span>
+                    {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                    {txt.uploadImage}
+                  </span>
+                </Button>
+              </label>
+            </div>
+          </div>
+          
           <div className="space-y-2">
             <Label>{txt.nameRu}</Label>
             <Input 
