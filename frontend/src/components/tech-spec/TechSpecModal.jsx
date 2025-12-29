@@ -311,15 +311,15 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
         )}
 
         {inputType === 'text' && (
-          <div className={layout === 'row' ? 'flex flex-wrap gap-3' : 'space-y-2'}>
+          <div className={layout === 'row' ? 'flex flex-wrap gap-2' : 'space-y-1'}>
             {options.map((option) => (
-              <div key={option.id} className="flex-1 min-w-[150px]">
-                <Label className="text-xs text-muted-foreground">{option.name}</Label>
+              <div key={option.id} className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">{option.name}:</Label>
                 <Input
                   value={formData.textInputs[`${id}_${option.id}`] || ''}
                   onChange={(e) => handleTextChange(id, option.id, e.target.value)}
                   placeholder={option.placeholder}
-                  className="h-8"
+                  className="h-7 w-32 text-sm"
                 />
               </div>
             ))}
