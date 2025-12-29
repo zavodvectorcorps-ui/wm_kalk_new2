@@ -304,7 +304,7 @@ export const SaunaPricingPage = () => {
   };
 
   // ========== OPTIONS ==========
-  const handleAddOption = () => {
+  const handleAddOption = async () => {
     if (!newOption.categoryId || !newOption.name) return;
     
     const option = {
@@ -316,36 +316,50 @@ export const SaunaPricingPage = () => {
       imageUrl: newOption.imageUrl || null,
     };
     
-    setPrices(prev => ({
-      ...prev,
-      categories: prev.categories.map(cat => {
-        if (cat.id === newOption.categoryId) {
-          return {
-            ...cat,
-            options: [...(cat.options || []), option],
-          };
-        }
-        return cat;
-      }),
-    }));
+    try {
+      await axios.post(`${API_URL}/api/sauna/categories/${newOption.categoryId}/options`, option);
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(cat => {
+          if (cat.id === newOption.categoryId) {
+            return {
+              ...cat,
+              options: [...(cat.options || []), option],
+            };
+          }
+          return cat;
+        }),
+      }));
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error adding option:', error);
+      toast.error(error.response?.data?.detail || t('error'));
+    }
     
     setNewOption({ categoryId: '', name: '', price: 0, imageUrl: '' });
     setIsOptionDialogOpen(false);
   };
 
-  const handleDeleteOption = (categoryId, optionId) => {
-    setPrices(prev => ({
-      ...prev,
-      categories: prev.categories.map(cat => {
-        if (cat.id === categoryId) {
-          return {
-            ...cat,
-            options: cat.options.filter(o => o.id !== optionId),
-          };
-        }
-        return cat;
-      }),
-    }));
+  const handleDeleteOption = async (categoryId, optionId) => {
+    try {
+      await axios.delete(`${API_URL}/api/sauna/categories/${categoryId}/options/${optionId}`);
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(cat => {
+          if (cat.id === categoryId) {
+            return {
+              ...cat,
+              options: cat.options.filter(o => o.id !== optionId),
+            };
+          }
+          return cat;
+        }),
+      }));
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error deleting option:', error);
+      toast.error(error.response?.data?.detail || t('error'));
+    }
   };
 
   const handleModelsDisplayTypeChange = (displayType) => {
