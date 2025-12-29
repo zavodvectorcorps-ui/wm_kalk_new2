@@ -23,6 +23,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
   const { i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [masterCategories, setMasterCategories] = useState([]);
   const [formData, setFormData] = useState({
     comment: '',
     selections: {},
@@ -35,6 +36,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
       try {
         const response = await axios.get(`${API_URL}/api/tech-spec/categories`);
         setCategories(response.data.categories || []);
+        setMasterCategories(response.data.masterCategories || []);
       } catch (error) {
         console.error('Error fetching tech spec categories:', error);
       }
