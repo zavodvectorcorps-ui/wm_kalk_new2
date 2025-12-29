@@ -10,6 +10,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tech-spec", tags=["Tech Spec Admin"])
 
 
+@router.get("/config")
+async def get_tech_spec_config():
+    """Get full tech spec config (master categories + categories with options)"""
+    data = await db.tech_spec_config.find_one({"_id": "default"})
+    if not data:
+        await db.tech_spec_config.insert_one({"_id": "default", **default_tech_spec_data})
+        return default_tech_spec_data
+    
+    data.pop('_id', None)
+    return data
+
+
 @router.get("/categories")
 async def get_tech_spec_categories():
     """Get all tech spec categories with options"""
