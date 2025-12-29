@@ -275,15 +275,27 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
           <RadioGroup
             value={formData.selections[id] || ''}
             onValueChange={(value) => handleRadioChange(id, value)}
-            className={layout === 'row' ? 'flex flex-wrap gap-3' : 'space-y-2'}
+            className={hasImages ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2' : (layout === 'row' ? 'flex flex-wrap gap-3' : 'space-y-2')}
           >
             {options.map((option) => (
-              <div key={option.id} className={`flex items-center gap-2 ${hasImages ? 'flex-col p-2 border rounded-lg bg-white cursor-pointer hover:border-amber-500' : ''}`}>
-                <RadioGroupItem value={option.id} id={`${id}-${option.id}`} />
+              <div 
+                key={option.id} 
+                className={hasImages 
+                  ? 'flex flex-col items-center p-2 border rounded-lg bg-white cursor-pointer hover:border-amber-500 transition-colors' 
+                  : 'flex items-center gap-2'
+                }
+              >
+                <RadioGroupItem value={option.id} id={`${id}-${option.id}`} className={hasImages ? 'sr-only' : ''} />
                 {hasImages && option.imageUrl && (
-                  <img src={option.imageUrl} alt={option.name} className="w-24 h-16 object-cover rounded" />
+                  <label htmlFor={`${id}-${option.id}`} className="cursor-pointer w-full">
+                    <img 
+                      src={option.imageUrl} 
+                      alt={option.name} 
+                      className={`w-full h-16 object-cover rounded mb-1 ${formData.selections[id] === option.id ? 'ring-2 ring-amber-500' : ''}`} 
+                    />
+                  </label>
                 )}
-                <Label htmlFor={`${id}-${option.id}`} className="cursor-pointer text-sm">
+                <Label htmlFor={`${id}-${option.id}`} className="cursor-pointer text-xs text-center">
                   {option.name}
                 </Label>
               </div>
