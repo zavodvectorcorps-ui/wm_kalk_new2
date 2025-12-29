@@ -215,6 +215,42 @@ sauna_calculator:
         -comment: "✅ FRONTEND UI TESTING COMPLETE - Sauna Orders page working perfectly. Navigation to 'Заказы' tab successful. Orders page displays 'Заказы саун' title with count badge (6 orders). Table shows all required columns: Order #, Client, Model, Date, Total, Actions. New test order appears in list with correct data: 'Тест Пользователь', 'Sauna Kwadro-Beczka 235x300 cm', '24 886 PLN'. PLN currency displayed consistently. 'Скачать PDF' buttons functional for each order."
 
 frontend:
+  - task: "Display Type Feature - Calculator rendering based on displayType (Frontend)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/SaunaCalculator.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ DISPLAY TYPE FEATURE FRONTEND TESTING COMPLETED SUCCESSFULLY! Comprehensive testing of Display Type feature for Sauna Calculator completed with EXCELLENT results. ALL REVIEW REQUEST REQUIREMENTS MET PERFECTLY: ✅ Admin Login: Successfully logged in as admin (admin/159357) and accessed Sauna calculator. ✅ Pricing Page Access: Successfully navigated to 'Цены' (Prices) tab and accessed SaunaPricingPage with all three tabs (Модели саун, Категории опций, Опции). ✅ Models Display Type Toggle: Found and successfully clicked 'Плитка' and 'Список' toggle buttons for models. Verified 'Список' button changes modelsDisplayType to 'dropdown'. ✅ Categories Display Type Toggle: Successfully accessed 'Категории опций' tab, found 'Drzwi' (Doors) category, and clicked 'Список' button to change displayType to 'dropdown'. ✅ Save Functionality: Successfully clicked 'Сохранить все изменения' button to save all changes. ✅ Calculator Verification: Navigated back to 'Калькулятор' tab and verified changes are reflected: Models now display as dropdown selector with 13 options (previously grid/tiles), Categories show mixed display types as configured. ✅ Model Dropdown Verification: Model selection now shows as dropdown with placeholder 'Выберите модель сауны', opens to show all 13 sauna models with images, prices, and discounts. ✅ Category Display Verification: Categories now display according to their configured displayType - some as dropdowns, others as radio button grids. The Display Type feature is fully functional and working exactly as specified in the review request!"
+
+  - task: "SaunaPricingPage - Models display type toggle (Frontend)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/SaunaPricingPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ MODELS DISPLAY TYPE TOGGLE TESTING COMPLETED SUCCESSFULLY! Comprehensive testing of models display type toggle functionality completed with EXCELLENT results. ✅ Toggle Buttons Visible: Found 'Плитка' and 'Список' toggle buttons in the models section of SaunaPricingPage. ✅ Toggle Functionality: Successfully clicked 'Список' button to change models display type from 'grid' to 'dropdown'. ✅ Visual Feedback: Toggle buttons show proper active state with amber highlighting when selected. ✅ Persistence: Changes are saved when 'Сохранить все изменения' button is clicked. ✅ Calculator Integration: Changes are immediately reflected in the calculator page - models now display as dropdown instead of grid tiles. Models display type toggle is fully functional and working perfectly!"
+
+  - task: "SaunaPricingPage - Categories display type toggle (Frontend)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/SaunaPricingPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "✅ CATEGORIES DISPLAY TYPE TOGGLE TESTING COMPLETED SUCCESSFULLY! Comprehensive testing of categories display type toggle functionality completed with EXCELLENT results. ✅ Categories Tab Access: Successfully accessed 'Категории опций' tab in SaunaPricingPage. ✅ Drzwi Category Found: Located 'Drzwi' (Doors) category in the categories list. ✅ Toggle Buttons Visible: Found individual 'Плитка' and 'Список' toggle buttons for each category including Drzwi. ✅ Toggle Functionality: Successfully clicked 'Список' button for Drzwi category to change its displayType from 'grid' to 'dropdown'. ✅ Visual Feedback: Toggle buttons show proper active state with amber highlighting when selected. ✅ Multiple Categories: Verified that each category has its own independent display type toggle controls. ✅ Persistence: Changes are saved when 'Сохранить все изменения' button is clicked. ✅ Calculator Integration: Changes are reflected in the calculator page where categories display according to their configured displayType. Categories display type toggle is fully functional and working perfectly for all categories including the specifically tested Drzwi category!"
+
   - task: "Language Switcher"
     implemented: true
     working: true
