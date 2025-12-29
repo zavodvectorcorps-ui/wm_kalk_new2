@@ -274,7 +274,27 @@ export const UserManagement = () => {
     }
   };
 
-  const employees = users.filter(u => u.role === 'employee');
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case 'employee':
+        return (
+          <Badge variant="secondary" className="gap-1 bg-blue-100 text-blue-700">
+            {txt.employee}
+          </Badge>
+        );
+      case 'observer':
+        return (
+          <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-700">
+            {txt.observer}
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Show both employees and observers (not admin)
+  const employees = users.filter(u => u.role === 'employee' || u.role === 'observer');
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl">
