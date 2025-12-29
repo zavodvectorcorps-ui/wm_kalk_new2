@@ -893,6 +893,7 @@ class SaunaOrder(BaseModel):
     optionsTotal: int = 0
     subtotal: float = 0.0
     total: float = 0.0
+    createdBy: str = ""  # Username of employee who created the order
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class SaunaPDFRequest(BaseModel):
