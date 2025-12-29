@@ -8,7 +8,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { CheckboxOrange } from './ui/checkbox-orange';
 import { RadioGroupOrange, RadioGroupItemOrange } from './ui/radio-group-orange';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { SelectOrange, SelectContentOrange, SelectItemOrange, SelectTriggerOrange, SelectValueOrange } from './ui/select-orange';
 import { toast } from 'sonner';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, MapPin, Calendar,
