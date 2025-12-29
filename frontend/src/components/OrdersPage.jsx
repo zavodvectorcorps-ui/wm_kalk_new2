@@ -116,6 +116,44 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
     }
   };
 
+  // Open Tech Spec Modal
+  const handleOpenTechSpec = (order) => {
+    setSelectedOrder(order);
+    setTechSpecModalOpen(true);
+  };
+
+  // Download existing Tech Spec PDF
+  const handleDownloadTechSpec = async (order) => {
+    try {
+      const techSpec = order.techSpec || {};
+      const response = await axios.post(
+        `${API_URL}/api/sauna/generate-tech-spec-pdf`,
+        { order, techSpec },
+        { responseType: 'blob' }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `TechSpec_${order.id}_${order.fullName}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success('PDF скачан!');
+    } catch (error) {
+      console.error('Error downloading tech spec:', error);
+      toast.error(t('error'));
+    }
+  };
+
+  // Callback when tech spec is saved
+  const handleTechSpecSaved = (techSpecData) => {
+    setOrders(prev => prev.map(o => 
+      o.id === selectedOrder?.id ? { ...o, techSpec: techSpecData } : o
+    ));
+  };
+
   // Filter orders based on search query
   const filteredOrders = orders.filter(order => {
     if (!searchQuery.trim()) return true;
