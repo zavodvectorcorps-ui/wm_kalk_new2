@@ -694,7 +694,7 @@ export const SaunaCalculator = () => {
                               ${isChecked ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}
                             `}
                           >
-                            <Checkbox
+                            <CheckboxOrange
                               id={`${category.id}-${option.id}`}
                               checked={isChecked}
                               onCheckedChange={(checked) => handleCheckboxChange(category.id, option.id, checked)}
