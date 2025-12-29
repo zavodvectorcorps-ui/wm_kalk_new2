@@ -231,6 +231,42 @@ frontend:
         agent: "testing"
         comment: "❌ TechSpecId mapping not working correctly. Test flow completed: login ✅, sauna calculator ✅, customer data ✅, model selection ✅, option selection (bench ✅, water tank ✅, heater ❌), order save ✅, orders page ✅, tech spec modal ✅. However, selected options from calculator are NOT pre-selected in tech spec modal. Found 0 selected radio buttons and 0 selected checkboxes in tech spec modal, indicating techSpecId mapping system needs investigation."
 
+  - task: "BaliaPricingPage - Model editing with image upload"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/BaliaPricingPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ BaliaPricingPage model editing working correctly. Successfully navigated to Cennik tab, found all 3 tabs (Modele, Kategorie opcji, Ustawienia), verified 5 model cards displayed with image placeholders, 'Dodaj model' button opens dialog with 'Zdjęcie' image upload field. Dialog functionality working properly."
+
+  - task: "BaliaPricingPage - Category editing with image upload"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/BaliaPricingPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ BaliaPricingPage category editing working correctly. Found 14 categories displayed (Hydromasaż, System bąbelków powietrza, Oświetlenie, etc.), 14 'Dodaj opcję' buttons available, clicking first button opens option dialog with 'Zdjęcie' image upload field. All category management functionality working as expected."
+
+  - task: "CalculatorPage - Display model and category images"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/CalculatorPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ CalculatorPage displaying models and prices correctly. Found 14 selectable models with 14 price elements showing currency (€). Calculator page loads properly after navigating back from pricing page. Model selection and pricing display working as expected."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
