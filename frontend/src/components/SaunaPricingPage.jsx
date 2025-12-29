@@ -427,6 +427,39 @@ export const SaunaPricingPage = () => {
     }
   };
 
+  const handleEditOption = (categoryId, option) => {
+    setEditingOption({ ...option, categoryId });
+    setIsEditOptionDialogOpen(true);
+  };
+
+  const handleSaveEditOption = async () => {
+    if (!editingOption) return;
+    
+    const { categoryId, ...optionData } = editingOption;
+    
+    try {
+      await axios.put(`${API_URL}/api/sauna/categories/${categoryId}/options/${editingOption.id}`, optionData);
+      setPrices(prev => ({
+        ...prev,
+        categories: prev.categories.map(cat => {
+          if (cat.id === categoryId) {
+            return {
+              ...cat,
+              options: cat.options.map(o => o.id === editingOption.id ? optionData : o),
+            };
+          }
+          return cat;
+        }),
+      }));
+      toast.success(txt.saved);
+      setIsEditOptionDialogOpen(false);
+      setEditingOption(null);
+    } catch (error) {
+      console.error('Error updating option:', error);
+      toast.error(error.response?.data?.detail || t('error'));
+    }
+  };
+
   const handleModelsDisplayTypeChange = (displayType) => {
     setPrices(prev => ({
       ...prev,
