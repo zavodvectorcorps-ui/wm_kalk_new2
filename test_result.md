@@ -161,9 +161,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "PUT /api/sauna/orders/{order_id}/tech-spec - Save tech spec to order"
-    - "GET /api/sauna/orders/{order_id}/tech-spec - Get tech spec from order"
-    - "POST /api/sauna/generate-tech-spec-pdf - Generate PDF for tech spec"
+    - "GET /api/tech-spec/categories - Get tech spec categories with options"
+    - "POST /api/tech-spec/category - Add new category"
+    - "PUT /api/tech-spec/category/{id} - Update category"
+    - "DELETE /api/tech-spec/category/{id} - Delete category"
+    - "POST /api/tech-spec/category/{id}/option - Add option to category"
+    - "PUT /api/tech-spec/category/{id}/option/{option_id} - Update option"
+    - "DELETE /api/tech-spec/category/{id}/option/{option_id} - Delete option"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
