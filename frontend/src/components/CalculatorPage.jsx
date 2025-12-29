@@ -323,16 +323,24 @@ export const CalculatorPage = () => {
                   <div
                     key={model.id}
                     onClick={() => handleModelSelect(model.id)}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
                       formData.selectedModel === model.id
                         ? 'border-blue-500 bg-blue-50 shadow-md'
                         : 'border-gray-200 hover:border-blue-300'
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-2">
+                    {model.imageUrl && (
+                      <img 
+                        src={model.imageUrl} 
+                        alt={getModelName(model)}
+                        className="w-full h-32 object-cover rounded mb-2"
+                        onError={(e) => e.target.style.display = 'none'}
+                      />
+                    )}
+                    <div className="flex justify-between items-start mb-1">
                       <span className="font-semibold text-sm">{getModelName(model)}</span>
                       {formData.selectedModel === model.id && (
-                        <Check className="h-5 w-5 text-blue-500" />
+                        <Check className="h-5 w-5 text-blue-500 flex-shrink-0" />
                       )}
                     </div>
                     <div className="text-lg font-bold text-blue-600">
