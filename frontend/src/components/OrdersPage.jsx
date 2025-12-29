@@ -34,6 +34,7 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       promo: 'Акция',
       gift: 'Подарок',
       discount: 'Скидка',
+      createdBy: 'Сотрудник',
     },
     pl: {
       ordersList: isSauna ? 'Zamówienia saun' : 'Lista zamówień',
@@ -46,6 +47,7 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       promo: 'Promocja',
       gift: 'Prezent',
       discount: 'Rabat',
+      createdBy: 'Pracownik',
     },
   };
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
