@@ -436,19 +436,27 @@ export const SaunaPricingPage = () => {
         <h1 className="text-2xl font-bold text-amber-800 flex items-center gap-2">
           <Flame className="h-6 w-6" />
           {txt.saunaPricing}
-        </h1>
-        <Button
-          onClick={handleSaveAll}
-          disabled={saving}
-          className="bg-amber-600 hover:bg-amber-700"
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
+          {!canEdit() && (
+            <span className="flex items-center gap-1 text-sm font-normal text-muted-foreground ml-2">
+              <Eye className="h-4 w-4" />
+              Только просмотр
+            </span>
           )}
-          {txt.saveAll}
-        </Button>
+        </h1>
+        {canEdit() && (
+          <Button
+            onClick={handleSaveAll}
+            disabled={saving}
+            className="bg-amber-600 hover:bg-amber-700"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {txt.saveAll}
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="models" className="space-y-6">
