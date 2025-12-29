@@ -320,12 +320,12 @@ export const CalculatorPage = () => {
                       <div><span className="text-muted-foreground">{t('balia.heaterPower')}:</span> {selectedModel.specs.heaterPower} kW</div>
                     )}
                     {selectedModel.specs?.waterCapacity && (
-                      <div><span className="text-muted-foreground">{txt.waterCapacity}:</span> {selectedModel.specs.waterCapacity} L</div>
+                      <div><span className="text-muted-foreground">{t('balia.waterCapacity')}:</span> {selectedModel.specs.waterCapacity} L</div>
                     )}
                   </div>
                   {selectedModel.includes && selectedModel.includes.length > 0 && (
                     <div className="mt-3">
-                      <span className="text-muted-foreground text-sm">{txt.included}:</span>
+                      <span className="text-muted-foreground text-sm">{t('balia.included')}:</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {selectedModel.includes.map(item => (
                           <Badge key={item} variant="secondary" className="text-xs">{item.replace(/_/g, ' ')}</Badge>
@@ -341,7 +341,7 @@ export const CalculatorPage = () => {
           {/* Options */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-blue-700">{txt.options}</CardTitle>
+              <CardTitle className="text-blue-700">{t('balia.options')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {prices.categories?.map(category => (
