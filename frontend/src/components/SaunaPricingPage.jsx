@@ -1051,6 +1051,14 @@ export const SaunaPricingPage = () => {
                                     <Button
                                       size="icon"
                                       variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => handleEditOption(category.id, option)}
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
                                       className="h-8 w-8 text-destructive"
                                       onClick={() => handleDeleteOption(category.id, option.id)}
                                     >
