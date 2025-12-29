@@ -1,119 +1,43 @@
-backend:
-  - task: "Observer User Login"
-    implemented: true
-    working: true
-    file: "/app/backend/routes/auth.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "testing"
-        comment: "✅ Observer login successful with credentials Наблюдатель/observer123. Response contains correct role=observer and access=all"
+# Test Results - Tech Spec Feature
 
-  - task: "Observer Token Verification"
-    implemented: true
-    working: true
-    file: "/app/backend/routes/auth.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "testing"
-        comment: "✅ Observer token verification working correctly. POST /api/auth/verify returns valid=true with correct observer role"
+## Testing Scope
+Test the new Technical Specification (Тех.Задание) feature for sauna orders.
 
-  - task: "Observer Access to Sauna Prices"
-    implemented: true
-    working: true
-    file: "/app/backend/routes/sauna.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "testing"
-        comment: "✅ Observer can successfully access GET /api/sauna/prices. Returns 13 models and 14 categories with correct data structure"
+## Test Cases
 
-  - task: "Observer Access to Sauna Orders"
-    implemented: true
-    working: true
-    file: "/app/backend/routes/sauna.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "testing"
-        comment: "✅ Observer can successfully access GET /api/sauna/orders. Returns list of orders (found 5 orders)"
+### 1. Orders Page - Tech Spec Button
+- Navigate to Sauna -> Zamówienia
+- Verify "Тех.Задание" button is visible for each order
+- Click on "Тех.Задание" button - should open modal
 
-  - task: "Observer Access to Balia Prices"
-    implemented: true
-    working: true
-    file: "/app/backend/routes/balia.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "testing"
-        comment: "✅ Observer can successfully access GET /api/prices (Balia). Returns correct data structure with 7 categories"
+### 2. Tech Spec Modal
+- Modal should display order info (client name, phone, model)
+- Modal should have form fields for:
+  - Comment (internal)
+  - Color selections (base, doors, trim, roof)
+  - Bench selection with images
+  - Shelf size (text input)
+  - Stove guard (yes/no)
+  - Lighting options (checkbox)
+  - Door options
+  - Heater selection
+  - Additional options
+- "Сохранить" button should save the tech spec
+- "Создать PDF" button should generate and download PDF
 
-  - task: "Admin Access to Users (comparison)"
-    implemented: true
-    working: true
-    file: "/app/backend/routes/auth.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "testing"
-        comment: "✅ Admin can access GET /api/users successfully. Found 4 users including observer user with correct role and access settings"
+### 3. Tech Spec PDF Generation
+- PDF should contain:
+  - Title: "Zgłoszenie techniczne - sauna"
+  - Client data (name, phone, order number)
+  - Model info
+  - Selected options from order (without prices, with quantities)
+  - Technical selections
+  - Comment
+  - Date
 
-frontend:
-  - task: "Observer UI Access Control"
-    implemented: "NA"
-    working: "NA"
-    file: "frontend components"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Frontend testing not performed as per system limitations. Observer role backend APIs are working correctly"
+### 4. Download Existing Tech Spec
+- After saving, a download button should appear next to "Тех.Задание"
+- Clicking download button should download the saved tech spec PDF
 
-  - task: "Sauna Image URL Functionality"
-    implemented: true
-    working: true
-    file: "/app/frontend/src/components/SaunaPricingPage.jsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "testing"
-        comment: "✅ Image URL functionality fully working. Add Model dialog: Image URL field with placeholder 'Вставьте ссылку на изображение (imgur, imgbb и т.д.)', working image preview, hint text present. Add Option dialog: Image URL field with same functionality, quantity checkbox 'Включить количество' present. Both dialogs open/close properly. Edit buttons may use page navigation (by design)."
-
-metadata:
-  created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 1
-  run_ui: false
-
-test_plan:
-  current_focus:
-    - "Observer User Login"
-    - "Observer Token Verification"
-    - "Observer Access to APIs"
-    - "Sauna Image URL Functionality"
-  stuck_tasks: []
-  test_all: false
-  test_priority: "high_first"
-
-agent_communication:
-  - agent: "testing"
-    message: "✅ All Observer Role backend tests PASSED. Observer user can login with correct credentials (Наблюдатель/observer123), token verification works, and observer has read access to all pricing APIs (sauna/prices, sauna/orders, balia/prices). Admin comparison test confirms proper user management access control. Backend implementation is working correctly."
-  - agent: "testing"
-    message: "✅ SAUNA IMAGE URL FUNCTIONALITY TEST COMPLETED - All image URL features are working correctly in admin pricing page. Add Model dialog has image URL field with preview functionality. Add Option dialog has image URL field and quantity checkbox. Both dialogs show proper hint text and image previews work when URLs are entered. Edit dialogs may use page navigation instead of modals (by design)."
+## Credentials
+- Admin: admin / 159357
