@@ -261,10 +261,11 @@ export const CategoryList = ({
                     id={`required-${category.id}`}
                     checked={category.required || false}
                     onCheckedChange={(checked) => onToggleRequired(category.id, checked)}
+                    disabled={!canEdit}
                   />
                 </div>
                 
-                {!isDefaultCategory(category.id) && (
+                {!isDefaultCategory(category.id) && canEdit && (
                   <Button
                     variant="ghost"
                     size="icon"
