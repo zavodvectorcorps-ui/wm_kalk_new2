@@ -15,7 +15,6 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
 import { toast } from 'sonner';
 import { FileText, Loader2, User, Phone, MessageSquare, Package } from 'lucide-react';
-import { TECH_SPEC_CATEGORIES } from './techSpecData';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
@@ -23,11 +22,27 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
   const { i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     comment: '',
     selections: {},
     textInputs: {},
   });
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/tech-spec/categories`);
+        setCategories(response.data.categories || []);
+      } catch (error) {
+        console.error('Error fetching tech spec categories:', error);
+      }
+    };
+    if (open) {
+      fetchCategories();
+    }
+  }, [open]);
 
   // Initialize form with order data and existing tech spec
   useEffect(() => {
@@ -42,7 +57,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
       if (order.selections) {
         // Map heater selection
         if (order.selections.piece) {
-          const heaterOption = TECH_SPEC_CATEGORIES.find(c => c.id === 'heater')?.options
+          const heaterOption = categories.find(c => c.id === 'heater')?.options
             ?.find(o => o.name.toLowerCase().includes(order.selections.piece.toLowerCase()));
           if (heaterOption) {
             initialSelections.heater = heaterOption.id;
@@ -56,7 +71,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
         textInputs: initialTextInputs,
       });
     }
-  }, [order, open]);
+  }, [order, open, categories]);
 
   const handleRadioChange = useCallback((categoryId, value) => {
     setFormData(prev => ({
