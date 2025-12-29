@@ -162,7 +162,7 @@ export const SaunaPricingPage = () => {
   };
 
   // ========== MODELS ==========
-  const handleAddModel = () => {
+  const handleAddModel = async () => {
     if (!newModel.name) return;
     
     const model = {
@@ -176,10 +176,17 @@ export const SaunaPricingPage = () => {
       active: true,
     };
     
-    setPrices(prev => ({
-      ...prev,
-      models: [...(prev.models || []), model],
-    }));
+    try {
+      await axios.post(`${API_URL}/api/sauna/models`, model);
+      setPrices(prev => ({
+        ...prev,
+        models: [...(prev.models || []), model],
+      }));
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error adding model:', error);
+      toast.error(error.response?.data?.detail || t('error'));
+    }
     
     setNewModel({ name: '', basePrice: 0, foundationPrice: 0, discount: 0, imageUrl: '' });
     setIsModelDialogOpen(false);
@@ -189,22 +196,36 @@ export const SaunaPricingPage = () => {
     setEditingModel({ ...model });
   };
 
-  const handleSaveEditModel = () => {
+  const handleSaveEditModel = async () => {
     if (!editingModel) return;
     
-    setPrices(prev => ({
-      ...prev,
-      models: prev.models.map(m => m.id === editingModel.id ? editingModel : m),
-    }));
+    try {
+      await axios.put(`${API_URL}/api/sauna/models/${editingModel.id}`, editingModel);
+      setPrices(prev => ({
+        ...prev,
+        models: prev.models.map(m => m.id === editingModel.id ? editingModel : m),
+      }));
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error updating model:', error);
+      toast.error(error.response?.data?.detail || t('error'));
+    }
     
     setEditingModel(null);
   };
 
-  const handleDeleteModel = (modelId) => {
-    setPrices(prev => ({
-      ...prev,
-      models: prev.models.filter(m => m.id !== modelId),
-    }));
+  const handleDeleteModel = async (modelId) => {
+    try {
+      await axios.delete(`${API_URL}/api/sauna/models/${modelId}`);
+      setPrices(prev => ({
+        ...prev,
+        models: prev.models.filter(m => m.id !== modelId),
+      }));
+      toast.success(txt.saved);
+    } catch (error) {
+      console.error('Error deleting model:', error);
+      toast.error(error.response?.data?.detail || t('error'));
+    }
   };
 
   const moveModel = (index, direction) => {
