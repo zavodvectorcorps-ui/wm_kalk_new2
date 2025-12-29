@@ -131,7 +131,7 @@ backend:
 frontend:
   - task: "Tech Spec Modal - Display order info and form fields"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/components/TechSpecModal.js"
     stuck_count: 0
     priority: "medium"
@@ -140,10 +140,13 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Frontend modal implementation - not tested by testing agent"
+      - working: true
+        agent: "testing"
+        comment: "✅ Tech Spec Modal working correctly. Modal opens successfully, displays order info, shows all technical specification categories (heater, benches, water tank, etc.), and has proper form fields. UI is responsive and functional."
 
   - task: "Orders Page - Tech Spec Button Integration"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/SaunaOrders.js"
     stuck_count: 0
     priority: "medium"
@@ -152,6 +155,21 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Frontend button integration - not tested by testing agent"
+      - working: true
+        agent: "testing"
+        comment: "✅ Orders Page Tech Spec button integration working correctly. Button appears in orders list, opens Tech Spec modal when clicked, and properly passes order data to the modal component."
+
+  - task: "TechSpecId Mapping - Calculator to Tech Spec Pre-selection"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/tech-spec/TechSpecModal.jsx"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ TechSpecId mapping not working correctly. Test flow completed: login ✅, sauna calculator ✅, customer data ✅, model selection ✅, option selection (bench ✅, water tank ✅, heater ❌), order save ✅, orders page ✅, tech spec modal ✅. However, selected options from calculator are NOT pre-selected in tech spec modal. Found 0 selected radio buttons and 0 selected checkboxes in tech spec modal, indicating techSpecId mapping system needs investigation."
 
 metadata:
   created_by: "main_agent"
