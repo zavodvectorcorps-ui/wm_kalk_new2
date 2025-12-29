@@ -7,12 +7,13 @@ import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Dialog, DialogTrigger } from '../ui/dialog';
-import { Plus, Edit2, Trash2, Package } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, Link2 } from 'lucide-react';
 import { AddOptionDialog, EditOptionDialog } from './OptionDialog';
 
 export const OptionsTab = ({
   prices,
   txt,
+  techSpecCategories,
   handleAddOption,
   handleDeleteOption,
   handleSaveEditOption,
@@ -29,12 +30,14 @@ export const OptionsTab = ({
     price: 0,
     imageUrl: '',
     hasQuantity: false,
+    techSpecId: null,
+    techSpecCategoryId: null,
   });
 
   const onAddOption = async () => {
     const success = await handleAddOption(newOption);
     if (success) {
-      setNewOption({ categoryId: '', name: '', price: 0, imageUrl: '', hasQuantity: false });
+      setNewOption({ categoryId: '', name: '', price: 0, imageUrl: '', hasQuantity: false, techSpecId: null, techSpecCategoryId: null });
       setIsOptionDialogOpen(false);
     }
   };
@@ -50,6 +53,20 @@ export const OptionsTab = ({
       setIsEditOptionDialogOpen(false);
       setEditingOption(null);
     }
+  };
+
+  // Helper to get tech spec mapping display
+  const getTechSpecMappingBadge = (option) => {
+    if (!option.techSpecCategoryId || !option.techSpecId) return null;
+    const category = techSpecCategories?.find(c => c.id === option.techSpecCategoryId);
+    const techOption = category?.options?.find(o => o.id === option.techSpecId);
+    if (!category || !techOption) return null;
+    return (
+      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs flex items-center gap-1">
+        <Link2 className="h-3 w-3" />
+        {category.name} → {techOption.name}
+      </Badge>
+    );
   };
 
   return (
@@ -91,7 +108,7 @@ export const OptionsTab = ({
                         key={option.id}
                         className="flex items-center justify-between p-2 bg-muted/30 rounded flex-wrap gap-2"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           {option.imageUrl && (
                             <img
                               src={option.imageUrl}
@@ -100,6 +117,7 @@ export const OptionsTab = ({
                             />
                           )}
                           <span className="text-sm">{option.name}</span>
+                          {getTechSpecMappingBadge(option)}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <Input
@@ -157,6 +175,7 @@ export const OptionsTab = ({
         newOption={newOption}
         setNewOption={setNewOption}
         categories={prices.categories}
+        techSpecCategories={techSpecCategories}
         onAdd={onAddOption}
         txt={txt}
       />
@@ -166,6 +185,7 @@ export const OptionsTab = ({
         onOpenChange={setIsEditOptionDialogOpen}
         editingOption={editingOption}
         setEditingOption={setEditingOption}
+        techSpecCategories={techSpecCategories}
         onSave={onSaveEditOption}
         txt={txt}
       />
