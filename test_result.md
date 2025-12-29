@@ -1,43 +1,80 @@
-# Test Results - Tech Spec Feature
+backend:
+  - task: "PUT /api/sauna/orders/{order_id}/tech-spec - Save tech spec to order"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/routes/sauna.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Tech spec save endpoint implemented, needs testing"
 
-## Testing Scope
-Test the new Technical Specification (Тех.Задание) feature for sauna orders.
+  - task: "GET /api/sauna/orders/{order_id}/tech-spec - Get tech spec from order"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/routes/sauna.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Tech spec get endpoint implemented, needs testing"
 
-## Test Cases
+  - task: "POST /api/sauna/generate-tech-spec-pdf - Generate PDF for tech spec"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/routes/sauna.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Tech spec PDF generation endpoint implemented, needs testing"
 
-### 1. Orders Page - Tech Spec Button
-- Navigate to Sauna -> Zamówienia
-- Verify "Тех.Задание" button is visible for each order
-- Click on "Тех.Задание" button - should open modal
+frontend:
+  - task: "Tech Spec Modal - Display order info and form fields"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/TechSpecModal.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Frontend modal implementation - not tested by testing agent"
 
-### 2. Tech Spec Modal
-- Modal should display order info (client name, phone, model)
-- Modal should have form fields for:
-  - Comment (internal)
-  - Color selections (base, doors, trim, roof)
-  - Bench selection with images
-  - Shelf size (text input)
-  - Stove guard (yes/no)
-  - Lighting options (checkbox)
-  - Door options
-  - Heater selection
-  - Additional options
-- "Сохранить" button should save the tech spec
-- "Создать PDF" button should generate and download PDF
+  - task: "Orders Page - Tech Spec Button Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/SaunaOrders.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Frontend button integration - not tested by testing agent"
 
-### 3. Tech Spec PDF Generation
-- PDF should contain:
-  - Title: "Zgłoszenie techniczne - sauna"
-  - Client data (name, phone, order number)
-  - Model info
-  - Selected options from order (without prices, with quantities)
-  - Technical selections
-  - Comment
-  - Date
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
 
-### 4. Download Existing Tech Spec
-- After saving, a download button should appear next to "Тех.Задание"
-- Clicking download button should download the saved tech spec PDF
+test_plan:
+  current_focus:
+    - "PUT /api/sauna/orders/{order_id}/tech-spec - Save tech spec to order"
+    - "GET /api/sauna/orders/{order_id}/tech-spec - Get tech spec from order"
+    - "POST /api/sauna/generate-tech-spec-pdf - Generate PDF for tech spec"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
 
-## Credentials
-- Admin: admin / 159357
+agent_communication:
+  - agent: "main"
+    message: "Tech spec feature implemented for sauna orders. Backend API endpoints ready for testing. Frontend modal and integration completed but not tested by testing agent."
