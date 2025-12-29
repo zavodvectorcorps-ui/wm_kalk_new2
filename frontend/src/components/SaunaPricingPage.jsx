@@ -53,8 +53,10 @@ export const SaunaPricingPage = () => {
   const [editingOption, setEditingOption] = useState(null);
   
   const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
+  const [isEditModelDialogOpen, setIsEditModelDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [isOptionDialogOpen, setIsOptionDialogOpen] = useState(false);
+  const [isEditOptionDialogOpen, setIsEditOptionDialogOpen] = useState(false);
 
   const texts = {
     ru: {
