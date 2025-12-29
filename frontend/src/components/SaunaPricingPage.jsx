@@ -468,6 +468,7 @@ export const SaunaPricingPage = () => {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </div>
             </CardHeader>
             <CardContent>
               {prices.models?.length === 0 ? (
