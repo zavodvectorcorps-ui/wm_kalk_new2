@@ -943,7 +943,7 @@ async def generate_tech_spec_pdf(request: dict):
                 tmp.write(img_data)
                 tmp_path = tmp.name
             
-            bench_img = Image(tmp_path, width=120, height=80)
+            bench_img = RLImage(tmp_path, width=120, height=80)
         except Exception as e:
             logger.warning(f"Could not load bench image: {e}")
         
