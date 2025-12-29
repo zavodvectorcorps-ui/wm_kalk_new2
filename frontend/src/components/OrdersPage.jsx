@@ -353,6 +353,16 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Tech Spec Modal */}
+      {isSauna && (
+        <TechSpecModal
+          open={techSpecModalOpen}
+          onOpenChange={setTechSpecModalOpen}
+          order={selectedOrder}
+          onSaved={handleTechSpecSaved}
+        />
+      )}
     </div>
   );
 };
