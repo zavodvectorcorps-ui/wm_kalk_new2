@@ -230,9 +230,6 @@ export const SaunaPricingPage = () => {
       toast.error(error.response?.data?.detail || t('error'));
     }
   };
-    
-    setEditingModel(null);
-  };
 
   const handleDeleteModel = async (modelId) => {
     try {
