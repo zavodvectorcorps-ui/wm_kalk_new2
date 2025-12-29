@@ -342,7 +342,7 @@ export const SaunaPricingPage = () => {
       toast.error(error.response?.data?.detail || t('error'));
     }
     
-    setNewOption({ categoryId: '', name: '', price: 0, imageUrl: '' });
+    setNewOption({ categoryId: '', name: '', price: 0, imageUrl: '', hasQuantity: false });
     setIsOptionDialogOpen(false);
   };
 
