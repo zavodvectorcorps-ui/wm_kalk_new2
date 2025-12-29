@@ -283,7 +283,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
                 <div 
                   key={option.id} 
                   className={hasImages 
-                    ? `flex flex-col items-center p-2 border-2 rounded-lg cursor-pointer transition-all ${
+                    ? `relative flex flex-col items-center p-2 border-2 rounded-lg cursor-pointer transition-all ${
                         isSelected 
                           ? 'border-amber-500 bg-amber-50 shadow-md' 
                           : 'border-gray-200 bg-white hover:border-amber-300'
