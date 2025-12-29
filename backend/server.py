@@ -868,7 +868,7 @@ class SaunaPriceData(BaseModel):
 class SaunaOrder(BaseModel):
     model_config = ConfigDict(extra="allow")
     
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    id: str = Field(default_factory=lambda: f"WMS-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}")
     fullName: str
     phoneNumber: str
     fullAddress: str
