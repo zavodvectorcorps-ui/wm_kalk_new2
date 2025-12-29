@@ -174,18 +174,20 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
   run_ui: false
 
 test_plan:
   current_focus:
-    - "GET /api/tech-spec/categories - Get tech spec categories with options"
-    - "POST /api/tech-spec/category - Add new category"
-    - "PUT /api/tech-spec/category/{id} - Update category"
-    - "DELETE /api/tech-spec/category/{id} - Delete category"
-    - "POST /api/tech-spec/category/{id}/option - Add option to category"
-    - "PUT /api/tech-spec/category/{id}/option/{option_id} - Update option"
-    - "DELETE /api/tech-spec/category/{id}/option/{option_id} - Delete option"
+    - "POST /api/upload/image - Upload image file"
+    - "GET /api/uploads/{filename} - Serve uploaded file"
+    - "DELETE /api/upload/image/{filename} - Delete uploaded image"
+    - "GET /api/prices - Get Balia prices with models and categories"
+    - "POST /api/prices - Save Balia prices with image URLs"
+    - "BaliaPricingPage - Model editing with image upload"
+    - "BaliaPricingPage - Category editing with image upload"
+    - "BaliaPricingPage - Option editing with image upload"
+    - "CalculatorPage - Display model and category images"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -199,3 +201,5 @@ agent_communication:
     message: "✅ ALL TECH SPEC ADMIN API TESTS PASSED! Tested new Technical Specification Admin page endpoints. All 7 endpoints working correctly: GET categories (200), POST category (200), PUT category (200), DELETE category (200), POST option (200), PUT option (200), DELETE option (200). Full CRUD operations for categories and options working. Data persists correctly in MongoDB. Test data cleaned up successfully."
   - agent: "testing"
     message: "✅ TECH SPEC MODAL & ORDERS INTEGRATION WORKING! Tech Spec Modal displays correctly with all categories (heater, benches, water tank, etc.). Orders page Tech Spec button integration working. ❌ CRITICAL ISSUE: TechSpecId mapping from calculator to tech spec pre-selection NOT WORKING. Selected options in calculator (heater 9kW, premium benches, 30L tank) are not pre-selected in tech spec modal. Found 0 selected radio buttons in modal. The techSpecId mapping system needs investigation and fixing."
+  - agent: "main"
+    message: "Implemented image upload functionality for Balia calculator. Created /api/upload/image endpoint for file uploads, added BaliaPricingPage for admin management of models, categories and options with image upload. Updated CalculatorPage to display category images. Ready for testing."
