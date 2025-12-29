@@ -80,10 +80,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = () => user?.role === 'admin';
+  
+  const isObserver = () => user?.role === 'observer';
+  
+  const canEdit = () => user?.role === 'admin' || user?.role === 'employee';
 
   const hasAccess = (calculator) => {
     if (!user) return false;
     if (user.role === 'admin') return true;
+    if (user.role === 'observer') return true;
     if (user.access === 'all') return true;
     return user.access === calculator;
   };
@@ -95,6 +100,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAdmin,
+    isObserver,
+    canEdit,
     hasAccess,
     isAuthenticated: !!user
   };
