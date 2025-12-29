@@ -319,6 +319,7 @@ export const SaunaPricingPage = () => {
       inputType: 'radio',
       sortOrder: 1,
       imageUrl: newOption.imageUrl || null,
+      hasQuantity: newOption.hasQuantity || false,
     };
     
     try {
