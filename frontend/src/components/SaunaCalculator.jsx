@@ -404,6 +404,7 @@ export const SaunaCalculator = () => {
         optionsTotal: calculateOptionsTotal(),
         subtotal: subtotal,
         total: total,
+        createdBy: user?.username || '',
       };
 
       // 1. Save order and get the order ID
