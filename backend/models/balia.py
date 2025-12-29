@@ -137,6 +137,7 @@ class PDFRequest(BaseModel):
     modelId: Optional[str] = None
     modelName: Optional[str] = None
     modelPrice: Optional[float] = 0.0
+    modelImageUrl: Optional[str] = None
     selections: Optional[Dict[str, Any]] = {}
     selectedOptions: Optional[List[Dict[str, Any]]] = []
     currency: Optional[str] = "EUR"
@@ -151,4 +152,4 @@ class PDFRequest(BaseModel):
     notes: str = ""
     total: float = 0.0
     type: str = "customer"
-    language: str = "ru"
+    language: str = "pl"
