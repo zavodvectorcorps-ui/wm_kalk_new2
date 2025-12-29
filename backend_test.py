@@ -328,6 +328,227 @@ def test_category_order_functionality():
         return False
 
 # ============================================================================
+# OBSERVER ROLE TESTS (NEW)
+# ============================================================================
+
+def test_observer_login():
+    """Test observer login with correct credentials"""
+    print("\n🔍 Testing Observer Login...")
+    
+    try:
+        login_data = {
+            "username": "Наблюдатель",
+            "password": "observer123"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Observer login successful")
+            
+            # Check response structure
+            if 'token' in data and 'user' in data:
+                print("✅ Response contains token and user data")
+                
+                user = data['user']
+                if (user.get('role') == 'observer' and 
+                    user.get('username') == 'Наблюдатель' and 
+                    user.get('access') == 'all'):
+                    print("✅ Observer user data correct - role=observer, access=all")
+                    return data['token']  # Return token for other tests
+                else:
+                    print(f"❌ Incorrect user data: {user}")
+                    print(f"Expected: role=observer, username=Наблюдатель, access=all")
+                    return False
+            else:
+                print("❌ Missing token or user in response")
+                return False
+        else:
+            print(f"❌ Observer login failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Observer login error: {str(e)}")
+        return False
+
+def test_observer_token_verification(observer_token):
+    """Test POST /api/auth/verify with observer's token"""
+    print("\n🔍 Testing Observer Token Verification...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {observer_token}"}
+        response = requests.post(f"{BACKEND_URL}/auth/verify", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('valid') == True:
+                print("✅ Observer token verification successful")
+                user_data = data.get('user', {})
+                if user_data.get('role') == 'observer':
+                    print("✅ Token contains correct observer role")
+                    return True
+                else:
+                    print(f"❌ Token contains incorrect role: {user_data.get('role')}")
+                    return False
+            else:
+                print("❌ Observer token marked as invalid")
+                return False
+        else:
+            print(f"❌ Observer token verification failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Observer token verification error: {str(e)}")
+        return False
+
+def test_observer_access_sauna_prices(observer_token):
+    """Test GET /api/sauna/prices - Observer should be able to read prices"""
+    print("\n🔍 Testing Observer Access to GET /api/sauna/prices...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {observer_token}"}
+        response = requests.get(f"{BACKEND_URL}/sauna/prices", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Observer can access sauna prices")
+            
+            # Check if data structure is correct
+            if 'models' in data and 'categories' in data:
+                print(f"✅ Sauna prices data structure correct - {len(data.get('models', []))} models, {len(data.get('categories', []))} categories")
+                return True
+            else:
+                print("❌ Sauna prices data structure incorrect")
+                return False
+        else:
+            print(f"❌ Observer access to sauna prices failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Observer sauna prices access error: {str(e)}")
+        return False
+
+def test_observer_access_sauna_orders(observer_token):
+    """Test GET /api/sauna/orders - Observer should be able to read orders"""
+    print("\n🔍 Testing Observer Access to GET /api/sauna/orders...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {observer_token}"}
+        response = requests.get(f"{BACKEND_URL}/sauna/orders", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            orders = response.json()
+            print(f"✅ Observer can access sauna orders - found {len(orders)} orders")
+            return True
+        else:
+            print(f"❌ Observer access to sauna orders failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Observer sauna orders access error: {str(e)}")
+        return False
+
+def test_observer_access_balia_prices(observer_token):
+    """Test GET /api/prices - Observer should be able to read Balia prices"""
+    print("\n🔍 Testing Observer Access to GET /api/prices (Balia)...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {observer_token}"}
+        response = requests.get(f"{BACKEND_URL}/prices", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Observer can access balia prices")
+            
+            # Check if data structure is correct
+            if 'categories' in data and 'displayTypes' in data:
+                print(f"✅ Balia prices data structure correct - {len(data.get('categories', {}))} categories")
+                return True
+            else:
+                print("❌ Balia prices data structure incorrect")
+                return False
+        else:
+            print(f"❌ Observer access to balia prices failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Observer balia prices access error: {str(e)}")
+        return False
+
+def test_admin_access_users(admin_token):
+    """Test GET /api/users with admin token - Should return users list"""
+    print("\n🔍 Testing Admin Access to GET /api/users...")
+    
+    try:
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        response = requests.get(f"{BACKEND_URL}/users", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            users = response.json()
+            print(f"✅ Admin can access users list - found {len(users)} users")
+            
+            # Check if observer user exists in the list
+            observer_user = next((u for u in users if u.get('username') == 'Наблюдатель'), None)
+            if observer_user:
+                print(f"✅ Observer user found in users list - role: {observer_user.get('role')}, access: {observer_user.get('access')}")
+            else:
+                print("❌ Observer user not found in users list")
+                
+            return True
+        else:
+            print(f"❌ Admin access to users failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Admin users access error: {str(e)}")
+        return False
+
+def test_observer_role_system():
+    """Run comprehensive observer role tests"""
+    print("\n👁️ OBSERVER ROLE TESTS")
+    print("=" * 50)
+    
+    # Test observer login first
+    observer_token = test_observer_login()
+    if not observer_token:
+        print("❌ Cannot proceed with observer tests - login failed")
+        return {"Observer Login": False}
+    
+    # Test admin login for comparison
+    admin_token = test_admin_login()
+    if not admin_token:
+        print("❌ Cannot proceed with admin comparison tests - admin login failed")
+        admin_token = None
+    
+    # Run all observer tests
+    observer_results = {
+        "Observer Login": True,  # Already passed
+        "Observer Token Verification": test_observer_token_verification(observer_token),
+        "Observer Access to Sauna Prices": test_observer_access_sauna_prices(observer_token),
+        "Observer Access to Sauna Orders": test_observer_access_sauna_orders(observer_token),
+        "Observer Access to Balia Prices": test_observer_access_balia_prices(observer_token),
+    }
+    
+    # Add admin comparison test if admin login worked
+    if admin_token:
+        observer_results["Admin Access to Users (comparison)"] = test_admin_access_users(admin_token)
+    
+    return observer_results
+
+# ============================================================================
 # AUTHENTICATION SYSTEM TESTS
 # ============================================================================
 
