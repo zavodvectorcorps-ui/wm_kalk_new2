@@ -95,6 +95,7 @@ export const SaunaCalculator = () => {
       fillRequired: 'Заполните обязательные поля',
       selectModelFirst: 'Сначала выберите модель',
       gratis: 'бесплатно',
+      quantity: 'Кол-во',
       // Category translations
       'Kolor': 'Цвет / Пропитка',
       'Piece': 'Печь',
