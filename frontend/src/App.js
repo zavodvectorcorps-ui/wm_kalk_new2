@@ -19,7 +19,7 @@ import './App.css';
 
 const AppContent = () => {
   const { i18n } = useTranslation();
-  const { user, loading, isAdmin, hasAccess, logout } = useAuth();
+  const { user, loading, isAdmin, hasAccess, logout, canViewPricing } = useAuth();
   const [currentCalculator, setCurrentCalculator] = useState(null);
   const [activeTab, setActiveTab] = useState('calculator');
   const [pricesUpdated, setPricesUpdated] = useState(0);
