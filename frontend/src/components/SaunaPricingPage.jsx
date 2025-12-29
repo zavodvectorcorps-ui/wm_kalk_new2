@@ -19,6 +19,7 @@ export const SaunaPricingPage = () => {
     saving,
     prices,
     txt,
+    techSpecCategories,
     handleSaveAll,
     // Models
     handleAddModel,
@@ -115,6 +116,7 @@ export const SaunaPricingPage = () => {
           <OptionsTab
             prices={prices}
             txt={txt}
+            techSpecCategories={techSpecCategories}
             handleAddOption={handleAddOption}
             handleDeleteOption={handleDeleteOption}
             handleSaveEditOption={handleSaveEditOption}
