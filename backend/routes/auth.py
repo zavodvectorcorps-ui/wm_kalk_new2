@@ -65,7 +65,7 @@ async def get_users(admin: dict = Depends(get_admin_user)):
 
 @router.post("/users", response_model=UserResponse)
 async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_user)):
-    """Create a new employee (admin only)"""
+    """Create a new employee or observer (admin only)"""
     existing = await db.users.find_one({"username": user_data.username})
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -73,11 +73,14 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
     if user_data.access not in ["balia", "sauna", "all"]:
         raise HTTPException(status_code=400, detail="Access must be 'balia', 'sauna', or 'all'")
     
+    if user_data.role not in ["employee", "observer"]:
+        raise HTTPException(status_code=400, detail="Role must be 'employee' or 'observer'")
+    
     new_user = {
         "id": str(uuid.uuid4()),
         "username": user_data.username,
         "password": hash_password(user_data.password),
-        "role": "employee",
+        "role": user_data.role,
         "access": user_data.access,
         "createdAt": datetime.now(timezone.utc).isoformat()
     }
