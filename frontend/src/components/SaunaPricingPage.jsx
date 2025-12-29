@@ -633,11 +633,11 @@ export const SaunaPricingPage = () => {
                   {prices.categories?.map((category) => (
                     <div
                       key={category.id}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg flex-wrap gap-2"
                     >
                       <div>
                         <div className="font-medium">{category.name}</div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-muted-foreground flex flex-wrap gap-2 items-center">
                           <Badge variant="outline" className="mr-2">
                             {category.inputType === 'checkbox' ? txt.checkbox : txt.radio}
                           </Badge>
@@ -645,7 +645,29 @@ export const SaunaPricingPage = () => {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Display Type Selector for Category */}
+                        <div className="flex items-center gap-1 bg-background rounded-md border p-0.5">
+                          <Button
+                            size="sm"
+                            variant={category.displayType === 'grid' ? 'default' : 'ghost'}
+                            onClick={() => handleCategoryDisplayTypeChange(category.id, 'grid')}
+                            className={`h-7 px-2 ${category.displayType === 'grid' ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+                          >
+                            <LayoutGrid className="h-3 w-3 mr-1" />
+                            {txt.displayTypeGrid}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={category.displayType === 'dropdown' ? 'default' : 'ghost'}
+                            onClick={() => handleCategoryDisplayTypeChange(category.id, 'dropdown')}
+                            className={`h-7 px-2 ${category.displayType === 'dropdown' ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+                          >
+                            <List className="h-3 w-3 mr-1" />
+                            {txt.displayTypeDropdown}
+                          </Button>
+                        </div>
+                        
                         {editingCategory?.id === category.id ? (
                           <>
                             <Input
