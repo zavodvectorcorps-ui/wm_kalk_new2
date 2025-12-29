@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -13,7 +14,7 @@ import { toast } from 'sonner';
 import { 
   Plus, Save, Trash2, Loader2, Image, Package, Tag,
   Flame, DoorOpen, Layers, Lightbulb, Truck, GripVertical,
-  ArrowUp, ArrowDown, Edit2, X, LayoutGrid, List
+  ArrowUp, ArrowDown, Edit2, X, LayoutGrid, List, Eye
 } from 'lucide-react';
 import axios from 'axios';
 
