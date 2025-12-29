@@ -1635,6 +1635,317 @@ def test_display_type_feature_only():
     return result
 
 # ============================================================================
+# TECH SPEC FEATURE TESTS (NEW)
+# ============================================================================
+
+def test_create_test_sauna_order():
+    """Create a test sauna order for tech spec testing"""
+    print("\n🔍 Creating test sauna order for tech spec testing...")
+    
+    try:
+        test_order = {
+            "id": "test-order-tech-spec-001",
+            "fullName": "Анна Ковальская",
+            "phoneNumber": "+48 123 456 789",
+            "fullAddress": "Варшава, ул. Тестовая 123",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "selectedModel": "sauna_kwadro_beczka_235x300_cm",
+            "modelName": "Sauna Kwadro-Beczka 235x300 cm",
+            "basePrice": 24100,
+            "foundationPrice": 250,
+            "discount": 8,
+            "selections": {
+                "piece": "piec_elektryczny_9kw",
+                "strona_pieca": "piec_lewo",
+                "drzwi": "drzwi_szklane"
+            },
+            "notes": "Test order for tech spec feature",
+            "optionsTotal": 2950,
+            "total": 24886.0,
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Test sauna order created successfully")
+            return test_order["id"]
+        else:
+            print(f"❌ Failed to create test order: {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error creating test order: {str(e)}")
+        return False
+
+def test_save_tech_spec(order_id):
+    """Test PUT /api/sauna/orders/{order_id}/tech-spec - Save tech spec to order"""
+    print(f"\n🔍 Testing PUT /api/sauna/orders/{order_id}/tech-spec...")
+    
+    try:
+        # Create comprehensive tech spec data
+        tech_spec_data = {
+            "comment": "Тестовый комментарий для технического задания",
+            "selections": {
+                "base_color": "Натуральный",
+                "door_color": "Темно-коричневый",
+                "trim_color": "Светло-коричневый", 
+                "roof_color": "Черный",
+                "benches": "Стандартные ławki",
+                "stove_guard": "Да",
+                "stove_base": "Металлическое основание",
+                "steam_room_lighting": ["LED освещение", "Диммер"],
+                "entrance_door": "Стеклянная дверь",
+                "steam_door": "Деревянная дверь",
+                "heater": "Электрический 9kW",
+                "additional_options": ["Вентиляция", "Термометр"]
+            },
+            "textInputs": {
+                "shelf_size": "80x40 см",
+                "special_requirements": "Дополнительная изоляция"
+            }
+        }
+        
+        response = requests.put(f"{BACKEND_URL}/sauna/orders/{order_id}/tech-spec", json=tech_spec_data)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Tech spec saved successfully")
+            print(f"✅ Response: {data.get('message', 'No message')}")
+            return True
+        else:
+            print(f"❌ Failed to save tech spec: {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error saving tech spec: {str(e)}")
+        return False
+
+def test_get_tech_spec(order_id):
+    """Test GET /api/sauna/orders/{order_id}/tech-spec - Get tech spec from order"""
+    print(f"\n🔍 Testing GET /api/sauna/orders/{order_id}/tech-spec...")
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/sauna/orders/{order_id}/tech-spec")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            tech_spec = response.json()
+            print("✅ Tech spec retrieved successfully")
+            
+            # Verify the structure and content
+            if "comment" in tech_spec:
+                print(f"✅ Comment found: {tech_spec['comment'][:50]}...")
+            else:
+                print("❌ Comment field missing")
+                return False
+            
+            if "selections" in tech_spec:
+                selections = tech_spec["selections"]
+                print(f"✅ Selections found: {len(selections)} items")
+                
+                # Check some key selections
+                expected_selections = ["base_color", "door_color", "heater"]
+                for sel in expected_selections:
+                    if sel in selections:
+                        print(f"✅ Selection '{sel}': {selections[sel]}")
+                    else:
+                        print(f"❌ Selection '{sel}' missing")
+            else:
+                print("❌ Selections field missing")
+                return False
+            
+            if "textInputs" in tech_spec:
+                text_inputs = tech_spec["textInputs"]
+                print(f"✅ Text inputs found: {len(text_inputs)} items")
+            else:
+                print("❌ Text inputs field missing")
+                return False
+            
+            return tech_spec
+        else:
+            print(f"❌ Failed to get tech spec: {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error getting tech spec: {str(e)}")
+        return False
+
+def test_generate_tech_spec_pdf(order_id):
+    """Test POST /api/sauna/generate-tech-spec-pdf - Generate PDF for tech spec"""
+    print(f"\n🔍 Testing POST /api/sauna/generate-tech-spec-pdf...")
+    
+    try:
+        # First get the order data
+        order_response = requests.get(f"{BACKEND_URL}/sauna/orders")
+        if order_response.status_code != 200:
+            print("❌ Could not get orders for PDF test")
+            return False
+        
+        orders = order_response.json()
+        test_order = next((order for order in orders if order.get("id") == order_id), None)
+        
+        if not test_order:
+            print(f"❌ Test order {order_id} not found")
+            return False
+        
+        # Get the tech spec data
+        tech_spec_response = requests.get(f"{BACKEND_URL}/sauna/orders/{order_id}/tech-spec")
+        if tech_spec_response.status_code != 200:
+            print("❌ Could not get tech spec for PDF test")
+            return False
+        
+        tech_spec = tech_spec_response.json()
+        
+        # Create PDF request
+        pdf_request = {
+            "order": test_order,
+            "techSpec": tech_spec
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/generate-tech-spec-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Tech spec PDF generated successfully")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                return False
+            
+            # Check content length
+            content_length = len(response.content)
+            if content_length > 1000:  # PDF should be at least 1KB
+                print(f"✅ PDF size: {content_length} bytes")
+            else:
+                print(f"❌ PDF too small: {content_length} bytes")
+                return False
+            
+            # Check filename in headers
+            content_disposition = response.headers.get('content-disposition', '')
+            if 'TechSpec_' in content_disposition:
+                print("✅ PDF filename contains 'TechSpec_' prefix")
+            else:
+                print(f"❌ Unexpected filename format: {content_disposition}")
+            
+            return True
+        else:
+            print(f"❌ Failed to generate tech spec PDF: {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error generating tech spec PDF: {str(e)}")
+        return False
+
+def test_tech_spec_with_nonexistent_order():
+    """Test tech spec endpoints with non-existent order ID"""
+    print("\n🔍 Testing tech spec endpoints with non-existent order...")
+    
+    fake_order_id = "non-existent-order-123"
+    
+    try:
+        # Test GET with non-existent order
+        get_response = requests.get(f"{BACKEND_URL}/sauna/orders/{fake_order_id}/tech-spec")
+        if get_response.status_code == 404:
+            print("✅ GET tech spec correctly returns 404 for non-existent order")
+        else:
+            print(f"❌ GET tech spec should return 404, got {get_response.status_code}")
+            return False
+        
+        # Test PUT with non-existent order
+        test_data = {"comment": "test", "selections": {}}
+        put_response = requests.put(f"{BACKEND_URL}/sauna/orders/{fake_order_id}/tech-spec", json=test_data)
+        if put_response.status_code == 404:
+            print("✅ PUT tech spec correctly returns 404 for non-existent order")
+        else:
+            print(f"❌ PUT tech spec should return 404, got {put_response.status_code}")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error testing non-existent order: {str(e)}")
+        return False
+
+def test_tech_spec_feature_system():
+    """Run comprehensive tech spec feature tests"""
+    print("\n📋 TECH SPEC FEATURE TESTS")
+    print("=" * 50)
+    
+    # Step 1: Create test order
+    test_order_id = test_create_test_sauna_order()
+    if not test_order_id:
+        print("❌ Cannot proceed with tech spec tests - order creation failed")
+        return {
+            "Create Test Order": False,
+            "Save Tech Spec": False,
+            "Get Tech Spec": False,
+            "Generate Tech Spec PDF": False,
+            "Non-existent Order Handling": False
+        }
+    
+    # Step 2: Test saving tech spec
+    save_result = test_save_tech_spec(test_order_id)
+    
+    # Step 3: Test getting tech spec
+    get_result = test_get_tech_spec(test_order_id)
+    
+    # Step 4: Test PDF generation
+    pdf_result = test_generate_tech_spec_pdf(test_order_id)
+    
+    # Step 5: Test error handling
+    error_handling_result = test_tech_spec_with_nonexistent_order()
+    
+    tech_spec_results = {
+        "Create Test Order": bool(test_order_id),
+        "Save Tech Spec": save_result,
+        "Get Tech Spec": bool(get_result),
+        "Generate Tech Spec PDF": pdf_result,
+        "Non-existent Order Handling": error_handling_result
+    }
+    
+    return tech_spec_results
+
+def test_tech_spec_feature_only():
+    """Run only the Tech Spec feature tests as specified in review request"""
+    print("📋 TECH SPEC FEATURE TESTS")
+    print("=" * 50)
+    print("Testing Tech Spec feature for Sauna Orders as specified in review request")
+    
+    results = test_tech_spec_feature_system()
+    
+    print("\n📊 TECH SPEC TEST RESULTS:")
+    passed = 0
+    failed = 0
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
+    print(f"\nTech Spec Tests - Passed: {passed}, Failed: {failed}")
+    
+    if failed == 0:
+        print("🎉 All Tech Spec tests passed!")
+    else:
+        print(f"⚠️ {failed} Tech Spec test(s) failed")
+    
+    return results
+
+# ============================================================================
 # SAUNA CRUD API TESTS (NEW)
 # ============================================================================
 
