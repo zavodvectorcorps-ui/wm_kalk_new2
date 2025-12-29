@@ -346,7 +346,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
 
             {/* Technical Options */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {TECH_SPEC_CATEGORIES.map(renderCategory)}
+              {categories.map(renderCategory)}
             </div>
           </div>
         </div>
