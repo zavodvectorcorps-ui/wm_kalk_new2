@@ -676,6 +676,7 @@ export const SaunaCalculator = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {category.options?.map((option) => {
                         const isChecked = formData.selections[category.id]?.[option.id] || false;
+                        const quantity = formData.quantities[option.id] || 1;
                         return (
                           <div
                             key={option.id}
@@ -696,13 +697,28 @@ export const SaunaCalculator = () => {
                               >
                                 {option.name}
                               </Label>
-                              {option.price > 0 ? (
-                                <span className="text-xs text-amber-700 font-medium">
-                                  +{option.price.toLocaleString('pl-PL')} PLN
-                                </span>
-                              ) : (
-                                <span className="text-xs text-green-600">{txt.gratis}</span>
-                              )}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {option.price > 0 ? (
+                                  <span className="text-xs text-amber-700 font-medium">
+                                    +{option.price.toLocaleString('pl-PL')} PLN
+                                    {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${(option.price * quantity).toLocaleString('pl-PL')} PLN`}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-green-600">{txt.gratis}</span>
+                                )}
+                                {option.hasQuantity && isChecked && (
+                                  <div className="flex items-center gap-1">
+                                    <Label className="text-xs text-muted-foreground">{txt.quantity}:</Label>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={quantity}
+                                      onChange={(e) => handleQuantityChange(option.id, e.target.value)}
+                                      className="w-16 h-6 text-xs"
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             </div>
                             {option.imageUrl && (
                               <img 
