@@ -377,7 +377,8 @@ export const SaunaCalculator = () => {
                 totalPrice: option.price * quantity,
                 imageUrl: option.imageUrl || null,
                 techSpecId: option.techSpecId || null,
-                techSpecCategoryId: category.techSpecCategoryId || null,
+                // Use option-level techSpecCategoryId if available, otherwise category-level
+                techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
               });
             }
           }
@@ -396,7 +397,8 @@ export const SaunaCalculator = () => {
             totalPrice: option.price * quantity,
             imageUrl: option.imageUrl || null,
             techSpecId: option.techSpecId || null,
-            techSpecCategoryId: category.techSpecCategoryId || null,
+            // Use option-level techSpecCategoryId if available, otherwise category-level
+            techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
           });
         }
       }
