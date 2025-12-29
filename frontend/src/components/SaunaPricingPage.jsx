@@ -886,7 +886,7 @@ export const SaunaPricingPage = () => {
                           {category.options?.map((option) => (
                             <div
                               key={option.id}
-                              className="flex items-center justify-between p-2 bg-muted/30 rounded"
+                              className="flex items-center justify-between p-2 bg-muted/30 rounded flex-wrap gap-2"
                             >
                               <div className="flex items-center gap-3">
                                 {option.imageUrl && (
@@ -898,7 +898,7 @@ export const SaunaPricingPage = () => {
                                 )}
                                 <span className="text-sm">{option.name}</span>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Input
                                   type="number"
                                   value={option.price}
@@ -906,6 +906,16 @@ export const SaunaPricingPage = () => {
                                   className="w-24 h-8"
                                 />
                                 <span className="text-sm text-muted-foreground">PLN</span>
+                                <div className="flex items-center gap-1 border rounded px-2 py-1">
+                                  <Checkbox
+                                    id={`qty-${option.id}`}
+                                    checked={option.hasQuantity || false}
+                                    onCheckedChange={(checked) => handleToggleOptionQuantity(category.id, option.id, checked)}
+                                  />
+                                  <Label htmlFor={`qty-${option.id}`} className="text-xs cursor-pointer">
+                                    Кол-во
+                                  </Label>
+                                </div>
                                 <Button
                                   size="icon"
                                   variant="ghost"
