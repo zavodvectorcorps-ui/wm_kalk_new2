@@ -218,6 +218,8 @@ const AppContent = () => {
           <OrdersPage calculatorType="sauna" />
         ) : activeTab === 'pricing' && canViewPricing() ? (
           <SaunaPricingPage />
+        ) : activeTab === 'techspec' && canViewPricing() ? (
+          <TechSpecAdminPage />
         ) : (
           <SaunaCalculator />
         )}
