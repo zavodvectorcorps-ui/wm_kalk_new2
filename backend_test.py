@@ -1400,10 +1400,441 @@ def test_display_type_feature_only():
     
     return result
 
-if __name__ == "__main__":
-    # Check if we want to run only Display Type tests
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "display-type":
-        test_display_type_feature_only()
+# ============================================================================
+# SAUNA CRUD API TESTS (NEW)
+# ============================================================================
+
+def test_sauna_models_crud():
+    """Test full CRUD operations for Sauna Models as specified in review request"""
+    print("\n🔧 Testing Sauna Models CRUD Operations...")
+    print("=" * 60)
+    
+    try:
+        # Step 1: POST /api/sauna/models - Add new model "Test Sauna XL" with basePrice=15000
+        print("\n🔍 Step 1: Adding new model 'Test Sauna XL'...")
+        
+        new_model = {
+            "id": "test_sauna_xl",
+            "name": "Test Sauna XL",
+            "basePrice": 15000,
+            "foundationPrice": 300,
+            "discount": 0,
+            "imageUrl": "https://example.com/test-sauna.jpg",
+            "sortOrder": 99,
+            "active": True
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/models", json=new_model)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ POST /api/sauna/models successful - Model added")
+            result = response.json()
+            print(f"✅ Added model: {result.get('model', {}).get('name')} with basePrice: {result.get('model', {}).get('basePrice')} PLN")
+        else:
+            print(f"❌ POST /api/sauna/models failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+        
+        # Step 2: PUT /api/sauna/models/test_sauna_xl - Update model, change basePrice to 16000
+        print("\n🔍 Step 2: Updating model basePrice to 16000...")
+        
+        updated_model = new_model.copy()
+        updated_model["basePrice"] = 16000
+        
+        response = requests.put(f"{BACKEND_URL}/sauna/models/test_sauna_xl", json=updated_model)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ PUT /api/sauna/models/test_sauna_xl successful - Model updated")
+            result = response.json()
+            print(f"✅ Updated basePrice to: {result.get('model', {}).get('basePrice')} PLN")
+        else:
+            print(f"❌ PUT /api/sauna/models/test_sauna_xl failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+        
+        # Step 3: Verify model exists by checking GET /api/sauna/prices
+        print("\n🔍 Step 3: Verifying model exists in GET /api/sauna/prices...")
+        
+        response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        if response.status_code == 200:
+            data = response.json()
+            models = data.get('models', [])
+            test_model = next((m for m in models if m.get('id') == 'test_sauna_xl'), None)
+            
+            if test_model:
+                print(f"✅ Model found in prices: {test_model.get('name')} - {test_model.get('basePrice')} PLN")
+                if test_model.get('basePrice') == 16000:
+                    print("✅ Model basePrice correctly updated to 16000")
+                else:
+                    print(f"❌ Model basePrice incorrect: expected 16000, got {test_model.get('basePrice')}")
+                    return False
+            else:
+                print("❌ Test model not found in GET /api/sauna/prices")
+                return False
+        else:
+            print(f"❌ GET /api/sauna/prices failed: {response.status_code}")
+            return False
+        
+        # Step 4: DELETE /api/sauna/models/test_sauna_xl - Delete the model
+        print("\n🔍 Step 4: Deleting the test model...")
+        
+        response = requests.delete(f"{BACKEND_URL}/sauna/models/test_sauna_xl")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ DELETE /api/sauna/models/test_sauna_xl successful - Model deleted")
+        else:
+            print(f"❌ DELETE /api/sauna/models/test_sauna_xl failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+        
+        # Step 5: Verify model is deleted by checking GET /api/sauna/prices
+        print("\n🔍 Step 5: Verifying model is deleted...")
+        
+        response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        if response.status_code == 200:
+            data = response.json()
+            models = data.get('models', [])
+            test_model = next((m for m in models if m.get('id') == 'test_sauna_xl'), None)
+            
+            if test_model is None:
+                print("✅ Model successfully deleted - not found in GET /api/sauna/prices")
+            else:
+                print("❌ Model still exists after deletion")
+                return False
+        else:
+            print(f"❌ GET /api/sauna/prices failed: {response.status_code}")
+            return False
+        
+        print("\n🎉 Sauna Models CRUD operations completed successfully!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Sauna Models CRUD test error: {str(e)}")
+        return False
+
+def test_sauna_categories_crud():
+    """Test full CRUD operations for Sauna Categories as specified in review request"""
+    print("\n🔧 Testing Sauna Categories CRUD Operations...")
+    print("=" * 60)
+    
+    try:
+        # Step 1: POST /api/sauna/categories - Add new category "Test Options" with inputType="checkbox"
+        print("\n🔍 Step 1: Adding new category 'Test Options'...")
+        
+        new_category = {
+            "id": "test_options",
+            "name": "Test Options",
+            "inputType": "checkbox",
+            "displayType": "grid",
+            "options": []
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/categories", json=new_category)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ POST /api/sauna/categories successful - Category added")
+            result = response.json()
+            print(f"✅ Added category: {result.get('category', {}).get('name')} with inputType: {result.get('category', {}).get('inputType')}")
+        else:
+            print(f"❌ POST /api/sauna/categories failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+        
+        # Step 2: PUT /api/sauna/categories/test_options - Update category name to "Updated Options"
+        print("\n🔍 Step 2: Updating category name to 'Updated Options'...")
+        
+        updated_category = new_category.copy()
+        updated_category["name"] = "Updated Options"
+        
+        response = requests.put(f"{BACKEND_URL}/sauna/categories/test_options", json=updated_category)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ PUT /api/sauna/categories/test_options successful - Category updated")
+            result = response.json()
+            print(f"✅ Updated name to: {result.get('category', {}).get('name')}")
+        else:
+            print(f"❌ PUT /api/sauna/categories/test_options failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+        
+        # Step 3: Verify category exists by checking GET /api/sauna/prices
+        print("\n🔍 Step 3: Verifying category exists in GET /api/sauna/prices...")
+        
+        response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        if response.status_code == 200:
+            data = response.json()
+            categories = data.get('categories', [])
+            test_category = next((c for c in categories if c.get('id') == 'test_options'), None)
+            
+            if test_category:
+                print(f"✅ Category found in prices: {test_category.get('name')} - {test_category.get('inputType')}")
+                if test_category.get('name') == 'Updated Options':
+                    print("✅ Category name correctly updated to 'Updated Options'")
+                else:
+                    print(f"❌ Category name incorrect: expected 'Updated Options', got {test_category.get('name')}")
+                    return False
+            else:
+                print("❌ Test category not found in GET /api/sauna/prices")
+                return False
+        else:
+            print(f"❌ GET /api/sauna/prices failed: {response.status_code}")
+            return False
+        
+        # Step 4: DELETE /api/sauna/categories/test_options - Delete the category
+        print("\n🔍 Step 4: Deleting the test category...")
+        
+        response = requests.delete(f"{BACKEND_URL}/sauna/categories/test_options")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ DELETE /api/sauna/categories/test_options successful - Category deleted")
+        else:
+            print(f"❌ DELETE /api/sauna/categories/test_options failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+        
+        # Step 5: Verify category is deleted by checking GET /api/sauna/prices
+        print("\n🔍 Step 5: Verifying category is deleted...")
+        
+        response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        if response.status_code == 200:
+            data = response.json()
+            categories = data.get('categories', [])
+            test_category = next((c for c in categories if c.get('id') == 'test_options'), None)
+            
+            if test_category is None:
+                print("✅ Category successfully deleted - not found in GET /api/sauna/prices")
+            else:
+                print("❌ Category still exists after deletion")
+                return False
+        else:
+            print(f"❌ GET /api/sauna/prices failed: {response.status_code}")
+            return False
+        
+        print("\n🎉 Sauna Categories CRUD operations completed successfully!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Sauna Categories CRUD test error: {str(e)}")
+        return False
+
+def test_sauna_options_crud():
+    """Test full CRUD operations for Sauna Options as specified in review request"""
+    print("\n🔧 Testing Sauna Options CRUD Operations...")
+    print("=" * 60)
+    
+    try:
+        # Step 1: First create a test category
+        print("\n🔍 Step 1: Creating test category for options testing...")
+        
+        test_category = {
+            "id": "test_category_for_options",
+            "name": "Test Category for Options",
+            "inputType": "radio",
+            "displayType": "grid",
+            "options": []
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/categories", json=test_category)
+        if response.status_code != 200:
+            print(f"❌ Failed to create test category: {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+        
+        print("✅ Test category created successfully")
+        category_id = test_category["id"]
+        
+        # Step 2: POST /api/sauna/categories/{category_id}/options - Add option "Option A" with price=500
+        print("\n🔍 Step 2: Adding option 'Option A' with price=500...")
+        
+        new_option = {
+            "id": "option_a",
+            "name": "Option A",
+            "price": 500,
+            "inputType": "radio",
+            "sortOrder": 1
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/categories/{category_id}/options", json=new_option)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ POST /api/sauna/categories/{category_id}/options successful - Option added")
+            result = response.json()
+            print(f"✅ Added option: {result.get('option', {}).get('name')} with price: {result.get('option', {}).get('price')} PLN")
+        else:
+            print(f"❌ POST /api/sauna/categories/{category_id}/options failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            # Clean up category before returning
+            requests.delete(f"{BACKEND_URL}/sauna/categories/{category_id}")
+            return False
+        
+        option_id = new_option["id"]
+        
+        # Step 3: Verify option exists by checking GET /api/sauna/prices
+        print("\n🔍 Step 3: Verifying option exists in GET /api/sauna/prices...")
+        
+        response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        if response.status_code == 200:
+            data = response.json()
+            categories = data.get('categories', [])
+            test_cat = next((c for c in categories if c.get('id') == category_id), None)
+            
+            if test_cat:
+                options = test_cat.get('options', [])
+                test_option = next((o for o in options if o.get('id') == option_id), None)
+                
+                if test_option:
+                    print(f"✅ Option found in category: {test_option.get('name')} - {test_option.get('price')} PLN")
+                    if test_option.get('price') == 500:
+                        print("✅ Option price correctly set to 500")
+                    else:
+                        print(f"❌ Option price incorrect: expected 500, got {test_option.get('price')}")
+                        # Clean up before returning
+                        requests.delete(f"{BACKEND_URL}/sauna/categories/{category_id}")
+                        return False
+                else:
+                    print("❌ Test option not found in category")
+                    # Clean up before returning
+                    requests.delete(f"{BACKEND_URL}/sauna/categories/{category_id}")
+                    return False
+            else:
+                print("❌ Test category not found in GET /api/sauna/prices")
+                return False
+        else:
+            print(f"❌ GET /api/sauna/prices failed: {response.status_code}")
+            # Clean up before returning
+            requests.delete(f"{BACKEND_URL}/sauna/categories/{category_id}")
+            return False
+        
+        # Step 4: DELETE /api/sauna/categories/{category_id}/options/{option_id} - Delete the option
+        print("\n🔍 Step 4: Deleting the test option...")
+        
+        response = requests.delete(f"{BACKEND_URL}/sauna/categories/{category_id}/options/{option_id}")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ DELETE /api/sauna/categories/{category_id}/options/{option_id} successful - Option deleted")
+        else:
+            print(f"❌ DELETE /api/sauna/categories/{category_id}/options/{option_id} failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            # Clean up category before returning
+            requests.delete(f"{BACKEND_URL}/sauna/categories/{category_id}")
+            return False
+        
+        # Step 5: Verify option is deleted by checking GET /api/sauna/prices
+        print("\n🔍 Step 5: Verifying option is deleted...")
+        
+        response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        if response.status_code == 200:
+            data = response.json()
+            categories = data.get('categories', [])
+            test_cat = next((c for c in categories if c.get('id') == category_id), None)
+            
+            if test_cat:
+                options = test_cat.get('options', [])
+                test_option = next((o for o in options if o.get('id') == option_id), None)
+                
+                if test_option is None:
+                    print("✅ Option successfully deleted - not found in category")
+                else:
+                    print("❌ Option still exists after deletion")
+                    # Clean up category before returning
+                    requests.delete(f"{BACKEND_URL}/sauna/categories/{category_id}")
+                    return False
+            else:
+                print("❌ Test category not found in GET /api/sauna/prices")
+                return False
+        else:
+            print(f"❌ GET /api/sauna/prices failed: {response.status_code}")
+            # Clean up category before returning
+            requests.delete(f"{BACKEND_URL}/sauna/categories/{category_id}")
+            return False
+        
+        # Step 6: Clean up test category
+        print("\n🔍 Step 6: Cleaning up test category...")
+        
+        response = requests.delete(f"{BACKEND_URL}/sauna/categories/{category_id}")
+        if response.status_code == 200:
+            print("✅ Test category cleaned up successfully")
+        else:
+            print(f"⚠️ Warning: Could not clean up test category: {response.status_code}")
+        
+        print("\n🎉 Sauna Options CRUD operations completed successfully!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Sauna Options CRUD test error: {str(e)}")
+        # Try to clean up test category if it exists
+        try:
+            requests.delete(f"{BACKEND_URL}/sauna/categories/test_category_for_options")
+        except:
+            pass
+        return False
+
+def test_sauna_crud_full():
+    """Run all CRUD tests for Sauna pricing data as specified in review request"""
+    print("\n🔧 SAUNA CRUD API TESTS")
+    print("=" * 60)
+    print("Testing full CRUD API for Sauna pricing data stored in MongoDB")
+    print("Review Request Requirements:")
+    print("1. Models CRUD Tests - Add, Update, Delete model")
+    print("2. Categories CRUD Tests - Add, Update, Delete category")
+    print("3. Options CRUD Tests - Add, Delete option within category")
+    print("4. Verify all changes persist in MongoDB")
+    print("5. Clean up all test data after tests")
+    print("=" * 60)
+    
+    # Run all CRUD tests
+    crud_results = {
+        "Sauna Models CRUD": test_sauna_models_crud(),
+        "Sauna Categories CRUD": test_sauna_categories_crud(),
+        "Sauna Options CRUD": test_sauna_options_crud(),
+    }
+    
+    print("\n" + "=" * 60)
+    print("📊 SAUNA CRUD TEST RESULTS")
+    print("=" * 60)
+    
+    passed = 0
+    failed = 0
+    
+    for test_name, result in crud_results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
+    print(f"\nTotal CRUD Tests: {passed + failed}")
+    print(f"Passed: {passed}")
+    print(f"Failed: {failed}")
+    
+    if failed == 0:
+        print("\n🎉 All CRUD operations working correctly!")
+        print("✅ Data persists in MongoDB")
+        print("✅ All test data cleaned up")
     else:
-        run_all_tests()
+        print(f"\n⚠️  {failed} CRUD test(s) failed - see details above")
+    
+    return crud_results
+
+if __name__ == "__main__":
+    # Check if we want to run specific tests
+    import sys
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "display-type":
+            test_display_type_feature_only()
+        elif sys.argv[1] == "crud":
+            test_sauna_crud_full()
+        else:
+            run_all_tests()
+    else:
+        # Run CRUD tests by default as per review request
+        test_sauna_crud_full()
