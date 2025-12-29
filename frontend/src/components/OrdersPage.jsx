@@ -26,7 +26,7 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
     ru: {
       ordersList: isSauna ? 'Заказы саун' : 'Список заказов',
       noOrders: isSauna ? 'Заказов саун пока нет' : 'Заказов пока нет',
-      searchPlaceholder: 'Поиск по номеру заказа или имени...',
+      searchPlaceholder: 'Поиск по номеру, имени или телефону...',
       deleteOrder: 'Удалить заказ',
       confirmDelete: 'Удалить этот заказ?',
       orderDeleted: 'Заказ удалён',
@@ -35,7 +35,7 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
     pl: {
       ordersList: isSauna ? 'Zamówienia saun' : 'Lista zamówień',
       noOrders: isSauna ? 'Brak zamówień saun' : 'Brak zamówień',
-      searchPlaceholder: 'Szukaj po numerze zamówienia lub nazwisku...',
+      searchPlaceholder: 'Szukaj po numerze, nazwisku lub telefonie...',
       deleteOrder: 'Usuń zamówienie',
       confirmDelete: 'Usunąć to zamówienie?',
       orderDeleted: 'Zamówienie usunięte',
