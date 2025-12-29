@@ -44,6 +44,90 @@ backend:
         agent: "testing"
         comment: "✅ PDF generation endpoint working correctly. Generates 48KB PDF with proper content-type (application/pdf). Filename format: TechSpec_{order_id}_{client_name}.pdf. PDF contains order info, tech spec selections, and comment as expected."
 
+  - task: "GET /api/tech-spec/categories - Get tech spec categories with options"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/tech_spec.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ GET endpoint working correctly. Returns 25 tech spec categories with proper structure (id, name, inputType, layout, hasImages, sortOrder, options). All expected categories found: base_color, door_color, benches, heater. Options have correct fields: id, name, required."
+
+  - task: "POST /api/tech-spec/category - Add new category"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/tech_spec.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ POST endpoint working correctly. Successfully adds new category with all fields (id, name, inputType, layout, hasImages, sortOrder, options). Category persists in database and appears in GET categories response."
+
+  - task: "PUT /api/tech-spec/category/{id} - Update category"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/tech_spec.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PUT endpoint working correctly. Successfully updates category fields (name, inputType, hasImages). Changes persist in database and are reflected in GET categories response."
+
+  - task: "DELETE /api/tech-spec/category/{id} - Delete category"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/tech_spec.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ DELETE endpoint working correctly. Successfully removes category from database. Category no longer appears in GET categories response after deletion."
+
+  - task: "POST /api/tech-spec/category/{id}/option - Add option to category"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/tech_spec.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ POST endpoint working correctly. Successfully adds new option to category with all fields (id, name, imageUrl, placeholder, required). Option persists in database and appears in category's options array."
+
+  - task: "PUT /api/tech-spec/category/{id}/option/{option_id} - Update option"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/tech_spec.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PUT endpoint working correctly. Successfully updates option fields (name, imageUrl, placeholder, required). Changes persist in database and are reflected in category's options array."
+
+  - task: "DELETE /api/tech-spec/category/{id}/option/{option_id} - Delete option"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/tech_spec.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ DELETE endpoint working correctly. Successfully removes option from category. Option no longer appears in category's options array after deletion."
+
 frontend:
   - task: "Tech Spec Modal - Display order info and form fields"
     implemented: true
