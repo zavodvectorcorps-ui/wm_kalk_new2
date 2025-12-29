@@ -452,11 +452,14 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
               if (unassignedCats.length === 0) return null;
               
               return (
-                <div className="space-y-2">
-                  <h3 className="font-bold text-amber-700 text-sm border-b border-amber-200 pb-1">
-                    Прочее
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="space-y-3">
+                  <div className="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2">
+                    <h3 className="font-bold text-gray-700 text-base flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Прочее
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-2">
                     {unassignedCats.map(category => (
                       <div 
                         key={category.id} 
