@@ -828,6 +828,21 @@ const CategoryEditDialog = ({ open, category, isNew, onClose, onSave, txt }) => 
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label>{txt.displayType || 'Тип отображения'}</Label>
+            <Select 
+              value={formData.displayType || 'list'} 
+              onValueChange={(v) => setFormData({ ...formData, displayType: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="list">{txt.list || 'Список'}</SelectItem>
+                <SelectItem value="tiles">{txt.tiles || 'Плитки'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
