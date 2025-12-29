@@ -857,11 +857,13 @@ class SaunaCategory(BaseModel):
     id: str
     name: str
     inputType: str = "radio"
+    displayType: str = "grid"  # "grid" (плитка) or "dropdown" (выпадающий список)
     options: List[SaunaOption] = []
 
 class SaunaPriceData(BaseModel):
     models: List[SaunaModel] = []
     categories: List[SaunaCategory] = []
+    modelsDisplayType: str = "grid"  # "grid" or "dropdown" для базовых моделей
 
 class SaunaOrder(BaseModel):
     model_config = ConfigDict(extra="allow")
