@@ -842,6 +842,16 @@ export const SaunaPricingPage = () => {
                         placeholder="https://..."
                       />
                     </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Checkbox
+                        id="hasQuantity"
+                        checked={newOption.hasQuantity}
+                        onCheckedChange={(checked) => setNewOption(prev => ({ ...prev, hasQuantity: checked }))}
+                      />
+                      <Label htmlFor="hasQuantity" className="cursor-pointer">
+                        {txt.quantityEnabled}
+                      </Label>
+                    </div>
                   </div>
                   <DialogFooter>
                     <DialogClose asChild>
