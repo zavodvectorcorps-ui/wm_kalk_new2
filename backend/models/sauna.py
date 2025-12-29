@@ -23,6 +23,7 @@ class SaunaOption(BaseModel):
     sortOrder: int = 1
     imageUrl: Optional[str] = None
     hasQuantity: bool = False
+    techSpecId: Optional[str] = None  # Link to tech spec option ID
 
 
 class SaunaCategory(BaseModel):
