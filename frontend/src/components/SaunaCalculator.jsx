@@ -39,6 +39,7 @@ const categoryIcons = {
 
 export const SaunaCalculator = () => {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [prices, setPrices] = useState({ models: [], categories: [] });
