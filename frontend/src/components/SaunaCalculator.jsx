@@ -713,7 +713,9 @@ export const SaunaCalculator = () => {
                                     {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${(option.price * quantity).toLocaleString('pl-PL')} PLN`}
                                   </span>
                                 ) : (
-                                  <span className="text-xs text-green-600">{txt.gratis}</span>
+                                  <span className="text-xs text-green-600">
+                                    {option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis}
+                                  </span>
                                 )}
                                 {option.hasQuantity && isChecked && (
                                   <div className="flex items-center gap-1">
@@ -799,7 +801,9 @@ export const SaunaCalculator = () => {
                                     {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${(option.price * quantity).toLocaleString('pl-PL')} PLN`}
                                   </span>
                                 ) : (
-                                  <span className="text-xs text-green-600">{txt.gratis}</span>
+                                  <span className="text-xs text-green-600">
+                                    {option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis}
+                                  </span>
                                 )}
                                 {option.hasQuantity && isSelected && (
                                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
