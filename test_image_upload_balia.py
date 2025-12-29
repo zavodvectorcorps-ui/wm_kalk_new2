@@ -183,7 +183,7 @@ def test_balia_prices_new_structure():
             
             if categories:
                 first_category = categories[0]
-                required_category_fields = ['id', 'name', 'inputType', 'options', 'imageUrl']
+                required_category_fields = ['id', 'name', 'inputType', 'options']
                 for field in required_category_fields:
                     if field in first_category:
                         print(f"✅ Category field '{field}' present")
@@ -192,8 +192,12 @@ def test_balia_prices_new_structure():
                         return False
                 
                 # Check if imageUrl field exists (can be empty)
-                image_url = first_category.get('imageUrl', '')
-                print(f"✅ Category imageUrl field: '{image_url}' (can be empty)")
+                if 'imageUrl' in first_category:
+                    image_url = first_category.get('imageUrl', '')
+                    print(f"✅ Category imageUrl field present: '{image_url}'")
+                else:
+                    print("❌ Category imageUrl field missing")
+                    return False
             
             # Check currency fields
             currency = data.get('currency', '')
