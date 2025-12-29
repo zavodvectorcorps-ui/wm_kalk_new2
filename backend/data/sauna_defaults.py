@@ -32,13 +32,14 @@ default_sauna_prices = {
             "name": "Piece",
             "inputType": "radio",
             "displayType": "dropdown",
+            "techSpecCategoryId": "heater",
             "options": [
                 {"id": "bez_pieca", "name": "Bez pieca", "price": 0, "inputType": "radio", "sortOrder": 1},
-                {"id": "piec_elektryczny_9kw", "name": "Piec Elektryczne 9 kW", "price": 2600, "inputType": "radio", "sortOrder": 2},
-                {"id": "piec_drewno_wew_12kw", "name": "Piec na Drewno / załadunek wewnętrzna / 12kW", "price": 4000, "inputType": "radio", "sortOrder": 3},
-                {"id": "piec_drewno_zew_12kw", "name": "Piec na Drewno / z załadunkiem zewnętrznym / 12kW", "price": 4650, "inputType": "radio", "sortOrder": 4},
-                {"id": "piec_drewno_wew_18kw", "name": "Piec na Drewno / załadunek wewnętrzna / 18kW", "price": 5600, "inputType": "radio", "sortOrder": 5},
-                {"id": "piec_drewno_zew_18kw", "name": "Piec na Drewno / z załadunkiem zewnętrznym / 18kW", "price": 6250, "inputType": "radio", "sortOrder": 6}
+                {"id": "piec_elektryczny_9kw", "name": "Piec Elektryczne 9 kW", "price": 2600, "inputType": "radio", "sortOrder": 2, "techSpecId": "electric_9kw"},
+                {"id": "piec_drewno_wew_12kw", "name": "Piec na Drewno / załadunek wewnętrzna / 12kW", "price": 4000, "inputType": "radio", "sortOrder": 3, "techSpecId": "wood_internal_12kw"},
+                {"id": "piec_drewno_zew_12kw", "name": "Piec na Drewno / z załadunkiem zewnętrznym / 12kW", "price": 4650, "inputType": "radio", "sortOrder": 4, "techSpecId": "wood_external_12kw"},
+                {"id": "piec_drewno_wew_18kw", "name": "Piec na Drewno / załadunek wewnętrzna / 18kW", "price": 5600, "inputType": "radio", "sortOrder": 5, "techSpecId": "wood_internal_18kw"},
+                {"id": "piec_drewno_zew_18kw", "name": "Piec na Drewno / z załadunkiem zewnętrznym / 18kW", "price": 6250, "inputType": "radio", "sortOrder": 6, "techSpecId": "wood_external_18kw"}
             ]
         },
         {
@@ -57,10 +58,11 @@ default_sauna_prices = {
             "name": "Zbiornik na wodę na piec",
             "inputType": "radio",
             "displayType": "dropdown",
+            "techSpecCategoryId": "water_tank",
             "options": [
-                {"id": "zbiornik_nie", "name": "Zbiornik na wodę na piec - Nie", "price": 0, "inputType": "radio", "sortOrder": 1},
-                {"id": "zbiornik_30l", "name": "Zbiornik na wodę na piec 30L", "price": 890, "inputType": "radio", "sortOrder": 2},
-                {"id": "zbiornik_50l", "name": "Zbiornik na wodę na piec 50L", "price": 990, "inputType": "radio", "sortOrder": 3}
+                {"id": "zbiornik_nie", "name": "Zbiornik na wodę na piec - Nie", "price": 0, "inputType": "radio", "sortOrder": 1, "techSpecId": "none"},
+                {"id": "zbiornik_30l", "name": "Zbiornik na wodę na piec 30L", "price": 890, "inputType": "radio", "sortOrder": 2, "techSpecId": "30l"},
+                {"id": "zbiornik_50l", "name": "Zbiornik na wodę na piec 50L", "price": 990, "inputType": "radio", "sortOrder": 3, "techSpecId": "50l"}
             ]
         },
         {
@@ -68,8 +70,9 @@ default_sauna_prices = {
             "name": "Ogrodzenie do pieca (drewniane)",
             "inputType": "checkbox",
             "displayType": "grid",
+            "techSpecCategoryId": "stove_guard",
             "options": [
-                {"id": "ogrodzenie_drewniane", "name": "Ogrodzenie do pieca (drewniane)", "price": 490, "inputType": "checkbox", "sortOrder": 1}
+                {"id": "ogrodzenie_drewniane", "name": "Ogrodzenie do pieca (drewniane)", "price": 490, "inputType": "checkbox", "sortOrder": 1, "techSpecId": "yes"}
             ]
         },
         {
@@ -77,10 +80,11 @@ default_sauna_prices = {
             "name": "Drzwi",
             "inputType": "radio",
             "displayType": "dropdown",
+            "techSpecCategoryId": "entrance_door",
             "options": [
-                {"id": "drzwi_szklane_gratis", "name": "Drzwi szklane hartowane 8mm gratis", "price": 0, "inputType": "radio", "sortOrder": 1},
-                {"id": "drzwi_szklane_hartowane", "name": "Drzwi wejściowe do łaźni wykonane są ze szkła hartowanego", "price": 530, "inputType": "radio", "sortOrder": 2},
-                {"id": "drzwi_drewniane", "name": "Drzwi drewniane z dużym przeszkleniem (zamykane)", "price": 990, "inputType": "radio", "sortOrder": 3}
+                {"id": "drzwi_szklane_gratis", "name": "Drzwi szklane hartowane 8mm gratis", "price": 0, "inputType": "radio", "sortOrder": 1, "techSpecId": "glass_700x1900"},
+                {"id": "drzwi_szklane_hartowane", "name": "Drzwi wejściowe do łaźni wykonane są ze szkła hartowanego", "price": 530, "inputType": "radio", "sortOrder": 2, "techSpecId": "glass_700x1900"},
+                {"id": "drzwi_drewniane", "name": "Drzwi drewniane z dużym przeszkleniem (zamykane)", "price": 990, "inputType": "radio", "sortOrder": 3, "techSpecId": "wood_premium"}
             ]
         },
         {
@@ -112,10 +116,11 @@ default_sauna_prices = {
             "name": "Szyba połpanoramiczna",
             "inputType": "radio",
             "displayType": "dropdown",
+            "techSpecCategoryId": "panorama",
             "options": [
-                {"id": "szyba_nie", "name": "Szyba połpanoramiczna- Nie", "price": 0, "inputType": "radio", "sortOrder": 1},
-                {"id": "szyba_80x160", "name": "Szyba połpanoramiczna 80x160 cm", "price": 980, "inputType": "radio", "sortOrder": 2},
-                {"id": "szyba_160x160", "name": "Szyba panoramiczna 160x160 cm", "price": 1980, "inputType": "radio", "sortOrder": 3}
+                {"id": "szyba_nie", "name": "Szyba połpanoramiczna- Nie", "price": 0, "inputType": "radio", "sortOrder": 1, "techSpecId": "none"},
+                {"id": "szyba_80x160", "name": "Szyba połpanoramiczna 80x160 cm", "price": 980, "inputType": "radio", "sortOrder": 2, "techSpecId": "half_80x160"},
+                {"id": "szyba_160x160", "name": "Szyba panoramiczna 160x160 cm", "price": 1980, "inputType": "radio", "sortOrder": 3, "techSpecId": "full_160x160"}
             ]
         },
         {
@@ -123,12 +128,13 @@ default_sauna_prices = {
             "name": "Ławki",
             "inputType": "radio",
             "displayType": "grid",
+            "techSpecCategoryId": "benches",
             "options": [
-                {"id": "lawki_standard_1", "name": "Standart (1 poziom)", "price": 0, "inputType": "radio", "sortOrder": 1, "imageUrl": "https://i.imgur.com/ff4dvj5.jpeg"},
-                {"id": "lawki_standard_katowy", "name": "Standart kątowy (1 poziom)", "price": 0, "inputType": "radio", "sortOrder": 2, "imageUrl": "https://i.imgur.com/EH6e0Oe.jpeg"},
-                {"id": "lawki_2_poziomy_otwarte", "name": "Ławki 2-poziomowe nie są zamknięte 55 cm", "price": 480, "inputType": "radio", "sortOrder": 3, "imageUrl": "https://i.imgur.com/lNi4r5Q.jpeg"},
-                {"id": "lawki_2_poziomy_zamkniete", "name": "Premium Ławki 2 poziomy zamknięte 55 cm", "price": 980, "inputType": "radio", "sortOrder": 4, "imageUrl": "https://i.imgur.com/F8HtCTo.jpeg"},
-                {"id": "lawki_2_poziomy_przesuwane", "name": "Premium Ławki 2 poziomy nie są zamknięte dolne przesuwane 55 cm", "price": 1580, "inputType": "radio", "sortOrder": 5, "imageUrl": "https://i.imgur.com/udSAwBt.jpeg"}
+                {"id": "lawki_standard_1", "name": "Standart (1 poziom)", "price": 0, "inputType": "radio", "sortOrder": 1, "imageUrl": "https://i.imgur.com/ff4dvj5.jpeg", "techSpecId": "standard_1"},
+                {"id": "lawki_standard_katowy", "name": "Standart kątowy (1 poziom)", "price": 0, "inputType": "radio", "sortOrder": 2, "imageUrl": "https://i.imgur.com/EH6e0Oe.jpeg", "techSpecId": "standard_corner_1"},
+                {"id": "lawki_2_poziomy_otwarte", "name": "Ławki 2-poziomowe nie są zamknięte 55 cm", "price": 480, "inputType": "radio", "sortOrder": 3, "imageUrl": "https://i.imgur.com/lNi4r5Q.jpeg", "techSpecId": "open_2_55"},
+                {"id": "lawki_2_poziomy_zamkniete", "name": "Premium Ławki 2 poziomy zamknięte 55 cm", "price": 980, "inputType": "radio", "sortOrder": 4, "imageUrl": "https://i.imgur.com/F8HtCTo.jpeg", "techSpecId": "premium_closed_2_55"},
+                {"id": "lawki_2_poziomy_przesuwane", "name": "Premium Ławki 2 poziomy nie są zamknięte dolne przesuwane 55 cm", "price": 1580, "inputType": "radio", "sortOrder": 5, "imageUrl": "https://i.imgur.com/udSAwBt.jpeg", "techSpecId": "premium_sliding_2_55"}
             ]
         },
         {
@@ -137,13 +143,13 @@ default_sauna_prices = {
             "inputType": "checkbox",
             "displayType": "grid",
             "options": [
-                {"id": "led_gratis", "name": "LED oświetlenie przebieralni i łaźni gratis", "price": 0, "inputType": "checkbox", "sortOrder": 1},
-                {"id": "lampa_standard", "name": "Lampa STANDARD (w każdym pomieszczeniu)", "price": 0, "inputType": "checkbox", "sortOrder": 2},
-                {"id": "led_rgb", "name": "Oświetlenie LED RGB (dedykowane pod ławkami)", "price": 580, "inputType": "checkbox", "sortOrder": 3},
-                {"id": "led_neon", "name": "Oświetlenie LED NEON (zewnętrzny pasek led zwykle wokół drzwi i okien albo krawędź sauny) do wyboru", "price": 970, "inputType": "checkbox", "sortOrder": 4},
-                {"id": "led_przebieralnia", "name": "Oświetlenie LED przebieralnia", "price": 580, "inputType": "checkbox", "sortOrder": 5},
-                {"id": "lampa_zewnetrzna", "name": "Dodatkowa lampa zewnętrzna", "price": 390, "inputType": "checkbox", "sortOrder": 6},
-                {"id": "premium_oswietlenie", "name": "Premium Oświetlenie pomieszczeń", "price": 1500, "inputType": "checkbox", "sortOrder": 7}
+                {"id": "led_gratis", "name": "LED oświetlenie przebieralni i łaźni gratis", "price": 0, "inputType": "checkbox", "sortOrder": 1, "techSpecId": "led"},
+                {"id": "lampa_standard", "name": "Lampa STANDARD (w każdym pomieszczeniu)", "price": 0, "inputType": "checkbox", "sortOrder": 2, "techSpecId": "standard"},
+                {"id": "led_rgb", "name": "Oświetlenie LED RGB (dedykowane pod ławkami)", "price": 580, "inputType": "checkbox", "sortOrder": 3, "techSpecId": "led_rgb"},
+                {"id": "led_neon", "name": "Oświetlenie LED NEON (zewnętrzny pasek led zwykle wokół drzwi i okien albo krawędź sauny) do wyboru", "price": 970, "inputType": "checkbox", "sortOrder": 4, "techSpecId": "led_neon"},
+                {"id": "led_przebieralnia", "name": "Oświetlenie LED przebieralnia", "price": 580, "inputType": "checkbox", "sortOrder": 5, "techSpecId": "led_plank"},
+                {"id": "lampa_zewnetrzna", "name": "Dodatkowa lampa zewnętrzna", "price": 390, "inputType": "checkbox", "sortOrder": 6, "techSpecId": "retro"},
+                {"id": "premium_oswietlenie", "name": "Premium Oświetlenie pomieszczeń", "price": 1500, "inputType": "checkbox", "sortOrder": 7, "techSpecId": "premium_led"}
             ]
         },
         {
@@ -151,15 +157,16 @@ default_sauna_prices = {
             "name": "Opcje Dodatkowe",
             "inputType": "checkbox",
             "displayType": "grid",
+            "techSpecCategoryId": "additional_options",
             "options": [
-                {"id": "grzejnik_30l", "name": "Grzejnik elektryczny na wodę 30L + Brodzik + Prysznic", "price": 2800, "inputType": "checkbox", "sortOrder": 1},
-                {"id": "grzejnik_50l", "name": "Grzejnik elektryczny na wodę 50L + Brodzik + Prysznic", "price": 2950, "inputType": "checkbox", "sortOrder": 2},
+                {"id": "grzejnik_30l", "name": "Grzejnik elektryczny na wodę 30L + Brodzik + Prysznic", "price": 2800, "inputType": "checkbox", "sortOrder": 1, "techSpecId": "30l"},
+                {"id": "grzejnik_50l", "name": "Grzejnik elektryczny na wodę 50L + Brodzik + Prysznic", "price": 2950, "inputType": "checkbox", "sortOrder": 2, "techSpecId": "50l"},
                 {"id": "stol_relaksacyjny", "name": "Duży stół do pokoju relaksacyjnego", "price": 360, "inputType": "checkbox", "sortOrder": 3},
-                {"id": "lezak_ergonomiczny", "name": "Ergonomiczny profilowany leżak", "price": 1850, "inputType": "checkbox", "sortOrder": 4},
+                {"id": "lezak_ergonomiczny", "name": "Ergonomiczny profilowany leżak", "price": 1850, "inputType": "checkbox", "sortOrder": 4, "techSpecId": "lounger"},
                 {"id": "lawka_skrzynia", "name": "Ławka ze skrzynią do przechowywania", "price": 340, "inputType": "checkbox", "sortOrder": 5},
-                {"id": "schody", "name": "Schody przed wejściem", "price": 540, "inputType": "checkbox", "sortOrder": 6},
-                {"id": "dach_wejscie", "name": "Dach nad wejściem przy opcji wejścia ftontowego", "price": 610, "inputType": "checkbox", "sortOrder": 7},
-                {"id": "taras_zewnetrzny", "name": "Extra Taras Zewnętrzny (50cm 2 Lawki)", "price": 950, "inputType": "checkbox", "sortOrder": 8}
+                {"id": "schody", "name": "Schody przed wejściem", "price": 540, "inputType": "checkbox", "sortOrder": 6, "techSpecId": "stairs"},
+                {"id": "dach_wejscie", "name": "Dach nad wejściem przy opcji wejścia ftontowego", "price": 610, "inputType": "checkbox", "sortOrder": 7, "techSpecId": "roof_entrance"},
+                {"id": "taras_zewnetrzny", "name": "Extra Taras Zewnętrzny (50cm 2 Lawki)", "price": 950, "inputType": "checkbox", "sortOrder": 8, "techSpecId": "extra_terrace"}
             ]
         },
         {
@@ -167,9 +174,10 @@ default_sauna_prices = {
             "name": "Belki podłużne do podstawy ramy sauny",
             "inputType": "radio",
             "displayType": "dropdown",
+            "techSpecCategoryId": "frame_beams",
             "options": [
-                {"id": "belki_nie", "name": "Belki podłużne - Nie", "price": 0, "inputType": "radio", "sortOrder": 1},
-                {"id": "belki_dodaj", "name": "Dodaj do sauny Belki podłużne", "price": 0, "inputType": "radio", "sortOrder": 2}
+                {"id": "belki_nie", "name": "Belki podłużne - Nie", "price": 0, "inputType": "radio", "sortOrder": 1, "techSpecId": "no"},
+                {"id": "belki_dodaj", "name": "Dodaj do sauny Belki podłużne", "price": 0, "inputType": "radio", "sortOrder": 2, "techSpecId": "yes"}
             ]
         },
         {
