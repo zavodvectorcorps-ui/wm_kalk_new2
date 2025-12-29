@@ -128,6 +128,66 @@ backend:
         agent: "testing"
         comment: "✅ DELETE endpoint working correctly. Successfully removes option from category. Option no longer appears in category's options array after deletion."
 
+  - task: "POST /api/upload/image - Upload image file"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/upload.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ POST endpoint working correctly. Successfully uploads image files (PNG, JPG, etc.) with multipart/form-data. Returns filename and URL path. Generates unique filenames using UUID. Validates file types and size limits (5MB max). Files saved to /app/backend/uploads/ directory."
+
+  - task: "GET /api/uploads/{filename} - Serve uploaded file"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/upload.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ GET endpoint working correctly. Successfully serves uploaded files with proper content-type headers (image/png, etc.). Includes security checks to prevent path traversal attacks. Returns 404 for non-existent files."
+
+  - task: "DELETE /api/upload/image/{filename} - Delete uploaded image"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/upload.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ DELETE endpoint working correctly. Successfully deletes uploaded files from filesystem. Includes security checks to prevent path traversal. Returns 404 for non-existent files. File is actually removed (verified by 404 on subsequent GET request)."
+
+  - task: "GET /api/prices - Get Balia prices with models and categories"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/balia.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ GET endpoint working correctly with NEW STRUCTURE. Returns models[] array (5 models) and categories[] array (14 categories) with imageUrl fields. Includes currency and currencySymbol fields. Models have id, name, basePrice, imageUrl. Categories have id, name, inputType, options, imageUrl. Updated Pydantic models to support new structure."
+
+  - task: "POST /api/prices - Save Balia prices with image URLs"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/balia.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ POST endpoint working correctly with NEW STRUCTURE. Successfully saves prices with imageUrl fields for both models and categories. Updated PriceData Pydantic model to accept new structure with models[] and categories[] arrays. Backward compatibility maintained for legacy fields. Data persists correctly in MongoDB."
+
 frontend:
   - task: "Tech Spec Modal - Display order info and form fields"
     implemented: true
