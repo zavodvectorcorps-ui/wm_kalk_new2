@@ -249,7 +249,7 @@ export const CalculatorPage = () => {
     <div className="container mx-auto px-4 py-6 max-w-7xl">
       <h1 className="text-2xl font-bold text-blue-800 mb-6 flex items-center gap-2">
         <Droplets className="h-6 w-6" />
-        {txt.title}
+        {t('balia.title')}
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -261,7 +261,7 @@ export const CalculatorPage = () => {
           {/* Model Selection */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-blue-700">{txt.selectModel}</CardTitle>
+              <CardTitle className="text-blue-700">{t('balia.selectModel')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -293,7 +293,7 @@ export const CalculatorPage = () => {
                       {model.basePrice} {prices.currencySymbol}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {model.heaterType === 'external' ? txt.externalHeater : txt.integratedHeater}
+                      {model.heaterType === 'external' ? t('balia.externalHeater') : t('balia.integratedHeater')}
                     </div>
                     {model.type === 'acrylic' && (
                       <Badge variant="outline" className="mt-2 text-xs">Acrylic</Badge>
@@ -305,19 +305,19 @@ export const CalculatorPage = () => {
               {/* Model Specs */}
               {selectedModel && (
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-blue-800 mb-2">{txt.modelInfo}</h4>
+                  <h4 className="font-semibold text-blue-800 mb-2">{t('balia.modelInfo')}</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                     {selectedModel.specs?.outerDiameter && (
-                      <div><span className="text-muted-foreground">{txt.outerDiameter}:</span> {selectedModel.specs.outerDiameter} cm</div>
+                      <div><span className="text-muted-foreground">{t('balia.outerDiameter')}:</span> {selectedModel.specs.outerDiameter} cm</div>
                     )}
                     {selectedModel.specs?.outerWidth && (
-                      <div><span className="text-muted-foreground">Размер:</span> {selectedModel.specs.outerWidth}×{selectedModel.specs.outerLength} cm</div>
+                      <div><span className="text-muted-foreground">{t('balia.size')}:</span> {selectedModel.specs.outerWidth}×{selectedModel.specs.outerLength} cm</div>
                     )}
                     {selectedModel.specs?.depth && (
-                      <div><span className="text-muted-foreground">{txt.depth}:</span> {selectedModel.specs.depth} cm</div>
+                      <div><span className="text-muted-foreground">{t('balia.depth')}:</span> {selectedModel.specs.depth} cm</div>
                     )}
                     {selectedModel.specs?.heaterPower && (
-                      <div><span className="text-muted-foreground">{txt.heaterPower}:</span> {selectedModel.specs.heaterPower} kW</div>
+                      <div><span className="text-muted-foreground">{t('balia.heaterPower')}:</span> {selectedModel.specs.heaterPower} kW</div>
                     )}
                     {selectedModel.specs?.waterCapacity && (
                       <div><span className="text-muted-foreground">{txt.waterCapacity}:</span> {selectedModel.specs.waterCapacity} L</div>
