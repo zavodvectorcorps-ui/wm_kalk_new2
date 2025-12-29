@@ -218,14 +218,16 @@ export const SaunaCalculator = () => {
           if (isSelected) {
             const option = category.options?.find(o => o.id === optId);
             if (option) {
-              total += option.price;
+              const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
+              total += option.price * quantity;
             }
           }
         });
       } else {
         const option = category.options?.find(o => o.id === selection);
         if (option) {
-          total += option.price;
+          const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
+          total += option.price * quantity;
         }
       }
     });
