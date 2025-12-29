@@ -210,6 +210,7 @@ export const SaunaPricingPage = () => {
 
   const handleEditModel = (model) => {
     setEditingModel({ ...model });
+    setIsEditModelDialogOpen(true);
   };
 
   const handleSaveEditModel = async () => {
