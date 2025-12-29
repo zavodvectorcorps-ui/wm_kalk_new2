@@ -88,6 +88,7 @@ const defaultOptionLabels = {
 
 export const PricingPage = () => {
   const { t, i18n } = useTranslation();
+  const { canEdit } = useAuth();
   const [loading, setLoading] = useState(false);
   const [prices, setPrices] = useState({
     shellModels: {},
