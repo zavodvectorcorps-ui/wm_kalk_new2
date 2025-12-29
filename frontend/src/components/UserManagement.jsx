@@ -326,6 +326,7 @@ export const UserManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{txt.username}</TableHead>
+                    <TableHead>{txt.role}</TableHead>
                     <TableHead>{txt.access}</TableHead>
                     <TableHead>{txt.created}</TableHead>
                     <TableHead className="text-right">{txt.actions}</TableHead>
@@ -335,6 +336,7 @@ export const UserManagement = () => {
                   {employees.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.username}</TableCell>
+                      <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>{getAccessBadge(user.access)}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(user.createdAt).toLocaleDateString()}
