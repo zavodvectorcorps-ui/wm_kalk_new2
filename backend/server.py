@@ -913,6 +913,7 @@ class SaunaPDFRequest(BaseModel):
     discount: int = 0
     discountPercent: float = 0.0
     selections: Dict[str, Any] = {}
+    quantities: Dict[str, int] = {}  # Store quantity for options
     notes: str = ""
     optionsTotal: int = 0
     subtotal: float = 0.0
