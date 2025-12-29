@@ -22,6 +22,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export const SaunaPricingPage = () => {
   const { t, i18n } = useTranslation();
+  const { canEdit } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [prices, setPrices] = useState({ models: [], categories: [] });
