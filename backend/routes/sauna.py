@@ -674,11 +674,13 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         elements.append(Spacer(1, 10))
     
     # ========== TOTAL SECTION ==========
-    total_price_str = f"{total_after_discount:,.0f}".replace(',', ' ')
+    total_price_int = int(round(total_after_discount))
+    total_price_str = f"{total_price_int:,}".replace(',', ' ')
     
     discount_note = ''
     if discount_percent > 0:
-        discount_note = f"Rabat: {discount_percent:.0f}% (cena bez rabatu: {subtotal:,.0f} PLN)".replace(',', ' ')
+        subtotal_int = int(round(subtotal))
+        discount_note = f"Rabat: {discount_percent:.0f}% (cena bez rabatu: {subtotal_int:,} PLN)".replace(',', ' ')
     
     total_left_content = [
         Paragraph('<font color="white"><b>WARTOŚĆ CAŁKOWITA OFERTY</b></font>', 
