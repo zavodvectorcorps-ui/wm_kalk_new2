@@ -327,6 +327,17 @@ export const SaunaCalculator = () => {
     }));
   };
 
+  const handleQuantityChange = (optionId, quantity) => {
+    const qty = Math.max(1, parseInt(quantity) || 1);
+    setFormData(prev => ({
+      ...prev,
+      quantities: {
+        ...prev.quantities,
+        [optionId]: qty,
+      },
+    }));
+  };
+
   const validateForm = () => {
     if (!formData.fullName || !formData.phoneNumber) {
       toast.error(txt.fillRequired);
