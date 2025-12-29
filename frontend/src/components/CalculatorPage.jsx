@@ -343,25 +343,86 @@ export const CalculatorPage = () => {
             <CardHeader>
               <CardTitle className="text-blue-700">{t('balia.options')}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {prices.categories?.map(category => (
                 <div key={category.id} className="border-b pb-4 last:border-b-0">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-3">
                     {category.imageUrl && (
                       <img 
                         src={category.imageUrl} 
                         alt={getCategoryName(category)}
-                        className="w-10 h-10 object-cover rounded"
+                        className="w-10 h-10 object-contain rounded"
                         onError={(e) => e.target.style.display = 'none'}
                       />
                     )}
                     <Label className="font-semibold text-sm">{getCategoryName(category)}</Label>
                   </div>
                   
-                  {category.inputType === 'checkbox' ? (
+                  {/* Tiles display for categories with images */}
+                  {category.displayType === 'tiles' ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {category.options?.map(option => {
+                        const isSelected = category.inputType === 'checkbox'
+                          ? formData.selections[category.id]?.[option.id]
+                          : formData.selections[category.id] === option.id;
+                        
+                        return (
+                          <div
+                            key={option.id}
+                            onClick={() => {
+                              if (category.inputType === 'checkbox') {
+                                handleCheckboxChange(category.id, option.id, !isSelected);
+                              } else {
+                                handleSelectionChange(category.id, option.id);
+                              }
+                            }}
+                            className={`relative p-2 border-2 rounded-lg cursor-pointer transition-all ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200'
+                                : 'border-gray-200 hover:border-blue-300'
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full p-0.5 z-10">
+                                <Check className="h-3 w-3" />
+                              </div>
+                            )}
+                            {option.imageUrl ? (
+                              <img 
+                                src={option.imageUrl} 
+                                alt={getOptionName(option)}
+                                className="w-full h-20 object-contain rounded mb-2 bg-gray-50"
+                                onError={(e) => e.target.style.display = 'none'}
+                              />
+                            ) : (
+                              <div className="w-full h-20 bg-gray-100 rounded mb-2 flex items-center justify-center">
+                                <Package className="h-8 w-8 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="text-xs font-medium text-center line-clamp-2">
+                              {getOptionName(option)}
+                            </div>
+                            {option.price > 0 && (
+                              <div className="text-xs text-blue-600 font-semibold text-center mt-1">
+                                +{option.price} {prices.currencySymbol}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : category.inputType === 'checkbox' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {category.options?.map(option => (
                         <div key={option.id} className="flex items-center gap-2">
+                          {option.imageUrl && (
+                            <img 
+                              src={option.imageUrl} 
+                              alt={getOptionName(option)}
+                              className="w-8 h-8 object-contain rounded"
+                              onError={(e) => e.target.style.display = 'none'}
+                            />
+                          )}
                           <Checkbox
                             id={option.id}
                             checked={formData.selections[category.id]?.[option.id] || false}
@@ -387,8 +448,19 @@ export const CalculatorPage = () => {
                       <SelectContent>
                         {category.options?.map(option => (
                           <SelectItem key={option.id} value={option.id}>
-                            {getOptionName(option)}
-                            {option.price > 0 && ` (+${option.price} ${prices.currencySymbol})`}
+                            <div className="flex items-center gap-2">
+                              {option.imageUrl && (
+                                <img 
+                                  src={option.imageUrl} 
+                                  alt={getOptionName(option)}
+                                  className="w-6 h-6 object-contain rounded"
+                                />
+                              )}
+                              <span>
+                                {getOptionName(option)}
+                                {option.price > 0 && ` (+${option.price} ${prices.currencySymbol})`}
+                              </span>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
