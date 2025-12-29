@@ -537,6 +537,7 @@ export const PricingPage = () => {
           onMoveDown={handleMoveCategoryDown}
           onCreateNew={() => setIsCategoryDialogOpen(true)}
           onToggleRequired={handleToggleRequired}
+          canEdit={canEdit()}
         />
 
         {/* Add Option Dialog */}
