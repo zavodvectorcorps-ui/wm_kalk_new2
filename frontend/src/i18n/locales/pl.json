@@ -230,6 +230,9 @@
     "confirmDelete": "Czy na pewno chcesz usunąć?",
     "noModels": "Brak modeli",
     "noCategories": "Brak kategorii",
-    "noOptions": "Brak opcji w tej kategorii"
+    "noOptions": "Brak opcji w tej kategorii",
+    "displayType": "Typ wyświetlania",
+    "list": "Lista",
+    "tiles": "Kafelki"
   }
 }
