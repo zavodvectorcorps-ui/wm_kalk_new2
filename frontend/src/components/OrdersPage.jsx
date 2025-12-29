@@ -66,7 +66,7 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
     try {
       const endpoint = isSauna ? `${API_URL}/api/sauna/generate-pdf` : `${API_URL}/api/generate-pdf`;
       const response = await axios.post(endpoint, 
-        { ...order, type, language: 'pl' },
+        { ...order, orderId: order.id, type, language: 'pl' },
         { responseType: 'blob' }
       );
 
@@ -74,7 +74,8 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       const link = document.createElement('a');
       link.href = url;
       const prefix = isSauna ? 'sauna' : 'order';
-      link.setAttribute('download', `${prefix}_${order.fullName}_${type}.pdf`);
+      const orderId = order.id || 'unknown';
+      link.setAttribute('download', `${prefix}_${orderId}_${order.fullName}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -85,6 +86,31 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       toast.error(t('error'));
     }
   };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm(txt.confirmDelete)) return;
+    
+    try {
+      const endpoint = isSauna 
+        ? `${API_URL}/api/sauna/orders/${orderId}` 
+        : `${API_URL}/api/orders/${orderId}`;
+      await axios.delete(endpoint);
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+      toast.success(txt.orderDeleted);
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error(t('error'));
+    }
+  };
+
+  // Filter orders based on search query
+  const filteredOrders = orders.filter(order => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const orderId = (order.id || '').toLowerCase();
+    const fullName = (order.fullName || '').toLowerCase();
+    return orderId.includes(query) || fullName.includes(query);
+  });
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
