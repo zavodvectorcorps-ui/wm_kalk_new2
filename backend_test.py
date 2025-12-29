@@ -2067,8 +2067,52 @@ if __name__ == "__main__":
             test_display_type_feature_only()
         elif sys.argv[1] == "crud":
             test_sauna_crud_full()
+        elif sys.argv[1] == "observer":
+            test_observer_role_only()
         else:
             run_all_tests()
     else:
-        # Run CRUD tests by default as per review request
-        test_sauna_crud_full()
+        # Run Observer Role tests by default as per review request
+        test_observer_role_only()
+
+def test_observer_role_only():
+    """Run only the Observer Role tests as specified in review request"""
+    print("👁️ OBSERVER ROLE FUNCTIONALITY TEST")
+    print("=" * 50)
+    print("Testing Observer role functionality as specified in review request")
+    print("Test Cases:")
+    print("1. Observer User Login - POST /api/auth/login with Наблюдатель / observer123")
+    print("2. Observer Token Verification - POST /api/auth/verify with observer's token")
+    print("3. Observer Access to APIs - GET /api/sauna/prices, GET /api/sauna/orders, GET /api/prices")
+    print("4. Admin-Only APIs (for comparison) - GET /api/users with admin token")
+    print("=" * 50)
+    
+    # Run observer role tests
+    observer_results = test_observer_role_system()
+    
+    print("\n" + "=" * 50)
+    print("📊 OBSERVER ROLE TEST RESULTS")
+    print("=" * 50)
+    
+    passed = 0
+    failed = 0
+    
+    for test_name, result in observer_results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
+    print(f"\nTotal: {passed + failed} tests")
+    print(f"Passed: {passed}")
+    print(f"Failed: {failed}")
+    
+    if failed == 0:
+        print("\n🎉 All Observer Role tests passed!")
+        print("✅ Observer role functionality is working correctly")
+    else:
+        print(f"\n⚠️  {failed} test(s) failed - see details above")
+    
+    return observer_results
