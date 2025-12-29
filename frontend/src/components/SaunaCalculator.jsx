@@ -892,7 +892,7 @@ export const SaunaCalculator = () => {
                             <div key={opt.id} className="flex justify-between">
                               <span className="truncate pr-2">{opt.name}</span>
                               <span className="text-amber-700 whitespace-nowrap font-medium">
-                                {opt.price > 0 ? `+${opt.price.toLocaleString('pl-PL')} PLN` : txt.gratis}
+                                {opt.price > 0 ? `+${opt.price.toLocaleString('pl-PL')} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
                               </span>
                             </div>
                           ))}
@@ -908,7 +908,7 @@ export const SaunaCalculator = () => {
                           <div className="flex justify-between">
                             <span className="truncate pr-2">{opt.name}</span>
                             <span className="text-amber-700 whitespace-nowrap font-medium">
-                              {opt.price > 0 ? `+${opt.price.toLocaleString('pl-PL')} PLN` : txt.gratis}
+                              {opt.price > 0 ? `+${opt.price.toLocaleString('pl-PL')} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
                             </span>
                           </div>
                         </div>
