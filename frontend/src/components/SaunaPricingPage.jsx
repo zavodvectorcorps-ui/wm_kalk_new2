@@ -223,10 +223,13 @@ export const SaunaPricingPage = () => {
         models: prev.models.map(m => m.id === editingModel.id ? editingModel : m),
       }));
       toast.success(txt.saved);
+      setIsEditModelDialogOpen(false);
+      setEditingModel(null);
     } catch (error) {
       console.error('Error updating model:', error);
       toast.error(error.response?.data?.detail || t('error'));
     }
+  };
     
     setEditingModel(null);
   };
