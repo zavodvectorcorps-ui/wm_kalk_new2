@@ -193,7 +193,7 @@ export const CalculatorPage = () => {
         createdAt: new Date().toISOString(),
       };
 
-      await axios.post(`${API_URL}/api/balia/orders`, order);
+      await axios.post(`${API_URL}/api/orders`, order);
       toast.success(t('balia.saved'));
     } catch (error) {
       console.error('Error saving order:', error);
