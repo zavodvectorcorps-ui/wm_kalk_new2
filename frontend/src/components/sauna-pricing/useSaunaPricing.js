@@ -10,6 +10,7 @@ export const useSaunaPricing = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [prices, setPrices] = useState({ models: [], categories: [] });
+  const [techSpecCategories, setTechSpecCategories] = useState([]);
 
   const texts = {
     ru: {
@@ -54,6 +55,12 @@ export const useSaunaPricing = () => {
       hasQuantity: 'Поле количества',
       quantityEnabled: 'Включить количество',
       quantityLabel: 'Кол-во',
+      techSpecMapping: 'Маппинг на Тех.Задание',
+      techSpecCategory: 'Категория тех.задания',
+      techSpecOption: 'Опция тех.задания',
+      selectTechSpecCategory: 'Выберите категорию',
+      selectTechSpecOption: 'Выберите опцию',
+      noMapping: '— Без маппинга —',
     },
     pl: {
       saunaPricing: 'Zarządzanie cenami saun',
@@ -97,6 +104,12 @@ export const useSaunaPricing = () => {
       hasQuantity: 'Pole ilości',
       quantityEnabled: 'Włącz ilość',
       quantityLabel: 'Ilość',
+      techSpecMapping: 'Mapowanie na specyfikację techniczną',
+      techSpecCategory: 'Kategoria spec. tech.',
+      techSpecOption: 'Opcja spec. tech.',
+      selectTechSpecCategory: 'Wybierz kategorię',
+      selectTechSpecOption: 'Wybierz opcję',
+      noMapping: '— Bez mapowania —',
     },
   };
 
@@ -105,6 +118,7 @@ export const useSaunaPricing = () => {
 
   useEffect(() => {
     fetchPrices();
+    fetchTechSpecConfig();
   }, []);
 
   const fetchPrices = async () => {
@@ -116,6 +130,15 @@ export const useSaunaPricing = () => {
       toast.error(t('error'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTechSpecConfig = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/tech-spec/config`);
+      setTechSpecCategories(response.data.categories || []);
+    } catch (error) {
+      console.error('Error fetching tech spec config:', error);
     }
   };
 
