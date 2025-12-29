@@ -311,6 +311,50 @@ export const SaunaPricingPage = () => {
     }
   };
 
+  // Move category up in list
+  const handleMoveCategoryUp = async (categoryId) => {
+    const categories = [...prices.categories];
+    const index = categories.findIndex(c => c.id === categoryId);
+    if (index <= 0) return;
+    
+    // Swap with previous category
+    [categories[index - 1], categories[index]] = [categories[index], categories[index - 1]];
+    
+    // Update sortOrder for all
+    categories.forEach((c, i) => c.sortOrder = i + 1);
+    
+    setPrices(prev => ({ ...prev, categories }));
+    
+    // Save to backend
+    try {
+      await axios.post(`${API_URL}/api/sauna/prices`, { ...prices, categories });
+    } catch (error) {
+      console.error('Error moving category:', error);
+    }
+  };
+
+  // Move category down in list
+  const handleMoveCategoryDown = async (categoryId) => {
+    const categories = [...prices.categories];
+    const index = categories.findIndex(c => c.id === categoryId);
+    if (index < 0 || index >= categories.length - 1) return;
+    
+    // Swap with next category
+    [categories[index], categories[index + 1]] = [categories[index + 1], categories[index]];
+    
+    // Update sortOrder for all
+    categories.forEach((c, i) => c.sortOrder = i + 1);
+    
+    setPrices(prev => ({ ...prev, categories }));
+    
+    // Save to backend
+    try {
+      await axios.post(`${API_URL}/api/sauna/prices`, { ...prices, categories });
+    } catch (error) {
+      console.error('Error moving category:', error);
+    }
+  };
+
   // ========== OPTIONS ==========
   const handleAddOption = async () => {
     if (!newOption.categoryId || !newOption.name) return;
