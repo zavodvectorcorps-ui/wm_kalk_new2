@@ -215,7 +215,7 @@ const AppContent = () => {
           <UserManagement />
         ) : activeTab === 'orders' ? (
           <OrdersPage calculatorType="sauna" />
-        ) : activeTab === 'pricing' && isAdmin() ? (
+        ) : activeTab === 'pricing' && canViewPricing() ? (
           <SaunaPricingPage />
         ) : (
           <SaunaCalculator />
