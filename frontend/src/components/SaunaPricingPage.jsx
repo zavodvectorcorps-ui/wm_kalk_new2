@@ -1038,6 +1038,142 @@ export const SaunaPricingPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Model Dialog */}
+      <Dialog open={isEditModelDialogOpen} onOpenChange={setIsEditModelDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{txt.editModel}</DialogTitle>
+          </DialogHeader>
+          {editingModel && (
+            <div className="space-y-4">
+              <div>
+                <Label>{txt.modelName}</Label>
+                <Input
+                  value={editingModel.name}
+                  onChange={(e) => setEditingModel(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>{txt.basePrice}</Label>
+                  <Input
+                    type="number"
+                    value={editingModel.basePrice}
+                    onChange={(e) => setEditingModel(prev => ({ ...prev, basePrice: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div>
+                  <Label>{txt.foundationPrice}</Label>
+                  <Input
+                    type="number"
+                    value={editingModel.foundationPrice}
+                    onChange={(e) => setEditingModel(prev => ({ ...prev, foundationPrice: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>{txt.discount}</Label>
+                <Input
+                  type="number"
+                  value={editingModel.discount}
+                  onChange={(e) => setEditingModel(prev => ({ ...prev, discount: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <div>
+                <Label>{txt.imageUrl}</Label>
+                <Input
+                  value={editingModel.imageUrl || ''}
+                  onChange={(e) => setEditingModel(prev => ({ ...prev, imageUrl: e.target.value }))}
+                  placeholder={txt.imageUrlHint}
+                />
+                {editingModel.imageUrl && (
+                  <div className="mt-2">
+                    <Label className="text-xs text-muted-foreground">{txt.previewImage}:</Label>
+                    <img 
+                      src={editingModel.imageUrl} 
+                      alt="Preview" 
+                      className="mt-1 w-full max-h-40 object-contain rounded border bg-muted/50"
+                      onError={(e) => e.target.style.display = 'none'}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">{txt.cancel}</Button>
+            </DialogClose>
+            <Button onClick={handleSaveEditModel} className="bg-amber-600 hover:bg-amber-700">
+              {txt.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Option Dialog */}
+      <Dialog open={isEditOptionDialogOpen} onOpenChange={setIsEditOptionDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{txt.editOption}</DialogTitle>
+          </DialogHeader>
+          {editingOption && (
+            <div className="space-y-4">
+              <div>
+                <Label>{txt.optionName}</Label>
+                <Input
+                  value={editingOption.name}
+                  onChange={(e) => setEditingOption(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>{txt.price}</Label>
+                <Input
+                  type="number"
+                  value={editingOption.price}
+                  onChange={(e) => setEditingOption(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <div>
+                <Label>{txt.imageUrl}</Label>
+                <Input
+                  value={editingOption.imageUrl || ''}
+                  onChange={(e) => setEditingOption(prev => ({ ...prev, imageUrl: e.target.value }))}
+                  placeholder={txt.imageUrlHint}
+                />
+                {editingOption.imageUrl && (
+                  <div className="mt-2">
+                    <Label className="text-xs text-muted-foreground">{txt.previewImage}:</Label>
+                    <img 
+                      src={editingOption.imageUrl} 
+                      alt="Preview" 
+                      className="mt-1 w-full max-h-40 object-contain rounded border bg-muted/50"
+                      onError={(e) => e.target.style.display = 'none'}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit-hasQuantity"
+                  checked={editingOption.hasQuantity || false}
+                  onCheckedChange={(checked) => setEditingOption(prev => ({ ...prev, hasQuantity: checked }))}
+                />
+                <Label htmlFor="edit-hasQuantity">{txt.quantityEnabled}</Label>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">{txt.cancel}</Button>
+            </DialogClose>
+            <Button onClick={handleSaveEditOption} className="bg-amber-600 hover:bg-amber-700">
+              {txt.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
