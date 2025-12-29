@@ -267,6 +267,18 @@ frontend:
         agent: "testing"
         comment: "✅ CalculatorPage displaying models and prices correctly. Found 14 selectable models with 14 price elements showing currency (€). Calculator page loads properly after navigating back from pricing page. Model selection and pricing display working as expected."
 
+  - task: "Balia Calculator Localization - Polish and Russian"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/CalculatorPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ Balia Calculator localization working perfectly. Polish localization verified: 'Kalkulator bali' page title, 'Wybierz model' section, 'SUMA' summary card, 'Zapisz zamówienie' save button, 'Wyczyść' clear button, 'Piec zewnętrzny/zintegrowany' heater types. Russian localization verified: 'Калькулятор купелей' page title, 'Выберите модель' section, 'ИТОГО' summary card, 'Сохранить заказ' save button, 'Очистить' clear button, 'Внешняя печь/Встроенная печь' heater types. Pricing page Russian localization: 'Управление ценами (Купели)' title, 'Модели/Категории опций/Настройки' tabs, 'Сохранить всё' button. Language switching works perfectly in both directions (PL ↔ RU)."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
