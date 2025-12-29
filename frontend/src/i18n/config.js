@@ -14,8 +14,8 @@ i18n
         translation: plTranslations
       }
     },
-    lng: 'ru', // Default language
-    fallbackLng: 'ru',
+    lng: 'pl', // Default language
+    fallbackLng: 'pl',
     interpolation: {
       escapeValue: false
     }
