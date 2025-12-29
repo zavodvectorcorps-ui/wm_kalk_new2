@@ -637,8 +637,19 @@ export const SaunaPricingPage = () => {
                       <Input
                         value={newModel.imageUrl}
                         onChange={(e) => setNewModel(prev => ({ ...prev, imageUrl: e.target.value }))}
-                        placeholder="https://..."
+                        placeholder={txt.imageUrlHint}
                       />
+                      {newModel.imageUrl && (
+                        <div className="mt-2">
+                          <Label className="text-xs text-muted-foreground">{txt.previewImage}:</Label>
+                          <img 
+                            src={newModel.imageUrl} 
+                            alt="Preview" 
+                            className="mt-1 w-full max-h-32 object-contain rounded border bg-muted/50"
+                            onError={(e) => e.target.style.display = 'none'}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                   <DialogFooter>
