@@ -421,6 +421,7 @@ export const SaunaCalculator = () => {
         foundationPrice: calculateFoundationPrice(),
         discountPercent: appliedDiscount,
         selections: formData.selections,
+        quantities: formData.quantities,
         selectedOptions: selectedOptions,
         notes: formData.notes,
         optionsTotal: calculateOptionsTotal(),
