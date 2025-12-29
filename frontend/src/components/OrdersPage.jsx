@@ -31,6 +31,9 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       confirmDelete: 'Удалить этот заказ?',
       orderDeleted: 'Заказ удалён',
       noResults: 'Ничего не найдено',
+      promo: 'Акция',
+      gift: 'Подарок',
+      discount: 'Скидка',
     },
     pl: {
       ordersList: isSauna ? 'Zamówienia saun' : 'Lista zamówień',
@@ -40,6 +43,9 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       confirmDelete: 'Usunąć to zamówienie?',
       orderDeleted: 'Zamówienie usunięte',
       noResults: 'Nic nie znaleziono',
+      promo: 'Promocja',
+      gift: 'Prezent',
+      discount: 'Rabat',
     },
   };
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
