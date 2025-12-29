@@ -43,6 +43,7 @@ class CategoryOption(BaseModel):
     namePl: Optional[str] = ""
     price: float
     imageUrl: Optional[str] = ""
+    hint: Optional[str] = ""
     applicableTo: Optional[str] = None
     sortOrder: int
 
