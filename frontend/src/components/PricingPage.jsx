@@ -584,21 +584,23 @@ export const PricingPage = () => {
               </div>
             ))}
 
-            <div className="flex justify-end pt-6">
-              <Button
-                onClick={handleSavePrices}
-                disabled={loading}
-                size="lg"
-                className="min-w-[200px]"
-              >
-                {loading ? (
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-5 w-5 mr-2" />
-                )}
-                {t('updatePrices')}
-              </Button>
-            </div>
+            {canEdit() && (
+              <div className="flex justify-end pt-6">
+                <Button
+                  onClick={handleSavePrices}
+                  disabled={loading}
+                  size="lg"
+                  className="min-w-[200px]"
+                >
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-5 w-5 mr-2" />
+                  )}
+                  {t('updatePrices')}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
