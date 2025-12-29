@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { FileDown, Eye, Package, Flame } from 'lucide-react';
+import { FileDown, Eye, Package, Flame, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -12,8 +14,10 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export const OrdersPage = ({ calculatorType = 'balia' }) => {
   const { t, i18n } = useTranslation();
+  const { isAdmin } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const isSauna = calculatorType === 'sauna';
 
@@ -22,10 +26,20 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
     ru: {
       ordersList: isSauna ? 'Заказы саун' : 'Список заказов',
       noOrders: isSauna ? 'Заказов саун пока нет' : 'Заказов пока нет',
+      searchPlaceholder: 'Поиск по номеру заказа или имени...',
+      deleteOrder: 'Удалить заказ',
+      confirmDelete: 'Удалить этот заказ?',
+      orderDeleted: 'Заказ удалён',
+      noResults: 'Ничего не найдено',
     },
     pl: {
       ordersList: isSauna ? 'Zamówienia saun' : 'Lista zamówień',
       noOrders: isSauna ? 'Brak zamówień saun' : 'Brak zamówień',
+      searchPlaceholder: 'Szukaj po numerze zamówienia lub nazwisku...',
+      deleteOrder: 'Usuń zamówienie',
+      confirmDelete: 'Usunąć to zamówienie?',
+      orderDeleted: 'Zamówienie usunięte',
+      noResults: 'Nic nie znaleziono',
     },
   };
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
