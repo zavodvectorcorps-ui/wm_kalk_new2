@@ -694,8 +694,6 @@ export const SaunaPricingPage = () => {
                             </Button>
                           </>
                         )}
-                          </>
-                        )}
                       </div>
                     </div>
                   ))}
