@@ -32,6 +32,7 @@ class SaunaCategory(BaseModel):
     inputType: str = "radio"
     displayType: str = "grid"
     options: List[SaunaOption] = []
+    techSpecCategoryId: Optional[str] = None  # Link to tech spec category ID
 
 
 class SaunaPriceData(BaseModel):
