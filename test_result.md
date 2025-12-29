@@ -357,9 +357,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Sauna Calculator - Discount Button"
-    - "Sauna Calculator - PDF Generation (new format)"
-    - "Sauna Pricing Page - Models/Categories/Options management"
+    - "Display Type Feature - Admin UI for selecting grid/dropdown"
+    - "Display Type Feature - Calculator rendering based on displayType"
+    - "SaunaPricingPage - Models display type toggle"
+    - "SaunaPricingPage - Categories display type toggle"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
