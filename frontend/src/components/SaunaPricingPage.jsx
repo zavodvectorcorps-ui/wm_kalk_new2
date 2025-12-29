@@ -401,6 +401,23 @@ export const SaunaPricingPage = () => {
     }));
   };
 
+  const handleToggleOptionQuantity = (categoryId, optionId, hasQuantity) => {
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id === categoryId) {
+          return {
+            ...cat,
+            options: cat.options.map(o => 
+              o.id === optionId ? { ...o, hasQuantity } : o
+            ),
+          };
+        }
+        return cat;
+      }),
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
