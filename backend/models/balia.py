@@ -133,13 +133,21 @@ class PDFRequest(BaseModel):
     phoneNumber: str
     fullAddress: str
     orderDate: str
-    shellModel: str
-    woodType: str
-    shellColor: str
-    lidType: str
-    woodColor: str
-    sandFilter: str = "none"
-    features: Dict[str, bool] = {}
+    # New structure fields
+    modelId: Optional[str] = None
+    modelName: Optional[str] = None
+    modelPrice: Optional[float] = 0.0
+    selections: Optional[Dict[str, Any]] = {}
+    selectedOptions: Optional[List[Dict[str, Any]]] = []
+    currency: Optional[str] = "EUR"
+    # Legacy fields
+    shellModel: Optional[str] = None
+    woodType: Optional[str] = None
+    shellColor: Optional[str] = None
+    lidType: Optional[str] = None
+    woodColor: Optional[str] = None
+    sandFilter: Optional[str] = "none"
+    features: Optional[Dict[str, bool]] = {}
     notes: str = ""
     total: float = 0.0
     type: str = "customer"
