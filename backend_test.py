@@ -1059,18 +1059,166 @@ def test_generate_sauna_pdf():
         print(f"❌ POST /api/sauna/generate-pdf error: {str(e)}")
         return False
 
+def test_display_type_feature():
+    """Test Display Type feature for Sauna Calculator as specified in review request"""
+    print("\n🎨 Testing Display Type Feature for Sauna Calculator...")
+    print("=" * 60)
+    
+    try:
+        # Step 1: Get current prices and note displayType values
+        print("\n🔍 Step 1: Getting current prices and checking displayType fields...")
+        response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        
+        if response.status_code != 200:
+            print(f"❌ Failed to get sauna prices: {response.status_code}")
+            return False
+        
+        current_data = response.json()
+        print("✅ GET /api/sauna/prices successful")
+        
+        # Check if modelsDisplayType field exists
+        models_display_type = current_data.get('modelsDisplayType')
+        if models_display_type is not None:
+            print(f"✅ modelsDisplayType field found: '{models_display_type}'")
+        else:
+            print("❌ modelsDisplayType field missing")
+            return False
+        
+        # Check if each category has displayType field
+        categories = current_data.get('categories', [])
+        categories_with_display_type = 0
+        piece_category = None
+        
+        for category in categories:
+            display_type = category.get('displayType')
+            if display_type is not None:
+                categories_with_display_type += 1
+                print(f"✅ Category '{category.get('id')}' has displayType: '{display_type}'")
+                
+                # Find the "Piece" category for later testing
+                if category.get('id') == 'piece':
+                    piece_category = category
+                    print(f"✅ Found 'Piece' category with displayType: '{display_type}'")
+            else:
+                print(f"❌ Category '{category.get('id')}' missing displayType field")
+                return False
+        
+        print(f"✅ All {categories_with_display_type} categories have displayType field")
+        
+        if not piece_category:
+            print("❌ 'Piece' category not found")
+            return False
+        
+        # Step 2: Update modelsDisplayType from "grid" to "dropdown"
+        print("\n🔍 Step 2: Updating modelsDisplayType from 'grid' to 'dropdown'...")
+        
+        test_data = current_data.copy()
+        original_models_display_type = test_data.get('modelsDisplayType', 'grid')
+        test_data['modelsDisplayType'] = 'dropdown'
+        print(f"✅ Changed modelsDisplayType from '{original_models_display_type}' to 'dropdown'")
+        
+        # Step 3: Update category "Piece" displayType from "grid" to "dropdown"
+        print("\n🔍 Step 3: Updating 'Piece' category displayType to 'dropdown'...")
+        
+        original_piece_display_type = piece_category.get('displayType', 'grid')
+        for category in test_data['categories']:
+            if category.get('id') == 'piece':
+                category['displayType'] = 'dropdown'
+                print(f"✅ Changed 'Piece' category displayType from '{original_piece_display_type}' to 'dropdown'")
+                break
+        
+        # Step 4: Save changes
+        print("\n🔍 Step 4: Saving changes...")
+        
+        save_response = requests.post(f"{BACKEND_URL}/sauna/prices", json=test_data)
+        if save_response.status_code != 200:
+            print(f"❌ Failed to save changes: {save_response.status_code}")
+            print(f"Response: {save_response.text}")
+            return False
+        
+        print("✅ Changes saved successfully")
+        
+        # Step 5: Get prices again and verify both changes persisted
+        print("\n🔍 Step 5: Verifying changes persisted...")
+        
+        verify_response = requests.get(f"{BACKEND_URL}/sauna/prices")
+        if verify_response.status_code != 200:
+            print(f"❌ Failed to get updated prices: {verify_response.status_code}")
+            return False
+        
+        updated_data = verify_response.json()
+        
+        # Verify modelsDisplayType change
+        updated_models_display_type = updated_data.get('modelsDisplayType')
+        if updated_models_display_type == 'dropdown':
+            print("✅ modelsDisplayType successfully updated to 'dropdown'")
+        else:
+            print(f"❌ modelsDisplayType not updated correctly: expected 'dropdown', got '{updated_models_display_type}'")
+            return False
+        
+        # Verify Piece category displayType change
+        updated_piece_category = None
+        for category in updated_data.get('categories', []):
+            if category.get('id') == 'piece':
+                updated_piece_category = category
+                break
+        
+        if updated_piece_category:
+            updated_piece_display_type = updated_piece_category.get('displayType')
+            if updated_piece_display_type == 'dropdown':
+                print("✅ 'Piece' category displayType successfully updated to 'dropdown'")
+            else:
+                print(f"❌ 'Piece' category displayType not updated correctly: expected 'dropdown', got '{updated_piece_display_type}'")
+                return False
+        else:
+            print("❌ 'Piece' category not found in updated data")
+            return False
+        
+        # Additional validation: Test that both "grid" and "dropdown" are valid values
+        print("\n🔍 Additional validation: Testing valid displayType values...")
+        
+        # Test setting back to "grid"
+        test_data_grid = updated_data.copy()
+        test_data_grid['modelsDisplayType'] = 'grid'
+        for category in test_data_grid['categories']:
+            if category.get('id') == 'piece':
+                category['displayType'] = 'grid'
+                break
+        
+        grid_response = requests.post(f"{BACKEND_URL}/sauna/prices", json=test_data_grid)
+        if grid_response.status_code == 200:
+            print("✅ Both 'grid' and 'dropdown' are valid displayType values")
+        else:
+            print(f"❌ Failed to set displayType back to 'grid': {grid_response.status_code}")
+            return False
+        
+        print("\n🎉 Display Type Feature testing completed successfully!")
+        print("✅ All requirements met:")
+        print("  - GET /api/sauna/prices returns modelsDisplayType field")
+        print("  - Each category has displayType field")
+        print("  - POST /api/sauna/prices accepts displayType updates")
+        print("  - Changes persist after save")
+        print("  - Both 'grid' and 'dropdown' are valid values")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Display Type Feature test error: {str(e)}")
+        return False
+
 def test_sauna_calculator_system():
     """Run comprehensive sauna calculator tests"""
     print("\n🌿 SAUNA CALCULATOR TESTS")
     print("=" * 50)
     
-    # Run all sauna tests
+    # Run all sauna tests including the new Display Type feature test
     sauna_results = {
         "GET /api/sauna/prices": test_get_sauna_prices(),
         "POST /api/sauna/prices": test_update_sauna_prices(),
         "POST /api/sauna/orders": test_create_sauna_order(),
         "GET /api/sauna/orders": test_get_sauna_orders(),
         "POST /api/sauna/generate-pdf": test_generate_sauna_pdf(),
+        "Display Type Feature": test_display_type_feature(),
     }
     
     return sauna_results
