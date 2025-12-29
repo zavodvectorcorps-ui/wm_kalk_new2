@@ -156,6 +156,7 @@ const AppContent = () => {
           onAdminLogout={handleLogout}
           showNavigation={true}
           showUsers={isAdmin()}
+          calculatorType="balia"
         />
         
         {/* Back Button */}
