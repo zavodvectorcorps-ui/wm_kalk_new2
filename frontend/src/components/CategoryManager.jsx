@@ -214,7 +214,7 @@ export const CategoryList = ({
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
-                    disabled={index === 0}
+                    disabled={index === 0 || !canEdit}
                     onClick={() => onMoveUp(category.id)}
                   >
                     <ChevronUp className="h-4 w-4" />
@@ -223,7 +223,7 @@ export const CategoryList = ({
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
-                    disabled={index === sortedCategories.length - 1}
+                    disabled={index === sortedCategories.length - 1 || !canEdit}
                     onClick={() => onMoveDown(category.id)}
                   >
                     <ChevronDown className="h-4 w-4" />
