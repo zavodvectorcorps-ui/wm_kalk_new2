@@ -547,11 +547,19 @@ export const PricingPage = () => {
               <div className="flex items-center gap-2 text-2xl">
                 <DollarSign className="h-6 w-6 text-primary" />
                 {t('pricingManagement')}
+                {!canEdit() && (
+                  <span className="flex items-center gap-1 text-sm font-normal text-muted-foreground ml-2">
+                    <Eye className="h-4 w-4" />
+                    Только просмотр
+                  </span>
+                )}
               </div>
-              <Button onClick={() => setIsAddOptionDialogOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                {t('addOption')}
-              </Button>
+              {canEdit() && (
+                <Button onClick={() => setIsAddOptionDialogOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  {t('addOption')}
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-8">
