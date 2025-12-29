@@ -81,6 +81,9 @@ export const BaliaPricingPage = () => {
     noModels: t('baliaPricing.noModels'),
     noCategories: t('baliaPricing.noCategories'),
     noOptions: t('baliaPricing.noOptions'),
+    displayType: t('baliaPricing.displayType'),
+    list: t('baliaPricing.list'),
+    tiles: t('baliaPricing.tiles'),
   };
 
   useEffect(() => {
