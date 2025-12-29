@@ -180,6 +180,7 @@
     "generatePdf": "Pobierz PDF",
     "clear": "Wyczyść",
     "saved": "Zamówienie zapisane!",
+    "pdfGenerated": "PDF wygenerowany!",
     "error": "Błąd",
     "fillRequired": "Wypełnij imię i wybierz model",
     "included": "W zestawie",

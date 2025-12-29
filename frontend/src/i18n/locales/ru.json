@@ -180,6 +180,7 @@
     "generatePdf": "Скачать PDF",
     "clear": "Очистить",
     "saved": "Заказ сохранён!",
+    "pdfGenerated": "PDF создан!",
     "error": "Ошибка",
     "fillRequired": "Заполните имя и выберите модель",
     "included": "Включено в комплект",
