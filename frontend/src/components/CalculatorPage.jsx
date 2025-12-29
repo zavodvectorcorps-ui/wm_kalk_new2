@@ -402,13 +402,13 @@ export const CalculatorPage = () => {
           {/* Notes */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-blue-700">{txt.notes}</CardTitle>
+              <CardTitle className="text-blue-700">{t('balia.notes')}</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder={txt.notesPlaceholder}
+                placeholder={t('balia.notesPlaceholder')}
                 rows={3}
               />
             </CardContent>
@@ -419,21 +419,21 @@ export const CalculatorPage = () => {
         <div className="lg:col-span-1">
           <Card className="sticky top-4">
             <CardHeader className="bg-blue-600 text-white rounded-t-lg">
-              <CardTitle>{txt.total}</CardTitle>
+              <CardTitle>{t('balia.total')}</CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
               {selectedModel && (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">{txt.basePrice}:</span>
+                    <span className="text-muted-foreground">{t('balia.basePrice')}:</span>
                     <span className="font-semibold">{selectedModel.basePrice} {prices.currencySymbol}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">{txt.optionsPrice}:</span>
+                    <span className="text-muted-foreground">{t('balia.optionsPrice')}:</span>
                     <span className="font-semibold">{getOptionsTotal()} {prices.currencySymbol}</span>
                   </div>
                   <div className="border-t pt-3 flex justify-between">
-                    <span className="font-bold text-lg">{txt.total}:</span>
+                    <span className="font-bold text-lg">{t('balia.total')}:</span>
                     <span className="font-bold text-lg text-blue-600">
                       {calculateTotal()} {prices.currencySymbol}
                     </span>
@@ -448,7 +448,7 @@ export const CalculatorPage = () => {
                   className="w-full bg-blue-600 hover:bg-blue-700"
                 >
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  {txt.save}
+                  {t('balia.save')}
                 </Button>
                 <Button
                   variant="outline"
@@ -456,7 +456,7 @@ export const CalculatorPage = () => {
                   className="w-full"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  {txt.clear}
+                  {t('balia.clear')}
                 </Button>
               </div>
             </CardContent>
