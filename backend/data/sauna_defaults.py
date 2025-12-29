@@ -157,16 +157,15 @@ default_sauna_prices = {
             "name": "Opcje Dodatkowe",
             "inputType": "checkbox",
             "displayType": "grid",
-            "techSpecCategoryId": "additional_options",
             "options": [
-                {"id": "grzejnik_30l", "name": "Grzejnik elektryczny na wodę 30L + Brodzik + Prysznic", "price": 2800, "inputType": "checkbox", "sortOrder": 1, "techSpecId": "30l"},
-                {"id": "grzejnik_50l", "name": "Grzejnik elektryczny na wodę 50L + Brodzik + Prysznic", "price": 2950, "inputType": "checkbox", "sortOrder": 2, "techSpecId": "50l"},
+                {"id": "grzejnik_30l", "name": "Grzejnik elektryczny na wodę 30L + Brodzik + Prysznic", "price": 2800, "inputType": "checkbox", "sortOrder": 1, "techSpecId": "30l", "techSpecCategoryId": "shower"},
+                {"id": "grzejnik_50l", "name": "Grzejnik elektryczny na wodę 50L + Brodzik + Prysznic", "price": 2950, "inputType": "checkbox", "sortOrder": 2, "techSpecId": "50l", "techSpecCategoryId": "shower"},
                 {"id": "stol_relaksacyjny", "name": "Duży stół do pokoju relaksacyjnego", "price": 360, "inputType": "checkbox", "sortOrder": 3},
-                {"id": "lezak_ergonomiczny", "name": "Ergonomiczny profilowany leżak", "price": 1850, "inputType": "checkbox", "sortOrder": 4, "techSpecId": "lounger"},
+                {"id": "lezak_ergonomiczny", "name": "Ergonomiczny profilowany leżak", "price": 1850, "inputType": "checkbox", "sortOrder": 4, "techSpecId": "lounger", "techSpecCategoryId": "additional_options"},
                 {"id": "lawka_skrzynia", "name": "Ławka ze skrzynią do przechowywania", "price": 340, "inputType": "checkbox", "sortOrder": 5},
-                {"id": "schody", "name": "Schody przed wejściem", "price": 540, "inputType": "checkbox", "sortOrder": 6, "techSpecId": "stairs"},
-                {"id": "dach_wejscie", "name": "Dach nad wejściem przy opcji wejścia ftontowego", "price": 610, "inputType": "checkbox", "sortOrder": 7, "techSpecId": "roof_entrance"},
-                {"id": "taras_zewnetrzny", "name": "Extra Taras Zewnętrzny (50cm 2 Lawki)", "price": 950, "inputType": "checkbox", "sortOrder": 8, "techSpecId": "extra_terrace"}
+                {"id": "schody", "name": "Schody przed wejściem", "price": 540, "inputType": "checkbox", "sortOrder": 6, "techSpecId": "stairs", "techSpecCategoryId": "additional_options"},
+                {"id": "dach_wejscie", "name": "Dach nad wejściem przy opcji wejścia ftontowego", "price": 610, "inputType": "checkbox", "sortOrder": 7, "techSpecId": "roof_entrance", "techSpecCategoryId": "additional_options"},
+                {"id": "taras_zewnetrzny", "name": "Extra Taras Zewnętrzny (50cm 2 Lawki)", "price": 950, "inputType": "checkbox", "sortOrder": 8, "techSpecId": "extra_terrace", "techSpecCategoryId": "additional_options"}
             ]
         },
         {
