@@ -1045,6 +1045,7 @@ default_sauna_prices = {
             "id": "oswietlenie",
             "name": "Oswietlenie",
             "inputType": "checkbox",
+            "displayType": "grid",
             "options": [
                 {"id": "led_gratis", "name": "LED oświetlenie przebieralni i łaźni gratis", "price": 0, "inputType": "checkbox", "sortOrder": 1},
                 {"id": "lampa_standard", "name": "Lampa STANDARD (w każdym pomieszczeniu)", "price": 0, "inputType": "checkbox", "sortOrder": 2},
@@ -1059,6 +1060,7 @@ default_sauna_prices = {
             "id": "opcje_dodatkowe",
             "name": "Opcje Dodatkowe",
             "inputType": "checkbox",
+            "displayType": "grid",
             "options": [
                 {"id": "grzejnik_30l", "name": "Grzejnik elektryczny na wodę 30L + Brodzik + Prysznic", "price": 2800, "inputType": "checkbox", "sortOrder": 1},
                 {"id": "grzejnik_50l", "name": "Grzejnik elektryczny na wodę 50L + Brodzik + Prysznic", "price": 2950, "inputType": "checkbox", "sortOrder": 2},
@@ -1074,6 +1076,7 @@ default_sauna_prices = {
             "id": "fundament",
             "name": "Belki podłużne do podstawy ramy sauny",
             "inputType": "radio",
+            "displayType": "dropdown",
             "options": [
                 {"id": "belki_nie", "name": "Belki podłużne - Nie", "price": 0, "inputType": "radio", "sortOrder": 1},
                 {"id": "belki_dodaj", "name": "Dodaj do sauny Belki podłużne", "price": 0, "inputType": "radio", "sortOrder": 2}
@@ -1083,6 +1086,7 @@ default_sauna_prices = {
             "id": "dostawa",
             "name": "Dostawa",
             "inputType": "radio",
+            "displayType": "dropdown",
             "options": [
                 {"id": "odbior_osobisty", "name": "Odbiór osobisty", "price": 0, "inputType": "radio", "sortOrder": 1},
                 {"id": "dostawa_1_100km", "name": "Dostawa 1 (1-100km)", "price": 950, "inputType": "radio", "sortOrder": 2},
