@@ -89,6 +89,8 @@ export const SaunaPricingPage = () => {
       displayTypeGrid: 'Плитка',
       displayTypeDropdown: 'Список',
       modelsDisplayType: 'Отображение моделей',
+      hasQuantity: 'Поле количества',
+      quantityEnabled: 'Включить количество',
     },
     pl: {
       saunaPricing: 'Zarządzanie cenami saun',
