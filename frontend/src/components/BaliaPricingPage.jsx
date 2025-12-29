@@ -364,7 +364,7 @@ export const BaliaPricingPage = () => {
                           <img 
                             src={model.imageUrl} 
                             alt={getName(model)} 
-                            className="w-full h-32 object-cover rounded"
+                            className="w-full h-32 object-contain rounded bg-gray-50"
                             onError={(e) => e.target.style.display = 'none'}
                           />
                           {canEdit() && (
@@ -462,7 +462,7 @@ export const BaliaPricingPage = () => {
                           <img 
                             src={category.imageUrl} 
                             alt={getName(category)}
-                            className="w-12 h-12 object-cover rounded"
+                            className="w-12 h-12 object-contain rounded"
                           />
                         )}
                         <div>
@@ -539,7 +539,7 @@ export const BaliaPricingPage = () => {
                                   <img 
                                     src={option.imageUrl} 
                                     alt={getName(option)}
-                                    className="w-8 h-8 object-cover rounded"
+                                    className="w-8 h-8 object-contain rounded"
                                   />
                                 )}
                                 <span className="text-sm">{getName(option)}</span>
@@ -703,7 +703,7 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
                   <img 
                     src={formData.imageUrl} 
                     alt="Model"
-                    className="w-20 h-20 object-cover rounded border"
+                    className="w-20 h-20 object-contain rounded border bg-gray-50"
                   />
                   <Button
                     type="button"
@@ -907,7 +907,7 @@ const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, tx
                   <img 
                     src={formData.imageUrl} 
                     alt="Option"
-                    className="w-16 h-16 object-cover rounded border"
+                    className="w-16 h-16 object-contain rounded border bg-gray-50"
                   />
                   <Button
                     type="button"
