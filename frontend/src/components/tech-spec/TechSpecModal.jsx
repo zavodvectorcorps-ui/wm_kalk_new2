@@ -13,7 +13,6 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
-import { ScrollArea } from '../ui/scroll-area';
 import { toast } from 'sonner';
 import { FileText, Loader2, User, Phone, MessageSquare, Package } from 'lucide-react';
 import { TECH_SPEC_CATEGORIES } from './techSpecData';
