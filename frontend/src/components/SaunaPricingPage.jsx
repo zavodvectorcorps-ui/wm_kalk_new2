@@ -473,34 +473,37 @@ export const SaunaPricingPage = () => {
               <CardTitle>{txt.models}</CardTitle>
               <div className="flex items-center gap-3">
                 {/* Display Type Selector for Models */}
-                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
-                  <span className="text-sm text-muted-foreground px-2">{txt.displayType}:</span>
-                  <Button
-                    size="sm"
-                    variant={prices.modelsDisplayType === 'grid' ? 'default' : 'ghost'}
-                    onClick={() => handleModelsDisplayTypeChange('grid')}
-                    className={prices.modelsDisplayType === 'grid' ? 'bg-amber-600 hover:bg-amber-700' : ''}
-                  >
-                    <LayoutGrid className="h-4 w-4 mr-1" />
-                    {txt.displayTypeGrid}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={prices.modelsDisplayType === 'dropdown' ? 'default' : 'ghost'}
-                    onClick={() => handleModelsDisplayTypeChange('dropdown')}
-                    className={prices.modelsDisplayType === 'dropdown' ? 'bg-amber-600 hover:bg-amber-700' : ''}
-                  >
-                    <List className="h-4 w-4 mr-1" />
-                    {txt.displayTypeDropdown}
-                  </Button>
-                </div>
-                <Dialog open={isModelDialogOpen} onOpenChange={setIsModelDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="bg-amber-600 hover:bg-amber-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      {txt.addModel}
+                {canEdit() && (
+                  <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+                    <span className="text-sm text-muted-foreground px-2">{txt.displayType}:</span>
+                    <Button
+                      size="sm"
+                      variant={prices.modelsDisplayType === 'grid' ? 'default' : 'ghost'}
+                      onClick={() => handleModelsDisplayTypeChange('grid')}
+                      className={prices.modelsDisplayType === 'grid' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                    >
+                      <LayoutGrid className="h-4 w-4 mr-1" />
+                      {txt.displayTypeGrid}
                     </Button>
-                  </DialogTrigger>
+                    <Button
+                      size="sm"
+                      variant={prices.modelsDisplayType === 'dropdown' ? 'default' : 'ghost'}
+                      onClick={() => handleModelsDisplayTypeChange('dropdown')}
+                      className={prices.modelsDisplayType === 'dropdown' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                    >
+                      <List className="h-4 w-4 mr-1" />
+                      {txt.displayTypeDropdown}
+                    </Button>
+                  </div>
+                )}
+                {canEdit() && (
+                  <Dialog open={isModelDialogOpen} onOpenChange={setIsModelDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-amber-600 hover:bg-amber-700">
+                        <Plus className="h-4 w-4 mr-2" />
+                        {txt.addModel}
+                      </Button>
+                    </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>{txt.addModel}</DialogTitle>
