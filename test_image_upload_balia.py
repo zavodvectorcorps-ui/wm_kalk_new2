@@ -161,7 +161,7 @@ def test_balia_prices_new_structure():
             
             if models:
                 first_model = models[0]
-                required_model_fields = ['id', 'name', 'basePrice', 'imageUrl']
+                required_model_fields = ['id', 'name', 'basePrice']
                 for field in required_model_fields:
                     if field in first_model:
                         print(f"✅ Model field '{field}' present")
@@ -170,8 +170,12 @@ def test_balia_prices_new_structure():
                         return False
                 
                 # Check if imageUrl field exists (can be empty)
-                image_url = first_model.get('imageUrl', '')
-                print(f"✅ Model imageUrl field: '{image_url}' (can be empty)")
+                if 'imageUrl' in first_model:
+                    image_url = first_model.get('imageUrl', '')
+                    print(f"✅ Model imageUrl field present: '{image_url}'")
+                else:
+                    print("❌ Model imageUrl field missing")
+                    return False
             
             # Check categories structure
             categories = data.get('categories', [])
