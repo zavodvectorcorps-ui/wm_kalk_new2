@@ -829,7 +829,7 @@ export const SaunaCalculator = () => {
                           </div>
                         );
                       })}
-                    </RadioGroup>
+                    </RadioGroupOrange>
                   )}
                 </CardContent>
               </Card>
