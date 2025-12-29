@@ -744,7 +744,7 @@ export const SaunaCalculator = () => {
                     </div>
                   ) : isDropdownView ? (
                     // Dropdown/List View for Radio type
-                    <Select
+                    <SelectOrange
                       value={formData.selections[category.id] || ''}
                       onValueChange={(value) => handleRadioChange(category.id, value)}
                     >
