@@ -1035,7 +1035,7 @@ export const SaunaCalculator = () => {
                       onClick={handleClearForm}
                       disabled={loading}
                       variant="outline"
-                      className="w-full"
+                      className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
                     >
                       <RotateCcw className="h-4 w-4 mr-2" />
                       {txt.clearForm}
