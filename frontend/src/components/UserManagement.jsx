@@ -159,7 +159,7 @@ export const UserManagement = () => {
       if (response.ok) {
         toast.success(txt.userAdded);
         setIsAddDialogOpen(false);
-        setFormData({ username: '', password: '', access: 'balia' });
+        setFormData({ username: '', password: '', access: 'all', role: 'employee' });
         fetchUsers();
       } else {
         const error = await response.json();
