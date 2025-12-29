@@ -97,7 +97,7 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
 
 @router.put("/users/{user_id}", response_model=UserResponse)
 async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends(get_admin_user)):
-    """Update an employee (admin only)"""
+    """Update an employee or observer (admin only)"""
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -119,6 +119,11 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
         if user_data.access not in ["balia", "sauna", "all"]:
             raise HTTPException(status_code=400, detail="Access must be 'balia', 'sauna', or 'all'")
         update_data["access"] = user_data.access
+    
+    if user_data.role:
+        if user_data.role not in ["employee", "observer"]:
+            raise HTTPException(status_code=400, detail="Role must be 'employee' or 'observer'")
+        update_data["role"] = user_data.role
     
     if update_data:
         await db.users.update_one({"id": user_id}, {"$set": update_data})
