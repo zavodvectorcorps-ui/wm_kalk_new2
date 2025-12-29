@@ -177,7 +177,7 @@ const AppContent = () => {
         <main>
           {activeTab === 'calculator' && <CalculatorPage key={pricesUpdated} />}
           {activeTab === 'orders' && <OrdersPage />}
-          {activeTab === 'pricing' && canViewPricing() && <PricingPage />}
+          {activeTab === 'pricing' && canViewPricing() && <BaliaPricingPage />}
           {activeTab === 'users' && isAdmin() && <UserManagement />}
         </main>
         
