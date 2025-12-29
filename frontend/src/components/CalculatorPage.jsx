@@ -203,6 +203,87 @@ export const CalculatorPage = () => {
     }
   };
 
+  const handleGeneratePdf = async () => {
+    if (!formData.fullName || !formData.selectedModel) {
+      toast.error(t('balia.fillRequired'));
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const selectedOptions = [];
+      prices.categories?.forEach(cat => {
+        const selection = formData.selections[cat.id];
+        if (cat.inputType === 'checkbox') {
+          Object.entries(selection || {}).forEach(([optId, isSelected]) => {
+            if (isSelected) {
+              const opt = cat.options?.find(o => o.id === optId);
+              if (opt) {
+                selectedOptions.push({
+                  categoryId: cat.id,
+                  categoryName: getCategoryName(cat),
+                  optionId: opt.id,
+                  optionName: getOptionName(opt),
+                  price: opt.price
+                });
+              }
+            }
+          });
+        } else if (selection) {
+          const opt = cat.options?.find(o => o.id === selection);
+          if (opt && opt.price > 0) {
+            selectedOptions.push({
+              categoryId: cat.id,
+              categoryName: getCategoryName(cat),
+              optionId: opt.id,
+              optionName: getOptionName(opt),
+              price: opt.price
+            });
+          }
+        }
+      });
+
+      const pdfRequest = {
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        fullAddress: formData.fullAddress,
+        orderDate: formData.orderDate,
+        modelId: selectedModel?.id,
+        modelName: getModelName(selectedModel),
+        modelPrice: selectedModel?.basePrice || 0,
+        selections: formData.selections,
+        selectedOptions,
+        notes: formData.notes,
+        total: calculateTotal(),
+        currency: prices.currency || 'EUR',
+        language: lang,
+        type: 'customer'
+      };
+
+      const response = await axios.post(`${API_URL}/api/generate-pdf`, pdfRequest, {
+        responseType: 'blob'
+      });
+      
+      // Download the PDF
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `order_${formData.fullName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success(t('balia.pdfGenerated') || 'PDF created!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error(t('balia.error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleClear = () => {
     const initialSelections = {};
     prices.categories?.forEach(cat => {
