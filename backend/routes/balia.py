@@ -77,45 +77,11 @@ async def delete_order(order_id: str):
 
 @router.post("/generate-pdf")
 async def generate_pdf(request: PDFRequest):
-    """Generate PDF order form"""
+    """Generate professional PDF order form for Balia - Polish only"""
+    import urllib.request
+    from PIL import Image as PILImage
+    
     buffer = io.BytesIO()
-    
-    translations = {
-        'ru': {
-            'title_customer': 'Заказ купели',
-            'title_technical': 'Технический заказ на производство',
-            'customer_info': 'Информация о клиенте',
-            'full_name': 'Полное имя:',
-            'phone': 'Телефон:',
-            'address': 'Адрес:',
-            'order_date': 'Дата заказа:',
-            'configuration': 'Конфигурация',
-            'model': 'Модель:',
-            'base_price': 'Базовая цена:',
-            'selected_options': 'Выбранные опции',
-            'additional_notes': 'Дополнительные примечания',
-            'total': 'ИТОГО:',
-        },
-        'pl': {
-            'title_customer': 'Zamówienie bali WM-BALIA',
-            'title_technical': 'Zamówienie techniczne do produkcji',
-            'customer_info': 'Dane klienta',
-            'full_name': 'Imię i nazwisko:',
-            'phone': 'Telefon:',
-            'address': 'Adres:',
-            'order_date': 'Data zamówienia:',
-            'configuration': 'Konfiguracja',
-            'model': 'Model:',
-            'base_price': 'Cena bazowa:',
-            'selected_options': 'Wybrane opcje',
-            'additional_notes': 'Dodatkowe uwagi',
-            'total': 'SUMA:',
-        }
-    }
-    
-    lang = request.language if request.language in translations else 'ru'
-    t = translations[lang]
-    currency = request.currency or '€'
     
     try:
         pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
@@ -123,171 +89,249 @@ async def generate_pdf(request: PDFRequest):
     except Exception as e:
         logger.warning(f"Could not register fonts: {e}")
     
+    # Colors - Blue theme for Balia (water theme)
+    BLUE = colors.HexColor('#2563EB')
+    BLUE_LIGHT = colors.HexColor('#EFF6FF')
+    BLUE_DARK = colors.HexColor('#1E40AF')
+    BLUE_BORDER = colors.HexColor('#93C5FD')
+    GREEN = colors.HexColor('#059669')
+    GREEN_LIGHT = colors.HexColor('#ECFDF5')
+    TEXT_COLOR = colors.HexColor('#1F2937')
+    MUTED = colors.HexColor('#6B7280')
+    WHITE = colors.white
+    
     doc = SimpleDocTemplate(buffer, pagesize=A4,
-                          rightMargin=20*mm, leftMargin=20*mm,
-                          topMargin=20*mm, bottomMargin=20*mm)
+                          rightMargin=20, leftMargin=20,
+                          topMargin=20, bottomMargin=20)
     
     elements = []
-    
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontName='DejaVuSans-Bold',
-        fontSize=24,
-        textColor=colors.HexColor('#3B82F6'),
-        spaceAfter=30,
-        alignment=TA_CENTER,
-    )
     
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
+    section_title_style = ParagraphStyle(
+        'SectionTitle',
         fontName='DejaVuSans-Bold',
-        fontSize=14,
-        textColor=colors.HexColor('#1E40AF'),
-        spaceAfter=12,
-        spaceBefore=20,
+        fontSize=13,
+        textColor=BLUE_DARK,
     )
     
     normal_style = ParagraphStyle(
-        'CustomNormal',
-        parent=styles['Normal'],
+        'Normal',
         fontName='DejaVuSans',
-        fontSize=10,
+        fontSize=9,
+        textColor=TEXT_COLOR,
     )
     
-    # Title
-    if request.type == 'customer':
-        title = Paragraph(t['title_customer'], title_style)
-    else:
-        title = Paragraph(t['title_technical'], title_style)
-    elements.append(title)
-    elements.append(Spacer(1, 20))
+    # Calculate dates
+    current_date = datetime.now().strftime('%d.%m.%Y')
+    valid_until = (datetime.now() + timedelta(days=30)).strftime('%d.%m.%Y')
     
-    # Customer Info
-    elements.append(Paragraph(t['customer_info'], heading_style))
-    customer_data = [
-        [t['full_name'], request.fullName],
-        [t['phone'], request.phoneNumber],
-        [t['address'], request.fullAddress],
-        [t['order_date'], request.orderDate],
-    ]
-    customer_table = Table(customer_data, colWidths=[60*mm, 110*mm])
-    customer_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F0F4F8')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1E293B')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
-        ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    offer_number = f"WMB-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
+    currency = request.currency or 'EUR'
+    
+    # Load logo
+    logo_path = '/app/assets/logo7.png'
+    logo_img = None
+    if os.path.exists(logo_path):
+        try:
+            logo_img = RLImage(logo_path, width=180, height=36)
+        except Exception as e:
+            logger.warning(f"Could not load logo: {e}")
+    
+    # Load model image if provided
+    model_img = None
+    model_image_url = getattr(request, 'modelImageUrl', None)
+    if model_image_url:
+        try:
+            # Download image from URL
+            if model_image_url.startswith('http'):
+                img_data = urllib.request.urlopen(model_image_url, timeout=5).read()
+            else:
+                # Local file
+                img_path = model_image_url.replace('/api/uploads/', '/app/backend/uploads/')
+                if os.path.exists(img_path):
+                    with open(img_path, 'rb') as f:
+                        img_data = f.read()
+                else:
+                    img_data = None
+            
+            if img_data:
+                img_buffer = io.BytesIO(img_data)
+                model_img = RLImage(img_buffer, width=150, height=100)
+        except Exception as e:
+            logger.warning(f"Could not load model image: {e}")
+    
+    # ========== HEADER ==========
+    logo_cell = logo_img if logo_img else Paragraph('<b>WM-BALIA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BLUE))
+    
+    header_data = [[
+        logo_cell,
+        '',
+        Paragraph('''<b>OFERTA HANDLOWA</b><br/>
+        <font size="9" color="#6B7280">Tel: +48 732 099 201</font><br/>
+        <font size="9" color="#6B7280">Email: wmsauna@gmail.com</font><br/>
+        <font size="9" color="#6B7280">www.wm-sauna.pl</font>''',
+        ParagraphStyle('HeaderRight', fontName='DejaVuSans', fontSize=16, alignment=TA_RIGHT, textColor=BLUE))
+    ]]
+    header_table = Table(header_data, colWidths=[200, 130, 200])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), BLUE_LIGHT),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (0, 0), 10),
     ]))
-    elements.append(customer_table)
-    elements.append(Spacer(1, 20))
+    elements.append(header_table)
     
-    # Configuration - Model
-    elements.append(Paragraph(t['configuration'], heading_style))
-    config_data = []
+    # Divider line
+    elements.append(Spacer(1, 4))
+    elements.append(Table([['']], colWidths=[530], rowHeights=[3], style=[('BACKGROUND', (0,0), (0,0), BLUE)]))
+    elements.append(Spacer(1, 10))
     
-    # New structure - modelName and modelPrice
+    # ========== CLIENT + OFFER INFO ==========
+    client_info = Paragraph(f'''<b>DANE KLIENTA:</b><br/>
+    Imię i nazwisko: {request.fullName}<br/>
+    Telefon: {request.phoneNumber}<br/>
+    Adres: {request.fullAddress}''', 
+    ParagraphStyle('ClientInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR))
+    
+    offer_info = Paragraph(f'''<b>INFORMACJE O OFERCIE:</b><br/>
+    Data wystawienia: {current_date}<br/>
+    Ważność oferty: {valid_until}<br/>
+    <b>Nr oferty: {offer_number}</b>''',
+    ParagraphStyle('OfferInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, alignment=TA_RIGHT))
+    
+    info_table = Table([[client_info, offer_info]], colWidths=[265, 265])
+    info_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, BLUE),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 12))
+    
+    # ========== MODEL SECTION WITH IMAGE ==========
     if request.modelName:
-        config_data.append([t['model'], request.modelName])
-        if request.modelPrice:
-            config_data.append([t['base_price'], f"{request.modelPrice} {currency}"])
-    # Legacy structure
-    elif request.shellModel:
-        config_data.append([t.get('shell_model', 'Model:'), request.shellModel])
-        if request.woodType:
-            config_data.append(['Rodzaj drewna:', request.woodType])
-        if request.shellColor:
-            config_data.append(['Kolor wkładu:', request.shellColor])
-        if request.lidType:
-            config_data.append(['Rodzaj pokrywy:', request.lidType])
-        if request.woodColor:
-            config_data.append(['Kolor drewna:', request.woodColor])
-        if request.sandFilter and request.sandFilter != 'none':
-            config_data.append(['Filtr piaskowy:', request.sandFilter])
-    
-    if config_data:
-        config_table = Table(config_data, colWidths=[60*mm, 110*mm])
-        config_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F0F4F8')),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1E293B')),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
-            ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+        model_name = request.modelName
+        model_price = request.modelPrice or 0
+        
+        # Create model info content
+        model_text = Paragraph(f'''<b><font size="14" color="#1E40AF">WYBRANY MODEL</font></b><br/><br/>
+        <font size="12"><b>{model_name}</b></font><br/><br/>
+        <font size="11">Cena bazowa: <b>{model_price:,.0f} {currency}</b></font>'''.replace(',', ' '),
+        ParagraphStyle('ModelText', fontName='DejaVuSans', fontSize=11, textColor=TEXT_COLOR))
+        
+        if model_img:
+            model_data = [[model_img, model_text]]
+            model_table = Table(model_data, colWidths=[170, 350])
+        else:
+            model_data = [[model_text]]
+            model_table = Table(model_data, colWidths=[520])
+        
+        model_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), BLUE_LIGHT),
+            ('BOX', (0, 0), (-1, -1), 2, BLUE),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
         ]))
-        elements.append(config_table)
-        elements.append(Spacer(1, 20))
+        elements.append(model_table)
+        elements.append(Spacer(1, 12))
     
-    # Selected Options (new structure)
-    if request.selectedOptions:
-        elements.append(Paragraph(t['selected_options'], heading_style))
-        options_data = []
+    # ========== SELECTED OPTIONS ==========
+    if request.selectedOptions and len(request.selectedOptions) > 0:
+        elements.append(Paragraph('<b>WYBRANE OPCJE</b>', section_title_style))
+        elements.append(Spacer(1, 6))
+        
+        options_data = [['Kategoria', 'Wybrana opcja', 'Cena']]
+        total_options_price = 0
+        
         for opt in request.selectedOptions:
             cat_name = opt.get('categoryName', '')
             opt_name = opt.get('optionName', '')
             price = opt.get('price', 0)
-            if price > 0:
-                options_data.append([f"{cat_name}:", f"{opt_name} (+{price} {currency})"])
-            else:
-                options_data.append([f"{cat_name}:", opt_name])
+            total_options_price += price
+            price_str = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
+            options_data.append([cat_name, opt_name, price_str])
         
-        if options_data:
-            options_table = Table(options_data, colWidths=[60*mm, 110*mm])
-            options_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F0F4F8')),
-                ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1E293B')),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
-                ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
-            ]))
-            elements.append(options_table)
-            elements.append(Spacer(1, 20))
+        # Add subtotal row for options
+        if total_options_price > 0:
+            options_data.append(['', 'Opcje razem:', f"+{total_options_price:,.0f} {currency}".replace(',', ' ')])
+        
+        options_table = Table(options_data, colWidths=[160, 260, 100])
+        options_table.setStyle(TableStyle([
+            # Header
+            ('BACKGROUND', (0, 0), (-1, 0), BLUE),
+            ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+            ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            # Body
+            ('FONTNAME', (0, 1), (-1, -1), 'DejaVuSans'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 1), (-1, -1), TEXT_COLOR),
+            ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
+            # Subtotal row
+            ('FONTNAME', (1, -1), (-1, -1), 'DejaVuSans-Bold'),
+            ('BACKGROUND', (0, -1), (-1, -1), BLUE_LIGHT),
+            # Grid
+            ('GRID', (0, 0), (-1, -1), 0.5, BLUE_BORDER),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            # Alternate row colors
+            ('ROWBACKGROUNDS', (0, 1), (-1, -2), [WHITE, colors.HexColor('#F9FAFB')]),
+        ]))
+        elements.append(options_table)
+        elements.append(Spacer(1, 12))
     
-    # Legacy features
-    elif request.features:
-        selected_features = [k for k, v in request.features.items() if v]
-        if selected_features:
-            elements.append(Paragraph(t.get('selected_features', 'Features'), heading_style))
-            features_text = '<br/>'.join([f'• {feat.replace("_", " ").title()}' for feat in selected_features])
-            features_para = Paragraph(features_text, normal_style)
-            elements.append(features_para)
-            elements.append(Spacer(1, 20))
-    
-    # Notes
+    # ========== NOTES ==========
     if request.notes:
-        elements.append(Paragraph(t['additional_notes'], heading_style))
+        elements.append(Paragraph('<b>UWAGI DODATKOWE</b>', section_title_style))
+        elements.append(Spacer(1, 4))
         notes_para = Paragraph(request.notes, normal_style)
-        elements.append(notes_para)
-        elements.append(Spacer(1, 20))
+        notes_table = Table([[notes_para]], colWidths=[520])
+        notes_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F9FAFB')),
+            ('BOX', (0, 0), (-1, -1), 1, MUTED),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(notes_table)
+        elements.append(Spacer(1, 12))
     
-    # Total
+    # ========== TOTAL ==========
     elements.append(Spacer(1, 10))
-    total_data = [[t['total'], f'{request.total:.2f} {currency}']]
-    total_table = Table(total_data, colWidths=[120*mm, 50*mm])
+    total_data = [[
+        Paragraph(f'''<font size="14"><b>SUMA DO ZAPŁATY:</b></font>''', 
+                 ParagraphStyle('TotalLabel', fontName='DejaVuSans-Bold', fontSize=14, textColor=WHITE)),
+        Paragraph(f'''<font size="16"><b>{request.total:,.0f} {currency}</b></font>'''.replace(',', ' '),
+                 ParagraphStyle('TotalValue', fontName='DejaVuSans-Bold', fontSize=16, textColor=WHITE, alignment=TA_RIGHT))
+    ]]
+    total_table = Table(total_data, colWidths=[300, 220])
     total_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#3B82F6')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
-        ('ALIGN', (0, 0), (0, 0), 'RIGHT'),
-        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-        ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 16),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-        ('TOPPADDING', (0, 0), (-1, -1), 12),
+        ('BACKGROUND', (0, 0), (-1, -1), BLUE),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 14),
+        ('LEFTPADDING', (0, 0), (-1, -1), 15),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 15),
     ]))
     elements.append(total_table)
+    
+    # ========== FOOTER ==========
+    elements.append(Spacer(1, 20))
+    footer_text = Paragraph('''<font size="8" color="#6B7280">
+    Dziękujemy za zainteresowanie naszą ofertą. W razie pytań prosimy o kontakt.<br/>
+    Oferta nie stanowi oferty handlowej w rozumieniu Kodeksu Cywilnego.
+    </font>''', ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER))
+    elements.append(footer_text)
     
     doc.build(elements)
     
@@ -297,12 +341,12 @@ async def generate_pdf(request: PDFRequest):
     try:
         safe_filename = ''.join(c for c in request.fullName if c.isascii() and (c.isalnum() or c in '-_.'))
         if not safe_filename:
-            safe_filename = "customer"
+            safe_filename = "balia"
     except:
-        safe_filename = "customer"
+        safe_filename = "balia"
     
     return StreamingResponse(
         io.BytesIO(pdf_data),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=order_{safe_filename}.pdf"}
+        headers={"Content-Disposition": f"attachment; filename=oferta_{safe_filename}.pdf"}
     )
