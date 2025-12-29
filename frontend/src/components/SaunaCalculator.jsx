@@ -760,7 +760,7 @@ export const SaunaCalculator = () => {
                               )}
                               <span>{option.name}</span>
                               <span className="text-amber-700 font-medium ml-2">
-                                {option.price > 0 ? `+${option.price.toLocaleString('pl-PL')} PLN` : txt.gratis}
+                                {option.price > 0 ? `+${option.price.toLocaleString('pl-PL')} PLN` : (option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
                               </span>
                             </div>
                           </SelectItem>
