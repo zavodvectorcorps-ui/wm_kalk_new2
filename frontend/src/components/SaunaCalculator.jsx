@@ -364,12 +364,15 @@ export const SaunaCalculator = () => {
           if (isSelected) {
             const option = category.options?.find(o => o.id === optId);
             if (option) {
+              const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
               options.push({
                 categoryId: category.id,
                 categoryName: category.name,
                 optionId: option.id,
                 optionName: option.name,
                 price: option.price,
+                quantity: quantity,
+                totalPrice: option.price * quantity,
                 imageUrl: option.imageUrl || null,
               });
             }
@@ -378,12 +381,15 @@ export const SaunaCalculator = () => {
       } else {
         const option = category.options?.find(o => o.id === selection);
         if (option) {
+          const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
           options.push({
             categoryId: category.id,
             categoryName: category.name,
             optionId: option.id,
             optionName: option.name,
             price: option.price,
+            quantity: quantity,
+            totalPrice: option.price * quantity,
             imageUrl: option.imageUrl || null,
           });
         }
