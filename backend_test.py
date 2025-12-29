@@ -2848,6 +2848,41 @@ def test_observer_role_only():
     
     return observer_results
 
+def run_tech_spec_admin_tests_only():
+    """Run only the tech spec admin tests as specified in review request"""
+    print("🔧 TECH SPEC ADMIN API TESTS")
+    print("=" * 50)
+    print("Testing the new Technical Specification Admin page endpoints")
+    
+    # Run tech spec admin tests
+    tech_spec_results = test_tech_spec_admin_system()
+    
+    print("\n" + "=" * 50)
+    print("📊 TECH SPEC ADMIN TEST RESULTS SUMMARY")
+    print("=" * 50)
+    
+    passed = 0
+    failed = 0
+    
+    for test_name, result in tech_spec_results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
+    print(f"\nTotal: {passed + failed} tests")
+    print(f"Passed: {passed}")
+    print(f"Failed: {failed}")
+    
+    if failed == 0:
+        print("\n🎉 All tech spec admin tests passed!")
+    else:
+        print(f"\n⚠️  {failed} test(s) failed - see details above")
+    
+    return tech_spec_results
+
 if __name__ == "__main__":
     # Check if we want to run specific tests
     import sys
@@ -2860,8 +2895,10 @@ if __name__ == "__main__":
             test_observer_role_only()
         elif sys.argv[1] == "tech-spec":
             test_tech_spec_feature_only()
+        elif sys.argv[1] == "tech-spec-admin":
+            run_tech_spec_admin_tests_only()
         else:
             run_all_tests()
     else:
-        # Run Tech Spec tests by default as per review request
-        test_tech_spec_feature_only()
+        # Run Tech Spec Admin tests by default as per review request
+        run_tech_spec_admin_tests_only()
