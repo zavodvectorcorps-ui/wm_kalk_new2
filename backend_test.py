@@ -2013,6 +2013,16 @@ def run_all_tests():
         else:
             failed += 1
     
+    # Show tech spec admin results
+    print("\n🔧 TECH SPEC ADMIN TESTS:")
+    for test_name, result in tech_spec_results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
     print(f"\nTotal: {passed + failed} tests")
     print(f"Passed: {passed}")
     print(f"Failed: {failed}")
