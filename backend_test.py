@@ -1364,5 +1364,46 @@ def run_all_tests():
     
     return all_results
 
+def test_display_type_feature_only():
+    """Run only the Display Type feature test as specified in review request"""
+    print("🎨 DISPLAY TYPE FEATURE TEST")
+    print("=" * 50)
+    print("Testing Display Type feature for Sauna Calculator")
+    print("Review Request Requirements:")
+    print("1. GET /api/sauna/prices - Verify modelsDisplayType and category displayType fields")
+    print("2. POST /api/sauna/prices - Test updating modelsDisplayType to 'dropdown'")
+    print("3. POST /api/sauna/prices - Test updating category displayType from 'grid' to 'dropdown'")
+    print("4. Verify persistence of changes")
+    print("Authentication: Admin login required")
+    print("=" * 50)
+    
+    # First authenticate as admin
+    print("\n🔐 Authenticating as admin...")
+    admin_token = test_admin_login()
+    if not admin_token:
+        print("❌ Admin authentication failed - cannot proceed with Display Type tests")
+        return False
+    
+    # Run the Display Type feature test
+    result = test_display_type_feature()
+    
+    print("\n" + "=" * 50)
+    print("📊 DISPLAY TYPE FEATURE TEST RESULT")
+    print("=" * 50)
+    
+    if result:
+        print("🎉 Display Type Feature test PASSED!")
+        print("✅ All backend APIs for Display Type feature are working correctly")
+    else:
+        print("❌ Display Type Feature test FAILED!")
+        print("⚠️  See detailed error messages above")
+    
+    return result
+
 if __name__ == "__main__":
-    run_all_tests()
+    # Check if we want to run only Display Type tests
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "display-type":
+        test_display_type_feature_only()
+    else:
+        run_all_tests()
