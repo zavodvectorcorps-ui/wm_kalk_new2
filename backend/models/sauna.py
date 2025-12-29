@@ -24,6 +24,7 @@ class SaunaOption(BaseModel):
     imageUrl: Optional[str] = None
     hasQuantity: bool = False
     techSpecId: Optional[str] = None  # Link to tech spec option ID
+    techSpecCategoryId: Optional[str] = None  # Override category mapping for specific options
 
 
 class SaunaCategory(BaseModel):
