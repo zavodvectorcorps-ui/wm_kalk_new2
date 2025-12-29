@@ -395,6 +395,31 @@ export const UserManagement = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label>{txt.role}</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => setFormData({ ...formData, role: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      {txt.roleEmployee}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="observer">
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      {txt.roleObserver}
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>{txt.access}</Label>
               <Select
                 value={formData.access}
@@ -404,6 +429,12 @@ export const UserManagement = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      {txt.accessAll}
+                    </div>
+                  </SelectItem>
                   <SelectItem value="balia">
                     <div className="flex items-center gap-2">
                       <Waves className="w-4 h-4" />
