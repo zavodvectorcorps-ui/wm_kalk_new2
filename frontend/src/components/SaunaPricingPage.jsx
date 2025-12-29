@@ -946,26 +946,31 @@ export const SaunaPricingPage = () => {
                                   value={option.price}
                                   onChange={(e) => handleUpdateOptionPrice(category.id, option.id, e.target.value)}
                                   className="w-24 h-8"
+                                  disabled={!canEdit()}
                                 />
                                 <span className="text-sm text-muted-foreground">PLN</span>
-                                <div className="flex items-center gap-1 border rounded px-2 py-1">
-                                  <Checkbox
-                                    id={`qty-${option.id}`}
-                                    checked={option.hasQuantity || false}
-                                    onCheckedChange={(checked) => handleToggleOptionQuantity(category.id, option.id, checked)}
-                                  />
-                                  <Label htmlFor={`qty-${option.id}`} className="text-xs cursor-pointer">
-                                    Кол-во
-                                  </Label>
-                                </div>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8 text-destructive"
-                                  onClick={() => handleDeleteOption(category.id, option.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {canEdit() && (
+                                  <>
+                                    <div className="flex items-center gap-1 border rounded px-2 py-1">
+                                      <Checkbox
+                                        id={`qty-${option.id}`}
+                                        checked={option.hasQuantity || false}
+                                        onCheckedChange={(checked) => handleToggleOptionQuantity(category.id, option.id, checked)}
+                                      />
+                                      <Label htmlFor={`qty-${option.id}`} className="text-xs cursor-pointer">
+                                        Кол-во
+                                      </Label>
+                                    </div>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-destructive"
+                                      onClick={() => handleDeleteOption(category.id, option.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))}
