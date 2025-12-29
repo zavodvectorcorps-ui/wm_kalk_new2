@@ -25,12 +25,14 @@ export const Header = ({
       wmCalculator: 'WM калькулятор',
       wmBalia: 'WM-Balia',
       wmSauna: 'WM-Sauna',
+      techSpec: 'Тех.Задание',
     },
     pl: {
       users: 'Pracownicy',
       wmCalculator: 'WM kalkulator',
       wmBalia: 'WM-Balia',
       wmSauna: 'WM-Sauna',
+      techSpec: 'Spec.Tech.',
     },
   };
 
