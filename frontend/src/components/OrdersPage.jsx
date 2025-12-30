@@ -45,6 +45,7 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       gift: 'Подарок',
       discount: 'Скидка',
       createdBy: 'Сотрудник',
+      preview: 'Просмотр',
     },
     pl: {
       ordersList: isSauna ? 'Zamówienia saun' : 'Lista zamówień',
@@ -58,10 +59,17 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       gift: 'Prezent',
       discount: 'Rabat',
       createdBy: 'Pracownik',
+      preview: 'Podgląd',
     },
   };
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = texts[lang];
+
+  // Open preview modal
+  const handlePreviewOrder = (order) => {
+    setPreviewOrder(order);
+    setPreviewModalOpen(true);
+  };
 
   useEffect(() => {
     fetchOrders();
