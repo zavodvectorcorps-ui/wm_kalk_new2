@@ -434,20 +434,24 @@ export const CalculatorPage = () => {
                         </TooltipContent>
                       </Tooltip>
                     )}
-                    {model.imageUrl && (
-                      <div className="w-full h-32 rounded mb-2 bg-gray-100 overflow-hidden">
+                    <div className="w-full h-32 rounded mb-2 bg-gray-100 overflow-hidden">
+                      {model.imageUrl ? (
                         <SimpleImage 
                           src={getImageUrl(model.imageUrl)} 
                           alt={getModelName(model)}
                           className="w-full h-full object-contain"
+                          fallback={
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Droplets className="h-8 w-8 text-gray-400" />
+                            </div>
+                          }
                         />
-                      </div>
-                    )}
-                    {!model.imageUrl && (
-                      <div className="w-full h-32 rounded mb-2 bg-gray-100 flex items-center justify-center">
-                        <Droplets className="h-8 w-8 text-gray-400" />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Droplets className="h-8 w-8 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-semibold text-sm">{getModelName(model)}</span>
                       {formData.selectedModel === model.id && (
