@@ -319,7 +319,7 @@ export const BaliaPricingPage = () => {
       </div>
 
       <Tabs defaultValue="models" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="models" className="gap-2">
             <Droplets className="h-4 w-4" />
             {txt.models}
@@ -327,6 +327,10 @@ export const BaliaPricingPage = () => {
           <TabsTrigger value="categories" className="gap-2">
             <Package className="h-4 w-4" />
             {txt.categories}
+          </TabsTrigger>
+          <TabsTrigger value="customer" className="gap-2">
+            <User className="h-4 w-4" />
+            {lang === 'ru' ? 'Данные клиента' : 'Dane klienta'}
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Settings className="h-4 w-4" />
