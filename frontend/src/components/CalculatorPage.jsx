@@ -29,13 +29,8 @@ const getImageUrl = (url) => {
   return `${API_URL}${url}`;
 };
 
-// Optimized image component with eager loading and retry logic
-const OptimizedImage = ({ src, alt, className, fallbackIcon: FallbackIcon }) => {
-  const [loaded, setLoaded] = React.useState(false);
-  const [error, setError] = React.useState(false);
-  const [retryCount, setRetryCount] = React.useState(0);
-  const imgRef = React.useRef(null);
-  
+// Simple image component like in SaunaCalculator - fast and reliable
+const SimpleImage = ({ src, alt, className }) => {
   const fullSrc = React.useMemo(() => {
     if (!src) return null;
     if (src.startsWith('http')) return src;
@@ -43,66 +38,27 @@ const OptimizedImage = ({ src, alt, className, fallbackIcon: FallbackIcon }) => 
     return src;
   }, [src]);
 
-  // Preload image on mount
-  React.useEffect(() => {
-    if (!fullSrc) return;
-    
-    setLoaded(false);
-    setError(false);
-    
-    const img = new Image();
-    img.onload = () => setLoaded(true);
-    img.onerror = () => {
-      if (retryCount < 2) {
-        // Retry loading after a short delay
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-        }, 1000);
-      } else {
-        setError(true);
-      }
-    };
-    img.src = fullSrc;
-    
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [fullSrc, retryCount]);
-  
-  if (!src || error) {
-    return FallbackIcon ? (
-      <div className={`${className} bg-gray-100 flex items-center justify-center`}>
-        <FallbackIcon className="h-8 w-8 text-gray-400" />
-      </div>
-    ) : null;
-  }
-  
+  if (!fullSrc) return null;
+
   return (
-    <div className={`${className} relative bg-gray-100`}>
-      {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-      <img 
-        ref={imgRef}
-        src={fullSrc}
-        alt={alt}
-        loading="eager"
-        decoding="async"
-        className={`w-full h-full object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-        onLoad={() => setLoaded(true)}
-        onError={() => {
-          if (retryCount < 2) {
-            setRetryCount(prev => prev + 1);
-          } else {
-            setError(true);
-          }
-        }}
-      />
-    </div>
+    <img 
+      src={fullSrc}
+      alt={alt || ''}
+      className={className}
+      loading="eager"
+      decoding="async"
+    />
   );
+};
+
+// Preload function for images
+const preloadImages = (urls) => {
+  urls.forEach(url => {
+    if (url) {
+      const img = new Image();
+      img.src = url.startsWith('http') ? url : url.startsWith('/api/') ? `${API_URL}${url}` : url;
+    }
+  });
 };
 
 export const CalculatorPage = () => {
