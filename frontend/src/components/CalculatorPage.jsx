@@ -471,6 +471,18 @@ export const CalculatorPage = () => {
                                 <Check className="h-3 w-3" />
                               </div>
                             )}
+                            {option.hint && (
+                              <Tooltip>
+                                <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                  <div className="absolute top-1 left-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full p-0.5 z-10 cursor-help">
+                                    <Info className="h-3 w-3" />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
+                                  {option.hint}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
                             {option.imageUrl ? (
                               <img 
                                 src={option.imageUrl} 
