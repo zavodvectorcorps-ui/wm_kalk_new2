@@ -378,15 +378,9 @@ async def generate_pdf(request: PDFRequest):
     pdf_data = buffer.getvalue()
     buffer.close()
     
-    try:
-        safe_filename = ''.join(c for c in request.fullName if c.isascii() and (c.isalnum() or c in '-_.'))
-        if not safe_filename:
-            safe_filename = "balia"
-    except:
-        safe_filename = "balia"
-    
+    # Use offer_number as filename
     return StreamingResponse(
         io.BytesIO(pdf_data),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=oferta_{safe_filename}.pdf"}
+        headers={"Content-Disposition": f"attachment; filename={offer_number}.pdf"}
     )
