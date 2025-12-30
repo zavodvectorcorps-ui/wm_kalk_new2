@@ -104,6 +104,15 @@ export const Header = ({
                 <FileText className="h-4 w-4" />
                 {t('orders')}
               </Button>
+              <Button
+                variant={activeTab === 'statistics' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleTabChange('statistics')}
+                className="flex items-center gap-2"
+              >
+                <BarChart3 className="h-4 w-4" />
+                {txt.statistics}
+              </Button>
               {(isAdminAuthenticated || canViewPricing()) && (
                 <Button
                   variant={activeTab === 'pricing' ? 'default' : 'ghost'}
