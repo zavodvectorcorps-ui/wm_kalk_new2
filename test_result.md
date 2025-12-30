@@ -453,6 +453,18 @@ frontend:
         agent: "testing"
         comment: "✅ BALIA IMAGE CROPPING FEATURE TESTING COMPLETE! Successfully verified ALL requirements from review request: 1) Login with admin/159357 ✅, 2) Navigate to Balia calculator ✅, 3) Click 'Cennik' (Pricing) tab ✅, 4) Click 'Dodaj model' button opens 'Nowy model' dialog ✅, 5) 'Zdjęcie' section has two tabs: 'Prześlij' and 'URL' ✅, 6) 'Prześlij' tab shows drag-drop zone with text 'Przeciągnij obraz lub kliknij, aby wybrać' ✅, 7) All form fields present: Nazwa (RU), Nazwa (PL), Cena bazowa, Typ grzałki ✅, 8) Upload zone interactive and functional ✅, 9) Supported formats text 'JPG, PNG, GIF, WebP (do 10MB)' ✅, 10) URL tab functionality working ✅. CODE REVIEW CONFIRMS: ImageCropper component implemented with react-easy-crop library, cropping dialog has zoom slider (1x-3x), rotation slider (0°-360°), +90° button, Reset button, 'Anuluj'/'Zastosuj' buttons, visual crop area with grid overlay, drag-to-position functionality, saves as JPEG with 95% quality. Feature fully implemented and ready for use."
 
+  - task: "Balia Calculator - Merged Save and PDF Button with Image Preloading"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/CalculatorPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ BALIA CALCULATOR MERGED SAVE + PDF BUTTON TESTING COMPLETE! Successfully verified ALL requirements from review request: 1) Login with admin/159357 ✅, 2) Navigate to Balia calculator ✅, 3) Model images loading: 14 images found, 10+ successfully loaded with preloading and retry logic ✅, 4) Combined 'Zapisz i pobierz PDF' button found (blue, single button) ✅, 5) NO separate 'Zapisz zamówienie' button ✅, 6) NO separate 'Pobierz PDF' button ✅, 7) Model selection working (Balia 200cm - 1250€) ✅, 8) Customer form filling working ('Test Combined Button') ✅, 9) Combined button click functionality working ✅, 10) Order saved successfully ✅, 11) Order ID format verified: WMB-30-12-2025-231129 (WMB-DD-MM-YYYY-HHMMSS) ✅. Code review confirms: OptimizedImage component with eager loading, 3-attempt retry logic, image preloading on data fetch, handleSaveOrderAndGeneratePdf function combines save + PDF generation in single action. ALL 6/6 REQUIREMENTS PASSED!"
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
