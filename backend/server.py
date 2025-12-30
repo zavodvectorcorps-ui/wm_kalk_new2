@@ -11,6 +11,7 @@ from routes.sauna import router as sauna_router
 from routes.health import router as health_router
 from routes.tech_spec import router as tech_spec_router
 from routes.upload import router as upload_router
+from routes.customer_fields import router as customer_fields_router
 
 # Configure logging
 logging.basicConfig(
@@ -33,6 +34,7 @@ app.include_router(sauna_router, prefix="/api")
 app.include_router(health_router, prefix="/api")
 app.include_router(tech_spec_router, prefix="/api")
 app.include_router(upload_router, prefix="/api")
+app.include_router(customer_fields_router, prefix="/api")
 
 # Health check endpoint for Kubernetes (without /api prefix)
 @app.get("/health")
