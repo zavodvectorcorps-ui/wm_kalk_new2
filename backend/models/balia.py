@@ -60,6 +60,27 @@ class BaliaCategory(BaseModel):
     options: List[CategoryOption]
 
 
+class CustomerField(BaseModel):
+    """Configuration for a customer data field."""
+    id: str
+    name: str  # Field label in English
+    nameRu: Optional[str] = ""  # Russian label
+    namePl: Optional[str] = ""  # Polish label
+    fieldType: str = "text"  # "text" | "phone" | "email" | "textarea" | "date"
+    placeholder: Optional[str] = ""
+    placeholderRu: Optional[str] = ""
+    placeholderPl: Optional[str] = ""
+    required: bool = False
+    sortOrder: int = 0
+    active: bool = True
+
+
+class CustomerFieldsConfig(BaseModel):
+    """Configuration for customer fields in calculator."""
+    calculatorType: str  # "sauna" | "balia"
+    fields: List[CustomerField] = []
+
+
 class PriceData(BaseModel):
     model_config = ConfigDict(extra="allow")
     
