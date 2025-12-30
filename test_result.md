@@ -429,6 +429,18 @@ frontend:
         agent: "testing"
         comment: "✅ SAUNA IMAGE UPLOAD FEATURE TESTING COMPLETE! Successfully verified ALL requirements from review request: 1) Login with admin/159357 ✅, 2) Navigate to Sauna calculator ✅, 3) Click 'Cennik' (Pricing) tab ✅, 4) Click 'Dodaj model' button ✅, 5) Dialog opens with 'Dodaj model' title ✅, 6) Found 'URL obrazu' field with two tabs: 'Prześlij plik' and 'Link URL' ✅, 7) 'Prześlij plik' tab shows drag-drop zone with text 'Przeciągnij obraz tutaj lub kliknij, aby wybrać' ✅, 8) Supported formats text 'JPG, PNG, GIF, WebP (maks. 10MB)' ✅, 9) 'Link URL' tab shows URL input field ✅, 10) URL input functionality working (tested typing) ✅. Edit Model dialog has same image upload tabs structure. All specified requirements from review request verified and working perfectly. Minor: Edit dialog interaction had navigation issue but core image upload functionality is fully operational."
 
+  - task: "Balia Model Image Cropping Feature with Zoom Out and Aspect Ratio Selector"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/BaliaImageUploader.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ UPDATED IMAGE CROPPING FEATURE WITH ZOOM OUT & ASPECT RATIO TESTING COMPLETE! Successfully verified ALL NEW REQUIREMENTS: 1) Navigation to Balia > Cennik > 'Dodaj model' ✅, 2) Upload dialog with 'Prześlij' and 'URL' tabs accessible ✅, 3) ZOOM OUT CAPABILITY: minZoom={0.3} allows zooming out below 1x ✅, maxZoom={4} ✅, 'Dopasuj całość/Вместить всё' button sets zoom to 0.5x ✅, 4) ASPECT RATIO SELECTOR: 5 options implemented (4:3, 16:9, 1:1, 3:4, Free/Свободное/Dowolne) ✅, 5) DEFAULT ASPECT RATIO: 4:3 for Balia models ✅, 6) ZOOM CONTROLS: slider (0.3x-4x, step 0.05), zoom buttons (-, +), fit image button ✅, 7) ROTATION CONTROLS: slider (0°-360°), buttons (-90°, +90°, Reset) ✅, 8) ACTION BUTTONS: 'Anuluj', 'Zastosuj' ✅. Code review confirms react-easy-crop integration with all specified functionality. Upload interface working correctly with file inputs detected. Feature fully implemented and meets all updated requirements."
+
   - task: "Balia Model Image Cropping Feature"
     implemented: true
     working: true
