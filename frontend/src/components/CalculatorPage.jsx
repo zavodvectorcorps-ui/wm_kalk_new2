@@ -775,21 +775,18 @@ export const CalculatorPage = () => {
 
               <div className="space-y-2 pt-4">
                 <Button
-                  onClick={handleSaveOrder}
+                  onClick={handleSaveOrderAndGeneratePdf}
                   disabled={saving || !formData.selectedModel}
                   className="w-full bg-blue-600 hover:bg-blue-700"
                 >
-                  {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  {t('balia.save')}
-                </Button>
-                <Button
-                  onClick={handleGeneratePdf}
-                  disabled={saving || !formData.selectedModel}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  {t('balia.generatePdf')}
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                    </>
+                  )}
+                  {lang === 'pl' ? 'Zapisz i pobierz PDF' : 'Сохранить и скачать PDF'}
                 </Button>
                 <Button
                   variant="ghost"
