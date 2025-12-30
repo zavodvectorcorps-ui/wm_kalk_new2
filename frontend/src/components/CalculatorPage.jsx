@@ -436,14 +436,12 @@ export const CalculatorPage = () => {
                         </TooltipContent>
                       </Tooltip>
                     )}
-                    {model.imageUrl && (
-                      <img 
-                        src={getImageUrl(model.imageUrl)} 
-                        alt={getModelName(model)}
-                        className="w-full h-32 object-contain rounded mb-2 bg-gray-50"
-                        onError={(e) => e.target.style.display = 'none'}
-                      />
-                    )}
+                    <OptimizedImage 
+                      src={getImageUrl(model.imageUrl)} 
+                      alt={getModelName(model)}
+                      className="w-full h-32 rounded mb-2"
+                      fallbackIcon={Droplets}
+                    />
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-semibold text-sm">{getModelName(model)}</span>
                       {formData.selectedModel === model.id && (
