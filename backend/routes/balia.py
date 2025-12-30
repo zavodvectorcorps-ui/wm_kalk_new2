@@ -222,10 +222,20 @@ async def generate_pdf(request: PDFRequest):
     elements.append(info_table)
     elements.append(Spacer(1, 12))
     
-    # ========== MODEL SECTION WITH IMAGE ==========
-    if request.modelName:
+    # ========== MODEL SECTION WITH IMAGE - Polish name ==========
+    if request.modelName or request.modelId:
+        # Get Polish model name from DB
         model_name = request.modelName
         model_price = request.modelPrice or 0
+        
+        # Try to get Polish name from database
+        if request.modelId:
+            prices_data_for_model = await db.prices.find_one({"_id": "default"})
+            if prices_data_for_model:
+                for m in prices_data_for_model.get('models', []):
+                    if m.get('id') == request.modelId:
+                        model_name = m.get('namePl') or m.get('name', model_name)
+                        break
         
         # Create model info content
         model_text = Paragraph(f'''<b><font size="14" color="#1E40AF">WYBRANY MODEL</font></b><br/><br/>
