@@ -3,8 +3,9 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Upload, Link, Loader2, CheckCircle, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, Link, Loader2, CheckCircle, X, Image as ImageIcon, Crop } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImageCropper } from './ImageCropper';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -14,11 +15,13 @@ export const BaliaImageUploader = ({
   label,
   previewLabel,
   urlPlaceholder = "https://example.com/image.jpg",
-  compact = false
+  compact = false,
+  aspectRatio = 4 / 3
 }) => {
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [activeTab, setActiveTab] = useState(value?.includes('/api/uploads/') ? 'upload' : 'url');
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [imageToEdit, setImageToEdit] = useState(null);
   const fileInputRef = useRef(null);
 
   const texts = {
@@ -33,6 +36,7 @@ export const BaliaImageUploader = ({
       optimized: 'Оптимизировано',
       removeImage: 'Удалить',
       preview: 'Превью',
+      crop: 'Кадрировать',
     },
     pl: {
       uploadFile: 'Prześlij',
@@ -45,6 +49,7 @@ export const BaliaImageUploader = ({
       optimized: 'Zoptymalizowano',
       removeImage: 'Usuń',
       preview: 'Podgląd',
+      crop: 'Kadruj',
     },
   };
 
@@ -65,12 +70,19 @@ export const BaliaImageUploader = ({
       return;
     }
 
+    // Create object URL for cropping
+    const objectUrl = URL.createObjectURL(file);
+    setImageToEdit(objectUrl);
+    setCropperOpen(true);
+  };
+
+  const handleCropComplete = async (croppedBlob) => {
+    setCropperOpen(false);
     setUploading(true);
-    setUploadProgress(0);
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', croppedBlob, 'cropped-image.jpg');
 
       const response = await fetch(`${API_URL}/api/upload/image`, {
         method: 'POST',
@@ -80,7 +92,6 @@ export const BaliaImageUploader = ({
       if (!response.ok) throw new Error('Upload failed');
 
       const data = await response.json();
-      // Use relative URL - prepend API_URL only for display
       onChange(data.url);
       toast.success(txt.optimized);
       setActiveTab('upload');
@@ -89,7 +100,17 @@ export const BaliaImageUploader = ({
       toast.error('Błąd przesyłania');
     } finally {
       setUploading(false);
-      setUploadProgress(0);
+      if (imageToEdit) {
+        URL.revokeObjectURL(imageToEdit);
+        setImageToEdit(null);
+      }
+    }
+  };
+
+  const handleEditExisting = () => {
+    if (value) {
+      setImageToEdit(getFullImageUrl(value));
+      setCropperOpen(true);
     }
   };
 
@@ -129,7 +150,7 @@ export const BaliaImageUploader = ({
               <img 
                 src={getFullImageUrl(value)} 
                 alt="Preview" 
-                className="w-16 h-16 object-contain rounded border bg-gray-50"
+                className="w-16 h-16 object-cover rounded border bg-gray-50"
                 onError={(e) => e.target.style.display = 'none'}
               />
               <Button
@@ -175,6 +196,15 @@ export const BaliaImageUploader = ({
             />
           </div>
         </div>
+
+        {/* Cropper Dialog */}
+        <ImageCropper
+          open={cropperOpen}
+          onClose={() => setCropperOpen(false)}
+          imageSrc={imageToEdit}
+          onCropComplete={handleCropComplete}
+          aspectRatio={aspectRatio}
+        />
       </div>
     );
   }
@@ -244,18 +274,30 @@ export const BaliaImageUploader = ({
           <img 
             src={getFullImageUrl(value)} 
             alt="Preview" 
-            className="max-h-32 object-contain rounded border bg-gray-50"
+            className="max-h-32 object-cover rounded border bg-gray-50"
             onError={(e) => e.target.style.display = 'none'}
           />
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            className="absolute top-1 right-1 h-6 w-6 p-0"
-            onClick={handleRemoveImage}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="absolute top-1 right-1 flex gap-1">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={handleEditExisting}
+              title={txt.crop}
+            >
+              <Crop className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={handleRemoveImage}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
           {isOptimized && (
             <span className="absolute bottom-1 left-1 inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded">
               <CheckCircle className="h-3 w-3" />
@@ -264,6 +306,21 @@ export const BaliaImageUploader = ({
           )}
         </div>
       )}
+
+      {/* Cropper Dialog */}
+      <ImageCropper
+        open={cropperOpen}
+        onClose={() => {
+          setCropperOpen(false);
+          if (imageToEdit && imageToEdit.startsWith('blob:')) {
+            URL.revokeObjectURL(imageToEdit);
+          }
+          setImageToEdit(null);
+        }}
+        imageSrc={imageToEdit}
+        onCropComplete={handleCropComplete}
+        aspectRatio={aspectRatio}
+      />
     </div>
   );
 };
