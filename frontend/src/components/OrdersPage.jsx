@@ -309,6 +309,15 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          {/* Preview Button */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handlePreviewOrder(order)}
+                            title={txt.preview}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
