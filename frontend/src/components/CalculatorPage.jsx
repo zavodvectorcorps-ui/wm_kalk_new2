@@ -717,11 +717,57 @@ export const CalculatorPage = () => {
                     <span className="text-muted-foreground">{t('balia.optionsPrice')}:</span>
                     <span className="font-semibold">{getOptionsTotal()} {prices.currencySymbol}</span>
                   </div>
+                  
+                  {/* Subtotal before discount */}
                   <div className="border-t pt-3 flex justify-between">
-                    <span className="font-bold text-lg">{t('balia.total')}:</span>
-                    <span className="font-bold text-lg text-blue-600">
-                      {calculateTotal()} {prices.currencySymbol}
-                    </span>
+                    <span className="text-muted-foreground">{lang === 'pl' ? 'Przed rabatem' : 'До скидки'}:</span>
+                    <span className="font-semibold">{calculateSubtotal().toFixed(2)} {prices.currencySymbol}</span>
+                  </div>
+                  
+                  {/* Discount Section */}
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-3">
+                    <div className="flex items-center gap-2 text-green-700 font-medium">
+                      <Percent className="h-4 w-4" />
+                      {lang === 'pl' ? 'Rabat' : 'Скидка'}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="20"
+                        value={discountPercent}
+                        onChange={(e) => setDiscountPercent(Math.max(0, Math.min(20, parseFloat(e.target.value) || 0)))}
+                        className="w-20 h-8"
+                      />
+                      <span className="text-sm text-muted-foreground">% (max 20)</span>
+                    </div>
+                    {discountPercent > 0 && (
+                      <div className="text-sm text-green-700 space-y-1">
+                        <div className="flex justify-between">
+                          <span>{lang === 'pl' ? 'Kwota rabatu' : 'Сумма скидки'}:</span>
+                          <span className="font-medium">-{getDiscountAmount().toFixed(2)} {prices.currencySymbol}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>{lang === 'pl' ? 'Oszczędzasz' : 'Вы экономите'}:</span>
+                          <span className="font-bold">{getDiscountAmount().toFixed(2)} {prices.currencySymbol}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Final Total */}
+                  <div className="p-3 bg-blue-600 text-white rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{t('balia.total')}:</span>
+                      <span className="text-2xl font-bold">
+                        {calculateTotal().toFixed(2)} {prices.currencySymbol}
+                      </span>
+                    </div>
+                    {discountPercent > 0 && (
+                      <div className="text-xs text-blue-100 mt-1">
+                        {lang === 'pl' ? 'Rabat' : 'Скидка'}: {discountPercent}%
+                      </div>
+                    )}
                   </div>
                 </>
               )}
