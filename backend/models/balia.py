@@ -151,6 +151,7 @@ class Order(BaseModel):
 class PDFRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
     
+    orderId: Optional[str] = None  # Order ID for PDF filename
     fullName: str
     phoneNumber: str
     fullAddress: str
