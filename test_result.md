@@ -308,6 +308,9 @@ frontend:
       - working: true
         agent: "main"
         comment: "✅ HINTS/TOOLTIPS FEATURE IMPLEMENTED! Info icons (ⓘ) with tooltips now display for all options with hints. Works in: 1) Tiles/Grid mode - blue info icon in top-left corner of tile ✅, 2) Dropdown mode - info icon next to select showing hint for selected option ✅, 3) Checkbox mode - info icon next to label ✅. All 44 options with hints from user's JSON data added to database. Tooltips display full Russian descriptions on hover."
+      - working: true
+        agent: "testing"
+        comment: "✅ HINTS/TOOLTIPS FEATURE VERIFIED! Comprehensive testing completed successfully: 1) Login with admin/159357 ✅, 2) Navigate to Balia calculator ✅, 3) Found 11 info icons in tiles with blue circles in top-left corner ✅, 4) Tooltip appears on hover with Russian text: 'Гидромассаж 1.1 kW с 6–8 форсунками высокого давления...' ✅, 5) Found 8 dropdown categories ✅, 6) Selected dropdown option with price ✅, 7) Info icon appears next to dropdown for selected option with hint ✅. Minor: 'Bez hydromasażu' unexpectedly has info icon (should be empty hint). Core functionality working correctly as specified in review request."
 
 metadata:
   created_by: "main_agent"
