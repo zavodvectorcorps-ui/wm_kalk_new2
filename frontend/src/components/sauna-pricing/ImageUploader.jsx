@@ -17,7 +17,7 @@ export const ImageUploader = ({
   previewLabel,
   urlPlaceholder = "https://example.com/image.jpg",
   themeColor = "amber",
-  aspectRatio = 16 / 9
+  aspectRatio = 16 / 9  // Default 16:9 for Sauna models
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
