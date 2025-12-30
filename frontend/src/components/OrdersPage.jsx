@@ -10,6 +10,7 @@ import { FileDown, Eye, Package, Flame, Search, Trash2, X, FileText, Gift, Perce
 import { toast } from 'sonner';
 import axios from 'axios';
 import { TechSpecModal } from './tech-spec';
+import { OrderPreviewModal } from './OrderPreviewModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -23,6 +24,10 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
   // Tech Spec Modal state
   const [techSpecModalOpen, setTechSpecModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  
+  // Preview Modal state
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewOrder, setPreviewOrder] = useState(null);
 
   const isSauna = calculatorType === 'sauna';
 
