@@ -135,9 +135,12 @@ class Order(BaseModel):
     selections: Optional[Dict[str, Any]] = {}
     selectedOptions: Optional[List[Dict[str, Any]]] = []
     notes: str = ""
+    discountPercent: Optional[float] = 0.0
+    subtotal: Optional[float] = 0.0
     total: float = 0.0
     currency: str = "EUR"
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    createdBy: Optional[str] = None
     # Legacy fields for backward compatibility
     shellModel: Optional[str] = None
     woodType: Optional[str] = None
