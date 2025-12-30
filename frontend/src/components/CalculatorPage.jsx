@@ -629,5 +629,6 @@ export const CalculatorPage = () => {
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 };
