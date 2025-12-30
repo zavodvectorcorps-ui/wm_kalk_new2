@@ -263,7 +263,7 @@ export const CalculatorPage = () => {
         modelId: selectedModel?.id,
         modelName: getModelName(selectedModel),
         modelPrice: selectedModel?.basePrice || 0,
-        modelImageUrl: selectedModel?.imageUrl || '',
+        modelImageUrl: getImageUrl(selectedModel?.imageUrl) || '',
         selections: formData.selections,
         selectedOptions,
         notes: formData.notes,
