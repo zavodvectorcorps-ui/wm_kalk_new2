@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
 import { toast } from 'sonner';
-import { FileDown, Save, RotateCcw, Loader2, Droplets, Check, Package } from 'lucide-react';
+import { FileDown, Save, RotateCcw, Loader2, Droplets, Check, Package, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
