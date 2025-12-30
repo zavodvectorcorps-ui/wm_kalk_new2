@@ -27,6 +27,38 @@ const getImageUrl = (url) => {
   return `${API_URL}${url}`;
 };
 
+// Optimized image component with lazy loading and placeholder
+const OptimizedImage = ({ src, alt, className, fallbackIcon: FallbackIcon }) => {
+  const [loaded, setLoaded] = React.useState(false);
+  const [error, setError] = React.useState(false);
+  
+  if (!src || error) {
+    return FallbackIcon ? (
+      <div className={`${className} bg-gray-100 flex items-center justify-center`}>
+        <FallbackIcon className="h-8 w-8 text-gray-400" />
+      </div>
+    ) : null;
+  }
+  
+  return (
+    <div className={`${className} relative bg-gray-100`}>
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      <img 
+        src={src}
+        alt={alt}
+        loading="lazy"
+        className={`w-full h-full object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+};
+
 export const CalculatorPage = () => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
