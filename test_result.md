@@ -1,4 +1,40 @@
 backend:
+  - task: "GET /api/customer-fields/balia - Get customer fields for Balia calculator"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/customer_fields.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ GET endpoint working correctly. Returns JSON with calculatorType='balia' and fields array containing fullName, phone, address with all required field properties (id, name, nameRu, namePl, fieldType, required, sortOrder, active). Default fields structure verified."
+
+  - task: "GET /api/customer-fields/sauna - Get customer fields for Sauna calculator"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/customer_fields.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ GET endpoint working correctly. Returns JSON with calculatorType='sauna' and fields array containing fullName, phone, address with proper field structure. Default configuration working as expected."
+
+  - task: "POST /api/customer-fields/balia - Save customer fields configuration"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/customer_fields.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ POST endpoint working correctly. Successfully saves custom field configuration with fullName (text, required) and email (email, optional) fields. Returns success message. Configuration persists correctly in database."
+
   - task: "PUT /api/sauna/orders/{order_id}/tech-spec - Save tech spec to order"
     implemented: true
     working: true
