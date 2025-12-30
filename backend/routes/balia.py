@@ -38,6 +38,17 @@ async def get_prices():
         return default_balia_prices
     
     prices.pop('_id', None)
+    
+    # Ensure critical fields are arrays
+    if not isinstance(prices.get('models'), list):
+        prices['models'] = default_balia_prices.get('models', [])
+    if not isinstance(prices.get('categories'), list):
+        prices['categories'] = default_balia_prices.get('categories', [])
+    
+    # Ensure currency fields exist
+    prices.setdefault('currency', 'EUR')
+    prices.setdefault('currencySymbol', '€')
+    
     return prices
 
 
