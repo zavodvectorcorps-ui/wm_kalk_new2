@@ -131,16 +131,7 @@ async def generate_pdf(request: PDFRequest):
     offer_number = f"WMB-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
     currency = request.currency or 'EUR'
     
-    # Load logo - use logo_bl.png
-    logo_path = '/app/assets/logo_bl.png'
-    logo_img = None
-    if os.path.exists(logo_path):
-        try:
-            logo_img = RLImage(logo_path, width=180, height=60)
-        except Exception as e:
-            logger.warning(f"Could not load logo: {e}")
-    
-    # Load model image if provided
+    # Load model image if provided - preserve aspect ratio
     model_img = None
     model_image_url = getattr(request, 'modelImageUrl', None)
     if model_image_url:
@@ -165,13 +156,33 @@ async def generate_pdf(request: PDFRequest):
                     logger.warning(f"Could not download image from URL: {e}")
             
             if img_data:
+                # Get original image dimensions to preserve aspect ratio
+                from PIL import Image as PILImage
                 img_buffer = io.BytesIO(img_data)
-                model_img = RLImage(img_buffer, width=150, height=100)
+                pil_img = PILImage.open(img_buffer)
+                orig_width, orig_height = pil_img.size
+                
+                # Calculate scaled dimensions (max width 160, preserve ratio)
+                max_width = 160
+                max_height = 120
+                ratio = min(max_width / orig_width, max_height / orig_height)
+                new_width = orig_width * ratio
+                new_height = orig_height * ratio
+                
+                img_buffer.seek(0)
+                model_img = RLImage(img_buffer, width=new_width, height=new_height)
         except Exception as e:
             logger.warning(f"Could not load model image: {e}")
     
-    # ========== HEADER with new contact info ==========
-    logo_cell = logo_img if logo_img else Paragraph('<b>WM-BALIA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BLUE))
+    # ========== HEADER - styled WM-BALIA text ==========
+    logo_style = ParagraphStyle(
+        'LogoStyle',
+        fontName='DejaVuSans-Bold',
+        fontSize=28,
+        textColor=BLUE_DARK,
+        leading=32,
+    )
+    logo_cell = Paragraph('<font color="#2563EB">WM</font><font color="#1E40AF">-BALIA</font>', logo_style)
     
     header_data = [[
         logo_cell,
