@@ -534,7 +534,7 @@ export const CalculatorPage = () => {
                         <div key={option.id} className="flex items-center gap-2">
                           {option.imageUrl && (
                             <img 
-                              src={option.imageUrl} 
+                              src={getImageUrl(option.imageUrl)} 
                               alt={getOptionName(option)}
                               className="w-8 h-8 object-contain rounded"
                               onError={(e) => e.target.style.display = 'none'}
