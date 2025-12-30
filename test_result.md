@@ -372,6 +372,18 @@ frontend:
         agent: "testing"
         comment: "✅ CUSTOMER FIELDS MANAGEMENT FEATURE FULLY WORKING! Comprehensive test completed successfully: 1) Login with admin/159357 ✅, 2) Navigate to Balia calculator ✅, 3) Access Cennik (pricing) tab ✅, 4) Click 'Dane klienta' (Customer Data) tab - 3rd tab ✅, 5) CustomerFieldsManager component loads with title 'Pola danych klienta' ✅, 6) Default fields displayed: Full Name (Imię i nazwisko) ✅, 7) 'Dodaj pole' (Add field) button working ✅, 8) 'Zapisz wszystko' (Save all) button working ✅, 9) Add field dialog opens correctly ✅, 10) Successfully added new email field with ID 'test_email', type Email, names in EN/PL/RU ✅, 11) Field appears in list after saving ✅, 12) Required/Active checkboxes working (3 each) ✅, 13) Reordering arrows working (3 up, 3 down) ✅, 14) Edit functionality available (pencil icons) ✅. All expected functionality from review request verified and working perfectly."
 
+  - task: "Order Preview Modal - Sauna Promotion Type Display"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/OrderPreviewModal.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented promotion type display (Скидка/Подарок) in Sauna order preview modal. Added logic to show discount badge with percentage if discountPercent > 0, otherwise show gift badge. Also added promotion info in the Summary section."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
