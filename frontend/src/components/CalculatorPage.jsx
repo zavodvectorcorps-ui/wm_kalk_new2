@@ -266,12 +266,22 @@ export const CalculatorPage = () => {
         responseType: 'blob'
       });
       
+      // Get filename from Content-Disposition header (order number from backend)
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'oferta.pdf';
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename=(.+\.pdf)/);
+        if (match) {
+          filename = match[1];
+        }
+      }
+      
       // Download the PDF
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `oferta_${formData.fullName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
