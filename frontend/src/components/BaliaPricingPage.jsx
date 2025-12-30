@@ -591,6 +591,11 @@ export const BaliaPricingPage = () => {
           </Card>
         </TabsContent>
 
+        {/* Customer Fields Tab */}
+        <TabsContent value="customer">
+          <CustomerFieldsManager calculatorType="balia" />
+        </TabsContent>
+
         {/* Settings Tab */}
         <TabsContent value="settings">
           <Card>
