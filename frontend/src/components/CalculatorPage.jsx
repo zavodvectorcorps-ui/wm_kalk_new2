@@ -544,33 +544,50 @@ export const CalculatorPage = () => {
                       ))}
                     </div>
                   ) : (
-                    <Select
-                      value={formData.selections[category.id] || ''}
-                      onValueChange={(value) => handleSelectionChange(category.id, value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {category.options?.map(option => (
-                          <SelectItem key={option.id} value={option.id}>
-                            <div className="flex items-center gap-2">
-                              {option.imageUrl && (
-                                <img 
-                                  src={option.imageUrl} 
-                                  alt={getOptionName(option)}
-                                  className="w-6 h-6 object-contain rounded"
-                                />
-                              )}
-                              <span>
-                                {getOptionName(option)}
-                                {option.price > 0 && ` (+${option.price} ${prices.currencySymbol})`}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={formData.selections[category.id] || ''}
+                        onValueChange={(value) => handleSelectionChange(category.id, value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {category.options?.map(option => (
+                            <SelectItem key={option.id} value={option.id}>
+                              <div className="flex items-center gap-2">
+                                {option.imageUrl && (
+                                  <img 
+                                    src={option.imageUrl} 
+                                    alt={getOptionName(option)}
+                                    className="w-6 h-6 object-contain rounded"
+                                  />
+                                )}
+                                <span className="flex items-center gap-1">
+                                  {getOptionName(option)}
+                                  {option.price > 0 && ` (+${option.price} ${prices.currencySymbol})`}
+                                  {option.hint && <Info className="h-3 w-3 text-gray-400 ml-1" />}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {/* Show hint for selected dropdown option */}
+                      {(() => {
+                        const selectedOpt = category.options?.find(o => o.id === formData.selections[category.id]);
+                        return selectedOpt?.hint ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
+                              {selectedOpt.hint}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null;
+                      })()}
+                    </div>
                   )}
                 </div>
               ))}
