@@ -506,7 +506,7 @@ export const CalculatorPage = () => {
                             )}
                             {option.imageUrl ? (
                               <img 
-                                src={option.imageUrl} 
+                                src={getImageUrl(option.imageUrl)} 
                                 alt={getOptionName(option)}
                                 className="w-full h-20 object-contain rounded mb-2 bg-gray-50"
                                 onError={(e) => e.target.style.display = 'none'}
