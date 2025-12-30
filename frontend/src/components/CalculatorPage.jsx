@@ -29,10 +29,46 @@ const getImageUrl = (url) => {
   return `${API_URL}${url}`;
 };
 
-// Optimized image component with lazy loading and placeholder
+// Optimized image component with eager loading and retry logic
 const OptimizedImage = ({ src, alt, className, fallbackIcon: FallbackIcon }) => {
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState(false);
+  const [retryCount, setRetryCount] = React.useState(0);
+  const imgRef = React.useRef(null);
+  
+  const fullSrc = React.useMemo(() => {
+    if (!src) return null;
+    if (src.startsWith('http')) return src;
+    if (src.startsWith('/api/')) return `${API_URL}${src}`;
+    return src;
+  }, [src]);
+
+  // Preload image on mount
+  React.useEffect(() => {
+    if (!fullSrc) return;
+    
+    setLoaded(false);
+    setError(false);
+    
+    const img = new Image();
+    img.onload = () => setLoaded(true);
+    img.onerror = () => {
+      if (retryCount < 2) {
+        // Retry loading after a short delay
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+        }, 1000);
+      } else {
+        setError(true);
+      }
+    };
+    img.src = fullSrc;
+    
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [fullSrc, retryCount]);
   
   if (!src || error) {
     return FallbackIcon ? (
@@ -50,12 +86,20 @@ const OptimizedImage = ({ src, alt, className, fallbackIcon: FallbackIcon }) => 
         </div>
       )}
       <img 
-        src={src}
+        ref={imgRef}
+        src={fullSrc}
         alt={alt}
-        loading="lazy"
+        loading="eager"
+        decoding="async"
         className={`w-full h-full object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
+        onError={() => {
+          if (retryCount < 2) {
+            setRetryCount(prev => prev + 1);
+          } else {
+            setError(true);
+          }
+        }}
       />
     </div>
   );
