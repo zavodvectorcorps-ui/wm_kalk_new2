@@ -26,6 +26,7 @@ export const Header = ({
       wmBalia: 'WM-Balia',
       wmSauna: 'WM-Sauna',
       techSpec: 'Тех.Задание',
+      statistics: 'Статистика',
     },
     pl: {
       users: 'Pracownicy',
@@ -33,6 +34,7 @@ export const Header = ({
       wmBalia: 'WM-Balia',
       wmSauna: 'WM-Sauna',
       techSpec: 'Spec.Tech.',
+      statistics: 'Statystyki',
     },
   };
 
