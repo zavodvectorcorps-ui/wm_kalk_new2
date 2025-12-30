@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from './ui/dialog';
-import { Check, X, ZoomIn, RotateCw, Maximize2 } from 'lucide-react';
+import { Check, X, ZoomIn, ZoomOut, RotateCw, Maximize2, Square, RectangleHorizontal, RectangleVertical } from 'lucide-react';
 
 // Helper function to create cropped image
 const createImage = (url) =>
@@ -80,7 +80,7 @@ const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
         resolve(blob);
       },
       'image/jpeg',
-      0.95
+      0.92
     );
   });
 };
@@ -93,19 +93,30 @@ function rotateSize(width, height, rotation) {
   };
 }
 
+// Predefined aspect ratios
+const ASPECT_RATIOS = {
+  '4:3': { value: 4 / 3, label: '4:3', icon: RectangleHorizontal },
+  '16:9': { value: 16 / 9, label: '16:9', icon: RectangleHorizontal },
+  '1:1': { value: 1, label: '1:1', icon: Square },
+  '3:4': { value: 3 / 4, label: '3:4', icon: RectangleVertical },
+  'free': { value: undefined, label: 'Свободное', icon: Maximize2 },
+};
+
 export const ImageCropper = ({
   open,
   onClose,
   imageSrc,
   onCropComplete,
-  aspectRatio = 4 / 3,
+  aspectRatio: initialAspectRatio = 4 / 3,
   title = 'Kadrowanie obrazu',
+  showAspectSelector = true,
 }) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState(initialAspectRatio);
 
   const texts = {
     ru: {
@@ -116,11 +127,11 @@ export const ImageCropper = ({
       cancel: 'Отмена',
       reset: 'Сброс',
       processing: 'Обработка...',
-      aspectRatio: 'Соотношение сторон',
+      aspectRatio: 'Пропорции',
       free: 'Свободное',
-      square: 'Квадрат',
-      landscape: '4:3',
-      portrait: '3:4',
+      zoomIn: 'Увеличить',
+      zoomOut: 'Уменьшить',
+      fitImage: 'Вместить всё',
     },
     pl: {
       title: 'Kadrowanie obrazu',
@@ -132,9 +143,9 @@ export const ImageCropper = ({
       processing: 'Przetwarzanie...',
       aspectRatio: 'Proporcje',
       free: 'Dowolne',
-      square: 'Kwadrat',
-      landscape: '4:3',
-      portrait: '3:4',
+      zoomIn: 'Powiększ',
+      zoomOut: 'Pomniejsz',
+      fitImage: 'Dopasuj całość',
     },
   };
 
@@ -175,11 +186,16 @@ export const ImageCropper = ({
     setRotation(0);
   };
 
+  const handleFitImage = () => {
+    setZoom(0.5); // Zoom out to fit more of the image
+    setCrop({ x: 0, y: 0 });
+  };
+
   if (!imageSrc) return null;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-3xl max-h-[95vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Maximize2 className="h-5 w-5" />
@@ -188,18 +204,43 @@ export const ImageCropper = ({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Aspect Ratio Selector */}
+          {showAspectSelector && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-sm">{txt.aspectRatio}:</Label>
+              <div className="flex gap-1">
+                {Object.entries(ASPECT_RATIOS).map(([key, { value, label, icon: Icon }]) => (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant={aspectRatio === value ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => setAspectRatio(value)}
+                  >
+                    <Icon className="h-4 w-4 mr-1" />
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Cropper Area */}
-          <div className="relative w-full h-80 bg-gray-900 rounded-lg overflow-hidden">
+          <div className="relative w-full h-72 bg-gray-900 rounded-lg overflow-hidden">
             <Cropper
               image={imageSrc}
               crop={crop}
               zoom={zoom}
               rotation={rotation}
               aspect={aspectRatio}
+              minZoom={0.3}
+              maxZoom={4}
               onCropChange={onCropChange}
               onZoomChange={onZoomChange}
               onCropComplete={onCropCompleteHandler}
               showGrid={true}
+              objectFit="contain"
               style={{
                 containerStyle: {
                   borderRadius: '0.5rem',
@@ -209,28 +250,91 @@ export const ImageCropper = ({
           </div>
 
           {/* Controls */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             {/* Zoom Control */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                <ZoomIn className="h-4 w-4" />
-                {txt.zoom}: {zoom.toFixed(1)}x
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2 text-sm">
+                  <ZoomIn className="h-4 w-4" />
+                  {txt.zoom}: {zoom.toFixed(2)}x
+                </Label>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={() => setZoom(Math.max(0.3, zoom - 0.1))}
+                  >
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={() => setZoom(Math.min(4, zoom + 0.1))}
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={handleFitImage}
+                    title={txt.fitImage}
+                  >
+                    {txt.fitImage}
+                  </Button>
+                </div>
+              </div>
               <Slider
                 value={[zoom]}
-                min={1}
-                max={3}
-                step={0.1}
+                min={0.3}
+                max={4}
+                step={0.05}
                 onValueChange={([value]) => setZoom(value)}
               />
             </div>
 
             {/* Rotation Control */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                <RotateCw className="h-4 w-4" />
-                {txt.rotation}: {rotation}°
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2 text-sm">
+                  <RotateCw className="h-4 w-4" />
+                  {txt.rotation}: {rotation}°
+                </Label>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={() => setRotation((r) => (r - 90 + 360) % 360)}
+                  >
+                    -90°
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={() => setRotation((r) => (r + 90) % 360)}
+                  >
+                    +90°
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2"
+                    onClick={handleReset}
+                  >
+                    {txt.reset}
+                  </Button>
+                </div>
+              </div>
               <Slider
                 value={[rotation]}
                 min={0}
@@ -240,30 +344,9 @@ export const ImageCropper = ({
               />
             </div>
           </div>
-
-          {/* Quick Rotation Buttons */}
-          <div className="flex gap-2 justify-center">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setRotation((r) => (r + 90) % 360)}
-            >
-              <RotateCw className="h-4 w-4 mr-1" />
-              +90°
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleReset}
-            >
-              {txt.reset}
-            </Button>
-          </div>
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 mt-4">
           <Button type="button" variant="outline" onClick={onClose} disabled={processing}>
             <X className="h-4 w-4 mr-1" />
             {txt.cancel}
