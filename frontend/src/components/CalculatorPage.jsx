@@ -386,6 +386,7 @@ export const CalculatorPage = () => {
       selections: initialSelections,
       notes: '',
     });
+    setDiscountPercent(0);
   };
 
   const getOptionName = (option) => {
