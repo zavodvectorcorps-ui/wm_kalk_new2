@@ -389,13 +389,46 @@ async def generate_pdf(request: PDFRequest):
         elements.append(notes_table)
         elements.append(Spacer(1, 12))
     
+    # ========== DISCOUNT SECTION (if applicable) ==========
+    discount_percent = getattr(request, 'discountPercent', 0) or 0
+    subtotal = getattr(request, 'subtotal', request.total / (1 - discount_percent/100) if discount_percent else request.total) or request.total
+    total_after_discount = request.total
+    
+    if discount_percent > 0:
+        savings = subtotal - total_after_discount
+        discount_section = Paragraph(f'''<b><font color="#059669" size="13">ZASTOSOWANY RABAT</font></b><br/><br/>
+        <font size="11">Cena przed rabatem: <b>{subtotal:,.2f} {currency}</b></font><br/>
+        <font size="12" color="#059669"><b>Rabat: {discount_percent:.0f}%</b></font><br/>
+        <font size="11">Kwota rabatu: <b>-{savings:,.2f} {currency}</b></font><br/><br/>
+        <font size="10" color="#059669"><i>Oszczędzasz: {savings:,.2f} {currency}</i></font>'''.replace(',', ' '),
+        ParagraphStyle('DiscountSection', fontName='DejaVuSans', fontSize=11))
+        
+        discount_table = Table([[discount_section]], colWidths=[520])
+        discount_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), GREEN_LIGHT),
+            ('BOX', (0, 0), (-1, -1), 2, GREEN),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('LEFTPADDING', (0, 0), (-1, -1), 15),
+        ]))
+        elements.append(discount_table)
+        elements.append(Spacer(1, 12))
+    
     # ========== TOTAL ==========
     elements.append(Spacer(1, 10))
+    
+    # Build total section with discount info if applicable
+    if discount_percent > 0:
+        total_html = f'''<font size="14"><b>SUMA DO ZAPŁATY:</b></font><br/>
+        <font size="9" color="#EFF6FF">Rabat: {discount_percent:.0f}% (cena przed rabatem: {subtotal:,.2f} {currency})</font>'''.replace(',', ' ')
+    else:
+        total_html = f'''<font size="14"><b>SUMA DO ZAPŁATY:</b></font>'''
+    
     total_data = [[
-        Paragraph(f'''<font size="14"><b>SUMA DO ZAPŁATY:</b></font>''', 
+        Paragraph(total_html, 
                  ParagraphStyle('TotalLabel', fontName='DejaVuSans-Bold', fontSize=14, textColor=WHITE)),
-        Paragraph(f'''<font size="16"><b>{request.total:,.0f} {currency}</b></font>'''.replace(',', ' '),
-                 ParagraphStyle('TotalValue', fontName='DejaVuSans-Bold', fontSize=16, textColor=WHITE, alignment=TA_RIGHT))
+        Paragraph(f'''<font size="18"><b>{total_after_discount:,.2f} {currency}</b></font>'''.replace(',', ' '),
+                 ParagraphStyle('TotalValue', fontName='DejaVuSans-Bold', fontSize=18, textColor=WHITE, alignment=TA_RIGHT))
     ]]
     total_table = Table(total_data, colWidths=[300, 220])
     total_table.setStyle(TableStyle([
