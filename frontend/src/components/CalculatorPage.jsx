@@ -52,10 +52,21 @@ export const CalculatorPage = () => {
   const fetchPrices = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/prices`);
-      setPrices(response.data);
+      const data = response.data || {};
+      
+      // Ensure arrays are always arrays
+      const safeData = {
+        ...data,
+        models: Array.isArray(data.models) ? data.models : [],
+        categories: Array.isArray(data.categories) ? data.categories : [],
+        currency: data.currency || 'EUR',
+        currencySymbol: data.currencySymbol || '€'
+      };
+      
+      setPrices(safeData);
       
       // Initialize selections
-      const categories = response.data.categories || [];
+      const categories = safeData.categories;
       const initialSelections = {};
       categories.forEach(cat => {
         if (cat.inputType === 'checkbox') {
