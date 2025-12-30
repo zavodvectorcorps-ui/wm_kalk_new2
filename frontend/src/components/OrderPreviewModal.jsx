@@ -303,7 +303,29 @@ export const OrderPreviewModal = ({
                   <span className="font-medium">+{formatPrice(optionsTotal)}</span>
                 </div>
               )}
-              {discountAmount > 0 && (
+              {/* Promotion info for Sauna */}
+              {isSauna && (
+                <div className={`flex justify-between ${order.discountPercent > 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                  <span className="flex items-center gap-1">
+                    {order.discountPercent > 0 ? (
+                      <>
+                        <Percent className="h-4 w-4" />
+                        {txt.promotion}: {txt.promotionDiscount} ({order.discountPercent}%)
+                      </>
+                    ) : (
+                      <>
+                        <Gift className="h-4 w-4" />
+                        {txt.promotion}: {txt.promotionGift}
+                      </>
+                    )}
+                  </span>
+                  {order.discountPercent > 0 && (
+                    <span className="font-medium">-{formatPrice(discountAmount)}</span>
+                  )}
+                </div>
+              )}
+              {/* Discount info for Balia (original logic) */}
+              {!isSauna && discountAmount > 0 && (
                 <div className="flex justify-between text-blue-600">
                   <span>{txt.discount} ({order.discountPercent}%)</span>
                   <span className="font-medium">-{formatPrice(discountAmount)}</span>
