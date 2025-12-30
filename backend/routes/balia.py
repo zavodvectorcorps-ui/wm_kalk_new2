@@ -252,19 +252,39 @@ async def generate_pdf(request: PDFRequest):
         elements.append(model_table)
         elements.append(Spacer(1, 12))
     
-    # ========== SELECTED OPTIONS ==========
+    # ========== SELECTED OPTIONS - Always in Polish ==========
     if request.selectedOptions and len(request.selectedOptions) > 0:
         elements.append(Paragraph('<b>WYBRANE OPCJE</b>', section_title_style))
         elements.append(Spacer(1, 6))
+        
+        # Load prices from DB to get Polish names
+        prices_data = await db.prices.find_one({"_id": "default"})
+        categories_map = {}
+        if prices_data:
+            for cat in prices_data.get('categories', []):
+                cat_id = cat.get('id')
+                cat_name_pl = cat.get('namePl') or cat.get('name', '')
+                options_map = {}
+                for opt in cat.get('options', []):
+                    opt_id = opt.get('id')
+                    opt_name_pl = opt.get('namePl') or opt.get('name', '')
+                    options_map[opt_id] = opt_name_pl
+                categories_map[cat_id] = {'name': cat_name_pl, 'options': options_map}
         
         options_data = [['Kategoria', 'Wybrana opcja', 'Cena']]
         total_options_price = 0
         
         for opt in request.selectedOptions:
-            cat_name = opt.get('categoryName', '')
-            opt_name = opt.get('optionName', '')
+            cat_id = opt.get('categoryId', '')
+            opt_id = opt.get('optionId', '')
             price = opt.get('price', 0)
             total_options_price += price
+            
+            # Get Polish names from DB, fallback to provided names
+            cat_info = categories_map.get(cat_id, {})
+            cat_name = cat_info.get('name', opt.get('categoryName', ''))
+            opt_name = cat_info.get('options', {}).get(opt_id, opt.get('optionName', ''))
+            
             price_str = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
             options_data.append([cat_name, opt_name, price_str])
         
