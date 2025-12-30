@@ -13,11 +13,12 @@ import { Switch } from './ui/switch';
 import { Badge } from './ui/badge';
 import { 
   DollarSign, Save, Loader2, Plus, Trash2, Edit2, 
-  Image as ImageIcon, Upload, X, Eye, Droplets, Package, Settings, User
+  Image as ImageIcon, Upload, X, Eye, Droplets, Package, Settings, User, CheckCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { CustomerFieldsManager } from './CustomerFieldsManager';
+import { BaliaImageUploader } from './BaliaImageUploader';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
