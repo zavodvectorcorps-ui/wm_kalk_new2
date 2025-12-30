@@ -544,7 +544,7 @@ export const CalculatorPage = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="space-y-2">
                       <Select
                         value={formData.selections[category.id] || ''}
                         onValueChange={(value) => handleSelectionChange(category.id, value)}
@@ -572,14 +572,16 @@ export const CalculatorPage = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                      {/* Show hint text above dropdown for selected option */}
+                      {/* Show hint text below dropdown for selected option */}
                       {(() => {
                         const selectedOpt = category.options?.find(o => o.id === formData.selections[category.id]);
                         return selectedOpt?.hint ? (
-                          <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-                            <Info className="h-3.5 w-3.5 inline-block mr-1 text-blue-500" />
-                            {selectedOpt.hint}
-                          </p>
+                          <div className="flex items-start gap-1.5 p-2 bg-blue-50 rounded-md border border-blue-100">
+                            <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              {selectedOpt.hint}
+                            </p>
+                          </div>
                         ) : null;
                       })()}
                     </div>
