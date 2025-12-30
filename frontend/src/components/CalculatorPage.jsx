@@ -524,8 +524,18 @@ export const CalculatorPage = () => {
                             checked={formData.selections[category.id]?.[option.id] || false}
                             onCheckedChange={(checked) => handleCheckboxChange(category.id, option.id, checked)}
                           />
-                          <Label htmlFor={option.id} className="text-sm cursor-pointer flex-1">
+                          <Label htmlFor={option.id} className="text-sm cursor-pointer flex-1 flex items-center gap-1">
                             {getOptionName(option)}
+                            {option.hint && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
+                                  {option.hint}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
                             {option.price > 0 && (
                               <span className="text-blue-600 ml-1">+{option.price} {prices.currencySymbol}</span>
                             )}
