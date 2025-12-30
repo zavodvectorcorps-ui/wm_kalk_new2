@@ -1591,6 +1591,260 @@ def test_display_type_feature():
         print(f"❌ Display Type Feature test error: {str(e)}")
         return False
 
+def test_get_customer_fields_balia():
+    """Test GET /api/customer-fields/balia - Get customer fields for Balia calculator"""
+    print("\n🔍 Testing GET /api/customer-fields/balia...")
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/customer-fields/balia")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ GET /api/customer-fields/balia successful")
+            
+            # Check response structure
+            if 'calculatorType' in data and 'fields' in data:
+                print("✅ Response contains calculatorType and fields")
+                
+                # Verify calculator type
+                if data.get('calculatorType') == 'balia':
+                    print("✅ Calculator type is 'balia'")
+                else:
+                    print(f"❌ Expected calculatorType 'balia', got '{data.get('calculatorType')}'")
+                    return False
+                
+                # Check fields array
+                fields = data.get('fields', [])
+                print(f"✅ Found {len(fields)} fields")
+                
+                # Verify default fields exist
+                expected_fields = ['fullName', 'phone', 'address']
+                field_ids = [field.get('id') for field in fields]
+                
+                for expected_id in expected_fields:
+                    if expected_id in field_ids:
+                        field = next(f for f in fields if f.get('id') == expected_id)
+                        print(f"✅ Field '{expected_id}' found - name: '{field.get('name')}', required: {field.get('required')}")
+                    else:
+                        print(f"❌ Expected field '{expected_id}' not found")
+                        return False
+                
+                # Check field structure
+                if fields:
+                    first_field = fields[0]
+                    required_field_keys = ['id', 'name', 'nameRu', 'namePl', 'fieldType', 'required', 'sortOrder', 'active']
+                    for key in required_field_keys:
+                        if key in first_field:
+                            print(f"✅ Field key '{key}' present")
+                        else:
+                            print(f"❌ Field key '{key}' missing")
+                            return False
+                
+                return True
+            else:
+                print("❌ Missing calculatorType or fields in response")
+                return False
+        else:
+            print(f"❌ GET /api/customer-fields/balia failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ GET /api/customer-fields/balia error: {str(e)}")
+        return False
+
+
+def test_get_customer_fields_sauna():
+    """Test GET /api/customer-fields/sauna - Get customer fields for Sauna calculator"""
+    print("\n🔍 Testing GET /api/customer-fields/sauna...")
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/customer-fields/sauna")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ GET /api/customer-fields/sauna successful")
+            
+            # Check response structure
+            if 'calculatorType' in data and 'fields' in data:
+                print("✅ Response contains calculatorType and fields")
+                
+                # Verify calculator type
+                if data.get('calculatorType') == 'sauna':
+                    print("✅ Calculator type is 'sauna'")
+                else:
+                    print(f"❌ Expected calculatorType 'sauna', got '{data.get('calculatorType')}'")
+                    return False
+                
+                # Check fields array
+                fields = data.get('fields', [])
+                print(f"✅ Found {len(fields)} fields")
+                
+                # Verify default fields exist
+                expected_fields = ['fullName', 'phone', 'address']
+                field_ids = [field.get('id') for field in fields]
+                
+                for expected_id in expected_fields:
+                    if expected_id in field_ids:
+                        field = next(f for f in fields if f.get('id') == expected_id)
+                        print(f"✅ Field '{expected_id}' found - name: '{field.get('name')}', required: {field.get('required')}")
+                    else:
+                        print(f"❌ Expected field '{expected_id}' not found")
+                        return False
+                
+                return True
+            else:
+                print("❌ Missing calculatorType or fields in response")
+                return False
+        else:
+            print(f"❌ GET /api/customer-fields/sauna failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ GET /api/customer-fields/sauna error: {str(e)}")
+        return False
+
+
+def test_post_customer_fields_balia():
+    """Test POST /api/customer-fields/balia - Save customer fields configuration"""
+    print("\n🔍 Testing POST /api/customer-fields/balia...")
+    
+    try:
+        # Create test configuration as specified in review request
+        test_config = {
+            "calculatorType": "balia",
+            "fields": [
+                {
+                    "id": "fullName",
+                    "name": "Full Name",
+                    "nameRu": "ФИО",
+                    "namePl": "Imię i nazwisko",
+                    "fieldType": "text",
+                    "required": True,
+                    "sortOrder": 1,
+                    "active": True
+                },
+                {
+                    "id": "email",
+                    "name": "Email",
+                    "nameRu": "Email",
+                    "namePl": "Email",
+                    "fieldType": "email",
+                    "required": False,
+                    "sortOrder": 2,
+                    "active": True
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/customer-fields/balia", json=test_config)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ POST /api/customer-fields/balia successful")
+            
+            # Check response message
+            if 'message' in data:
+                print(f"✅ Success message: {data.get('message')}")
+            else:
+                print("❌ No success message in response")
+                return False
+            
+            return True
+        else:
+            print(f"❌ POST /api/customer-fields/balia failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ POST /api/customer-fields/balia error: {str(e)}")
+        return False
+
+
+def test_verify_saved_customer_fields():
+    """Test 4: Verify saved fields - GET /api/customer-fields/balia should return saved configuration"""
+    print("\n🔍 Testing verification of saved customer fields...")
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/customer-fields/balia")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ GET /api/customer-fields/balia successful")
+            
+            # Check if we have the saved configuration with 2 fields
+            fields = data.get('fields', [])
+            if len(fields) == 2:
+                print(f"✅ Found expected 2 fields in saved configuration")
+                
+                # Check for fullName field
+                fullname_field = next((f for f in fields if f.get('id') == 'fullName'), None)
+                if fullname_field:
+                    print(f"✅ fullName field found - required: {fullname_field.get('required')}")
+                else:
+                    print("❌ fullName field not found")
+                    return False
+                
+                # Check for email field
+                email_field = next((f for f in fields if f.get('id') == 'email'), None)
+                if email_field:
+                    print(f"✅ email field found - fieldType: {email_field.get('fieldType')}, required: {email_field.get('required')}")
+                    
+                    # Verify email field properties
+                    if email_field.get('fieldType') == 'email' and email_field.get('required') == False:
+                        print("✅ Email field has correct properties")
+                    else:
+                        print(f"❌ Email field properties incorrect: fieldType={email_field.get('fieldType')}, required={email_field.get('required')}")
+                        return False
+                else:
+                    print("❌ email field not found")
+                    return False
+                
+                return True
+            else:
+                print(f"❌ Expected 2 fields, found {len(fields)}")
+                return False
+        else:
+            print(f"❌ Verification failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Verification error: {str(e)}")
+        return False
+
+
+def test_customer_fields_api():
+    """Run comprehensive Customer Fields API tests as specified in review request"""
+    print("\n📋 CUSTOMER FIELDS API TESTS")
+    print("=" * 60)
+    
+    results = {}
+    
+    # Test 1: Get default Balia customer fields
+    print("\n🔍 Test 1: Get default Balia customer fields")
+    results["GET /api/customer-fields/balia (default)"] = test_get_customer_fields_balia()
+    
+    # Test 2: Get default Sauna customer fields
+    print("\n🔍 Test 2: Get default Sauna customer fields")
+    results["GET /api/customer-fields/sauna (default)"] = test_get_customer_fields_sauna()
+    
+    # Test 3: Save custom field configuration
+    print("\n🔍 Test 3: Save custom field configuration")
+    results["POST /api/customer-fields/balia (save config)"] = test_post_customer_fields_balia()
+    
+    # Test 4: Verify saved fields
+    print("\n🔍 Test 4: Verify saved fields")
+    results["GET /api/customer-fields/balia (verify saved)"] = test_verify_saved_customer_fields()
+    
+    return results
+
+
 def test_techspec_mapping_flow():
     """Test TechSpecId mapping between Sauna Calculator and TechSpec Modal"""
     print("\n🔍 Testing TechSpecId Mapping Flow...")
