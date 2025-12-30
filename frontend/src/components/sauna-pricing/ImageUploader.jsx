@@ -3,9 +3,10 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Upload, Link, Loader2, CheckCircle, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, Link, Loader2, CheckCircle, X, Image as ImageIcon, Crop } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { ImageCropper } from '../ImageCropper';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -15,11 +16,14 @@ export const ImageUploader = ({
   label,
   previewLabel,
   urlPlaceholder = "https://example.com/image.jpg",
-  themeColor = "amber"
+  themeColor = "amber",
+  aspectRatio = 16 / 9
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [activeTab, setActiveTab] = useState(value?.startsWith('/api/uploads/') ? 'upload' : 'url');
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [imageToEdit, setImageToEdit] = useState(null);
   const fileInputRef = useRef(null);
 
   const texts = {
@@ -34,6 +38,7 @@ export const ImageUploader = ({
       optimized: 'Изображение оптимизировано',
       removeImage: 'Удалить',
       preview: 'Превью',
+      crop: 'Кадрировать',
     },
     pl: {
       uploadFile: 'Prześlij plik',
@@ -46,6 +51,7 @@ export const ImageUploader = ({
       optimized: 'Obraz zoptymalizowany',
       removeImage: 'Usuń',
       preview: 'Podgląd',
+      crop: 'Kadruj',
     },
   };
 
@@ -69,12 +75,20 @@ export const ImageUploader = ({
       return;
     }
 
+    // Create object URL for cropping
+    const objectUrl = URL.createObjectURL(file);
+    setImageToEdit(objectUrl);
+    setCropperOpen(true);
+  };
+
+  const handleCropComplete = async (croppedBlob) => {
+    setCropperOpen(false);
     setUploading(true);
     setUploadProgress(0);
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', croppedBlob, 'cropped-image.jpg');
 
       const response = await axios.post(`${API_URL}/api/upload/image`, formData, {
         headers: {
@@ -96,6 +110,17 @@ export const ImageUploader = ({
     } finally {
       setUploading(false);
       setUploadProgress(0);
+      if (imageToEdit && imageToEdit.startsWith('blob:')) {
+        URL.revokeObjectURL(imageToEdit);
+      }
+      setImageToEdit(null);
+    }
+  };
+
+  const handleEditExisting = () => {
+    if (value) {
+      setImageToEdit(getFullImageUrl(value));
+      setCropperOpen(true);
     }
   };
 
@@ -122,6 +147,8 @@ export const ImageUploader = ({
     if (url.startsWith('/api/')) return `${API_URL}${url}`;
     return url;
   };
+
+  const isOptimized = value?.startsWith('/api/uploads/');
 
   return (
     <div className="space-y-3">
@@ -196,7 +223,7 @@ export const ImageUploader = ({
         <div className="mt-3 relative">
           <Label className="text-xs text-muted-foreground mb-1 block">
             {previewLabel || txt.preview}
-            {value.startsWith('/api/uploads/') && (
+            {isOptimized && (
               <span className="ml-2 inline-flex items-center gap-1 text-green-600">
                 <CheckCircle className="h-3 w-3" />
                 {txt.optimized}
@@ -207,23 +234,50 @@ export const ImageUploader = ({
             <img 
               src={getFullImageUrl(value)} 
               alt="Preview" 
-              className="max-h-40 object-contain rounded border bg-muted/50"
+              className="max-h-40 object-cover rounded border bg-muted/50"
               onError={(e) => {
                 e.target.style.display = 'none';
               }}
             />
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              className="absolute top-1 right-1 h-6 w-6 p-0"
-              onClick={handleRemoveImage}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="absolute top-1 right-1 flex gap-1">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={handleEditExisting}
+                title={txt.crop}
+              >
+                <Crop className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={handleRemoveImage}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Cropper Dialog */}
+      <ImageCropper
+        open={cropperOpen}
+        onClose={() => {
+          setCropperOpen(false);
+          if (imageToEdit && imageToEdit.startsWith('blob:')) {
+            URL.revokeObjectURL(imageToEdit);
+          }
+          setImageToEdit(null);
+        }}
+        imageSrc={imageToEdit}
+        onCropComplete={handleCropComplete}
+        aspectRatio={aspectRatio}
+      />
     </div>
   );
 };
