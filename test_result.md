@@ -297,6 +297,18 @@ frontend:
         agent: "testing"
         comment: "✅ TILES DISPLAY FEATURE FULLY WORKING! Comprehensive test completed successfully: 1) Login with admin/159357 ✅, 2) Navigate to Balia calculator ✅, 3) Options section displays correctly ✅, 4) Tiles display verified: Hydromasaż (3 tiles), System bąbelków powietrza (1 tile), Oświetlenie (5 tiles) all display as grid layout ✅, 5) Tile selection working with blue border and checkmark ✅, 6) Package icons for options without images ✅, 7) Images use object-contain styling (not cropped) ✅, 8) Pricing page navigation ✅, 9) Category admin panel accessible ✅, 10) Add option dialog with image upload fields (Zdjęcie, Nazwa RU/PL, Cena) ✅. All requirements from review request verified successfully."
 
+  - task: "Balia Calculator Hints/Tooltips Feature"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/CalculatorPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "✅ HINTS/TOOLTIPS FEATURE IMPLEMENTED! Info icons (ⓘ) with tooltips now display for all options with hints. Works in: 1) Tiles/Grid mode - blue info icon in top-left corner of tile ✅, 2) Dropdown mode - info icon next to select showing hint for selected option ✅, 3) Checkbox mode - info icon next to label ✅. All 44 options with hints from user's JSON data added to database. Tooltips display full Russian descriptions on hover."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
