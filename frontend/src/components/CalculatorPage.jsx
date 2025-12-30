@@ -30,7 +30,9 @@ const getImageUrl = (url) => {
 };
 
 // Simple image component like in SaunaCalculator - fast and reliable
-const SimpleImage = ({ src, alt, className }) => {
+const SimpleImage = ({ src, alt, className, fallback }) => {
+  const [error, setError] = React.useState(false);
+  
   const fullSrc = React.useMemo(() => {
     if (!src) return null;
     if (src.startsWith('http')) return src;
@@ -38,7 +40,9 @@ const SimpleImage = ({ src, alt, className }) => {
     return src;
   }, [src]);
 
-  if (!fullSrc) return null;
+  if (!fullSrc || error) {
+    return fallback || null;
+  }
 
   return (
     <img 
@@ -47,6 +51,7 @@ const SimpleImage = ({ src, alt, className }) => {
       className={className}
       loading="eager"
       decoding="async"
+      onError={() => setError(true)}
     />
   );
 };
