@@ -571,10 +571,6 @@ export const CalculatorPage = () => {
                               className="w-full h-20 rounded mb-2"
                               fallbackIcon={Package}
                             />
-                              <div className="w-full h-20 bg-gray-100 rounded mb-2 flex items-center justify-center">
-                                <Package className="h-8 w-8 text-gray-400" />
-                              </div>
-                            )}
                             <div className="text-xs font-medium text-center line-clamp-2">
                               {getOptionName(option)}
                             </div>
