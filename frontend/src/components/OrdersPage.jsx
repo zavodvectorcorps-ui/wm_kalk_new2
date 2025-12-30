@@ -96,12 +96,20 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
         { responseType: 'blob' }
       );
 
+      // Get filename from Content-Disposition header or use order ID
+      let filename = `${order.id || 'order'}.pdf`;
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename=(.+\.pdf)/);
+        if (match) {
+          filename = match[1];
+        }
+      }
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      const prefix = isSauna ? 'sauna' : 'order';
-      const orderId = order.id || 'unknown';
-      link.setAttribute('download', `${prefix}_${orderId}_${order.fullName}.pdf`);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
