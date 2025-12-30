@@ -414,6 +414,18 @@ frontend:
         agent: "testing"
         comment: "✅ BALIA DISCOUNT FEATURE TESTING COMPLETE! Comprehensive testing verified ALL requirements from review request: 1) Login with admin/159357 ✅, 2) Navigate to Balia calculator ✅, 3) Model selection (Balia 200cm - 1250€) ✅, 4) SUMA section visible on right side ✅, 5) Discount input field found with max 20% limit ✅, 6) 15% discount calculations working correctly: 'Przed rabatem: 1250.00€', 'Kwota rabatu: -187.50€', 'Oszczędzasz: 187.50€', Final total: 1062.50€ ✅, 7) Max limit enforcement: 25% input capped to 20% ✅, 8) Order save with discount successful ('Zamówienie zapisane!') ✅, 9) Order verification: 'Test Discount Customer' found in orders list ✅, 10) Discount badge 'Rabat: 15%' displayed correctly ✅. All specified requirements from review request verified and working perfectly."
 
+  - task: "Sauna Model Image Upload with Optimization"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/sauna-pricing/ImageUploader.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "✅ IMAGE UPLOAD FEATURE IMPLEMENTED FOR SAUNA MODELS! Created ImageUploader component with: 1) Two tabs: 'Prześlij plik' (Upload file) and 'Link URL' ✅, 2) Drag-and-drop zone for file uploads ✅, 3) Support for JPG, PNG, GIF, WebP (max 10MB) ✅, 4) Upload progress indicator ✅, 5) Automatic image optimization on backend (resize to 1200px max, compress to JPEG, quality 85) ✅, 6) Preview with 'Obraz zoptymalizowany' badge for uploaded files ✅, 7) Remove image button ✅, 8) Integrated into Add/Edit Model dialogs ✅. Screenshot verified: UI shows proper drag-drop zone with Polish text."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
