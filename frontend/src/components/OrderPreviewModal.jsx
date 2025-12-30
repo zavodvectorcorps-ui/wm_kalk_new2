@@ -37,6 +37,9 @@ export const OrderPreviewModal = ({
       orderNumber: 'Номер заказа',
       createdBy: 'Сотрудник',
       included: 'В комплекте',
+      promotion: 'Промоция',
+      promotionDiscount: 'Скидка',
+      promotionGift: 'Подарок',
     },
     pl: {
       orderDetails: 'Szczegóły zamówienia',
@@ -55,6 +58,9 @@ export const OrderPreviewModal = ({
       orderNumber: 'Numer zamówienia',
       createdBy: 'Pracownik',
       included: 'W zestawie',
+      promotion: 'Promocja',
+      promotionDiscount: 'Rabat',
+      promotionGift: 'Prezent',
     },
   };
   const txt = texts[lang === 'pl' ? 'pl' : 'ru'];
