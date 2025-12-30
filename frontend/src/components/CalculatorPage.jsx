@@ -262,6 +262,7 @@ export const CalculatorPage = () => {
         total: calculateTotal(),
         currency: prices.currency || 'EUR',
         createdAt: new Date().toISOString(),
+        createdBy: user?.username || '',
       };
 
       await axios.post(`${API_URL}/api/orders`, order);
