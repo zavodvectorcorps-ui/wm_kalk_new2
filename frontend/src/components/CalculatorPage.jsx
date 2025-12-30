@@ -16,6 +16,17 @@ import { v4 as uuidv4 } from 'uuid';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
+// Helper to get full image URL
+const getImageUrl = (url) => {
+  if (!url) return '';
+  // If it's already an absolute URL, return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // If it's a relative path, prepend the API URL
+  return `${API_URL}${url}`;
+};
+
 export const CalculatorPage = () => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
