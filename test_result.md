@@ -448,16 +448,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "POST /api/upload/image - Upload image file"
-    - "GET /api/uploads/{filename} - Serve uploaded file"
-    - "DELETE /api/upload/image/{filename} - Delete uploaded image"
-    - "GET /api/prices - Get Balia prices with models and categories"
-    - "POST /api/prices - Save Balia prices with image URLs"
-    - "BaliaPricingPage - Model editing with image upload"
-    - "BaliaPricingPage - Category editing with image upload"
-    - "BaliaPricingPage - Option editing with image upload"
-    - "CalculatorPage - Display model and category images"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
