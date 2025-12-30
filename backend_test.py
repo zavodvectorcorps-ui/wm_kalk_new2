@@ -281,6 +281,91 @@ def test_generate_pdf():
         print(f"❌ POST /api/generate-pdf error: {str(e)}")
         return False
 
+def test_balia_pdf_generation():
+    """Test POST /api/generate-pdf endpoint with specific Balia requirements"""
+    print("\n🔍 Testing Balia PDF Generation with specific requirements...")
+    print("=" * 60)
+    
+    try:
+        # Test request as specified in review request
+        pdf_request = {
+            "fullName": "Jan Kowalski",
+            "phoneNumber": "+48 123 456 789",
+            "fullAddress": "ul. Testowa 1, Warszawa",
+            "orderDate": "2024-12-30",
+            "modelId": "round_ext_200",
+            "modelName": "Купель 200см (внешний нагрев)",
+            "modelPrice": 1250,
+            "modelImageUrl": "https://order-sync-11.preview.emergentagent.com/api/uploads/27fa922f2f7a4d808e41d1a7eb18eb23.png",
+            "selectedOptions": [
+                {
+                    "categoryId": "hydromassage", 
+                    "optionId": "hydro_6_8", 
+                    "categoryName": "Гидромассаж", 
+                    "optionName": "Гидромассаж 1.1кВт (6-8 форсунок)", 
+                    "price": 300
+                },
+                {
+                    "categoryId": "lighting", 
+                    "optionId": "led_inside_2", 
+                    "categoryName": "Освещение", 
+                    "optionName": "LED внутри (2 шт)", 
+                    "price": 80
+                }
+            ],
+            "notes": "Test notes",
+            "total": 1630,
+            "currency": "EUR"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/generate-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ POST /api/generate-pdf successful")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                return False
+            
+            # Check filename format in Content-Disposition header
+            content_disposition = response.headers.get('content-disposition', '')
+            print(f"Content-Disposition: {content_disposition}")
+            
+            if 'WMB-' in content_disposition and '.pdf' in content_disposition:
+                print("✅ Filename format correct (WMB-DD-MM-YYYY-HHMMSS.pdf)")
+            else:
+                print(f"❌ Incorrect filename format: {content_disposition}")
+                return False
+            
+            # Check content length
+            content_length = len(response.content)
+            if content_length > 1000:  # PDF should be at least 1KB
+                print(f"✅ PDF size: {content_length} bytes")
+            else:
+                print(f"❌ PDF too small: {content_length} bytes")
+                return False
+            
+            # Save PDF for manual inspection if needed
+            pdf_filename = f"/tmp/test_balia_pdf_{datetime.now().strftime('%H%M%S')}.pdf"
+            with open(pdf_filename, 'wb') as f:
+                f.write(response.content)
+            print(f"✅ PDF saved to {pdf_filename} for inspection")
+            
+            return True
+        else:
+            print(f"❌ POST /api/generate-pdf failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Balia PDF generation test error: {str(e)}")
+        return False
+
 def test_category_order_functionality():
     """Test category ordering functionality"""
     print("\n🔍 Testing Category Order Functionality...")
