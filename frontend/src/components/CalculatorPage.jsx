@@ -374,7 +374,7 @@ export const CalculatorPage = () => {
                   <div
                     key={model.id}
                     onClick={() => handleModelSelect(model.id)}
-                    className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    className={`relative p-3 border-2 rounded-lg cursor-pointer transition-all ${
                       formData.selectedModel === model.id
                         ? 'border-blue-500 bg-blue-50 shadow-md'
                         : 'border-gray-200 hover:border-blue-300'
