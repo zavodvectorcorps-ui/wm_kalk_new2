@@ -404,7 +404,7 @@ export const CalculatorPage = () => {
         {/* Left Column - Customer & Model */}
         <div className="lg:col-span-2 space-y-6">
           {/* Customer Info */}
-          <CustomerInfoForm formData={formData} setFormData={setFormData} />
+          <DynamicCustomerForm calculatorType="balia" formData={formData} setFormData={setFormData} />
 
           {/* Model Selection */}
           <Card>
