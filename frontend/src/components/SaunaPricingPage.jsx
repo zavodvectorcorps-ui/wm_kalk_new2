@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Save, Loader2, Flame, Eye } from 'lucide-react';
+import { Save, Loader2, Flame, Eye, User } from 'lucide-react';
+import { CustomerFieldsManager } from './CustomerFieldsManager';
 
 import { 
   useSaunaPricing, 
@@ -13,6 +15,8 @@ import {
 
 export const SaunaPricingPage = () => {
   const { canEdit } = useAuth();
+  const { i18n } = useTranslation();
+  const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   
   const {
     loading,
