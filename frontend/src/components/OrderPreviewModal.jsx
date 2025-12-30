@@ -125,13 +125,28 @@ export const OrderPreviewModal = ({
                 <p className="text-sm text-muted-foreground">{txt.orderDate}</p>
                 <p className="font-medium">{formatDate(order.orderDate)}</p>
               </div>
-              {order.discountPercent > 0 && (
+              {/* Promotion badge for Sauna - show discount or gift based on discountPercent */}
+              {isSauna && (
+                order.discountPercent > 0 ? (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                    <Percent className="h-3 w-3 mr-1" />
+                    {txt.promotionDiscount} {order.discountPercent}%
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-red-100 text-red-700">
+                    <Gift className="h-3 w-3 mr-1" />
+                    {txt.promotionGift}
+                  </Badge>
+                )
+              )}
+              {/* Promotion badges for Balia - original logic */}
+              {!isSauna && order.discountPercent > 0 && (
                 <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                   <Percent className="h-3 w-3 mr-1" />
                   {txt.discount} {order.discountPercent}%
                 </Badge>
               )}
-              {order.giftDescription && (
+              {!isSauna && order.giftDescription && (
                 <Badge variant="secondary" className="bg-red-100 text-red-700">
                   <Gift className="h-3 w-3 mr-1" />
                   {txt.gift}
