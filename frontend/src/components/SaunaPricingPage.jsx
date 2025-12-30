@@ -85,10 +85,14 @@ export const SaunaPricingPage = () => {
       </div>
 
       <Tabs defaultValue="models" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="models">{txt.models}</TabsTrigger>
           <TabsTrigger value="categories">{txt.categories}</TabsTrigger>
           <TabsTrigger value="options">{txt.options}</TabsTrigger>
+          <TabsTrigger value="customer" className="gap-1">
+            <User className="h-3 w-3" />
+            {lang === 'ru' ? 'Клиент' : 'Klient'}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="models">
@@ -127,6 +131,10 @@ export const SaunaPricingPage = () => {
             handleUpdateOptionPrice={handleUpdateOptionPrice}
             handleToggleOptionQuantity={handleToggleOptionQuantity}
           />
+        </TabsContent>
+
+        <TabsContent value="customer">
+          <CustomerFieldsManager calculatorType="sauna" />
         </TabsContent>
       </Tabs>
     </div>
