@@ -380,6 +380,19 @@ export const CalculatorPage = () => {
                         : 'border-gray-200 hover:border-blue-300'
                     }`}
                   >
+                    {/* Info icon for model hint */}
+                    {model.hint && (
+                      <Tooltip>
+                        <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <div className="absolute top-2 left-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full p-1 z-10 cursor-help shadow-sm">
+                            <Info className="h-4 w-4" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
+                          {model.hint}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                     {model.imageUrl && (
                       <img 
                         src={getImageUrl(model.imageUrl)} 
@@ -410,6 +423,13 @@ export const CalculatorPage = () => {
               {/* Model Specs */}
               {selectedModel && (
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  {/* Model hint as text block */}
+                  {selectedModel.hint && (
+                    <div className="flex items-start gap-2 mb-3 p-2 bg-white rounded-md border border-blue-100">
+                      <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-gray-600 leading-relaxed">{selectedModel.hint}</p>
+                    </div>
+                  )}
                   <h4 className="font-semibold text-blue-800 mb-2">{t('balia.modelInfo')}</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                     {selectedModel.specs?.outerDiameter && (
