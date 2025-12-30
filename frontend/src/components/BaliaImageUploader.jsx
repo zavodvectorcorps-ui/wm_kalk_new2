@@ -16,7 +16,7 @@ export const BaliaImageUploader = ({
   previewLabel,
   urlPlaceholder = "https://example.com/image.jpg",
   compact = false,
-  aspectRatio = 4 / 3
+  aspectRatio = 4 / 3  // Default 4:3 for Balia models
 }) => {
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState(value?.includes('/api/uploads/') ? 'upload' : 'url');
