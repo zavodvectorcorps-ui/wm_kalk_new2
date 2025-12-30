@@ -566,25 +566,20 @@ export const CalculatorPage = () => {
                                 <span className="flex items-center gap-1">
                                   {getOptionName(option)}
                                   {option.price > 0 && ` (+${option.price} ${prices.currencySymbol})`}
-                                  {option.hint && <Info className="h-3 w-3 text-gray-400 ml-1" />}
                                 </span>
                               </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      {/* Show hint for selected dropdown option */}
+                      {/* Show hint text above dropdown for selected option */}
                       {(() => {
                         const selectedOpt = category.options?.find(o => o.id === formData.selections[category.id]);
                         return selectedOpt?.hint ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
-                              {selectedOpt.hint}
-                            </TooltipContent>
-                          </Tooltip>
+                          <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                            <Info className="h-3.5 w-3.5 inline-block mr-1 text-blue-500" />
+                            {selectedOpt.hint}
+                          </p>
                         ) : null;
                       })()}
                     </div>
