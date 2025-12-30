@@ -249,7 +249,7 @@ export const CalculatorPage = () => {
     }));
   };
 
-  const handleSaveOrder = async () => {
+  const handleSaveOrderAndGeneratePdf = async () => {
     if (!formData.fullName || !formData.selectedModel) {
       toast.error(t('balia.fillRequired'));
       return;
@@ -257,6 +257,7 @@ export const CalculatorPage = () => {
     
     setSaving(true);
     try {
+      // Prepare selected options
       const selectedOptions = [];
       prices.categories?.forEach(cat => {
         const selection = formData.selections[cat.id];
@@ -289,8 +290,12 @@ export const CalculatorPage = () => {
         }
       });
 
+      // Generate order ID in format WMB-DD-MM-YYYY-HHMMSS
+      const now = new Date();
+      const orderId = `WMB-${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+
       const order = {
-        id: uuidv4(),
+        id: orderId,
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
         fullAddress: formData.fullAddress,
@@ -309,57 +314,13 @@ export const CalculatorPage = () => {
         createdBy: user?.username || '',
       };
 
+      // Step 1: Save the order
       await axios.post(`${API_URL}/api/orders`, order);
       toast.success(t('balia.saved'));
-    } catch (error) {
-      console.error('Error saving order:', error);
-      toast.error(t('balia.error'));
-    } finally {
-      setSaving(false);
-    }
-  };
 
-  const handleGeneratePdf = async () => {
-    if (!formData.fullName || !formData.selectedModel) {
-      toast.error(t('balia.fillRequired'));
-      return;
-    }
-    
-    setSaving(true);
-    try {
-      const selectedOptions = [];
-      prices.categories?.forEach(cat => {
-        const selection = formData.selections[cat.id];
-        if (cat.inputType === 'checkbox') {
-          Object.entries(selection || {}).forEach(([optId, isSelected]) => {
-            if (isSelected) {
-              const opt = cat.options?.find(o => o.id === optId);
-              if (opt) {
-                selectedOptions.push({
-                  categoryId: cat.id,
-                  categoryName: getCategoryName(cat),
-                  optionId: opt.id,
-                  optionName: getOptionName(opt),
-                  price: opt.price
-                });
-              }
-            }
-          });
-        } else if (selection) {
-          const opt = cat.options?.find(o => o.id === selection);
-          if (opt && opt.price > 0) {
-            selectedOptions.push({
-              categoryId: cat.id,
-              categoryName: getCategoryName(cat),
-              optionId: opt.id,
-              optionName: getOptionName(opt),
-              price: opt.price
-            });
-          }
-        }
-      });
-
+      // Step 2: Generate PDF with the same order ID
       const pdfRequest = {
+        orderId: orderId,  // Pass order ID for filename
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
         fullAddress: formData.fullAddress,
@@ -383,15 +344,8 @@ export const CalculatorPage = () => {
         responseType: 'blob'
       });
       
-      // Get filename from Content-Disposition header (order number from backend)
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = 'oferta.pdf';
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename=(.+\.pdf)/);
-        if (match) {
-          filename = match[1];
-        }
-      }
+      // Use order ID as filename
+      const filename = `${orderId}.pdf`;
       
       // Download the PDF
       const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -406,7 +360,7 @@ export const CalculatorPage = () => {
       
       toast.success(t('balia.pdfGenerated') || 'PDF created!');
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('Error:', error);
       toast.error(t('balia.error'));
     } finally {
       setSaving(false);
