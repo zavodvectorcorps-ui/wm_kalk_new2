@@ -565,14 +565,12 @@ export const CalculatorPage = () => {
                                 </TooltipContent>
                               </Tooltip>
                             )}
-                            {option.imageUrl ? (
-                              <img 
-                                src={getImageUrl(option.imageUrl)} 
-                                alt={getOptionName(option)}
-                                className="w-full h-20 object-contain rounded mb-2 bg-gray-50"
-                                onError={(e) => e.target.style.display = 'none'}
-                              />
-                            ) : (
+                            <OptimizedImage 
+                              src={getImageUrl(option.imageUrl)} 
+                              alt={getOptionName(option)}
+                              className="w-full h-20 rounded mb-2"
+                              fallbackIcon={Package}
+                            />
                               <div className="w-full h-20 bg-gray-100 rounded mb-2 flex items-center justify-center">
                                 <Package className="h-8 w-8 text-gray-400" />
                               </div>
