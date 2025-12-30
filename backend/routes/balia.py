@@ -145,28 +145,28 @@ async def generate_pdf(request: PDFRequest):
     model_image_url = getattr(request, 'modelImageUrl', None)
     if model_image_url:
         try:
-            # Download image from URL
-            if model_image_url.startswith('http'):
-                img_data = urllib.request.urlopen(model_image_url, timeout=10).read()
-            else:
-                # Local file - try multiple path formats
-                img_path = model_image_url
-                if '/api/uploads/' in model_image_url:
-                    img_path = model_image_url.replace('/api/uploads/', '/app/backend/uploads/')
-                elif model_image_url.startswith('/uploads/'):
-                    img_path = model_image_url.replace('/uploads/', '/app/backend/uploads/')
-                
-                if os.path.exists(img_path):
-                    with open(img_path, 'rb') as f:
+            img_data = None
+            
+            # Extract filename from URL (works for both external and relative URLs)
+            if '/api/uploads/' in model_image_url:
+                filename = model_image_url.split('/api/uploads/')[-1]
+                local_path = f'/app/backend/uploads/{filename}'
+                if os.path.exists(local_path):
+                    with open(local_path, 'rb') as f:
                         img_data = f.read()
-                else:
-                    img_data = None
-                    logger.warning(f"Model image not found at: {img_path}")
+                    logger.info(f"Loaded model image from local file: {local_path}")
+            
+            # Fallback to HTTP download if local file not found
+            if not img_data and model_image_url.startswith('http'):
+                try:
+                    img_data = urllib.request.urlopen(model_image_url, timeout=5).read()
+                    logger.info(f"Downloaded model image from URL: {model_image_url}")
+                except Exception as e:
+                    logger.warning(f"Could not download image from URL: {e}")
             
             if img_data:
                 img_buffer = io.BytesIO(img_data)
                 model_img = RLImage(img_buffer, width=150, height=100)
-                logger.info(f"Model image loaded successfully from: {model_image_url}")
         except Exception as e:
             logger.warning(f"Could not load model image: {e}")
     
