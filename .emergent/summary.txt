@@ -1,95 +1,60 @@
 <analysis>**original_problem_statement:**
 The user's initial problem statement from the previous session was to fix bugs and add features to their WM Kalkulator application.
 
-During this session, the user made the following requests:
-1.  **Feature Completion**: Finish adding image support to the Balia (Hottub) calculator.
-2.  **New Feature**: Implement a way for the admin to upload images for Balia models and options.
-3.  **New Feature**: Add localization (Russian/Polish) to the new Balia calculator and its admin page.
-4.  **Verification**: Confirm that the  mapping from the Sauna calculator to the Tech Spec modal works correctly for new orders.
-5.  **New Feature**: Add a tiles view for displaying options in the Balia calculator, similar to how benches are displayed in the Sauna's tech spec.
-6.  **Bug Fix**: Fix an issue where images for Balia options were not being saved.
-7.  **UI/UX Improvement**: Ensure that all images (models and options) are not cropped and display their full aspect ratio ().
-8.  **Bug Fix**: Fix an issue where customer data (name, phone, address) could not be entered into the input fields in the Balia calculator.
-9.  **Bug Fix**: Resolve a 422 Unprocessable Content error that occurred when trying to save a new order from the Balia calculator.
-10. **Bug Fix**: Fix an error that occurred when trying to generate a PDF from the Balia calculator.
-11. **Feature Improvement**: Redesign the Balia PDF to be more professional, always generate in Polish, and include a photo of the selected model.
-12. **New Feature**: Add informational tooltips (hints) for each option in the Balia calculator.
+During the current session, the user made a series of requests to enhance the application, focusing on the Balia (hottub) calculator's functionality, performance, and admin capabilities. The key requests included:
+1.  **Feature**: Implement hints (tooltips) for Balia models and options.
+2.  **UI/UX**: Change the display of hints for dropdown options from a hover tooltip to a static text block.
+3.  **Bug Fix & Feature**: Overhaul the PDF generation for Balia orders to fix bugs (missing image, wrong filename) and improve design (new text-based logo, correct aspect ratio, Polish language enforcement, updated contact info).
+4.  **Bug Fix**: Resolve issues where images and hints were missing on the production environment due to data inconsistencies between the local and production databases.
+5.  **Performance**: Optimize large images that were causing slow load times by implementing server-side compression on upload and client-side lazy loading.
+6.  **Feature**: Create a system for an administrator to dynamically add, edit, and manage customer data fields (e.g., name, phone, address) and their validation rules () from the admin panel for both Sauna and Balia calculators.
+7.  **Feature**: Add a modal window on the Orders page to allow for a quick preview of order details without downloading a PDF.
+8.  **Bug Fix**: Unify the order number format for Balia orders to match the format used in PDF filenames ().
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a full-stack React/FastAPI/MongoDB solution for calculating and managing orders for Saunas and Balias (hottubs).
+The WM Kalkulator is a full-stack React/FastAPI/MongoDB application for configuring and ordering Saunas and Balias (hottubs).
 
-In this session, the Balia calculator functionality was massively expanded:
--   **Image Upload System**: A complete backend system for uploading, serving, and deleting images has been created () and wired up.
--   **New Balia Admin Panel**: A dedicated, fully-featured admin page () was built from scratch. It allows managing Balia models, categories, and options, including uploading images for each and setting display types for categories.
--   **Enhanced Balia Calculator**: The main calculator () now displays images for models and categories. It also supports a tiles display mode for options, making the interface more visual and interactive.
--   **Full Localization**: The entire Balia calculator flow, including the new admin panel, is now fully integrated with  and supports both Russian and Polish.
--   **Robust PDF Generation**: The Balia calculator now generates a beautifully designed, professional PDF offer (always in Polish) that includes the selected model's image, customer details, and a full breakdown of selected options.
--   **Bug Fixes**: Critical bugs related to customer data input and order saving have been resolved, making the Balia calculator fully operational.
+This session introduced several major features and fixes:
+-   **Dynamic Customer Forms**: A new system allows admins to configure customer data fields via the UI ( and ). The calculators now dynamically render these forms based on the saved configuration.
+-   **Image Optimization**: A robust image optimization pipeline is in place. All new image uploads are automatically compressed, resized, and converted to the efficient WebP format. The frontend uses lazy loading to improve performance. A one-time script was also created to optimize all previously uploaded images.
+-   **Order Preview Modal**: The Orders page now features an eye icon next to each order, which opens a modal window displaying a clean, read-only summary of the order details.
+-   **Enhanced Hints System**: The Balia calculator now displays informative hints for both models and options. The UI for these hints has been refined to be more user-friendly, especially for dropdown selectors.
+-   **Improved PDF Generation**: The Balia PDF has been redesigned to be more professional, with a text-based header, correct image handling, and consistent Polish language content.
+-   **Data Sync Solution**: A data migration mechanism has been implemented on the backend. It automatically updates the production database with new data fields (like ) from default configuration files upon application startup, ensuring consistency between code and data.
+-   **Consistent Order Numbering**: All new Balia orders are now saved with a formatted ID (e.g., ), which matches the format used for PDF filenames.
 
 **Last working item**:
--   **Last item agent was working**: Adding informational tooltips (hints) to the options in the Balia calculator. The agent has already updated the backend Pydantic model to include a  field and was in the process of updating the default data in  and implementing the frontend display in .
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: screenshot tool
+-   **Last item agent was working**: The agent just finished unifying the order number format for Balia orders, ensuring that the ID stored in the database matches the format used in the generated PDF ().
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: Y
+-   **Which testing method agent to use?**: manual testing by curl/python -c (to create a new order and verify its ID format) followed by the screenshot tool (to confirm the new ID format appears on the orders page).
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Finish implementing hints (tooltips) in Balia calculator (P0)**
--   **Issue 2: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
-
-**Issues Detail:**
--   **Issue 1: Finish implementing hints (tooltips) in Balia calculator (P0)**
-    -   **Attempted fixes**:
-        -   The Pydantic model  in  was updated with .
-        -   The agent started updating the data in  with the user-provided hints.
-    -   **Next debug checklist**:
-        1.  Complete the update of  with all hints.
-        2.  Modify .
-        3.  Wrap the option labels (for both dropdown and tile views) with a  component from .
-        4.  Use the  field from the option data as the content for the .
-        5.  Add a small info icon next to the option name to indicate a hint is available.
-        6.  Use the screenshot tool to verify the tooltips appear correctly on hover.
-    -   **Why fix this issue and what will be achieved with the fix?**: This will provide users with helpful descriptions for each option, improving clarity and user experience.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: None.
-
--   **Issue 2: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
-    -   **Description**: An old, low-priority issue from a previous session. It's possible the complete rewrite of the Balia calculator has fixed this, but it's worth a quick check.
-    -   **Next debug checklist**: Inspect dropdowns in .
-    -   **Why fix this issue and what will be achieved with this?**: Minor UI polish.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: None.
+-   None. All user requests from this session have been addressed.
 
 **In progress Task List**:
 -   None.
 
 **Upcoming and Future Tasks**
 -   **Future Tasks**:
-    -   **Refactor  (P2)**: This large component could be broken down into smaller components for better maintainability.
+    -   **Refactor  (P2)**: This large component could be broken down into smaller, more manageable components to improve maintainability.
 
 **Completed work in this session**
--   **Feature**: Implemented image display for models and categories in the Balia Calculator.
--   **Feature**: Created a full file upload system (backend and frontend) for images.
--   **Feature**: Built a new, dedicated admin page () for managing the Balia calculator's content (models, categories, options, images).
--   **Feature**: Added full localization (RU/PL) to the Balia calculator and its new admin page.
--   **Feature**: Implemented a tiles display mode for Balia calculator options.
--   **Feature**: Designed and implemented a new, professional, image-inclusive PDF generation for Balia orders, which is always in Polish.
--   **Verification**: Confirmed the  mapping for the Sauna calculator is working correctly end-to-end via UI testing.
--   **Bug Fix**: Corrected the saving mechanism for Balia option images by adding  to the backend model.
--   **UI Fix**: Ensured all calculator images use  to prevent cropping.
--   **Bug Fix**: Fixed a bug that prevented data entry in the customer information form.
--   **Bug Fix**: Resolved a 422 error on saving Balia orders by updating the  Pydantic model.
+-   **Feature**: Implemented a dynamic customer field manager in the admin panel for both Balia and Sauna calculators.
+-   **Feature**: Implemented an order preview modal on the Orders page.
+-   **Performance**: Implemented a full image optimization pipeline (backend compression/conversion to WebP) and frontend lazy loading.
+-   **Feature**: Added hints (tooltips/info blocks) for both models and options in the Balia calculator.
+-   **Feature/BugFix**: Completely overhauled the Balia PDF generation logic, fixing filename, image, translation, and design issues.
+-   **Bug Fix**: Resolved production crashes and data discrepancies by implementing a backend data migration step and adding defensive frontend coding.
+-   **Feature/BugFix**: Unified the Balia order ID format to  for consistency.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Minor Dropdown Positioning Glitch**
-    -   **Debug checklist**: Inspect the styling of  components in .
-    -   **Why to solve this issue and what will be achieved with this?**: Minor UI polish.
+-   **Issue 1: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
+    -   **Debug checklist**: A low-priority visual issue where dropdown menus might not be perfectly positioned. Can be inspected in . It's possible extensive UI changes have already resolved this.
+    -   **Why to solve this issue and what will be achieved with this?**: Minor UI polish for a better user experience.
     -   **Should Test frontend/backend/both after fix**: frontend
     -   **Is recurring issue?**: N
 
@@ -100,79 +65,72 @@ In this session, the Balia calculator functionality was massively expanded:
 
 
 **Key Technical Concepts**
--   **File Uploads**: Implemented a robust file upload system using FastAPI's , storing files locally, and serving them via a static route. Includes validation for file type and size.
--   **Dynamic UI Rendering**: The Balia calculator now uses a  field ( or ) from the category data to dynamically render options as either selectable tiles with images or a standard dropdown list.
--   **Localization ()**: The  hook was implemented across the  and the new  to provide a seamless multilingual (RU/PL) experience.
--   **Advanced PDF Generation ()**: The PDF generation was completely rewritten to create a multi-page, professionally designed document including a logo, a large image of the selected product, styled tables for options, and consistent branding. It fetches the image via its URL for inclusion.
--   **State Management**: Complex state for the new admin panel () is managed with , handling nested arrays of models, categories, and options.
+-   **Image Optimization**: Using the  library on the backend to resize, compress, and convert images to the WebP format upon upload, significantly reducing file sizes.
+-   **Lazy Loading**: Implemented a custom  React component that shows a placeholder/spinner and only loads the actual image when it enters the viewport, improving initial page load time.
+-   **Dynamic Form Generation**: The customer information form is no longer static. It fetches its field configuration (labels, types,  status) from a new  endpoint and renders inputs dynamically.
+-   **Data Migration on Startup**: The  endpoint now includes logic to merge missing fields (like ) from  into the existing MongoDB document. This ensures new features work on existing deployments without manual database intervention.
 
 **key DB schema**
--   ****: The schema was significantly updated.
-    -   The  array in the main document now has a  ( or ).
-    -   The  within each category now have  and .
--   ****: Documents with  now have a new structure, including , , , and .
+-   ****: The  document within this collection was updated:  array items now have an optional , and  fields were updated to use relative paths.
+-   ** (New Collection)**: Stores configurations for dynamic customer forms. Schema: .
+-   ** / **: The uid=0(root) gid=0(root) groups=0(root) field for new Balia orders is now a formatted string .
 
 **changes in tech stack**
--   None.
+-   **Pillow**: This Python library was added to the backend () to handle image processing.
 
 **All files of reference**
--   **/app/frontend/src/components/BaliaPricingPage.jsx**: **New file.** A complete admin solution for the Balia calculator.
--   **/app/backend/routes/upload.py**: **New file.** The core of the new image upload functionality.
--   **/app/frontend/src/components/CalculatorPage.jsx**: Heavily modified to add localization, image display, tile view, PDF generation, and bug fixes.
--   **/app/backend/routes/balia.py**: Heavily modified to support the new data structure for saving orders and to completely overhaul the PDF generation logic.
--   **/app/backend/models/balia.py**: All Pydantic models were rewritten to match the new, more flexible data structure for prices, orders, and PDF requests.
--   **/app/frontend/src/components/CustomerInfoForm.jsx**: Modified to fix the data input bug.
--   **/app/backend/server.py**: Modified to include the new  router and configure the  static directory.
--   **/app/frontend/src/i18n/locales/pl.json**: Updated with extensive translations for the Balia calculator and admin.
--   **/app/frontend/src/i18n/locales/ru.json**: Updated with extensive translations for the Balia calculator and admin.
+-   **/app/backend/routes/upload.py**: Core of the new image optimization feature.
+-   **/app/frontend/src/components/CalculatorPage.jsx**: Heavily modified for lazy loading, hints, and dynamic forms.
+-   **/app/backend/routes/balia.py**: Heavily modified for improved PDF generation and the new data migration logic.
+-   **/app/frontend/src/components/CustomerFieldsManager.jsx**: New UI for the custom fields feature.
+-   **/app/frontend/src/components/CustomerInfoForm.jsx**: Completely rewritten to be dynamic.
+-   **/app/frontend/src/components/OrderPreviewModal.jsx**: New UI for the order preview feature.
+-   **/app/frontend/src/components/OrdersPage.jsx**: Modified to integrate the new preview functionality.
 
 **Areas that need refactoring**:
--    is still a large monolithic component.
+-    is still a large, monolithic component that could benefit from being broken down into smaller pieces.
 
 **key api endpoints**
--   : **New.** Uploads an image file, returns a URL.
--   : **New.** Serves a previously uploaded static image.
--   : Endpoint logic was fixed to use the correct Pydantic model for validation.
--   : Endpoint logic was completely rewritten to generate a new, professionally designed PDF with an image.
--   : Endpoint logic was updated to save the new data structure, including  and .
+-   : **New.** Fetches the dynamic field configuration for the customer form.
+-   : **New.** Updates the customer form field configuration.
+-   : **Modified.** Now automatically optimizes uploaded images.
+-   : **Modified.** Order creation logic now generates a formatted ID ().
+-   : **Modified.** Now includes logic to migrate/update existing data in the database from default files.
 
 **Critical Info for New Agent**
 -   **You must communicate with the user in Russian.**
--   Your immediate task is to finish implementing the hints (tooltips) feature for options in the Balia calculator. This involves modifying  to use a  component.
--   The Balia calculator now has its own full-featured admin panel at  (), which is separate from the old pricing page.
--   All image uploads are handled by the new  endpoint. Uploaded images are served from .
--   The PDF generation for Balia is new, robust, and produces a high-quality document. It is triggered from the  UI and processed in .
+-   A major performance optimization for images has been implemented. New uploads are automatically compressed and converted to WebP. The frontend uses lazy loading. For existing deployments, a script at  can be run to optimize all images in the  directory.
+-   A key new feature is the dynamic customer form manager. The configuration is handled in the admin panel ( & ) under the Dane Klienta tab. The main calculators now render this form based on the API response.
+-   Data consistency between code updates and existing database documents is now handled by a migration logic in the  endpoint. If you add new data fields to , they will be automatically added to the production DB document on app startup.
 
 **documents and test reports created in this job**
--   
--   
--   
--   
+-   : A Python script to optimize all existing images in the uploads folder.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Request to add hints (tooltips) for Balia options, providing the hint text data. (Status: **In Progress**)
-2.  **User**: Request to make the Balia PDF design beautiful, always in Polish, and include a photo of the selected model. (Status: **Completed**)
-3.  **User**: Reports an error when generating a PDF from the Balia calculator. (Status: **Completed**)
-4.  **User**: Reports a 422 error when saving a Balia order. (Status: **Completed**)
-5.  **User**: Reports that input fields for customer info are not working in the Balia calculator. (Status: **Completed**)
-6.  **User**: Request to add a tiles display for Balia options, fix image saving, and prevent images from being cropped. (Status: **Completed**)
-7.  **User**: Request to add localization to the Balia calculator. (Status: **Completed**)
-8.  **User**: Request to verify the  mapping. (Status: **Completed**)
-9.  **Agent**: Asks user to verify the completed localization feature. (Status: **Completed by User**)
-10. **User**: Confirms the plan to finish adding images and add an upload functionality. (Status: **Completed**)
+1.  **User**: Requests that the order number on the orders page match the PDF filename for consistency. (Status: **Completed**)
+2.  **User**: Requests a modal window in the Orders section to preview an order by clicking an eye icon, for both Saunas and Balias. (Status: **Completed**)
+3.  **User**: Asks for a feature to manage the customer data fields from the admin panel, including adding/editing fields and setting them as required. (Status: **Completed**)
+4.  **User**: Reports that after uploading images, they load very slowly and inconsistently on their hosting environment, and asks for optimization. (Status: **Completed**)
+5.  **User**: Reports that on production, images and model hints are missing. (Status: **Completed**)
+6.  **User**: Reports that after deploying, the Balia calculator shows a white screen and console errors related to CORS and . (Status: **Completed**)
+7.  **User**: Provides hint text for all Balia models and asks for them to be implemented in the UI. (Status: **Completed**)
+8.  **User**: Requests to remove the image logo from the PDF and replace it with styled text, and to fix the model image being stretched. (Status: **Completed**)
+9.  **User**: Reports three issues after a deploy: 1) images have disappeared from the calculator, 2) the PDF filename is not using the order number, and 3) the model's image is missing from the PDF. (Status: **Completed**)
+10. **User**: Requests that hints for dropdown options be displayed as a static text block instead of a hover-activated tooltip. (Status: **Completed**)
 
 **Project Health Check:**
--   **Working**: The application is fully functional. All major features requested are complete and tested.
--   **Broken**: No core functionality is broken.
--   **Mocked/Incomplete**: The hints (tooltips) feature is partially implemented and needs the frontend work to be completed.
+-   **Working**: The application is fully functional locally. All recent user requests and reported bugs have been addressed and implemented.
+-   **Broken**: No known broken functionality.
+-   **Mocked/Incomplete**: None.
 
 **3rd Party Integrations**
 -   None.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. The agent used both backend and frontend testing agents to verify the image upload, localization, and UI features, with successful results.
+-   **Testing agent used after significant changes**: YES, for verifying the hints feature.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**: None.
+-   **Test files created**:
+    -    (utility script, not a test file)
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
@@ -180,4 +138,4 @@ In this session, the Balia calculator functionality was massively expanded:
 -   **Observer**:  / 
 
 **What agent forgot to execute**
--   The agent was in the middle of implementing the hints feature when the session ended. The work needs to be picked up and completed.</analysis>
+-   The low-priority UI glitch, Minor Dropdown Positioning Glitch, mentioned in the initial handoff summary was not addressed during this session. All user requests from the current session were completed.</analysis>
