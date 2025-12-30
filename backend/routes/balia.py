@@ -45,6 +45,24 @@ async def get_prices():
     if not isinstance(prices.get('categories'), list):
         prices['categories'] = default_balia_prices.get('categories', [])
     
+    # Merge hints from defaults if missing in DB data
+    default_model_hints = {m['id']: m.get('hint', '') for m in default_balia_prices.get('models', [])}
+    default_option_hints = {}
+    for cat in default_balia_prices.get('categories', []):
+        for opt in cat.get('options', []):
+            default_option_hints[opt['id']] = opt.get('hint', '')
+    
+    # Add hints to models if missing
+    for model in prices.get('models', []):
+        if not model.get('hint') and model.get('id') in default_model_hints:
+            model['hint'] = default_model_hints[model['id']]
+    
+    # Add hints to options if missing
+    for category in prices.get('categories', []):
+        for option in category.get('options', []):
+            if not option.get('hint') and option.get('id') in default_option_hints:
+                option['hint'] = default_option_hints[option['id']]
+    
     # Ensure currency fields exist
     prices.setdefault('currency', 'EUR')
     prices.setdefault('currencySymbol', '€')
