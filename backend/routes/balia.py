@@ -156,8 +156,11 @@ async def generate_pdf(request: PDFRequest):
     current_date = datetime.now().strftime('%d.%m.%Y')
     valid_until = (datetime.now() + timedelta(days=30)).strftime('%d.%m.%Y')
     
-    # Generate offer number for filename
-    offer_number = f"WMB-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
+    # Use orderId if provided, otherwise generate new number
+    if request.orderId and request.orderId.startswith('WMB-'):
+        offer_number = request.orderId
+    else:
+        offer_number = f"WMB-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
     currency = request.currency or 'EUR'
     
     # Load model image if provided - preserve aspect ratio
