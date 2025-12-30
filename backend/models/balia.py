@@ -167,6 +167,8 @@ class PDFRequest(BaseModel):
     selections: Optional[Dict[str, Any]] = {}
     selectedOptions: Optional[List[Dict[str, Any]]] = []
     currency: Optional[str] = "EUR"
+    discountPercent: Optional[float] = 0.0
+    subtotal: Optional[float] = 0.0
     # Legacy fields
     shellModel: Optional[str] = None
     woodType: Optional[str] = None
