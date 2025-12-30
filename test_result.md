@@ -360,6 +360,18 @@ frontend:
         agent: "testing"
         comment: "✅ HINTS/TOOLTIPS FEATURE VERIFIED! Comprehensive testing completed successfully: 1) Login with admin/159357 ✅, 2) Navigate to Balia calculator ✅, 3) Found 11 info icons in tiles with blue circles in top-left corner ✅, 4) Tooltip appears on hover with Russian text: 'Гидромассаж 1.1 kW с 6–8 форсунками высокого давления...' ✅, 5) Found 8 dropdown categories ✅, 6) Selected dropdown option with price ✅, 7) Info icon appears next to dropdown for selected option with hint ✅. Minor: 'Bez hydromasażu' unexpectedly has info icon (should be empty hint). Core functionality working correctly as specified in review request."
 
+  - task: "Customer Fields Management - Balia Admin Page"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/CustomerFieldsManager.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ CUSTOMER FIELDS MANAGEMENT FEATURE FULLY WORKING! Comprehensive test completed successfully: 1) Login with admin/159357 ✅, 2) Navigate to Balia calculator ✅, 3) Access Cennik (pricing) tab ✅, 4) Click 'Dane klienta' (Customer Data) tab - 3rd tab ✅, 5) CustomerFieldsManager component loads with title 'Pola danych klienta' ✅, 6) Default fields displayed: Full Name (Imię i nazwisko) ✅, 7) 'Dodaj pole' (Add field) button working ✅, 8) 'Zapisz wszystko' (Save all) button working ✅, 9) Add field dialog opens correctly ✅, 10) Successfully added new email field with ID 'test_email', type Email, names in EN/PL/RU ✅, 11) Field appears in list after saving ✅, 12) Required/Active checkboxes working (3 each) ✅, 13) Reordering arrows working (3 up, 3 down) ✅, 14) Edit functionality available (pencil icons) ✅. All expected functionality from review request verified and working perfectly."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
