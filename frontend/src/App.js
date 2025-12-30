@@ -219,6 +219,8 @@ const AppContent = () => {
           <UserManagement />
         ) : activeTab === 'orders' ? (
           <OrdersPage calculatorType="sauna" />
+        ) : activeTab === 'statistics' ? (
+          <StatisticsPage calculatorType="sauna" />
         ) : activeTab === 'pricing' && canViewPricing() ? (
           <SaunaPricingPage />
         ) : activeTab === 'techspec' && canViewPricing() ? (
