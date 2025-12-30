@@ -329,6 +329,7 @@ export const CalculatorPage = () => {
   }
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="container mx-auto px-4 py-6 max-w-7xl">
       <h1 className="text-2xl font-bold text-blue-800 mb-6 flex items-center gap-2">
         <Droplets className="h-6 w-6" />
