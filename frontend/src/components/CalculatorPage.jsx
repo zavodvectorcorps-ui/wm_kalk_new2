@@ -101,18 +101,24 @@ export const CalculatorPage = () => {
       
       setPrices(safeData);
       
-      // Preload all model images for faster display
+      // Collect ALL image URLs for preloading
+      const imageUrls = [];
+      
+      // Model images
       safeData.models.forEach(model => {
-        if (model.imageUrl) {
-          const img = new Image();
-          const fullUrl = model.imageUrl.startsWith('http') 
-            ? model.imageUrl 
-            : model.imageUrl.startsWith('/api/') 
-              ? `${API_URL}${model.imageUrl}` 
-              : model.imageUrl;
-          img.src = fullUrl;
-        }
+        if (model.imageUrl) imageUrls.push(model.imageUrl);
       });
+      
+      // Category and option images
+      safeData.categories.forEach(cat => {
+        if (cat.imageUrl) imageUrls.push(cat.imageUrl);
+        cat.options?.forEach(opt => {
+          if (opt.imageUrl) imageUrls.push(opt.imageUrl);
+        });
+      });
+      
+      // Preload all images at once
+      preloadImages(imageUrls);
       
       // Initialize selections
       const categories = safeData.categories;
