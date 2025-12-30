@@ -387,6 +387,18 @@ frontend:
         agent: "main"
         comment: "✅ VERIFIED via manual screenshot testing! Both promotion types display correctly in Sauna order preview modal: 1) Order WMS-29-12-2025-011217 shows BLUE badge '% Rabat 10%' for discount ✅, 2) Order WMS-29-12-2025-021124 shows RED badge '🎁 Prezent' for gift ✅. Badges appear in the header section next to order date. Implementation working correctly as specified."
 
+  - task: "Statistics Page - Admin Analytics Dashboard"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/StatisticsPage.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "✅ STATISTICS FEATURE FULLY IMPLEMENTED! Created comprehensive statistics page with: 1) Backend API at /api/statistics/{calculator_type} with date/employee filters ✅, 2) Frontend StatisticsPage.jsx component ✅, 3) Main metrics: total orders, revenue, average check ✅, 4) Top models with revenue breakdown ✅, 5) Promotion stats (discount vs gift) ✅, 6) Daily sales chart ✅, 7) Employee performance stats ✅, 8) Period comparison with previous period ✅, 9) CSV export functionality ✅, 10) Works for both Sauna (PLN) and Balia (€) ✅. Navigation tab 'Statystyki' added to Header for both calculators."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
