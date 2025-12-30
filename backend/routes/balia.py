@@ -127,15 +127,16 @@ async def generate_pdf(request: PDFRequest):
     current_date = datetime.now().strftime('%d.%m.%Y')
     valid_until = (datetime.now() + timedelta(days=30)).strftime('%d.%m.%Y')
     
+    # Generate offer number for filename
     offer_number = f"WMB-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
     currency = request.currency or 'EUR'
     
-    # Load logo
-    logo_path = '/app/assets/logo7.png'
+    # Load logo - use logo_bl.png
+    logo_path = '/app/assets/logo_bl.png'
     logo_img = None
     if os.path.exists(logo_path):
         try:
-            logo_img = RLImage(logo_path, width=180, height=36)
+            logo_img = RLImage(logo_path, width=180, height=60)
         except Exception as e:
             logger.warning(f"Could not load logo: {e}")
     
@@ -146,32 +147,39 @@ async def generate_pdf(request: PDFRequest):
         try:
             # Download image from URL
             if model_image_url.startswith('http'):
-                img_data = urllib.request.urlopen(model_image_url, timeout=5).read()
+                img_data = urllib.request.urlopen(model_image_url, timeout=10).read()
             else:
-                # Local file
-                img_path = model_image_url.replace('/api/uploads/', '/app/backend/uploads/')
+                # Local file - try multiple path formats
+                img_path = model_image_url
+                if '/api/uploads/' in model_image_url:
+                    img_path = model_image_url.replace('/api/uploads/', '/app/backend/uploads/')
+                elif model_image_url.startswith('/uploads/'):
+                    img_path = model_image_url.replace('/uploads/', '/app/backend/uploads/')
+                
                 if os.path.exists(img_path):
                     with open(img_path, 'rb') as f:
                         img_data = f.read()
                 else:
                     img_data = None
+                    logger.warning(f"Model image not found at: {img_path}")
             
             if img_data:
                 img_buffer = io.BytesIO(img_data)
                 model_img = RLImage(img_buffer, width=150, height=100)
+                logger.info(f"Model image loaded successfully from: {model_image_url}")
         except Exception as e:
             logger.warning(f"Could not load model image: {e}")
     
-    # ========== HEADER ==========
+    # ========== HEADER with new contact info ==========
     logo_cell = logo_img if logo_img else Paragraph('<b>WM-BALIA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BLUE))
     
     header_data = [[
         logo_cell,
         '',
         Paragraph('''<b>OFERTA HANDLOWA</b><br/>
-        <font size="9" color="#6B7280">Tel: +48 732 099 201</font><br/>
-        <font size="9" color="#6B7280">Email: wmsauna@gmail.com</font><br/>
-        <font size="9" color="#6B7280">www.wm-sauna.pl</font>''',
+        <font size="9" color="#6B7280">Tel: +48 732 111 111</font><br/>
+        <font size="9" color="#6B7280">Email: wmbalia@gmail.com</font><br/>
+        <font size="9" color="#6B7280">www.wm-balia.pl</font>''',
         ParagraphStyle('HeaderRight', fontName='DejaVuSans', fontSize=16, alignment=TA_RIGHT, textColor=BLUE))
     ]]
     header_table = Table(header_data, colWidths=[200, 130, 200])
