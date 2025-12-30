@@ -10,10 +10,11 @@ import {
   DialogFooter,
   DialogClose,
 } from '../ui/dialog';
+import { ImageUploader } from './ImageUploader';
 
 export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAdd, txt }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent>
+    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{txt.addModel}</DialogTitle>
       </DialogHeader>
@@ -52,25 +53,14 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
             onChange={(e) => setNewModel(prev => ({ ...prev, discount: e.target.value }))}
           />
         </div>
-        <div>
-          <Label>{txt.imageUrl}</Label>
-          <Input
-            value={newModel.imageUrl}
-            onChange={(e) => setNewModel(prev => ({ ...prev, imageUrl: e.target.value }))}
-            placeholder={txt.imageUrlHint}
-          />
-          {newModel.imageUrl && (
-            <div className="mt-2">
-              <Label className="text-xs text-muted-foreground">{txt.previewImage}:</Label>
-              <img 
-                src={newModel.imageUrl} 
-                alt="Preview" 
-                className="mt-1 w-full max-h-32 object-contain rounded border bg-muted/50"
-                onError={(e) => e.target.style.display = 'none'}
-              />
-            </div>
-          )}
-        </div>
+        <ImageUploader
+          value={newModel.imageUrl}
+          onChange={(url) => setNewModel(prev => ({ ...prev, imageUrl: url }))}
+          label={txt.imageUrl}
+          previewLabel={txt.previewImage}
+          urlPlaceholder={txt.imageUrlHint}
+          themeColor="amber"
+        />
       </div>
       <DialogFooter>
         <DialogClose asChild>
@@ -86,7 +76,7 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
 
 export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingModel, onSave, txt }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-lg">
+    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{txt.editModel}</DialogTitle>
       </DialogHeader>
@@ -125,25 +115,14 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
               onChange={(e) => setEditingModel(prev => ({ ...prev, discount: parseInt(e.target.value) || 0 }))}
             />
           </div>
-          <div>
-            <Label>{txt.imageUrl}</Label>
-            <Input
-              value={editingModel.imageUrl || ''}
-              onChange={(e) => setEditingModel(prev => ({ ...prev, imageUrl: e.target.value }))}
-              placeholder={txt.imageUrlHint}
-            />
-            {editingModel.imageUrl && (
-              <div className="mt-2">
-                <Label className="text-xs text-muted-foreground">{txt.previewImage}:</Label>
-                <img 
-                  src={editingModel.imageUrl} 
-                  alt="Preview" 
-                  className="mt-1 w-full max-h-40 object-contain rounded border bg-muted/50"
-                  onError={(e) => e.target.style.display = 'none'}
-                />
-              </div>
-            )}
-          </div>
+          <ImageUploader
+            value={editingModel.imageUrl || ''}
+            onChange={(url) => setEditingModel(prev => ({ ...prev, imageUrl: url }))}
+            label={txt.imageUrl}
+            previewLabel={txt.previewImage}
+            urlPlaceholder={txt.imageUrlHint}
+            themeColor="amber"
+          />
         </div>
       )}
       <DialogFooter>
