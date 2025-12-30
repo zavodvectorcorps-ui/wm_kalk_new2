@@ -67,6 +67,7 @@ export const CalculatorPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [prices, setPrices] = useState({ models: [], categories: [], currency: 'EUR', currencySymbol: '€' });
+  const [discountPercent, setDiscountPercent] = useState(0);
   
   const [formData, setFormData] = useState({
     fullName: '',
