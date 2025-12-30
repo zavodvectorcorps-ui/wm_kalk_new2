@@ -255,6 +255,8 @@ export const CalculatorPage = () => {
         selections: formData.selections,
         selectedOptions,
         notes: formData.notes,
+        discountPercent: discountPercent,
+        subtotal: calculateSubtotal(),
         total: calculateTotal(),
         currency: prices.currency || 'EUR',
         createdAt: new Date().toISOString(),
