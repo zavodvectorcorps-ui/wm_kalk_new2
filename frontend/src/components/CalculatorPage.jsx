@@ -63,6 +63,7 @@ const OptimizedImage = ({ src, alt, className, fallbackIcon: FallbackIcon }) => 
 
 export const CalculatorPage = () => {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   
   const [loading, setLoading] = useState(true);
