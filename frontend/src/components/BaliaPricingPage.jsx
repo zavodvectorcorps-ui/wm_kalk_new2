@@ -700,54 +700,17 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isNew ? txt.newModel : txt.editModel}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* Image upload */}
-          <div className="space-y-2">
-            <Label>{txt.image}</Label>
-            <div className="flex items-center gap-3">
-              {formData.imageUrl ? (
-                <div className="relative">
-                  <img 
-                    src={formData.imageUrl} 
-                    alt="Model"
-                    className="w-20 h-20 object-contain rounded border bg-gray-50"
-                  />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-5 w-5"
-                    onClick={() => setFormData({ ...formData, imageUrl: '' })}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="w-20 h-20 bg-muted rounded border flex items-center justify-center">
-                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                </div>
-              )}
-              <label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleUpload}
-                  disabled={uploading}
-                />
-                <Button type="button" variant="outline" size="sm" asChild disabled={uploading}>
-                  <span>
-                    {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
-                    {txt.uploadImage}
-                  </span>
-                </Button>
-              </label>
-            </div>
-          </div>
+          {/* Image upload with BaliaImageUploader */}
+          <BaliaImageUploader
+            value={formData.imageUrl || ''}
+            onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+            label={txt.image}
+          />
           
           <div className="space-y-2">
             <Label>{txt.nameRu}</Label>
