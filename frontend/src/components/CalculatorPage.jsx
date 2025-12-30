@@ -145,6 +145,19 @@ export const CalculatorPage = () => {
       
       setPrices(safeData);
       
+      // Preload all model images for faster display
+      safeData.models.forEach(model => {
+        if (model.imageUrl) {
+          const img = new Image();
+          const fullUrl = model.imageUrl.startsWith('http') 
+            ? model.imageUrl 
+            : model.imageUrl.startsWith('/api/') 
+              ? `${API_URL}${model.imageUrl}` 
+              : model.imageUrl;
+          img.src = fullUrl;
+        }
+      });
+      
       // Initialize selections
       const categories = safeData.categories;
       const initialSelections = {};
