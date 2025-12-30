@@ -123,7 +123,7 @@ export const CalculatorPage = () => {
 
   const selectedModel = prices.models?.find(m => m.id === formData.selectedModel);
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     let total = selectedModel?.basePrice || 0;
     
     prices.categories?.forEach(category => {
@@ -145,6 +145,16 @@ export const CalculatorPage = () => {
     });
     
     return total;
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const discountAmount = subtotal * (discountPercent / 100);
+    return subtotal - discountAmount;
+  };
+
+  const getDiscountAmount = () => {
+    return calculateSubtotal() * (discountPercent / 100);
   };
 
   const getOptionsTotal = () => {
