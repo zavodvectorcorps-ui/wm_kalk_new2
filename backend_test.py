@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://order-sync-11.preview.emergentagent.com/api"
+BACKEND_URL = "https://hottub-wizard.preview.emergentagent.com/api"
 
 def test_get_prices():
     """Test GET /api/prices endpoint"""

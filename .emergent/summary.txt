@@ -1,90 +1,66 @@
 <analysis>**original_problem_statement:**
-The user's initial problem statement from the previous session was to complete features in their WM Kalkulator application.
+The user's initial problem statement from the previous session was to fix bugs and add features to their WM Kalkulator application.
 
-In this session, the user's requests evolved significantly:
-1.  **PDF Bug Fix**: The user reported that in the generated PDF, the total price section had overlapping text.
-2.  **Frontend Refactoring**: After the bug fix, the user requested a general refactoring of the frontend code to optimize it and make it work better.
-3.  **New Feature: Technical Specification Calculator**:
-    *   The user requested a new Тех.задание (Technical Specification) calculator to be accessible from the orders page.
-    *   This calculator is intended for the production team and should be more detailed, without prices.
-    *   It should open in a modal window.
-    *   It needs to pre-fill data from the existing order (client info, selected model/options).
-    *   The manager should be able to add more details and comments.
-    *   It should generate a separate PDF for the production team.
-    *   The user provided a standalone HTML/JS file and an Excel sheet as a reference for the calculator's structure and options.
-4.  **UI/UX Feedback**:
-    *   **Scrolling**: The user reported that the new tech spec modal was not scrollable.
-    *   **UI Compactness**: The user asked to make the layout of the tech spec modal more compact, as some fields took up too much vertical space.
-    *   **Data Sync**: The user requested that options selected in the main sauna calculator be automatically pre-selected when opening the tech spec modal.
-5.  **New Feature: Admin Panel for Technical Specification**: The user requested a dedicated admin page to manage the categories and options for the new Technical Specification calculator.
-6.  **New Feature: Master Categories & Layout Control**:
-    *   The user asked to introduce a higher level of hierarchy called Главные категории (Master Categories) to group the existing categories.
-    *   They also requested a layout setting for each subcategory to be displayed either full-width or in a two-column format within the modal.
-7.  **Final Bug Report**: The user reported that when a category with images (like Ławki) is set to a two-column layout, all options are rendered in the left column, leaving the right one empty.
+During this session, the user made the following requests:
+1.  **Feature Completion**: Finish adding image support to the Balia (Hottub) calculator.
+2.  **New Feature**: Implement a way for the admin to upload images for Balia models and options.
+3.  **New Feature**: Add localization (Russian/Polish) to the new Balia calculator and its admin page.
+4.  **Verification**: Confirm that the  mapping from the Sauna calculator to the Tech Spec modal works correctly for new orders.
+5.  **New Feature**: Add a tiles view for displaying options in the Balia calculator, similar to how benches are displayed in the Sauna's tech spec.
+6.  **Bug Fix**: Fix an issue where images for Balia options were not being saved.
+7.  **UI/UX Improvement**: Ensure that all images (models and options) are not cropped and display their full aspect ratio ().
+8.  **Bug Fix**: Fix an issue where customer data (name, phone, address) could not be entered into the input fields in the Balia calculator.
+9.  **Bug Fix**: Resolve a 422 Unprocessable Content error that occurred when trying to save a new order from the Balia calculator.
+10. **Bug Fix**: Fix an error that occurred when trying to generate a PDF from the Balia calculator.
+11. **Feature Improvement**: Redesign the Balia PDF to be more professional, always generate in Polish, and include a photo of the selected model.
+12. **New Feature**: Add informational tooltips (hints) for each option in the Balia calculator.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a full-stack React/FastAPI/MongoDB solution for calculating and managing orders for sauna and balia products.
+The application is a full-stack React/FastAPI/MongoDB solution for calculating and managing orders for Saunas and Balias (hottubs).
 
-- **PDF Generation Fix**: The PDF text overlapping issue has been resolved and verified by the user.
-- **Refactored Pricing Page**: The monolithic  component has been successfully refactored into smaller, manageable components and a custom hook, all located in .
-- **Technical Specification Feature**:
-    - A new Тех.Задание (Technical Specification) feature is fully implemented.
-    - A button on the  opens a modal () which loads order data.
-    - The modal allows production-specific details to be added.
-    - Backend endpoints exist to save the tech spec data to the order document and generate a dedicated PDF.
-- **Tech Spec Admin Panel**:
-    - A full admin page () has been created to manage the technical specification options.
-    - It supports a three-tier hierarchy: **Master Categories → Subcategories → Options**.
-    - Admins can create, edit, delete, and reorder all three levels.
-    - Subcategories have a Display Width setting (full-width or two-column).
-- **Data Persistence**: The technical specification configuration (categories, options) is now stored in a  collection in MongoDB, initialized from  if empty.
+In this session, the Balia calculator functionality was massively expanded:
+-   **Image Upload System**: A complete backend system for uploading, serving, and deleting images has been created () and wired up.
+-   **New Balia Admin Panel**: A dedicated, fully-featured admin page () was built from scratch. It allows managing Balia models, categories, and options, including uploading images for each and setting display types for categories.
+-   **Enhanced Balia Calculator**: The main calculator () now displays images for models and categories. It also supports a tiles display mode for options, making the interface more visual and interactive.
+-   **Full Localization**: The entire Balia calculator flow, including the new admin panel, is now fully integrated with  and supports both Russian and Polish.
+-   **Robust PDF Generation**: The Balia calculator now generates a beautifully designed, professional PDF offer (always in Polish) that includes the selected model's image, customer details, and a full breakdown of selected options.
+-   **Bug Fixes**: Critical bugs related to customer data input and order saving have been resolved, making the Balia calculator fully operational.
 
 **Last working item**:
--   **Last item agent was working**: Fixing a layout bug in the  component. When a category containing images is configured for a two-column display, all its options are incorrectly rendered in a single vertical column instead of a grid across both columns.
+-   **Last item agent was working**: Adding informational tooltips (hints) to the options in the Balia calculator. The agent has already updated the backend Pydantic model to include a  field and was in the process of updating the default data in  and implementing the frontend display in .
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: Frontend testing agent or the screenshot tool to verify the grid layout of options within the two-column category.
+-   **Which testing method agent to use?**: screenshot tool
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Two-column layout bug for image options (P0)**
--   **Issue 2: Verify data sync from calculator to tech spec modal (P1)**
--   **Issue 3: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
+-   **Issue 1: Finish implementing hints (tooltips) in Balia calculator (P0)**
+-   **Issue 2: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
 
 **Issues Detail:**
--   **Issue 1: Two-column layout bug for image options (P0)**
-    -   **Attempted fixes**: The agent was about to start fixing this. The issue was introduced after implementing the  feature.
+-   **Issue 1: Finish implementing hints (tooltips) in Balia calculator (P0)**
+    -   **Attempted fixes**:
+        -   The Pydantic model  in  was updated with .
+        -   The agent started updating the data in  with the user-provided hints.
     -   **Next debug checklist**:
-        1.  Inspect .
-        2.  Locate the rendering logic for categories with .
-        3.  The container for the options within that category needs to be a grid ( or similar) instead of a flexbox or block-level element.
-    -   **Why fix this issue and what will be achieved with the fix?**: To correctly implement the user-requested two-column layout, improving the UI/UX of the tech spec modal.
+        1.  Complete the update of  with all hints.
+        2.  Modify .
+        3.  Wrap the option labels (for both dropdown and tile views) with a  component from .
+        4.  Use the  field from the option data as the content for the .
+        5.  Add a small info icon next to the option name to indicate a hint is available.
+        6.  Use the screenshot tool to verify the tooltips appear correctly on hover.
+    -   **Why fix this issue and what will be achieved with the fix?**: This will provide users with helpful descriptions for each option, improving clarity and user experience.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: None.
 
--   **Issue 2: Verify data sync from calculator to tech spec modal (P1)**
-    -   **Description**: The logic to pre-select options in the  based on the parent order was implemented. However, it was never tested end-to-end by creating a new order with selections and then opening the modal.
-    -   **Next debug checklist**:
-        1.  Go to the Sauna Calculator.
-        2.  Select a model and several options from different categories.
-        3.  Create an order.
-        4.  Go to the Orders page.
-        5.  Open the Тех.Задание modal for the newly created order.
-        6.  Verify that the options selected in step 2 are pre-filled in the modal.
-    -   **Why fix this issue and what will be achieved with this?**: This is a core requirement of the tech spec feature and is crucial for user workflow efficiency.
-    -   **Status**: TESTING PENDING
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: None.
-
--   **Issue 3: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
-    -   **Description**: Inherited from a previous session. In  (used by the Balia calculator), a  dropdown was reported to be misaligned on one occasion. This is a low-priority UI polish item.
-    -   **Next debug checklist**: Inspect styling and positioning of  in .
-    -   **Why fix this issue and what will be achieved with this?**: Minor UI polish for the Balia calculator.
+-   **Issue 2: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
+    -   **Description**: An old, low-priority issue from a previous session. It's possible the complete rewrite of the Balia calculator has fixed this, but it's worth a quick check.
+    -   **Next debug checklist**: Inspect dropdowns in .
+    -   **Why fix this issue and what will be achieved with this?**: Minor UI polish.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: frontend
@@ -94,26 +70,26 @@ The application is a full-stack React/FastAPI/MongoDB solution for calculating a
 -   None.
 
 **Upcoming and Future Tasks**
--   **Future Task: Refactor  (P2)**
-    -   The agent identified  (over 1000 lines) as a candidate for refactoring, similar to what was done for . This was part of the user's general optimization request but was deferred.
+-   **Future Tasks**:
+    -   **Refactor  (P2)**: This large component could be broken down into smaller components for better maintainability.
 
 **Completed work in this session**
--   **Bug Fix**: Fixed and verified the PDF text-overlapping issue in .
--   **Refactoring**: Refactored the 1200+ line  into 7 smaller components and a custom hook, located in .
--   **Feature**: Implemented the Technical Specification feature, including:
-    -   A new modal component .
-    -   Backend API endpoints in  to save data and generate PDFs.
-    -   Integration into the .
--   **Bug Fix**: Fixed a scrolling issue within the .
--   **UI/UX**: Improved the layout of  to be more compact.
--   **Feature**: Implemented a complete admin panel () for the technical specification.
--   **Feature**: Enhanced the tech spec model and UI to support **Master Categories** and per-category layout widths (full vs. half).
--   **Backend**: Created new data models (), API routes (), and default data ().
+-   **Feature**: Implemented image display for models and categories in the Balia Calculator.
+-   **Feature**: Created a full file upload system (backend and frontend) for images.
+-   **Feature**: Built a new, dedicated admin page () for managing the Balia calculator's content (models, categories, options, images).
+-   **Feature**: Added full localization (RU/PL) to the Balia calculator and its new admin page.
+-   **Feature**: Implemented a tiles display mode for Balia calculator options.
+-   **Feature**: Designed and implemented a new, professional, image-inclusive PDF generation for Balia orders, which is always in Polish.
+-   **Verification**: Confirmed the  mapping for the Sauna calculator is working correctly end-to-end via UI testing.
+-   **Bug Fix**: Corrected the saving mechanism for Balia option images by adding  to the backend model.
+-   **UI Fix**: Ensured all calculator images use  to prevent cropping.
+-   **Bug Fix**: Fixed a bug that prevented data entry in the customer information form.
+-   **Bug Fix**: Resolved a 422 error on saving Balia orders by updating the  Pydantic model.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Minor Dropdown Positioning Glitch**
-    -   **Debug checklist**: Inspect the styling of the  component in .
-    -   **Why to solve this issue and what will be achieved with this?**: Minor UI polish for the Balia calculator.
+    -   **Debug checklist**: Inspect the styling of  components in .
+    -   **Why to solve this issue and what will be achieved with this?**: Minor UI polish.
     -   **Should Test frontend/backend/both after fix**: frontend
     -   **Is recurring issue?**: N
 
@@ -124,85 +100,79 @@ The application is a full-stack React/FastAPI/MongoDB solution for calculating a
 
 
 **Key Technical Concepts**
-- **Frontend**: React, React Hooks (useState, useEffect, useCallback), Custom Hooks, React Context, Tailwind CSS, shadcn/ui, . The agent used CSS Grid () and Flexbox for layout control.
-- **Backend**: Python, FastAPI, Pydantic,  for PDF generation. The modular architecture was extended with new routes and models.
-- **Database**: MongoDB. A new  collection was added to store dynamic configuration. Order documents in the  collection were updated to potentially include a  field.
+-   **File Uploads**: Implemented a robust file upload system using FastAPI's , storing files locally, and serving them via a static route. Includes validation for file type and size.
+-   **Dynamic UI Rendering**: The Balia calculator now uses a  field ( or ) from the category data to dynamically render options as either selectable tiles with images or a standard dropdown list.
+-   **Localization ()**: The  hook was implemented across the  and the new  to provide a seamless multilingual (RU/PL) experience.
+-   **Advanced PDF Generation ()**: The PDF generation was completely rewritten to create a multi-page, professionally designed document including a logo, a large image of the selected product, styled tables for options, and consistent branding. It fetches the image via its URL for inclusion.
+-   **State Management**: Complex state for the new admin panel () is managed with , handling nested arrays of models, categories, and options.
 
 **key DB schema**
-- ****:
-    - Existing schema...
-    - :  (Optional, contains the saved selections from the technical specification modal)
-- **** (Singleton document):
-    - : 
-    - : 
-    - : 
-    - : 
-    - : 
+-   ****: The schema was significantly updated.
+    -   The  array in the main document now has a  ( or ).
+    -   The  within each category now have  and .
+-   ****: Documents with  now have a new structure, including , , , and .
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   **Backend (New/Modified)**:
-    -   : Modified to add  endpoints.
-    -   : **New file** for the tech spec admin API.
-    -   : **New file** defining Pydantic models for tech spec.
-    -   : **New file** holding the default structure for master categories, subcategories, and options.
-    -   : Modified to include the new .
--   **Frontend (New/Modified)**:
-    -   : **New file**, heavily modified to add scrolling, compact layout, and master category grouping.
-    -   : **New file**, completely rewritten to support the three-tier hierarchy.
-    -   : Modified to handle the opening of the .
-    -    & : Modified to add navigation for the new admin page.
-    -   : Overwritten to act as a container for the refactored tab components.
-    -   : All **new files** from the refactoring effort.
+-   **/app/frontend/src/components/BaliaPricingPage.jsx**: **New file.** A complete admin solution for the Balia calculator.
+-   **/app/backend/routes/upload.py**: **New file.** The core of the new image upload functionality.
+-   **/app/frontend/src/components/CalculatorPage.jsx**: Heavily modified to add localization, image display, tile view, PDF generation, and bug fixes.
+-   **/app/backend/routes/balia.py**: Heavily modified to support the new data structure for saving orders and to completely overhaul the PDF generation logic.
+-   **/app/backend/models/balia.py**: All Pydantic models were rewritten to match the new, more flexible data structure for prices, orders, and PDF requests.
+-   **/app/frontend/src/components/CustomerInfoForm.jsx**: Modified to fix the data input bug.
+-   **/app/backend/server.py**: Modified to include the new  router and configure the  static directory.
+-   **/app/frontend/src/i18n/locales/pl.json**: Updated with extensive translations for the Balia calculator and admin.
+-   **/app/frontend/src/i18n/locales/ru.json**: Updated with extensive translations for the Balia calculator and admin.
 
 **Areas that need refactoring**:
--    is still a large component (over 1000 lines) and could be broken down into smaller, more focused components and a custom hook, as was done for .
+-    is still a large monolithic component.
 
 **key api endpoints**
--   : Saves the technical specification data for an order.
--   : Generates a PDF for the technical specification.
--   : Retrieves the entire tech spec configuration (master categories, categories, options).
--   : Saves the entire tech spec configuration.
--   CRUD endpoints for master categories: , , .
--   CRUD endpoints for categories: , , .
--   CRUD endpoints for options: , , .
+-   : **New.** Uploads an image file, returns a URL.
+-   : **New.** Serves a previously uploaded static image.
+-   : Endpoint logic was fixed to use the correct Pydantic model for validation.
+-   : Endpoint logic was completely rewritten to generate a new, professionally designed PDF with an image.
+-   : Endpoint logic was updated to save the new data structure, including  and .
 
 **Critical Info for New Agent**
--   **The user's language is Russian. All communication MUST be in Russian.**
--   The immediate task is to fix the two-column layout bug for categories with images in . The options should render in a grid, not a single column.
--   The Tech Spec configuration is now managed in a dedicated admin panel and stored in MongoDB. To reset to defaults, the  document must be deleted from the  database.
--   A crucial but unverified piece of functionality is the pre-filling of options from an order into the tech spec modal. This needs to be tested end-to-end.
+-   **You must communicate with the user in Russian.**
+-   Your immediate task is to finish implementing the hints (tooltips) feature for options in the Balia calculator. This involves modifying  to use a  component.
+-   The Balia calculator now has its own full-featured admin panel at  (), which is separate from the old pricing page.
+-   All image uploads are handled by the new  endpoint. Uploaded images are served from .
+-   The PDF generation for Balia is new, robust, and produces a high-quality document. It is triggered from the  UI and processed in .
 
 **documents and test reports created in this job**
 -   
--   Numerous temporary PDFs were generated in  to test fixes, such as  and .
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Reports a layout bug where a two-column category with images renders all items vertically in one column. (Status: **In Progress**)
-2.  **User**: Requests a Master Category hierarchy and layout control (full-width vs. two-column) for the tech spec. (Status: Completed)
-3.  **User**: Requests that the tech spec modal be more compact and that it pre-selects options from the original order. (Status: Completed, but data sync needs verification)
-4.  **User**: Requests an admin panel for the new technical specification feature. (Status: Completed)
-5.  **User**: Reports that the tech spec modal is not scrollable. (Status: Completed)
-6.  **User**: Requests the Technical Specification calculator feature, providing HTML/Excel examples. (Status: Completed)
-7.  **User**: Asks for general code refactoring and optimization. (Status: Partially Completed -  was refactored)
-8.  **User**: Confirms the PDF text overlap bug is fixed. (Status: Resolved)
-9.  **User**: Reports that the PDF text is still overlapping and provides a sample file. (Status: Addressed and fixed)
-10. **User**: Confirms a previous task was completed and asks about refactoring.
+1.  **User**: Request to add hints (tooltips) for Balia options, providing the hint text data. (Status: **In Progress**)
+2.  **User**: Request to make the Balia PDF design beautiful, always in Polish, and include a photo of the selected model. (Status: **Completed**)
+3.  **User**: Reports an error when generating a PDF from the Balia calculator. (Status: **Completed**)
+4.  **User**: Reports a 422 error when saving a Balia order. (Status: **Completed**)
+5.  **User**: Reports that input fields for customer info are not working in the Balia calculator. (Status: **Completed**)
+6.  **User**: Request to add a tiles display for Balia options, fix image saving, and prevent images from being cropped. (Status: **Completed**)
+7.  **User**: Request to add localization to the Balia calculator. (Status: **Completed**)
+8.  **User**: Request to verify the  mapping. (Status: **Completed**)
+9.  **Agent**: Asks user to verify the completed localization feature. (Status: **Completed by User**)
+10. **User**: Confirms the plan to finish adding images and add an upload functionality. (Status: **Completed**)
 
 **Project Health Check:**
--   **Working**: The application is fully functional. All major features, including the new tech spec admin and modal, are implemented.
--   **Broken**: No core functionality is broken. There is a minor visual layout bug in the .
--   **Mocked/Incomplete**: None.
+-   **Working**: The application is fully functional. All major features requested are complete and tested.
+-   **Broken**: No core functionality is broken.
+-   **Mocked/Incomplete**: The hints (tooltips) feature is partially implemented and needs the frontend work to be completed.
 
 **3rd Party Integrations**
 -   None.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. The backend testing agent was used to validate the new  endpoints.
+-   **Testing agent used after significant changes**: YES. The agent used both backend and frontend testing agents to verify the image upload, localization, and UI features, with successful results.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**: 
+-   **Test files created**: None.
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
@@ -210,5 +180,4 @@ The application is a full-stack React/FastAPI/MongoDB solution for calculating a
 -   **Observer**:  / 
 
 **What agent forgot to execute**
--   The agent did not refactor , which was identified as a large component during the refactoring analysis.
--   The agent implemented the logic for synchronizing selected options from the main calculator to the tech spec modal but did not perform an end-to-end test to verify it works.</analysis>
+-   The agent was in the middle of implementing the hints feature when the session ended. The work needs to be picked up and completed.</analysis>
