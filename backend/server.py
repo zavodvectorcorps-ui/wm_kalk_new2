@@ -12,6 +12,7 @@ from routes.health import router as health_router
 from routes.tech_spec import router as tech_spec_router
 from routes.upload import router as upload_router
 from routes.customer_fields import router as customer_fields_router
+from routes.statistics import router as statistics_router
 
 # Configure logging
 logging.basicConfig(
