@@ -188,6 +188,18 @@ backend:
         agent: "testing"
         comment: "✅ POST endpoint working correctly with NEW STRUCTURE. Successfully saves prices with imageUrl fields for both models and categories. Updated PriceData Pydantic model to accept new structure with models[] and categories[] arrays. Backward compatibility maintained for legacy fields. Data persists correctly in MongoDB."
 
+  - task: "POST /api/generate-pdf - Generate Balia PDF with Polish localization"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/balia.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ POST /api/generate-pdf endpoint working correctly with ALL REQUIREMENTS. Filename format: WMB-DD-MM-YYYY-HHMMSS.pdf ✅. Logo: uses logo_bl.png from /app/assets/ ✅. Model image: includes selected model's image in PDF ✅. Language: All category and option names in Polish (namePl), NOT Russian ✅. Contact info: Tel: +48 732 111 111, Email: wmbalia@gmail.com, www.wm-balia.pl ✅. PDF size: 1.2MB with 2 images. Polish names verified: 'Balia 200cm (zewnętrzny piec)', 'Hydromasaż', 'Oświetlenie', 'Hydromasaż 1.1kW (6-8 dysz)', 'LED wewnątrz (2 szt)'. Russian names correctly NOT present."
+
 frontend:
   - task: "Tech Spec Modal - Display order info and form fields"
     implemented: true
