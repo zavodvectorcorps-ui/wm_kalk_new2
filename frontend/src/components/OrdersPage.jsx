@@ -389,6 +389,14 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
           onSaved={handleTechSpecSaved}
         />
       )}
+
+      {/* Order Preview Modal */}
+      <OrderPreviewModal
+        open={previewModalOpen}
+        onOpenChange={setPreviewModalOpen}
+        order={previewOrder}
+        calculatorType={calculatorType}
+      />
     </div>
   );
 };
