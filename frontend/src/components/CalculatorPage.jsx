@@ -474,8 +474,8 @@ export const CalculatorPage = () => {
                             {option.hint && (
                               <Tooltip>
                                 <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <div className="absolute top-1 left-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full p-0.5 z-10 cursor-help">
-                                    <Info className="h-3 w-3" />
+                                  <div className="absolute top-1 left-1 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full p-1 z-10 cursor-help shadow-sm">
+                                    <Info className="h-4 w-4" />
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
