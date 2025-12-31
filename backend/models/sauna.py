@@ -97,3 +97,6 @@ class SaunaPDFRequest(BaseModel):
     total: float = 0.0
     language: str = "pl"
     categories: List[Dict[str, Any]] = []
+    # Admin gifts - list of option IDs that are gifts
+    adminGifts: List[str] = []
+    selectedOptions: List[Dict[str, Any]] = []
