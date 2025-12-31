@@ -125,6 +125,28 @@ async def get_orders():
     return orders
 
 
+@router.get("/orders/{order_id}")
+async def get_order(order_id: str):
+    """Get a single order by ID"""
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@router.put("/orders/{order_id}")
+async def update_order(order_id: str, order: Order):
+    """Update an existing order"""
+    order_dict = order.model_dump()
+    result = await db.orders.update_one(
+        {"id": order_id},
+        {"$set": order_dict}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
 @router.delete("/orders/{order_id}")
 async def delete_order(order_id: str):
     """Delete an order"""
