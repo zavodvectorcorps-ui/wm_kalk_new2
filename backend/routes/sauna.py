@@ -559,30 +559,132 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     model_price = Paragraph(f'<b><font color="#97724E">{request.basePrice:,} PLN</font></b>'.replace(',', ' '), 
                  ParagraphStyle('Price', fontName='DejaVuSans-Bold', fontSize=12, alignment=TA_RIGHT))
     
-    if model_img:
-        # Table with image on the left, name and price on the right
-        model_data = [[
-            model_img,
-            model_text,
-            model_price
-        ]]
-        model_table = Table(model_data, colWidths=[170, 210, 150])
-    else:
-        model_data = [[
-            model_text,
-            model_price
-        ]]
-        model_table = Table(model_data, colWidths=[380, 150])
+    # ========== BENCH IMAGE SECTION - Get bench data first ==========
+    bench_image_url = None
+    bench_name = None
+    bench_price = 0
+    bench_opt_id = None
     
-    model_table.setStyle(TableStyle([
+    selected_options = getattr(request, 'selectedOptions', None) or []
+    admin_gifts = getattr(request, 'adminGifts', []) or []
+    
+    for opt in selected_options:
+        cat_id = opt.get('categoryId', '')
+        if cat_id == 'lawki' and opt.get('imageUrl'):
+            bench_image_url = opt.get('imageUrl')
+            bench_name = opt.get('optionName') or opt.get('name')
+            bench_price = opt.get('price', 0)
+            bench_opt_id = opt.get('optionId') or opt.get('id')
+            break
+    
+    if not bench_image_url:
+        for category in request.categories:
+            if category.get('id') == 'lawki':
+                selection = request.selections.get('lawki')
+                if selection:
+                    for opt in category.get('options', []):
+                        if opt.get('id') == selection:
+                            if opt.get('imageUrl'):
+                                bench_image_url = opt.get('imageUrl')
+                                bench_name = opt.get('name')
+                                bench_price = opt.get('price', 0)
+                                bench_opt_id = opt.get('id')
+                            break
+                break
+    
+    # Check if bench is a gift
+    bench_is_gift = bench_opt_id and bench_opt_id in admin_gifts
+    
+    # Load bench image if available
+    bench_img = None
+    if bench_image_url and bench_name:
+        try:
+            import urllib.request
+            import tempfile
+            
+            req = urllib.request.Request(
+                bench_image_url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+                }
+            )
+            
+            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    tmp.write(response.read())
+                bench_img = RLImage(tmp.name, width=130, height=95)
+        except Exception as e:
+            logger.warning(f"Could not load bench image: {e}")
+    
+    # ========== MODEL + BENCH IN ONE ROW ==========
+    # Left side: Model, Right side: Bench
+    
+    # Build bench info paragraph
+    if bench_name:
+        if bench_is_gift:
+            bench_info = Paragraph(f'''<b>ŁAWKI</b><br/><br/>
+            {bench_name}<br/>
+            <font color="#888888"><strike>{bench_price:,} PLN</strike></font><br/>
+            <font color="#059669"><b>🎁 Prezent od WM-Group</b></font>'''.replace(',', ' '),
+            ParagraphStyle('BenchInfo', fontName='DejaVuSans', fontSize=10, leading=13))
+        else:
+            bench_info = Paragraph(f'''<b>ŁAWKI</b><br/><br/>
+            {bench_name}<br/>
+            <font color="#97724E"><b>{bench_price:,} PLN</b></font>'''.replace(',', ' '),
+            ParagraphStyle('BenchInfo', fontName='DejaVuSans', fontSize=10, leading=13))
+    else:
+        bench_info = Paragraph('<font color="#888888"><i>Brak ławek</i></font>',
+            ParagraphStyle('BenchInfo', fontName='DejaVuSans', fontSize=10))
+    
+    # Create combined row: MODEL | BENCH
+    if model_img and bench_img:
+        # Both have images
+        combined_data = [[
+            model_img,
+            Paragraph(f'<b>MODEL</b><br/><br/>{model_name}<br/><font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
+                ParagraphStyle('ModelInfo', fontName='DejaVuSans', fontSize=10, leading=13)),
+            bench_img,
+            bench_info
+        ]]
+        combined_table = Table(combined_data, colWidths=[130, 135, 130, 135])
+    elif model_img:
+        # Only model has image
+        combined_data = [[
+            model_img,
+            Paragraph(f'<b>MODEL</b><br/><br/>{model_name}<br/><font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
+                ParagraphStyle('ModelInfo', fontName='DejaVuSans', fontSize=10, leading=13)),
+            bench_info
+        ]]
+        combined_table = Table(combined_data, colWidths=[130, 200, 200])
+    elif bench_img:
+        # Only bench has image
+        combined_data = [[
+            Paragraph(f'<b>MODEL</b><br/><br/>{model_name}<br/><font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
+                ParagraphStyle('ModelInfo', fontName='DejaVuSans', fontSize=10, leading=13)),
+            bench_img,
+            bench_info
+        ]]
+        combined_table = Table(combined_data, colWidths=[200, 130, 200])
+    else:
+        # No images
+        combined_data = [[
+            Paragraph(f'<b>MODEL</b><br/><br/>{model_name}<br/><font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
+                ParagraphStyle('ModelInfo', fontName='DejaVuSans', fontSize=10, leading=13)),
+            bench_info
+        ]]
+        combined_table = Table(combined_data, colWidths=[265, 265])
+    
+    combined_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
         ('LEFTPADDING', (0, 0), (-1, -1), 8),
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LINEBEFORE', (2, 0), (2, 0), 1, BROWN_BORDER) if len(combined_data[0]) > 2 else ('TOPPADDING', (0,0), (0,0), 10),
     ]))
-    elements.append(model_table)
+    elements.append(combined_table)
     elements.append(Spacer(1, 8))
     
     # ========== COMMENT SECTION ==========
@@ -599,82 +701,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         elements.append(comment_table)
         elements.append(Spacer(1, 8))
     
-    # ========== BENCH IMAGE SECTION ==========
-    bench_image_url = None
-    bench_name = None
-    bench_price = 0
-    
-    selected_options = getattr(request, 'selectedOptions', None) or []
-    
-    for opt in selected_options:
-        cat_id = opt.get('categoryId', '')
-        if cat_id == 'lawki' and opt.get('imageUrl'):
-            bench_image_url = opt.get('imageUrl')
-            bench_name = opt.get('optionName')
-            bench_price = opt.get('price', 0)
-            break
-    
-    if not bench_image_url:
-        for category in request.categories:
-            if category.get('id') == 'lawki':
-                selection = request.selections.get('lawki')
-                if selection:
-                    for opt in category.get('options', []):
-                        if opt.get('id') == selection:
-                            if opt.get('imageUrl'):
-                                bench_image_url = opt.get('imageUrl')
-                                bench_name = opt.get('name')
-                                bench_price = opt.get('price', 0)
-                            break
-                break
-    
-    if bench_image_url and bench_name:
-        elements.append(Paragraph('ŁAWKI', section_title_style))
-        elements.append(Spacer(1, 4))
-        
-        bench_img = None
-        try:
-            import urllib.request
-            import tempfile
-            
-            req = urllib.request.Request(
-                bench_image_url,
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-                }
-            )
-            
-            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-                with urllib.request.urlopen(req, timeout=10) as response:
-                    tmp.write(response.read())
-                bench_img = RLImage(tmp.name, width=140, height=100)
-        except Exception as e:
-            logger.warning(f"Could not load bench image: {e}")
-        
-        bench_info = Paragraph(f'''<b>{bench_name}</b><br/>
-        <font color="#97724E">{bench_price:,} PLN</font>'''.replace(',', ' '),
-        ParagraphStyle('BenchInfo', fontName='DejaVuSans', fontSize=11))
-        
-        if bench_img:
-            bench_data = [[bench_img, bench_info]]
-            bench_table = Table(bench_data, colWidths=[160, 370])
-            bench_table.setStyle(TableStyle([
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                ('LEFTPADDING', (1, 0), (1, 0), 15),
-            ]))
-            elements.append(bench_table)
-        else:
-            elements.append(bench_info)
-        elements.append(Spacer(1, 8))
-    
     # ========== OPTIONS SECTION (Two columns) ==========
     options_items = []
     quantities = getattr(request, 'quantities', {}) or {}
-    
-    # Get admin gifts list if available
-    admin_gifts = getattr(request, 'adminGifts', []) or []
     
     # PRIMARY: Use selectedOptions if available (from saved orders)
     if selected_options:
