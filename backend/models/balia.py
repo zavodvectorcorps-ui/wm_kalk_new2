@@ -127,7 +127,7 @@ class Order(BaseModel):
     id: str = Field(default_factory=lambda: f"WMB-{datetime.now(timezone.utc).strftime('%d-%m-%Y-%H%M%S')}")
     fullName: str
     phoneNumber: str
-    fullAddress: str
+    fullAddress: str = ""
     orderDate: str
     modelId: Optional[str] = None
     modelName: Optional[str] = None
@@ -148,6 +148,9 @@ class Order(BaseModel):
     adminDiscountApprovedAt: Optional[str] = None
     # Admin gifts - list of option IDs that are gifts
     adminGifts: Optional[List[str]] = []
+    # Requested discount from manager
+    requestedDiscount: Optional[float] = 0.0
+    requestedDiscountNote: Optional[str] = ""
     # Legacy fields for backward compatibility
     shellModel: Optional[str] = None
     woodType: Optional[str] = None
