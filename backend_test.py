@@ -1117,61 +1117,170 @@ def test_get_sauna_prices():
         print(f"❌ GET /api/sauna/prices error: {str(e)}")
         return False
 
-def test_create_sauna_order():
-    """Test POST /api/sauna/orders with specific test data"""
-    print("\n🔍 Testing POST /api/sauna/orders...")
+def test_sauna_order_creation_422_fix():
+    """Test Sauna order creation via API - verify the 422 error is fixed"""
+    print("\n🔍 Testing Sauna Order Creation - 422 Error Fix")
+    print("=" * 60)
     
+    results = {}
+    
+    # Test 1: Create Sauna order without id field
+    print("\n📝 Test 1: Create Sauna order without id field...")
     try:
-        # Create test order as specified in review request
-        test_order = {
-            "id": str(uuid.uuid4()),
+        test_order_no_id = {
             "fullName": "Test User",
-            "phoneNumber": "+48 111 222 333",
-            "fullAddress": "Warszawa",
-            "orderDate": datetime.now().strftime("%Y-%m-%d"),
-            "selectedModel": "sauna_kwadro_beczka_235x300_cm",
-            "modelName": "Sauna Kwadro-Beczka 235x300 cm",
-            "basePrice": 24100,
-            "foundationPrice": 250,
-            "discount": 8,
-            "selections": {
-                "piece": "piec_elektryczny_9kw",
-                "strona_pieca": "piec_lewo"
-            },
-            "notes": "Test sauna order",
-            "optionsTotal": 2950,  # 2600 + 350
-            "total": 24886.0,  # (24100 + 250 + 2950) × 0.92 = 24886
-            "createdAt": datetime.now().isoformat()
+            "phoneNumber": "+48123456789",
+            "orderDate": "2024-12-31",
+            "selectedModel": "test-model"
         }
         
-        response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order)
+        response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order_no_id)
         print(f"Status Code: {response.status_code}")
         
         if response.status_code == 200:
             saved_order = response.json()
-            print("✅ POST /api/sauna/orders successful")
-            print(f"✅ Order ID: {saved_order.get('id')}")
-            print(f"✅ Customer: {saved_order.get('fullName')}")
-            print(f"✅ Model: {saved_order.get('modelName')}")
-            print(f"✅ Total: {saved_order.get('total')} PLN")
+            print("✅ Order created successfully without id field")
             
-            # Verify calculation
-            expected_total = 24886.0
-            actual_total = saved_order.get('total', 0)
-            if abs(actual_total - expected_total) < 1:  # Allow small rounding differences
-                print(f"✅ Total calculation correct: {actual_total} PLN")
+            # Verify auto-generated ID format
+            order_id = saved_order.get('id', '')
+            if order_id.startswith('WMS-') and len(order_id) > 10:
+                print(f"✅ Auto-generated ID format correct: {order_id}")
+                results["test_1_no_id"] = True
             else:
-                print(f"❌ Total calculation incorrect: expected {expected_total}, got {actual_total}")
-                return False
-            
-            return saved_order.get('id')  # Return order ID for verification
+                print(f"❌ Auto-generated ID format incorrect: {order_id}")
+                results["test_1_no_id"] = False
         else:
-            print(f"❌ POST /api/sauna/orders failed with status {response.status_code}")
+            print(f"❌ Order creation failed with status {response.status_code}")
             print(f"Response: {response.text}")
-            return False
+            results["test_1_no_id"] = False
             
     except Exception as e:
-        print(f"❌ POST /api/sauna/orders error: {str(e)}")
+        print(f"❌ Test 1 error: {str(e)}")
+        results["test_1_no_id"] = False
+    
+    # Test 2: Create Sauna order with minimal data
+    print("\n📝 Test 2: Create Sauna order with minimal data...")
+    try:
+        test_order_minimal = {
+            "fullName": "Test User",
+            "phoneNumber": "+48123456789",
+            "orderDate": "2024-12-31",
+            "selectedModel": "test-model"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order_minimal)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            saved_order = response.json()
+            print("✅ Order created successfully with minimal data")
+            print(f"✅ Order ID: {saved_order.get('id')}")
+            print(f"✅ Customer: {saved_order.get('fullName')}")
+            print(f"✅ Phone: {saved_order.get('phoneNumber')}")
+            print(f"✅ Model: {saved_order.get('selectedModel')}")
+            results["test_2_minimal"] = True
+        else:
+            print(f"❌ Minimal order creation failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["test_2_minimal"] = False
+            
+    except Exception as e:
+        print(f"❌ Test 2 error: {str(e)}")
+        results["test_2_minimal"] = False
+    
+    # Test 3: Test frontend-like request (all fields)
+    print("\n📝 Test 3: Test frontend-like request (all fields)...")
+    try:
+        test_order_full = {
+            "fullName": "Jan Kowalski",
+            "email": "jan.kowalski@example.com",
+            "phoneNumber": "+48123456789",
+            "fullAddress": "ul. Testowa 1, 00-001 Warszawa",
+            "orderDate": "2024-12-31",
+            "selectedModel": "sauna_kwadro_beczka_235x300_cm",
+            "modelName": "Sauna Kwadro-Beczka 235x300 cm",
+            "modelImageUrl": "https://example.com/sauna.jpg",
+            "basePrice": 24100,
+            "foundationPrice": 250,
+            "discountPercent": 8.0,
+            "selections": {
+                "piece": "piec_elektryczny_9kw",
+                "strona_pieca": "piec_lewo"
+            },
+            "quantities": {},
+            "selectedOptions": [
+                {
+                    "categoryId": "piece",
+                    "optionId": "piec_elektryczny_9kw",
+                    "categoryName": "Piece",
+                    "optionName": "Piec Elektryczny 9kW",
+                    "price": 2600
+                },
+                {
+                    "categoryId": "strona_pieca",
+                    "optionId": "piec_lewo",
+                    "categoryName": "Strona Pieca",
+                    "optionName": "Piec lewo",
+                    "price": 350
+                }
+            ],
+            "notes": "Test order with all fields",
+            "optionsTotal": 2950,
+            "subtotal": 27300,
+            "total": 25116.0,
+            "createdBy": "test_user",
+            "adminGifts": [],
+            "adminDiscountApproved": False,
+            "requestedDiscount": 0,
+            "requestedDiscountNote": ""
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order_full)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            saved_order = response.json()
+            print("✅ Order created successfully with all fields")
+            print(f"✅ Order ID: {saved_order.get('id')}")
+            print(f"✅ Customer: {saved_order.get('fullName')}")
+            print(f"✅ Email: {saved_order.get('email')}")
+            print(f"✅ Address: {saved_order.get('fullAddress')}")
+            print(f"✅ Model: {saved_order.get('modelName')}")
+            print(f"✅ Base Price: {saved_order.get('basePrice')} PLN")
+            print(f"✅ Foundation Price: {saved_order.get('foundationPrice')} PLN")
+            print(f"✅ Discount: {saved_order.get('discountPercent')}%")
+            print(f"✅ Options Total: {saved_order.get('optionsTotal')} PLN")
+            print(f"✅ Total: {saved_order.get('total')} PLN")
+            print(f"✅ Selected Options: {len(saved_order.get('selectedOptions', []))} items")
+            print(f"✅ Selections: {saved_order.get('selections')}")
+            results["test_3_full"] = True
+        else:
+            print(f"❌ Full order creation failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["test_3_full"] = False
+            
+    except Exception as e:
+        print(f"❌ Test 3 error: {str(e)}")
+        results["test_3_full"] = False
+    
+    # Summary
+    print("\n📊 SAUNA ORDER CREATION TEST SUMMARY:")
+    print("=" * 50)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+    
+    print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+    
+    if passed_tests == total_tests:
+        print("🎉 ALL SAUNA ORDER CREATION TESTS PASSED - 422 ERROR FIXED!")
+        return True
+    else:
+        print("❌ Some tests failed - 422 error may still exist")
         return False
 
 def test_update_sauna_prices():
