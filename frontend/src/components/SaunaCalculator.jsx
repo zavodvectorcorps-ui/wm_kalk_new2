@@ -64,6 +64,9 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
   const [editOrderId, setEditOrderId] = useState(null);
   const [adminGifts, setAdminGifts] = useState([]);
   const [adminDiscountApproved, setAdminDiscountApproved] = useState(false);
+  // Manager requested discount
+  const [requestedDiscount, setRequestedDiscount] = useState(0);
+  const [requestedDiscountNote, setRequestedDiscountNote] = useState('');
   
   const isAdminUser = isAdmin && isAdmin();
   
