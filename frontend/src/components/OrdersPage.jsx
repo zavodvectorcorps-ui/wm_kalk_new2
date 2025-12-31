@@ -33,6 +33,14 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
   // Edit Modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
+  
+  // Date filter state
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
 
   const isSauna = calculatorType === 'sauna';
 
