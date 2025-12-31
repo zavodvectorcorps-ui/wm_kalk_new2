@@ -263,11 +263,30 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       });
     }
     
-    // Sort by date - newest first
+    // Sort by creation time - newest first
+    // Order ID format: WMS-DD-MM-YYYY-HHMMSS or UUID
     result.sort((a, b) => {
-      const dateA = new Date(a.orderDate || a.createdAt || 0);
-      const dateB = new Date(b.orderDate || b.createdAt || 0);
-      return dateB - dateA;
+      // Try to extract timestamp from order ID (format: WMS-DD-MM-YYYY-HHMMSS)
+      const extractTimestamp = (order) => {
+        const id = order.id || '';
+        // Check for WMS/WMB format: WMS-31-12-2025-161128
+        const match = id.match(/WM[SB]-(\d{2})-(\d{2})-(\d{4})-(\d{6})/);
+        if (match) {
+          const [, day, month, year, time] = match;
+          const hours = time.substring(0, 2);
+          const minutes = time.substring(2, 4);
+          const seconds = time.substring(4, 6);
+          return new Date(`${year}-${month}-${day}T${hours}:${minutes}:${seconds}`).getTime();
+        }
+        // Fallback to createdAt or orderDate
+        if (order.createdAt) return new Date(order.createdAt).getTime();
+        if (order.orderDate) return new Date(order.orderDate).getTime();
+        return 0;
+      };
+      
+      const timeA = extractTimestamp(a);
+      const timeB = extractTimestamp(b);
+      return timeB - timeA; // Newest first
     });
     
     return result;
