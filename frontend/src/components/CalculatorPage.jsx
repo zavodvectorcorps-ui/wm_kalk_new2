@@ -943,16 +943,30 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                       <Save className="h-4 w-4 mr-2" />
                     </>
                   )}
-                  {lang === 'pl' ? 'Zapisz i pobierz PDF' : 'Сохранить и скачать PDF'}
+                  {isEditMode 
+                    ? (lang === 'pl' ? 'Zapisz zmiany i pobierz PDF' : 'Сохранить изменения и скачать PDF')
+                    : (lang === 'pl' ? 'Zapisz i pobierz PDF' : 'Сохранить и скачать PDF')
+                  }
                 </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleClear}
-                  className="w-full"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  {t('balia.clear')}
-                </Button>
+                {isEditMode ? (
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    className="w-full"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    {lang === 'pl' ? 'Anuluj edycję' : 'Отменить редактирование'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    onClick={handleClear}
+                    className="w-full"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    {t('balia.clear')}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
