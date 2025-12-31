@@ -549,14 +549,16 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     elements.append(Spacer(1, 10))
     
     # ========== MODEL SECTION ==========
-    elements.append(Paragraph('MODEL', section_title_style))
+    elements.append(Paragraph('MODEL I ŁAWKI', section_title_style))
     elements.append(Spacer(1, 4))
     elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
     elements.append(Spacer(1, 4))
     
     # Model info with image if available
-    model_text = Paragraph(f'<b>{request.modelName or "-"}</b>', ParagraphStyle('Model', fontName='DejaVuSans-Bold', fontSize=12))
-    model_price = Paragraph(f'<b><font color="#97724E">{request.basePrice:,} PLN</font></b>'.replace(',', ' '), 
+    model_name = request.modelName or "-"
+    model_price_val = request.basePrice or 0
+    model_text = Paragraph(f'<b>{model_name}</b>', ParagraphStyle('Model', fontName='DejaVuSans-Bold', fontSize=12))
+    model_price = Paragraph(f'<b><font color="#97724E">{model_price_val:,} PLN</font></b>'.replace(',', ' '), 
                  ParagraphStyle('Price', fontName='DejaVuSans-Bold', fontSize=12, alignment=TA_RIGHT))
     
     # ========== BENCH IMAGE SECTION - Get bench data first ==========
