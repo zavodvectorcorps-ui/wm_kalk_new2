@@ -472,6 +472,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
       notes: '',
     });
     setDiscountPercent(0);
+    setAdminGifts([]);
+    setAdminDiscountApproved(false);
   };
 
   const getOptionName = (option) => {
@@ -497,6 +499,24 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   return (
     <TooltipProvider delayDuration={200}>
     <div className="container mx-auto px-4 py-6 max-w-7xl">
+      {/* Edit Mode Banner */}
+      {isEditMode && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Edit className="h-5 w-5 text-blue-600" />
+            <span className="font-medium text-blue-800">
+              {lang === 'pl' 
+                ? `Edycja zamówienia: ${editOrderId}` 
+                : `Редактирование заказа: ${editOrderId}`}
+            </span>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+            <X className="h-4 w-4 mr-1" />
+            {lang === 'pl' ? 'Anuluj' : 'Отмена'}
+          </Button>
+        </div>
+      )}
+      
       <h1 className="text-2xl font-bold text-blue-800 mb-6 flex items-center gap-2">
         <Droplets className="h-6 w-6" />
         {t('balia.title')}
