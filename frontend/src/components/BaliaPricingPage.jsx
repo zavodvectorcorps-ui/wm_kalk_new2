@@ -713,8 +713,9 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
         body: formDataUpload
       });
       const data = await response.json();
-      // Store only relative path, not full URL
-      setFormData(prev => ({ ...prev, imageUrl: data.url }));
+      // Save FULL URL with domain (like in Sauna)
+      const fullUrl = `${API_URL}${data.url}`;
+      setFormData(prev => ({ ...prev, imageUrl: fullUrl }));
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
@@ -880,8 +881,9 @@ const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, tx
         body: formDataUpload
       });
       const data = await response.json();
-      // Store only relative path, not full URL
-      setFormData(prev => ({ ...prev, imageUrl: data.url }));
+      // Save FULL URL with domain (like in Sauna)
+      const fullUrl = `${API_URL}${data.url}`;
+      setFormData(prev => ({ ...prev, imageUrl: fullUrl }));
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
