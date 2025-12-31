@@ -146,6 +146,8 @@ class Order(BaseModel):
     adminDiscountApproved: Optional[bool] = False
     adminDiscountApprovedBy: Optional[str] = None
     adminDiscountApprovedAt: Optional[str] = None
+    # Admin gifts - list of option IDs that are gifts
+    adminGifts: Optional[List[str]] = []
     # Legacy fields for backward compatibility
     shellModel: Optional[str] = None
     woodType: Optional[str] = None
