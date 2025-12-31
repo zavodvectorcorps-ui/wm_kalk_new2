@@ -46,6 +46,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   // Admin features
   const [adminGifts, setAdminGifts] = useState([]);
   const [adminDiscountApproved, setAdminDiscountApproved] = useState(false);
+  // Manager requested discount (visible to admin)
+  const [requestedDiscount, setRequestedDiscount] = useState(0);
+  const [requestedDiscountNote, setRequestedDiscountNote] = useState('');
   
   const [formData, setFormData] = useState({
     fullName: '',
