@@ -392,7 +392,7 @@ export const BaliaPricingPage = () => {
                       {model.imageUrl ? (
                         <div className="relative">
                           <img 
-                            src={getFullImageUrl(model.imageUrl, true)} 
+                            src={getFullImageUrl(model.imageUrl)} 
                             alt={getName(model)} 
                             className="w-full h-32 object-contain rounded bg-gray-50"
                           />
@@ -489,7 +489,7 @@ export const BaliaPricingPage = () => {
                       <div className="flex items-center gap-3">
                         {category.imageUrl && (
                           <img 
-                            src={getFullImageUrl(category.imageUrl, true)} 
+                            src={getFullImageUrl(category.imageUrl)} 
                             alt={getName(category)}
                             className="w-12 h-12 object-contain rounded"
                           />
@@ -566,7 +566,7 @@ export const BaliaPricingPage = () => {
                               <div className="flex items-center gap-2">
                                 {option.imageUrl && (
                                   <img 
-                                    src={getFullImageUrl(option.imageUrl, true)} 
+                                    src={getFullImageUrl(option.imageUrl)} 
                                     alt={getName(option)}
                                     className="w-8 h-8 object-contain rounded"
                                   />
@@ -902,7 +902,7 @@ const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, tx
               {formData.imageUrl ? (
                 <div className="relative">
                   <img 
-                    src={getFullImageUrl(formData.imageUrl, true)} 
+                    src={getFullImageUrl(formData.imageUrl)} 
                     alt="Option"
                     className="w-16 h-16 object-contain rounded border bg-gray-50"
                   />
