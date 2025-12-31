@@ -283,7 +283,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
     
     setSaving(true);
     try {
-      // Prepare selected options
+      // Prepare selected options - include ALL selected options, not just those with price > 0
       const selectedOptions = [];
       prices.categories?.forEach(cat => {
         const selection = formData.selections[cat.id];
@@ -293,10 +293,12 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
               const opt = cat.options?.find(o => o.id === optId);
               if (opt) {
                 selectedOptions.push({
+                  id: opt.id,
                   categoryId: cat.id,
                   categoryName: cat[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || cat.name,
                   optionId: opt.id,
                   optionName: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
+                  name: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
                   price: opt.price
                 });
               }
@@ -304,21 +306,33 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
           });
         } else if (selection) {
           const opt = cat.options?.find(o => o.id === selection);
-          if (opt && opt.price > 0) {
+          if (opt) {
             selectedOptions.push({
+              id: opt.id,
               categoryId: cat.id,
               categoryName: cat[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || cat.name,
               optionId: opt.id,
               optionName: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
+              name: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
               price: opt.price
             });
           }
         }
       });
 
-      // Generate order ID in format WMB-DD-MM-YYYY-HHMMSS
-      const now = new Date();
-      const orderId = `WMB-${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+      // Use existing order ID in edit mode, otherwise generate new one
+      const orderId = isEditMode && editOrderId 
+        ? editOrderId 
+        : `WMB-${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}-${String(new Date().getHours()).padStart(2, '0')}${String(new Date().getMinutes()).padStart(2, '0')}${String(new Date().getSeconds()).padStart(2, '0')}`;
+
+      // Calculate total considering admin gifts
+      const subtotal = calculateSubtotal();
+      const giftsTotal = selectedOptions
+        .filter(opt => adminGifts.includes(opt.id) || adminGifts.includes(opt.optionId))
+        .reduce((sum, opt) => sum + (opt.price || 0), 0);
+      const discountableAmount = subtotal - giftsTotal;
+      const discountAmount = discountableAmount * (discountPercent / 100);
+      const total = discountableAmount - discountAmount;
 
       const order = {
         id: orderId,
@@ -329,24 +343,35 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         modelId: selectedModel?.id,
         modelName: selectedModel?.[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || selectedModel?.name,
         modelPrice: selectedModel?.basePrice || 0,
+        modelImageUrl: getImageUrl(selectedModel?.imageUrl) || '',
         selections: formData.selections,
         selectedOptions,
         notes: formData.notes,
         discountPercent: discountPercent,
-        subtotal: calculateSubtotal(),
-        total: calculateTotal(),
+        subtotal: subtotal,
+        total: total,
         currency: prices.currency || 'EUR',
-        createdAt: new Date().toISOString(),
+        createdAt: isEditMode ? (editingOrder?.createdAt || new Date().toISOString()) : new Date().toISOString(),
         createdBy: user?.username || '',
+        // Admin fields
+        adminGifts: adminGifts,
+        adminDiscountApproved: discountPercent > 10 && isAdminUser ? adminDiscountApproved : false,
+        adminDiscountApprovedBy: discountPercent > 10 && adminDiscountApproved ? user?.username : '',
+        adminDiscountApprovedAt: discountPercent > 10 && adminDiscountApproved ? new Date().toISOString() : '',
       };
 
-      // Step 1: Save the order
-      await axios.post(`${API_URL}/api/orders`, order);
-      toast.success(t('balia.saved'));
+      // Save order - PUT for edit, POST for new
+      if (isEditMode) {
+        await axios.put(`${API_URL}/api/orders/${orderId}`, order);
+        toast.success(lang === 'pl' ? 'Zamówienie zaktualizowane!' : 'Заказ обновлён!');
+      } else {
+        await axios.post(`${API_URL}/api/orders`, order);
+        toast.success(t('balia.saved'));
+      }
 
-      // Step 2: Generate PDF with the same order ID
+      // Generate PDF
       const pdfRequest = {
-        orderId: orderId,  // Pass order ID for filename
+        orderId: orderId,
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
         fullAddress: formData.fullAddress,
@@ -359,11 +384,12 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         selectedOptions,
         notes: formData.notes,
         discountPercent: discountPercent,
-        subtotal: calculateSubtotal(),
-        total: calculateTotal(),
+        subtotal: subtotal,
+        total: total,
         currency: prices.currency || 'EUR',
         language: 'pl',
-        type: 'customer'
+        type: 'customer',
+        adminGifts: adminGifts,
       };
 
       const response = await axios.post(`${API_URL}/api/generate-pdf`, pdfRequest, {
