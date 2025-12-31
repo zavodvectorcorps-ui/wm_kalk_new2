@@ -457,14 +457,14 @@ export const CalculatorPage = () => {
                         </TooltipContent>
                       </Tooltip>
                     )}
-                    <div className="w-full h-32 rounded mb-2 bg-gray-100 overflow-hidden">
+                    <div className="w-full h-32 rounded mb-2 bg-gray-100 overflow-hidden relative">
                       {model.imageUrl ? (
                         <SimpleImage 
                           src={getImageUrl(model.imageUrl)} 
                           alt={getModelName(model)}
                           className="w-full h-full object-contain"
                           fallback={
-                            <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-full h-full flex items-center justify-center absolute inset-0">
                               <Droplets className="h-8 w-8 text-gray-400" />
                             </div>
                           }
