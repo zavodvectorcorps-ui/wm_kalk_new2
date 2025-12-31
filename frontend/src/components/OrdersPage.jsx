@@ -556,6 +556,36 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                   ))}
                 </TableBody>
               </Table>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 px-2">
+                  <div className="text-sm text-muted-foreground">
+                    {txt.showing} {startIndex + 1}-{Math.min(endIndex, filteredAndSortedOrders.length)} {txt.of} {filteredAndSortedOrders.length} {txt.ordersCount}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm px-2">
+                      {txt.page} {currentPage} {txt.of} {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
