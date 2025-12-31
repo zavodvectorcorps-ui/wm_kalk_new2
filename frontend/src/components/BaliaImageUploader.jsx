@@ -84,20 +84,36 @@ export const BaliaImageUploader = ({
       const formData = new FormData();
       formData.append('file', croppedBlob, 'cropped-image.jpg');
 
+      console.log('Uploading to:', `${API_URL}/api/upload/image`);
+      
       const response = await fetch(`${API_URL}/api/upload/image`, {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Upload failed');
+      console.log('Upload response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Upload failed:', response.status, errorText);
+        throw new Error(`Upload failed: ${response.status}`);
+      }
 
       const data = await response.json();
+      console.log('Upload successful, URL:', data.url);
+      
+      // Verify the URL is valid
+      if (!data.url || !data.url.startsWith('/api/uploads/')) {
+        console.error('Invalid URL returned:', data.url);
+        throw new Error('Invalid URL returned from server');
+      }
+      
       onChange(data.url);
       toast.success(txt.optimized);
       setActiveTab('upload');
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Błąd przesyłania');
+      toast.error(`Błąd przesyłania: ${error.message}`);
     } finally {
       setUploading(false);
       if (imageToEdit) {
