@@ -380,7 +380,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
               <Icon className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
               <p className="text-muted-foreground">{txt.noOrders}</p>
             </div>
-          ) : filteredOrders.length === 0 ? (
+          ) : filteredAndSortedOrders.length === 0 ? (
             <div className="text-center py-12">
               <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
               <p className="text-muted-foreground">{txt.noResults}</p>
@@ -401,7 +401,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order, index) => (
+                  {paginatedOrders.map((order, index) => (
                     <TableRow key={order.id || index}>
                       <TableCell className="font-medium font-mono text-sm">
                         {order.id || '-'}
