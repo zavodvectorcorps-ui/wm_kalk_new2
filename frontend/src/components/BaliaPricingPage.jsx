@@ -904,7 +904,7 @@ const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, tx
               {formData.imageUrl ? (
                 <div className="relative">
                   <img 
-                    src={formData.imageUrl} 
+                    src={getFullImageUrl(formData.imageUrl, true)} 
                     alt="Option"
                     className="w-16 h-16 object-contain rounded border bg-gray-50"
                   />
