@@ -574,6 +574,9 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
         adminDiscountApproved: appliedDiscount > 10 && isAdminUser ? adminDiscountApproved : false,
         adminDiscountApprovedBy: appliedDiscount > 10 && adminDiscountApproved ? user?.username : '',
         adminDiscountApprovedAt: appliedDiscount > 10 && adminDiscountApproved ? new Date().toISOString() : '',
+        // Manager requested discount
+        requestedDiscount: !isAdminUser ? requestedDiscount : 0,
+        requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
       };
 
       let finalOrderId;
