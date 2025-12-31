@@ -516,10 +516,23 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
     try {
       const model = getSelectedModel();
       const subtotal = calculateSubtotal();
-      const total = calculateTotal();
       const selectedOptions = getSelectedOptions();
       
+      // Calculate total considering admin gifts
+      const giftsTotal = selectedOptions
+        .filter(opt => adminGifts.includes(opt.optionId) || adminGifts.includes(opt.id))
+        .reduce((sum, opt) => sum + (opt.totalPrice || opt.price || 0), 0);
+      const discountableAmount = subtotal - giftsTotal;
+      const discountAmount = discountableAmount * (appliedDiscount / 100);
+      const total = discountableAmount - discountAmount;
+      
+      // Use existing order ID in edit mode, otherwise get from server
+      const orderId = isEditMode && editOrderId 
+        ? editOrderId 
+        : null;
+      
       const orderData = {
+        id: orderId,
         fullName: formData.fullName,
         email: formData.email,
         phoneNumber: formData.phoneNumber,
@@ -527,7 +540,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
         orderDate: formData.orderDate,
         selectedModel: formData.selectedModel,
         modelName: model?.name || '',
-        modelImageUrl: model?.imageUrl || '',  // Add model image URL
+        modelImageUrl: model?.imageUrl || '',
         basePrice: model?.basePrice || 0,
         foundationPrice: calculateFoundationPrice(),
         discountPercent: appliedDiscount,
@@ -539,17 +552,30 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
         subtotal: subtotal,
         total: total,
         createdBy: user?.username || '',
+        // Admin fields
+        adminGifts: adminGifts,
+        adminDiscountApproved: appliedDiscount > 10 && isAdminUser ? adminDiscountApproved : false,
+        adminDiscountApprovedBy: appliedDiscount > 10 && adminDiscountApproved ? user?.username : '',
+        adminDiscountApprovedAt: appliedDiscount > 10 && adminDiscountApproved ? new Date().toISOString() : '',
       };
 
-      // 1. Save order and get the order ID
-      const orderResponse = await axios.post(`${API_URL}/api/sauna/orders`, orderData);
-      const orderId = orderResponse.data?.id || '';
-      toast.success(txt.orderSaved);
+      let finalOrderId;
+      
+      // Save order - PUT for edit, POST for new
+      if (isEditMode && editOrderId) {
+        await axios.put(`${API_URL}/api/sauna/orders/${editOrderId}`, orderData);
+        finalOrderId = editOrderId;
+        toast.success(lang === 'pl' ? 'Zamówienie zaktualizowane!' : 'Заказ обновлён!');
+      } else {
+        const orderResponse = await axios.post(`${API_URL}/api/sauna/orders`, orderData);
+        finalOrderId = orderResponse.data?.id || '';
+        toast.success(txt.orderSaved);
+      }
 
-      // 2. Generate PDF with order ID
+      // Generate PDF with order ID
       const pdfData = {
         ...orderData,
-        orderId: orderId,
+        orderId: finalOrderId,
         language: 'pl',
         categories: prices.categories,
       };
@@ -568,6 +594,17 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
       link.remove();
 
       toast.success(txt.pdfGenerated);
+
+      // If in edit mode, exit edit mode and notify parent
+      if (isEditMode) {
+        setIsEditMode(false);
+        setEditOrderId(null);
+        setAdminGifts([]);
+        setAdminDiscountApproved(false);
+        if (onEditComplete) {
+          onEditComplete();
+        }
+      }
     } catch (error) {
       console.error('Error:', error);
       toast.error(t('error'));
