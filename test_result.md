@@ -338,3 +338,30 @@ The Order Full Edit functionality is **WORKING CORRECTLY** with all major featur
   message: "SAUNA ORDER CREATION 422 ERROR FIX TESTING COMPLETED (Dec 31, 2025): ✅ ALL TESTS PASSED (3/3). Test 1: Order creation without id field - auto-generated ID format WMS-DD-MM-YYYY-HHMMSS working correctly. Test 2: Order creation with minimal required data (fullName, phoneNumber, orderDate, selectedModel) - successful 200 OK response. Test 3: Order creation with all frontend fields including selectedOptions, selections, pricing data - successful 200 OK response. The 422 Unprocessable Content error has been FIXED - all order creation scenarios now work correctly."
 - agent: "testing"
   message: "SAUNA PDF NEW LAYOUT AND GIFT DISPLAY TESTING COMPLETED (Dec 31, 2025): ✅ ALL TESTS PASSED (3/3). Test 1: Sauna PDF with Model and Bench side by side - PDF generated successfully (854,277 bytes), model and bench appear in same section as designed. Test 2: Sauna PDF with Admin Gift option - PDF generated successfully (854,366 bytes), gift shows strikethrough price and 'Prezent od WM-Group' label. Test 3: Balia PDF with Admin Gift option - PDF generated successfully (45,772 bytes), gift formatting working correctly. All PDF generation endpoints working correctly with new layout and gift display features."
+
+## Fix for Requested Discount Lost on Edit (Dec 31, 2025 - Session 2)
+
+### Issue Description:
+When a manager creates an order with a "requested discount" and then clicks the edit button to modify the order, the requestedDiscount and requestedDiscountNote values were being reset/lost instead of being loaded from the saved order.
+
+### Root Cause:
+In both `CalculatorPage.jsx` and `SaunaCalculator.jsx`, the `useEffect` that loads order data for editing did NOT include lines to set `requestedDiscount` and `requestedDiscountNote` states from the `editingOrder` object.
+
+### Fix Applied:
+Added the following lines to both calculator components' edit mode loading `useEffect`:
+```javascript
+// Load requested discount from original order (important for managers editing their orders)
+setRequestedDiscount(editingOrder.requestedDiscount || 0);
+setRequestedDiscountNote(editingOrder.requestedDiscountNote || '');
+```
+
+### Files Modified:
+- `/app/frontend/src/components/CalculatorPage.jsx`
+- `/app/frontend/src/components/SaunaCalculator.jsx`
+
+### Testing Required:
+1. Create an order as a manager with a requested discount (e.g., 15%)
+2. Save the order
+3. Click the "Edit in calculator" button to edit the order
+4. Verify that the requestedDiscount value is preserved in the edit mode
+
