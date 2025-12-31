@@ -725,12 +725,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 name = f"{name} (×{quantity})"
             
             if is_gift:
-                name = f"🎁 {name} (Prezent)"
-                price_str = "0 PLN"
+                # Show original price crossed out + gift label
+                price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
             else:
                 price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
             
-            options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift})
+            options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift, 'original_price': total_price})
     else:
         # FALLBACK: Use categories + selections (from calculator direct generation)
         for category in request.categories:
