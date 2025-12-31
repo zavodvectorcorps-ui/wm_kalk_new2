@@ -42,6 +42,7 @@ export const OrderPreviewModal = ({
       promotionGift: 'Подарок',
       adminDiscountApproved: 'Скидка одобрена администратором',
       approvedBy: 'Одобрил',
+      giftFromAdmin: 'Подарок от администратора',
     },
     pl: {
       orderDetails: 'Szczegóły zamówienia',
