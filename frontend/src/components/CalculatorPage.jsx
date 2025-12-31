@@ -709,12 +709,12 @@ export const CalculatorPage = () => {
                       <Input
                         type="number"
                         min="0"
-                        max="20"
+                        max="10"
                         value={discountPercent}
-                        onChange={(e) => setDiscountPercent(Math.max(0, Math.min(20, parseFloat(e.target.value) || 0)))}
+                        onChange={(e) => setDiscountPercent(Math.max(0, Math.min(10, parseFloat(e.target.value) || 0)))}
                         className="w-20 h-8"
                       />
-                      <span className="text-sm text-muted-foreground">% (max 20)</span>
+                      <span className="text-sm text-muted-foreground">% (max 10)</span>
                     </div>
                     {discountPercent > 0 && (
                       <div className="text-sm text-green-700 space-y-1">
