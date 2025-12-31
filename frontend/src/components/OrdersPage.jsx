@@ -53,7 +53,8 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       preview: 'Просмотр',
       edit: 'Быстрое редактирование',
       editInCalculator: 'Редактировать в калькуляторе',
-      adminDiscount: 'Скидка администратора',
+      adminDiscount: 'Скидка одобрена администратором',
+      requestedDiscount: 'Запрошена скидка',
     },
     pl: {
       ordersList: isSauna ? 'Zamówienia saun' : 'Lista zamówień',
@@ -70,7 +71,8 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       preview: 'Podgląd',
       edit: 'Szybka edycja',
       editInCalculator: 'Edytuj w kalkulatorze',
-      adminDiscount: 'Rabat administratora',
+      adminDiscount: 'Rabat zatwierdzony przez administratora',
+      requestedDiscount: 'Wnioskowany rabat',
     },
   };
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
