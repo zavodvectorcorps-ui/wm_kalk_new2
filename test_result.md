@@ -365,3 +365,62 @@ setRequestedDiscountNote(editingOrder.requestedDiscountNote || '');
 3. Click the "Edit in calculator" button to edit the order
 4. Verify that the requestedDiscount value is preserved in the edit mode
 
+### Backend Testing Results (Dec 31, 2025 - Session 2):
+
+#### Test Environment:
+- Backend URL: https://balia-pdf-fix.preview.emergentagent.com/api
+- Test Date: December 31, 2025
+
+#### Test Scenarios Completed:
+
+1. **✅ Create Sauna Order with Requested Discount as Manager:**
+   - POST /api/sauna/orders with requestedDiscount: 15 and requestedDiscountNote
+   - Order created successfully with ID: WMS-31-12-2025-161139
+   - requestedDiscount: 15.0 properly saved
+   - requestedDiscountNote: "Klient prosi o specjalną zniżkę - długoletni klient" properly saved
+
+2. **✅ Verify Requested Discount is Saved:**
+   - GET /api/sauna/orders/{order_id} successfully retrieved order
+   - requestedDiscount = 15 - VERIFIED CORRECT
+   - requestedDiscountNote contains correct message - VERIFIED CORRECT
+   - Backend properly persists requested discount data
+
+3. **✅ Test Sauna PDF Generation with Model and Bench Images:**
+   - POST /api/sauna/generate-pdf with modelImageUrl and bench imageUrl
+   - PDF generated successfully (1,122,275 bytes)
+   - PDF size > 500KB indicates images are included
+   - Content-Type: application/pdf verified
+
+#### Backend API Endpoints Tested:
+
+| Endpoint | Method | Status | Notes |
+|----------|--------|--------|-------|
+| /api/sauna/orders | POST | ✅ PASS | Creates orders with requestedDiscount fields |
+| /api/sauna/orders/{id} | GET | ✅ PASS | Retrieves orders with requestedDiscount preserved |
+| /api/sauna/generate-pdf | POST | ✅ PASS | Generates PDF with model and bench images |
+
+#### Key Findings:
+
+1. **Backend Data Persistence:**
+   - ✅ requestedDiscount and requestedDiscountNote fields are properly saved to database
+   - ✅ Values are correctly retrieved when fetching order data
+   - ✅ No data loss occurs during order creation or retrieval
+
+2. **PDF Generation:**
+   - ✅ PDF generation with model and bench images working correctly
+   - ✅ Large PDF size (>1MB) indicates images are successfully included
+   - ✅ Backend handles external image URLs properly
+
+3. **Bug Fix Verification:**
+   - ✅ Backend APIs support the requested discount functionality correctly
+   - ✅ The bug fix for "Requested Discount Lost on Edit" is VERIFIED at backend level
+   - ✅ Frontend fix should work correctly with proper backend data persistence
+
+#### Summary:
+**✅ CRITICAL BUG FIX VERIFICATION: ALL BACKEND TESTS PASSED**
+- Requested discount values are properly saved and retrieved from backend
+- PDF generation with model and bench images working correctly
+- The backend supports the bug fix implementation properly
+
+**Note:** Frontend testing (Admin Edit Modal) was excluded as per testing instructions. The backend verification confirms that the data persistence layer is working correctly to support the frontend bug fix.
+
