@@ -314,6 +314,45 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     import base64
     from PIL import Image as PILImage
     
+    def optimize_image_for_pdf(img_data: bytes, max_size: int = 800, quality: int = 75) -> bytes:
+        """Optimize image for PDF: resize and compress to reduce file size"""
+        try:
+            img = PILImage.open(io.BytesIO(img_data))
+            
+            # Convert to RGB if needed
+            if img.mode in ('RGBA', 'P'):
+                background = PILImage.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                if img.mode == 'RGBA':
+                    background.paste(img, mask=img.split()[3])
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Resize if too large
+            width, height = img.size
+            if width > max_size or height > max_size:
+                ratio = min(max_size / width, max_size / height)
+                new_width = int(width * ratio)
+                new_height = int(height * ratio)
+                img = img.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
+            
+            # Compress as JPEG
+            output = io.BytesIO()
+            img.save(output, format='JPEG', quality=quality, optimize=True)
+            optimized = output.getvalue()
+            
+            original_size = len(img_data)
+            new_size = len(optimized)
+            if new_size < original_size:
+                logger.info(f"Optimized image: {original_size/1024:.1f}KB -> {new_size/1024:.1f}KB")
+                return optimized
+            return img_data
+        except Exception as e:
+            logger.warning(f"Could not optimize image: {e}")
+            return img_data
+    
     async def load_image_from_mongodb(image_url: str) -> bytes:
         """Load image from MongoDB by extracting ID from URL"""
         if not image_url or '/api/uploads/' not in image_url:
