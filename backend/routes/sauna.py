@@ -685,9 +685,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 }
             )
             
+            with urllib.request.urlopen(req, timeout=10) as response:
+                bench_data = response.read()
+            
+            # Optimize bench image for PDF
+            bench_data = optimize_image_for_pdf(bench_data, max_size=500, quality=70)
+            
             with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-                with urllib.request.urlopen(req, timeout=10) as response:
-                    tmp.write(response.read())
+                tmp.write(bench_data)
                 bench_img = RLImage(tmp.name, width=130, height=95)
         except Exception as e:
             logger.warning(f"Could not load bench image: {e}")
