@@ -724,39 +724,60 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                     </div>
                   ) : category.inputType === 'checkbox' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {category.options?.map(option => (
-                        <div key={option.id} className="flex items-center gap-2">
-                          {option.imageUrl && (
-                            <img 
-                              src={getImageUrl(option.imageUrl)} 
-                              alt={getOptionName(option)}
-                              className="w-8 h-8 object-contain rounded"
-                              loading="eager"
+                      {category.options?.map(option => {
+                        const isSelected = formData.selections[category.id]?.[option.id] || false;
+                        const isGift = adminGifts.includes(option.id);
+                        return (
+                          <div key={option.id} className={`flex items-center gap-2 p-1 rounded ${isGift ? 'bg-emerald-50' : ''}`}>
+                            {option.imageUrl && (
+                              <img 
+                                src={getImageUrl(option.imageUrl)} 
+                                alt={getOptionName(option)}
+                                className="w-8 h-8 object-contain rounded"
+                                loading="eager"
+                              />
+                            )}
+                            <Checkbox
+                              id={option.id}
+                              checked={isSelected}
+                              onCheckedChange={(checked) => handleCheckboxChange(category.id, option.id, checked)}
                             />
-                          )}
-                          <Checkbox
-                            id={option.id}
-                            checked={formData.selections[category.id]?.[option.id] || false}
-                            onCheckedChange={(checked) => handleCheckboxChange(category.id, option.id, checked)}
-                          />
-                          <Label htmlFor={option.id} className="text-sm cursor-pointer flex-1 flex items-center gap-1">
-                            {getOptionName(option)}
-                            {option.hint && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
-                                  {option.hint}
-                                </TooltipContent>
-                              </Tooltip>
+                            <Label htmlFor={option.id} className="text-sm cursor-pointer flex-1 flex items-center gap-1">
+                              {isGift && <Gift className="h-3 w-3 text-emerald-600" />}
+                              {getOptionName(option)}
+                              {option.hint && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
+                                    {option.hint}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {option.price > 0 && (
+                                <span className={`ml-1 ${isGift ? 'line-through text-gray-400' : 'text-blue-600'}`}>
+                                  +{option.price} {prices.currencySymbol}
+                                </span>
+                              )}
+                              {isGift && <span className="text-emerald-600 font-medium ml-1">0 {prices.currencySymbol}</span>}
+                            </Label>
+                            {/* Admin gift button - only in edit mode */}
+                            {isAdminUser && isEditMode && isSelected && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={isGift ? "default" : "ghost"}
+                                className={`h-6 px-2 ${isGift ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
+                                onClick={() => toggleGift(option.id)}
+                                title={isGift ? (lang === 'pl' ? 'Usuń prezent' : 'Убрать подарок') : (lang === 'pl' ? 'Oznacz jako prezent' : 'Сделать подарком')}
+                              >
+                                <Gift className="h-3 w-3" />
+                              </Button>
                             )}
-                            {option.price > 0 && (
-                              <span className="text-blue-600 ml-1">+{option.price} {prices.currencySymbol}</span>
-                            )}
-                          </Label>
-                        </div>
-                      ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="space-y-2">
