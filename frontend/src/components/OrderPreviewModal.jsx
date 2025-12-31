@@ -335,6 +335,18 @@ export const OrderPreviewModal = ({
                   <span className="font-medium">-{formatPrice(discountAmount)}</span>
                 </div>
               )}
+              {/* Admin discount approved badge */}
+              {order.adminDiscountApproved && (
+                <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
+                  <Shield className="h-4 w-4 text-green-600" />
+                  <span className="text-green-700">
+                    {txt.adminDiscountApproved}
+                    {order.adminDiscountApprovedBy && (
+                      <span className="ml-1">({txt.approvedBy}: {order.adminDiscountApprovedBy})</span>
+                    )}
+                  </span>
+                </div>
+              )}
               <Separator />
               <div className="flex justify-between text-xl font-bold pt-2">
                 <span>{txt.total}</span>
