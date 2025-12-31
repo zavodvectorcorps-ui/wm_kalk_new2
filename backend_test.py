@@ -1548,23 +1548,43 @@ def test_pdf_generation_with_model_images():
     print("\n📝 Test 3: Checking backend logs for MongoDB image loading...")
     try:
         import subprocess
-        log_result = subprocess.run(
-            ["tail", "-n", "50", "/var/log/supervisor/backend.out.log"],
-            capture_output=True, text=True, timeout=10
-        )
         
-        if log_result.returncode == 0:
-            log_content = log_result.stdout
-            if "Loaded model image from MongoDB" in log_content:
-                print("✅ Found 'Loaded model image from MongoDB' in backend logs")
-                results["mongodb_log_message"] = True
-            else:
-                print("❌ 'Loaded model image from MongoDB' message not found in logs")
-                print("Recent log entries:")
-                print(log_content[-500:])  # Show last 500 chars
-                results["mongodb_log_message"] = False
+        # Check both output and error logs
+        log_files = ["/var/log/supervisor/backend.out.log", "/var/log/supervisor/backend.err.log"]
+        mongodb_log_found = False
+        
+        for log_file in log_files:
+            try:
+                log_result = subprocess.run(
+                    ["tail", "-n", "100", log_file],
+                    capture_output=True, text=True, timeout=10
+                )
+                
+                if log_result.returncode == 0:
+                    log_content = log_result.stdout
+                    if "Loaded model image from MongoDB" in log_content:
+                        print(f"✅ Found 'Loaded model image from MongoDB' in {log_file}")
+                        mongodb_log_found = True
+                        break
+            except Exception as e:
+                print(f"⚠️ Could not read {log_file}: {e}")
+                continue
+        
+        if mongodb_log_found:
+            results["mongodb_log_message"] = True
         else:
-            print(f"❌ Could not read backend logs: {log_result.stderr}")
+            print("❌ 'Loaded model image from MongoDB' message not found in any log file")
+            # Show recent entries from error log for debugging
+            try:
+                log_result = subprocess.run(
+                    ["tail", "-n", "20", "/var/log/supervisor/backend.err.log"],
+                    capture_output=True, text=True, timeout=10
+                )
+                if log_result.returncode == 0:
+                    print("Recent error log entries:")
+                    print(log_result.stdout[-800:])  # Show last 800 chars
+            except:
+                pass
             results["mongodb_log_message"] = False
             
     except Exception as e:
