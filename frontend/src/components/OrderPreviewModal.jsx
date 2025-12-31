@@ -63,6 +63,7 @@ export const OrderPreviewModal = ({
       included: 'W zestawie',
       adminDiscountApproved: 'Rabat zatwierdzony przez administratora',
       approvedBy: 'Zatwierdził',
+      giftFromAdmin: 'Prezent od administratora',
       promotion: 'Promocja',
       promotionDiscount: 'Rabat',
       promotionGift: 'Prezent',
