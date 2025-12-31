@@ -108,7 +108,6 @@ export const OrderPreviewModal = ({
   const modelPrice = order.modelPrice || order.basePrice || 0;
   const optionsTotal = options.reduce((sum, opt) => sum + (opt.price || 0), 0);
   const discountAmount = order.discountPercent ? (modelPrice + optionsTotal) * order.discountPercent / 100 : 0;
-  const currency = isSauna ? 'PLN' : (order.currency || '€');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
