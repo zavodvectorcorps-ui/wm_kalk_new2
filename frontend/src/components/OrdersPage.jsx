@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { FileDown, Eye, Package, Flame, Search, Trash2, X, FileText, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield, Calculator } from 'lucide-react';
+import { FileDown, Eye, Package, Flame, Search, Trash2, X, FileText, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield, Calculator, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { TechSpecModal } from './tech-spec';
