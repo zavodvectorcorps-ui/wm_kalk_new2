@@ -463,7 +463,7 @@ export const CalculatorPage = () => {
                 <div key={category.id} className="border-b pb-4 last:border-b-0">
                   <div className="flex items-center gap-3 mb-3">
                     {category.imageUrl && (
-                      <SimpleImage 
+                      <img 
                         src={getImageUrl(category.imageUrl)} 
                         alt={getCategoryName(category)}
                         className="w-10 h-10 object-contain rounded"
