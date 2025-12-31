@@ -835,6 +835,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
                             src={m.imageUrl} 
                             alt={m.name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                       )}
