@@ -394,10 +394,9 @@ export const BaliaPricingPage = () => {
                       {model.imageUrl ? (
                         <div className="relative">
                           <img 
-                            src={getFullImageUrl(model.imageUrl)} 
+                            src={getFullImageUrl(model.imageUrl, true)} 
                             alt={getName(model)} 
                             className="w-full h-32 object-contain rounded bg-gray-50"
-                            onError={(e) => e.target.style.display = 'none'}
                           />
                           {canEdit() && (
                             <Button
