@@ -3161,6 +3161,60 @@ def test_techspec_mapping_flow():
         tech_spec_response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
         if tech_spec_response.status_code != 200:
             print(f"❌ Failed to get tech spec categories: {tech_spec_response.status_code}")
+def run_sauna_pdf_layout_and_gift_tests():
+    """Run the specific tests requested in the review: Sauna PDF with new layout and gift display"""
+    print("\n🎯 SAUNA PDF GENERATION WITH NEW LAYOUT AND GIFT DISPLAY TESTS")
+    print("=" * 80)
+    print("Testing as specified in review request:")
+    print("1. Sauna PDF with Model and Bench side by side")
+    print("2. Sauna PDF with Gift option (admin gift)")
+    print("3. Balia PDF with Gift option")
+    print("=" * 80)
+    
+    results = {}
+    
+    # Test 1: Sauna PDF with Model and Bench side by side
+    print("\n📝 TEST 1: Sauna PDF with Model and Bench side by side")
+    results["sauna_model_bench"] = test_sauna_pdf_with_model_and_bench()
+    
+    # Test 2: Sauna PDF with Gift option (admin gift)
+    print("\n📝 TEST 2: Sauna PDF with Gift option (admin gift)")
+    results["sauna_admin_gift"] = test_sauna_pdf_with_admin_gift()
+    
+    # Test 3: Balia PDF with Gift option
+    print("\n📝 TEST 3: Balia PDF with Gift option")
+    results["balia_admin_gift"] = test_balia_pdf_with_admin_gift()
+    
+    # Summary
+    print("\n📊 TEST SUMMARY:")
+    print("=" * 50)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+    
+    print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+    
+    if passed_tests == total_tests:
+        print("🎉 ALL SAUNA PDF LAYOUT AND GIFT TESTS PASSED!")
+        return True
+    else:
+        print("❌ Some tests failed")
+        return False
+
+if __name__ == "__main__":
+    print("🚀 Starting Sauna PDF Layout and Gift Display Tests...")
+    success = run_sauna_pdf_layout_and_gift_tests()
+    
+    if success:
+        print("\n✅ All tests completed successfully!")
+        sys.exit(0)
+    else:
+        print("\n❌ Some tests failed!")
+        sys.exit(1)
             return False
         
         tech_spec_data = tech_spec_response.json()
