@@ -22,8 +22,8 @@ import { BaliaImageUploader } from './BaliaImageUploader';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// Helper to get full image URL from relative path
-const getFullImageUrl = (url) => {
+// Helper to get full image URL from relative path with cache buster
+const getFullImageUrl = (url, addCacheBuster = false) => {
   if (!url) return '';
   // If it's already an absolute URL, return as-is
   if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -31,7 +31,9 @@ const getFullImageUrl = (url) => {
   }
   // If it's a relative path starting with /api/, prepend API_URL
   if (url.startsWith('/api/')) {
-    return `${API_URL}${url}`;
+    const fullUrl = `${API_URL}${url}`;
+    // Add cache buster if requested (useful after upload)
+    return addCacheBuster ? `${fullUrl}?t=${Date.now()}` : fullUrl;
   }
   return url;
 };
