@@ -159,7 +159,8 @@ export const BaliaImageUploader = ({
     return url;
   };
 
-  const isOptimized = value?.includes('/api/uploads/');
+  // Check if image is uploaded (either new full URL or legacy relative path)
+  const isOptimized = value?.includes('/api/uploads/') || (value?.startsWith('http') && value?.includes('/api/uploads/'));
 
   if (compact) {
     return (
