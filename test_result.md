@@ -46,6 +46,21 @@
    - PDF generated successfully (343,259 bytes)
    - Large PDF size suggests images and complex formatting included
 
+7. **✅ PDF Generation with Model Images (NEW):**
+   - Balia PDF with MongoDB model image (full URL): ✅ PASS
+     - modelImageUrl: "https://order-edit-master.preview.emergentagent.com/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg"
+     - PDF generated successfully (132,582 bytes)
+     - PDF size > 100KB indicates image is included
+   - Balia PDF with relative MongoDB path: ✅ PASS
+     - modelImageUrl: "/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg"
+     - PDF generated successfully (132,728 bytes)
+   - Backend logs verification: ✅ PASS
+     - "Loaded model image from MongoDB" message found in backend error logs
+   - Sauna PDF with external URL: ✅ PASS
+     - modelImageUrl: "https://i.imgur.com/hzOjw2G.jpeg"
+     - PDF generated successfully (853,970 bytes) even with rate limiting
+     - Valid PDF format confirmed
+
 #### Backend API Endpoints Tested:
 
 | Endpoint | Method | Status | Notes |
