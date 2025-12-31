@@ -227,7 +227,7 @@ const AppContent = () => {
         {activeTab === 'users' && isAdmin() ? (
           <UserManagement />
         ) : activeTab === 'orders' ? (
-          <OrdersPage calculatorType="sauna" />
+          <OrdersPage calculatorType="sauna" onEditInCalculator={(order) => handleEditOrderInCalculator(order, 'sauna')} />
         ) : activeTab === 'statistics' ? (
           <StatisticsPage calculatorType="sauna" />
         ) : activeTab === 'pricing' && canViewPricing() ? (
@@ -235,7 +235,7 @@ const AppContent = () => {
         ) : activeTab === 'techspec' && canViewPricing() ? (
           <TechSpecAdminPage />
         ) : (
-          <SaunaCalculator />
+          <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} />
         )}
         
         <Toaster position="top-right" richColors />
