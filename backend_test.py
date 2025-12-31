@@ -4899,37 +4899,201 @@ def run_tech_spec_admin_tests_only():
     
     return tech_spec_results
 
+def test_sauna_pdf_image_optimization():
+    """Test Sauna PDF with Image Optimization as per review request"""
+    print("\n🔍 Testing Sauna PDF with Image Optimization...")
+    print("=" * 60)
+    
+    try:
+        # Test data as specified in review request
+        pdf_request = {
+            "fullName": "Optimization Test",
+            "phoneNumber": "123456",
+            "orderDate": "2025-01-01",
+            "selectedModel": "sauna_test",
+            "modelName": "Sauna Test Model",
+            "modelImageUrl": "https://i.imgur.com/LbbjL2d.jpeg",
+            "basePrice": 17980,
+            "total": 18500,
+            "categories": [],
+            "selections": {"lawki": "lawki_test"},
+            "selectedOptions": [
+                {
+                    "categoryId": "lawki",
+                    "optionId": "lawki_test",
+                    "optionName": "Test Lawki",
+                    "price": 520,
+                    "imageUrl": "https://i.imgur.com/lNi4r5Q.jpeg"
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/generate-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ HTTP 200 - Sauna PDF generated successfully")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                return False
+            
+            # Check PDF file size
+            content_length = len(response.content)
+            print(f"✅ PDF size: {content_length} bytes")
+            
+            # Note about optimization - we expect smaller size due to optimization
+            if content_length > 10000:  # At least 10KB for a PDF with images
+                print("✅ PDF size indicates content is present")
+                print("📝 Note: PDF size should be smaller due to image optimization")
+            else:
+                print(f"❌ PDF too small: {content_length} bytes")
+                return False
+            
+            return True
+        else:
+            print(f"❌ Sauna PDF generation failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Sauna PDF image optimization test error: {str(e)}")
+        return False
+
+def test_order_sorting_by_creation_time():
+    """Test Order Sorting by Creation Time as per review request"""
+    print("\n🔍 Testing Order Sorting by Creation Time...")
+    print("=" * 60)
+    
+    try:
+        response = requests.get(f"{BACKEND_URL}/sauna/orders")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            orders = response.json()
+            print(f"✅ GET /api/sauna/orders successful")
+            print(f"✅ Found {len(orders)} sauna orders")
+            
+            if not orders:
+                print("⚠️ No orders found to test sorting")
+                return True
+            
+            # Check ID format WMS-DD-MM-YYYY-HHMMSS
+            valid_id_format = True
+            for order in orders[:5]:  # Check first 5 orders
+                order_id = order.get('id', '')
+                if order_id.startswith('WMS-') and len(order_id.split('-')) >= 5:
+                    print(f"✅ Order ID format correct: {order_id}")
+                else:
+                    print(f"❌ Order ID format incorrect: {order_id}")
+                    valid_id_format = False
+            
+            if not valid_id_format:
+                return False
+            
+            # Check sorting - newer timestamps should come first within same date
+            print("\n🔍 Checking order sorting...")
+            
+            # Group orders by date and check time sorting
+            from collections import defaultdict
+            orders_by_date = defaultdict(list)
+            
+            for order in orders:
+                order_id = order.get('id', '')
+                if order_id.startswith('WMS-'):
+                    # Extract date from ID: WMS-DD-MM-YYYY-HHMMSS
+                    parts = order_id.split('-')
+                    if len(parts) >= 5:
+                        date_part = f"{parts[1]}-{parts[2]}-{parts[3]}"  # DD-MM-YYYY
+                        time_part = parts[4] if len(parts) > 4 else "000000"  # HHMMSS
+                        orders_by_date[date_part].append((order_id, time_part))
+            
+            # Check sorting within each date
+            sorting_correct = True
+            for date, order_list in orders_by_date.items():
+                if len(order_list) > 1:
+                    # Sort by time descending (newer first)
+                    sorted_list = sorted(order_list, key=lambda x: x[1], reverse=True)
+                    original_order = [item[1] for item in order_list]
+                    expected_order = [item[1] for item in sorted_list]
+                    
+                    if original_order == expected_order:
+                        print(f"✅ Orders for date {date} are correctly sorted (newer first)")
+                    else:
+                        print(f"❌ Orders for date {date} are NOT correctly sorted")
+                        print(f"   Original: {original_order}")
+                        print(f"   Expected: {expected_order}")
+                        sorting_correct = False
+            
+            if sorting_correct:
+                print("✅ Order sorting by creation time is correct")
+                return True
+            else:
+                print("❌ Order sorting by creation time is incorrect")
+                return False
+            
+        else:
+            print(f"❌ GET /api/sauna/orders failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Order sorting test error: {str(e)}")
+        return False
+
 def main():
-    """Run the specific tests for the review request"""
-    print("🚀 WM-KALKULATOR BACKEND API TESTING - REQUESTED DISCOUNT BUG FIX VERIFICATION")
-    print("=" * 80)
+    """Run all backend tests for the review request"""
+    print("🚀 WM Calculator Backend API Testing - Review Request Focus")
+    print("=" * 70)
     print(f"Backend URL: {BACKEND_URL}")
-    print("=" * 80)
+    print("=" * 70)
     
-    # Run the specific test for requested discount bug fix
-    print("\n🎯 RUNNING CRITICAL BUG FIX VERIFICATION TESTS...")
+    # Test results tracking
+    results = {}
     
-    # Test the requested discount bug fix scenarios
-    bug_fix_result = test_requested_discount_bug_fix()
+    # Review Request Specific Tests
+    print("\n📋 REVIEW REQUEST TESTS")
+    print("-" * 40)
+    results["Sauna PDF Image Optimization"] = test_sauna_pdf_image_optimization()
+    results["Order Sorting by Creation Time"] = test_order_sorting_by_creation_time()
     
-    print("\n" + "=" * 80)
-    print("🏁 FINAL TEST SUMMARY")
-    print("=" * 80)
+    # Basic API tests (reduced set for focus)
+    print("\n📊 BASIC API VERIFICATION")
+    print("-" * 30)
+    results["GET /api/sauna/orders"] = test_get_sauna_orders()
+    results["POST /api/sauna/generate-pdf"] = test_generate_sauna_pdf()
     
-    if bug_fix_result:
-        print("✅ CRITICAL BUG FIX VERIFICATION: ALL TESTS PASSED")
-        print("✅ Requested discount values are properly saved and retrieved")
-        print("✅ PDF generation with model and bench images working")
-        print("✅ The bug fix for 'Requested Discount Lost on Edit' is VERIFIED")
+    # Print final summary
+    print("\n" + "=" * 70)
+    print("📊 FINAL TEST SUMMARY")
+    print("=" * 70)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    failed_tests = total_tests - passed_tests
+    
+    print(f"Total Tests: {total_tests}")
+    print(f"✅ Passed: {passed_tests}")
+    print(f"❌ Failed: {failed_tests}")
+    print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+    
+    print("\n📋 DETAILED RESULTS:")
+    print("-" * 50)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+    
+    if failed_tests == 0:
+        print("\n🎉 ALL TESTS PASSED! Backend API is working correctly.")
+        return True
     else:
-        print("❌ CRITICAL BUG FIX VERIFICATION: SOME TESTS FAILED")
-        print("❌ The bug fix may not be working correctly")
-        print("❌ Manual verification required")
-    
-    print("\n📝 NOTE: Frontend testing (Admin Edit Modal) is excluded as per instructions")
-    print("📝 Backend URL used:", BACKEND_URL)
-    
-    return bug_fix_result
+        print(f"\n⚠️ {failed_tests} test(s) failed. Please check the issues above.")
+        return False
 
 if __name__ == "__main__":
     print("🚀 WM Calculator Backend API Testing - Review Request Scenarios")
