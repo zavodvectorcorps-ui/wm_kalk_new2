@@ -7,6 +7,7 @@ Tests all backend endpoints for the new category management functionality
 import requests
 import json
 import uuid
+import sys
 from datetime import datetime
 
 # Get backend URL from frontend .env
