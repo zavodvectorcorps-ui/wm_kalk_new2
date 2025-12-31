@@ -342,9 +342,22 @@ export const OrderFullEditModal = ({
             {/* Requested Discount Alert (for Admin view) */}
             {isAdminUser && formData.requestedDiscount > 0 && (
               <div className="p-4 bg-amber-50 border border-amber-300 rounded-lg">
-                <div className="flex items-center gap-2 text-amber-800 font-medium mb-2">
-                  <MessageSquare className="h-4 w-4" />
-                  {text.hasRequestedDiscount}: {formData.requestedDiscount}%
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-amber-800 font-medium">
+                    <MessageSquare className="h-4 w-4" />
+                    {text.hasRequestedDiscount}: {formData.requestedDiscount}%
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-amber-400 text-amber-700 hover:bg-amber-100"
+                    onClick={() => {
+                      handleDiscountPercentChange(formData.requestedDiscount);
+                      toast.success(lang === 'pl' ? 'Rabat zastosowany' : 'Скидка применена');
+                    }}
+                  >
+                    {lang === 'pl' ? 'Zastosuj' : 'Применить'}
+                  </Button>
                 </div>
                 {formData.requestedDiscountNote && (
                   <p className="text-sm text-amber-700">{formData.requestedDiscountNote}</p>
