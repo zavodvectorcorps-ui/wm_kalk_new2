@@ -234,22 +234,48 @@ export const OrderPreviewModal = ({
             </h3>
             {options.length > 0 ? (
               <div className="space-y-2">
-                {options.map((opt, index) => (
-                  <div 
-                    key={opt.optionId || opt.id || index} 
-                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{opt.optionName || opt.name || '-'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {opt.categoryName || opt.category || ''}
-                      </p>
+                {options.map((opt, index) => {
+                  const adminGifts = order.adminGifts || [];
+                  const isAdminGift = adminGifts.includes(opt.optionId || opt.id);
+                  
+                  return (
+                    <div 
+                      key={opt.optionId || opt.id || index} 
+                      className={`flex justify-between items-center p-3 rounded-lg ${
+                        isAdminGift ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <p className="font-medium">{opt.optionName || opt.name || '-'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {opt.categoryName || opt.category || ''}
+                          </p>
+                        </div>
+                        {isAdminGift && (
+                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                            <Gift className="h-3 w-3 mr-1" />
+                            {txt.giftFromAdmin || 'Подарок'}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        {isAdminGift ? (
+                          <>
+                            <p className="font-semibold line-through text-muted-foreground text-sm">
+                              {formatPrice(opt.price)}
+                            </p>
+                            <p className="font-bold text-green-600">0 {currency}</p>
+                          </>
+                        ) : (
+                          <p className={`font-semibold ${opt.price > 0 ? `text-${themeColor}-600` : 'text-gray-500'}`}>
+                            {opt.price > 0 ? `+${formatPrice(opt.price)}` : txt.included}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <p className={`font-semibold ${opt.price > 0 ? `text-${themeColor}-600` : 'text-gray-500'}`}>
-                      {opt.price > 0 ? `+${formatPrice(opt.price)}` : txt.included}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-muted-foreground text-center py-4">{txt.noOptions}</p>
