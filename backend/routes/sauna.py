@@ -490,7 +490,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     logger.warning(f"Could not download image from URL: {e}")
             
             if img_data:
-                # Get original image dimensions to preserve aspect ratio
+                # Optimize image for PDF (resize and compress)
+                img_data = optimize_image_for_pdf(img_data, max_size=600, quality=70)
+                
+                # Get image dimensions to preserve aspect ratio
                 img_buffer = io.BytesIO(img_data)
                 pil_img = PILImage.open(img_buffer)
                 orig_width, orig_height = pil_img.size
