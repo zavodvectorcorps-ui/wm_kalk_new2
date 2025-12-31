@@ -228,16 +228,69 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
     ));
   };
 
-  // Filter orders based on search query
-  const filteredOrders = orders.filter(order => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    const orderId = (order.id || '').toLowerCase();
-    const fullName = (order.fullName || '').toLowerCase();
-    const phoneNumber = (order.phoneNumber || '').replace(/\s+/g, '').toLowerCase();
-    const queryNormalized = query.replace(/\s+/g, '');
-    return orderId.includes(query) || fullName.includes(query) || phoneNumber.includes(queryNormalized);
-  });
+  // Filter and sort orders
+  const filteredAndSortedOrders = useMemo(() => {
+    let result = [...orders];
+    
+    // Apply text search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const queryNormalized = query.replace(/\s+/g, '');
+      result = result.filter(order => {
+        const orderId = (order.id || '').toLowerCase();
+        const fullName = (order.fullName || '').toLowerCase();
+        const phoneNumber = (order.phoneNumber || '').replace(/\s+/g, '').toLowerCase();
+        return orderId.includes(query) || fullName.includes(query) || phoneNumber.includes(queryNormalized);
+      });
+    }
+    
+    // Apply date range filter
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      fromDate.setHours(0, 0, 0, 0);
+      result = result.filter(order => {
+        const orderDate = new Date(order.orderDate || order.createdAt);
+        return orderDate >= fromDate;
+      });
+    }
+    
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      result = result.filter(order => {
+        const orderDate = new Date(order.orderDate || order.createdAt);
+        return orderDate <= toDate;
+      });
+    }
+    
+    // Sort by date - newest first
+    result.sort((a, b) => {
+      const dateA = new Date(a.orderDate || a.createdAt || 0);
+      const dateB = new Date(b.orderDate || b.createdAt || 0);
+      return dateB - dateA;
+    });
+    
+    return result;
+  }, [orders, searchQuery, dateFrom, dateTo]);
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAndSortedOrders.length / ordersPerPage);
+  const startIndex = (currentPage - 1) * ordersPerPage;
+  const endIndex = startIndex + ordersPerPage;
+  const paginatedOrders = filteredAndSortedOrders.slice(startIndex, endIndex);
+  
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, dateFrom, dateTo]);
+  
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setDateFrom('');
+    setDateTo('');
+    setCurrentPage(1);
+  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
