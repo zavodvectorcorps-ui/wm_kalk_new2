@@ -80,6 +80,17 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
     setPreviewModalOpen(true);
   };
 
+  // Open edit modal
+  const handleEditOrder = (order) => {
+    setEditOrder(order);
+    setEditModalOpen(true);
+  };
+  
+  // Handle order saved from edit modal
+  const handleOrderSaved = (updatedOrder) => {
+    setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+  };
+
   useEffect(() => {
     fetchOrders();
   }, [calculatorType]);
