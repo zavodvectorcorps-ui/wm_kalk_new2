@@ -664,6 +664,24 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Edit Mode Banner */}
+      {isEditMode && (
+        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Edit className="h-5 w-5 text-amber-600" />
+            <span className="font-medium text-amber-800">
+              {lang === 'pl' 
+                ? `Edycja zamówienia: ${editOrderId}` 
+                : `Редактирование заказа: ${editOrderId}`}
+            </span>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+            <X className="h-4 w-4 mr-1" />
+            {lang === 'pl' ? 'Anuluj' : 'Отмена'}
+          </Button>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Form */}
         <div className="lg:col-span-2 space-y-6">
