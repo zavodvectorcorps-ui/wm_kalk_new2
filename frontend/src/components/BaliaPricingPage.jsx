@@ -130,7 +130,8 @@ export const BaliaPricingPage = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      const imageUrl = `${API_URL}${response.data.url}`;
+      // Store only the relative path, not the full URL
+      const imageUrl = response.data.url;
       
       if (type === 'model') {
         setPrices(prev => ({
