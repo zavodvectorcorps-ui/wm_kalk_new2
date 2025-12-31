@@ -762,12 +762,11 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             # Check if this option is a gift
                             is_gift = opt_id in admin_gifts
                             if is_gift:
-                                name = f"🎁 {name} (Prezent)"
-                                price_str = "0 PLN"
+                                price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
                             else:
                                 price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
                             
-                            options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift})
+                            options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift, 'original_price': total_price})
             else:
                 opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
                 if opt:
@@ -783,12 +782,11 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     # Check if this option is a gift
                     is_gift = selection in admin_gifts
                     if is_gift:
-                        name = f"🎁 {name} (Prezent)"
-                        price_str = "0 PLN"
+                        price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
                     else:
                         price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
                     
-                    options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift})
+                    options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift, 'original_price': total_price})
     
     if options_items:
         elements.append(Paragraph('DODATKOWE OPCJE', section_title_style))
