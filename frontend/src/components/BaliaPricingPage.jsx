@@ -869,8 +869,8 @@ const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, tx
         body: formDataUpload
       });
       const data = await response.json();
-      const imageUrl = `${API_URL}${data.url}`;
-      setFormData(prev => ({ ...prev, imageUrl }));
+      // Store only relative path, not full URL
+      setFormData(prev => ({ ...prev, imageUrl: data.url }));
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
