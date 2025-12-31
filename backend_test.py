@@ -1444,6 +1444,214 @@ def test_generate_sauna_pdf():
         print(f"❌ POST /api/sauna/generate-pdf error: {str(e)}")
         return False
 
+def test_pdf_generation_with_model_images():
+    """Test PDF generation with model images for both Balia and Sauna as specified in review request"""
+    print("\n🔍 Testing PDF Generation with Model Images...")
+    print("=" * 80)
+    
+    results = {}
+    
+    # Test 1: Balia PDF with MongoDB model image (full URL)
+    print("\n📝 Test 1: Balia PDF with MongoDB model image (full URL)...")
+    try:
+        balia_request = {
+            "fullName": "Jan Kowalski",
+            "phoneNumber": "+48 123 456 789",
+            "fullAddress": "ul. Testowa 1, Warszawa",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "modelId": "round_ext_200",
+            "modelName": "Купель 200см (внешний нагрев)",
+            "modelPrice": 1250,
+            "modelImageUrl": "https://order-edit-master.preview.emergentagent.com/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg",
+            "selectedOptions": [
+                {
+                    "categoryId": "hydromassage", 
+                    "optionId": "hydro_6_8", 
+                    "categoryName": "Гидромассаж", 
+                    "optionName": "Гидромассаж 1.1кВт (6-8 форсунок)", 
+                    "price": 300
+                }
+            ],
+            "notes": "Test with MongoDB model image",
+            "total": 1550,
+            "currency": "EUR"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/generate-pdf", json=balia_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            content_length = len(response.content)
+            print(f"✅ Balia PDF generated successfully")
+            print(f"✅ PDF size: {content_length} bytes")
+            
+            # Check if PDF is larger than 100KB (indicates image is included)
+            if content_length > 100000:
+                print(f"✅ PDF size > 100KB ({content_length} bytes) - indicates image is included")
+                results["balia_mongodb_full_url"] = True
+            else:
+                print(f"⚠️ PDF size < 100KB ({content_length} bytes) - image may not be included")
+                results["balia_mongodb_full_url"] = False
+        else:
+            print(f"❌ Balia PDF generation failed: {response.status_code}")
+            print(f"Response: {response.text}")
+            results["balia_mongodb_full_url"] = False
+            
+    except Exception as e:
+        print(f"❌ Balia PDF test error: {str(e)}")
+        results["balia_mongodb_full_url"] = False
+    
+    # Test 2: Balia PDF with relative MongoDB path
+    print("\n📝 Test 2: Balia PDF with relative MongoDB path...")
+    try:
+        balia_request_relative = {
+            "fullName": "Anna Nowak",
+            "phoneNumber": "+48 987 654 321",
+            "fullAddress": "ul. Przykładowa 2, Kraków",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "modelId": "round_ext_200",
+            "modelName": "Купель 200см (внешний нагрев)",
+            "modelPrice": 1250,
+            "modelImageUrl": "/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg",
+            "selectedOptions": [
+                {
+                    "categoryId": "lighting", 
+                    "optionId": "led_inside_2", 
+                    "categoryName": "Освещение", 
+                    "optionName": "LED внутри (2 шт)", 
+                    "price": 80
+                }
+            ],
+            "notes": "Test with relative MongoDB path",
+            "total": 1330,
+            "currency": "EUR"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/generate-pdf", json=balia_request_relative)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            content_length = len(response.content)
+            print(f"✅ Balia PDF with relative path generated successfully")
+            print(f"✅ PDF size: {content_length} bytes")
+            results["balia_mongodb_relative"] = True
+        else:
+            print(f"❌ Balia PDF with relative path failed: {response.status_code}")
+            print(f"Response: {response.text}")
+            results["balia_mongodb_relative"] = False
+            
+    except Exception as e:
+        print(f"❌ Balia PDF relative path test error: {str(e)}")
+        results["balia_mongodb_relative"] = False
+    
+    # Test 3: Check backend logs for "Loaded model image from MongoDB" message
+    print("\n📝 Test 3: Checking backend logs for MongoDB image loading...")
+    try:
+        import subprocess
+        log_result = subprocess.run(
+            ["tail", "-n", "50", "/var/log/supervisor/backend.out.log"],
+            capture_output=True, text=True, timeout=10
+        )
+        
+        if log_result.returncode == 0:
+            log_content = log_result.stdout
+            if "Loaded model image from MongoDB" in log_content:
+                print("✅ Found 'Loaded model image from MongoDB' in backend logs")
+                results["mongodb_log_message"] = True
+            else:
+                print("❌ 'Loaded model image from MongoDB' message not found in logs")
+                print("Recent log entries:")
+                print(log_content[-500:])  # Show last 500 chars
+                results["mongodb_log_message"] = False
+        else:
+            print(f"❌ Could not read backend logs: {log_result.stderr}")
+            results["mongodb_log_message"] = False
+            
+    except Exception as e:
+        print(f"❌ Error checking backend logs: {str(e)}")
+        results["mongodb_log_message"] = False
+    
+    # Test 4: Sauna PDF with external URL (may fail due to rate limiting)
+    print("\n📝 Test 4: Sauna PDF with external URL...")
+    try:
+        sauna_request = {
+            "fullName": "Piotr Wiśniewski",
+            "email": "piotr@example.com",
+            "phoneNumber": "+48 555 666 777",
+            "fullAddress": "ul. Sauna 3, Gdańsk",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "selectedModel": "sauna_kwadro_beczka_235x300_cm",
+            "modelName": "Sauna Kwadro-Beczka 235x300 cm",
+            "modelImageUrl": "https://i.imgur.com/hzOjw2G.jpeg",
+            "basePrice": 24100,
+            "foundationPrice": 250,
+            "discount": 0,
+            "selections": {
+                "piece": "piec_elektryczny_9kw"
+            },
+            "notes": "Test with external image URL",
+            "optionsTotal": 2600,
+            "subtotal": 26950,
+            "total": 26950,
+            "language": "pl",
+            "categories": [
+                {
+                    "id": "piece",
+                    "name": "Piece",
+                    "inputType": "radio",
+                    "options": [
+                        {"id": "piec_elektryczny_9kw", "name": "Piec Elektryczne 9 kW", "price": 2600}
+                    ]
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/generate-pdf", json=sauna_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            content_length = len(response.content)
+            print(f"✅ Sauna PDF generated successfully (even if image failed)")
+            print(f"✅ PDF size: {content_length} bytes")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is valid PDF format")
+                results["sauna_external_url"] = True
+            else:
+                print(f"❌ Invalid content type: {content_type}")
+                results["sauna_external_url"] = False
+        else:
+            print(f"❌ Sauna PDF generation failed: {response.status_code}")
+            print(f"Response: {response.text}")
+            results["sauna_external_url"] = False
+            
+    except Exception as e:
+        print(f"❌ Sauna PDF external URL test error: {str(e)}")
+        results["sauna_external_url"] = False
+    
+    # Summary
+    print("\n📊 PDF Generation with Model Images Test Summary:")
+    print("=" * 60)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        test_description = {
+            "balia_mongodb_full_url": "Balia PDF with MongoDB image (full URL)",
+            "balia_mongodb_relative": "Balia PDF with MongoDB image (relative path)",
+            "mongodb_log_message": "Backend logs show 'Loaded model image from MongoDB'",
+            "sauna_external_url": "Sauna PDF with external URL"
+        }
+        print(f"{status} - {test_description.get(test_name, test_name)}")
+    
+    print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+    
+    return passed_tests == total_tests
+
 # ============================================================================
 # ORDER EDIT FUNCTIONALITY TESTS (NEW)
 # ============================================================================
