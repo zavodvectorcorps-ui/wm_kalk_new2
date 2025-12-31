@@ -930,6 +930,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
                                 src={option.imageUrl} 
                                 alt={option.name}
                                 className="w-16 h-12 object-cover rounded"
+                                loading="lazy"
+                                decoding="async"
                               />
                             )}
                           </div>
@@ -1018,6 +1020,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
                                 src={option.imageUrl} 
                                 alt={option.name}
                                 className="w-16 h-12 object-cover rounded"
+                                loading="lazy"
+                                decoding="async"
                               />
                             )}
                           </div>
