@@ -411,12 +411,44 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
       document.body.removeChild(a);
       
       toast.success(t('balia.pdfGenerated') || 'PDF created!');
+
+      // If in edit mode, exit edit mode and notify parent
+      if (isEditMode) {
+        setIsEditMode(false);
+        setEditOrderId(null);
+        setAdminGifts([]);
+        setAdminDiscountApproved(false);
+        if (onEditComplete) {
+          onEditComplete();
+        }
+      }
     } catch (error) {
       console.error('Error:', error);
       toast.error(t('balia.error'));
     } finally {
       setSaving(false);
     }
+  };
+
+  // Cancel edit mode
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    setEditOrderId(null);
+    setAdminGifts([]);
+    setAdminDiscountApproved(false);
+    handleClear();
+    if (onEditComplete) {
+      onEditComplete();
+    }
+  };
+
+  // Toggle gift status for an option
+  const toggleGift = (optionId) => {
+    setAdminGifts(prev => 
+      prev.includes(optionId) 
+        ? prev.filter(id => id !== optionId)
+        : [...prev, optionId]
+    );
   };
 
   const handleClear = () => {
