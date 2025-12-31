@@ -151,9 +151,7 @@ export const BaliaImageUploader = ({
     if (!url) return '';
     if (url.startsWith('http')) return url;
     if (url.startsWith('/api/')) {
-      // Add cache buster to force reload
-      const cacheBuster = `?t=${Date.now()}`;
-      return `${API_URL}${url}${cacheBuster}`;
+      return `${API_URL}${url}`;
     }
     return url;
   };
