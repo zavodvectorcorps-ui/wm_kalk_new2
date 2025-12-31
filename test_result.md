@@ -97,6 +97,14 @@
    - ✅ Proper content-type headers
    - ✅ Reasonable file sizes indicating proper content
 
+5. **PDF Generation with Model Images (NEW):**
+   - ✅ Balia PDFs support MongoDB model images (full URL and relative paths)
+   - ✅ Sauna PDFs support external model image URLs
+   - ✅ Image loading from MongoDB verified via backend logs
+   - ✅ PDFs with images are significantly larger (>100KB) indicating successful inclusion
+   - ✅ Fallback handling for rate-limited external URLs
+   - ✅ Both calculators maintain PDF generation even when images fail to load
+
 ## Frontend Testing Results - COMPLETED ✅
 
 ### 1. Order Full Edit Functionality
