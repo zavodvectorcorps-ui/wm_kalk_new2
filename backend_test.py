@@ -4408,14 +4408,14 @@ if __name__ == "__main__":
         else:
             run_all_tests()
     else:
-        # Run Order Full Edit tests by default as per review request
-        print("🎯 RUNNING ORDER FULL EDIT TESTS (DEFAULT)")
+        # Run PDF Generation with Model Images tests by default as per review request
+        print("🎯 RUNNING PDF GENERATION WITH MODEL IMAGES TESTS (DEFAULT)")
         print("=" * 50)
-        result = test_order_full_edit_functionality()
+        result = test_pdf_generation_with_model_images()
         print("\n" + "=" * 70)
-        print("🏁 ORDER FULL EDIT TEST RESULT")
+        print("🏁 PDF GENERATION WITH MODEL IMAGES TEST RESULT")
         print("=" * 70)
         status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{status} Order Full Edit Functionality")
+        print(f"{status} PDF Generation with Model Images")
         print("=" * 70)
         sys.exit(0 if result else 1)
