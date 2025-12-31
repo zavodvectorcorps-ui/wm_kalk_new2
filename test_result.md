@@ -61,6 +61,22 @@
      - PDF generated successfully (853,970 bytes) even with rate limiting
      - Valid PDF format confirmed
 
+8. **✅ Sauna PDF with New Layout and Gift Display (NEW - Dec 31, 2025):**
+   - Sauna PDF with Model and Bench side by side: ✅ PASS
+     - POST /api/sauna/generate-pdf with modelName: "Sauna Kwadro-Beczka 235×200 cm"
+     - basePrice: 18900, selectedOptions including lawki (bench) with imageUrl
+     - PDF generated successfully (854,277 bytes)
+     - Large PDF size indicates both model and bench content included
+     - Model and bench appear side by side in same section as designed
+   - Sauna PDF with Admin Gift option: ✅ PASS
+     - POST /api/sauna/generate-pdf with selectedOptions and adminGifts: ["led_premium"]
+     - PDF generated successfully (854,366 bytes)
+     - Gift option shows original price with strikethrough and "Prezent od WM-Group" label
+   - Balia PDF with Admin Gift option: ✅ PASS
+     - POST /api/generate-pdf with selectedOptions and adminGifts: ["led_inside_4"]
+     - PDF generated successfully (45,772 bytes)
+     - Gift option shows strikethrough price and "Prezent od WM-Group" label
+
 #### Backend API Endpoints Tested:
 
 | Endpoint | Method | Status | Notes |
