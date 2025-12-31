@@ -45,12 +45,12 @@ class SaunaPriceData(BaseModel):
 class SaunaOrder(BaseModel):
     model_config = ConfigDict(extra="allow")
     
-    id: str = Field(default_factory=lambda: f"WMS-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}")
+    id: Optional[str] = Field(default_factory=lambda: f"WMS-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}")
     fullName: str
     phoneNumber: str
     fullAddress: str = ""  # Made optional with default
     email: str = ""
-    orderDate: str
+    orderDate: str = Field(default_factory=lambda: datetime.now().strftime('%Y-%m-%d'))
     selectedModel: str
     modelName: str = ""
     modelImageUrl: str = ""  # Store model image URL
