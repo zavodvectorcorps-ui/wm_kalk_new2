@@ -922,6 +922,42 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                     )}
                   </div>
                   
+                  {/* Requested Discount Section - for non-admin users */}
+                  {!isAdminUser && (
+                    <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
+                      <div className="flex items-center gap-2 text-amber-700 font-medium">
+                        <Tag className="h-4 w-4" />
+                        {lang === 'pl' ? 'Wnioskowany rabat' : 'Запрашиваемая скидка'}
+                      </div>
+                      <p className="text-xs text-amber-600">
+                        {lang === 'pl' 
+                          ? 'Jeśli klient potrzebuje rabatu większego niż 10%, wpisz tutaj. Administrator zobaczy ten wniosek.'
+                          : 'Если клиенту нужна скидка больше 10%, введите здесь. Администратор увидит этот запрос.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={requestedDiscount}
+                          onChange={(e) => setRequestedDiscount(Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
+                          className="w-20 h-8"
+                          placeholder="0"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                      {requestedDiscount > 0 && (
+                        <Input
+                          type="text"
+                          value={requestedDiscountNote}
+                          onChange={(e) => setRequestedDiscountNote(e.target.value)}
+                          placeholder={lang === 'pl' ? 'Komentarz do wniosku...' : 'Комментарий к запросу...'}
+                          className="h-8 text-sm"
+                        />
+                      )}
+                    </div>
+                  )}
+                  
                   {/* Admin Gifts Section - show when in edit mode and admin */}
                   {isAdminUser && isEditMode && adminGifts.length > 0 && (
                     <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 space-y-2">
