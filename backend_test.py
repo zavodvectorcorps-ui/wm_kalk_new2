@@ -4699,53 +4699,6 @@ def run_tech_spec_admin_tests_only():
     
     return tech_spec_results
 
-if __name__ == "__main__":
-    # Check if we want to run specific tests
-    import sys
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "display-type":
-            test_display_type_feature_only()
-        elif sys.argv[1] == "crud":
-            test_sauna_crud_full()
-        elif sys.argv[1] == "observer":
-            test_observer_role_only()
-        elif sys.argv[1] == "tech-spec":
-            test_tech_spec_feature_only()
-        elif sys.argv[1] == "tech-spec-admin":
-            run_tech_spec_admin_tests_only()
-        elif sys.argv[1] == "techspec-mapping":
-            print("🎯 RUNNING TECHSPEC MAPPING TEST ONLY")
-            print("=" * 50)
-            result = test_techspec_mapping_flow()
-            print("\n" + "=" * 70)
-            print("🏁 TECHSPEC MAPPING TEST RESULT")
-            print("=" * 70)
-            status = "✅ PASS" if result else "❌ FAIL"
-            print(f"{status} TechSpecId Mapping Flow")
-            print("=" * 70)
-            sys.exit(0 if result else 1)
-        elif sys.argv[1] == "order-edit":
-            print("🎯 RUNNING ORDER FULL EDIT TESTS ONLY")
-            print("=" * 50)
-            result = test_order_full_edit_functionality()
-            print("\n" + "=" * 70)
-            print("🏁 ORDER FULL EDIT TEST RESULT")
-            print("=" * 70)
-            status = "✅ PASS" if result else "❌ FAIL"
-            print(f"{status} Order Full Edit Functionality")
-            print("=" * 70)
-            sys.exit(0 if result else 1)
-        elif sys.argv[1] == "pdf-images":
-            print("🎯 RUNNING PDF GENERATION WITH MODEL IMAGES TESTS ONLY")
-            print("=" * 50)
-            result = test_pdf_generation_with_model_images()
-            print("\n" + "=" * 70)
-            print("🏁 PDF GENERATION WITH MODEL IMAGES TEST RESULT")
-            print("=" * 70)
-            status = "✅ PASS" if result else "❌ FAIL"
-            print(f"{status} PDF Generation with Model Images")
-            print("=" * 70)
-            sys.exit(0 if result else 1)
 def main():
     """Run the specific tests for the review request"""
     print("🚀 WM-KALKULATOR BACKEND API TESTING - REQUESTED DISCOUNT BUG FIX VERIFICATION")
@@ -4777,6 +4730,10 @@ def main():
     print("📝 Backend URL used:", BACKEND_URL)
     
     return bug_fix_result
+
+if __name__ == "__main__":
+    success = main()
+    sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     success = main()
