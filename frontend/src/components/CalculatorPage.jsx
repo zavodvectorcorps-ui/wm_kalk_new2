@@ -29,67 +29,7 @@ const getImageUrl = (url) => {
   return `${API_URL}${url}`;
 };
 
-// Simple image component with error handling and retry logic
-const SimpleImage = ({ src, alt, className, fallback }) => {
-  const [status, setStatus] = React.useState('loading'); // loading, loaded, error
-  const [retryCount, setRetryCount] = React.useState(0);
-  const maxRetries = 2;
-  
-  const fullSrc = React.useMemo(() => {
-    if (!src) return null;
-    const baseUrl = src.startsWith('http') ? src : src.startsWith('/api/') ? `${API_URL}${src}` : src;
-    // Add cache buster on retry to bypass cache issues
-    return retryCount > 0 ? `${baseUrl}?retry=${retryCount}` : baseUrl;
-  }, [src, retryCount]);
-
-  // Reset status when src changes
-  React.useEffect(() => {
-    setStatus('loading');
-    setRetryCount(0);
-  }, [src]);
-
-  const handleError = React.useCallback(() => {
-    console.error('Image load error:', fullSrc, 'retry:', retryCount);
-    if (retryCount < maxRetries) {
-      // Retry after a short delay
-      setTimeout(() => {
-        setRetryCount(prev => prev + 1);
-        setStatus('loading');
-      }, 500);
-    } else {
-      setStatus('error');
-    }
-  }, [fullSrc, retryCount]);
-
-  if (!fullSrc) {
-    return fallback || null;
-  }
-
-  if (status === 'error') {
-    return fallback || null;
-  }
-
-  return (
-    <>
-      {status === 'loading' && (
-        <div className={`${className} absolute inset-0 flex items-center justify-center bg-gray-100`}>
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-      <img 
-        src={fullSrc}
-        alt={alt || ''}
-        className={`${className} ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-        loading="eager"
-        decoding="sync"
-        onLoad={() => setStatus('loaded')}
-        onError={handleError}
-      />
-    </>
-  );
-};
-
-// Preload function for images
+// Preload function for images (removed complex SimpleImage - using direct img tags like in Sauna)
 const preloadImages = (urls) => {
   urls.forEach(url => {
     if (url) {
