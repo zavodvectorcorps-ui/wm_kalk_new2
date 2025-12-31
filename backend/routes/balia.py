@@ -393,6 +393,22 @@ async def generate_pdf(request: PDFRequest):
         gifts_total = 0
         gift_rows = []  # Track which rows are gifts for styling
         
+        # Style for gift price with strikethrough
+        gift_price_style = ParagraphStyle(
+            'GiftPrice',
+            fontName='DejaVuSans',
+            fontSize=9,
+            textColor=colors.HexColor('#059669'),
+            alignment=TA_RIGHT
+        )
+        normal_price_style = ParagraphStyle(
+            'NormalPrice',
+            fontName='DejaVuSans',
+            fontSize=9,
+            textColor=TEXT_COLOR,
+            alignment=TA_RIGHT
+        )
+        
         for idx, opt in enumerate(request.selectedOptions):
             cat_id = opt.get('categoryId', '')
             opt_id = opt.get('optionId', '') or opt.get('id', '')
@@ -412,13 +428,15 @@ async def generate_pdf(request: PDFRequest):
             opt_name = cat_info.get('options', {}).get(opt_id, opt.get('optionName', '') or opt.get('name', ''))
             
             if is_gift:
-                # Show as gift with strikethrough price and WM-Group label
-                price_str = f"<strike>{price:,.0f} {currency}</strike> Prezent od WM-Group".replace(',', ' ')
+                # Show as gift with strikethrough price and WM-Group label - use Paragraph for HTML tags
+                price_text = f"<strike>{price:,.0f} {currency}</strike><br/>🎁 Prezent od WM-Group".replace(',', ' ')
+                price_cell = Paragraph(price_text, gift_price_style)
                 gift_rows.append(idx + 1)  # +1 because of header row
             else:
-                price_str = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
+                price_text = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
+                price_cell = Paragraph(price_text, normal_price_style)
             
-            options_data.append([cat_name, opt_name, price_str])
+            options_data.append([cat_name, opt_name, price_cell])
         
         # Add subtotal row for options
         if total_options_price > 0 or gifts_total > 0:
