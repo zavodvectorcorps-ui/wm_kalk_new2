@@ -276,6 +276,28 @@ async def get_sauna_orders():
     return orders
 
 
+@router.get("/orders/{order_id}")
+async def get_sauna_order(order_id: str):
+    """Get a single sauna order by ID"""
+    order = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@router.put("/orders/{order_id}")
+async def update_sauna_order(order_id: str, order: SaunaOrder):
+    """Update an existing sauna order"""
+    order_dict = order.model_dump()
+    result = await db.sauna_orders.update_one(
+        {"id": order_id},
+        {"$set": order_dict}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
 @router.delete("/orders/{order_id}")
 async def delete_sauna_order(order_id: str):
     """Delete a sauna order"""
@@ -288,6 +310,24 @@ async def delete_sauna_order(order_id: str):
 @router.post("/generate-pdf")
 async def generate_sauna_pdf(request: SaunaPDFRequest):
     """Generate PDF for sauna order - Professional offer format"""
+    import urllib.request
+    import base64
+    from PIL import Image as PILImage
+    
+    async def load_image_from_mongodb(image_url: str) -> bytes:
+        """Load image from MongoDB by extracting ID from URL"""
+        if not image_url or '/api/uploads/' not in image_url:
+            return None
+        try:
+            filename = image_url.split('/api/uploads/')[-1]
+            file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
+            image_doc = await db.images.find_one({"id": file_id})
+            if image_doc:
+                return base64.b64decode(image_doc["content"])
+        except Exception as e:
+            logger.warning(f"Could not load image from MongoDB: {e}")
+        return None
+    
     buffer = io.BytesIO()
     
     try:
