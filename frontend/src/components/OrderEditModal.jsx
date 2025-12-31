@@ -216,7 +216,7 @@ export const OrderEditModal = ({
                 <Input
                   type="number"
                   min="0"
-                  max={isAdminUser ? "100" : "20"}
+                  max={isAdminUser ? "100" : "10"}
                   step="1"
                   value={formData.discountPercent || 0}
                   onChange={(e) => handleDiscountChange(e.target.value)}
@@ -224,7 +224,7 @@ export const OrderEditModal = ({
                 />
                 <span className="text-sm text-muted-foreground">%</span>
                 
-                {!isAdminUser && formData.discountPercent > 20 && (
+                {!isAdminUser && formData.discountPercent > 10 && (
                   <Badge variant="outline" className="text-orange-600 border-orange-300">
                     <AlertTriangle className="h-3 w-3 mr-1" />
                     {text.maxDiscountWarning}
@@ -234,7 +234,7 @@ export const OrderEditModal = ({
             </div>
             
             {/* Admin Discount Approval */}
-            {isAdminUser && formData.discountPercent > 20 && (
+            {isAdminUser && formData.discountPercent > 10 && (
               <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <Checkbox
                   id="adminApproval"
