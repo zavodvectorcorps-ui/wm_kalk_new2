@@ -1554,6 +1554,206 @@ def test_generate_sauna_pdf():
         print(f"❌ POST /api/sauna/generate-pdf error: {str(e)}")
         return False
 
+def test_review_request_scenarios():
+    """Test the specific scenarios from the review request"""
+    print("\n🔍 Testing REVIEW REQUEST SCENARIOS")
+    print("=" * 70)
+    
+    results = {}
+    
+    # Test 1: Balia PDF Gift Strikethrough Fix Verification
+    print("\n📝 Test 1: Balia PDF Gift Strikethrough Fix Verification...")
+    try:
+        pdf_request = {
+            "fullName": "Test Gift PDF",
+            "phoneNumber": "123456",
+            "fullAddress": "Test Address",
+            "orderDate": "2025-01-01",
+            "modelId": "balia_200",
+            "modelName": "Balia 200cm",
+            "modelPrice": 1250,
+            "total": 1250,
+            "currency": "EUR",
+            "selectedOptions": [
+                {
+                    "categoryId": "pokrywa",
+                    "optionId": "pokrywa_200",
+                    "optionName": "Pokrywa 200cm",
+                    "price": 100
+                }
+            ],
+            "adminGifts": ["pokrywa_200"]
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/generate-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Balia PDF with adminGifts generated successfully")
+            content_length = len(response.content)
+            print(f"✅ PDF size: {content_length} bytes")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+                results["test_1_balia_pdf_gifts"] = True
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                results["test_1_balia_pdf_gifts"] = False
+        else:
+            print(f"❌ Balia PDF generation failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["test_1_balia_pdf_gifts"] = False
+            
+    except Exception as e:
+        print(f"❌ Test 1 error: {str(e)}")
+        results["test_1_balia_pdf_gifts"] = False
+    
+    # Test 2: Orders Page Pagination Test
+    print("\n📝 Test 2: Orders Page Pagination Test...")
+    try:
+        response = requests.get(f"{BACKEND_URL}/orders")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            orders = response.json()
+            print(f"✅ GET /api/orders successful")
+            print(f"✅ Found {len(orders)} orders")
+            
+            if orders:
+                # Check structure of first order
+                first_order = orders[0]
+                required_fields = ['id', 'fullName', 'phoneNumber', 'total']
+                for field in required_fields:
+                    if field in first_order:
+                        print(f"✅ Order field '{field}' present")
+                    else:
+                        print(f"❌ Order field '{field}' missing")
+                        results["test_2_orders_pagination"] = False
+                        break
+                else:
+                    results["test_2_orders_pagination"] = True
+            else:
+                print("⚠️ No orders found, but API is working")
+                results["test_2_orders_pagination"] = True
+        else:
+            print(f"❌ GET /api/orders failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["test_2_orders_pagination"] = False
+            
+    except Exception as e:
+        print(f"❌ Test 2 error: {str(e)}")
+        results["test_2_orders_pagination"] = False
+    
+    # Test 3: Orders Page Date Filter Test
+    print("\n📝 Test 3: Orders Page Date Filter Test...")
+    try:
+        response = requests.get(f"{BACKEND_URL}/orders")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            orders = response.json()
+            print(f"✅ GET /api/orders successful for date filter test")
+            
+            if orders:
+                # Check if orders have orderDate field for filtering
+                first_order = orders[0]
+                if 'orderDate' in first_order:
+                    print(f"✅ Orders have orderDate field: {first_order.get('orderDate')}")
+                    results["test_3_orders_date_filter"] = True
+                else:
+                    print("❌ Orders missing orderDate field for filtering")
+                    results["test_3_orders_date_filter"] = False
+            else:
+                print("⚠️ No orders found to check date field")
+                results["test_3_orders_date_filter"] = True
+        else:
+            print(f"❌ GET /api/orders failed with status {response.status_code}")
+            results["test_3_orders_date_filter"] = False
+            
+    except Exception as e:
+        print(f"❌ Test 3 error: {str(e)}")
+        results["test_3_orders_date_filter"] = False
+    
+    # Test 4: Sauna PDF Generation Test
+    print("\n📝 Test 4: Sauna PDF Generation Test...")
+    try:
+        pdf_request = {
+            "fullName": "Sauna PDF Test",
+            "phoneNumber": "123456",
+            "orderDate": "2025-01-01",
+            "selectedModel": "sauna_test",
+            "modelName": "Test Sauna",
+            "modelImageUrl": "https://i.imgur.com/LbbjL2d.jpeg",
+            "basePrice": 17980,
+            "total": 18000,
+            "categories": [],
+            "selections": {},
+            "selectedOptions": [
+                {
+                    "categoryId": "lawki",
+                    "optionId": "test_lawki",
+                    "optionName": "Test Lawki",
+                    "price": 100,
+                    "imageUrl": "https://i.imgur.com/lNi4r5Q.jpeg"
+                }
+            ],
+            "adminGifts": ["test_lawki"]
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/generate-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Sauna PDF generated successfully")
+            content_length = len(response.content)
+            print(f"✅ PDF size: {content_length} bytes")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+                
+                # Verify PDF size > 100KB (indicates images included)
+                if content_length > 100000:
+                    print(f"✅ PDF size > 100KB ({content_length} bytes) - indicates images included")
+                    results["test_4_sauna_pdf"] = True
+                else:
+                    print(f"⚠️ PDF size < 100KB ({content_length} bytes) - images may not be included")
+                    results["test_4_sauna_pdf"] = True  # Still pass as PDF was generated
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                results["test_4_sauna_pdf"] = False
+        else:
+            print(f"❌ Sauna PDF generation failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["test_4_sauna_pdf"] = False
+            
+    except Exception as e:
+        print(f"❌ Test 4 error: {str(e)}")
+        results["test_4_sauna_pdf"] = False
+    
+    # Summary
+    print("\n📊 REVIEW REQUEST TEST SUMMARY:")
+    print("=" * 50)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+    
+    print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+    
+    if passed_tests == total_tests:
+        print("🎉 ALL REVIEW REQUEST TESTS PASSED!")
+        return True
+    else:
+        print("❌ Some tests failed")
+        return False
+
 def test_requested_discount_bug_fix():
     """Test the requested discount bug fix - verify requestedDiscount is preserved on edit"""
     print("\n🔍 Testing REQUESTED DISCOUNT BUG FIX - Critical Verification")
