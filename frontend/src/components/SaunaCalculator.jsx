@@ -356,8 +356,30 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
   };
 
   const handleDiscountChange = (e) => {
-    const value = Math.max(0, Math.min(10, parseFloat(e.target.value) || 0));
+    const maxDiscount = isAdminUser ? 100 : 10;
+    const value = Math.max(0, Math.min(maxDiscount, parseFloat(e.target.value) || 0));
     setAppliedDiscount(value);
+  };
+
+  // Toggle gift status for an option
+  const toggleGift = (optionId) => {
+    setAdminGifts(prev => 
+      prev.includes(optionId) 
+        ? prev.filter(id => id !== optionId)
+        : [...prev, optionId]
+    );
+  };
+
+  // Cancel edit mode
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    setEditOrderId(null);
+    setAdminGifts([]);
+    setAdminDiscountApproved(false);
+    handleClear();
+    if (onEditComplete) {
+      onEditComplete();
+    }
   };
 
   const handleModelChange = (modelId) => {
