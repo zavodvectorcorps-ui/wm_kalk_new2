@@ -29,30 +29,53 @@ const getImageUrl = (url) => {
   return `${API_URL}${url}`;
 };
 
-// Simple image component like in SaunaCalculator - fast and reliable
+// Simple image component with error handling and debugging
 const SimpleImage = ({ src, alt, className, fallback }) => {
-  const [error, setError] = React.useState(false);
+  const [status, setStatus] = React.useState('loading'); // loading, loaded, error
   
   const fullSrc = React.useMemo(() => {
     if (!src) return null;
-    if (src.startsWith('http')) return src;
-    if (src.startsWith('/api/')) return `${API_URL}${src}`;
-    return src;
+    // Add cache buster for fresh loads
+    const baseUrl = src.startsWith('http') ? src : src.startsWith('/api/') ? `${API_URL}${src}` : src;
+    return baseUrl;
   }, [src]);
 
-  if (!fullSrc || error) {
+  // Reset status when src changes
+  React.useEffect(() => {
+    if (fullSrc) {
+      setStatus('loading');
+    }
+  }, [fullSrc]);
+
+  if (!fullSrc) {
+    return fallback || null;
+  }
+
+  if (status === 'error') {
     return fallback || null;
   }
 
   return (
-    <img 
-      src={fullSrc}
-      alt={alt || ''}
-      className={className}
-      loading="eager"
-      decoding="async"
-      onError={() => setError(true)}
-    />
+    <>
+      {status === 'loading' && (
+        <div className={`${className} absolute inset-0 flex items-center justify-center bg-gray-100`}>
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      <img 
+        src={fullSrc}
+        alt={alt || ''}
+        className={`${className} ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+        loading="eager"
+        decoding="async"
+        crossOrigin="anonymous"
+        onLoad={() => setStatus('loaded')}
+        onError={(e) => {
+          console.error('Image load error:', fullSrc);
+          setStatus('error');
+        }}
+      />
+    </>
   );
 };
 
