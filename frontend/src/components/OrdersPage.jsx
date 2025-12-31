@@ -63,6 +63,13 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       editInCalculator: 'Редактировать в калькуляторе',
       adminDiscount: 'Скидка одобрена администратором',
       requestedDiscount: 'Запрошена скидка',
+      dateFrom: 'Дата от',
+      dateTo: 'Дата до',
+      clearFilters: 'Сбросить',
+      page: 'Страница',
+      of: 'из',
+      showing: 'Показано',
+      ordersCount: 'заказов',
     },
     pl: {
       ordersList: isSauna ? 'Zamówienia saun' : 'Lista zamówień',
@@ -81,6 +88,13 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       editInCalculator: 'Edytuj w kalkulatorze',
       adminDiscount: 'Rabat zatwierdzony przez administratora',
       requestedDiscount: 'Wnioskowany rabat',
+      dateFrom: 'Data od',
+      dateTo: 'Data do',
+      clearFilters: 'Wyczyść',
+      page: 'Strona',
+      of: 'z',
+      showing: 'Pokazano',
+      ordersCount: 'zamówień',
     },
   };
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
