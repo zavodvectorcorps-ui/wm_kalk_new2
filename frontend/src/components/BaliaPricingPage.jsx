@@ -142,12 +142,21 @@ export const BaliaPricingPage = () => {
     formData.append('file', file);
 
     try {
+      console.log('Uploading image to:', `${API_URL}/api/upload/image`);
+      
       const response = await axios.post(`${API_URL}/api/upload/image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 30000 // 30 second timeout
       });
+      
+      console.log('Upload response:', response.data);
       
       // Store only the relative path, not the full URL
       const imageUrl = response.data.url;
+      
+      if (!imageUrl || !imageUrl.startsWith('/api/uploads/')) {
+        throw new Error('Invalid URL returned from server');
+      }
       
       if (type === 'model') {
         setPrices(prev => ({
@@ -173,7 +182,7 @@ export const BaliaPricingPage = () => {
       toast.success('Изображение загружено');
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error('Ошибка загрузки изображения');
+      toast.error(`Ошибка загрузки: ${error.message || 'Неизвестная ошибка'}`);
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
