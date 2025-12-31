@@ -631,11 +631,17 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
       orderDate: new Date().toISOString().split('T')[0],
       selectedModel: '',
       selections: initialSelections,
+      quantities: {},
       notes: '',
     });
     setAppliedDiscount(0);
+    setAdminGifts([]);
+    setAdminDiscountApproved(false);
     toast.success(txt.formCleared);
   };
+  
+  // Alias for cancel edit to use same clear logic
+  const handleClear = handleClearForm;
 
   const getCategoryName = (category) => {
     return txt[category.name] || category.name;
