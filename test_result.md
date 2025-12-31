@@ -230,6 +230,65 @@
 
 The Order Full Edit functionality is **WORKING CORRECTLY** with all major features implemented and functional. Minor issues are related to test data limitations rather than functionality problems.
 
+## Sauna Order Creation 422 Error Fix Testing Results - COMPLETED ✅
+
+### Test Environment:
+- Backend URL: https://order-edit-master.preview.emergentagent.com/api
+- Test Date: December 31, 2025
+
+### Test Scenarios Completed:
+
+1. **✅ Create Sauna order without id field:**
+   - POST /api/sauna/orders with required fields but NO id field
+   - Order created successfully with auto-generated ID: WMS-31-12-2025-152148
+   - ID format verified: WMS-DD-MM-YYYY-HHMMSS
+   - Response: 200 OK
+
+2. **✅ Create Sauna order with minimal data:**
+   - POST /api/sauna/orders with only required fields:
+     - fullName: "Test User"
+     - phoneNumber: "+48123456789"
+     - orderDate: "2024-12-31"
+     - selectedModel: "test-model"
+   - Order created successfully
+   - Response: 200 OK
+
+3. **✅ Test frontend-like request (all fields):**
+   - POST /api/sauna/orders with complete field set:
+     - Customer data: fullName, email, phoneNumber, fullAddress, orderDate
+     - Model data: selectedModel, modelName, modelImageUrl
+     - Pricing: basePrice, foundationPrice, discountPercent
+     - Options: selections, quantities, selectedOptions
+     - Additional: notes, optionsTotal, subtotal, total
+     - Admin fields: createdBy, adminGifts, adminDiscountApproved
+     - Request fields: requestedDiscount, requestedDiscountNote
+   - Order created successfully with all fields preserved
+   - Response: 200 OK
+   - Total calculation verified: 25116.0 PLN
+
+### Backend API Endpoint Tested:
+
+| Endpoint | Method | Status | Notes |
+|----------|--------|--------|-------|
+| /api/sauna/orders | POST | ✅ PASS | All test scenarios successful - 422 error fixed |
+
+### Key Findings:
+
+1. **422 Error Resolution:**
+   - ✅ No more 422 Unprocessable Content errors
+   - ✅ All order creation scenarios return 200 OK
+   - ✅ Auto-generated ID system working correctly
+
+2. **Field Handling:**
+   - ✅ Optional id field handled properly (auto-generated when missing)
+   - ✅ Required fields validation working
+   - ✅ All frontend fields accepted and stored correctly
+
+3. **Data Integrity:**
+   - ✅ Order data properly saved to database
+   - ✅ Complex nested objects (selectedOptions, selections) handled correctly
+   - ✅ Pricing calculations preserved
+
 ## Test Instructions for Frontend Testing
 1. Login as admin (admin/159357)
 2. Create a test order in Balia calculator with some options
