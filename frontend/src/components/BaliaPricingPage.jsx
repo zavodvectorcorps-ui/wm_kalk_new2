@@ -22,14 +22,14 @@ import { BaliaImageUploader } from './BaliaImageUploader';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// Helper to get full image URL from relative path
+// Helper to get full image URL - handles both full URLs and legacy relative paths
 const getFullImageUrl = (url) => {
   if (!url) return '';
-  // If it's already an absolute URL, return as-is
+  // If it's already a full URL, return as-is
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
-  // If it's a relative path starting with /api/, prepend API_URL
+  // Legacy: convert relative path to full URL
   if (url.startsWith('/api/')) {
     return `${API_URL}${url}`;
   }
