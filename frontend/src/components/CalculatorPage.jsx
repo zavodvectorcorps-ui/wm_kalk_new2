@@ -498,6 +498,7 @@ export const CalculatorPage = () => {
                         src={getImageUrl(category.imageUrl)} 
                         alt={getCategoryName(category)}
                         className="w-10 h-10 object-contain rounded"
+                        loading="eager"
                       />
                     )}
                     <Label className="font-semibold text-sm">{getCategoryName(category)}</Label>
