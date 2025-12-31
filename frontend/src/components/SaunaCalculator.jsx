@@ -543,17 +543,15 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
       const discountAmount = discountableAmount * (appliedDiscount / 100);
       const total = discountableAmount - discountAmount;
       
-      // Use existing order ID in edit mode, otherwise get from server
-      const orderId = isEditMode && editOrderId 
-        ? editOrderId 
-        : null;
+      // Use existing order ID in edit mode, otherwise don't include id (backend will generate)
+      const orderId = isEditMode && editOrderId ? editOrderId : undefined;
       
       const orderData = {
-        id: orderId,
+        ...(orderId && { id: orderId }), // Only include id if editing
         fullName: formData.fullName,
         email: formData.email,
         phoneNumber: formData.phoneNumber,
-        fullAddress: formData.fullAddress,
+        fullAddress: formData.fullAddress || '',
         orderDate: formData.orderDate,
         selectedModel: formData.selectedModel,
         modelName: model?.name || '',
@@ -562,9 +560,9 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
         foundationPrice: calculateFoundationPrice(),
         discountPercent: appliedDiscount,
         selections: formData.selections,
-        quantities: formData.quantities,
+        quantities: formData.quantities || {},
         selectedOptions: selectedOptions,
-        notes: formData.notes,
+        notes: formData.notes || '',
         optionsTotal: calculateOptionsTotal(),
         subtotal: subtotal,
         total: total,
