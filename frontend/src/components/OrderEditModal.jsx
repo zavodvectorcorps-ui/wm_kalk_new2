@@ -102,8 +102,8 @@ export const OrderEditModal = ({
     const discount = parseFloat(value) || 0;
     const isAdminUser = isAdmin && isAdmin();
     
-    // Non-admin users are limited to 20%
-    if (!isAdminUser && discount > 20) {
+    // Non-admin users are limited to 10%
+    if (!isAdminUser && discount > 10) {
       toast.warning(text.maxDiscountWarning);
       return;
     }
@@ -113,13 +113,13 @@ export const OrderEditModal = ({
       discountPercent: discount,
     };
     
-    // If admin sets discount > 20%, mark it as admin approved
-    if (isAdminUser && discount > 20) {
+    // If admin sets discount > 10%, mark it as admin approved
+    if (isAdminUser && discount > 10) {
       newData.adminDiscountApproved = true;
       newData.adminDiscountApprovedBy = user?.username || 'Admin';
       newData.adminDiscountApprovedAt = new Date().toISOString();
-    } else if (discount <= 20) {
-      // If discount is reduced to 20% or less, remove admin approval
+    } else if (discount <= 10) {
+      // If discount is reduced to 10% or less, remove admin approval
       newData.adminDiscountApproved = false;
       newData.adminDiscountApprovedBy = '';
       newData.adminDiscountApprovedAt = '';
