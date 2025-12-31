@@ -1444,6 +1444,326 @@ def test_generate_sauna_pdf():
         print(f"❌ POST /api/sauna/generate-pdf error: {str(e)}")
         return False
 
+# ============================================================================
+# ORDER EDIT FUNCTIONALITY TESTS (NEW)
+# ============================================================================
+
+def test_balia_order_edit_functionality():
+    """Test Balia order edit functionality including admin discount approval"""
+    print("\n🔍 Testing Balia Order Edit Functionality...")
+    print("=" * 60)
+    
+    try:
+        # Step 1: Login as admin to get token
+        print("\n🔍 Step 1: Admin login...")
+        admin_token = test_admin_login()
+        if not admin_token:
+            print("❌ Cannot proceed - admin login failed")
+            return False
+        
+        # Step 2: Create a test order first
+        print("\n🔍 Step 2: Creating test order...")
+        test_order = {
+            "id": str(uuid.uuid4()),
+            "fullName": "Jan Kowalski",
+            "phoneNumber": "+48 123 456 789",
+            "fullAddress": "ul. Testowa 1, Warszawa",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "modelId": "round_ext_200",
+            "modelName": "Купель 200см (внешний нагрев)",
+            "modelPrice": 1250,
+            "selectedOptions": [
+                {
+                    "categoryId": "hydromassage", 
+                    "optionId": "hydro_6_8", 
+                    "categoryName": "Гидромассаж", 
+                    "optionName": "Гидромассаж 1.1кВт (6-8 форсунок)", 
+                    "price": 300
+                }
+            ],
+            "notes": "Test order for edit functionality",
+            "discountPercent": 10,
+            "subtotal": 1550,
+            "total": 1395,
+            "currency": "EUR",
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        create_response = requests.post(f"{BACKEND_URL}/orders", json=test_order)
+        if create_response.status_code != 200:
+            print(f"❌ Failed to create test order: {create_response.status_code}")
+            print(f"Response: {create_response.text}")
+            return False
+        
+        order_id = test_order["id"]
+        print(f"✅ Test order created with ID: {order_id}")
+        
+        # Step 3: Test GET single order
+        print(f"\n🔍 Step 3: Testing GET /api/orders/{order_id}...")
+        get_response = requests.get(f"{BACKEND_URL}/orders/{order_id}")
+        
+        if get_response.status_code == 200:
+            order_data = get_response.json()
+            print("✅ GET single order successful")
+            print(f"✅ Order customer: {order_data.get('fullName')}")
+            print(f"✅ Order total: {order_data.get('total')} {order_data.get('currency', 'EUR')}")
+            print(f"✅ Current discount: {order_data.get('discountPercent', 0)}%")
+        else:
+            print(f"❌ GET single order failed: {get_response.status_code}")
+            print(f"Response: {get_response.text}")
+            return False
+        
+        # Step 4: Test PUT order update with admin discount > 20%
+        print(f"\n🔍 Step 4: Testing PUT /api/orders/{order_id} with admin discount...")
+        
+        # Update order with 25% discount (above 20% limit)
+        updated_order = order_data.copy()
+        updated_order["fullName"] = "Jan Kowalski (Updated)"
+        updated_order["phoneNumber"] = "+48 987 654 321"
+        updated_order["discountPercent"] = 25  # Above 20% limit
+        updated_order["adminDiscountApproved"] = True
+        updated_order["adminDiscountApprovedBy"] = "admin"
+        updated_order["adminDiscountApprovedAt"] = datetime.now().isoformat()
+        
+        # Recalculate total with new discount
+        subtotal = updated_order.get("subtotal", 1550)
+        new_total = subtotal * (1 - 25/100)  # 25% discount
+        updated_order["total"] = new_total
+        
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        update_response = requests.put(f"{BACKEND_URL}/orders/{order_id}", 
+                                     json=updated_order, headers=headers)
+        
+        if update_response.status_code == 200:
+            updated_data = update_response.json()
+            print("✅ PUT order update successful")
+            print(f"✅ Updated customer name: {updated_data.get('fullName')}")
+            print(f"✅ Updated phone: {updated_data.get('phoneNumber')}")
+            print(f"✅ Updated discount: {updated_data.get('discountPercent')}%")
+            print(f"✅ Admin approval: {updated_data.get('adminDiscountApproved')}")
+            print(f"✅ Approved by: {updated_data.get('adminDiscountApprovedBy')}")
+            print(f"✅ Approved at: {updated_data.get('adminDiscountApprovedAt')}")
+        else:
+            print(f"❌ PUT order update failed: {update_response.status_code}")
+            print(f"Response: {update_response.text}")
+            return False
+        
+        # Step 5: Verify changes persisted by getting order again
+        print(f"\n🔍 Step 5: Verifying changes persisted...")
+        verify_response = requests.get(f"{BACKEND_URL}/orders/{order_id}")
+        
+        if verify_response.status_code == 200:
+            verified_data = verify_response.json()
+            
+            # Check all updated fields
+            checks = [
+                ("Customer name", verified_data.get('fullName') == "Jan Kowalski (Updated)"),
+                ("Phone number", verified_data.get('phoneNumber') == "+48 987 654 321"),
+                ("Discount percent", verified_data.get('discountPercent') == 25),
+                ("Admin approval flag", verified_data.get('adminDiscountApproved') == True),
+                ("Admin approval by", verified_data.get('adminDiscountApprovedBy') == "admin"),
+                ("Admin approval timestamp", verified_data.get('adminDiscountApprovedAt') is not None),
+                ("Total recalculated", abs(verified_data.get('total', 0) - new_total) < 1)
+            ]
+            
+            all_passed = True
+            for check_name, passed in checks:
+                if passed:
+                    print(f"✅ {check_name} verified")
+                else:
+                    print(f"❌ {check_name} verification failed")
+                    all_passed = False
+            
+            if all_passed:
+                print("✅ All order edit functionality tests passed")
+                return True
+            else:
+                print("❌ Some order edit functionality tests failed")
+                return False
+        else:
+            print(f"❌ Failed to verify changes: {verify_response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Balia order edit test error: {str(e)}")
+        return False
+
+def test_sauna_order_edit_functionality():
+    """Test Sauna order edit functionality including admin discount approval"""
+    print("\n🔍 Testing Sauna Order Edit Functionality...")
+    print("=" * 60)
+    
+    try:
+        # Step 1: Login as admin to get token
+        print("\n🔍 Step 1: Admin login...")
+        admin_token = test_admin_login()
+        if not admin_token:
+            print("❌ Cannot proceed - admin login failed")
+            return False
+        
+        # Step 2: Create a test sauna order first
+        print("\n🔍 Step 2: Creating test sauna order...")
+        test_order = {
+            "id": str(uuid.uuid4()),
+            "fullName": "Anna Nowak",
+            "phoneNumber": "+48 111 222 333",
+            "fullAddress": "Kraków, ul. Sauna 5",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "selectedModel": "sauna_kwadro_beczka_235x300_cm",
+            "modelName": "Sauna Kwadro-Beczka 235x300 cm",
+            "basePrice": 24100,
+            "foundationPrice": 250,
+            "discount": 8,
+            "discountPercent": 8,
+            "selections": {
+                "piece": "piec_elektryczny_9kw",
+                "strona_pieca": "piec_lewo"
+            },
+            "notes": "Test sauna order for edit functionality",
+            "optionsTotal": 2950,
+            "subtotal": 27300,
+            "total": 25116,
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        create_response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order)
+        if create_response.status_code != 200:
+            print(f"❌ Failed to create test sauna order: {create_response.status_code}")
+            print(f"Response: {create_response.text}")
+            return False
+        
+        order_id = test_order["id"]
+        print(f"✅ Test sauna order created with ID: {order_id}")
+        
+        # Step 3: Test GET single sauna order
+        print(f"\n🔍 Step 3: Testing GET /api/sauna/orders/{order_id}...")
+        get_response = requests.get(f"{BACKEND_URL}/sauna/orders/{order_id}")
+        
+        if get_response.status_code == 200:
+            order_data = get_response.json()
+            print("✅ GET single sauna order successful")
+            print(f"✅ Order customer: {order_data.get('fullName')}")
+            print(f"✅ Order model: {order_data.get('modelName')}")
+            print(f"✅ Order total: {order_data.get('total')} PLN")
+            print(f"✅ Current discount: {order_data.get('discountPercent', 0)}%")
+        else:
+            print(f"❌ GET single sauna order failed: {get_response.status_code}")
+            print(f"Response: {get_response.text}")
+            return False
+        
+        # Step 4: Test PUT sauna order update with admin discount > 20%
+        print(f"\n🔍 Step 4: Testing PUT /api/sauna/orders/{order_id} with admin discount...")
+        
+        # Update order with 30% discount (above 20% limit)
+        updated_order = order_data.copy()
+        updated_order["fullName"] = "Anna Nowak (Updated)"
+        updated_order["phoneNumber"] = "+48 999 888 777"
+        updated_order["discountPercent"] = 30  # Above 20% limit
+        updated_order["adminDiscountApproved"] = True
+        updated_order["adminDiscountApprovedBy"] = "admin"
+        updated_order["adminDiscountApprovedAt"] = datetime.now().isoformat()
+        
+        # Recalculate total with new discount
+        subtotal = updated_order.get("subtotal", 27300)
+        new_total = subtotal * (1 - 30/100)  # 30% discount
+        updated_order["total"] = new_total
+        
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        update_response = requests.put(f"{BACKEND_URL}/sauna/orders/{order_id}", 
+                                     json=updated_order, headers=headers)
+        
+        if update_response.status_code == 200:
+            updated_data = update_response.json()
+            print("✅ PUT sauna order update successful")
+            print(f"✅ Updated customer name: {updated_data.get('fullName')}")
+            print(f"✅ Updated phone: {updated_data.get('phoneNumber')}")
+            print(f"✅ Updated discount: {updated_data.get('discountPercent')}%")
+            print(f"✅ Admin approval: {updated_data.get('adminDiscountApproved')}")
+            print(f"✅ Approved by: {updated_data.get('adminDiscountApprovedBy')}")
+            print(f"✅ Approved at: {updated_data.get('adminDiscountApprovedAt')}")
+        else:
+            print(f"❌ PUT sauna order update failed: {update_response.status_code}")
+            print(f"Response: {update_response.text}")
+            return False
+        
+        # Step 5: Verify changes persisted by getting sauna order again
+        print(f"\n🔍 Step 5: Verifying sauna order changes persisted...")
+        verify_response = requests.get(f"{BACKEND_URL}/sauna/orders/{order_id}")
+        
+        if verify_response.status_code == 200:
+            verified_data = verify_response.json()
+            
+            # Check all updated fields
+            checks = [
+                ("Customer name", verified_data.get('fullName') == "Anna Nowak (Updated)"),
+                ("Phone number", verified_data.get('phoneNumber') == "+48 999 888 777"),
+                ("Discount percent", verified_data.get('discountPercent') == 30),
+                ("Admin approval flag", verified_data.get('adminDiscountApproved') == True),
+                ("Admin approval by", verified_data.get('adminDiscountApprovedBy') == "admin"),
+                ("Admin approval timestamp", verified_data.get('adminDiscountApprovedAt') is not None),
+                ("Total recalculated", abs(verified_data.get('total', 0) - new_total) < 1)
+            ]
+            
+            all_passed = True
+            for check_name, passed in checks:
+                if passed:
+                    print(f"✅ {check_name} verified")
+                else:
+                    print(f"❌ {check_name} verification failed")
+                    all_passed = False
+            
+            if all_passed:
+                print("✅ All sauna order edit functionality tests passed")
+                return True
+            else:
+                print("❌ Some sauna order edit functionality tests failed")
+                return False
+        else:
+            print(f"❌ Failed to verify sauna order changes: {verify_response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Sauna order edit test error: {str(e)}")
+        return False
+
+def test_admin_discount_approval_system():
+    """Test admin discount approval system comprehensively"""
+    print("\n🔍 Testing Admin Discount Approval System...")
+    print("=" * 60)
+    
+    try:
+        # Test both Balia and Sauna orders with various discount scenarios
+        results = {
+            "Balia Order Edit with Admin Discount": test_balia_order_edit_functionality(),
+            "Sauna Order Edit with Admin Discount": test_sauna_order_edit_functionality()
+        }
+        
+        # Summary
+        print("\n📊 ADMIN DISCOUNT APPROVAL SYSTEM TEST RESULTS:")
+        print("=" * 60)
+        
+        all_passed = True
+        for test_name, result in results.items():
+            status = "✅ PASSED" if result else "❌ FAILED"
+            print(f"{status} {test_name}")
+            if not result:
+                all_passed = False
+        
+        if all_passed:
+            print("\n🎉 All admin discount approval tests passed!")
+            print("✅ Order edit endpoints working correctly")
+            print("✅ Admin discount approval fields properly set")
+            print("✅ Changes persist in database")
+        else:
+            print("\n❌ Some admin discount approval tests failed")
+            print("⚠️ Review failed tests above for details")
+        
+        return all_passed
+        
+    except Exception as e:
+        print(f"❌ Admin discount approval system test error: {str(e)}")
+        return False
+
 def test_display_type_feature():
     """Test Display Type feature for Sauna Calculator as specified in review request"""
     print("\n🎨 Testing Display Type Feature for Sauna Calculator...")
