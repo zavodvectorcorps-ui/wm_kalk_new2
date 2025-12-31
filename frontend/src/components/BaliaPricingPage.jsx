@@ -568,7 +568,7 @@ export const BaliaPricingPage = () => {
                               <div className="flex items-center gap-2">
                                 {option.imageUrl && (
                                   <img 
-                                    src={getFullImageUrl(option.imageUrl)} 
+                                    src={getFullImageUrl(option.imageUrl, true)} 
                                     alt={getName(option)}
                                     className="w-8 h-8 object-contain rounded"
                                   />
