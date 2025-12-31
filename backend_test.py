@@ -1554,6 +1554,188 @@ def test_generate_sauna_pdf():
         print(f"❌ POST /api/sauna/generate-pdf error: {str(e)}")
         return False
 
+def test_requested_discount_bug_fix():
+    """Test the requested discount bug fix - verify requestedDiscount is preserved on edit"""
+    print("\n🔍 Testing REQUESTED DISCOUNT BUG FIX - Critical Verification")
+    print("=" * 70)
+    
+    results = {}
+    
+    # Test 1: Create Sauna Order with Requested Discount as Manager
+    print("\n📝 Test 1: Create Sauna Order with Requested Discount as Manager...")
+    try:
+        test_order = {
+            "fullName": "Test Manager Order",
+            "phoneNumber": "+48111222333",
+            "orderDate": "2025-01-01",
+            "selectedModel": "sauna_kwadro_beczka_235x250_cm",
+            "modelName": "Sauna Kwadro-Beczka 235x250 cm",
+            "basePrice": 17980,
+            "total": 17980,
+            "requestedDiscount": 15,
+            "requestedDiscountNote": "Klient prosi o specjalną zniżkę - długoletni klient"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            saved_order = response.json()
+            order_id = saved_order.get('id')
+            print("✅ Sauna order created successfully with requested discount")
+            print(f"✅ Order ID: {order_id}")
+            print(f"✅ Requested Discount: {saved_order.get('requestedDiscount', 'NOT FOUND')}")
+            print(f"✅ Requested Discount Note: {saved_order.get('requestedDiscountNote', 'NOT FOUND')}")
+            results["test_1_create_order"] = True
+            results["order_id"] = order_id
+        else:
+            print(f"❌ Order creation failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["test_1_create_order"] = False
+            return results
+            
+    except Exception as e:
+        print(f"❌ Test 1 error: {str(e)}")
+        results["test_1_create_order"] = False
+        return results
+    
+    # Test 2: Verify Requested Discount is Saved
+    print("\n📝 Test 2: Verify Requested Discount is Saved...")
+    try:
+        order_id = results.get("order_id")
+        if not order_id:
+            print("❌ No order ID from previous test")
+            results["test_2_verify_saved"] = False
+            return results
+        
+        response = requests.get(f"{BACKEND_URL}/sauna/orders/{order_id}")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            retrieved_order = response.json()
+            requested_discount = retrieved_order.get('requestedDiscount')
+            requested_discount_note = retrieved_order.get('requestedDiscountNote')
+            
+            print(f"✅ Order retrieved successfully")
+            print(f"✅ Retrieved Requested Discount: {requested_discount}")
+            print(f"✅ Retrieved Requested Discount Note: {requested_discount_note}")
+            
+            # Verify values match what we saved
+            if requested_discount == 15:
+                print("✅ requestedDiscount = 15 - CORRECT")
+                results["discount_value_correct"] = True
+            else:
+                print(f"❌ requestedDiscount = {requested_discount} - EXPECTED 15")
+                results["discount_value_correct"] = False
+            
+            if requested_discount_note == "Klient prosi o specjalną zniżkę - długoletni klient":
+                print("✅ requestedDiscountNote contains correct message - CORRECT")
+                results["discount_note_correct"] = True
+            else:
+                print(f"❌ requestedDiscountNote = '{requested_discount_note}' - INCORRECT")
+                results["discount_note_correct"] = False
+            
+            results["test_2_verify_saved"] = results["discount_value_correct"] and results["discount_note_correct"]
+        else:
+            print(f"❌ Order retrieval failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["test_2_verify_saved"] = False
+            
+    except Exception as e:
+        print(f"❌ Test 2 error: {str(e)}")
+        results["test_2_verify_saved"] = False
+    
+    # Test 3: Test Sauna PDF Generation with Model and Bench Images
+    print("\n📝 Test 3: Test Sauna PDF Generation with Model and Bench Images...")
+    try:
+        pdf_request = {
+            "fullName": "PDF Test",
+            "phoneNumber": "123456",
+            "orderDate": "2025-01-01",
+            "selectedModel": "sauna_kwadro_beczka_235x250_cm",
+            "modelName": "Sauna Kwadro-Beczka 235x250 cm",
+            "modelImageUrl": "https://i.imgur.com/LbbjL2d.jpeg",
+            "basePrice": 17980,
+            "total": 20000,
+            "discountPercent": 10,
+            "subtotal": 22000,
+            "categories": [],
+            "selections": {"lawki": "lawki_2_poziomy_otwarte"},
+            "selectedOptions": [
+                {
+                    "categoryId": "lawki",
+                    "categoryName": "Ławki",
+                    "optionId": "lawki_2_poziomy_otwarte",
+                    "optionName": "Ławki 2-poziomowe",
+                    "price": 480,
+                    "imageUrl": "https://i.imgur.com/lNi4r5Q.jpeg"
+                }
+            ]
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/generate-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Sauna PDF generation successful")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                results["test_3_pdf_generation"] = False
+                return results
+            
+            # Check PDF size (should be > 500KB if images are included)
+            content_length = len(response.content)
+            print(f"✅ PDF size: {content_length} bytes")
+            
+            if content_length > 500000:  # 500KB
+                print("✅ PDF size > 500KB - indicates images are included")
+                results["pdf_size_correct"] = True
+            else:
+                print(f"❌ PDF size {content_length} bytes < 500KB - images may not be included")
+                results["pdf_size_correct"] = False
+            
+            results["test_3_pdf_generation"] = True
+        else:
+            print(f"❌ PDF generation failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["test_3_pdf_generation"] = False
+            
+    except Exception as e:
+        print(f"❌ Test 3 error: {str(e)}")
+        results["test_3_pdf_generation"] = False
+    
+    # Summary
+    print("\n📊 REQUESTED DISCOUNT BUG FIX TEST SUMMARY:")
+    print("=" * 60)
+    
+    test_results = [
+        ("Create Order with Requested Discount", results.get("test_1_create_order", False)),
+        ("Verify Requested Discount Saved", results.get("test_2_verify_saved", False)),
+        ("PDF Generation with Images", results.get("test_3_pdf_generation", False)),
+        ("PDF Size > 500KB (Images Included)", results.get("pdf_size_correct", False))
+    ]
+    
+    passed_tests = 0
+    for test_name, result in test_results:
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+        if result:
+            passed_tests += 1
+    
+    print(f"\nOverall: {passed_tests}/{len(test_results)} tests passed")
+    
+    if passed_tests == len(test_results):
+        print("🎉 ALL REQUESTED DISCOUNT BUG FIX TESTS PASSED!")
+        return True
+    else:
+        print("❌ Some critical tests failed - bug fix verification incomplete")
+        return False
+
 def test_sauna_pdf_with_model_and_bench():
     """Test Sauna PDF with Model and Bench side by side as specified in review request"""
     print("\n🔍 Testing Sauna PDF with Model and Bench side by side...")
