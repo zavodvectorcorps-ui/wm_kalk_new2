@@ -440,8 +440,8 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
         calculatorType={calculatorType}
       />
       
-      {/* Order Edit Modal */}
-      <OrderEditModal
+      {/* Order Full Edit Modal */}
+      <OrderFullEditModal
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
         order={editOrder}
