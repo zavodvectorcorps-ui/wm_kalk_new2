@@ -952,7 +952,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
                           <SelectItemOrange key={option.id} value={option.id}>
                             <div className="flex items-center gap-2">
                               {option.imageUrl && (
-                                <img src={option.imageUrl} alt={option.name} className="w-8 h-6 object-cover rounded" />
+                                <img src={option.imageUrl} alt={option.name} className="w-8 h-6 object-cover rounded" loading="lazy" />
                               )}
                               <span>{option.name}</span>
                               <span className="text-amber-700 font-medium ml-2">
