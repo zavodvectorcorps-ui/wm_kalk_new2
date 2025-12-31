@@ -1448,6 +1448,328 @@ def test_generate_sauna_pdf():
 # ORDER EDIT FUNCTIONALITY TESTS (NEW)
 # ============================================================================
 
+def test_order_full_edit_functionality():
+    """Test Order Full Edit functionality for Balia and Sauna calculators"""
+    print("\n🔍 Testing Order Full Edit Functionality...")
+    print("=" * 60)
+    
+    # Test admin login first
+    admin_token = test_admin_login()
+    if not admin_token:
+        print("❌ Cannot proceed - admin login failed")
+        return False
+    
+    # Test Balia order functionality
+    balia_result = test_balia_order_full_edit(admin_token)
+    
+    # Test Sauna order functionality  
+    sauna_result = test_sauna_order_full_edit(admin_token)
+    
+    return balia_result and sauna_result
+
+def test_balia_order_full_edit(admin_token):
+    """Test Balia order creation, update with admin discount and gifts, and PDF generation"""
+    print("\n🔍 Testing Balia Order Full Edit...")
+    
+    try:
+        # Step 1: Create a test order with selectedOptions
+        print("\n📝 Step 1: Creating Balia order with selectedOptions...")
+        test_order = {
+            "id": str(uuid.uuid4()),
+            "fullName": "Jan Kowalski",
+            "phoneNumber": "+48 123 456 789",
+            "fullAddress": "ul. Testowa 1, Warszawa",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "modelId": "round_ext_200",
+            "modelName": "Купель 200см (внешний нагрев)",
+            "modelPrice": 1250,
+            "selectedOptions": [
+                {
+                    "categoryId": "hydromassage", 
+                    "optionId": "hydro_6_8", 
+                    "categoryName": "Гидромассаж", 
+                    "optionName": "Гидромассаж 1.1кВт (6-8 форсунок)", 
+                    "price": 300
+                },
+                {
+                    "categoryId": "lighting", 
+                    "optionId": "led_inside_2", 
+                    "categoryName": "Освещение", 
+                    "optionName": "LED внутри (2 шт)", 
+                    "price": 80
+                }
+            ],
+            "notes": "Test order for edit functionality",
+            "discountPercent": 5,
+            "subtotal": 1630,
+            "total": 1548.5,  # 1630 * 0.95
+            "currency": "EUR",
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        create_response = requests.post(f"{BACKEND_URL}/orders", json=test_order)
+        if create_response.status_code != 200:
+            print(f"❌ Failed to create Balia test order: {create_response.status_code}")
+            print(f"Response: {create_response.text}")
+            return False
+        
+        order_id = test_order["id"]
+        print(f"✅ Balia test order created with ID: {order_id}")
+        
+        # Step 2: Test order update with admin discount > 10%
+        print(f"\n📝 Step 2: Testing Balia order update with admin discount...")
+        
+        updated_order = test_order.copy()
+        updated_order["discountPercent"] = 15  # Above 10% threshold
+        updated_order["adminDiscountApproved"] = True
+        updated_order["adminDiscountApprovedBy"] = "admin"
+        updated_order["adminDiscountApprovedAt"] = datetime.now().isoformat()
+        
+        # Recalculate total with new discount
+        subtotal = updated_order["subtotal"]
+        new_total = subtotal * (1 - 15/100)  # 15% discount
+        updated_order["total"] = new_total
+        
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        update_response = requests.put(f"{BACKEND_URL}/orders/{order_id}", 
+                                     json=updated_order, headers=headers)
+        
+        if update_response.status_code != 200:
+            print(f"❌ Failed to update Balia order with admin discount: {update_response.status_code}")
+            print(f"Response: {update_response.text}")
+            return False
+        
+        updated_data = update_response.json()
+        print("✅ Balia order updated with admin discount")
+        print(f"✅ Discount: {updated_data.get('discountPercent')}%")
+        print(f"✅ Admin approval: {updated_data.get('adminDiscountApproved')}")
+        print(f"✅ Approved by: {updated_data.get('adminDiscountApprovedBy')}")
+        
+        # Step 3: Test order update with admin gifts
+        print(f"\n📝 Step 3: Testing Balia order update with admin gifts...")
+        
+        # Mark one of the options as a gift
+        gift_updated_order = updated_data.copy()
+        gift_updated_order["adminGifts"] = ["hydro_6_8"]  # Make hydromassage a gift
+        
+        # Recalculate total (gift options should not add to total)
+        gift_price = 300  # Price of hydro_6_8
+        new_total_with_gift = (subtotal - gift_price) * (1 - 15/100)  # Remove gift price, then apply discount
+        gift_updated_order["total"] = new_total_with_gift
+        
+        gift_update_response = requests.put(f"{BACKEND_URL}/orders/{order_id}", 
+                                          json=gift_updated_order, headers=headers)
+        
+        if gift_update_response.status_code != 200:
+            print(f"❌ Failed to update Balia order with admin gifts: {gift_update_response.status_code}")
+            print(f"Response: {gift_update_response.text}")
+            return False
+        
+        gift_updated_data = gift_update_response.json()
+        print("✅ Balia order updated with admin gifts")
+        print(f"✅ Admin gifts: {gift_updated_data.get('adminGifts')}")
+        print(f"✅ New total (with gift): {gift_updated_data.get('total')}")
+        
+        # Step 4: Test PDF generation with gifts
+        print(f"\n📝 Step 4: Testing Balia PDF generation with gifts...")
+        
+        pdf_request = {
+            "orderId": order_id,
+            "fullName": gift_updated_data["fullName"],
+            "phoneNumber": gift_updated_data["phoneNumber"],
+            "fullAddress": gift_updated_data["fullAddress"],
+            "orderDate": gift_updated_data["orderDate"],
+            "modelId": gift_updated_data["modelId"],
+            "modelName": gift_updated_data["modelName"],
+            "modelPrice": gift_updated_data["modelPrice"],
+            "selectedOptions": gift_updated_data["selectedOptions"],
+            "adminGifts": gift_updated_data["adminGifts"],
+            "notes": gift_updated_data["notes"],
+            "discountPercent": gift_updated_data["discountPercent"],
+            "subtotal": gift_updated_data["subtotal"],
+            "total": gift_updated_data["total"],
+            "currency": gift_updated_data["currency"]
+        }
+        
+        pdf_response = requests.post(f"{BACKEND_URL}/generate-pdf", json=pdf_request)
+        
+        if pdf_response.status_code != 200:
+            print(f"❌ Failed to generate Balia PDF with gifts: {pdf_response.status_code}")
+            print(f"Response: {pdf_response.text}")
+            return False
+        
+        # Check content type
+        content_type = pdf_response.headers.get('content-type', '')
+        if 'application/pdf' in content_type:
+            print("✅ Balia PDF with gifts generated successfully")
+            print(f"✅ PDF size: {len(pdf_response.content)} bytes")
+        else:
+            print(f"❌ Unexpected content type: {content_type}")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Balia order full edit test error: {str(e)}")
+        return False
+
+def test_sauna_order_full_edit(admin_token):
+    """Test Sauna order creation, update with admin discount and gifts, and PDF generation"""
+    print("\n🔍 Testing Sauna Order Full Edit...")
+    
+    try:
+        # Step 1: Create a test sauna order
+        print("\n📝 Step 1: Creating Sauna order...")
+        test_order = {
+            "id": str(uuid.uuid4()),
+            "fullName": "Anna Nowak",
+            "phoneNumber": "+48 987 654 321",
+            "fullAddress": "ul. Krakowska 5, Warszawa",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "selectedModel": "sauna_kwadro_beczka_235x300_cm",
+            "modelName": "Sauna Kwadro-Beczka 235x300 cm",
+            "basePrice": 24100,
+            "foundationPrice": 250,
+            "discount": 8,
+            "discountPercent": 8,
+            "selections": {
+                "piece": "piec_elektryczny_9kw",
+                "strona_pieca": "piec_lewo"
+            },
+            "selectedOptions": [
+                {
+                    "categoryId": "piece",
+                    "optionId": "piec_elektryczny_9kw",
+                    "categoryName": "Piece",
+                    "optionName": "Piec Elektryczne 9 kW",
+                    "price": 2600
+                },
+                {
+                    "categoryId": "strona_pieca",
+                    "optionId": "piec_lewo",
+                    "categoryName": "Strona Pieca",
+                    "optionName": "Piec lewo",
+                    "price": 350
+                }
+            ],
+            "notes": "Test sauna order for edit functionality",
+            "optionsTotal": 2950,
+            "subtotal": 27300,  # 24100 + 250 + 2950
+            "total": 25116,     # 27300 * 0.92 (8% discount)
+            "createdAt": datetime.now().isoformat()
+        }
+        
+        create_response = requests.post(f"{BACKEND_URL}/sauna/orders", json=test_order)
+        if create_response.status_code != 200:
+            print(f"❌ Failed to create Sauna test order: {create_response.status_code}")
+            print(f"Response: {create_response.text}")
+            return False
+        
+        order_id = test_order["id"]
+        print(f"✅ Sauna test order created with ID: {order_id}")
+        
+        # Step 2: Test order update with admin discount > 10%
+        print(f"\n📝 Step 2: Testing Sauna order update with admin discount...")
+        
+        updated_order = test_order.copy()
+        updated_order["discountPercent"] = 12  # Above 10% threshold
+        updated_order["adminDiscountApproved"] = True
+        updated_order["adminDiscountApprovedBy"] = "admin"
+        updated_order["adminDiscountApprovedAt"] = datetime.now().isoformat()
+        
+        # Recalculate total with new discount
+        subtotal = updated_order["subtotal"]
+        new_total = subtotal * (1 - 12/100)  # 12% discount
+        updated_order["total"] = new_total
+        
+        headers = {"Authorization": f"Bearer {admin_token}"}
+        update_response = requests.put(f"{BACKEND_URL}/sauna/orders/{order_id}", 
+                                     json=updated_order, headers=headers)
+        
+        if update_response.status_code != 200:
+            print(f"❌ Failed to update Sauna order with admin discount: {update_response.status_code}")
+            print(f"Response: {update_response.text}")
+            return False
+        
+        updated_data = update_response.json()
+        print("✅ Sauna order updated with admin discount")
+        print(f"✅ Discount: {updated_data.get('discountPercent')}%")
+        print(f"✅ Admin approval: {updated_data.get('adminDiscountApproved')}")
+        print(f"✅ Approved by: {updated_data.get('adminDiscountApprovedBy')}")
+        
+        # Step 3: Test order update with admin gifts
+        print(f"\n📝 Step 3: Testing Sauna order update with admin gifts...")
+        
+        # Mark one of the options as a gift
+        gift_updated_order = updated_data.copy()
+        gift_updated_order["adminGifts"] = ["piec_lewo"]  # Make strona_pieca a gift
+        
+        # Recalculate total (gift options should not add to total)
+        gift_price = 350  # Price of piec_lewo
+        new_total_with_gift = (subtotal - gift_price) * (1 - 12/100)  # Remove gift price, then apply discount
+        gift_updated_order["total"] = new_total_with_gift
+        
+        gift_update_response = requests.put(f"{BACKEND_URL}/sauna/orders/{order_id}", 
+                                          json=gift_updated_order, headers=headers)
+        
+        if gift_update_response.status_code != 200:
+            print(f"❌ Failed to update Sauna order with admin gifts: {gift_update_response.status_code}")
+            print(f"Response: {gift_update_response.text}")
+            return False
+        
+        gift_updated_data = gift_update_response.json()
+        print("✅ Sauna order updated with admin gifts")
+        print(f"✅ Admin gifts: {gift_updated_data.get('adminGifts')}")
+        print(f"✅ New total (with gift): {gift_updated_data.get('total')}")
+        
+        # Step 4: Test PDF generation with gifts
+        print(f"\n📝 Step 4: Testing Sauna PDF generation with gifts...")
+        
+        pdf_request = {
+            "orderId": order_id,
+            "fullName": gift_updated_data["fullName"],
+            "phoneNumber": gift_updated_data["phoneNumber"],
+            "fullAddress": gift_updated_data["fullAddress"],
+            "orderDate": gift_updated_data["orderDate"],
+            "selectedModel": gift_updated_data["selectedModel"],
+            "modelName": gift_updated_data["modelName"],
+            "basePrice": gift_updated_data["basePrice"],
+            "foundationPrice": gift_updated_data["foundationPrice"],
+            "discount": gift_updated_data["discount"],
+            "discountPercent": gift_updated_data["discountPercent"],
+            "selections": gift_updated_data["selections"],
+            "selectedOptions": gift_updated_data["selectedOptions"],
+            "adminGifts": gift_updated_data["adminGifts"],
+            "notes": gift_updated_data["notes"],
+            "optionsTotal": gift_updated_data["optionsTotal"],
+            "subtotal": gift_updated_data["subtotal"],
+            "total": gift_updated_data["total"],
+            "language": "pl",
+            "categories": []  # Would normally be populated from pricing data
+        }
+        
+        pdf_response = requests.post(f"{BACKEND_URL}/sauna/generate-pdf", json=pdf_request)
+        
+        if pdf_response.status_code != 200:
+            print(f"❌ Failed to generate Sauna PDF with gifts: {pdf_response.status_code}")
+            print(f"Response: {pdf_response.text}")
+            return False
+        
+        # Check content type
+        content_type = pdf_response.headers.get('content-type', '')
+        if 'application/pdf' in content_type:
+            print("✅ Sauna PDF with gifts generated successfully")
+            print(f"✅ PDF size: {len(pdf_response.content)} bytes")
+        else:
+            print(f"❌ Unexpected content type: {content_type}")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Sauna order full edit test error: {str(e)}")
+        return False
+
 def test_balia_order_edit_functionality():
     """Test Balia order edit functionality including admin discount approval"""
     print("\n🔍 Testing Balia Order Edit Functionality...")
