@@ -108,7 +108,10 @@ export const BaliaImageUploader = ({
         throw new Error('Invalid URL returned from server');
       }
       
-      onChange(data.url);
+      // Save FULL URL with domain (like in Sauna)
+      const fullUrl = `${API_URL}${data.url}`;
+      console.log('Saving full URL:', fullUrl);
+      onChange(fullUrl);
       toast.success(txt.optimized);
       setActiveTab('upload');
     } catch (error) {
