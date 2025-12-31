@@ -625,6 +625,7 @@ export const CalculatorPage = () => {
                                     src={getImageUrl(option.imageUrl)} 
                                     alt={getOptionName(option)}
                                     className="w-6 h-6 object-contain rounded"
+                                    loading="eager"
                                   />
                                 )}
                                 <span className="flex items-center gap-1">
