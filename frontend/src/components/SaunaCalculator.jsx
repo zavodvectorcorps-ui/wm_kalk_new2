@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, MapPin, Calendar,
   Flame, DoorOpen, Layers, Lightbulb, Package, Truck,
-  Percent, Calculator, Thermometer, Tag, Mail
+  Percent, Calculator, Thermometer, Tag, Mail, X, Edit, Gift, Shield
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -37,13 +37,21 @@ const categoryIcons = {
   'Dostawa': Truck,
 };
 
-export const SaunaCalculator = () => {
+export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [prices, setPrices] = useState({ models: [], categories: [] });
-  const [appliedDiscount, setAppliedDiscount] = useState(0); // Скидка применяется по кнопке
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  
+  // Edit mode states
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editOrderId, setEditOrderId] = useState(null);
+  const [adminGifts, setAdminGifts] = useState([]);
+  const [adminDiscountApproved, setAdminDiscountApproved] = useState(false);
+  
+  const isAdminUser = isAdmin && isAdmin();
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -53,7 +61,7 @@ export const SaunaCalculator = () => {
     orderDate: new Date().toISOString().split('T')[0],
     selectedModel: '',
     selections: {},
-    quantities: {},  // Store quantity for options with hasQuantity: true
+    quantities: {},
     notes: '',
   });
 
