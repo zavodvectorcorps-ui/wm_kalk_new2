@@ -82,6 +82,34 @@ async def update_prices(prices: PriceData):
     return {"message": "Prices updated successfully"}
 
 
+@router.post("/clear-images")
+async def clear_all_images():
+    """Clear all image URLs from models and options"""
+    prices = await db.prices.find_one({"_id": "default"})
+    if not prices:
+        return {"message": "No prices found"}
+    
+    # Clear model images
+    models = prices.get('models', [])
+    for model in models:
+        model['imageUrl'] = ''
+    
+    # Clear category and option images
+    categories = prices.get('categories', [])
+    for category in categories:
+        category['imageUrl'] = ''
+        for option in category.get('options', []):
+            option['imageUrl'] = ''
+    
+    # Update database
+    await db.prices.update_one(
+        {"_id": "default"},
+        {"$set": {"models": models, "categories": categories}}
+    )
+    
+    return {"message": "All Balia images cleared successfully", "models_cleared": len(models), "categories_cleared": len(categories)}
+
+
 @router.post("/orders", response_model=Order)
 async def create_order(order: Order):
     """Create a new order"""
