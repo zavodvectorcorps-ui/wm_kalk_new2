@@ -363,7 +363,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {/* Edit in Calculator Button - Full editing with model/options change */}
+                          {/* Edit in Calculator Button - Available to all employees */}
                           <Button
                             size="sm"
                             variant="default"
@@ -374,15 +374,17 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                             <Calculator className="h-4 w-4 mr-1" />
                             {lang === 'pl' ? 'Edytuj' : 'Редактировать'}
                           </Button>
-                          {/* Quick Edit Button - Only customer data, discount, gifts */}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditOrder(order)}
-                            title={txt.edit}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          {/* Quick Edit Button - Only for admins (discount, gifts) */}
+                          {isAdmin && isAdmin() && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditOrder(order)}
+                              title={txt.edit}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
