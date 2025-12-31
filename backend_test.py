@@ -4755,17 +4755,38 @@ if __name__ == "__main__":
             print(f"{status} PDF Generation with Model Images")
             print("=" * 70)
             sys.exit(0 if result else 1)
-        else:
-            run_all_tests()
+def main():
+    """Run the specific tests for the review request"""
+    print("🚀 WM-KALKULATOR BACKEND API TESTING - REQUESTED DISCOUNT BUG FIX VERIFICATION")
+    print("=" * 80)
+    print(f"Backend URL: {BACKEND_URL}")
+    print("=" * 80)
+    
+    # Run the specific test for requested discount bug fix
+    print("\n🎯 RUNNING CRITICAL BUG FIX VERIFICATION TESTS...")
+    
+    # Test the requested discount bug fix scenarios
+    bug_fix_result = test_requested_discount_bug_fix()
+    
+    print("\n" + "=" * 80)
+    print("🏁 FINAL TEST SUMMARY")
+    print("=" * 80)
+    
+    if bug_fix_result:
+        print("✅ CRITICAL BUG FIX VERIFICATION: ALL TESTS PASSED")
+        print("✅ Requested discount values are properly saved and retrieved")
+        print("✅ PDF generation with model and bench images working")
+        print("✅ The bug fix for 'Requested Discount Lost on Edit' is VERIFIED")
     else:
-        # Run PDF Generation with Model Images tests by default as per review request
-        print("🎯 RUNNING PDF GENERATION WITH MODEL IMAGES TESTS (DEFAULT)")
-        print("=" * 50)
-        result = test_pdf_generation_with_model_images()
-        print("\n" + "=" * 70)
-        print("🏁 PDF GENERATION WITH MODEL IMAGES TEST RESULT")
-        print("=" * 70)
-        status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{status} PDF Generation with Model Images")
-        print("=" * 70)
-        sys.exit(0 if result else 1)
+        print("❌ CRITICAL BUG FIX VERIFICATION: SOME TESTS FAILED")
+        print("❌ The bug fix may not be working correctly")
+        print("❌ Manual verification required")
+    
+    print("\n📝 NOTE: Frontend testing (Admin Edit Modal) is excluded as per instructions")
+    print("📝 Backend URL used:", BACKEND_URL)
+    
+    return bug_fix_result
+
+if __name__ == "__main__":
+    success = main()
+    sys.exit(0 if success else 1)
