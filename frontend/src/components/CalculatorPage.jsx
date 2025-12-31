@@ -63,6 +63,67 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
     fetchPrices();
   }, []);
 
+  // Load order data when editing
+  useEffect(() => {
+    if (editingOrder && prices.categories?.length > 0) {
+      // Set edit mode
+      setIsEditMode(true);
+      setEditOrderId(editingOrder.id);
+      
+      // Load customer data
+      setFormData(prev => ({
+        ...prev,
+        fullName: editingOrder.fullName || '',
+        phoneNumber: editingOrder.phoneNumber || '',
+        fullAddress: editingOrder.fullAddress || '',
+        orderDate: editingOrder.orderDate || new Date().toISOString().split('T')[0],
+        selectedModel: editingOrder.modelId || '',
+        notes: editingOrder.notes || '',
+        selections: editingOrder.selections || prev.selections,
+      }));
+      
+      // If selections is empty but we have selectedOptions, rebuild selections
+      if ((!editingOrder.selections || Object.keys(editingOrder.selections).length === 0) && editingOrder.selectedOptions?.length > 0) {
+        const rebuiltSelections = {};
+        prices.categories.forEach(cat => {
+          if (cat.inputType === 'checkbox') {
+            rebuiltSelections[cat.id] = {};
+          } else {
+            // Set first option as default
+            const firstOption = cat.options?.[0];
+            rebuiltSelections[cat.id] = firstOption?.id || '';
+          }
+        });
+        
+        // Apply selected options
+        editingOrder.selectedOptions.forEach(opt => {
+          const category = prices.categories.find(c => c.id === opt.categoryId);
+          if (category) {
+            if (category.inputType === 'checkbox') {
+              rebuiltSelections[opt.categoryId] = {
+                ...(rebuiltSelections[opt.categoryId] || {}),
+                [opt.optionId]: true
+              };
+            } else {
+              rebuiltSelections[opt.categoryId] = opt.optionId;
+            }
+          }
+        });
+        
+        setFormData(prev => ({ ...prev, selections: rebuiltSelections }));
+      }
+      
+      // Load discount
+      setDiscountPercent(editingOrder.discountPercent || 0);
+      
+      // Load admin features
+      setAdminGifts(editingOrder.adminGifts || []);
+      setAdminDiscountApproved(editingOrder.adminDiscountApproved || false);
+      
+      toast.info(lang === 'pl' ? `Edycja zamówienia: ${editingOrder.id}` : `Редактирование заказа: ${editingOrder.id}`);
+    }
+  }, [editingOrder, prices.categories]);
+
   // Preload all images when prices are loaded
   useEffect(() => {
     if (prices.models?.length > 0) {
@@ -108,20 +169,22 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
       
       setPrices(safeData);
       
-      // Initialize selections
-      const categories = safeData.categories;
-      const initialSelections = {};
-      categories.forEach(cat => {
-        if (cat.inputType === 'checkbox') {
-          initialSelections[cat.id] = {};
-        } else {
-          // Set first option as default for dropdowns
-          const firstOption = cat.options?.[0];
-          initialSelections[cat.id] = firstOption?.id || '';
-        }
-      });
-      
-      setFormData(prev => ({ ...prev, selections: initialSelections }));
+      // Initialize selections only if not editing
+      if (!editingOrder) {
+        const categories = safeData.categories;
+        const initialSelections = {};
+        categories.forEach(cat => {
+          if (cat.inputType === 'checkbox') {
+            initialSelections[cat.id] = {};
+          } else {
+            // Set first option as default for dropdowns
+            const firstOption = cat.options?.[0];
+            initialSelections[cat.id] = firstOption?.id || '';
+          }
+        });
+        
+        setFormData(prev => ({ ...prev, selections: initialSelections }));
+      }
     } catch (error) {
       console.error('Error fetching prices:', error);
       toast.error(t('balia.error'));
