@@ -67,10 +67,10 @@
 |----------|--------|--------|-------|
 | /api/orders | POST | ✅ PASS | Creates orders with selectedOptions |
 | /api/orders/{id} | PUT | ✅ PASS | Updates with admin discount & gifts |
-| /api/generate-pdf | POST | ✅ PASS | Generates PDF with gift formatting |
+| /api/generate-pdf | POST | ✅ PASS | Generates PDF with gift formatting & model images |
 | /api/sauna/orders | POST | ✅ PASS | Creates sauna orders |
 | /api/sauna/orders/{id} | PUT | ✅ PASS | Updates sauna orders |
-| /api/sauna/generate-pdf | POST | ✅ PASS | Generates sauna PDF with gifts |
+| /api/sauna/generate-pdf | POST | ✅ PASS | Generates sauna PDF with gifts & model images |
 | /api/auth/login | POST | ✅ PASS | Admin authentication working |
 
 #### Key Features Verified:
