@@ -19,6 +19,20 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
+// Helper to get full image URL - handles both full URLs and legacy relative paths
+const getImageUrl = (url) => {
+  if (!url) return '';
+  // If it's already a full URL (new format), return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // Legacy: convert relative path to full URL
+  if (url.startsWith('/api/')) {
+    return `${API_URL}${url}`;
+  }
+  return url;
+};
+
 // Category icons mapping
 const categoryIcons = {
   'Kolor': Layers,
