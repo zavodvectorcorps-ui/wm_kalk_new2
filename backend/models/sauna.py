@@ -48,7 +48,8 @@ class SaunaOrder(BaseModel):
     id: str = Field(default_factory=lambda: f"WMS-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}")
     fullName: str
     phoneNumber: str
-    fullAddress: str
+    fullAddress: str = ""  # Made optional with default
+    email: str = ""
     orderDate: str
     selectedModel: str
     modelName: str = ""
@@ -58,6 +59,7 @@ class SaunaOrder(BaseModel):
     discount: int = 0
     discountPercent: float = 0.0
     selections: Dict[str, Any] = {}
+    quantities: Dict[str, int] = {}  # Added for quantity tracking
     selectedOptions: List[Dict[str, Any]] = []  # Added for consistency
     notes: str = ""
     optionsTotal: int = 0
@@ -71,6 +73,9 @@ class SaunaOrder(BaseModel):
     adminDiscountApprovedAt: str = ""
     # Admin gifts - list of option IDs that are gifts
     adminGifts: List[str] = []
+    # Requested discount from manager
+    requestedDiscount: float = 0.0
+    requestedDiscountNote: str = ""
 
 
 class SaunaPDFRequest(BaseModel):
