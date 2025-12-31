@@ -587,7 +587,7 @@ export const CalculatorPage = () => {
                             <SelectItem key={option.id} value={option.id}>
                               <div className="flex items-center gap-2">
                                 {option.imageUrl && (
-                                  <SimpleImage 
+                                  <img 
                                     src={getImageUrl(option.imageUrl)} 
                                     alt={getOptionName(option)}
                                     className="w-6 h-6 object-contain rounded"
