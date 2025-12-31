@@ -58,6 +58,7 @@ class SaunaOrder(BaseModel):
     discount: int = 0
     discountPercent: float = 0.0
     selections: Dict[str, Any] = {}
+    selectedOptions: List[Dict[str, Any]] = []  # Added for consistency
     notes: str = ""
     optionsTotal: int = 0
     subtotal: float = 0.0
@@ -68,6 +69,8 @@ class SaunaOrder(BaseModel):
     adminDiscountApproved: bool = False
     adminDiscountApprovedBy: str = ""
     adminDiscountApprovedAt: str = ""
+    # Admin gifts - list of option IDs that are gifts
+    adminGifts: List[str] = []
 
 
 class SaunaPDFRequest(BaseModel):
