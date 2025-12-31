@@ -580,6 +580,7 @@ export const CalculatorPage = () => {
                               src={getImageUrl(option.imageUrl)} 
                               alt={getOptionName(option)}
                               className="w-8 h-8 object-contain rounded"
+                              loading="eager"
                             />
                           )}
                           <Checkbox
