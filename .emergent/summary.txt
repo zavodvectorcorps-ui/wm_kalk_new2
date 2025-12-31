@@ -1,73 +1,94 @@
 <analysis>**original_problem_statement:**
 The user's initial high-priority issue was images in the Balia calculator disappearing after deployment. After successfully resolving this by migrating image storage to MongoDB, the user requested a new set of features:
 
-**PRODUCT REQUIREMENTS:**
-1.  **PDF Image:** The generated PDF for both Sauna and Balia orders must include the image of the selected model.
-2.  **Full Order Editing:** From the Orders page, users should be able to open a saved order in a calculator-like interface to edit it completely (e.g., add/remove options, change quantities).
-3.  **Admin Discount Enhancement:**
-    *   The threshold for requiring admin approval for a discount should be lowered from 20% to 10%.
-    *   The UI should reflect this change.
-4.  **Admin Gifts:** In the new order editing view, an administrator must have the ability to mark any selected option as a gift. This should set the option's price to 0 and add a note indicating it's a gift from the administrator in the order details and the preview.
+**PRODUCT REQUIREMENTS (Consolidated from initial request and subsequent user feedback):**
+1.  **Full Order Editing:**
+    *   Instead of a simple modal, clicking an Edit button on the Orders page should open the full calculator interface ( or ) pre-populated with all the data from the saved order (model, options, client info, etc.).
+    *   Saving from this mode should update the existing order ( request), not create a new one.
+    *   This functionality must exist for both Sauna and Balia orders.
+    *   A simpler modal for quick edits (client data, discount, gifts) should remain accessible, but only to administrators.
+2.  **PDF Enhancements:**
+    *   The generated PDF for both Sauna and Balia orders must include the image of the selected model.
+    *   For Sauna PDFs, the model details and the benches (ławki) section should be displayed side-by-side in a single row.
+    *   When an item is marked as a gift, its price in the PDF should be struck through, and a note like Gift from WM-Group should be added next to it.
+3.  **Admin & Manager Discount System:**
+    *   The threshold for requiring admin approval for a discount is 10%.
+    *   **For Managers (Non-Admins):** In the calculator, if a discount greater than 10% is needed, the manager should have a Requested Discount field (percentage) and a notes field to enter the request for an admin.
+    *   **For Admins:**
+        *   In the simple edit modal, admins must see any pending discount requests from managers, including the requested percentage and the note.
+        *   Admins need a button to quickly apply the manager's requested discount.
+        *   The admin discount tool should allow applying a discount as either a percentage (%) or a fixed amount (e.g., EUR).
+    *   **UI Indicator:** The Orders page list should display an icon next to an order with a pending discount request. This icon should change (e.g., to a shield) after an admin has approved the discount.
+4.  **Admin Gifts:**
+    *   In the order editing view (both the full calculator and the admin modal), an administrator must be able to mark any selected option as a gift, setting its price to 0.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a full-stack quoting tool for Saunas and Balias. The critical issue of images disappearing after deployment has been resolved by migrating image storage from the server's filesystem to a dedicated  collection in the MongoDB database.
+The application is a quoting tool for Saunas and Balias. The initial critical issue of disappearing images was resolved by migrating image storage to MongoDB.
 
-The agent has begun implementing the new feature requests:
--   **Backend:**
-    -   The database models for Balia () and Sauna () have been updated with fields for , , and .
-    -   New  endpoints ( and ) have been created to handle order updates.
-    -   The PDF generation logic in  and  has been partially modified to support fetching model images from the database.
--   **Frontend:**
-    -   The discount threshold for requiring admin approval has been changed from 20% to 10% in the UI.
-    -   A new, but mostly empty, component  has been created to house the full order editing functionality.
-    -   The  has been updated to open this new modal.
-    -   The  has been updated to display admin-approved gifts.
+The agent has implemented a significant portion of the new, complex feature set. The initial attempt at a full-edit modal was discarded based on user feedback in favor of a much better solution: loading saved orders directly into the main calculator components ( for Balia,  for Sauna) in an edit mode. This core architectural change is complete. The discount request system for managers and the enhanced admin approval modal (with amount/percent toggle and gift functionality) have also been implemented. The PDF generation logic has been modified multiple times to accommodate gifts and layout changes, but it is currently broken for Saunas.
 
 **Last working item**:
--   **Last item agent was working**: The agent was scaffolding the major new feature set requested by the user. The primary focus was creating the  component for full order editing, updating the backend models and API endpoints to support it, and adjusting the admin discount logic to a 10% threshold. The agent had just fixed a JavaScript crash () which was preventing the frontend from rendering.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both. This is a large, complex feature.
-    -   **Frontend:** Use the  to thoroughly test the  flow: loading an order, modifying options, applying gifts, changing discounts, and saving.
-    -   **Backend:** Use  or a Python script to test the new  endpoints for order updates and to test the PDF generation endpoints (, ) to ensure they correctly include the model image.
+-   **Last item agent was working**: The agent was debugging two critical issues reported by the user:
+    1.  Sauna model images are missing in the generated PDF, and the layout is incorrect.
+    2.  The requested discount value from a manager is not being correctly passed to the admin's edit modal.
+
+    The agent successfully identified the root cause for the PDF image issue: images were being saved into the  collection in MongoDB with a size of 0 bytes, and the image data itself was being stored in a field named  as a base64 string, while the retrieval logic was likely looking for it in a  field. This indicates a flaw in the  route.
+-   **Status**: BLOCKED
+-   **Agent Testing Done**: N (for the latest fixes)
+-   **Which testing method agent to use?**: both
+    -   **Backend**: Use  to test the  endpoint to ensure images are saved correctly (non-zero size, correct field). Then, test the PDF generation endpoints ( and ) to confirm images are included and gifts are displayed correctly.
+    -   **Frontend**: Use the  to test the entire discount request flow:
+        1.  Log in as a manager, create an order with a requested discount.
+        2.  Log in as an admin, go to the orders page, and verify the pending request icon appears.
+        3.  Open the admin edit modal and verify the requested discount and note are displayed correctly.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   There are no outstanding bugs. The work is focused on implementing new features.
+-   **Issue 1: Sauna Images are not stored correctly in MongoDB (P0)**
+-   **Issue 2: Sauna PDF Generation is Broken (P0)**
+-   **Issue 3: Requested Discount value is lost when opening the Admin Edit Modal (P0)**
+
+**Issues Detail**:
+-   **Issue 1: Sauna Images are not stored correctly in MongoDB**
+    -   **Attempted fixes**: None. The agent just discovered the root cause.
+    -   **Next debug checklist**:
+        1.  Examine .
+        2.  The logic saves the image data to a field named . The retrieval logic in  and  (in the  function) expects a field named .
+        3.  More importantly, the documents in the  collection have , meaning the file content is not being saved at all or is being saved incorrectly. The agent must fix the upload logic to correctly store the binary image data.
+    -   **Why fix this issue and what will be achieved with this?**: This is the root cause of the broken PDF images. Fixing this will allow model images to be correctly stored and retrieved.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: None.
+
+-   **Issue 2: Sauna PDF Generation is Broken**
+    -   **Attempted fixes**: The agent refactored the layout logic in  to place the model and bench info side-by-side. This attempt failed because the underlying image data could not be loaded.
+    -   **Next debug checklist**:
+        1.  After fixing **Issue 1**, re-test the PDF generation.
+        2.  Verify in  that the layout code correctly handles cases where a model image exists, a bench image exists, both exist, or neither exists. The table structure for the side-by-side layout might be fragile.
+        3.  Ensure the logic to strikethrough prices for gifted items works correctly for both Balia and Sauna PDFs.
+    -   **Why fix this issue and what will be achieved with this?**: Fulfills a key user requirement for professional-looking order documents.
+    -   **Status**: BLOCKED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: Issue 1: Sauna Images are not stored correctly in MongoDB
+
+-   **Issue 3: Requested Discount value is lost when opening the Admin Edit Modal**
+    -   **Attempted fixes**: The agent previously fixed a similar issue by adding a  to the  component in  to force a re-render. However, the user reported the issue again, indicating either a regression or that the fix was incomplete.
+    -   **Next debug checklist**:
+        1.  Review the state management in .
+        2.  Trace the data flow: when the modal opens, check the  that fetches order data. Log the incoming  object to ensure  and  are present.
+        3.  Verify that the component's internal state () is being correctly initialized with these values. The issue might be that the state is being reset or overwritten after initialization.
+    -   **Why fix this issue and what will be achieved with this?**: The manager-to-admin discount approval workflow is a critical feature and is currently broken.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: None.
 
 **In progress Task List**:
--   **Task 1: Complete Full Order Editing Feature (P0)**
--   **Task 2: Implement Gift from Admin Feature (P0)**
--   **Task 3: Add Model Image to PDFs (P1)**
-
-**Task Detail**:
--   **Task 1: Complete Full Order Editing Feature**
-    -   **Where to resume**: The component  is currently a skeleton. It needs to be built out to replicate the calculator's functionality, loading the state from the selected order. This includes fetching all available models/options, populating the UI with the order's current selections, and allowing the user to modify them. The Save action must call the new  endpoint.
-    -   **What will be achieved with this?**: Users will be able to fully edit a saved order instead of just changing client data or discounts.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on something**: None.
-
--   **Task 2: Implement Gift from Admin Feature**
-    -   **Where to resume**:
-        1.  In , add a Make Gift (e.g., a checkbox or button) next to each selected option, visible only to admins.
-        2.  When an item is marked as a gift, its price in the summary should become 0.
-        3.  Upon saving, the  array in the order payload should be populated with the details of the gifted items.
-        4.  The backend update logic needs to correctly handle this field.
-        5.  The PDF generation logic for both Balia and Sauna must be updated to show Gift instead of the price for gifted items.
-    -   **What will be achieved with this?**: Admins will have the flexibility to offer specific items for free on an order.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on something**: Task 1.
-
--   **Task 3: Add Model Image to PDFs**
-    -   **Where to resume**: The backend routes  and  have been updated to fetch image data from MongoDB. This logic needs to be finalized and tested. The  code needs to be adjusted to correctly place the fetched image into the PDF layout.
-    -   **What will be achieved with this?**: Order PDFs will be more visually appealing and informative, containing a picture of the main product.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on something**: None.
+-   None. All current work is classified as bug fixes for in-progress features.
 
 **Upcoming and Future Tasks**
 -   **Future Tasks**:
@@ -75,10 +96,16 @@ The agent has begun implementing the new feature requests:
     -   **Fix Minor Dropdown Positioning Glitch in Balia calculator (P2)**: A low-priority visual issue where dropdown menus might not be perfectly positioned.
 
 **Completed work in this session**
--   **Critical Bug Fix**: Permanently resolved the issue of images disappearing after deployments by migrating all image storage from the ephemeral filesystem to a persistent  collection in the MongoDB database. This involved rewriting the  route and testing the end-to-end flow.
--   **Feature**: Created a backend endpoint () to allow the user to clear all Balia image URLs from the database to facilitate re-uploading during the debugging process.
--   **Bug Fix**: Resolved a JavaScript crash () in  that was causing a blank page.
--   **Feature Scaffolding**: Began implementation of the new user requests by creating backend endpoints for order updates, updating data models, and creating the initial frontend components ().
+-   **Feature**: Re-architected the order editing flow to use the main calculator pages in an edit mode instead of a restrictive modal. This was a major and successful pivot.
+-   **Feature**: Implemented the Requested Discount feature for managers in both  and .
+-   **Feature**: Overhauled the admin-only  to include:
+    -   A scrollable layout.
+    -   Display of manager's requested discount with an Apply button.
+    -   A toggle for applying discounts by percentage or fixed amount.
+-   **Feature**: Implemented UI indicators on the  for pending and approved discount requests.
+-   **Bug Fix**: Resolved a recurring  error when creating Sauna orders by making the uid=0(root) gid=0(root) groups=0(root) field optional in the backend model and ensuring the frontend does not send  on creation.
+-   **Bug Fix**: Reset passwords for all test users to streamline testing.
+-   **Feature**: Implemented PDF layout changes to show gifted items with a strikethrough price (though the overall PDF is currently broken).
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
@@ -88,84 +115,89 @@ The agent has begun implementing the new feature requests:
     -   **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
--   The critical issue of Images not loading in Balia calculator was recurring but has now been **RESOLVED** by migrating storage to MongoDB.
+-   None. The previous critical issue with image persistence was resolved. The current issues are new and related to the features developed in this session.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Image Storage in MongoDB:** The most critical change in this session. Instead of saving to the filesystem, uploaded images are read, and their binary data is stored in a new  collection in MongoDB. The  endpoint retrieves the binary data from the DB and serves it as an image, ensuring persistence across deployments.
--   **Full Order Editing UI:** The user wants to load a saved order back into a calculator interface for complete modification. This will require complex state management to pre-populate the UI and handle changes.
--   **Role-Based UI Logic (Admin):** The UI now has logic to show special controls (like the allow discount a gift buttons) only for users with the 'admin' role.
+-   **Calculator as Editor**: The primary architectural pattern for editing orders, where the main calculator component is re-used with initial state populated from an existing order. This is managed via props passed down from .
+-   **State-Driven UI**: The UI changes significantly based on user role ( vs. ) and application state ( is not null).
+-   **MongoDB Image Storage Flaw**: The current implementation in  is critically flawed, saving 0-byte files and using an incorrect field name ( instead of ), which is the root cause of all PDF image issues.
+-   **Forced Component Re-mount**: The agent used the  pattern on a React component () to force it to re-initialize its state when the prop changes, a key technique for fixing stale state issues in modals.
 
 **key DB schema**
--   ** (NEW):**
-    -   : (string, e.g., uuid.jpg) - Serves as the key.
-    -   : (string, e.g., image/jpeg)
-    -   : (Binary data)
+-   ** (FLAWED):**
+    -   uid=0(root) gid=0(root) groups=0(root): (string)
+    -   : (string)
+    -   : (base64 string) - **This is where the image data is being incorrectly stored.**
+    -   The documents have a  field that is consistently **0 bytes**, indicating a failed write.
 -   ** (Balia) &  (Sauna) (MODIFIED):**
-    -   Added , 
-    -   Added  to store information about options given as gifts.
-    -    is now included when creating an order to be used in the PDF.
+    -   Added 
+    -   Added 
 
 **changes in tech stack**
--   No new libraries were added. The significant change is the architectural shift to storing images in the database.
+-   None.
 
 **All files of reference**
--   : The core of the new persistent image storage logic.
--   : The new, in-progress component for full order editing.
--   : Modified to handle the new editing flow.
--    & : Contain the new order update endpoints and modified PDF generation logic.
--    & : The data models with new fields for admin actions.
+-   : **Needs immediate fixing.** The root cause of the image problem.
+-   : Contains the broken PDF generation logic.
+-   : Contains the requested discount bug.
+-   : Implements the manager discount request UI.
+-   : Implements the manager discount request UI.
+-   : Implements the role-based buttons and discount status icons.
+-   : Contains the top-level state management for the edit-in-calculator feature.
 
 **Areas that need refactoring**:
--   The new  will be very complex. It should be built with modularity in mind, potentially reusing components from the main calculators, to avoid creating another large, monolithic component like .
+-   The  and the  helper function in  and  need to be synchronized to use the same field () and storage method (binary) for images.
 
 **key api endpoints**
--   : **MODIFIED**. Now saves image data to the  collection in MongoDB.
--   : **MODIFIED**. Now retrieves image data from the  collection in MongoDB.
--   : **NEW**. Updates a Balia order with new details, including discounts and gifts.
--   : **NEW**. Updates a Sauna order.
--   : **NEW**. Utility endpoint to clear all Balia image URLs from the  collection.
--    & : **MODIFIED**. Logic updated to fetch the model image from the database and include it in the PDF.
+-   : **CRITICALLY FLAWED**. Needs to be fixed to store image binary data correctly.
+-    & : Used by the calculators in edit mode.
+-   : Currently returns errors or PDFs without images due to the upload flaw.
 
 **Critical Info for New Agent**
 -   You MUST communicate with the user in **Russian**.
--   The critical image persistence problem has been **solved by storing images in MongoDB**. Do not attempt to revert to filesystem storage. The user has confirmed this fix is working.
--   The highest priority is to complete the implementation of the new, complex feature set: **full order editing, admin gifts, and images in PDFs**.
--   Start by building out the functionality in .
+-   **The highest priority is to fix the image upload and PDF generation.** Start by correcting  to save image data correctly. Then, ensure the PDF generation routes (, ) can retrieve and display these images.
+-   **The second highest priority is the regression bug where the requested discount is not appearing in the admin modal.** This is a critical break in the user's desired workflow.
+-   Do not get distracted by the old . The main editing workflow is now through  and . The  is for admin-only quick actions.
+-   Passwords for all test users (, , , etc.) have been reset to .
 
 **documents and test reports created in this job**
--    was updated with a test plan for the new order editing features.
+-   None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Great! Everything is finally displaying correctly. Now, let's add new features. (Status: **Completed**)
-2.  **User**: Requests two new features: 1) Add model image to PDFs. 2) Allow editing saved orders, with admins being able to give discounts >20%. (Status: **In Progress**)
-3.  **User**: Further clarifies the order editing: needs to be a full editor (like the calculator), not just a simple modal. (Status: **In Progress**)
-4.  **User**: Adds another requirement for the edit mode: admins should be able to mark options as gifts (price becomes 0) with a note. (Status: **In Progress**)
-5.  **User**: Asks to change the admin discount threshold from >20% to >10%. (Status: **Completed**)
-6.  *Agent starts implementation, UI crashes.*
-7.  *Agent fixes the JS crash.*
-8.  *Agent shows a screenshot of the new (empty) full edit modal.* (Status: **In Progress**)
-9.  (No further user messages; the last actions were from the agent implementing the new features.)
+1.  **User (Chat 314)**: Reports that the requested discount isn't transferring to the edit modal and requests a status icon for discount requests on the orders page. (Status: **Partially Addressed, Regression Pending**)
+2.  **Agent (Chat 315-348)**: Implements the status icon and a fix for the discount transfer issue. Tests show the new icon and the discount being applied in the modal.
+3.  **User (Chat 349)**: Reports PDF layout issues for Sauna (model/bench side-by-side) and requests better visualization for gifted items (strikethrough price). (Status: **In Progress**)
+4.  **Agent (Chat 350-385)**: Implements the PDF layout and gift text changes. Hits a 500 error, fixes it, and gets a successful  test.
+5.  **User (Chat 386)**: Reports that the Sauna PDF is now worse (model photo missing, bench image misaligned) and that the requested discount transfer is *still* not working. Provides a screenshot showing the broken PDF. (Status: **PENDING**)
+6.  **Agent (Chat 387-404)**: Investigates the broken PDF, correctly identifies 404s for images, and traces the root cause to 0-byte files and the use of a  field instead of a  field in the  MongoDB collection. The session ends here. (Status: **PENDING**)
+7.  **User (Chat 399)**: Clarifies that the sauna photos were definitely uploaded. (Status: **Acknowledged**)
 
 **Project Health Check:**
--   **Working**: The core application, including all previously completed features and the critical image persistence functionality, is working correctly.
--   **Broken**: No part of the application is broken.
--   **Mocked/Incomplete**: The new feature set (full order editing, admin gifts, images in PDF) is in the middle of implementation and is therefore incomplete and not yet functional.  is the main incomplete component.
+-   **Working**: Core app, user authentication, Balia calculator and order creation, basic PDF generation for Balia (without images).
+-   **Broken**:
+    -   Sauna PDF Generation (missing images, layout issues).
+    -   The manager-to-admin discount request workflow (data is lost).
+    -   The image upload functionality ().
+-   **Mocked/Incomplete**: The entire new feature set is functionally incomplete due to these critical bugs.
 
 **3rd Party Integrations**
--    (v11.0.5): A client-side library for cropping images in the browser.
+-    (v11.0.5)
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, the testing agent was invoked to plan the test for the new features, but the execution is pending the completion of the features.
+-   **Testing agent used after significant changes**: YES, multiple times.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
 -   **Test files created**: None.
--   **Known regressions**: None.
+-   **Known regressions**: The requested discount not transferring to modal bug appears to be a regression.
 
 **Credentials to test flow:**
 -   **Admin**:  / 
+-   **Employee (Balia)**:  / 
+-   **Employee (Sauna)**:  / 
 -   **Observer**:  / 
 
 **What agent forgot to execute**
--   The agent has correctly prioritized the new, complex feature requests from the user. The low-priority refactoring and minor UI glitch from the previous session remain pending, which is appropriate.</analysis>
+-   The agent did not fully verify the fix for the requested discount data transfer issue, leading to a user-reported regression.
+-   The agent did not create a persistent test file to validate the complex multi-role discount and editing flows, relying instead on single-use  and  commands, which made it harder to spot regressions.</analysis>
