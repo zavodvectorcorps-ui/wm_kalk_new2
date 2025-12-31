@@ -18,15 +18,18 @@ import { v4 as uuidv4 } from 'uuid';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// Helper to get full image URL
+// Helper to get full image URL - handles both full URLs and legacy relative paths
 const getImageUrl = (url) => {
   if (!url) return '';
-  // If it's already an absolute URL, return as-is
+  // If it's already a full URL (new format), return as-is
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
-  // If it's a relative path, prepend the API URL
-  return `${API_URL}${url}`;
+  // Legacy: convert relative path to full URL
+  if (url.startsWith('/api/')) {
+    return `${API_URL}${url}`;
+  }
+  return url;
 };
 
 export const CalculatorPage = () => {
