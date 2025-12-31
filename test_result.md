@@ -222,3 +222,11 @@ The Order Full Edit functionality is **WORKING CORRECTLY** with all major featur
 ## Test Credentials
 - Admin: admin / 159357
 - Observer: Наблюдатель / 123456
+
+## Agent Communication
+- agent: "main"
+  message: "Backend testing completed successfully. All APIs working correctly for order creation, updates, admin discounts, and gifts."
+- agent: "testing"
+  message: "Frontend testing completed successfully. Order Full Edit functionality is working correctly with all major features implemented and functional."
+- agent: "testing"
+  message: "CRITICAL FEATURES VERIFIED: Edit modal opens and displays order data, Admin discount approval system working (>10% threshold), Admin approval badge shows correctly, Customer data editing working, Calculator discount limits working, Backend integration working. Minor issues are related to test data limitations (most orders have no selected options) rather than functionality problems."
