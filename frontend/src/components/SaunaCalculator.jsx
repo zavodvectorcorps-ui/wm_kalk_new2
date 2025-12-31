@@ -1137,12 +1137,12 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
                         id="discountPercent"
                         type="number"
                         min="0"
-                        max="10"
+                        max={isAdminUser ? 100 : 10}
                         value={appliedDiscount}
                         onChange={handleDiscountChange}
                         className="w-20 h-8"
                       />
-                      <span className="text-sm text-muted-foreground">% (max 10)</span>
+                      <span className="text-sm text-muted-foreground">% (max {isAdminUser ? '100' : '10'})</span>
                     </div>
                     <Button
                       type="button"
@@ -1154,6 +1154,22 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
                       <Tag className="h-4 w-4 mr-2" />
                       {txt.applyStandardDiscount}
                     </Button>
+                    
+                    {/* Admin discount approval checkbox - show when discount > 10% */}
+                    {isAdminUser && appliedDiscount > 10 && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-green-200">
+                        <CheckboxOrange
+                          id="adminDiscountApproval"
+                          checked={adminDiscountApproved}
+                          onCheckedChange={setAdminDiscountApproved}
+                        />
+                        <Label htmlFor="adminDiscountApproval" className="text-sm text-green-700 cursor-pointer flex items-center gap-1">
+                          <Shield className="h-4 w-4" />
+                          {lang === 'pl' ? 'Zatwierdzam rabat jako administrator' : 'Одобряю скидку как администратор'}
+                        </Label>
+                      </div>
+                    )}
+                    
                     {appliedDiscount > 0 && (
                       <div className="text-sm text-green-700">
                         <div className="flex justify-between">
@@ -1167,6 +1183,21 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
                       </div>
                     )}
                   </div>
+                  
+                  {/* Admin Gifts Section - show when in edit mode and admin */}
+                  {isAdminUser && isEditMode && adminGifts.length > 0 && (
+                    <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 space-y-2">
+                      <div className="flex items-center gap-2 text-emerald-700 font-medium">
+                        <Gift className="h-4 w-4" />
+                        {lang === 'pl' ? 'Prezenty' : 'Подарки'} ({adminGifts.length})
+                      </div>
+                      <div className="text-xs text-emerald-600">
+                        {lang === 'pl' 
+                          ? 'Opcje oznaczone jako prezent są darmowe' 
+                          : 'Опции, отмеченные как подарок, бесплатны'}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Total */}
                   <div className="p-3 bg-amber-600 text-white rounded-lg">
@@ -1198,18 +1229,33 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
                           <FileDown className="h-4 w-4 mr-2" />
                         </>
                       )}
-                      {txt.saveAndGeneratePDF}
+                      {isEditMode 
+                        ? (lang === 'pl' ? 'Zapisz zmiany i pobierz PDF' : 'Сохранить изменения и скачать PDF')
+                        : txt.saveAndGeneratePDF
+                      }
                     </Button>
                     
-                    <Button
-                      onClick={handleClearForm}
-                      disabled={loading}
-                      variant="outline"
-                      className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
-                    >
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      {txt.clearForm}
-                    </Button>
+                    {isEditMode ? (
+                      <Button
+                        onClick={handleCancelEdit}
+                        disabled={loading}
+                        variant="outline"
+                        className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        {lang === 'pl' ? 'Anuluj edycję' : 'Отменить редактирование'}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleClearForm}
+                        disabled={loading}
+                        variant="outline"
+                        className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        {txt.clearForm}
+                      </Button>
+                    )}
                   </div>
                 </>
               ) : (
