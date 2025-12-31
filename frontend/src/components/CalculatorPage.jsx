@@ -361,6 +361,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         adminDiscountApproved: discountPercent > 10 && isAdminUser ? adminDiscountApproved : false,
         adminDiscountApprovedBy: discountPercent > 10 && adminDiscountApproved ? user?.username : '',
         adminDiscountApprovedAt: discountPercent > 10 && adminDiscountApproved ? new Date().toISOString() : '',
+        // Manager requested discount
+        requestedDiscount: !isAdminUser ? requestedDiscount : 0,
+        requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
       };
 
       // Save order - PUT for edit, POST for new
