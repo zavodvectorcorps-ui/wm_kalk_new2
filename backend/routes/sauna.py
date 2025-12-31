@@ -673,6 +673,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     options_items = []
     quantities = getattr(request, 'quantities', {}) or {}
     
+    # Get admin gifts list if available
+    admin_gifts = getattr(request, 'adminGifts', []) or []
+    
     # PRIMARY: Use selectedOptions if available (from saved orders)
     if selected_options:
         for opt in selected_options:
@@ -680,16 +683,25 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             if opt.get('categoryId') == 'lawki':
                 continue
             
-            name = opt.get('optionName', '')
+            opt_id = opt.get('optionId', '') or opt.get('id', '')
+            name = opt.get('optionName', '') or opt.get('name', '')
             price = opt.get('price', 0)
             quantity = opt.get('quantity', 1)
             total_price = price * quantity
             
+            # Check if this option is a gift
+            is_gift = opt_id in admin_gifts
+            
             if quantity > 1:
                 name = f"{name} (×{quantity})"
             
-            price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
-            options_items.append({'name': name, 'price': price_str})
+            if is_gift:
+                name = f"🎁 {name} (Prezent)"
+                price_str = "0 PLN"
+            else:
+                price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
+            
+            options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift})
     else:
         # FALLBACK: Use categories + selections (from calculator direct generation)
         for category in request.categories:
@@ -718,8 +730,15 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             if has_quantity and quantity > 1:
                                 name = f"{name} (×{quantity})"
                             
-                            price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
-                            options_items.append({'name': name, 'price': price_str})
+                            # Check if this option is a gift
+                            is_gift = opt_id in admin_gifts
+                            if is_gift:
+                                name = f"🎁 {name} (Prezent)"
+                                price_str = "0 PLN"
+                            else:
+                                price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
+                            
+                            options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift})
             else:
                 opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
                 if opt:
@@ -732,8 +751,15 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     if has_quantity and quantity > 1:
                         name = f"{name} (×{quantity})"
                     
-                    price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
-                    options_items.append({'name': name, 'price': price_str})
+                    # Check if this option is a gift
+                    is_gift = selection in admin_gifts
+                    if is_gift:
+                        name = f"🎁 {name} (Prezent)"
+                        price_str = "0 PLN"
+                    else:
+                        price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
+                    
+                    options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift})
     
     if options_items:
         elements.append(Paragraph('DODATKOWE OPCJE', section_title_style))
