@@ -367,6 +367,9 @@ async def generate_pdf(request: PDFRequest):
         elements.append(Spacer(1, 12))
     
     # ========== SELECTED OPTIONS - Always in Polish ==========
+    # Get admin gifts list if available
+    admin_gifts = getattr(request, 'adminGifts', []) or []
+    
     if request.selectedOptions and len(request.selectedOptions) > 0:
         elements.append(Paragraph('<b>WYBRANE OPCJE</b>', section_title_style))
         elements.append(Spacer(1, 6))
@@ -387,27 +390,45 @@ async def generate_pdf(request: PDFRequest):
         
         options_data = [['Kategoria', 'Wybrana opcja', 'Cena']]
         total_options_price = 0
+        gifts_total = 0
+        gift_rows = []  # Track which rows are gifts for styling
         
-        for opt in request.selectedOptions:
+        for idx, opt in enumerate(request.selectedOptions):
             cat_id = opt.get('categoryId', '')
-            opt_id = opt.get('optionId', '')
+            opt_id = opt.get('optionId', '') or opt.get('id', '')
             price = opt.get('price', 0)
-            total_options_price += price
+            
+            # Check if this option is a gift
+            is_gift = opt_id in admin_gifts
+            
+            if is_gift:
+                gifts_total += price
+            else:
+                total_options_price += price
             
             # Get Polish names from DB, fallback to provided names
             cat_info = categories_map.get(cat_id, {})
             cat_name = cat_info.get('name', opt.get('categoryName', ''))
-            opt_name = cat_info.get('options', {}).get(opt_id, opt.get('optionName', ''))
+            opt_name = cat_info.get('options', {}).get(opt_id, opt.get('optionName', '') or opt.get('name', ''))
             
-            price_str = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
+            if is_gift:
+                # Show as gift with strikethrough price
+                opt_name = f"🎁 {opt_name} (Prezent)"
+                price_str = f"<strike>{price:,.0f} {currency}</strike> → 0 {currency}".replace(',', ' ')
+                gift_rows.append(idx + 1)  # +1 because of header row
+            else:
+                price_str = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
+            
             options_data.append([cat_name, opt_name, price_str])
         
         # Add subtotal row for options
-        if total_options_price > 0:
+        if total_options_price > 0 or gifts_total > 0:
             options_data.append(['', 'Opcje razem:', f"+{total_options_price:,.0f} {currency}".replace(',', ' ')])
         
         options_table = Table(options_data, colWidths=[160, 260, 100])
-        options_table.setStyle(TableStyle([
+        
+        # Build table style
+        table_style = [
             # Header
             ('BACKGROUND', (0, 0), (-1, 0), BLUE),
             ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
@@ -430,7 +451,14 @@ async def generate_pdf(request: PDFRequest):
             ('RIGHTPADDING', (0, 0), (-1, -1), 8),
             # Alternate row colors
             ('ROWBACKGROUNDS', (0, 1), (-1, -2), [WHITE, colors.HexColor('#F9FAFB')]),
-        ]))
+        ]
+        
+        # Highlight gift rows with green background
+        for gift_row in gift_rows:
+            table_style.append(('BACKGROUND', (0, gift_row), (-1, gift_row), colors.HexColor('#ECFDF5')))
+            table_style.append(('TEXTCOLOR', (1, gift_row), (1, gift_row), colors.HexColor('#059669')))
+        
+        options_table.setStyle(TableStyle(table_style))
         elements.append(options_table)
         elements.append(Spacer(1, 12))
     
