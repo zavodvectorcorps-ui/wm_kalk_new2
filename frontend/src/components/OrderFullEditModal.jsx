@@ -141,6 +141,7 @@ export const OrderFullEditModal = ({
   
   useEffect(() => {
     if (order && open) {
+      // Force update formData when order changes
       setFormData({
         ...order,
         discountPercent: order.discountPercent || 0,
@@ -152,8 +153,9 @@ export const OrderFullEditModal = ({
         requestedDiscount: order.requestedDiscount || 0,
         requestedDiscountNote: order.requestedDiscountNote || '',
       });
+      setDiscountMode('percent'); // Reset discount mode
     }
-  }, [order, open]);
+  }, [order?.id, open]); // Use order.id as dependency for proper re-render
   
   // Calculate totals
   const calculateTotals = useCallback((data) => {
