@@ -515,15 +515,10 @@ export const CalculatorPage = () => {
                             )}
                             <div className="w-full h-20 rounded mb-2 bg-gray-100 overflow-hidden">
                               {option.imageUrl ? (
-                                <SimpleImage 
+                                <img 
                                   src={getImageUrl(option.imageUrl)} 
                                   alt={getOptionName(option)}
                                   className="w-full h-full object-cover"
-                                  fallback={
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      <Package className="h-6 w-6 text-gray-400" />
-                                    </div>
-                                  }
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
