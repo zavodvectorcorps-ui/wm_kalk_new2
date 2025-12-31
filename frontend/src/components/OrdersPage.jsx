@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { FileDown, Eye, Package, Flame, Search, Trash2, X, FileText, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield } from 'lucide-react';
+import { FileDown, Eye, Package, Flame, Search, Trash2, X, FileText, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { TechSpecModal } from './tech-spec';
@@ -15,7 +15,7 @@ import { OrderFullEditModal } from './OrderFullEditModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-export const OrdersPage = ({ calculatorType = 'balia' }) => {
+export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => {
   const { t, i18n } = useTranslation();
   const { isAdmin } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -51,7 +51,8 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       discount: 'Скидка',
       createdBy: 'Сотрудник',
       preview: 'Просмотр',
-      edit: 'Редактировать',
+      edit: 'Быстрое редактирование',
+      editInCalculator: 'Редактировать в калькуляторе',
       adminDiscount: 'Скидка администратора',
     },
     pl: {
@@ -67,7 +68,8 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
       discount: 'Rabat',
       createdBy: 'Pracownik',
       preview: 'Podgląd',
-      edit: 'Edytuj',
+      edit: 'Szybka edycja',
+      editInCalculator: 'Edytuj w kalkulatorze',
       adminDiscount: 'Rabat administratora',
     },
   };
@@ -80,10 +82,17 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
     setPreviewModalOpen(true);
   };
 
-  // Open edit modal
+  // Open edit modal (quick edit for customer data, discount, gifts)
   const handleEditOrder = (order) => {
     setEditOrder(order);
     setEditModalOpen(true);
+  };
+  
+  // Open order in calculator for full editing (model, options change)
+  const handleEditInCalculator = (order) => {
+    if (onEditInCalculator) {
+      onEditInCalculator(order);
+    }
   };
   
   // Handle order saved from edit modal
