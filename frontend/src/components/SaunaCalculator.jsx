@@ -554,7 +554,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
         orderDate: formData.orderDate,
         selectedModel: formData.selectedModel,
         modelName: model?.name || '',
-        modelImageUrl: model?.imageUrl || '',
+        modelImageUrl: getImageUrl(model?.imageUrl) || '',
         basePrice: model?.basePrice || 0,
         foundationPrice: calculateFoundationPrice(),
         discountPercent: appliedDiscount,
