@@ -160,7 +160,22 @@ async def delete_order(order_id: str):
 async def generate_pdf(request: PDFRequest):
     """Generate professional PDF order form for Balia - Polish only"""
     import urllib.request
+    import base64
     from PIL import Image as PILImage
+    
+    async def load_image_from_mongodb(image_url: str) -> bytes:
+        """Load image from MongoDB by extracting ID from URL"""
+        if not image_url or '/api/uploads/' not in image_url:
+            return None
+        try:
+            filename = image_url.split('/api/uploads/')[-1]
+            file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
+            image_doc = await db.images.find_one({"id": file_id})
+            if image_doc:
+                return base64.b64decode(image_doc["content"])
+        except Exception as e:
+            logger.warning(f"Could not load image from MongoDB: {e}")
+        return None
     
     buffer = io.BytesIO()
     
@@ -213,23 +228,20 @@ async def generate_pdf(request: PDFRequest):
         offer_number = f"WMB-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
     currency = request.currency or 'EUR'
     
-    # Load model image if provided - preserve aspect ratio
+    # Load model image if provided - from MongoDB or external URL
     model_img = None
     model_image_url = getattr(request, 'modelImageUrl', None)
     if model_image_url:
         try:
             img_data = None
             
-            # Extract filename from URL (works for both external and relative URLs)
+            # Try loading from MongoDB first
             if '/api/uploads/' in model_image_url:
-                filename = model_image_url.split('/api/uploads/')[-1]
-                local_path = f'/app/backend/uploads/{filename}'
-                if os.path.exists(local_path):
-                    with open(local_path, 'rb') as f:
-                        img_data = f.read()
-                    logger.info(f"Loaded model image from local file: {local_path}")
+                img_data = await load_image_from_mongodb(model_image_url)
+                if img_data:
+                    logger.info(f"Loaded model image from MongoDB")
             
-            # Fallback to HTTP download if local file not found
+            # Fallback to HTTP download for external URLs
             if not img_data and model_image_url.startswith('http'):
                 try:
                     img_data = urllib.request.urlopen(model_image_url, timeout=5).read()
@@ -239,7 +251,6 @@ async def generate_pdf(request: PDFRequest):
             
             if img_data:
                 # Get original image dimensions to preserve aspect ratio
-                from PIL import Image as PILImage
                 img_buffer = io.BytesIO(img_data)
                 pil_img = PILImage.open(img_buffer)
                 orig_width, orig_height = pil_img.size
