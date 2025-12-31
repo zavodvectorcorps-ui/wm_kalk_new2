@@ -3161,6 +3161,15 @@ def test_techspec_mapping_flow():
         tech_spec_response = requests.get(f"{BACKEND_URL}/tech-spec/categories")
         if tech_spec_response.status_code != 200:
             print(f"❌ Failed to get tech spec categories: {tech_spec_response.status_code}")
+            return False
+        
+        print("✅ TechSpec mapping flow test completed")
+        return mapping_success
+        
+    except Exception as e:
+        print(f"❌ TechSpec mapping flow test error: {str(e)}")
+        return False
+
 def run_sauna_pdf_layout_and_gift_tests():
     """Run the specific tests requested in the review: Sauna PDF with new layout and gift display"""
     print("\n🎯 SAUNA PDF GENERATION WITH NEW LAYOUT AND GIFT DISPLAY TESTS")
