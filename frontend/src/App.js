@@ -82,7 +82,15 @@ const AppContent = () => {
     setActiveTab(tab);
     if (tab === 'calculator') {
       setPricesUpdated(prev => prev + 1);
+      setEditingOrder(null); // Clear editing mode when switching to calculator tab
     }
+  };
+
+  // Handle editing order in calculator
+  const handleEditOrderInCalculator = (order, calculatorType) => {
+    setCurrentCalculator(calculatorType);
+    setEditingOrder(order);
+    setActiveTab('calculator');
   };
 
   const handleLogout = () => {
