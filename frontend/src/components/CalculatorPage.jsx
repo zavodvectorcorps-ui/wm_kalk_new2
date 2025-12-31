@@ -85,6 +85,10 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         selections: editingOrder.selections || prev.selections,
       }));
       
+      // Load requested discount from original order (important for managers editing their orders)
+      setRequestedDiscount(editingOrder.requestedDiscount || 0);
+      setRequestedDiscountNote(editingOrder.requestedDiscountNote || '');
+      
       // If selections is empty but we have selectedOptions, rebuild selections
       if ((!editingOrder.selections || Object.keys(editingOrder.selections).length === 0) && editingOrder.selectedOptions?.length > 0) {
         const rebuiltSelections = {};
