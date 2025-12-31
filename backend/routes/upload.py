@@ -1,19 +1,17 @@
-"""File upload routes for images with optimization."""
+"""File upload routes for images with MongoDB storage."""
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
-import os
+from fastapi.responses import Response
 import uuid
 import logging
+import base64
 from pathlib import Path
 from PIL import Image
 import io
 
+from database import db
+
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Upload"])
-
-# Create uploads directory
-UPLOAD_DIR = Path("/app/backend/uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB upload limit
@@ -68,7 +66,7 @@ def optimize_image(content: bytes, max_size: int = MAX_IMAGE_DIMENSION) -> tuple
 
 @router.post("/upload/image")
 async def upload_image(file: UploadFile = File(...)):
-    """Upload an image file, optimize it, and return its URL."""
+    """Upload an image file, optimize it, and store in MongoDB."""
     # Check file extension
     file_ext = Path(file.filename).suffix.lower()
     if file_ext not in ALLOWED_EXTENSIONS:
@@ -93,14 +91,24 @@ async def upload_image(file: UploadFile = File(...)):
         file_ext = new_ext
     
     # Generate unique filename
-    unique_filename = f"{uuid.uuid4().hex}{file_ext}"
-    file_path = UPLOAD_DIR / unique_filename
+    unique_id = uuid.uuid4().hex
+    unique_filename = f"{unique_id}{file_ext}"
     
-    # Save optimized file
-    with open(file_path, "wb") as f:
-        f.write(optimized_content)
+    # Encode to base64 for MongoDB storage
+    base64_content = base64.b64encode(optimized_content).decode('utf-8')
     
-    logger.info(f"Uploaded optimized image: {unique_filename} ({len(optimized_content)/1024:.1f}KB)")
+    # Store in MongoDB
+    image_doc = {
+        "id": unique_id,
+        "filename": unique_filename,
+        "content": base64_content,
+        "content_type": "image/jpeg",
+        "size": len(optimized_content)
+    }
+    
+    await db.images.insert_one(image_doc)
+    
+    logger.info(f"Uploaded image to MongoDB: {unique_filename} ({len(optimized_content)/1024:.1f}KB)")
     
     # Return the URL path (relative to API)
     return {
@@ -111,31 +119,29 @@ async def upload_image(file: UploadFile = File(...)):
 
 @router.get("/uploads/{filename}")
 async def get_uploaded_file(filename: str):
-    """Serve an uploaded file with caching and CORS headers."""
-    file_path = UPLOAD_DIR / filename
+    """Serve an uploaded file from MongoDB with caching and CORS headers."""
+    # Extract ID from filename (remove extension)
+    file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
     
-    if not file_path.exists():
+    # Find image in MongoDB
+    image_doc = await db.images.find_one({"id": file_id})
+    
+    if not image_doc:
         raise HTTPException(status_code=404, detail="File not found")
     
-    # Security check - prevent path traversal
-    if not file_path.resolve().is_relative_to(UPLOAD_DIR.resolve()):
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Decode base64 content
+    try:
+        content = base64.b64decode(image_doc["content"])
+    except Exception as e:
+        logger.error(f"Failed to decode image: {e}")
+        raise HTTPException(status_code=500, detail="Failed to decode image")
     
-    # Determine media type
-    ext = file_path.suffix.lower()
-    media_types = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.webp': 'image/webp'
-    }
-    media_type = media_types.get(ext, 'application/octet-stream')
+    content_type = image_doc.get("content_type", "image/jpeg")
     
-    # Add cache and CORS headers for better performance
-    return FileResponse(
-        file_path,
-        media_type=media_type,
+    # Return with cache and CORS headers
+    return Response(
+        content=content,
+        media_type=content_type,
         headers={
             "Cache-Control": "public, max-age=31536000, immutable",
             "Access-Control-Allow-Origin": "*",
@@ -149,17 +155,16 @@ async def get_uploaded_file(filename: str):
 
 @router.delete("/upload/image/{filename}")
 async def delete_image(filename: str):
-    """Delete an uploaded image."""
-    file_path = UPLOAD_DIR / filename
+    """Delete an uploaded image from MongoDB."""
+    # Extract ID from filename
+    file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
     
-    if not file_path.exists():
+    # Delete from MongoDB
+    result = await db.images.delete_one({"id": file_id})
+    
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="File not found")
     
-    # Security check
-    if not file_path.resolve().is_relative_to(UPLOAD_DIR.resolve()):
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    os.remove(file_path)
-    logger.info(f"Deleted image: {filename}")
+    logger.info(f"Deleted image from MongoDB: {filename}")
     
     return {"message": "File deleted successfully"}
