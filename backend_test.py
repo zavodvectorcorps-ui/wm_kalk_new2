@@ -4186,16 +4186,28 @@ if __name__ == "__main__":
             print(f"{status} TechSpecId Mapping Flow")
             print("=" * 70)
             sys.exit(0 if result else 1)
+        elif sys.argv[1] == "order-edit":
+            print("🎯 RUNNING ORDER FULL EDIT TESTS ONLY")
+            print("=" * 50)
+            result = test_order_full_edit_functionality()
+            print("\n" + "=" * 70)
+            print("🏁 ORDER FULL EDIT TEST RESULT")
+            print("=" * 70)
+            status = "✅ PASS" if result else "❌ FAIL"
+            print(f"{status} Order Full Edit Functionality")
+            print("=" * 70)
+            sys.exit(0 if result else 1)
         else:
             run_all_tests()
     else:
-        # Run TechSpec Mapping test by default as per review request
-        print("🎯 RUNNING TECHSPEC MAPPING TEST (DEFAULT)")
+        # Run Order Full Edit tests by default as per review request
+        print("🎯 RUNNING ORDER FULL EDIT TESTS (DEFAULT)")
         print("=" * 50)
-        result = test_techspec_mapping_flow()
+        result = test_order_full_edit_functionality()
         print("\n" + "=" * 70)
-        print("🏁 TECHSPEC MAPPING TEST RESULT")
+        print("🏁 ORDER FULL EDIT TEST RESULT")
         print("=" * 70)
         status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{status} TechSpecId Mapping Flow")
+        print(f"{status} Order Full Edit Functionality")
         print("=" * 70)
+        sys.exit(0 if result else 1)
