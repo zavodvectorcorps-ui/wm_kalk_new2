@@ -29,6 +29,10 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
   // Preview Modal state
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewOrder, setPreviewOrder] = useState(null);
+  
+  // Edit Modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editOrder, setEditOrder] = useState(null);
 
   const isSauna = calculatorType === 'sauna';
 
