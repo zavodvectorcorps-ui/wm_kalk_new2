@@ -1,136 +1,166 @@
 <analysis>**original_problem_statement:**
-The user's initial problem statement from the previous session was to fix bugs and add features to their WM Kalkulator application.
+The user's initial high-priority issue was images in the Balia calculator disappearing after deployment. After successfully resolving this by migrating image storage to MongoDB, the user requested a new set of features:
 
-During the current session, the user made a series of requests to enhance the application, focusing on the Balia (hottub) calculator's functionality, performance, and admin capabilities. The key requests included:
-1.  **Feature**: Implement hints (tooltips) for Balia models and options.
-2.  **UI/UX**: Change the display of hints for dropdown options from a hover tooltip to a static text block.
-3.  **Bug Fix & Feature**: Overhaul the PDF generation for Balia orders to fix bugs (missing image, wrong filename) and improve design (new text-based logo, correct aspect ratio, Polish language enforcement, updated contact info).
-4.  **Bug Fix**: Resolve issues where images and hints were missing on the production environment due to data inconsistencies between the local and production databases.
-5.  **Performance**: Optimize large images that were causing slow load times by implementing server-side compression on upload and client-side lazy loading.
-6.  **Feature**: Create a system for an administrator to dynamically add, edit, and manage customer data fields (e.g., name, phone, address) and their validation rules () from the admin panel for both Sauna and Balia calculators.
-7.  **Feature**: Add a modal window on the Orders page to allow for a quick preview of order details without downloading a PDF.
-8.  **Bug Fix**: Unify the order number format for Balia orders to match the format used in PDF filenames ().
+**PRODUCT REQUIREMENTS:**
+1.  **PDF Image:** The generated PDF for both Sauna and Balia orders must include the image of the selected model.
+2.  **Full Order Editing:** From the Orders page, users should be able to open a saved order in a calculator-like interface to edit it completely (e.g., add/remove options, change quantities).
+3.  **Admin Discount Enhancement:**
+    *   The threshold for requiring admin approval for a discount should be lowered from 20% to 10%.
+    *   The UI should reflect this change.
+4.  **Admin Gifts:** In the new order editing view, an administrator must have the ability to mark any selected option as a gift. This should set the option's price to 0 and add a note indicating it's a gift from the administrator in the order details and the preview.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The WM Kalkulator is a full-stack React/FastAPI/MongoDB application for configuring and ordering Saunas and Balias (hottubs).
+The application is a full-stack quoting tool for Saunas and Balias. The critical issue of images disappearing after deployment has been resolved by migrating image storage from the server's filesystem to a dedicated  collection in the MongoDB database.
 
-This session introduced several major features and fixes:
--   **Dynamic Customer Forms**: A new system allows admins to configure customer data fields via the UI ( and ). The calculators now dynamically render these forms based on the saved configuration.
--   **Image Optimization**: A robust image optimization pipeline is in place. All new image uploads are automatically compressed, resized, and converted to the efficient WebP format. The frontend uses lazy loading to improve performance. A one-time script was also created to optimize all previously uploaded images.
--   **Order Preview Modal**: The Orders page now features an eye icon next to each order, which opens a modal window displaying a clean, read-only summary of the order details.
--   **Enhanced Hints System**: The Balia calculator now displays informative hints for both models and options. The UI for these hints has been refined to be more user-friendly, especially for dropdown selectors.
--   **Improved PDF Generation**: The Balia PDF has been redesigned to be more professional, with a text-based header, correct image handling, and consistent Polish language content.
--   **Data Sync Solution**: A data migration mechanism has been implemented on the backend. It automatically updates the production database with new data fields (like ) from default configuration files upon application startup, ensuring consistency between code and data.
--   **Consistent Order Numbering**: All new Balia orders are now saved with a formatted ID (e.g., ), which matches the format used for PDF filenames.
+The agent has begun implementing the new feature requests:
+-   **Backend:**
+    -   The database models for Balia () and Sauna () have been updated with fields for , , and .
+    -   New  endpoints ( and ) have been created to handle order updates.
+    -   The PDF generation logic in  and  has been partially modified to support fetching model images from the database.
+-   **Frontend:**
+    -   The discount threshold for requiring admin approval has been changed from 20% to 10% in the UI.
+    -   A new, but mostly empty, component  has been created to house the full order editing functionality.
+    -   The  has been updated to open this new modal.
+    -   The  has been updated to display admin-approved gifts.
 
 **Last working item**:
--   **Last item agent was working**: The agent just finished unifying the order number format for Balia orders, ensuring that the ID stored in the database matches the format used in the generated PDF ().
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: manual testing by curl/python -c (to create a new order and verify its ID format) followed by the screenshot tool (to confirm the new ID format appears on the orders page).
+-   **Last item agent was working**: The agent was scaffolding the major new feature set requested by the user. The primary focus was creating the  component for full order editing, updating the backend models and API endpoints to support it, and adjusting the admin discount logic to a 10% threshold. The agent had just fixed a JavaScript crash () which was preventing the frontend from rendering.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: both. This is a large, complex feature.
+    -   **Frontend:** Use the  to thoroughly test the  flow: loading an order, modifying options, applying gifts, changing discounts, and saving.
+    -   **Backend:** Use  or a Python script to test the new  endpoints for order updates and to test the PDF generation endpoints (, ) to ensure they correctly include the model image.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   None. All user requests from this session have been addressed.
+-   There are no outstanding bugs. The work is focused on implementing new features.
 
 **In progress Task List**:
--   None.
+-   **Task 1: Complete Full Order Editing Feature (P0)**
+-   **Task 2: Implement Gift from Admin Feature (P0)**
+-   **Task 3: Add Model Image to PDFs (P1)**
+
+**Task Detail**:
+-   **Task 1: Complete Full Order Editing Feature**
+    -   **Where to resume**: The component  is currently a skeleton. It needs to be built out to replicate the calculator's functionality, loading the state from the selected order. This includes fetching all available models/options, populating the UI with the order's current selections, and allowing the user to modify them. The Save action must call the new  endpoint.
+    -   **What will be achieved with this?**: Users will be able to fully edit a saved order instead of just changing client data or discounts.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: None.
+
+-   **Task 2: Implement Gift from Admin Feature**
+    -   **Where to resume**:
+        1.  In , add a Make Gift (e.g., a checkbox or button) next to each selected option, visible only to admins.
+        2.  When an item is marked as a gift, its price in the summary should become 0.
+        3.  Upon saving, the  array in the order payload should be populated with the details of the gifted items.
+        4.  The backend update logic needs to correctly handle this field.
+        5.  The PDF generation logic for both Balia and Sauna must be updated to show Gift instead of the price for gifted items.
+    -   **What will be achieved with this?**: Admins will have the flexibility to offer specific items for free on an order.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: Task 1.
+
+-   **Task 3: Add Model Image to PDFs**
+    -   **Where to resume**: The backend routes  and  have been updated to fetch image data from MongoDB. This logic needs to be finalized and tested. The  code needs to be adjusted to correctly place the fetched image into the PDF layout.
+    -   **What will be achieved with this?**: Order PDFs will be more visually appealing and informative, containing a picture of the main product.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
 -   **Future Tasks**:
     -   **Refactor  (P2)**: This large component could be broken down into smaller, more manageable components to improve maintainability.
+    -   **Fix Minor Dropdown Positioning Glitch in Balia calculator (P2)**: A low-priority visual issue where dropdown menus might not be perfectly positioned.
 
 **Completed work in this session**
--   **Feature**: Implemented a dynamic customer field manager in the admin panel for both Balia and Sauna calculators.
--   **Feature**: Implemented an order preview modal on the Orders page.
--   **Performance**: Implemented a full image optimization pipeline (backend compression/conversion to WebP) and frontend lazy loading.
--   **Feature**: Added hints (tooltips/info blocks) for both models and options in the Balia calculator.
--   **Feature/BugFix**: Completely overhauled the Balia PDF generation logic, fixing filename, image, translation, and design issues.
--   **Bug Fix**: Resolved production crashes and data discrepancies by implementing a backend data migration step and adding defensive frontend coding.
--   **Feature/BugFix**: Unified the Balia order ID format to  for consistency.
+-   **Critical Bug Fix**: Permanently resolved the issue of images disappearing after deployments by migrating all image storage from the ephemeral filesystem to a persistent  collection in the MongoDB database. This involved rewriting the  route and testing the end-to-end flow.
+-   **Feature**: Created a backend endpoint () to allow the user to clear all Balia image URLs from the database to facilitate re-uploading during the debugging process.
+-   **Bug Fix**: Resolved a JavaScript crash () in  that was causing a blank page.
+-   **Feature Scaffolding**: Began implementation of the new user requests by creating backend endpoints for order updates, updating data models, and creating the initial frontend components ().
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
-    -   **Debug checklist**: A low-priority visual issue where dropdown menus might not be perfectly positioned. Can be inspected in . It's possible extensive UI changes have already resolved this.
+    -   **Debug checklist**: A low-priority visual issue in .
     -   **Why to solve this issue and what will be achieved with this?**: Minor UI polish for a better user experience.
     -   **Should Test frontend/backend/both after fix**: frontend
     -   **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
--   None.
+-   The critical issue of Images not loading in Balia calculator was recurring but has now been **RESOLVED** by migrating storage to MongoDB.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Image Optimization**: Using the  library on the backend to resize, compress, and convert images to the WebP format upon upload, significantly reducing file sizes.
--   **Lazy Loading**: Implemented a custom  React component that shows a placeholder/spinner and only loads the actual image when it enters the viewport, improving initial page load time.
--   **Dynamic Form Generation**: The customer information form is no longer static. It fetches its field configuration (labels, types,  status) from a new  endpoint and renders inputs dynamically.
--   **Data Migration on Startup**: The  endpoint now includes logic to merge missing fields (like ) from  into the existing MongoDB document. This ensures new features work on existing deployments without manual database intervention.
+-   **Image Storage in MongoDB:** The most critical change in this session. Instead of saving to the filesystem, uploaded images are read, and their binary data is stored in a new  collection in MongoDB. The  endpoint retrieves the binary data from the DB and serves it as an image, ensuring persistence across deployments.
+-   **Full Order Editing UI:** The user wants to load a saved order back into a calculator interface for complete modification. This will require complex state management to pre-populate the UI and handle changes.
+-   **Role-Based UI Logic (Admin):** The UI now has logic to show special controls (like the allow discount a gift buttons) only for users with the 'admin' role.
 
 **key DB schema**
--   ****: The  document within this collection was updated:  array items now have an optional , and  fields were updated to use relative paths.
--   ** (New Collection)**: Stores configurations for dynamic customer forms. Schema: .
--   ** / **: The uid=0(root) gid=0(root) groups=0(root) field for new Balia orders is now a formatted string .
+-   ** (NEW):**
+    -   : (string, e.g., uuid.jpg) - Serves as the key.
+    -   : (string, e.g., image/jpeg)
+    -   : (Binary data)
+-   ** (Balia) &  (Sauna) (MODIFIED):**
+    -   Added , 
+    -   Added  to store information about options given as gifts.
+    -    is now included when creating an order to be used in the PDF.
 
 **changes in tech stack**
--   **Pillow**: This Python library was added to the backend () to handle image processing.
+-   No new libraries were added. The significant change is the architectural shift to storing images in the database.
 
 **All files of reference**
--   **/app/backend/routes/upload.py**: Core of the new image optimization feature.
--   **/app/frontend/src/components/CalculatorPage.jsx**: Heavily modified for lazy loading, hints, and dynamic forms.
--   **/app/backend/routes/balia.py**: Heavily modified for improved PDF generation and the new data migration logic.
--   **/app/frontend/src/components/CustomerFieldsManager.jsx**: New UI for the custom fields feature.
--   **/app/frontend/src/components/CustomerInfoForm.jsx**: Completely rewritten to be dynamic.
--   **/app/frontend/src/components/OrderPreviewModal.jsx**: New UI for the order preview feature.
--   **/app/frontend/src/components/OrdersPage.jsx**: Modified to integrate the new preview functionality.
+-   : The core of the new persistent image storage logic.
+-   : The new, in-progress component for full order editing.
+-   : Modified to handle the new editing flow.
+-    & : Contain the new order update endpoints and modified PDF generation logic.
+-    & : The data models with new fields for admin actions.
 
 **Areas that need refactoring**:
--    is still a large, monolithic component that could benefit from being broken down into smaller pieces.
+-   The new  will be very complex. It should be built with modularity in mind, potentially reusing components from the main calculators, to avoid creating another large, monolithic component like .
 
 **key api endpoints**
--   : **New.** Fetches the dynamic field configuration for the customer form.
--   : **New.** Updates the customer form field configuration.
--   : **Modified.** Now automatically optimizes uploaded images.
--   : **Modified.** Order creation logic now generates a formatted ID ().
--   : **Modified.** Now includes logic to migrate/update existing data in the database from default files.
+-   : **MODIFIED**. Now saves image data to the  collection in MongoDB.
+-   : **MODIFIED**. Now retrieves image data from the  collection in MongoDB.
+-   : **NEW**. Updates a Balia order with new details, including discounts and gifts.
+-   : **NEW**. Updates a Sauna order.
+-   : **NEW**. Utility endpoint to clear all Balia image URLs from the  collection.
+-    & : **MODIFIED**. Logic updated to fetch the model image from the database and include it in the PDF.
 
 **Critical Info for New Agent**
--   **You must communicate with the user in Russian.**
--   A major performance optimization for images has been implemented. New uploads are automatically compressed and converted to WebP. The frontend uses lazy loading. For existing deployments, a script at  can be run to optimize all images in the  directory.
--   A key new feature is the dynamic customer form manager. The configuration is handled in the admin panel ( & ) under the Dane Klienta tab. The main calculators now render this form based on the API response.
--   Data consistency between code updates and existing database documents is now handled by a migration logic in the  endpoint. If you add new data fields to , they will be automatically added to the production DB document on app startup.
+-   You MUST communicate with the user in **Russian**.
+-   The critical image persistence problem has been **solved by storing images in MongoDB**. Do not attempt to revert to filesystem storage. The user has confirmed this fix is working.
+-   The highest priority is to complete the implementation of the new, complex feature set: **full order editing, admin gifts, and images in PDFs**.
+-   Start by building out the functionality in .
 
 **documents and test reports created in this job**
--   : A Python script to optimize all existing images in the uploads folder.
+-    was updated with a test plan for the new order editing features.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Requests that the order number on the orders page match the PDF filename for consistency. (Status: **Completed**)
-2.  **User**: Requests a modal window in the Orders section to preview an order by clicking an eye icon, for both Saunas and Balias. (Status: **Completed**)
-3.  **User**: Asks for a feature to manage the customer data fields from the admin panel, including adding/editing fields and setting them as required. (Status: **Completed**)
-4.  **User**: Reports that after uploading images, they load very slowly and inconsistently on their hosting environment, and asks for optimization. (Status: **Completed**)
-5.  **User**: Reports that on production, images and model hints are missing. (Status: **Completed**)
-6.  **User**: Reports that after deploying, the Balia calculator shows a white screen and console errors related to CORS and . (Status: **Completed**)
-7.  **User**: Provides hint text for all Balia models and asks for them to be implemented in the UI. (Status: **Completed**)
-8.  **User**: Requests to remove the image logo from the PDF and replace it with styled text, and to fix the model image being stretched. (Status: **Completed**)
-9.  **User**: Reports three issues after a deploy: 1) images have disappeared from the calculator, 2) the PDF filename is not using the order number, and 3) the model's image is missing from the PDF. (Status: **Completed**)
-10. **User**: Requests that hints for dropdown options be displayed as a static text block instead of a hover-activated tooltip. (Status: **Completed**)
+1.  **User**: Great! Everything is finally displaying correctly. Now, let's add new features. (Status: **Completed**)
+2.  **User**: Requests two new features: 1) Add model image to PDFs. 2) Allow editing saved orders, with admins being able to give discounts >20%. (Status: **In Progress**)
+3.  **User**: Further clarifies the order editing: needs to be a full editor (like the calculator), not just a simple modal. (Status: **In Progress**)
+4.  **User**: Adds another requirement for the edit mode: admins should be able to mark options as gifts (price becomes 0) with a note. (Status: **In Progress**)
+5.  **User**: Asks to change the admin discount threshold from >20% to >10%. (Status: **Completed**)
+6.  *Agent starts implementation, UI crashes.*
+7.  *Agent fixes the JS crash.*
+8.  *Agent shows a screenshot of the new (empty) full edit modal.* (Status: **In Progress**)
+9.  (No further user messages; the last actions were from the agent implementing the new features.)
 
 **Project Health Check:**
--   **Working**: The application is fully functional locally. All recent user requests and reported bugs have been addressed and implemented.
--   **Broken**: No known broken functionality.
--   **Mocked/Incomplete**: None.
+-   **Working**: The core application, including all previously completed features and the critical image persistence functionality, is working correctly.
+-   **Broken**: No part of the application is broken.
+-   **Mocked/Incomplete**: The new feature set (full order editing, admin gifts, images in PDF) is in the middle of implementation and is therefore incomplete and not yet functional.  is the main incomplete component.
 
 **3rd Party Integrations**
--   None.
+-    (v11.0.5): A client-side library for cropping images in the browser.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, for verifying the hints feature.
+-   **Testing agent used after significant changes**: YES, the testing agent was invoked to plan the test for the new features, but the execution is pending the completion of the features.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**:
-    -    (utility script, not a test file)
+-   **Test files created**: None.
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
@@ -138,4 +168,4 @@ This session introduced several major features and fixes:
 -   **Observer**:  / 
 
 **What agent forgot to execute**
--   The low-priority UI glitch, Minor Dropdown Positioning Glitch, mentioned in the initial handoff summary was not addressed during this session. All user requests from the current session were completed.</analysis>
+-   The agent has correctly prioritized the new, complex feature requests from the user. The low-priority refactoring and minor UI glitch from the previous session remain pending, which is appropriate.</analysis>
