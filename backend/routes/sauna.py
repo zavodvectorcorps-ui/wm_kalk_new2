@@ -572,10 +572,18 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     elements.append(Spacer(1, 10))
     
     # ========== MODEL SECTION ==========
-    elements.append(Paragraph('MODEL I ŁAWKI', section_title_style))
+    # Large section title for MODEL I ŁAWKI
+    model_section_title = ParagraphStyle(
+        'ModelSectionTitle',
+        fontName='DejaVuSans-Bold',
+        fontSize=16,
+        textColor=BROWN_DARK,
+        spaceAfter=6
+    )
+    elements.append(Paragraph('MODEL I ŁAWKI', model_section_title))
     elements.append(Spacer(1, 4))
-    elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
-    elements.append(Spacer(1, 4))
+    elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+    elements.append(Spacer(1, 6))
     
     # Model info with image if available
     model_name = request.modelName or "-"
