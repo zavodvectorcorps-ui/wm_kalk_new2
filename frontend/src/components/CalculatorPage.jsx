@@ -18,16 +18,15 @@ import { v4 as uuidv4 } from 'uuid';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// Helper to get full image URL with cache buster
+// Helper to get full image URL
 const getImageUrl = (url) => {
   if (!url) return '';
   // If it's already an absolute URL, return as-is
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
-  // If it's a relative path, prepend the API URL and add cache buster
-  const timestamp = Math.floor(Date.now() / 60000); // Changes every minute
-  return `${API_URL}${url}?v=${timestamp}`;
+  // If it's a relative path, prepend the API URL
+  return `${API_URL}${url}`;
 };
 
 export const CalculatorPage = () => {
