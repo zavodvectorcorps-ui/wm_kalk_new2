@@ -412,15 +412,18 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     if model_image_url:
         try:
             img_data = None
+            logger.info(f"Processing model image URL: {model_image_url}")
             
-            # Try loading from MongoDB first
+            # Try loading from MongoDB first - check for /api/uploads/ pattern
             if '/api/uploads/' in model_image_url:
                 img_data = await load_image_from_mongodb(model_image_url)
                 if img_data:
-                    logger.info(f"Loaded model image from MongoDB for Sauna PDF")
+                    logger.info(f"Loaded model image from MongoDB for Sauna PDF (size: {len(img_data)} bytes)")
+                else:
+                    logger.warning(f"MongoDB image not found for URL: {model_image_url}")
             
-            # Fallback to HTTP download for external URLs
-            if not img_data and model_image_url.startswith('http'):
+            # Fallback to HTTP download for external URLs (only if not MongoDB URL or MongoDB failed)
+            if not img_data and model_image_url.startswith('http') and '/api/uploads/' not in model_image_url:
                 try:
                     req = urllib.request.Request(
                         model_image_url,
@@ -433,7 +436,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     )
                     with urllib.request.urlopen(req, timeout=10) as response:
                         img_data = response.read()
-                    logger.info(f"Downloaded model image from URL: {model_image_url}")
+                    logger.info(f"Downloaded model image from external URL: {model_image_url}")
                 except Exception as e:
                     logger.warning(f"Could not download image from URL: {e}")
             
