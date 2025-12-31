@@ -29,23 +29,37 @@ const getImageUrl = (url) => {
   return `${API_URL}${url}`;
 };
 
-// Simple image component with error handling and debugging
+// Simple image component with error handling and retry logic
 const SimpleImage = ({ src, alt, className, fallback }) => {
   const [status, setStatus] = React.useState('loading'); // loading, loaded, error
+  const [retryCount, setRetryCount] = React.useState(0);
+  const maxRetries = 2;
   
   const fullSrc = React.useMemo(() => {
     if (!src) return null;
-    // Add cache buster for fresh loads
     const baseUrl = src.startsWith('http') ? src : src.startsWith('/api/') ? `${API_URL}${src}` : src;
-    return baseUrl;
-  }, [src]);
+    // Add cache buster on retry to bypass cache issues
+    return retryCount > 0 ? `${baseUrl}?retry=${retryCount}` : baseUrl;
+  }, [src, retryCount]);
 
   // Reset status when src changes
   React.useEffect(() => {
-    if (fullSrc) {
-      setStatus('loading');
+    setStatus('loading');
+    setRetryCount(0);
+  }, [src]);
+
+  const handleError = React.useCallback(() => {
+    console.error('Image load error:', fullSrc, 'retry:', retryCount);
+    if (retryCount < maxRetries) {
+      // Retry after a short delay
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        setStatus('loading');
+      }, 500);
+    } else {
+      setStatus('error');
     }
-  }, [fullSrc]);
+  }, [fullSrc, retryCount]);
 
   if (!fullSrc) {
     return fallback || null;
@@ -67,13 +81,9 @@ const SimpleImage = ({ src, alt, className, fallback }) => {
         alt={alt || ''}
         className={`${className} ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
         loading="eager"
-        decoding="async"
-        crossOrigin="anonymous"
+        decoding="sync"
         onLoad={() => setStatus('loaded')}
-        onError={(e) => {
-          console.error('Image load error:', fullSrc);
-          setStatus('error');
-        }}
+        onError={handleError}
       />
     </>
   );
