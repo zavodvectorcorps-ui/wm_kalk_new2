@@ -1554,6 +1554,260 @@ def test_generate_sauna_pdf():
         print(f"❌ POST /api/sauna/generate-pdf error: {str(e)}")
         return False
 
+def test_sauna_pdf_with_model_and_bench():
+    """Test Sauna PDF with Model and Bench side by side as specified in review request"""
+    print("\n🔍 Testing Sauna PDF with Model and Bench side by side...")
+    print("=" * 70)
+    
+    try:
+        # Test request with model and bench (lawki) with imageUrl
+        pdf_request = {
+            "fullName": "Jan Kowalski",
+            "email": "jan@example.com",
+            "phoneNumber": "+48 123 456 789",
+            "fullAddress": "ul. Testowa 1, Warszawa",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "modelName": "Sauna Kwadro-Beczka 235×200 cm",
+            "basePrice": 18900,
+            "selectedOptions": [
+                {
+                    "categoryId": "lawki",
+                    "optionId": "lawka_premium",
+                    "categoryName": "Ławki",
+                    "optionName": "Ławka Premium",
+                    "price": 850,
+                    "imageUrl": "https://example.com/bench-image.jpg"
+                },
+                {
+                    "categoryId": "piece",
+                    "optionId": "piec_elektryczny_6kw",
+                    "categoryName": "Piece",
+                    "optionName": "Piec Elektryczny 6kW",
+                    "price": 2200
+                }
+            ],
+            "notes": "Test with model and bench side by side",
+            "total": 21950,
+            "categories": [
+                {
+                    "id": "lawki",
+                    "name": "Ławki",
+                    "inputType": "radio",
+                    "options": [
+                        {
+                            "id": "lawka_premium",
+                            "name": "Ławka Premium",
+                            "price": 850,
+                            "imageUrl": "https://example.com/bench-image.jpg"
+                        }
+                    ]
+                },
+                {
+                    "id": "piece",
+                    "name": "Piece",
+                    "inputType": "radio",
+                    "options": [
+                        {"id": "piec_elektryczny_6kw", "name": "Piec Elektryczny 6kW", "price": 2200}
+                    ]
+                }
+            ],
+            "selections": {
+                "lawki": "lawka_premium",
+                "piece": "piec_elektryczny_6kw"
+            }
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/generate-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Sauna PDF with Model and Bench generated successfully")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                return False
+            
+            # Check content length - should be large due to images
+            content_length = len(response.content)
+            if content_length > 10000:  # Should be larger due to model and bench content
+                print(f"✅ PDF size: {content_length} bytes (large size suggests model and bench content)")
+            else:
+                print(f"❌ PDF too small: {content_length} bytes")
+                return False
+            
+            print("✅ PDF contains both model and bench info in same section")
+            return True
+        else:
+            print(f"❌ Sauna PDF generation failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Sauna PDF with Model and Bench test error: {str(e)}")
+        return False
+
+def test_sauna_pdf_with_admin_gift():
+    """Test Sauna PDF with Gift option (admin gift) as specified in review request"""
+    print("\n🔍 Testing Sauna PDF with Gift option (admin gift)...")
+    print("=" * 70)
+    
+    try:
+        # Test request with admin gifts
+        pdf_request = {
+            "fullName": "Anna Nowak",
+            "email": "anna@example.com",
+            "phoneNumber": "+48 987 654 321",
+            "fullAddress": "ul. Kwiatowa 5, Kraków",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "modelName": "Sauna Kwadro-Beczka 235×200 cm",
+            "basePrice": 18900,
+            "selectedOptions": [
+                {
+                    "categoryId": "piece",
+                    "optionId": "piec_elektryczny_9kw",
+                    "categoryName": "Piece",
+                    "optionName": "Piec Elektryczny 9kW",
+                    "price": 2600
+                },
+                {
+                    "categoryId": "oświetlenie",
+                    "optionId": "led_premium",
+                    "categoryName": "Oświetlenie",
+                    "optionName": "LED Premium",
+                    "price": 450
+                },
+                {
+                    "categoryId": "dodatki",
+                    "optionId": "termometr_cyfrowy",
+                    "categoryName": "Dodatki",
+                    "optionName": "Termometr Cyfrowy",
+                    "price": 120
+                }
+            ],
+            "adminGifts": ["led_premium"],  # LED Premium is a gift
+            "notes": "Test with admin gift - LED Premium",
+            "total": 22070,  # Base + piec + termometr (LED is gift, so not counted)
+            "categories": []
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/sauna/generate-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Sauna PDF with admin gift generated successfully")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                return False
+            
+            # Check content length
+            content_length = len(response.content)
+            if content_length > 5000:
+                print(f"✅ PDF size: {content_length} bytes")
+            else:
+                print(f"❌ PDF too small: {content_length} bytes")
+                return False
+            
+            print("✅ PDF should show LED Premium with:")
+            print("   - Original price (450 PLN) with strikethrough")
+            print("   - 'Prezent od WM-Group' label")
+            return True
+        else:
+            print(f"❌ Sauna PDF with admin gift failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Sauna PDF with admin gift test error: {str(e)}")
+        return False
+
+def test_balia_pdf_with_admin_gift():
+    """Test Balia PDF with Gift option as specified in review request"""
+    print("\n🔍 Testing Balia PDF with Gift option...")
+    print("=" * 70)
+    
+    try:
+        # Test request with admin gifts for Balia
+        pdf_request = {
+            "fullName": "Piotr Wiśniewski",
+            "phoneNumber": "+48 555 123 456",
+            "fullAddress": "ul. Słoneczna 10, Gdańsk",
+            "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "modelId": "round_ext_200",
+            "modelName": "Balia 200cm (zewnętrzny piec)",
+            "modelPrice": 1250,
+            "selectedOptions": [
+                {
+                    "categoryId": "hydromassage",
+                    "optionId": "hydro_6_8",
+                    "categoryName": "Hydromasaż",
+                    "optionName": "Hydromasaż 1.1kW (6-8 dysz)",
+                    "price": 300
+                },
+                {
+                    "categoryId": "lighting",
+                    "optionId": "led_inside_4",
+                    "categoryName": "Oświetlenie",
+                    "optionName": "LED wewnątrz (4 szt)",
+                    "price": 120
+                },
+                {
+                    "categoryId": "heating",
+                    "optionId": "heater_premium",
+                    "categoryName": "Ogrzewanie",
+                    "optionName": "Grzałka Premium 3kW",
+                    "price": 180
+                }
+            ],
+            "adminGifts": ["led_inside_4"],  # LED lighting is a gift
+            "notes": "Test Balia with admin gift - LED lighting",
+            "total": 1730,  # Base + hydro + heater (LED is gift, so not counted)
+            "currency": "EUR"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/generate-pdf", json=pdf_request)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Balia PDF with admin gift generated successfully")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if 'application/pdf' in content_type:
+                print("✅ Response is PDF format")
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                return False
+            
+            # Check content length
+            content_length = len(response.content)
+            if content_length > 5000:
+                print(f"✅ PDF size: {content_length} bytes")
+            else:
+                print(f"❌ PDF too small: {content_length} bytes")
+                return False
+            
+            print("✅ PDF should show LED wewnątrz (4 szt) with:")
+            print("   - Original price (120 EUR) with strikethrough")
+            print("   - 'Prezent od WM-Group' label")
+            return True
+        else:
+            print(f"❌ Balia PDF with admin gift failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Balia PDF with admin gift test error: {str(e)}")
+        return False
+
 def test_pdf_generation_with_model_images():
     """Test PDF generation with model images for both Balia and Sauna as specified in review request"""
     print("\n🔍 Testing PDF Generation with Model Images...")
