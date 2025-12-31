@@ -176,6 +176,8 @@ class PDFRequest(BaseModel):
     currency: Optional[str] = "EUR"
     discountPercent: Optional[float] = 0.0
     subtotal: Optional[float] = 0.0
+    # Admin gifts - list of option IDs that are gifts
+    adminGifts: Optional[List[str]] = []
     # Legacy fields
     shellModel: Optional[str] = None
     woodType: Optional[str] = None
