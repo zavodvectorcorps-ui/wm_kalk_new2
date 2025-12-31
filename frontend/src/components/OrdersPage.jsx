@@ -330,10 +330,15 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                       )}
                       <TableCell>{formatDate(order.orderDate)}</TableCell>
                       <TableCell className="text-right font-semibold">
-                        {isSauna 
-                          ? `${(order.total || 0).toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN`
-                          : `${(order.total || 0).toFixed(2)}€`
-                        }
+                        <div className="flex items-center justify-end gap-1">
+                          {order.adminDiscountApproved && (
+                            <Shield className="h-4 w-4 text-green-600" title={txt.adminDiscount} />
+                          )}
+                          {isSauna 
+                            ? `${(order.total || 0).toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN`
+                            : `${(order.total || 0).toFixed(2)}€`
+                          }
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -345,6 +350,15 @@ export const OrdersPage = ({ calculatorType = 'balia' }) => {
                             title={txt.preview}
                           >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          {/* Edit Button */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditOrder(order)}
+                            title={txt.edit}
+                          >
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
