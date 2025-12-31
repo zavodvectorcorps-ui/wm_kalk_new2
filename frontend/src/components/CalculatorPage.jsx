@@ -53,6 +53,35 @@ export const CalculatorPage = () => {
     fetchPrices();
   }, []);
 
+  // Preload all images when prices are loaded
+  useEffect(() => {
+    if (prices.models?.length > 0) {
+      const imageUrls = [];
+      
+      // Collect model images
+      prices.models.forEach(model => {
+        if (model.imageUrl) {
+          imageUrls.push(getImageUrl(model.imageUrl));
+        }
+      });
+      
+      // Collect option images
+      prices.categories?.forEach(cat => {
+        cat.options?.forEach(opt => {
+          if (opt.imageUrl) {
+            imageUrls.push(getImageUrl(opt.imageUrl));
+          }
+        });
+      });
+      
+      // Preload all images
+      imageUrls.forEach(url => {
+        const img = new Image();
+        img.src = url;
+      });
+    }
+  }, [prices]);
+
   const fetchPrices = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/prices`);
