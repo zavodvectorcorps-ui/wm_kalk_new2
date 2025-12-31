@@ -32,15 +32,20 @@ const getImageUrl = (url) => {
   return url;
 };
 
-export const CalculatorPage = () => {
+export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [prices, setPrices] = useState({ models: [], categories: [], currency: 'EUR', currencySymbol: '€' });
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editOrderId, setEditOrderId] = useState(null);
+  // Admin features
+  const [adminGifts, setAdminGifts] = useState([]);
+  const [adminDiscountApproved, setAdminDiscountApproved] = useState(false);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -51,6 +56,8 @@ export const CalculatorPage = () => {
     selections: {},
     notes: '',
   });
+
+  const isAdminUser = isAdmin && isAdmin();
 
   useEffect(() => {
     fetchPrices();
