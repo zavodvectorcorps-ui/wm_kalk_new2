@@ -291,6 +291,12 @@ export const OrderFullEditModal = ({
         total,
       };
       
+      // If admin approved the discount, clear the requested discount (request fulfilled)
+      if (dataToSave.adminDiscountApproved && dataToSave.discountPercent >= (order.requestedDiscount || 0)) {
+        dataToSave.requestedDiscount = 0;
+        dataToSave.requestedDiscountNote = '';
+      }
+      
       const endpoint = isSauna 
         ? `${API_URL}/api/sauna/orders/${order.id}`
         : `${API_URL}/api/orders/${order.id}`;
