@@ -481,7 +481,7 @@ export const BaliaPricingPage = () => {
                       <div className="flex items-center gap-3">
                         {category.imageUrl && (
                           <img 
-                            src={category.imageUrl} 
+                            src={getFullImageUrl(category.imageUrl)} 
                             alt={getName(category)}
                             className="w-12 h-12 object-contain rounded"
                           />
