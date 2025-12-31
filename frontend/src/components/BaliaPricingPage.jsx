@@ -149,12 +149,15 @@ export const BaliaPricingPage = () => {
       
       console.log('Upload response:', response.data);
       
-      // Store only the relative path, not the full URL
-      const imageUrl = response.data.url;
+      const relativeUrl = response.data.url;
       
-      if (!imageUrl || !imageUrl.startsWith('/api/uploads/')) {
+      if (!relativeUrl || !relativeUrl.startsWith('/api/uploads/')) {
         throw new Error('Invalid URL returned from server');
       }
+      
+      // Save FULL URL with domain (like in Sauna)
+      const imageUrl = `${API_URL}${relativeUrl}`;
+      console.log('Saving full URL:', imageUrl);
       
       if (type === 'model') {
         setPrices(prev => ({
