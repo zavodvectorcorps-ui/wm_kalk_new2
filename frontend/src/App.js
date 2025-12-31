@@ -26,6 +26,7 @@ const AppContent = () => {
   const [currentCalculator, setCurrentCalculator] = useState(null);
   const [activeTab, setActiveTab] = useState('calculator');
   const [pricesUpdated, setPricesUpdated] = useState(0);
+  const [editingOrder, setEditingOrder] = useState(null); // Order being edited in calculator
 
   const texts = {
     ru: {
