@@ -554,18 +554,33 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
     elements.append(Spacer(1, 4))
     
-    model_data = [[
-        Paragraph(f'<b>{request.modelName or "-"}</b>', ParagraphStyle('Model', fontName='DejaVuSans-Bold', fontSize=12)),
-        Paragraph(f'<b><font color="#97724E">{request.basePrice:,} PLN</font></b>'.replace(',', ' '), 
+    # Model info with image if available
+    model_text = Paragraph(f'<b>{request.modelName or "-"}</b>', ParagraphStyle('Model', fontName='DejaVuSans-Bold', fontSize=12))
+    model_price = Paragraph(f'<b><font color="#97724E">{request.basePrice:,} PLN</font></b>'.replace(',', ' '), 
                  ParagraphStyle('Price', fontName='DejaVuSans-Bold', fontSize=12, alignment=TA_RIGHT))
-    ]]
-    model_table = Table(model_data, colWidths=[380, 150])
+    
+    if model_img:
+        # Table with image on the left, name and price on the right
+        model_data = [[
+            model_img,
+            model_text,
+            model_price
+        ]]
+        model_table = Table(model_data, colWidths=[170, 210, 150])
+    else:
+        model_data = [[
+            model_text,
+            model_price
+        ]]
+        model_table = Table(model_data, colWidths=[380, 150])
+    
     model_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
         ('TOPPADDING', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ('LEFTPADDING', (0, 0), (-1, -1), 8),
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(model_table)
     elements.append(Spacer(1, 8))
