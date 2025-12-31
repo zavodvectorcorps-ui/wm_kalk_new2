@@ -3398,16 +3398,7 @@ def run_sauna_pdf_layout_and_gift_tests():
         print("❌ Some tests failed")
         return False
 
-if __name__ == "__main__":
-    print("🚀 Starting Sauna PDF Layout and Gift Display Tests...")
-    success = run_sauna_pdf_layout_and_gift_tests()
-    
-    if success:
-        print("\n✅ All tests completed successfully!")
-        sys.exit(0)
-    else:
-        print("\n❌ Some tests failed!")
-        sys.exit(1)
+# Removed duplicate main section
 
 def test_add_tech_spec_category():
     """Test POST /api/tech-spec/category - add a new category"""
