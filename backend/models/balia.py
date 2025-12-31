@@ -132,6 +132,7 @@ class Order(BaseModel):
     modelId: Optional[str] = None
     modelName: Optional[str] = None
     modelPrice: Optional[float] = 0.0
+    modelImageUrl: Optional[str] = None  # Store model image URL
     selections: Optional[Dict[str, Any]] = {}
     selectedOptions: Optional[List[Dict[str, Any]]] = []
     notes: str = ""
@@ -141,6 +142,10 @@ class Order(BaseModel):
     currency: str = "EUR"
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     createdBy: Optional[str] = None
+    # Admin discount fields
+    adminDiscountApproved: Optional[bool] = False
+    adminDiscountApprovedBy: Optional[str] = None
+    adminDiscountApprovedAt: Optional[str] = None
     # Legacy fields for backward compatibility
     shellModel: Optional[str] = None
     woodType: Optional[str] = None
