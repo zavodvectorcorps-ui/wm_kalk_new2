@@ -111,7 +111,7 @@ async def upload_image(file: UploadFile = File(...)):
 
 @router.get("/uploads/{filename}")
 async def get_uploaded_file(filename: str):
-    """Serve an uploaded file with caching headers."""
+    """Serve an uploaded file with caching and CORS headers."""
     file_path = UPLOAD_DIR / filename
     
     if not file_path.exists():
@@ -121,12 +121,28 @@ async def get_uploaded_file(filename: str):
     if not file_path.resolve().is_relative_to(UPLOAD_DIR.resolve()):
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Add cache headers for better performance
+    # Determine media type
+    ext = file_path.suffix.lower()
+    media_types = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp'
+    }
+    media_type = media_types.get(ext, 'application/octet-stream')
+    
+    # Add cache and CORS headers for better performance
     return FileResponse(
         file_path,
+        media_type=media_type,
         headers={
-            "Cache-Control": "public, max-age=31536000",  # Cache for 1 year
-            "Access-Control-Allow-Origin": "*"
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Max-Age": "86400",
+            "X-Content-Type-Options": "nosniff"
         }
     )
 
