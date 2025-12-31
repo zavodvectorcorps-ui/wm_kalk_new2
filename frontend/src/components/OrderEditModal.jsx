@@ -54,7 +54,7 @@ export const OrderEditModal = ({
       cancel: 'Отмена',
       saved: 'Заказ сохранён',
       error: 'Ошибка сохранения',
-      maxDiscountWarning: 'Максимальная скидка для сотрудников: 20%',
+      maxDiscountWarning: 'Максимальная скидка для сотрудников: 10%',
     },
     pl: {
       editOrder: 'Edycja zamówienia',
@@ -65,7 +65,7 @@ export const OrderEditModal = ({
       orderDetails: 'Szczegóły zamówienia',
       discount: 'Rabat (%)',
       adminDiscount: 'Rabat administracyjny',
-      adminDiscountHint: 'Zezwól na rabat powyżej 20%',
+      adminDiscountHint: 'Zezwól na rabat powyżej 10%',
       adminDiscountApproved: 'Rabat zatwierdzony przez administratora',
       approvedBy: 'Zatwierdził:',
       notes: 'Uwagi',
@@ -74,7 +74,7 @@ export const OrderEditModal = ({
       cancel: 'Anuluj',
       saved: 'Zamówienie zapisane',
       error: 'Błąd zapisu',
-      maxDiscountWarning: 'Maksymalny rabat dla pracowników: 20%',
+      maxDiscountWarning: 'Maksymalny rabat dla pracowników: 10%',
     },
   };
   
