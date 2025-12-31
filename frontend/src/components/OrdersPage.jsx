@@ -340,9 +340,12 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                       <TableCell>{formatDate(order.orderDate)}</TableCell>
                       <TableCell className="text-right font-semibold">
                         <div className="flex items-center justify-end gap-1">
-                          {order.adminDiscountApproved && (
+                          {/* Show shield if admin approved, otherwise show request icon if there's a requested discount */}
+                          {order.adminDiscountApproved ? (
                             <Shield className="h-4 w-4 text-green-600" title={txt.adminDiscount} />
-                          )}
+                          ) : order.requestedDiscount > 0 ? (
+                            <Percent className="h-4 w-4 text-amber-500 animate-pulse" title={`${txt.requestedDiscount}: ${order.requestedDiscount}%`} />
+                          ) : null}
                           {(order.adminGifts?.length > 0) && (
                             <Gift className="h-4 w-4 text-green-600" title={txt.gift} />
                           )}
