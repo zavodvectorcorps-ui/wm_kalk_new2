@@ -1567,6 +1567,7 @@ def test_sauna_pdf_with_model_and_bench():
             "phoneNumber": "+48 123 456 789",
             "fullAddress": "ul. Testowa 1, Warszawa",
             "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "selectedModel": "sauna_kwadro_beczka_235x200_cm",  # Added required field
             "modelName": "Sauna Kwadro-Beczka 235×200 cm",
             "basePrice": 18900,
             "selectedOptions": [
@@ -1663,6 +1664,7 @@ def test_sauna_pdf_with_admin_gift():
             "phoneNumber": "+48 987 654 321",
             "fullAddress": "ul. Kwiatowa 5, Kraków",
             "orderDate": datetime.now().strftime("%Y-%m-%d"),
+            "selectedModel": "sauna_kwadro_beczka_235x200_cm",  # Added required field
             "modelName": "Sauna Kwadro-Beczka 235×200 cm",
             "basePrice": 18900,
             "selectedOptions": [
