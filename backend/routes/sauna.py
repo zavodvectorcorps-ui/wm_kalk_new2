@@ -317,13 +317,23 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     async def load_image_from_mongodb(image_url: str) -> bytes:
         """Load image from MongoDB by extracting ID from URL"""
         if not image_url or '/api/uploads/' not in image_url:
+            logger.warning(f"Invalid image URL for MongoDB: {image_url}")
             return None
         try:
             filename = image_url.split('/api/uploads/')[-1]
             file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
+            logger.info(f"Looking for MongoDB image with ID: {file_id}")
             image_doc = await db.images.find_one({"id": file_id})
             if image_doc:
-                return base64.b64decode(image_doc["content"])
+                content = image_doc.get("content", "")
+                if content:
+                    decoded = base64.b64decode(content)
+                    logger.info(f"Found MongoDB image, decoded size: {len(decoded)} bytes")
+                    return decoded
+                else:
+                    logger.warning(f"MongoDB image found but content is empty for ID: {file_id}")
+            else:
+                logger.warning(f"MongoDB image not found for ID: {file_id}")
         except Exception as e:
             logger.warning(f"Could not load image from MongoDB: {e}")
         return None
