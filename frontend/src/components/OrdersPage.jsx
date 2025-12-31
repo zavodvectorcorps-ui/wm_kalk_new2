@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { TechSpecModal } from './tech-spec';
 import { OrderPreviewModal } from './OrderPreviewModal';
-import { OrderEditModal } from './OrderEditModal';
+import { OrderFullEditModal } from './OrderFullEditModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
