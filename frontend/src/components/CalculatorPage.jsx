@@ -413,6 +413,8 @@ export const CalculatorPage = () => {
                           src={getImageUrl(model.imageUrl)} 
                           alt={getModelName(model)}
                           className="w-full h-full object-contain"
+                          loading="eager"
+                          decoding="async"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
