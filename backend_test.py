@@ -4932,9 +4932,38 @@ def main():
     return bug_fix_result
 
 if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
-
-if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+    print("🚀 WM Calculator Backend API Testing - Review Request Scenarios")
+    print("=" * 70)
+    print(f"Backend URL: {BACKEND_URL}")
+    print()
+    
+    # Run specific review request tests
+    results = {
+        "Review Request Scenarios": test_review_request_scenarios(),
+    }
+    
+    # Print summary
+    print("\n" + "=" * 70)
+    print("📊 FINAL TEST SUMMARY")
+    print("=" * 70)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    failed_tests = total_tests - passed_tests
+    
+    print(f"Total Tests: {total_tests}")
+    print(f"✅ Passed: {passed_tests}")
+    print(f"❌ Failed: {failed_tests}")
+    print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+    
+    print("\n📋 DETAILED RESULTS:")
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
+    
+    if failed_tests == 0:
+        print("\n🎉 ALL TESTS PASSED! Backend API is working correctly.")
+        sys.exit(0)
+    else:
+        print(f"\n⚠️ {failed_tests} test(s) failed. Please check the issues above.")
+        sys.exit(1)
