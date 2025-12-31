@@ -5,7 +5,7 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { 
   User, Phone, MapPin, Calendar, Package, Flame, 
-  DollarSign, FileText, CheckCircle2, Gift, Percent
+  DollarSign, FileText, CheckCircle2, Gift, Percent, Shield
 } from 'lucide-react';
 
 export const OrderPreviewModal = ({ 
@@ -40,6 +40,8 @@ export const OrderPreviewModal = ({
       promotion: 'Промоция',
       promotionDiscount: 'Скидка',
       promotionGift: 'Подарок',
+      adminDiscountApproved: 'Скидка одобрена администратором',
+      approvedBy: 'Одобрил',
     },
     pl: {
       orderDetails: 'Szczegóły zamówienia',
@@ -58,6 +60,8 @@ export const OrderPreviewModal = ({
       orderNumber: 'Numer zamówienia',
       createdBy: 'Pracownik',
       included: 'W zestawie',
+      adminDiscountApproved: 'Rabat zatwierdzony przez administratora',
+      approvedBy: 'Zatwierdził',
       promotion: 'Promocja',
       promotionDiscount: 'Rabat',
       promotionGift: 'Prezent',
