@@ -551,6 +551,7 @@ export const CalculatorPage = () => {
                                   src={getImageUrl(option.imageUrl)} 
                                   alt={getOptionName(option)}
                                   className="w-full h-full object-cover"
+                                  loading="eager"
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
