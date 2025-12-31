@@ -777,6 +777,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         else:
             fs = 10
         
+        # Define styles for gifts
+        GIFT_GREEN = colors.HexColor('#059669')
+        GIFT_BG = colors.HexColor('#ECFDF5')
+        
         options_body = [[
             Paragraph('<b>OPCJA</b>', ParagraphStyle('OptHeader', fontName='DejaVuSans-Bold', fontSize=fs, textColor=colors.white)),
             '',
@@ -784,17 +788,34 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             ''
         ]]
         
+        gift_row_indices = []  # Track which rows contain gifts
+        
         for i in range(0, len(options_items), 2):
             left = options_items[i]
             right = options_items[i + 1] if i + 1 < len(options_items) else None
             
+            # Create paragraph styles based on gift status
+            left_name_style = ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=fs, 
+                                             textColor=GIFT_GREEN if left.get('is_gift') else TEXT_COLOR)
+            left_price_style = ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, 
+                                              alignment=TA_RIGHT, textColor=GIFT_GREEN if left.get('is_gift') else TEXT_COLOR)
+            
+            right_name_style = ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=fs,
+                                              textColor=GIFT_GREEN if right and right.get('is_gift') else TEXT_COLOR) if right else None
+            right_price_style = ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, 
+                                               alignment=TA_RIGHT, textColor=GIFT_GREEN if right and right.get('is_gift') else TEXT_COLOR) if right else None
+            
             row = [
-                Paragraph(left['name'], ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=fs)),
-                Paragraph(left['price'], ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, alignment=TA_RIGHT)),
-                Paragraph(right['name'] if right else '', ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=fs)),
-                Paragraph(right['price'] if right else '', ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, alignment=TA_RIGHT)),
+                Paragraph(left['name'], left_name_style),
+                Paragraph(left['price'], left_price_style),
+                Paragraph(right['name'] if right else '', right_name_style or ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=fs)),
+                Paragraph(right['price'] if right else '', right_price_style or ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, alignment=TA_RIGHT)),
             ]
             options_body.append(row)
+            
+            # Track if this row has any gifts
+            if left.get('is_gift') or (right and right.get('is_gift')):
+                gift_row_indices.append(len(options_body) - 1)
         
         options_table = Table(options_body, colWidths=[180, 80, 180, 80])
         table_style = [
@@ -810,7 +831,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             ('BOX', (0, 0), (-1, -1), 1, BROWN_BORDER),
         ]
         for i in range(1, len(options_body)):
-            if (i - 1) % 2 == 0:
+            if i in gift_row_indices:
+                table_style.append(('BACKGROUND', (0, i), (-1, i), GIFT_BG))
+            elif (i - 1) % 2 == 0:
                 table_style.append(('BACKGROUND', (0, i), (-1, i), BROWN_LIGHT))
         
         options_table.setStyle(TableStyle(table_style))
