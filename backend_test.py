@@ -3224,20 +3224,6 @@ if __name__ == "__main__":
     else:
         print("\n❌ Some tests failed!")
         sys.exit(1)
-            return False
-        
-        tech_spec_data = tech_spec_response.json()
-        categories = tech_spec_data.get('categories', [])
-        
-        print(f"✅ Found {len(categories)} tech spec categories")
-        
-        # Verify expected categories and options exist
-        categories_by_id = {cat.get('id'): cat for cat in categories}
-        
-        category_verification = True
-        for cat_id, expected_option_id in expected_mappings.items():
-            if cat_id in categories_by_id:
-                category = categories_by_id[cat_id]
                 options = category.get('options', [])
                 option_ids = [opt.get('id') for opt in options]
                 
