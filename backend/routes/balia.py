@@ -412,9 +412,8 @@ async def generate_pdf(request: PDFRequest):
             opt_name = cat_info.get('options', {}).get(opt_id, opt.get('optionName', '') or opt.get('name', ''))
             
             if is_gift:
-                # Show as gift with strikethrough price
-                opt_name = f"🎁 {opt_name} (Prezent)"
-                price_str = f"<strike>{price:,.0f} {currency}</strike> → 0 {currency}".replace(',', ' ')
+                # Show as gift with strikethrough price and WM-Group label
+                price_str = f"<strike>{price:,.0f} {currency}</strike> Prezent od WM-Group".replace(',', ' ')
                 gift_rows.append(idx + 1)  # +1 because of header row
             else:
                 price_str = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
