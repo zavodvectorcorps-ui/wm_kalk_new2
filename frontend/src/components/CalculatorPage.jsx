@@ -29,16 +29,6 @@ const getImageUrl = (url) => {
   return `${API_URL}${url}`;
 };
 
-// Preload function for images (removed complex SimpleImage - using direct img tags like in Sauna)
-const preloadImages = (urls) => {
-  urls.forEach(url => {
-    if (url) {
-      const img = new Image();
-      img.src = url.startsWith('http') ? url : url.startsWith('/api/') ? `${API_URL}${url}` : url;
-    }
-  });
-};
-
 export const CalculatorPage = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
