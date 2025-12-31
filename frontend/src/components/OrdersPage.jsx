@@ -343,6 +343,9 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                           {order.adminDiscountApproved && (
                             <Shield className="h-4 w-4 text-green-600" title={txt.adminDiscount} />
                           )}
+                          {(order.adminGifts?.length > 0) && (
+                            <Gift className="h-4 w-4 text-green-600" title={txt.gift} />
+                          )}
                           {isSauna 
                             ? `${(order.total || 0).toLocaleString('pl-PL', { maximumFractionDigits: 0 })} PLN`
                             : `${(order.total || 0).toFixed(2)}€`
@@ -350,7 +353,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 flex-wrap">
                           {/* Preview Button */}
                           <Button
                             size="sm"
@@ -360,7 +363,18 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {/* Edit Button */}
+                          {/* Edit in Calculator Button - Full editing with model/options change */}
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-blue-600 hover:bg-blue-700"
+                            onClick={() => handleEditInCalculator(order)}
+                            title={txt.editInCalculator}
+                          >
+                            <Calculator className="h-4 w-4 mr-1" />
+                            {lang === 'pl' ? 'Edytuj' : 'Редактировать'}
+                          </Button>
+                          {/* Quick Edit Button - Only customer data, discount, gifts */}
                           <Button
                             size="sm"
                             variant="ghost"
