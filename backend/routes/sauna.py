@@ -422,7 +422,17 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             # Fallback to HTTP download for external URLs
             if not img_data and model_image_url.startswith('http'):
                 try:
-                    img_data = urllib.request.urlopen(model_image_url, timeout=5).read()
+                    req = urllib.request.Request(
+                        model_image_url,
+                        headers={
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+                            'Accept-Language': 'en-US,en;q=0.9',
+                            'Referer': 'https://wm-sauna.pl/',
+                        }
+                    )
+                    with urllib.request.urlopen(req, timeout=10) as response:
+                        img_data = response.read()
                     logger.info(f"Downloaded model image from URL: {model_image_url}")
                 except Exception as e:
                     logger.warning(f"Could not download image from URL: {e}")
@@ -433,9 +443,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 pil_img = PILImage.open(img_buffer)
                 orig_width, orig_height = pil_img.size
                 
-                # Calculate scaled dimensions (max width 160, preserve ratio)
-                max_width = 160
-                max_height = 120
+                # Calculate scaled dimensions (max width 130, preserve ratio)
+                max_width = 130
+                max_height = 95
                 ratio = min(max_width / orig_width, max_height / orig_height)
                 new_width = orig_width * ratio
                 new_height = orig_height * ratio
