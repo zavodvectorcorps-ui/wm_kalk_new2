@@ -184,6 +184,77 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
     fetchPrices();
   }, []);
 
+  // Load order data when editing
+  useEffect(() => {
+    if (editingOrder && prices.categories?.length > 0) {
+      setIsEditMode(true);
+      setEditOrderId(editingOrder.id);
+      
+      // Load customer data
+      setFormData(prev => ({
+        ...prev,
+        fullName: editingOrder.fullName || '',
+        email: editingOrder.email || '',
+        phoneNumber: editingOrder.phoneNumber || '',
+        fullAddress: editingOrder.fullAddress || '',
+        orderDate: editingOrder.orderDate || new Date().toISOString().split('T')[0],
+        selectedModel: editingOrder.selectedModel || '',
+        notes: editingOrder.notes || '',
+        selections: editingOrder.selections || prev.selections,
+        quantities: editingOrder.quantities || {},
+      }));
+      
+      // If selections is empty but we have selectedOptions, rebuild selections
+      if ((!editingOrder.selections || Object.keys(editingOrder.selections).length === 0) && editingOrder.selectedOptions?.length > 0) {
+        const rebuiltSelections = {};
+        const rebuiltQuantities = {};
+        
+        prices.categories.forEach(cat => {
+          if (cat.inputType === 'checkbox') {
+            rebuiltSelections[cat.id] = {};
+          } else {
+            rebuiltSelections[cat.id] = '';
+          }
+        });
+        
+        // Apply selected options
+        editingOrder.selectedOptions.forEach(opt => {
+          const category = prices.categories.find(c => c.id === opt.categoryId);
+          if (category) {
+            const optionId = opt.optionId || opt.id;
+            if (category.inputType === 'checkbox') {
+              rebuiltSelections[opt.categoryId] = {
+                ...(rebuiltSelections[opt.categoryId] || {}),
+                [optionId]: true
+              };
+            } else {
+              rebuiltSelections[opt.categoryId] = optionId;
+            }
+            // Restore quantity if available
+            if (opt.quantity && opt.quantity > 1) {
+              rebuiltQuantities[optionId] = opt.quantity;
+            }
+          }
+        });
+        
+        setFormData(prev => ({ 
+          ...prev, 
+          selections: rebuiltSelections,
+          quantities: rebuiltQuantities
+        }));
+      }
+      
+      // Load discount
+      setAppliedDiscount(editingOrder.discountPercent || 0);
+      
+      // Load admin features
+      setAdminGifts(editingOrder.adminGifts || []);
+      setAdminDiscountApproved(editingOrder.adminDiscountApproved || false);
+      
+      toast.info(lang === 'pl' ? `Edycja zamówienia: ${editingOrder.id}` : `Редактирование заказа: ${editingOrder.id}`);
+    }
+  }, [editingOrder, prices.categories]);
+
   const fetchPrices = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/sauna/prices`);
