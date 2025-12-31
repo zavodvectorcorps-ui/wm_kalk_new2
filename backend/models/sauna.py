@@ -52,6 +52,7 @@ class SaunaOrder(BaseModel):
     orderDate: str
     selectedModel: str
     modelName: str = ""
+    modelImageUrl: str = ""  # Store model image URL
     basePrice: int = 0
     foundationPrice: int = 0
     discount: int = 0
@@ -63,6 +64,10 @@ class SaunaOrder(BaseModel):
     total: float = 0.0
     createdBy: str = ""
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Admin discount fields
+    adminDiscountApproved: bool = False
+    adminDiscountApprovedBy: str = ""
+    adminDiscountApprovedAt: str = ""
 
 
 class SaunaPDFRequest(BaseModel):
@@ -76,6 +81,7 @@ class SaunaPDFRequest(BaseModel):
     orderDate: str
     selectedModel: str
     modelName: str = ""
+    modelImageUrl: str = ""  # Model image URL for PDF
     basePrice: int = 0
     foundationPrice: int = 0
     discount: int = 0
