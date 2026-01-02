@@ -115,6 +115,18 @@ A full-featured quoting and order management application for Saunas and Balias (
     - Ustawienia: currency, symbol, EUR rate, default markup %
   - Import: Uploads Excel, updates prices in DB, shows success counts
   - UI: Green section in Settings tab with Export/Import buttons
+- **Feature**: Production Excel generator for Balia orders (2 Jan 2025)
+  - POST /api/generate-production-excel - generates Excel from template
+  - Template at /app/backend/templates/production_template.xlsx
+  - Marks selected options with X in corresponding cells:
+    - Heater type: B10 (external), C10 (integrated)
+    - Fiberglass colors: D10-R10
+    - Acrylic colors: V10-AB10
+    - Models: Y16-AD16
+    - Accessories: B16-V16
+    - Customer data: B2 (name), B4 (address), B18 (notes)
+  - "Pobierz techniczny" button in OrdersPage downloads Excel for Balia orders
+  - "Excel" button in AdminOrdersPage for Balia orders
 - **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
   - Root cause: Pydantic models didn't support heaterVariants array and string specs
   - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
