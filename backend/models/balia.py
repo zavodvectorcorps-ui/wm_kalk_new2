@@ -110,8 +110,11 @@ class PriceData(BaseModel):
     models: Optional[List[BaliaModel]] = []
     categories: Optional[List[BaliaCategory]] = []
     modelsDisplayType: Optional[str] = "grid"
-    currency: Optional[str] = "EUR"
-    currencySymbol: Optional[str] = "€"
+    currency: Optional[str] = "PLN"
+    currencySymbol: Optional[str] = "zł"
+    # EUR exchange rate and markup settings
+    eurRate: Optional[float] = 4.30  # EUR to PLN exchange rate
+    defaultMarkupPercent: Optional[float] = 30  # Default markup percentage
     
     # Legacy structure (for backward compatibility)
     shellModels: Optional[Dict[str, float]] = {}
