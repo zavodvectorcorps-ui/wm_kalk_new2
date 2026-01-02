@@ -104,12 +104,12 @@ export const OptionsTab = ({
                 {category.options?.length === 0 ? (
                   <p className="text-muted-foreground text-sm">{txt.noOptions}</p>
                 ) : (
-                  <div className="space-y-2">
-                    {category.options?.map((option) => (
-                      <div
-                        key={option.id}
-                        className="flex items-center justify-between p-2 bg-muted/30 rounded flex-wrap gap-2"
-                      >
+                  <SortableList
+                    items={category.options || []}
+                    onReorder={(newOptions) => handleReorderOptions(category.id, newOptions)}
+                    disabled={!canEdit()}
+                    renderItem={(option) => (
+                      <div className="flex items-center justify-between p-2 bg-muted/30 rounded flex-wrap gap-2">
                         <div className="flex items-center gap-3 flex-wrap">
                           {option.imageUrl && (
                             <img
@@ -162,8 +162,8 @@ export const OptionsTab = ({
                           )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  />
                 )}
               </div>
             ))}
