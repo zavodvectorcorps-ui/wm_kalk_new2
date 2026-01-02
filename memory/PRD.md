@@ -3,6 +3,15 @@
 ## Original Problem Statement
 A full-featured quoting and order management application for Saunas and Balias (hot tubs). The application allows employees and administrators to configure products, calculate prices, generate PDFs, manage orders, and handle technical specifications.
 
+## Recent Updates (January 2026)
+
+### Bug Fix: Bowl Material and Color Categories Not Displaying (2026-01-02)
+- **Issue**: Categories `bowl_material`, `fiberglass_color`, `acrylic_color` were not appearing on production domain
+- **Root Cause**: New categories in `balia_defaults.py` were not merged into existing database records
+- **Solution**: Added auto-merge logic in `GET /api/prices` to add missing categories from defaults and save to DB
+- **File**: `/app/backend/routes/balia.py` (lines 46-63)
+- **Status**: ✅ Fixed and tested
+
 ## Core Features
 
 ### 1. Calculator Pages
