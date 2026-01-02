@@ -121,21 +121,30 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
 
   // Fetch data
   const fetchData = useCallback(async () => {
+    setLoading(true);
+    setSelectedMasterCategory(null);
+    setSelectedCategory(null);
     try {
-      const response = await axios.get(`${API_URL}/api/tech-spec/categories`);
+      const response = await axios.get(`${API_URL}${apiBasePath}/categories`);
       setMasterCategories(response.data.masterCategories || []);
       setCategories(response.data.categories || []);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Ошибка загрузки');
+      // For balia, if no data exists yet, initialize with empty arrays
+      if (projectType === 'balia') {
+        setMasterCategories([]);
+        setCategories([]);
+      } else {
+        toast.error('Ошибка загрузки');
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiBasePath, projectType]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, projectType]);
 
   // Save all
   const handleSaveAll = async () => {
