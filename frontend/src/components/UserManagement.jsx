@@ -278,6 +278,13 @@ export const UserManagement = () => {
 
   const getRoleBadge = (role) => {
     switch (role) {
+      case 'admin':
+        return (
+          <Badge variant="secondary" className="gap-1 bg-purple-100 text-purple-700">
+            <Shield className="w-3 h-3" />
+            {txt.admin}
+          </Badge>
+        );
       case 'employee':
         return (
           <Badge variant="secondary" className="gap-1 bg-blue-100 text-blue-700">
