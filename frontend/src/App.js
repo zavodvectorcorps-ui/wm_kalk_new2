@@ -211,6 +211,7 @@ const AppContent = () => {
         <main>
           {activeTab === 'calculator' && <CalculatorPage key={pricesUpdated} editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} />}
           {activeTab === 'orders' && <OrdersPage onEditInCalculator={(order) => handleEditOrderInCalculator(order, 'balia')} />}
+          {activeTab === 'weborders' && isAdmin() && <WebOrdersPage />}
           {activeTab === 'statistics' && <StatisticsPage calculatorType="balia" />}
           {activeTab === 'pricing' && canViewPricing() && <BaliaPricingPage />}
           {activeTab === 'users' && isAdmin() && <UserManagement />}
