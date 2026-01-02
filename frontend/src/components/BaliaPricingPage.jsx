@@ -382,28 +382,6 @@ export const BaliaPricingPage = () => {
     }
   };
 
-  // Move category up/down
-  const handleMoveCategory = (categoryId, direction) => {
-    setPrices(prev => {
-      const categories = [...prev.categories];
-      const index = categories.findIndex(c => c.id === categoryId);
-      if (index === -1) return prev;
-      
-      const newIndex = direction === 'up' ? index - 1 : index + 1;
-      if (newIndex < 0 || newIndex >= categories.length) return prev;
-      
-      // Swap categories
-      [categories[index], categories[newIndex]] = [categories[newIndex], categories[index]];
-      
-      // Update sortOrder for all categories
-      categories.forEach((cat, idx) => {
-        cat.sortOrder = idx;
-      });
-      
-      return { ...prev, categories };
-    });
-  };
-
   // Drag-and-drop reorder for categories
   const handleReorderCategories = (newCategories) => {
     setPrices(prev => ({ ...prev, categories: newCategories }));
