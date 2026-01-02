@@ -5,6 +5,13 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Category/Option Reordering Feature (2026-01-02)
+- **Feature**: Added up/down arrow buttons to reorder categories and options in admin panel
+- **Location**: BaliaPricingPage.jsx - Kategorie tab
+- **Functions**: `handleMoveCategory()`, `handleMoveOption()`
+- **UI**: ChevronUp/ChevronDown buttons, position numbers (#1, #2...)
+- **Status**: ✅ Tested and working
+
 ### Bug Fix: Bowl Material and Color Categories Not Displaying (2026-01-02)
 - **Issue**: Categories `bowl_material`, `fiberglass_color`, `acrylic_color` were not appearing on production domain
 - **Root Cause**: New categories in `balia_defaults.py` were not merged into existing database records
