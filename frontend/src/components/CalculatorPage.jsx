@@ -82,6 +82,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         fullAddress: editingOrder.fullAddress || '',
         orderDate: editingOrder.orderDate || new Date().toISOString().split('T')[0],
         selectedModel: editingOrder.modelId || '',
+        selectedHeaterType: editingOrder.heaterType || 'integrated', // Load heater type
         notes: editingOrder.notes || '',
         selections: editingOrder.selections || prev.selections,
       }));
