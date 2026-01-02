@@ -711,6 +711,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                             <div className="text-lg font-bold text-orange-600">
                               {variant.price?.toLocaleString('pl-PL')} {prices.currencySymbol}
                             </div>
+                            {variant.hint && (
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{variant.hint}</p>
+                            )}
                           </div>
                         </div>
                       );
