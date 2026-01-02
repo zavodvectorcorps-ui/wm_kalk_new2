@@ -49,6 +49,7 @@ export const BaliaPricingPage = () => {
   const [editModelDialog, setEditModelDialog] = useState({ open: false, model: null, isNew: false });
   const [editCategoryDialog, setEditCategoryDialog] = useState({ open: false, category: null, isNew: false });
   const [editOptionDialog, setEditOptionDialog] = useState({ open: false, categoryId: null, option: null, isNew: false });
+  const [bulkEditDialog, setBulkEditDialog] = useState({ open: false });
   
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
