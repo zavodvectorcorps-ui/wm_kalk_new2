@@ -329,23 +329,50 @@ async def generate_pdf(request: PDFRequest):
     
     # ========== MODEL SECTION WITH IMAGE - Polish name ==========
     if request.modelName or request.modelId:
-        # Get Polish model name from DB
+        # Get Polish model name and specs from DB
         model_name = request.modelName
         model_price = request.modelPrice or 0
+        model_specs = None
         
-        # Try to get Polish name from database
+        # Try to get Polish name and specs from database
         if request.modelId:
             prices_data_for_model = await db.prices.find_one({"_id": "default"})
             if prices_data_for_model:
                 for m in prices_data_for_model.get('models', []):
                     if m.get('id') == request.modelId:
                         model_name = m.get('namePl') or m.get('name', model_name)
+                        model_specs = m.get('specs')
                         break
         
-        # Create model info content
+        # Create model info content with specs
+        specs_text = ""
+        if model_specs:
+            specs_lines = []
+            if model_specs.get('outerDiameter'):
+                specs_lines.append(f"Średnica zewnętrzna: {model_specs['outerDiameter']}")
+            if model_specs.get('innerDiameter'):
+                specs_lines.append(f"Średnica wewnętrzna: {model_specs['innerDiameter']}")
+            if model_specs.get('dimensions'):
+                specs_lines.append(f"Wymiary: {model_specs['dimensions']}")
+            if model_specs.get('depth'):
+                specs_lines.append(f"Głębokość: {model_specs['depth']}")
+            if model_specs.get('volume'):
+                specs_lines.append(f"Pojemność: {model_specs['volume']}")
+            if model_specs.get('seats') and model_specs.get('seats') > 0:
+                specs_lines.append(f"Ilość miejsc: {model_specs['seats']}")
+            if model_specs.get('totalHeight') and model_specs.get('totalHeight') not in [0, '0']:
+                specs_lines.append(f"Wysokość całkowita: {model_specs['totalHeight']}")
+            if model_specs.get('heaterPower') and model_specs.get('heaterPower') not in [0, '0']:
+                specs_lines.append(f"Moc pieca: {model_specs['heaterPower']}")
+            if model_specs.get('weight'):
+                specs_lines.append(f"Waga (pusta): {model_specs['weight']}")
+            
+            if specs_lines:
+                specs_text = "<br/><br/><font size='9' color='#6B7280'>" + " | ".join(specs_lines) + "</font>"
+        
         model_text = Paragraph(f'''<b><font size="14" color="#1E40AF">WYBRANY MODEL</font></b><br/><br/>
         <font size="12"><b>{model_name}</b></font><br/><br/>
-        <font size="11">Cena bazowa: <b>{model_price:,.0f} {currency}</b></font>'''.replace(',', ' '),
+        <font size="11">Cena bazowa: <b>{model_price:,.0f} {currency}</b></font>{specs_text}'''.replace(',', ' '),
         ParagraphStyle('ModelText', fontName='DejaVuSans', fontSize=11, textColor=TEXT_COLOR))
         
         if model_img:
