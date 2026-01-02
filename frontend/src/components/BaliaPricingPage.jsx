@@ -829,6 +829,15 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
                 </div>
                 
                 <div className="space-y-2">
+                  <Label className="text-xs">Подсказка для этого варианта</Label>
+                  <Input 
+                    value={integratedVariant.hint || ''} 
+                    onChange={(e) => updateVariantField('integrated', 'hint', e.target.value)}
+                    placeholder="Описание модели со встроенной печью..."
+                  />
+                </div>
+                
+                <div className="space-y-2">
                   <Label className="text-xs">Фото</Label>
                   {integratedVariant.imageUrl ? (
                     <div className="relative">
@@ -879,6 +888,15 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
                     type="number"
                     value={externalVariant.price || 0} 
                     onChange={(e) => updateVariantPrice('external', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">Подсказка для этого варианта</Label>
+                  <Input 
+                    value={externalVariant.hint || ''} 
+                    onChange={(e) => updateVariantField('external', 'hint', e.target.value)}
+                    placeholder="Описание модели с внешней печью..."
                   />
                 </div>
                 
