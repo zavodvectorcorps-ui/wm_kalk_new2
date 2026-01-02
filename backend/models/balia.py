@@ -77,6 +77,8 @@ class CategoryOption(BaseModel):
 
 
 class BaliaCategory(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    
     id: str
     name: str
     nameRu: Optional[str] = ""
@@ -86,6 +88,9 @@ class BaliaCategory(BaseModel):
     displayType: str = "list"  # "list" | "tiles"
     sortOrder: int
     options: List[CategoryOption]
+    # Conditional display - show only when parent category has specific value
+    dependsOn: Optional[str] = None  # Parent category ID
+    dependsOnValue: Optional[str] = None  # Required value in parent category
 
 
 class CustomerField(BaseModel):
