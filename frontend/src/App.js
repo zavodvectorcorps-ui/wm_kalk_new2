@@ -66,7 +66,17 @@ const AppContent = () => {
   }
 
   const handleSelectCalculator = (calculator) => {
-    // Check access
+    // Admin panel - check if user is admin
+    if (calculator === 'admin') {
+      if (isAdmin && isAdmin()) {
+        setCurrentCalculator('admin');
+        setActiveTab('orders');
+        return;
+      }
+      return; // Don't navigate if not admin
+    }
+    
+    // Check access for calculators
     if (!hasAccess(calculator)) {
       return; // Don't navigate if no access
     }
