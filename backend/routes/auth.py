@@ -106,8 +106,13 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if user.get("role") == "admin":
-        raise HTTPException(status_code=403, detail="Cannot edit admin user")
+    # Only super-admin can edit users with admin role
+    if user.get("role") == "admin" and admin.get("username") != "admin":
+        raise HTTPException(status_code=403, detail="Only super-admin can edit admin users")
+    
+    # Prevent editing the super-admin account itself (except by super-admin)
+    if user.get("username") == "admin" and admin.get("username") != "admin":
+        raise HTTPException(status_code=403, detail="Cannot edit super-admin account")
     
     update_data = {}
     if user_data.username:
@@ -127,6 +132,9 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
     if user_data.role:
         if user_data.role not in ["admin", "employee", "observer"]:
             raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee' or 'observer'")
+        # Only super-admin can assign admin role
+        if user_data.role == "admin" and admin.get("username") != "admin":
+            raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")
         update_data["role"] = user_data.role
     
     if update_data:
