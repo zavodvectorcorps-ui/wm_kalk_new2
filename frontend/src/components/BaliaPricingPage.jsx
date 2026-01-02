@@ -110,6 +110,7 @@ export const BaliaPricingPage = () => {
   useEffect(() => {
     fetchPrices();
     fetchNbpRate();
+    fetchExcelTemplate();
   }, []);
 
   const fetchPrices = async () => {
