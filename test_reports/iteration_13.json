@@ -1,0 +1,84 @@
+{
+  "summary": "Iteration 13: Testing drag-and-drop functionality for categories and options in Balia and Sauna admin panels. All core drag-and-drop features are working correctly using @dnd-kit library.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_13.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "SortableList component correctly implements @dnd-kit/core and @dnd-kit/sortable",
+    "GripVertical icons (6-dot pattern) are visible on the left side of each draggable item",
+    "cursor-grab class applied to drag handles for proper cursor feedback",
+    "handleReorderCategories and handleReorderOptions functions correctly update state",
+    "sortOrder is updated for all items after drag operation",
+    "BaliaPricingPage uses SortableList for both categories and options",
+    "CategoriesTab (Sauna) uses SortableList for categories"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A - Frontend only testing",
+    "frontend": "100% - All drag-and-drop tests passed"
+  },
+  "test_credentials": {
+    "admin_user": "admin",
+    "admin_password": "220066"
+  },
+  "seed_data_creation": "No seed data created - using existing prices data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Drag-and-drop feature verified working: 1) GripVertical icons visible on left side of categories and options, 2) Categories can be dragged to reorder in both Balia and Sauna admin panels, 3) Options within categories have drag handles (displayed in 2-column grid), 4) 'Zapisz wszystko' button saves the new order, 5) Order persists after page reload/re-login",
+  "features_verified": {
+    "balia_category_drag_handles": {
+      "status": "PASS",
+      "details": "GripVertical icons visible on left side of each category in /admin/prices/balia Kategorie opcji tab"
+    },
+    "balia_category_drag_and_drop": {
+      "status": "PASS",
+      "details": "Categories can be dragged to reorder. Test: dragged 'Materiał wanny' from #1 to #3 position successfully"
+    },
+    "balia_options_drag_handles": {
+      "status": "PASS",
+      "details": "GripVertical icons visible on left side of each option within categories (displayed in 2-column grid)"
+    },
+    "sauna_category_drag_handles": {
+      "status": "PASS",
+      "details": "GripVertical icons visible on left side of each category in /admin/prices/sauna Kategorie tab"
+    },
+    "sauna_category_drag_and_drop": {
+      "status": "PASS",
+      "details": "Categories can be dragged to reorder. Test: dragged 'Kolor' from #1 to #3 position successfully"
+    },
+    "order_persistence": {
+      "status": "PASS",
+      "details": "After clicking 'Zapisz wszystko' and re-logging in, the new category order was preserved"
+    }
+  },
+  "tests_performed": {
+    "frontend_ui_tests": {
+      "test_1_balia_drag_handles_visible": "PASS - Found 92 GripVertical drag handle icons on Balia Kategorie opcji tab",
+      "test_2_balia_category_drag": "PASS - Categories reordered: ['#1Materiał wanny', '#2Kolor włókna szklanego', '#3Kolor akrylu'] → ['#1Kolor włókna szklanego', '#2Kolor akrylu', '#3Materiał wanny']",
+      "test_3_sauna_drag_handles_visible": "PASS - Found 14 GripVertical drag handle icons on Sauna Kategorie tab",
+      "test_4_sauna_category_drag": "PASS - Categories reordered: ['#1Kolor', '#2Piece', '#3Strona Pieca:'] → ['#1Piece', '#2Strona Pieca:', '#3Kolor']",
+      "test_5_save_and_persistence": "PASS - Order persisted after save and re-login. 'Kolor włókna szklanego' remained as #1 category"
+    }
+  },
+  "technical_implementation": {
+    "library_used": "@dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities",
+    "components": {
+      "SortableList": "/app/frontend/src/components/ui/sortable-list.jsx - Universal sortable list component",
+      "SortableItem": "Wrapper component with GripVertical drag handle",
+      "BaliaPricingPage": "Uses SortableList for categories and options",
+      "CategoriesTab": "Uses SortableList for Sauna categories"
+    },
+    "drag_activation": "PointerSensor with 8px distance constraint",
+    "visual_feedback": "isDragging state adds shadow-lg and ring-2 ring-primary/20 classes"
+  }
+}
