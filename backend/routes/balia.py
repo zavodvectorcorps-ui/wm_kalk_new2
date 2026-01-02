@@ -354,6 +354,50 @@ async def import_prices(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"Error importing file: {str(e)}")
 
 
+@router.get("/excel-template-structure")
+async def get_excel_template_structure():
+    """Get Excel template structure for mapping configuration"""
+    from openpyxl import load_workbook
+    from openpyxl.utils import get_column_letter
+    
+    template_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'production_template.xlsx')
+    if not os.path.exists(template_path):
+        raise HTTPException(status_code=500, detail="Production template not found")
+    
+    wb = load_workbook(template_path)
+    ws = wb.active
+    
+    # Extract cells with labels (headers)
+    cells = []
+    for row in range(1, ws.max_row + 1):
+        for col in range(1, ws.max_column + 1):
+            cell = ws.cell(row=row, column=col)
+            if cell.value and isinstance(cell.value, str) and cell.value.strip():
+                col_letter = get_column_letter(col)
+                cell_ref = f"{col_letter}{row}"
+                cells.append({
+                    "cell": cell_ref,
+                    "value": str(cell.value).strip(),
+                    "row": row,
+                    "col": col
+                })
+    
+    # Group by rows for better UI
+    rows_map = {}
+    for c in cells:
+        row = c["row"]
+        if row not in rows_map:
+            rows_map[row] = []
+        rows_map[row].append(c)
+    
+    return {
+        "maxRow": ws.max_row,
+        "maxCol": ws.max_column,
+        "cells": cells,
+        "rowsMap": rows_map
+    }
+
+
 @router.post("/generate-production-excel")
 async def generate_production_excel(request: dict):
     """Generate production Excel with selected options marked with X"""
