@@ -138,6 +138,30 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
 
   const handleDownloadPDF = async (order, type = 'customer') => {
     try {
+      // For balia technical spec - use Excel production sheet
+      if (!isSauna && type === 'technical') {
+        const response = await axios.post(`${API_URL}/api/generate-production-excel`, 
+          { ...order, orderId: order.id },
+          { responseType: 'blob' }
+        );
+        
+        let safeName = (order.fullName || 'Zamowienie').replace(/\s+/g, '_');
+        safeName = safeName.replace(/[<>:"/\\|?*]/g, '');
+        if (!safeName || safeName === '_') safeName = 'Zamowienie';
+        const filename = `TechSpec_${safeName}_${order.id}.xlsx`;
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
+        toast.success(t('pdfGenerated'));
+        return;
+      }
+      
       const endpoint = isSauna ? `${API_URL}/api/sauna/generate-pdf` : `${API_URL}/api/generate-pdf`;
       const response = await axios.post(endpoint, 
         { ...order, orderId: order.id, type, language: 'pl' },
