@@ -768,6 +768,54 @@ export const BaliaPricingPage = () => {
               <CardTitle>{txt.settings}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Export/Import Section */}
+              <div className="border rounded-lg p-4 bg-green-50 space-y-4">
+                <h3 className="font-semibold text-green-800 flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  {lang === 'ru' ? 'Экспорт / Импорт прайс-листа' : 'Eksport / Import cennika'}
+                </h3>
+                
+                <div className="flex gap-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleExport}
+                    className="flex-1 border-green-300 text-green-700 hover:bg-green-100"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {lang === 'ru' ? 'Экспорт в Excel' : 'Eksport do Excel'}
+                  </Button>
+                  
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleImport}
+                      className="hidden"
+                      disabled={!canEdit()}
+                    />
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-green-300 text-green-700 hover:bg-green-100"
+                      disabled={!canEdit()}
+                      asChild
+                    >
+                      <span>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {lang === 'ru' ? 'Импорт из Excel' : 'Import z Excel'}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+                
+                <p className="text-xs text-green-700">
+                  {lang === 'ru' 
+                    ? 'Экспортируйте прайс-лист для редактирования в Excel. После изменений импортируйте обратно.' 
+                    : 'Wyeksportuj cennik do edycji w Excel. Po zmianach zaimportuj z powrotem.'}
+                </p>
+              </div>
+              
+              <Separator />
+              
               {/* Currency Settings */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
