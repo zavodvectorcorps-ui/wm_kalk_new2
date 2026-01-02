@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
 import { Badge } from './ui/badge';
+import { SortableList } from './ui/sortable-list';
 import { 
   DollarSign, Save, Loader2, Plus, Trash2, Edit2, 
   Image as ImageIcon, Upload, X, Eye, Droplets, Package, Settings, User, CheckCircle,
-  Download, FileSpreadsheet, ChevronUp, ChevronDown, GripVertical
+  Download, FileSpreadsheet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
