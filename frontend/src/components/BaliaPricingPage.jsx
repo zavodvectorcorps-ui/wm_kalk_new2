@@ -14,7 +14,7 @@ import { Badge } from './ui/badge';
 import { 
   DollarSign, Save, Loader2, Plus, Trash2, Edit2, 
   Image as ImageIcon, Upload, X, Eye, Droplets, Package, Settings, User, CheckCircle,
-  Download, FileSpreadsheet
+  Download, FileSpreadsheet, ChevronUp, ChevronDown, GripVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
