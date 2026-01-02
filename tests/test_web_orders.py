@@ -226,9 +226,12 @@ class TestWebOrdersAdminAPI:
     
     def test_delete_web_order(self):
         """DELETE /api/web-orders/{id} should delete order"""
+        import time
+        time.sleep(1)  # Ensure unique timestamp
+        
         # Create a separate order for deletion test
         order_data = {
-            "customerName": "TEST_ToDelete",
+            "customerName": f"TEST_ToDelete_{uuid.uuid4().hex[:8]}",
             "customerPhone": "+48 000 000 000",
             "total": 1000,
             "currency": "zł"
@@ -236,6 +239,7 @@ class TestWebOrdersAdminAPI:
         create_response = requests.post(f"{BASE_URL}/api/public/web-order", json=order_data)
         assert create_response.status_code == 200
         delete_order_id = create_response.json().get('orderId')
+        print(f"Created order for deletion: {delete_order_id}")
         
         # Delete the order
         response = requests.delete(f"{BASE_URL}/api/web-orders/{delete_order_id}")
@@ -244,7 +248,7 @@ class TestWebOrdersAdminAPI:
         
         # Verify deletion
         verify_response = requests.get(f"{BASE_URL}/api/web-orders/{delete_order_id}")
-        assert verify_response.status_code == 404, "Deleted order should return 404"
+        assert verify_response.status_code == 404, f"Deleted order should return 404, got {verify_response.status_code}"
         print("✓ Deletion verified - order not found")
     
     def test_delete_nonexistent_web_order(self):
