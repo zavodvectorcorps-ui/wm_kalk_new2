@@ -1,0 +1,113 @@
+{
+  "summary": "Iteration 6: Testing NBP API integration and Option pricing features. All 10 backend tests passed. Frontend UI verified - NBP rate hint with 'zastosuj' button, Option Edit Dialog with pricing section (purchasePriceEur, markupPercent), Recalculate button working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/test_nbp_and_option_pricing.py",
+    "/app/test_reports/pytest/pytest_results_iteration6.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "NBP API integration working - fetches EUR/PLN rate from api.nbp.pl",
+    "Settings tab shows NBP rate hint: '📊 NBP (2026-01-02): 4.2156 PLN' with 'zastosuj' link",
+    "Option Edit Dialog has 'Ценообразование / Kalkulacja' section with amber background",
+    "Option pricing fields: Закупка (EUR)=50, Наценка (%)=40, Cena (zł)=301",
+    "Formula calculation shown: 'Расчёт: 50 EUR × курс × 1.40'",
+    "POST /api/prices correctly saves purchasePriceEur and markupPercent for options",
+    "Recalculate button 'Przelicz wszystkie ceny' present in Settings tab"
+  ],
+  "updated_files": [
+    "/app/tests/test_nbp_and_option_pricing.py"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 tests passed)",
+    "frontend": "100% - All requested features verified"
+  },
+  "test_credentials": {
+    "admin_user": "admin",
+    "admin_password": "220066"
+  },
+  "seed_data_creation": "No seed data created - used existing option with purchasePriceEur=50, markupPercent=40",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "NBP API and Option pricing features fully working: 1) NBP rate hint shows current EUR/PLN rate with 'zastosuj' button to apply, 2) Option Edit Dialog has 'Ценообразование / Kalkulacja' section with purchasePriceEur and markupPercent fields, 3) Formula calculation displayed, 4) Recalculate button recalculates both models and options. Test file /app/tests/test_nbp_and_option_pricing.py covers all scenarios.",
+  "features_verified": {
+    "nbp_api_integration": {
+      "status": "PASS",
+      "details": "NBP API returns EUR/PLN rate (4.2156) and effectiveDate (2026-01-02)"
+    },
+    "nbp_rate_hint_ui": {
+      "status": "PASS",
+      "details": "Settings tab shows '📊 NBP (2026-01-02): 4.2156 PLN zastosuj'"
+    },
+    "apply_nbp_rate_button": {
+      "status": "PASS",
+      "details": "'zastosuj' link present to apply NBP rate to EUR rate field"
+    },
+    "option_pricing_section": {
+      "status": "PASS",
+      "details": "Option Edit Dialog has 'Ценообразование / Kalkulacja' section with amber background"
+    },
+    "option_purchase_price_eur": {
+      "status": "PASS",
+      "details": "Закупка (EUR) field present with value 50"
+    },
+    "option_markup_percent": {
+      "status": "PASS",
+      "details": "Наценка (%) field present with value 40"
+    },
+    "option_formula_display": {
+      "status": "PASS",
+      "details": "Shows 'Расчёт: 50 EUR × курс × 1.40'"
+    },
+    "option_retail_price": {
+      "status": "PASS",
+      "details": "Cena (zł) - Розничная = 301 (50 × 4.3 × 1.40 ≈ 301)"
+    },
+    "post_prices_saves_option_pricing": {
+      "status": "PASS",
+      "details": "POST /api/prices correctly saves purchasePriceEur and markupPercent"
+    },
+    "recalculate_button": {
+      "status": "PASS",
+      "details": "'Przelicz wszystkie ceny' button present in Settings tab"
+    }
+  },
+  "tests_performed": {
+    "backend_api_tests": {
+      "test_nbp_api_returns_eur_rate": "PASS - NBP API returns rate 4.2156",
+      "test_get_prices_returns_categories_with_options": "PASS",
+      "test_option_has_pricing_fields": "PASS",
+      "test_post_prices_saves_option_pricing": "PASS",
+      "test_option_price_calculation_formula": "PASS - 50 × 4.30 × 1.40 = 301",
+      "test_get_prices_returns_eur_rate": "PASS - eurRate: 4.3",
+      "test_get_prices_returns_default_markup_percent": "PASS - defaultMarkupPercent: 30",
+      "test_category_option_structure": "PASS",
+      "test_backend_health": "PASS",
+      "test_admin_login": "PASS"
+    },
+    "frontend_ui_tests": {
+      "login": "PASS - Admin login with admin/220066 works",
+      "admin_panel_navigation": "PASS",
+      "balia_pricing_page": "PASS",
+      "settings_tab_nbp_hint": "PASS - Shows '📊 NBP (2026-01-02): 4.2156 PLN zastosuj'",
+      "settings_tab_eur_rate": "PASS - Kurs EUR → PLN = 4.3",
+      "settings_tab_default_markup": "PASS - Domyślna marża (%) = 30",
+      "settings_tab_recalculate_button": "PASS - 'Przelicz wszystkie ceny' button present",
+      "settings_tab_formula": "PASS - Formula: Zakup (EUR) × Kurs × (1 + Marża%) = Cena detaliczna (PLN)",
+      "option_edit_dialog": "PASS - Dialog title 'Edytuj opcję'",
+      "option_pricing_section": "PASS - 'Ценообразование / Kalkulacja' section with amber background",
+      "option_purchase_price_field": "PASS - Закупка (EUR) = 50",
+      "option_markup_field": "PASS - Наценка (%) = 40",
+      "option_formula_hint": "PASS - 'Расчёт: 50 EUR × курс × 1.40'",
+      "option_retail_price": "PASS - Cena (zł) - Розничная = 301"
+    }
+  }
+}
