@@ -408,6 +408,101 @@ export const BaliaPricingPage = () => {
     }));
   };
 
+  // Update Excel cell mapping for models
+  const handleUpdateModelExcelCell = (modelId, excelCell) => {
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(m => 
+        m.id === modelId ? { ...m, excelCell } : m
+      )
+    }));
+  };
+
+  // Update Excel cell mapping for heater variants
+  const handleUpdateHeaterVariantExcelCell = (modelId, variantIndex, excelCell) => {
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(m => {
+        if (m.id !== modelId) return m;
+        const variants = [...(m.heaterVariants || [])];
+        if (variants[variantIndex]) {
+          variants[variantIndex] = { ...variants[variantIndex], excelCell };
+        }
+        return { ...m, heaterVariants: variants };
+      })
+    }));
+  };
+
+  // Update heater variant ID
+  const handleUpdateHeaterVariantId = (modelId, variantIndex, newId) => {
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(m => {
+        if (m.id !== modelId) return m;
+        const variants = [...(m.heaterVariants || [])];
+        if (variants[variantIndex]) {
+          variants[variantIndex] = { ...variants[variantIndex], id: newId };
+        }
+        return { ...m, heaterVariants: variants };
+      })
+    }));
+  };
+
+  // Update Excel cell mapping for options
+  const handleUpdateOptionExcelCell = (categoryId, optionId, excelCell) => {
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id !== categoryId) return cat;
+        return {
+          ...cat,
+          options: cat.options.map(opt =>
+            opt.id === optionId ? { ...opt, excelCell } : opt
+          )
+        };
+      })
+    }));
+  };
+
+  // Update model ID
+  const handleUpdateModelId = (oldId, newId) => {
+    if (!newId || newId === oldId) return;
+    // Check if new ID is unique
+    if (prices.models.some(m => m.id === newId)) {
+      toast.error(lang === 'ru' ? 'ID уже используется' : 'ID już istnieje');
+      return;
+    }
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(m => 
+        m.id === oldId ? { ...m, id: newId } : m
+      )
+    }));
+  };
+
+  // Update option ID
+  const handleUpdateOptionId = (categoryId, oldId, newId) => {
+    if (!newId || newId === oldId) return;
+    // Check if new ID is unique across all options
+    const allOptionIds = prices.categories.flatMap(c => c.options?.map(o => o.id) || []);
+    if (allOptionIds.includes(newId)) {
+      toast.error(lang === 'ru' ? 'ID уже используется' : 'ID już istnieje');
+      return;
+    }
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id !== categoryId) return cat;
+        return {
+          ...cat,
+          options: cat.options.map(opt =>
+            opt.id === oldId ? { ...opt, id: newId } : opt
+          )
+        };
+      })
+    }));
+  };
+
   // Option CRUD
   const handleSaveOption = (optionData, categoryId) => {
     if (editOptionDialog.isNew) {
