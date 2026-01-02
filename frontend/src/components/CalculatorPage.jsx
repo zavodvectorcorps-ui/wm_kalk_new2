@@ -975,8 +975,19 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                 <>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('balia.basePrice')}:</span>
-                    <span className="font-semibold">{selectedModel.basePrice} {prices.currencySymbol}</span>
+                    <span className="font-semibold">{getModelPrice(selectedModel)} {prices.currencySymbol}</span>
                   </div>
+                  {/* Show heater type if model has variants */}
+                  {selectedModel.heaterVariants?.length > 1 && selectedHeaterVariant && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {selectedHeaterVariant.type === 'integrated' 
+                          ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
+                          : (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь')}
+                      </span>
+                      <Check className="h-4 w-4 text-green-600" />
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('balia.optionsPrice')}:</span>
                     <span className="font-semibold">{getOptionsTotal()} {prices.currencySymbol}</span>
