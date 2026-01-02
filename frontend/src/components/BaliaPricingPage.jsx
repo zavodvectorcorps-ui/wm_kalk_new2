@@ -981,8 +981,40 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
               <div className="border rounded-lg p-3 bg-white space-y-3">
                 <h4 className="font-medium text-sm">Встроенная печь (Zintegrowany)</h4>
                 
+                {/* Purchase Price Section */}
+                <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        value={integratedVariant.purchasePriceEur || ''} 
+                        onChange={(e) => updateVariantField('integrated', 'purchasePriceEur', parseFloat(e.target.value) || 0)}
+                        placeholder="300"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-amber-700">Наценка (%)</Label>
+                      <Input 
+                        type="number"
+                        value={integratedVariant.markupPercent ?? 30} 
+                        onChange={(e) => updateVariantField('integrated', 'markupPercent', parseFloat(e.target.value) || 0)}
+                        placeholder="30"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                  {integratedVariant.purchasePriceEur > 0 && (
+                    <p className="text-xs text-amber-600">
+                      Расчёт: {integratedVariant.purchasePriceEur} EUR × курс × {1 + (integratedVariant.markupPercent ?? 30)/100}
+                    </p>
+                  )}
+                </div>
+                
                 <div className="space-y-2">
-                  <Label className="text-xs">Цена ({currencySymbol})</Label>
+                  <Label className="text-xs">Розничная цена ({currencySymbol})</Label>
                   <Input 
                     type="number"
                     value={integratedVariant.price || 0} 
@@ -1044,8 +1076,40 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
               <div className="border rounded-lg p-3 bg-white space-y-3">
                 <h4 className="font-medium text-sm">Внешняя печь (Zewnętrzny)</h4>
                 
+                {/* Purchase Price Section */}
+                <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        value={externalVariant.purchasePriceEur || ''} 
+                        onChange={(e) => updateVariantField('external', 'purchasePriceEur', parseFloat(e.target.value) || 0)}
+                        placeholder="280"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-amber-700">Наценка (%)</Label>
+                      <Input 
+                        type="number"
+                        value={externalVariant.markupPercent ?? 30} 
+                        onChange={(e) => updateVariantField('external', 'markupPercent', parseFloat(e.target.value) || 0)}
+                        placeholder="30"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                  {externalVariant.purchasePriceEur > 0 && (
+                    <p className="text-xs text-amber-600">
+                      Расчёт: {externalVariant.purchasePriceEur} EUR × курс × {1 + (externalVariant.markupPercent ?? 30)/100}
+                    </p>
+                  )}
+                </div>
+                
                 <div className="space-y-2">
-                  <Label className="text-xs">Цена ({currencySymbol})</Label>
+                  <Label className="text-xs">Розничная цена ({currencySymbol})</Label>
                   <Input 
                     type="number"
                     value={externalVariant.price || 0} 
