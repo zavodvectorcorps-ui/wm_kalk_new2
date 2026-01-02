@@ -381,6 +381,55 @@ export const BaliaPricingPage = () => {
     }
   };
 
+  // Move category up/down
+  const handleMoveCategory = (categoryId, direction) => {
+    setPrices(prev => {
+      const categories = [...prev.categories];
+      const index = categories.findIndex(c => c.id === categoryId);
+      if (index === -1) return prev;
+      
+      const newIndex = direction === 'up' ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= categories.length) return prev;
+      
+      // Swap categories
+      [categories[index], categories[newIndex]] = [categories[newIndex], categories[index]];
+      
+      // Update sortOrder for all categories
+      categories.forEach((cat, idx) => {
+        cat.sortOrder = idx;
+      });
+      
+      return { ...prev, categories };
+    });
+  };
+
+  // Move option up/down within category
+  const handleMoveOption = (categoryId, optionId, direction) => {
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id !== categoryId) return cat;
+        
+        const options = [...(cat.options || [])];
+        const index = options.findIndex(o => o.id === optionId);
+        if (index === -1) return cat;
+        
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= options.length) return cat;
+        
+        // Swap options
+        [options[index], options[newIndex]] = [options[newIndex], options[index]];
+        
+        // Update sortOrder
+        options.forEach((opt, idx) => {
+          opt.sortOrder = idx;
+        });
+        
+        return { ...cat, options };
+      })
+    }));
+  };
+
   // Option CRUD
   const handleSaveOption = (optionData, categoryId) => {
     if (editOptionDialog.isNew) {
