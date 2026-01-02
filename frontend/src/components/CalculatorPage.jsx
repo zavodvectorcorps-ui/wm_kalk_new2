@@ -321,10 +321,23 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   };
 
   const handleSelectionChange = (categoryId, value) => {
-    setFormData(prev => ({
-      ...prev,
-      selections: { ...prev.selections, [categoryId]: value }
-    }));
+    setFormData(prev => {
+      const newSelections = { ...prev.selections, [categoryId]: value };
+      
+      // Clear dependent category selections when parent value changes
+      prices.categories?.forEach(cat => {
+        if (cat.dependsOn === categoryId && cat.dependsOnValue !== value) {
+          // Reset this dependent category's selection
+          if (cat.inputType === 'checkbox') {
+            newSelections[cat.id] = {};
+          } else {
+            delete newSelections[cat.id];
+          }
+        }
+      });
+      
+      return { ...prev, selections: newSelections };
+    });
   };
 
   const handleCheckboxChange = (categoryId, optionId, checked) => {
