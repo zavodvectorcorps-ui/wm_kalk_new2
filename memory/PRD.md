@@ -97,6 +97,12 @@ A full-featured quoting and order management application for Saunas and Balias (
   - "Пересчитать все цены" button recalculates both models AND options
   - **NBP Rate Hint**: Shows current EUR/PLN rate from Narodowy Bank Polski with "применить" button
   - Example: 300 EUR × 4.30 × 1.30 = 1677 PLN
+- **Feature**: Added bowl material category with dependent colors (2 Jan 2025)
+  - bowl_material category with options: Глассфайбер (fiberglass) and Акрил (acrylic)
+  - fiberglass_color: 15 colors (WHITE, IVORY, BLUE, GRAY, PEARL variants, GALAXY, SNOWFLAKE, EMERALD, BLACK GLITTER variants)
+  - acrylic_color: 7 colors (White, Green/Brown/Blue/White/Coffee/Black Marble)
+  - Dependent categories: dependsOn + dependsOnValue fields control visibility
+  - Color selection resets when material changes; hidden categories excluded from price calculation
 - **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
   - Root cause: Pydantic models didn't support heaterVariants array and string specs
   - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
