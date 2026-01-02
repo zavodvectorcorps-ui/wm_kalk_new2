@@ -46,6 +46,27 @@ async def get_prices():
     if not isinstance(prices.get('categories'), list):
         prices['categories'] = default_balia_prices.get('categories', [])
     
+    # === MERGE MISSING CATEGORIES FROM DEFAULTS ===
+    # Get existing category IDs
+    existing_cat_ids = {cat.get('id') for cat in prices.get('categories', [])}
+    
+    # Add missing categories from defaults (e.g., bowl_material, fiberglass_color, acrylic_color)
+    categories_added = False
+    for default_cat in default_balia_prices.get('categories', []):
+        if default_cat.get('id') not in existing_cat_ids:
+            prices['categories'].append(default_cat)
+            categories_added = True
+            logger.info(f"Added missing category from defaults: {default_cat.get('id')}")
+    
+    # Sort categories by sortOrder after adding new ones
+    if categories_added:
+        prices['categories'].sort(key=lambda c: c.get('sortOrder', 999))
+        # Save the updated categories to DB
+        await db.prices.update_one(
+            {"_id": "default"},
+            {"$set": {"categories": prices['categories']}}
+        )
+    
     # Merge hints from defaults if missing in DB data
     default_model_hints = {m['id']: m.get('hint', '') for m in default_balia_prices.get('models', [])}
     default_option_hints = {}
