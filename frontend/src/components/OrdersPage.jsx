@@ -149,15 +149,13 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
         { responseType: 'blob' }
       );
 
-      // Get filename from Content-Disposition header or use order ID
-      let filename = `${order.id || 'order'}.pdf`;
-      const contentDisposition = response.headers['content-disposition'];
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename=(.+\.pdf)/);
-        if (match) {
-          filename = match[1];
-        }
-      }
+      // Generate filename: TYPE_ClientName_Date_Time
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\./g, '-');
+      const timeStr = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/:/g, '');
+      const safeName = (order.fullName || 'Klient').replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_') || 'Klient';
+      const prefix = isSauna ? 'SAUNA' : 'BALIA';
+      const filename = `${prefix}_${safeName}_${dateStr}_${timeStr}.pdf`;
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
