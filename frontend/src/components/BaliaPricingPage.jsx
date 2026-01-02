@@ -772,7 +772,7 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
   const [uploadingVariant, setUploadingVariant] = useState(null);
   
   useEffect(() => {
-    // Initialize heaterVariants if not present
+    // Initialize heaterVariants and specs if not present
     if (model) {
       const data = { ...model };
       if (!data.heaterVariants || data.heaterVariants.length === 0) {
@@ -781,6 +781,10 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
           { type: 'integrated', price: data.basePrice || 0, imageUrl: data.imageUrl || '' },
           { type: 'external', price: data.basePrice || 0, imageUrl: '' }
         ];
+      }
+      // Initialize specs if not present
+      if (!data.specs) {
+        data.specs = {};
       }
       setFormData(data);
     }
