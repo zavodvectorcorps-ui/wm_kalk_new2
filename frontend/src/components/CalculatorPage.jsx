@@ -732,11 +732,11 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                       />
                     </div>
                   )}
-                  {/* Model hint as text block */}
-                  {selectedModel.hint && (
+                  {/* Model hint - from selected variant or model */}
+                  {getModelHint(selectedModel) && (
                     <div className="flex items-start gap-2 mb-3 p-2 bg-white rounded-md border border-blue-100">
                       <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-gray-600 leading-relaxed">{selectedModel.hint}</p>
+                      <p className="text-xs text-gray-600 leading-relaxed">{getModelHint(selectedModel)}</p>
                     </div>
                   )}
                   <h4 className="font-semibold text-blue-800 mb-2">{t('balia.modelInfo')}</h4>
