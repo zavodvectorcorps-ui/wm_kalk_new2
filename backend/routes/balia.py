@@ -560,9 +560,24 @@ async def generate_pdf(request: PDFRequest):
     pdf_data = buffer.getvalue()
     buffer.close()
     
-    # Use offer_number as filename
+    # Generate filename: BALIA_ClientName_Date_Time
+    current_datetime = datetime.now()
+    date_str = current_datetime.strftime('%d-%m-%Y')
+    time_str = current_datetime.strftime('%H%M%S')
+    
+    try:
+        # Sanitize client name for filename (remove special chars, replace spaces with underscore)
+        safe_name = ''.join(c for c in request.fullName if c.isascii() and (c.isalnum() or c in '-_. '))
+        safe_name = safe_name.replace(' ', '_')
+        if not safe_name:
+            safe_name = "Klient"
+    except:
+        safe_name = "Klient"
+    
+    filename = f"BALIA_{safe_name}_{date_str}_{time_str}.pdf"
+    
     return StreamingResponse(
         io.BytesIO(pdf_data),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={offer_number}.pdf"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
