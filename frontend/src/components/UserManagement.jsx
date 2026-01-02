@@ -413,6 +413,12 @@ export const UserManagement = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-purple-600" />
+                      {txt.roleAdmin}
+                    </div>
+                  </SelectItem>
                   <SelectItem value="employee">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4" />
@@ -508,6 +514,12 @@ export const UserManagement = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-purple-600" />
+                      {txt.roleAdmin}
+                    </div>
+                  </SelectItem>
                   <SelectItem value="employee">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4" />
