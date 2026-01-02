@@ -113,8 +113,7 @@ export const SaunaPricingPage = () => {
             handleAddCategory={handleAddCategory}
             handleSaveEditCategory={handleSaveEditCategory}
             handleDeleteCategory={handleDeleteCategory}
-            handleMoveCategoryUp={handleMoveCategoryUp}
-            handleMoveCategoryDown={handleMoveCategoryDown}
+            handleReorderCategories={handleReorderCategories}
             handleCategoryDisplayTypeChange={handleCategoryDisplayTypeChange}
           />
         </TabsContent>
