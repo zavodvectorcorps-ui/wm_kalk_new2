@@ -400,7 +400,7 @@ async def generate_pdf(request: PDFRequest):
         
         # Helper function to load and resize option image
         async def load_option_image(image_url: str, max_width: int = 60, max_height: int = 45):
-            """Load option image from MongoDB or URL"""
+            """Load option image from MongoDB or external URL"""
             if not image_url:
                 return None
             try:
@@ -411,14 +411,30 @@ async def generate_pdf(request: PDFRequest):
                     img_data = await load_image_from_mongodb(image_url)
                     if img_data:
                         logger.info(f"Loaded option image from MongoDB: {len(img_data)} bytes")
-                    else:
-                        logger.warning(f"Failed to load option image from MongoDB: {image_url}")
                 
-                # Fallback to HTTP download for external URLs
+                # If not in MongoDB and it's a relative URL, try full external URL
+                if not img_data and '/api/uploads/' in image_url:
+                    try:
+                        # Convert relative URL to absolute using API_URL env var or request URL
+                        import os
+                        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://sauna-calculator-1.preview.emergentagent.com')
+                        full_url = f"{base_url}{image_url}"
+                        img_data = urllib.request.urlopen(full_url, timeout=10).read()
+                        # Check if it's actually image data (not JSON error)
+                        if img_data and len(img_data) > 100 and not img_data.startswith(b'{'):
+                            logger.info(f"Downloaded option image from external URL: {len(img_data)} bytes")
+                        else:
+                            logger.warning(f"External URL returned non-image data: {image_url}")
+                            img_data = None
+                    except Exception as e:
+                        logger.warning(f"Failed to download from external URL: {e}")
+                
+                # Try direct HTTP download for external URLs
                 if not img_data and image_url.startswith('http'):
                     try:
-                        img_data = urllib.request.urlopen(image_url, timeout=5).read()
-                        logger.info(f"Downloaded option image from URL: {len(img_data)} bytes")
+                        img_data = urllib.request.urlopen(image_url, timeout=10).read()
+                        if img_data and len(img_data) > 100:
+                            logger.info(f"Downloaded option image from URL: {len(img_data)} bytes")
                     except Exception as e:
                         logger.warning(f"Failed to download option image: {e}")
                 
