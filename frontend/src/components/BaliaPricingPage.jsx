@@ -779,9 +779,32 @@ export const BaliaPricingPage = () => {
                         <p className="text-sm text-muted-foreground py-2">{txt.noOptions}</p>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {category.options?.map(option => (
+                          {category.options?.map((option, optIndex) => (
                             <div key={option.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                               <div className="flex items-center gap-2">
+                                {/* Option move buttons */}
+                                {canEdit() && (
+                                  <div className="flex flex-col gap-0">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-5 w-5 p-0"
+                                      disabled={optIndex === 0}
+                                      onClick={() => handleMoveOption(category.id, option.id, 'up')}
+                                    >
+                                      <ChevronUp className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-5 w-5 p-0"
+                                      disabled={optIndex === category.options.length - 1}
+                                      onClick={() => handleMoveOption(category.id, option.id, 'down')}
+                                    >
+                                      <ChevronDown className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
                                 {option.imageUrl && (
                                   <img 
                                     src={getFullImageUrl(option.imageUrl)} 
