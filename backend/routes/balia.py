@@ -521,16 +521,18 @@ async def generate_pdf(request: PDFRequest):
             ('FONTNAME', (0, 1), (-1, -1), 'DejaVuSans'),
             ('FONTSIZE', (0, 1), (-1, -1), 9),
             ('TEXTCOLOR', (0, 1), (-1, -1), TEXT_COLOR),
-            ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
+            ('ALIGN', (3, 1), (3, -1), 'RIGHT'),  # Price column
+            ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Image column
+            ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),  # Vertical align all cells
             # Subtotal row
-            ('FONTNAME', (1, -1), (-1, -1), 'DejaVuSans-Bold'),
+            ('FONTNAME', (2, -1), (-1, -1), 'DejaVuSans-Bold'),
             ('BACKGROUND', (0, -1), (-1, -1), BLUE_LIGHT),
             # Grid
             ('GRID', (0, 0), (-1, -1), 0.5, BLUE_BORDER),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('LEFTPADDING', (0, 0), (-1, -1), 8),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
             # Alternate row colors
             ('ROWBACKGROUNDS', (0, 1), (-1, -2), [WHITE, colors.HexColor('#F9FAFB')]),
         ]
@@ -538,7 +540,7 @@ async def generate_pdf(request: PDFRequest):
         # Highlight gift rows with green background
         for gift_row in gift_rows:
             table_style.append(('BACKGROUND', (0, gift_row), (-1, gift_row), colors.HexColor('#ECFDF5')))
-            table_style.append(('TEXTCOLOR', (1, gift_row), (1, gift_row), colors.HexColor('#059669')))
+            table_style.append(('TEXTCOLOR', (1, gift_row), (2, gift_row), colors.HexColor('#059669')))
         
         options_table.setStyle(TableStyle(table_style))
         elements.append(options_table)
