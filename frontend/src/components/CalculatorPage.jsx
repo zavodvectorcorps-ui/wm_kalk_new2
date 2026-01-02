@@ -293,7 +293,18 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   };
 
   const handleModelSelect = (modelId) => {
-    setFormData(prev => ({ ...prev, selectedModel: modelId }));
+    const model = prices.models?.find(m => m.id === modelId);
+    // Set default heater type based on available variants
+    const defaultHeaterType = model?.heaterVariants?.[0]?.type || 'integrated';
+    setFormData(prev => ({ 
+      ...prev, 
+      selectedModel: modelId,
+      selectedHeaterType: defaultHeaterType 
+    }));
+  };
+  
+  const handleHeaterTypeChange = (heaterType) => {
+    setFormData(prev => ({ ...prev, selectedHeaterType: heaterType }));
   };
 
   const handleSelectionChange = (categoryId, value) => {
