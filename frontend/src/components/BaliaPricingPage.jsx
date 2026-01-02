@@ -739,6 +739,16 @@ export const BaliaPricingPage = () => {
         txt={txt}
         currencySymbol={prices.currencySymbol}
       />
+
+      {/* Bulk Price Edit Dialog */}
+      <BulkPriceEditDialog
+        open={bulkEditDialog.open}
+        onClose={() => setBulkEditDialog({ open: false })}
+        onApply={handleBulkPriceEdit}
+        currencySymbol={prices.currencySymbol}
+        modelsCount={prices.models?.length || 0}
+        lang={lang}
+      />
     </div>
   );
 };
