@@ -302,8 +302,8 @@ export const UserManagement = () => {
     }
   };
 
-  // Show both employees and observers (not admin)
-  const employees = users.filter(u => u.role === 'employee' || u.role === 'observer');
+  // Show employees, observers and admins (except the main 'admin' account)
+  const employees = users.filter(u => u.role === 'employee' || u.role === 'observer' || (u.role === 'admin' && u.username !== 'admin'));
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl">
