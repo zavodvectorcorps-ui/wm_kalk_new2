@@ -753,6 +753,15 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
     }));
   };
 
+  const updateVariantField = (variantType, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      heaterVariants: prev.heaterVariants.map(v => 
+        v.type === variantType ? { ...v, [field]: value } : v
+      )
+    }));
+  };
+
   const removeVariantImage = (variantType) => {
     setFormData(prev => ({
       ...prev,
