@@ -43,6 +43,7 @@ export const SaunaPricingPage = () => {
     handleSaveEditOption,
     handleUpdateOptionPrice,
     handleToggleOptionQuantity,
+    handleReorderOptions,
   } = useSaunaPricing();
 
   if (loading) {
