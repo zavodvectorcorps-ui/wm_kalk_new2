@@ -998,11 +998,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     pdf_data = buffer.getvalue()
     buffer.close()
     
-    # Generate filename: SAUNA_ClientName_Date_Time
-    current_datetime = datetime.now()
-    date_str = current_datetime.strftime('%d-%m-%Y')
-    time_str = current_datetime.strftime('%H%M%S')
-    
+    # Generate filename: SAUNA_ClientName_OrderId
     try:
         # Keep name with cyrillic/polish chars, just replace spaces and remove unsafe filename chars
         safe_name = request.fullName.replace(' ', '_') if request.fullName else 'Klient'
@@ -1013,7 +1009,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     except:
         safe_name = "Klient"
     
-    filename = f"SAUNA_{safe_name}_{date_str}_{time_str}.pdf"
+    # Use orderId if provided, otherwise generate timestamp-based ID
+    order_id = request.orderId if request.orderId else offer_number
+    filename = f"SAUNA_{safe_name}_{order_id}.pdf"
     
     return StreamingResponse(
         io.BytesIO(pdf_data),
