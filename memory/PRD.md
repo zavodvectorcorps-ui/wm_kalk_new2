@@ -124,7 +124,7 @@ A full-featured quoting and order management application for Saunas and Balias (
 - Minor dropdown positioning in Balia calculator (not reproducible)
 
 ## Test Credentials
-- Super-Admin: `admin` / `159357`
+- Super-Admin: `admin` / `220066` (password changed 2 Jan 2025)
 - Regular Admin: `NewAdmin` / `159357`
 - Balia Employee: `balia` / `159357`
 - Sauna Employee: `sauna` / `159357`
