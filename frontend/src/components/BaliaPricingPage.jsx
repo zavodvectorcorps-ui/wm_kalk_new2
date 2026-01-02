@@ -124,6 +124,15 @@ export const BaliaPricingPage = () => {
     }
   };
 
+  const fetchExcelTemplate = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/excel-template-structure`);
+      setExcelTemplate(response.data);
+    } catch (error) {
+      console.error('Error fetching Excel template:', error);
+    }
+  };
+
   const fetchNbpRate = async () => {
     try {
       const response = await fetch('https://api.nbp.pl/api/exchangerates/rates/a/eur/?format=json');
