@@ -243,6 +243,44 @@ export const BaliaPricingPage = () => {
     }
   };
 
+  // Bulk price edit
+  const handleBulkPriceEdit = ({ changeType, value, applyTo }) => {
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(model => {
+        if (!model.heaterVariants || model.heaterVariants.length === 0) {
+          // Legacy model with basePrice
+          if (applyTo === 'all' || applyTo === 'external') {
+            const newPrice = changeType === 'percent' 
+              ? model.basePrice * (1 + value / 100)
+              : model.basePrice + value;
+            return { ...model, basePrice: Math.round(newPrice * 100) / 100 };
+          }
+          return model;
+        }
+        
+        // Model with heaterVariants
+        const newVariants = model.heaterVariants.map(v => {
+          if (applyTo === 'all' || applyTo === v.type) {
+            const newPrice = changeType === 'percent'
+              ? v.price * (1 + value / 100)
+              : v.price + value;
+            return { ...v, price: Math.round(newPrice * 100) / 100 };
+          }
+          return v;
+        });
+        
+        return { 
+          ...model, 
+          heaterVariants: newVariants,
+          basePrice: newVariants[0]?.price || model.basePrice
+        };
+      })
+    }));
+    setBulkEditDialog({ open: false });
+    toast.success(lang === 'ru' ? 'Цены обновлены' : 'Ceny zaktualizowane');
+  };
+
   // Category CRUD
   const handleSaveCategory = (categoryData) => {
     if (editCategoryDialog.isNew) {
