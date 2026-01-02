@@ -409,13 +409,18 @@ async def generate_pdf(request: PDFRequest):
                 # Try loading from MongoDB first
                 if '/api/uploads/' in image_url:
                     img_data = await load_image_from_mongodb(image_url)
+                    if img_data:
+                        logger.info(f"Loaded option image from MongoDB: {len(img_data)} bytes")
+                    else:
+                        logger.warning(f"Failed to load option image from MongoDB: {image_url}")
                 
                 # Fallback to HTTP download for external URLs
                 if not img_data and image_url.startswith('http'):
                     try:
                         img_data = urllib.request.urlopen(image_url, timeout=5).read()
-                    except:
-                        pass
+                        logger.info(f"Downloaded option image from URL: {len(img_data)} bytes")
+                    except Exception as e:
+                        logger.warning(f"Failed to download option image: {e}")
                 
                 if img_data:
                     # Compress and resize image
@@ -438,6 +443,7 @@ async def generate_pdf(request: PDFRequest):
                     pil_img.save(output, format='JPEG', quality=70, optimize=True)
                     output.seek(0)
                     
+                    logger.info(f"Option image processed: {new_width}x{new_height}")
                     return RLImage(output, width=new_width, height=new_height)
             except Exception as e:
                 logger.warning(f"Could not load option image: {e}")
