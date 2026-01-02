@@ -23,11 +23,16 @@ class ModelSpec(BaseModel):
 
 class HeaterVariant(BaseModel):
     """Heater variant with its own price and image."""
+    model_config = ConfigDict(extra="allow")
+    
     type: str  # "integrated" or "external"
     price: float = 0
     imageUrl: Optional[str] = ""
     hint: Optional[str] = ""
     hintPl: Optional[str] = ""
+    # Pricing calculation fields
+    purchasePriceEur: Optional[float] = 0  # Purchase price in EUR
+    markupPercent: Optional[float] = 30  # Markup percentage
 
 
 class BaliaModel(BaseModel):
