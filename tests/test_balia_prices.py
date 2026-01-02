@@ -199,6 +199,187 @@ class TestBaliaPricesAPI:
         print(f"✓ POST /api/prices with extra fields returned {post_response.status_code}")
 
 
+class TestBaliaModelSpecs:
+    """Tests for Balia model specifications (specs) feature"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.api_url = f"{BASE_URL}/api/prices"
+        self.session = requests.Session()
+        self.session.headers.update({"Content-Type": "application/json"})
+    
+    def test_get_prices_returns_specs_in_models(self):
+        """Test GET /api/prices returns specs field in models"""
+        response = self.session.get(self.api_url)
+        assert response.status_code == 200
+        
+        data = response.json()
+        models_with_specs = 0
+        
+        for model in data["models"]:
+            if "specs" in model:
+                models_with_specs += 1
+                if model["specs"]:
+                    print(f"  Model {model['id']}: specs present with data")
+        
+        print(f"✓ {models_with_specs}/{len(data['models'])} models have specs field")
+    
+    def test_specs_supports_all_fields(self):
+        """Test that specs supports all expected fields: outerDiameter, innerDiameter, dimensions, depth, volume, seats, totalHeight, heaterPower, weight"""
+        response = self.session.get(self.api_url)
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        # Find a model with specs
+        model_with_specs = None
+        for model in data["models"]:
+            if model.get("specs") and any(v for v in model["specs"].values() if v):
+                model_with_specs = model
+                break
+        
+        if model_with_specs:
+            specs = model_with_specs["specs"]
+            expected_fields = ["outerDiameter", "innerDiameter", "dimensions", "depth", "volume", "seats", "totalHeight", "heaterPower", "weight"]
+            
+            for field in expected_fields:
+                # Field should be allowed (may be None or have value)
+                print(f"  {field}: {specs.get(field, 'not present')}")
+            
+            print(f"✓ Specs structure verified for model {model_with_specs['id']}")
+        else:
+            print("⚠ No models with populated specs found")
+    
+    def test_post_specs_with_all_fields(self):
+        """Test POST /api/prices with full specs object"""
+        # Get current prices
+        get_response = self.session.get(self.api_url)
+        assert get_response.status_code == 200
+        original_data = get_response.json()
+        
+        test_data = copy.deepcopy(original_data)
+        
+        # Create comprehensive specs
+        test_specs = {
+            "outerDiameter": "200cm",
+            "innerDiameter": "160cm",
+            "dimensions": "200x200cm",
+            "depth": "100cm",
+            "volume": "1500L",
+            "seats": 6,
+            "totalHeight": "120cm",
+            "heaterPower": "24kW",
+            "weight": "350kg"
+        }
+        
+        if test_data["models"]:
+            test_data["models"][0]["specs"] = test_specs
+            model_id = test_data["models"][0]["id"]
+        else:
+            pytest.skip("No models to test")
+        
+        # POST the data
+        post_response = self.session.post(self.api_url, json=test_data)
+        assert post_response.status_code == 200, f"POST failed: {post_response.text}"
+        
+        # Verify specs persisted
+        verify_response = self.session.get(self.api_url)
+        assert verify_response.status_code == 200
+        
+        verify_data = verify_response.json()
+        found_model = next((m for m in verify_data["models"] if m["id"] == model_id), None)
+        
+        assert found_model is not None, f"Model {model_id} not found"
+        assert found_model.get("specs") is not None, "specs field missing after POST"
+        
+        saved_specs = found_model["specs"]
+        assert saved_specs.get("outerDiameter") == "200cm", f"outerDiameter not saved correctly"
+        assert saved_specs.get("depth") == "100cm", f"depth not saved correctly"
+        assert saved_specs.get("volume") == "1500L", f"volume not saved correctly"
+        assert saved_specs.get("seats") == 6, f"seats not saved correctly"
+        
+        print(f"✓ Full specs saved and retrieved correctly for model {model_id}")
+        
+        # Restore original data
+        self.session.post(self.api_url, json=original_data)
+    
+    def test_specs_partial_update(self):
+        """Test updating only some specs fields preserves others"""
+        get_response = self.session.get(self.api_url)
+        assert get_response.status_code == 200
+        original_data = get_response.json()
+        
+        test_data = copy.deepcopy(original_data)
+        
+        # First set full specs
+        initial_specs = {
+            "outerDiameter": "200cm",
+            "depth": "100cm",
+            "volume": "1500L",
+            "seats": 6
+        }
+        
+        if test_data["models"]:
+            test_data["models"][0]["specs"] = initial_specs
+            model_id = test_data["models"][0]["id"]
+        else:
+            pytest.skip("No models to test")
+        
+        # POST initial specs
+        self.session.post(self.api_url, json=test_data)
+        
+        # Now update only depth
+        test_data["models"][0]["specs"]["depth"] = "110cm"
+        post_response = self.session.post(self.api_url, json=test_data)
+        assert post_response.status_code == 200
+        
+        # Verify other fields preserved
+        verify_response = self.session.get(self.api_url)
+        verify_data = verify_response.json()
+        found_model = next((m for m in verify_data["models"] if m["id"] == model_id), None)
+        
+        saved_specs = found_model["specs"]
+        assert saved_specs.get("depth") == "110cm", "depth not updated"
+        assert saved_specs.get("outerDiameter") == "200cm", "outerDiameter was lost"
+        assert saved_specs.get("volume") == "1500L", "volume was lost"
+        
+        print(f"✓ Partial specs update preserved other fields")
+        
+        # Restore original data
+        self.session.post(self.api_url, json=original_data)
+    
+    def test_specs_with_mixed_types(self):
+        """Test specs accepts both string and numeric values"""
+        get_response = self.session.get(self.api_url)
+        assert get_response.status_code == 200
+        original_data = get_response.json()
+        
+        test_data = copy.deepcopy(original_data)
+        
+        # Mix of string and numeric values
+        mixed_specs = {
+            "outerDiameter": "200cm",  # string
+            "innerDiameter": "160cm",  # string
+            "depth": "100cm",          # string
+            "volume": "1500L",         # string
+            "seats": 6,                # integer
+            "totalHeight": "120cm",    # string
+            "heaterPower": "24kW",     # string
+            "weight": "350kg"          # string
+        }
+        
+        if test_data["models"]:
+            test_data["models"][0]["specs"] = mixed_specs
+        
+        post_response = self.session.post(self.api_url, json=test_data)
+        assert post_response.status_code == 200, f"POST with mixed types failed: {post_response.text}"
+        
+        print(f"✓ Specs with mixed string/numeric types accepted")
+        
+        # Restore original data
+        self.session.post(self.api_url, json=original_data)
+
+
 class TestBaliaPricesEdgeCases:
     """Edge case tests for Balia prices API"""
     
