@@ -60,6 +60,7 @@ export const UserManagement = () => {
       admin: 'Администратор',
       employee: 'Сотрудник',
       observer: 'Наблюдатель',
+      roleAdmin: 'Администратор (полный доступ и скидки)',
       roleEmployee: 'Сотрудник (может создавать заказы)',
       roleObserver: 'Наблюдатель (только просмотр)',
       actions: 'Действия',
