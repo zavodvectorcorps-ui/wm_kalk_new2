@@ -673,10 +673,35 @@ export const BaliaPricingPage = () => {
               {prices.categories?.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">{txt.noCategories}</p>
               ) : (
-                prices.categories?.map(category => (
+                prices.categories?.map((category, catIndex) => (
                   <div key={category.id} className="border rounded-lg p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
+                        {/* Move buttons */}
+                        {canEdit() && (
+                          <div className="flex flex-col gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              disabled={catIndex === 0}
+                              onClick={() => handleMoveCategory(category.id, 'up')}
+                              title={lang === 'pl' ? 'Przenieś w górę' : 'Переместить вверх'}
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              disabled={catIndex === prices.categories.length - 1}
+                              onClick={() => handleMoveCategory(category.id, 'down')}
+                              title={lang === 'pl' ? 'Przenieś w dół' : 'Переместить вниз'}
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                         {category.imageUrl && (
                           <img 
                             src={getFullImageUrl(category.imageUrl)} 
@@ -686,9 +711,12 @@ export const BaliaPricingPage = () => {
                         )}
                         <div>
                           <h3 className="font-semibold">{getName(category)}</h3>
-                          <Badge variant="outline" className="text-xs">
-                            {category.inputType === 'checkbox' ? txt.checkbox : txt.dropdown}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {category.inputType === 'checkbox' ? txt.checkbox : txt.dropdown}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">#{catIndex + 1}</span>
+                          </div>
                         </div>
                       </div>
                       
