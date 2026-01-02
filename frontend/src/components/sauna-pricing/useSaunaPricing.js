@@ -484,6 +484,7 @@ export const useSaunaPricing = () => {
     handleDeleteCategory,
     handleMoveCategoryUp,
     handleMoveCategoryDown,
+    handleReorderCategories,
     handleCategoryDisplayTypeChange,
     // Options
     handleAddOption,
