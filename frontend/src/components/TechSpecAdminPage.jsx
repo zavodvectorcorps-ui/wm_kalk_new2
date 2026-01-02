@@ -37,7 +37,7 @@ import {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-export const TechSpecAdminPage = () => {
+export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
   const { i18n } = useTranslation();
   const { canEdit } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -46,6 +46,9 @@ export const TechSpecAdminPage = () => {
   const [categories, setCategories] = useState([]);
   const [selectedMasterCategory, setSelectedMasterCategory] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+
+  // API base path depends on project type
+  const apiBasePath = projectType === 'balia' ? '/api/balia-tech-spec' : '/api/tech-spec';
 
   // Dialogs
   const [masterDialogOpen, setMasterDialogOpen] = useState(false);
