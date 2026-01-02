@@ -753,6 +753,19 @@ export const BaliaPricingPage = () => {
                       placeholder="4.30"
                     />
                     <p className="text-xs text-muted-foreground">1 EUR = {prices.eurRate || 4.30} PLN</p>
+                    {nbpRate && (
+                      <p className="text-xs text-blue-600">
+                        📊 NBP ({nbpRate.date}): <b>{nbpRate.rate.toFixed(4)}</b> PLN
+                        {canEdit() && (
+                          <button 
+                            onClick={() => setPrices(prev => ({ ...prev, eurRate: nbpRate.rate }))}
+                            className="ml-2 text-blue-700 underline hover:no-underline"
+                          >
+                            {lang === 'ru' ? 'применить' : 'zastosuj'}
+                          </button>
+                        )}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>{lang === 'ru' ? 'Наценка по умолч. (%)' : 'Domyślna marża (%)'}</Label>
