@@ -19,7 +19,7 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     access: Optional[str] = None
-    role: Optional[str] = None  # 'employee' or 'observer'
+    role: Optional[str] = None  # 'admin', 'employee' or 'observer'
 
 
 class UserResponse(BaseModel):
