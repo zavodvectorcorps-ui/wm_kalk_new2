@@ -226,8 +226,8 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
 
   // Check for discount status
   const getDiscountStatus = (order) => {
-    const hasRequestedDiscount = order.requestedDiscount && order.requestedDiscount > 0;
-    const hasAdminDiscount = order.adminDiscountApproved || (order.discountPercent && order.discountPercent > 10);
+    const hasRequestedDiscount = order.requestedDiscount > 0;
+    const hasAdminDiscount = order.adminDiscountApproved || (order.discountPercent > 10);
     const hasGifts = order.adminGifts && order.adminGifts.length > 0;
     
     return { hasRequestedDiscount, hasAdminDiscount, hasGifts };
