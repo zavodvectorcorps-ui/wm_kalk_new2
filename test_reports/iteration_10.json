@@ -1,0 +1,112 @@
+{
+  "summary": "Iteration 10: Testing POST /api/generate-production-excel endpoint for Balia orders. All 13 backend API tests pass. Frontend UI verified - 'Pobierz techniczny' button in OrdersPage and 'Excel' button in AdminOrdersPage both download Excel files correctly for Balia orders.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/test_production_excel.py",
+    "/app/test_reports/pytest/pytest_results_iteration10.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "POST /api/generate-production-excel (lines 336-539 in balia.py) - Generates Excel from template with X marks",
+    "Template at /app/backend/templates/production_template.xlsx - Has structure for heater types, colors, models, accessories",
+    "Cell mappings: B2=fullName, B4=fullAddress, B10/C10=heater type, D10-R10=fiberglass colors, V10-AB10=acrylic colors, Y16-AD16=models, B16-V16=accessories, B18=notes",
+    "OrdersPage.jsx handleDownloadPDF (lines 139-191) - For balia technical type, calls /api/generate-production-excel instead of PDF",
+    "AdminOrdersPage.jsx handleDownloadTechnical (lines 161-213) - For balia orders, calls /api/generate-production-excel"
+  ],
+  "updated_files": [
+    "/app/tests/test_production_excel.py"
+  ],
+  "success_rate": {
+    "backend": "100% - All 13 API tests passed",
+    "frontend": "100% - Excel download buttons verified working"
+  },
+  "test_credentials": {
+    "admin_user": "admin",
+    "admin_password": "220066"
+  },
+  "seed_data_creation": "No seed data created - using existing orders",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Excel production sheet generation feature fully working: 1) POST /api/generate-production-excel takes order data and generates Excel from template, 2) Template has cells for heater type (B10/C10), fiberglass colors (D10-R10), acrylic colors (V10-AB10), models (Y16-AD16), accessories (B16-V16), customer data (B2, B4), notes (B18), 3) OrdersPage 'Pobierz techniczny' button downloads Excel for balia orders, 4) AdminOrdersPage shows 'Excel' button for balia orders and 'Spec. Tech.' for sauna orders, 5) Success toast 'PDF został wygenerowany!' shown after download",
+  "features_verified": {
+    "api_endpoint": {
+      "status": "PASS",
+      "details": "POST /api/generate-production-excel returns valid Excel file with correct content-type and filename"
+    },
+    "customer_data_mapping": {
+      "status": "PASS",
+      "details": "fullName written to B2, fullAddress written to B4"
+    },
+    "heater_type_mapping": {
+      "status": "PASS",
+      "details": "external->B10, integrated->C10 marked with X"
+    },
+    "fiberglass_color_mapping": {
+      "status": "PASS",
+      "details": "fg_white->D10, fg_blue->F10, fg_gray->G10, etc. marked with X"
+    },
+    "acrylic_color_mapping": {
+      "status": "PASS",
+      "details": "ac_white->V10, ac_green_marble->W10, etc. marked with X"
+    },
+    "model_mapping": {
+      "status": "PASS",
+      "details": "round_200->Y16, round_225->Z16, etc. marked with X"
+    },
+    "accessories_mapping": {
+      "status": "PASS",
+      "details": "hydromassage->B16, air_bubble->C16, insulation->J16, etc. marked with X"
+    },
+    "notes_mapping": {
+      "status": "PASS",
+      "details": "Notes written to B18"
+    },
+    "orders_page_button": {
+      "status": "PASS",
+      "details": "'Pobierz techniczny' button visible for balia orders, downloads Excel"
+    },
+    "admin_orders_page_button": {
+      "status": "PASS",
+      "details": "'Excel' button visible for balia orders (blue badge), 'Spec. Tech.' for sauna orders (orange badge)"
+    },
+    "download_success_toast": {
+      "status": "PASS",
+      "details": "Success toast 'PDF został wygenerowany!' shown after Excel download"
+    }
+  },
+  "tests_performed": {
+    "backend_api_tests": {
+      "test_endpoint_exists_and_returns_excel": "PASS - Returns 200 with Excel content-type",
+      "test_customer_data_in_excel": "PASS - B2=fullName, B4=fullAddress",
+      "test_heater_type_external_marked": "PASS - B10='X' for external",
+      "test_heater_type_integrated_marked": "PASS - C10='X' for integrated",
+      "test_fiberglass_color_marked": "PASS - D10='X' for fg_white",
+      "test_acrylic_color_marked": "PASS - V10='X' for ac_white",
+      "test_model_marked": "PASS - Y16='X' for round_200",
+      "test_accessories_marked": "PASS - B16, C16, K16='X' for accessories",
+      "test_notes_written": "PASS - B18=notes text",
+      "test_full_order_with_all_options": "PASS - All mappings verified",
+      "test_filename_contains_customer_name_and_order_id": "PASS - TechSpec_{name}_{orderId}.xlsx",
+      "test_selected_options_array_backward_compatibility": "PASS - selectedOptions array also works",
+      "test_generate_excel_for_existing_order": "PASS - Real order from DB generates Excel"
+    },
+    "frontend_ui_tests": {
+      "admin_login": "PASS - Admin login with admin/220066 works",
+      "navigate_to_balia_orders": "PASS - Balia > Zamówienia tab accessible",
+      "pobierz_techniczny_button": "PASS - Button visible with testid download-technical-btn-*",
+      "excel_download_from_orders": "PASS - Click triggers Excel download",
+      "navigate_to_admin_panel": "PASS - Admin Panel accessible",
+      "admin_orders_excel_button": "PASS - Excel button visible for balia orders",
+      "admin_orders_spec_tech_button": "PASS - Spec. Tech. button visible for sauna orders",
+      "excel_download_from_admin": "PASS - Click triggers Excel download"
+    }
+  }
+}
