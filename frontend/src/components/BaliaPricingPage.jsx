@@ -1531,8 +1531,42 @@ const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, tx
               onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
             />
           </div>
+          
+          {/* Purchase Price Section */}
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
+            <h4 className="text-sm font-medium text-amber-800">Ценообразование / Kalkulacja</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  value={formData.purchasePriceEur || ''} 
+                  onChange={(e) => setFormData({ ...formData, purchasePriceEur: parseFloat(e.target.value) || 0 })}
+                  placeholder="50"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-amber-700">Наценка (%)</Label>
+                <Input 
+                  type="number"
+                  value={formData.markupPercent ?? 30} 
+                  onChange={(e) => setFormData({ ...formData, markupPercent: parseFloat(e.target.value) || 0 })}
+                  placeholder="30"
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            {formData.purchasePriceEur > 0 && (
+              <p className="text-xs text-amber-600">
+                Расчёт: {formData.purchasePriceEur} EUR × курс × {(1 + (formData.markupPercent ?? 30)/100).toFixed(2)}
+              </p>
+            )}
+          </div>
+          
           <div className="space-y-2">
-            <Label>{txt.price} ({currencySymbol})</Label>
+            <Label>{txt.price} ({currencySymbol}) - Розничная</Label>
             <Input 
               type="number"
               value={formData.price || 0} 
