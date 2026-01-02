@@ -59,6 +59,8 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ### Session 2 - Refactoring & TechSpec Integration (Current)
 - Added TechSpec tab to Admin Panel (5 tabs total)
+- Added project type selector (Sauna/Balia) to TechSpec tab
+- Created backend for Balia tech specs (`/api/balia-tech-spec`)
 - Refactored OrdersPage and AdminOrdersPage with shared components:
   - `useOrdersFiltering` hook
   - `OrderFilters` component
@@ -71,13 +73,14 @@ A full-featured quoting and order management application for Saunas and Balias (
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── auth.py          # User authentication & management
-│   │   ├── balia.py         # Balia orders & PDF
-│   │   ├── sauna.py         # Sauna orders & PDF
-│   │   ├── tech_spec.py     # Tech specs API
-│   │   └── statistics.py    # Analytics
+│   │   ├── auth.py              # User authentication & management
+│   │   ├── balia.py             # Balia orders & PDF
+│   │   ├── sauna.py             # Sauna orders & PDF
+│   │   ├── tech_spec.py         # Sauna tech specs API
+│   │   ├── balia_tech_spec.py   # Balia tech specs API (NEW)
+│   │   └── statistics.py        # Analytics
 │   └── models/
-│       └── auth.py          # User models
+│       └── auth.py              # User models
 ├── frontend/
 │   └── src/
 │       ├── components/
