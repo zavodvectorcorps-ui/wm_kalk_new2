@@ -134,7 +134,8 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
           </TabsContent>
 
           <TabsContent value="techspec">
-            <TechSpecAdminPage />
+            <TypeSelector value={techSpecType} onChange={setTechSpecType} />
+            <TechSpecAdminPage projectType={techSpecType} />
           </TabsContent>
 
           <TabsContent value="employees">
