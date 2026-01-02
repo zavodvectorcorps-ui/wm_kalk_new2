@@ -158,6 +158,60 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
     }
   };
 
+  const handleDownloadTechnical = async (order) => {
+    try {
+      const isSauna = order._type === 'sauna';
+      
+      // For balia - use Excel production sheet
+      if (!isSauna) {
+        const response = await axios.post(`${API_URL}/api/generate-production-excel`, 
+          { ...order, orderId: order.id },
+          { responseType: 'blob' }
+        );
+        
+        let safeName = (order.fullName || 'Zamowienie').replace(/\s+/g, '_');
+        safeName = safeName.replace(/[<>:"/\\|?*]/g, '');
+        if (!safeName || safeName === '_') safeName = 'Zamowienie';
+        const filename = `TechSpec_${safeName}_${order.id}.xlsx`;
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
+        toast.success(txt.pdfGenerated);
+        return;
+      }
+      
+      // For sauna - use PDF
+      const endpoint = `${API_URL}/api/sauna/generate-pdf`;
+      const response = await axios.post(endpoint, 
+        { ...order, orderId: order.id, type: 'technical', language: 'pl' },
+        { responseType: 'blob' }
+      );
+
+      let safeName = (order.fullName || 'Klient').replace(/\s+/g, '_');
+      safeName = safeName.replace(/[<>:"/\\|?*]/g, '');
+      const filename = `SAUNA_Tech_${safeName}_${order.id}.pdf`;
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success(txt.pdfGenerated);
+    } catch (error) {
+      console.error('Error generating technical:', error);
+      toast.error(t('error'));
+    }
+  };
+
   // Handle delete
   const handleDeleteOrder = async (order) => {
     if (!window.confirm(txt.confirmDelete)) return;
