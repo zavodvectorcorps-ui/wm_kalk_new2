@@ -465,9 +465,27 @@ async def generate_production_excel(request: dict):
     
     # Process heater variant
     heater_variant_id = request.get('selectedHeaterVariantId', '') or request.get('heaterVariantId', '')
+    heater_type = request.get('heaterType', '')  # "integrated" or "external"
+    
+    # First try by ID
     if heater_variant_id and heater_variant_id in heater_mapping:
         mark_cell(heater_mapping[heater_variant_id])
-        logger.info(f"Heater {heater_variant_id} -> {heater_mapping[heater_variant_id]}")
+        logger.info(f"Heater by ID {heater_variant_id} -> {heater_mapping[heater_variant_id]}")
+    # Then try to find by model_id + heater_type combination
+    elif model_id and heater_type:
+        # Try common patterns for heater variant ID
+        possible_ids = [
+            f"{model_id}_{heater_type}",  # round_200_integrated
+            f"{model_id}_{heater_type[:3]}",  # round_200_int
+            heater_type,  # just "integrated" or "external"
+        ]
+        for pid in possible_ids:
+            if pid in heater_mapping:
+                mark_cell(heater_mapping[pid])
+                logger.info(f"Heater by pattern {pid} -> {heater_mapping[pid]}")
+                break
+        else:
+            logger.warning(f"No heater mapping found for model={model_id}, type={heater_type}, id={heater_variant_id}")
     
     # Process selected options from selections dict
     selections = request.get('selections', {})
