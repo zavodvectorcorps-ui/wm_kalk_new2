@@ -1,17 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { FileDown, Eye, Package, Flame, Search, Trash2, X, FileText, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield, Calculator, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { FileDown, Eye, Package, Flame, Search, Trash2, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { TechSpecModal } from './tech-spec';
 import { OrderPreviewModal } from './OrderPreviewModal';
 import { OrderFullEditModal } from './OrderFullEditModal';
+import { OrderFilters, OrdersPagination } from './orders';
+import { useOrdersFiltering } from '../hooks/useOrdersFiltering';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -20,7 +21,6 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
   const { isAdmin } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   
   // Tech Spec Modal state
   const [techSpecModalOpen, setTechSpecModalOpen] = useState(false);
@@ -33,24 +33,33 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
   // Edit Modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
-  
-  // Date filter state
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const ordersPerPage = 10;
 
   const isSauna = calculatorType === 'sauna';
+
+  // Use filtering hook
+  const {
+    searchQuery,
+    setSearchQuery,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    currentPage,
+    setCurrentPage,
+    filteredAndSortedOrders,
+    paginatedOrders,
+    totalPages,
+    startIndex,
+    endIndex,
+    hasActiveFilters,
+    clearFilters,
+  } = useOrdersFiltering(orders);
 
   // Translations
   const texts = {
     ru: {
       ordersList: isSauna ? 'Заказы саун' : 'Список заказов',
       noOrders: isSauna ? 'Заказов саун пока нет' : 'Заказов пока нет',
-      searchPlaceholder: 'Поиск по номеру, имени или телефону...',
-      deleteOrder: 'Удалить заказ',
       confirmDelete: 'Удалить этот заказ?',
       orderDeleted: 'Заказ удалён',
       noResults: 'Ничего не найдено',
@@ -63,19 +72,11 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       editInCalculator: 'Редактировать в калькуляторе',
       adminDiscount: 'Скидка одобрена администратором',
       requestedDiscount: 'Запрошена скидка',
-      dateFrom: 'Дата от',
-      dateTo: 'Дата до',
-      clearFilters: 'Сбросить',
-      page: 'Страница',
-      of: 'из',
-      showing: 'Показано',
-      ordersCount: 'заказов',
+      deleteOrder: 'Удалить заказ',
     },
     pl: {
       ordersList: isSauna ? 'Zamówienia saun' : 'Lista zamówień',
       noOrders: isSauna ? 'Brak zamówień saun' : 'Brak zamówień',
-      searchPlaceholder: 'Szukaj po numerze, nazwisku lub telefonie...',
-      deleteOrder: 'Usuń zamówienie',
       confirmDelete: 'Usunąć to zamówienie?',
       orderDeleted: 'Zamówienie usunięte',
       noResults: 'Nic nie znaleziono',
@@ -88,13 +89,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       editInCalculator: 'Edytuj w kalkulatorze',
       adminDiscount: 'Rabat zatwierdzony przez administratora',
       requestedDiscount: 'Wnioskowany rabat',
-      dateFrom: 'Data od',
-      dateTo: 'Data do',
-      clearFilters: 'Wyczyść',
-      page: 'Strona',
-      of: 'z',
-      showing: 'Pokazano',
-      ordersCount: 'zamówień',
+      deleteOrder: 'Usuń zamówienie',
     },
   };
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
@@ -225,89 +220,6 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
     ));
   };
 
-  // Filter and sort orders
-  const filteredAndSortedOrders = useMemo(() => {
-    let result = [...orders];
-    
-    // Apply text search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      const queryNormalized = query.replace(/\s+/g, '');
-      result = result.filter(order => {
-        const orderId = (order.id || '').toLowerCase();
-        const fullName = (order.fullName || '').toLowerCase();
-        const phoneNumber = (order.phoneNumber || '').replace(/\s+/g, '').toLowerCase();
-        return orderId.includes(query) || fullName.includes(query) || phoneNumber.includes(queryNormalized);
-      });
-    }
-    
-    // Apply date range filter
-    if (dateFrom) {
-      const fromDate = new Date(dateFrom);
-      fromDate.setHours(0, 0, 0, 0);
-      result = result.filter(order => {
-        const orderDate = new Date(order.orderDate || order.createdAt);
-        return orderDate >= fromDate;
-      });
-    }
-    
-    if (dateTo) {
-      const toDate = new Date(dateTo);
-      toDate.setHours(23, 59, 59, 999);
-      result = result.filter(order => {
-        const orderDate = new Date(order.orderDate || order.createdAt);
-        return orderDate <= toDate;
-      });
-    }
-    
-    // Sort by creation time - newest first
-    // Order ID format: WMS-DD-MM-YYYY-HHMMSS or UUID
-    result.sort((a, b) => {
-      // Try to extract timestamp from order ID (format: WMS-DD-MM-YYYY-HHMMSS)
-      const extractTimestamp = (order) => {
-        const id = order.id || '';
-        // Check for WMS/WMB format: WMS-31-12-2025-161128
-        const match = id.match(/WM[SB]-(\d{2})-(\d{2})-(\d{4})-(\d{6})/);
-        if (match) {
-          const [, day, month, year, time] = match;
-          const hours = time.substring(0, 2);
-          const minutes = time.substring(2, 4);
-          const seconds = time.substring(4, 6);
-          return new Date(`${year}-${month}-${day}T${hours}:${minutes}:${seconds}`).getTime();
-        }
-        // Fallback to createdAt or orderDate
-        if (order.createdAt) return new Date(order.createdAt).getTime();
-        if (order.orderDate) return new Date(order.orderDate).getTime();
-        return 0;
-      };
-      
-      const timeA = extractTimestamp(a);
-      const timeB = extractTimestamp(b);
-      return timeB - timeA; // Newest first
-    });
-    
-    return result;
-  }, [orders, searchQuery, dateFrom, dateTo]);
-  
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredAndSortedOrders.length / ordersPerPage);
-  const startIndex = (currentPage - 1) * ordersPerPage;
-  const endIndex = startIndex + ordersPerPage;
-  const paginatedOrders = filteredAndSortedOrders.slice(startIndex, endIndex);
-  
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, dateFrom, dateTo]);
-  
-  // Clear all filters
-  const handleClearFilters = () => {
-    setSearchQuery('');
-    setDateFrom('');
-    setDateTo('');
-    setCurrentPage(1);
-  };
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('ru-RU');
   };
@@ -316,7 +228,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <Card className="shadow-lg">
+      <Card className="shadow-lg" data-testid="orders-page-card">
         <CardHeader className={`bg-gradient-to-br ${isSauna ? 'from-green-500/10 to-emerald-500/10' : 'from-primary/5 to-accent/5'}`}>
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -324,66 +236,22 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                 <Icon className={`h-6 w-6 ${isSauna ? 'text-green-600' : 'text-primary'}`} />
                 {txt.ordersList}
               </CardTitle>
-              <Badge variant="secondary" className="text-lg px-3 py-1">
+              <Badge variant="secondary" className="text-lg px-3 py-1" data-testid="orders-count-badge">
                 {filteredAndSortedOrders.length}
               </Badge>
             </div>
             
-            {/* Search and Date Filters */}
-            <div className="flex flex-col md:flex-row gap-3">
-              {/* Search Input */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder={txt.searchPlaceholder}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10"
-                />
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                    onClick={() => setSearchQuery('')}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              
-              {/* Date Range Filters */}
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground hidden sm:block" />
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-36"
-                  title={txt.dateFrom}
-                />
-                <span className="text-muted-foreground">—</span>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-36"
-                  title={txt.dateTo}
-                />
-                {(searchQuery || dateFrom || dateTo) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearFilters}
-                    className="whitespace-nowrap"
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    {txt.clearFilters}
-                  </Button>
-                )}
-              </div>
-            </div>
+            {/* Filters */}
+            <OrderFilters
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              dateFrom={dateFrom}
+              setDateFrom={setDateFrom}
+              dateTo={dateTo}
+              setDateTo={setDateTo}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={clearFilters}
+            />
           </div>
         </CardHeader>
         <CardContent className="pt-6">
@@ -418,7 +286,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                 </TableHeader>
                 <TableBody>
                   {paginatedOrders.map((order, index) => (
-                    <TableRow key={order.id || index}>
+                    <TableRow key={order.id || index} data-testid={`order-row-${order.id}`}>
                       <TableCell className="font-medium font-mono text-sm">
                         {order.id || '-'}
                       </TableCell>
@@ -490,6 +358,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                             variant="ghost"
                             onClick={() => handlePreviewOrder(order)}
                             title={txt.preview}
+                            data-testid={`preview-btn-${order.id}`}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -500,6 +369,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                             className="bg-blue-600 hover:bg-blue-700"
                             onClick={() => handleEditInCalculator(order)}
                             title={txt.editInCalculator}
+                            data-testid={`edit-calculator-btn-${order.id}`}
                           >
                             <Calculator className="h-4 w-4 mr-1" />
                             {lang === 'pl' ? 'Edytuj' : 'Редактировать'}
@@ -511,6 +381,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                               variant="ghost"
                               onClick={() => handleEditOrder(order)}
                               title={txt.edit}
+                              data-testid={`quick-edit-btn-${order.id}`}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -519,6 +390,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                             size="sm"
                             variant="outline"
                             onClick={() => handleDownloadPDF(order, 'customer')}
+                            data-testid={`download-pdf-btn-${order.id}`}
                           >
                             <FileDown className="h-4 w-4 mr-1" />
                             {t('downloadPDF')}
@@ -530,6 +402,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                                 variant="secondary"
                                 onClick={() => handleOpenTechSpec(order)}
                                 title="Создать/редактировать тех.задание"
+                                data-testid={`tech-spec-btn-${order.id}`}
                               >
                                 <Wrench className="h-4 w-4 mr-1" />
                                 Тех.Задание
@@ -540,6 +413,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                                   variant="outline"
                                   onClick={() => handleDownloadTechSpec(order)}
                                   title="Скачать тех.задание PDF"
+                                  data-testid={`download-techspec-btn-${order.id}`}
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
@@ -551,6 +425,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                               size="sm"
                               variant="secondary"
                               onClick={() => handleDownloadPDF(order, 'technical')}
+                              data-testid={`download-technical-btn-${order.id}`}
                             >
                               <FileDown className="h-4 w-4 mr-1" />
                               {t('downloadTechnical')}
@@ -562,6 +437,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                               variant="destructive"
                               onClick={() => handleDeleteOrder(order.id)}
                               title={txt.deleteOrder}
+                              data-testid={`delete-btn-${order.id}`}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -574,34 +450,14 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
               </Table>
               
               {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 px-2">
-                  <div className="text-sm text-muted-foreground">
-                    {txt.showing} {startIndex + 1}-{Math.min(endIndex, filteredAndSortedOrders.length)} {txt.of} {filteredAndSortedOrders.length} {txt.ordersCount}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm px-2">
-                      {txt.page} {currentPage} {txt.of} {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <OrdersPagination
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                totalPages={totalPages}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                totalCount={filteredAndSortedOrders.length}
+              />
             </div>
           )}
         </CardContent>
