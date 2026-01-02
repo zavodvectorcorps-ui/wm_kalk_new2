@@ -566,9 +566,10 @@ async def generate_pdf(request: PDFRequest):
     time_str = current_datetime.strftime('%H%M%S')
     
     try:
-        # Sanitize client name for filename (remove special chars, replace spaces with underscore)
-        safe_name = ''.join(c for c in request.fullName if c.isascii() and (c.isalnum() or c in '-_. '))
-        safe_name = safe_name.replace(' ', '_')
+        # Keep name with cyrillic/polish chars, just replace spaces and remove unsafe filename chars
+        safe_name = request.fullName.replace(' ', '_') if request.fullName else 'Klient'
+        # Remove characters that are unsafe in filenames
+        safe_name = ''.join(c for c in safe_name if c not in '<>:"/\\|?*')
         if not safe_name:
             safe_name = "Klient"
     except:
@@ -579,5 +580,5 @@ async def generate_pdf(request: PDFRequest):
     return StreamingResponse(
         io.BytesIO(pdf_data),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"}
     )
