@@ -316,7 +316,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
     };
 
     try {
-      await axios.post(`${API_URL}/api/tech-spec/category/${selectedCategory.id}/option`, option);
+      await axios.post(`${API_URL}${apiBasePath}/category/${selectedCategory.id}/option`, option);
       setCategories(prev => prev.map(c => {
         if (c.id === selectedCategory.id) {
           return { ...c, options: [...(c.options || []), option] };
@@ -341,7 +341,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
 
     try {
       await axios.put(
-        `${API_URL}/api/tech-spec/category/${selectedCategory.id}/option/${editingOption.id}`,
+        `${API_URL}${apiBasePath}/category/${selectedCategory.id}/option/${editingOption.id}`,
         editingOption
       );
       setCategories(prev => prev.map(c => {
@@ -369,7 +369,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
     if (!selectedCategory || !window.confirm('Удалить опцию?')) return;
 
     try {
-      await axios.delete(`${API_URL}/api/tech-spec/category/${selectedCategory.id}/option/${optionId}`);
+      await axios.delete(`${API_URL}${apiBasePath}/category/${selectedCategory.id}/option/${optionId}`);
       setCategories(prev => prev.map(c => {
         if (c.id === selectedCategory.id) {
           return { ...c, options: c.options.filter(o => o.id !== optionId) };
