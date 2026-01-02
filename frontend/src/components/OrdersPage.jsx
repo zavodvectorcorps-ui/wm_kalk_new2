@@ -153,7 +153,11 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       const now = new Date();
       const dateStr = now.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\./g, '-');
       const timeStr = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/:/g, '');
-      const safeName = (order.fullName || 'Klient').replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_') || 'Klient';
+      // Keep alphanumeric, spaces, and common chars; replace spaces with underscore
+      let safeName = (order.fullName || 'Klient').replace(/\s+/g, '_');
+      // Remove characters that might cause issues in filenames
+      safeName = safeName.replace(/[<>:"/\\|?*]/g, '');
+      if (!safeName || safeName === '_') safeName = 'Klient';
       const prefix = isSauna ? 'SAUNA' : 'BALIA';
       const filename = `${prefix}_${safeName}_${dateStr}_${timeStr}.pdf`;
 
