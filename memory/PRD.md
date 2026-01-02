@@ -72,6 +72,10 @@ A full-featured quoting and order management application for Saunas and Balias (
   - Models now have "heater variants" (integrated/external), each with own price, image, and hint
   - Added `HeaterVariant` class to `/app/backend/models/balia.py`
   - Updated `ModelEditDialog` in `BaliaPricingPage.jsx` for variant editing
+- **Feature**: Added bulk price editing for Balia models
+  - Change all prices by percentage (+10%, -5%) or absolute amount (+100 EUR)
+  - Apply to all variants, only integrated, or only external heaters
+  - UI: Orange "Массовое изменение цен" button in Models tab header
 - **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
   - Root cause: Pydantic models didn't support heaterVariants array and string specs
   - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
