@@ -343,6 +343,17 @@ export const useSaunaPricing = () => {
   };
 
   // ========== OPTIONS ==========
+  
+  // Drag-and-drop reorder for options within a category
+  const handleReorderOptions = (categoryId, newOptions) => {
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat =>
+        cat.id === categoryId ? { ...cat, options: newOptions } : cat
+      )
+    }));
+  };
+
   const handleAddOption = async (newOption) => {
     if (!newOption.categoryId || !newOption.name) return false;
     
