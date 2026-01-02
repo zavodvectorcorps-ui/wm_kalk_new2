@@ -39,6 +39,7 @@ export const OrderFullEditModal = ({
   const [saving, setSaving] = useState(false);
   const [availablePrices, setAvailablePrices] = useState(null);
   const [discountMode, setDiscountMode] = useState('percent'); // 'percent' or 'amount'
+  const [discountAmountInput, setDiscountAmountInput] = useState(''); // Store raw input for amount mode
   
   const isSauna = calculatorType === 'sauna';
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
