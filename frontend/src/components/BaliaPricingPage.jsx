@@ -858,7 +858,7 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
         <DialogHeader>
           <DialogTitle>{isNew ? txt.newModel : txt.editModel}</DialogTitle>
           <DialogDescription>
-            Для каждой модели можно задать два варианта печки с разными ценами и фото
+            Настройка вариантов печки, цен и технических характеристик модели
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6 py-4">
