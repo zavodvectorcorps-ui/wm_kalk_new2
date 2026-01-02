@@ -150,7 +150,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
   const handleSaveAll = async () => {
     setSaving(true);
     try {
-      await axios.post(`${API_URL}/api/tech-spec/categories`, { masterCategories, categories });
+      await axios.post(`${API_URL}${apiBasePath}/categories`, { masterCategories, categories });
       toast.success(txt.saved);
     } catch (error) {
       console.error('Error saving:', error);
