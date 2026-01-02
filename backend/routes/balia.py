@@ -900,7 +900,7 @@ async def generate_pdf(request: PDFRequest):
                     try:
                         # Convert relative URL to absolute using API_URL env var or request URL
                         import os
-                        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://saunamanager.preview.emergentagent.com')
+                        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://sauna-quote.preview.emergentagent.com')
                         full_url = f"{base_url}{image_url}"
                         img_data = urllib.request.urlopen(full_url, timeout=10).read()
                         # Check if it's actually image data (not JSON error)

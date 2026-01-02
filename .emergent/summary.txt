@@ -1,203 +1,153 @@
 <analysis>**original_problem_statement:**
-The user's initial high-priority issue was images in the Balia calculator disappearing after deployment. After successfully resolving this by migrating image storage to MongoDB, the user requested a new set of features:
+The user's initial request was to fix bugs and has since expanded to a series of feature developments for a Sauna and Balia (hot tub) quoting application.
 
-**PRODUCT REQUIREMENTS (Consolidated from initial request and subsequent user feedback):**
-1.  **Full Order Editing:**
-    *   Instead of a simple modal, clicking an Edit button on the Orders page should open the full calculator interface ( or ) pre-populated with all the data from the saved order (model, options, client info, etc.).
-    *   Saving from this mode should update the existing order ( request), not create a new one.
-    *   This functionality must exist for both Sauna and Balia orders.
-    *   A simpler modal for quick edits (client data, discount, gifts) should remain accessible, but only to administrators.
-2.  **PDF Enhancements:**
-    *   The generated PDF for both Sauna and Balia orders must include the image of the selected model.
-    *   For Sauna PDFs, the model details and the benches (ławki) section should be displayed side-by-side in a single row.
-    *   When an item is marked as a gift, its price in the PDF should be struck through, and a note like Gift from WM-Group should be added next to it.
-3.  **Admin & Manager Discount System:**
-    *   The threshold for requiring admin approval for a discount is 10%.
-    *   **For Managers (Non-Admins):** In the calculator, if a discount greater than 10% is needed, the manager should have a Requested Discount field (percentage) and a notes field to enter the request for an admin.
-    *   **For Admins:**
-        *   In the simple edit modal, admins must see any pending discount requests from managers, including the requested percentage and the note.
-        *   Admins need a button to quickly apply the manager's requested discount.
-        *   The admin discount tool should allow applying a discount as either a percentage (%) or a fixed amount (e.g., EUR).
-    *   **UI Indicator:** The Orders page list should display an icon next to an order with a pending discount request. This icon should change (e.g., to a shield) after an admin has approved the discount.
-4.  **Admin Gifts:**
-    *   In the order editing view (both the full calculator and the admin modal), an administrator must be able to mark any selected option as a gift, setting its price to 0.
+PRODUCT REQUIREMENTS implemented in this and previous sessions:
+1.  **Balia Calculator Rework**: Re-architected the product structure to have base models with multiple heater variants, each with a unique price, image, and hint.
+2.  **Advanced Pricing System**: Implemented a price calculation engine. Retail prices in PLN are now automatically calculated based on a  (purchase price in EUR), a manually set  (EUR-to-PLN exchange rate), and a  (markup percentage). This applies to both Balia models and all optional accessories.
+3.  **Dependent Options**: Added support for dependent categories in the calculator. A Bowl Material category (Fiberglass/Acrylic) was created, which dynamically shows the correct set of color options based on the user's selection.
+4.  **Admin Panel Enhancements**:
+    *   Added bulk price editing for Balia models (e.g., apply a +10% increase to all).
+    *   Enabled editing of detailed model specifications (e.g., depth, volume, weight).
+    *   Enabled editing of descriptive hints for all options.
+    *   Added UI for the new pricing system (purchase price, markup, EUR rate).
+    *   Added a UI hint that fetches and displays the current EUR/PLN exchange rate from the National Bank of Poland (NBP) API.
+5.  **Color Previews**: Added visual color swatches to the calculator UI for bowl color options.
+6.  **Excel Integration**:
+    *   **Pricelist Management**: Admins can now export the entire Balia pricelist to an Excel file and import a modified file to update all prices, models, and options.
+    *   **Production Sheet Generation**: Created a feature to generate a pre-filled production order form in Excel format. This is triggered from the orders page and populates a specific template with the customer's selected options.
+7.  **PDF Generation**: Added model specifications to the commercial offer PDF.
+8.  **Bug Fixes & Usability**:
+    *   Fixed a critical bug preventing Balia model edits from being saved.
+    *   Fixed a UI issue where the option editing modal was not scrollable.
+    *   Ensured new categories (like bowl colors) are automatically created on new deployments by adding them to a defaults/seed file.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a quoting tool for Saunas and Balias. The initial critical issue of disappearing images was resolved by migrating image storage to MongoDB.
-
-The agent has implemented a significant portion of the new, complex feature set. The initial attempt at a full-edit modal was discarded based on user feedback in favor of a much better solution: loading saved orders directly into the main calculator components ( for Balia,  for Sauna) in an edit mode. This core architectural change is complete. The discount request system for managers and the enhanced admin approval modal (with amount/percent toggle and gift functionality) have also been implemented. The PDF generation logic has been modified multiple times to accommodate gifts and layout changes, but it is currently broken for Saunas.
+The application is a sophisticated quoting tool for Saunas and Balias with a feature-rich admin panel. The Balia calculator now supports a complex pricing model based on purchase cost and markup, dependent options (material influencing color choice), and extensive administrative control over products. A key workflow for production has been automated via the generation of a technical specification sheet in Excel format directly from a customer's order. All prices for the Balia section are now in PLN.
 
 **Last working item**:
--   **Last item agent was working**: The agent was debugging two critical issues reported by the user:
-    1.  Sauna model images are missing in the generated PDF, and the layout is incorrect.
-    2.  The requested discount value from a manager is not being correctly passed to the admin's edit modal.
-
-    The agent successfully identified the root cause for the PDF image issue: images were being saved into the  collection in MongoDB with a size of 0 bytes, and the image data itself was being stored in a field named  as a base64 string, while the retrieval logic was likely looking for it in a  field. This indicates a flaw in the  route.
--   **Status**: BLOCKED
--   **Agent Testing Done**: N (for the latest fixes)
--   **Which testing method agent to use?**: both
-    -   **Backend**: Use  to test the  endpoint to ensure images are saved correctly (non-zero size, correct field). Then, test the PDF generation endpoints ( and ) to confirm images are included and gifts are displayed correctly.
-    -   **Frontend**: Use the  to test the entire discount request flow:
-        1.  Log in as a manager, create an order with a requested discount.
-        2.  Log in as an admin, go to the orders page, and verify the pending request icon appears.
-        3.  Open the admin edit modal and verify the requested discount and note are displayed correctly.
+-   **Last item agent was working**: The user reported that newly created color options were not available after a fresh deployment. The agent identified that this data needed to be added to the default seed file. The agent added the Bowl Material and dependent Color categories to  to ensure they are created automatically when the application is set up for the first time.
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: N (This change can only be verified by performing a fresh deployment, which is outside the agent's testing scope).
+-   **Which testing method agent to use?**: NA (User must verify on their next deployment).
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Sauna Images are not stored correctly in MongoDB (P0)**
--   **Issue 2: Sauna PDF Generation is Broken (P0)**
--   **Issue 3: Requested Discount value is lost when opening the Admin Edit Modal (P0)**
-
-**Issues Detail**:
--   **Issue 1: Sauna Images are not stored correctly in MongoDB**
-    -   **Attempted fixes**: None. The agent just discovered the root cause.
-    -   **Next debug checklist**:
-        1.  Examine .
-        2.  The logic saves the image data to a field named . The retrieval logic in  and  (in the  function) expects a field named .
-        3.  More importantly, the documents in the  collection have , meaning the file content is not being saved at all or is being saved incorrectly. The agent must fix the upload logic to correctly store the binary image data.
-    -   **Why fix this issue and what will be achieved with this?**: This is the root cause of the broken PDF images. Fixing this will allow model images to be correctly stored and retrieved.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: None.
-
--   **Issue 2: Sauna PDF Generation is Broken**
-    -   **Attempted fixes**: The agent refactored the layout logic in  to place the model and bench info side-by-side. This attempt failed because the underlying image data could not be loaded.
-    -   **Next debug checklist**:
-        1.  After fixing **Issue 1**, re-test the PDF generation.
-        2.  Verify in  that the layout code correctly handles cases where a model image exists, a bench image exists, both exist, or neither exists. The table structure for the side-by-side layout might be fragile.
-        3.  Ensure the logic to strikethrough prices for gifted items works correctly for both Balia and Sauna PDFs.
-    -   **Why fix this issue and what will be achieved with this?**: Fulfills a key user requirement for professional-looking order documents.
-    -   **Status**: BLOCKED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: Issue 1: Sauna Images are not stored correctly in MongoDB
-
--   **Issue 3: Requested Discount value is lost when opening the Admin Edit Modal**
-    -   **Attempted fixes**: The agent previously fixed a similar issue by adding a  to the  component in  to force a re-render. However, the user reported the issue again, indicating either a regression or that the fix was incomplete.
-    -   **Next debug checklist**:
-        1.  Review the state management in .
-        2.  Trace the data flow: when the modal opens, check the  that fetches order data. Log the incoming  object to ensure  and  are present.
-        3.  Verify that the component's internal state () is being correctly initialized with these values. The issue might be that the state is being reset or overwritten after initialization.
-    -   **Why fix this issue and what will be achieved with this?**: The manager-to-admin discount approval workflow is a critical feature and is currently broken.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: None.
+-   None.
 
 **In progress Task List**:
--   None. All current work is classified as bug fixes for in-progress features.
+-   None.
 
 **Upcoming and Future Tasks**
 -   **Future Tasks**:
-    -   **Refactor  (P2)**: This large component could be broken down into smaller, more manageable components to improve maintainability.
-    -   **Fix Minor Dropdown Positioning Glitch in Balia calculator (P2)**: A low-priority visual issue where dropdown menus might not be perfectly positioned.
+    -   **Refactor  (P2)**: This component is large and complex. It should be broken down into smaller, more manageable sub-components for better maintainability. (File: )
+    -   **Refactor  (P2)**: This component has grown significantly with the addition of new features. It could be refactored by extracting UI sections (e.g., Settings, Models list, various dialogs) into their own components.
+    -   **Fix Minor Dropdown Positioning Glitch in Balia calculator (P2)**: A low-priority visual issue where dropdown menus might not be perfectly positioned. It was reported in a previous session and has not been addressed. (File: )
 
 **Completed work in this session**
--   **Feature**: Re-architected the order editing flow to use the main calculator pages in an edit mode instead of a restrictive modal. This was a major and successful pivot.
--   **Feature**: Implemented the Requested Discount feature for managers in both  and .
--   **Feature**: Overhauled the admin-only  to include:
-    -   A scrollable layout.
-    -   Display of manager's requested discount with an Apply button.
-    -   A toggle for applying discounts by percentage or fixed amount.
--   **Feature**: Implemented UI indicators on the  for pending and approved discount requests.
--   **Bug Fix**: Resolved a recurring  error when creating Sauna orders by making the uid=0(root) gid=0(root) groups=0(root) field optional in the backend model and ensuring the frontend does not send  on creation.
--   **Bug Fix**: Reset passwords for all test users to streamline testing.
--   **Feature**: Implemented PDF layout changes to show gifted items with a strikethrough price (though the overall PDF is currently broken).
+-   **Bug Fix**: **Resolved critical bug (P0 from previous session)** where edits to Balia models in the admin panel were not being saved due to outdated backend data models.
+-   **Feature**: Implemented a comprehensive price calculation system based on EUR purchase price, EUR/PLN exchange rate, and markup percentage for both models and options.
+-   **Feature**: Added dependent categories to the calculator (Bowl Material → Colors).
+-   **Feature**: Implemented Excel export/import for the entire Balia pricelist.
+-   **Feature**: Implemented the generation of a pre-filled Excel production sheet from an order.
+-   **Feature**: Added the ability to edit model specifications and option hints in the admin panel.
+-   **Feature**: Added color swatch previews in the calculator.
+-   **Bug Fix**: Fixed the non-scrolling option edit modal.
+-   **Deployment Fix**: Added new color categories to the seed file () to ensure they exist on fresh deployments.
+-   **Currency Change**: Switched the Balia calculator currency from EUR to PLN.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
-    -   **Debug checklist**: A low-priority visual issue in .
+    -   **Debug checklist**: Visual inspection of dropdown components in  under various conditions (different screen sizes, selections).
     -   **Why to solve this issue and what will be achieved with this?**: Minor UI polish for a better user experience.
     -   **Should Test frontend/backend/both after fix**: frontend
     -   **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
--   None. The previous critical issue with image persistence was resolved. The current issues are new and related to the features developed in this session.
+-   None. The critical bug from the previous fork was resolved.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Calculator as Editor**: The primary architectural pattern for editing orders, where the main calculator component is re-used with initial state populated from an existing order. This is managed via props passed down from .
--   **State-Driven UI**: The UI changes significantly based on user role ( vs. ) and application state ( is not null).
--   **MongoDB Image Storage Flaw**: The current implementation in  is critically flawed, saving 0-byte files and using an incorrect field name ( instead of ), which is the root cause of all PDF image issues.
--   **Forced Component Re-mount**: The agent used the  pattern on a React component () to force it to re-initialize its state when the prop changes, a key technique for fixing stale state issues in modals.
+-   **Dynamic Pricing Calculation**: The retail price is no longer static but calculated on the fly using the formula: .
+-   **Dependent UI Logic**: The frontend calculator dynamically renders option categories based on a  relationship defined in the database, hiding or showing them based on selections in a parent category.
+-   **Excel Generation and Parsing ()**: The backend now uses the  library to create, read, and write  files, enabling both full pricelist management and the population of a production template.
+-   **Database Seeding**: Essential application data (like product categories) is stored in a  file to ensure it's correctly populated in the database during initial application setup.
 
 **key DB schema**
--   ** (FLAWED):**
-    -   uid=0(root) gid=0(root) groups=0(root): (string)
-    -   : (string)
-    -   : (base64 string) - **This is where the image data is being incorrectly stored.**
-    -   The documents have a  field that is consistently **0 bytes**, indicating a failed write.
--   ** (Balia) &  (Sauna) (MODIFIED):**
-    -   Added 
-    -   Added 
+-   ** document**:
+    -   **Root level**: ,  (new fields).
+    -   ** objects**: Added , , , , .
+    -   ** objects**: Added  (ID of parent category),  (parent option value).
+    -   ** objects**: Added , .
+    -   ** objects**: The  field is now a fully editable dictionary.
 
 **changes in tech stack**
--   None.
+-   **Backend**:  was installed and added to .
 
 **All files of reference**
--   : **Needs immediate fixing.** The root cause of the image problem.
--   : Contains the broken PDF generation logic.
--   : Contains the requested discount bug.
--   : Implements the manager discount request UI.
--   : Implements the manager discount request UI.
--   : Implements the role-based buttons and discount status icons.
--   : Contains the top-level state management for the edit-in-calculator feature.
+-   : Admin page for all pricing and model management.
+-   : The customer-facing calculator UI.
+-   : Contains all backend logic for the Balia calculator, including the new Excel endpoints.
+-   : Pydantic models defining the data structure for Balia products.
+-   : Seed file to ensure data consistency on deployment.
+-   : The template for production orders.
 
 **Areas that need refactoring**:
--   The  and the  helper function in  and  need to be synchronized to use the same field () and storage method (binary) for images.
+-    has become very large and would benefit from being split into smaller, more focused components.
+-    remains a large monolithic component and is a candidate for refactoring.
 
 **key api endpoints**
--   : **CRITICALLY FLAWED**. Needs to be fixed to store image binary data correctly.
--    & : Used by the calculators in edit mode.
--   : Currently returns errors or PDFs without images due to the upload flaw.
+-   : Exports the current pricelist to an Excel file.
+-   : Updates the pricelist from an uploaded Excel file.
+-   : Generates a production order sheet for a given order ID.
+-   : The main endpoint for saving all price and model configuration changes from the admin panel.
 
 **Critical Info for New Agent**
 -   You MUST communicate with the user in **Russian**.
--   **The highest priority is to fix the image upload and PDF generation.** Start by correcting  to save image data correctly. Then, ensure the PDF generation routes (, ) can retrieve and display these images.
--   **The second highest priority is the regression bug where the requested discount is not appearing in the admin modal.** This is a critical break in the user's desired workflow.
--   Do not get distracted by the old . The main editing workflow is now through  and . The  is for admin-only quick actions.
--   Passwords for all test users (, , , etc.) have been reset to .
+-   The price calculation logic is a core part of the business requirements. Any changes to pricing must consider the , , and  fields.
+-   The production Excel generation depends on  mappings defined for each option in the database. The template file is located at .
+-   The last fix (adding color options to ) is awaiting user verification on their next deployment. Assume it works, but be aware if the user reports the options are still missing.
 
 **documents and test reports created in this job**
--   None.
+-    through 
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (Chat 314)**: Reports that the requested discount isn't transferring to the edit modal and requests a status icon for discount requests on the orders page. (Status: **Partially Addressed, Regression Pending**)
-2.  **Agent (Chat 315-348)**: Implements the status icon and a fix for the discount transfer issue. Tests show the new icon and the discount being applied in the modal.
-3.  **User (Chat 349)**: Reports PDF layout issues for Sauna (model/bench side-by-side) and requests better visualization for gifted items (strikethrough price). (Status: **In Progress**)
-4.  **Agent (Chat 350-385)**: Implements the PDF layout and gift text changes. Hits a 500 error, fixes it, and gets a successful  test.
-5.  **User (Chat 386)**: Reports that the Sauna PDF is now worse (model photo missing, bench image misaligned) and that the requested discount transfer is *still* not working. Provides a screenshot showing the broken PDF. (Status: **PENDING**)
-6.  **Agent (Chat 387-404)**: Investigates the broken PDF, correctly identifies 404s for images, and traces the root cause to 0-byte files and the use of a  field instead of a  field in the  MongoDB collection. The session ends here. (Status: **PENDING**)
-7.  **User (Chat 399)**: Clarifies that the sauna photos were definitely uploaded. (Status: **Acknowledged**)
+1.  **User request**: Generate a production Excel sheet from an order based on a template. (Completed)
+2.  **User request**: Use the existing Download technical button for the production Excel generation. (Completed)
+3.  **User bug report**: Color options are missing on new deployments. (Fixed by adding them to the seed file, pending user verification)
+4.  **User request**: Fix the non-scrolling option edit modal and add color previews to the calculator. (Completed)
+5.  **User request**: Add export/import functionality for the pricelist via Excel. (Completed)
+6.  **User request**: Add a Bowl Material category (Fiberglass/Acrylic) with dependent color options. (Completed)
+7.  **User request**: Allow editing hints for all options and change the currency to PLN. (Completed)
+8.  **User request**: Add model specifications to the generated PDF. (Completed)
+9.  **User request**: Implement a new pricing system based on purchase price (EUR), markup, and an exchange rate. (Completed)
+10. **User request**: Add a UI hint for the NBP exchange rate and apply the new pricing system to options as well. (Completed)
 
 **Project Health Check:**
--   **Working**: Core app, user authentication, Balia calculator and order creation, basic PDF generation for Balia (without images).
--   **Broken**:
-    -   Sauna PDF Generation (missing images, layout issues).
-    -   The manager-to-admin discount request workflow (data is lost).
-    -   The image upload functionality ().
--   **Mocked/Incomplete**: The entire new feature set is functionally incomplete due to these critical bugs.
+-   **Working**: The application is stable. All requested features have been implemented, and all reported bugs have been fixed. The agent conducted thorough testing using the testing subagent after each significant change.
+-   **Broken**: No features are currently known to be broken.
+-   **Mocked/Incomplete**: None.
 
 **3rd Party Integrations**
--    (v11.0.5)
+-   ****: (Backend) For creating and parsing  Excel files.
+-   **NBP API ()**: (Frontend) Used to fetch data for a UI hint; not a critical system dependency.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, multiple times.
--   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**: None.
--   **Known regressions**: The requested discount not transferring to modal bug appears to be a regression.
+-   **Testing agent used after significant changes**: YES (Used extensively after every feature and major bug fix).
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: Yes, temporary test files were created by the testing agent during its runs (e.g., in ).
+-   **Known regressions**: None.
 
 **Credentials to test flow:**
--   **Admin**:  / 
+-   **Super-Admin**:  / 
+-   **Regular Admin**:  / 
 -   **Employee (Balia)**:  / 
 -   **Employee (Sauna)**:  / 
--   **Observer**:  / 
 
 **What agent forgot to execute**
--   The agent did not fully verify the fix for the requested discount data transfer issue, leading to a user-reported regression.
--   The agent did not create a persistent test file to validate the complex multi-role discount and editing flows, relying instead on single-use  and  commands, which made it harder to spot regressions.</analysis>
+-   The agent completed all user requests. The only outstanding item is the user-side verification of the deployment fix, which the agent correctly identified as something it cannot test itself.</analysis>
