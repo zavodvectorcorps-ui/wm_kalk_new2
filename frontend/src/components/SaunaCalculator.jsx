@@ -609,8 +609,15 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      const currentDate = new Date().toLocaleDateString('pl-PL').replace(/\./g, '-');
-      link.setAttribute('download', `Oferta_${formData.fullName.replace(/\s+/g, '_')}_${currentDate}.pdf`);
+      
+      // Generate filename: SAUNA_ClientName_Date_Time
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\./g, '-');
+      const timeStr = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/:/g, '');
+      const safeName = formData.fullName.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_') || 'Klient';
+      const filename = `SAUNA_${safeName}_${dateStr}_${timeStr}.pdf`;
+      
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
