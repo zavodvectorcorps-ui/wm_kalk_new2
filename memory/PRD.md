@@ -108,6 +108,13 @@ A full-featured quoting and order management application for Saunas and Balias (
   - Color picker in OptionEditDialog for easy color selection
   - Special CSS effects in calculator: glitter gradients, marble texture, pearl shimmer, galaxy stars, snowflake frost
 - **Bug Fix**: Fixed OptionEditDialog scroll (added max-h-[90vh] overflow-y-auto)
+- **Feature**: Excel Export/Import for price list (2 Jan 2025)
+  - Export: Downloads `cennik_balia_YYYY-MM-DD.xlsx` with 3 sheets
+    - Modele: ID, names, heater type, purchase EUR, markup %, price PLN, color HEX
+    - Opcje: category, option, names, purchase EUR, markup %, price PLN, color HEX
+    - Ustawienia: currency, symbol, EUR rate, default markup %
+  - Import: Uploads Excel, updates prices in DB, shows success counts
+  - UI: Green section in Settings tab with Export/Import buttons
 - **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
   - Root cause: Pydantic models didn't support heaterVariants array and string specs
   - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
