@@ -295,6 +295,14 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
     let total = 0;
     
     prices.categories?.forEach(category => {
+      // Skip dependent categories that should be hidden
+      if (category.dependsOn && category.dependsOnValue) {
+        const parentValue = formData.selections[category.dependsOn];
+        if (parentValue !== category.dependsOnValue) {
+          return; // Skip this category
+        }
+      }
+      
       const selection = formData.selections[category.id];
       
       if (category.inputType === 'checkbox') {
