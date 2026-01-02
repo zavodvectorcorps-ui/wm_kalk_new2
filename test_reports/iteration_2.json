@@ -1,0 +1,67 @@
+{
+  "summary": "Bug fix verification complete: 422 Unprocessable Content error when saving Balia prices with heaterVariants is FIXED. All 10 backend API tests pass. Frontend UI testing confirms model editing with heaterVariants works correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/test_balia_prices.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "HeaterVariant class properly defined with type, price, imageUrl, hint, hintPl fields",
+    "BaliaModel correctly includes heaterVariants: Optional[List[HeaterVariant]] = []",
+    "ModelSpec uses Any type for flexible string/int values like '200cm'",
+    "ConfigDict(extra='allow') properly set on BaliaModel and ModelSpec for flexibility"
+  ],
+  "updated_files": [
+    "/app/tests/test_balia_prices.py"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 tests passed)",
+    "frontend": "100% - Model edit dialog with heaterVariants works"
+  },
+  "test_credentials": {
+    "admin_user": "admin",
+    "admin_password": "220066"
+  },
+  "seed_data_creation": "No seed data created - used existing Balia models with heaterVariants",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "422 bug is fixed. Balia pricing with heaterVariants fully functional. Test file /app/tests/test_balia_prices.py covers: GET/POST /api/prices, heaterVariants structure, string specs support, extra fields handling.",
+  "tests_performed": {
+    "backend_api_tests": {
+      "test_get_prices_returns_200": "PASS - GET /api/prices returns 200 with models and categories",
+      "test_get_prices_models_have_heater_variants": "PASS - Models contain heaterVariants array with integrated/external types",
+      "test_get_prices_model_specs_support_string_values": "PASS - Specs support string values like '200cm'",
+      "test_post_prices_with_heater_variants_no_422": "PASS - CRITICAL: POST with heaterVariants does NOT return 422",
+      "test_post_prices_with_string_specs_no_422": "PASS - POST with string specs works",
+      "test_post_prices_persists_heater_variants": "PASS - heaterVariants price changes persist after save",
+      "test_post_prices_with_extra_fields_allowed": "PASS - Extra fields accepted (ConfigDict extra='allow')",
+      "test_empty_heater_variants_array": "PASS - Empty heaterVariants array accepted",
+      "test_heater_variant_with_all_optional_fields": "PASS - Full heaterVariant with all fields accepted",
+      "test_model_with_null_specs": "PASS - Model with null specs accepted"
+    },
+    "frontend_ui_tests": {
+      "login": "PASS - Admin login with admin/220066 works",
+      "admin_panel_navigation": "PASS - Navigate to Admin Panel via Wybierz button",
+      "cennik_tab": "PASS - Cennik (Prices) tab accessible",
+      "balie_pricing": "PASS - Balie pricing page shows models with heaterVariants",
+      "model_edit_dialog": "PASS - Edit dialog shows 'Варианты печки' section with integrated/external options",
+      "price_modification": "PASS - Can modify heaterVariant prices in dialog",
+      "save_functionality": "PASS - Save All button works without 422 error"
+    }
+  },
+  "bug_fix_verification": {
+    "original_issue": "422 Unprocessable Content when saving Balia prices with heaterVariants",
+    "root_cause": "Pydantic models did not support: 1) heaterVariants array in BaliaModel, 2) string values in ModelSpec fields",
+    "fix_applied": "Added HeaterVariant class, updated ModelSpec with Any type, added ConfigDict(extra='allow')",
+    "verification_status": "FIXED - All tests pass, no 422 errors"
+  }
+}
