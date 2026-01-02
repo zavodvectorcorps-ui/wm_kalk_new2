@@ -1005,7 +1005,12 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                           {category.options?.map(option => (
                             <SelectItem key={option.id} value={option.id}>
                               <div className="flex items-center gap-2">
-                                {option.imageUrl && (
+                                {option.colorPreview ? (
+                                  <div 
+                                    className="w-5 h-5 rounded border border-gray-300 flex-shrink-0"
+                                    style={{ backgroundColor: option.colorPreview }}
+                                  />
+                                ) : option.imageUrl && (
                                   <img 
                                     src={getImageUrl(option.imageUrl)} 
                                     alt={getOptionName(option)}
