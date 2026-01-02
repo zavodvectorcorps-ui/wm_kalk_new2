@@ -191,7 +191,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
     if (!editingMaster) return;
 
     try {
-      await axios.put(`${API_URL}/api/tech-spec/master-category/${editingMaster.id}`, editingMaster);
+      await axios.put(`${API_URL}${apiBasePath}/master-category/${editingMaster.id}`, editingMaster);
       setMasterCategories(prev => prev.map(m => m.id === editingMaster.id ? editingMaster : m));
       setEditingMaster(null);
       toast.success(txt.saved);
@@ -205,7 +205,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
     if (!window.confirm('Удалить главную категорию? Подкатегории будут отвязаны.')) return;
 
     try {
-      await axios.delete(`${API_URL}/api/tech-spec/master-category/${masterId}`);
+      await axios.delete(`${API_URL}${apiBasePath}/master-category/${masterId}`);
       setMasterCategories(prev => prev.filter(m => m.id !== masterId));
       setCategories(prev => prev.map(c => 
         c.masterCategoryId === masterId ? { ...c, masterCategoryId: null } : c
@@ -219,7 +219,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
 
   const handleMoveMaster = async (masterId, direction) => {
     try {
-      await axios.post(`${API_URL}/api/tech-spec/master-category/${masterId}/move?direction=${direction}`);
+      await axios.post(`${API_URL}${apiBasePath}/master-category/${masterId}/move?direction=${direction}`);
       fetchData();
     } catch (error) {
       console.error('Error moving master:', error);
