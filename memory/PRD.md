@@ -89,6 +89,12 @@ A full-featured quoting and order management application for Saunas and Balias (
 - **Feature**: Changed currency from EUR to PLN (Polish złoty)
   - Currency symbol: zł
   - All prices now displayed in PLN
+- **Feature**: Added EUR→PLN pricing calculation system
+  - Settings: EUR exchange rate (eurRate), default markup percent (defaultMarkupPercent)
+  - Model variants: purchasePriceEur, markupPercent per heater variant
+  - Formula: Закупка (EUR) × Курс × (1 + Наценка%) = Розничная цена (PLN)
+  - "Пересчитать все цены" button to recalculate all retail prices at once
+  - Example: 300 EUR × 4.30 × 1.30 = 1677 PLN
 - **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
   - Root cause: Pydantic models didn't support heaterVariants array and string specs
   - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
