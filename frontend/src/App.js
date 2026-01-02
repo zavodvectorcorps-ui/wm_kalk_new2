@@ -47,6 +47,17 @@ const AppContent = () => {
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = texts[lang];
 
+  // Check for embed URL - show public calculator without auth
+  const isEmbed = window.location.pathname.startsWith('/embed');
+  if (isEmbed) {
+    return (
+      <>
+        <EmbedBaliaCalculator />
+        <Toaster position="top-center" richColors />
+      </>
+    );
+  }
+
   // Show loading state
   if (loading) {
     return (
