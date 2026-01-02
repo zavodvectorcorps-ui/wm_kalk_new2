@@ -894,6 +894,179 @@ export const BaliaPricingPage = () => {
           </Card>
         </TabsContent>
 
+        {/* Excel Mapping Tab */}
+        <TabsContent value="excel">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5" />
+                {lang === 'ru' ? 'Маппинг Excel' : 'Mapowanie Excel'}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {lang === 'ru' 
+                  ? 'Настройте соответствие между ID моделей/опций и ячейками Excel для технического задания'
+                  : 'Skonfiguruj mapowanie ID modeli/opcji do komórek Excel dla specyfikacji technicznej'}
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Excel Template Info */}
+              {excelTemplate && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                  <p className="font-medium text-blue-800">
+                    {lang === 'ru' ? 'Шаблон Excel' : 'Szablon Excel'}: {excelTemplate.maxRow} {lang === 'ru' ? 'строк' : 'wierszy'}, {excelTemplate.maxCol} {lang === 'ru' ? 'столбцов' : 'kolumn'}
+                  </p>
+                  <p className="text-blue-600 text-xs mt-1">
+                    {lang === 'ru' 
+                      ? 'Ячейки с данными доступны в выпадающем списке'
+                      : 'Komórki z danymi dostępne w rozwijanym menu'}
+                  </p>
+                </div>
+              )}
+
+              {/* Models Mapping */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">
+                  {lang === 'ru' ? 'Модели купелей' : 'Modele bali'}
+                </h3>
+                <div className="space-y-2">
+                  {prices.models?.map(model => (
+                    <div key={model.id} className="border rounded-lg p-3 bg-muted/30">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex-1 min-w-[200px]">
+                          <span className="font-medium">{getName(model)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-muted-foreground">ID:</Label>
+                          <Input
+                            value={model.id || ''}
+                            onChange={(e) => handleUpdateModelId(model.id, e.target.value)}
+                            className="w-32 h-8 text-xs font-mono"
+                            disabled={!canEdit()}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
+                          <Select
+                            value={model.excelCell || ''}
+                            onValueChange={(value) => handleUpdateModelExcelCell(model.id, value)}
+                            disabled={!canEdit()}
+                          >
+                            <SelectTrigger className="w-24 h-8">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">—</SelectItem>
+                              {excelTemplate?.cells?.map(cell => (
+                                <SelectItem key={cell.cell} value={cell.cell}>
+                                  {cell.cell} ({cell.value.substring(0, 15)})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {/* Heater Variants */}
+                      {model.heaterVariants?.length > 0 && (
+                        <div className="mt-3 pl-4 border-l-2 border-amber-300 space-y-2">
+                          <p className="text-xs text-muted-foreground font-medium">
+                            {lang === 'ru' ? 'Варианты печи:' : 'Warianty pieca:'}
+                          </p>
+                          {model.heaterVariants.map((hv, idx) => (
+                            <div key={idx} className="flex items-center gap-4 flex-wrap bg-amber-50 p-2 rounded">
+                              <span className="text-sm">{hv.type === 'integrated' ? (lang === 'ru' ? 'Встроенная' : 'Zintegrowany') : (lang === 'ru' ? 'Внешняя' : 'Zewnętrzny')}</span>
+                              <div className="flex items-center gap-2">
+                                <Label className="text-xs text-muted-foreground">ID:</Label>
+                                <Input
+                                  value={hv.id || `${model.id}_${hv.type}`}
+                                  onChange={(e) => handleUpdateHeaterVariantId(model.id, idx, e.target.value)}
+                                  className="w-40 h-7 text-xs font-mono"
+                                  disabled={!canEdit()}
+                                  placeholder={`${model.id}_${hv.type}`}
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
+                                <Select
+                                  value={hv.excelCell || ''}
+                                  onValueChange={(value) => handleUpdateHeaterVariantExcelCell(model.id, idx, value)}
+                                  disabled={!canEdit()}
+                                >
+                                  <SelectTrigger className="w-24 h-7">
+                                    <SelectValue placeholder="—" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="">—</SelectItem>
+                                    {excelTemplate?.cells?.map(cell => (
+                                      <SelectItem key={cell.cell} value={cell.cell}>
+                                        {cell.cell} ({cell.value.substring(0, 15)})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Options Mapping */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">
+                  {lang === 'ru' ? 'Опции по категориям' : 'Opcje wg kategorii'}
+                </h3>
+                {prices.categories?.map(category => (
+                  <div key={category.id} className="border rounded-lg p-3">
+                    <h4 className="font-medium text-sm mb-2 text-primary">{getName(category)}</h4>
+                    <div className="space-y-1">
+                      {category.options?.map(option => (
+                        <div key={option.id} className="flex items-center gap-4 flex-wrap py-1 px-2 bg-muted/30 rounded">
+                          <span className="flex-1 min-w-[150px] text-sm">{getName(option)}</span>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">ID:</Label>
+                            <Input
+                              value={option.id || ''}
+                              onChange={(e) => handleUpdateOptionId(category.id, option.id, e.target.value)}
+                              className="w-32 h-7 text-xs font-mono"
+                              disabled={!canEdit()}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
+                            <Select
+                              value={option.excelCell || ''}
+                              onValueChange={(value) => handleUpdateOptionExcelCell(category.id, option.id, value)}
+                              disabled={!canEdit()}
+                            >
+                              <SelectTrigger className="w-24 h-7">
+                                <SelectValue placeholder="—" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">—</SelectItem>
+                                {excelTemplate?.cells?.map(cell => (
+                                  <SelectItem key={cell.cell} value={cell.cell}>
+                                    {cell.cell} ({cell.value.substring(0, 15)})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Customer Fields Tab */}
         <TabsContent value="customer">
           <CustomerFieldsManager calculatorType="balia" />
