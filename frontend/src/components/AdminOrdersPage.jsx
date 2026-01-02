@@ -450,7 +450,7 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
         order={editOrder}
-        isSauna={editOrder?._type === 'sauna'}
+        calculatorType={editOrder?._type === 'sauna' ? 'sauna' : 'balia'}
         onSaved={handleOrderSaved}
       />
     </div>
