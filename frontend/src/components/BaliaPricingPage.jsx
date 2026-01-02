@@ -13,7 +13,8 @@ import { Switch } from './ui/switch';
 import { Badge } from './ui/badge';
 import { 
   DollarSign, Save, Loader2, Plus, Trash2, Edit2, 
-  Image as ImageIcon, Upload, X, Eye, Droplets, Package, Settings, User, CheckCircle
+  Image as ImageIcon, Upload, X, Eye, Droplets, Package, Settings, User, CheckCircle,
+  Download, FileSpreadsheet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
