@@ -1573,6 +1573,32 @@ const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, tx
               onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
             />
           </div>
+          
+          {/* Color Preview for color options */}
+          <div className="space-y-2">
+            <Label>Превью цвета (HEX)</Label>
+            <div className="flex items-center gap-3">
+              <Input 
+                value={formData.colorPreview || ''} 
+                onChange={(e) => setFormData({ ...formData, colorPreview: e.target.value })}
+                placeholder="#FFFFFF"
+                className="flex-1"
+              />
+              {formData.colorPreview && (
+                <div 
+                  className="w-10 h-10 rounded border-2 border-gray-300 shadow-inner"
+                  style={{ backgroundColor: formData.colorPreview }}
+                />
+              )}
+              <input
+                type="color"
+                value={formData.colorPreview || '#FFFFFF'}
+                onChange={(e) => setFormData({ ...formData, colorPreview: e.target.value })}
+                className="w-10 h-10 rounded cursor-pointer border-0"
+              />
+            </div>
+          </div>
+          
           <div className="space-y-2">
             <Label>Подсказка (RU)</Label>
             <Input 
