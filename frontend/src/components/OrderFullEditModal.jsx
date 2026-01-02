@@ -216,6 +216,9 @@ export const OrderFullEditModal = ({
   
   // Handle discount amount change (admin only)
   const handleDiscountAmountChange = (value) => {
+    // Store raw input value for display
+    setDiscountAmountInput(value);
+    
     const amount = Math.max(0, parseFloat(value) || 0);
     const { subtotal } = calculateTotals(formData);
     
