@@ -1019,23 +1019,13 @@ export const BaliaPricingPage = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
-                            <Select
-                              value={option.excelCell || '__none__'}
-                              onValueChange={(value) => handleUpdateOptionExcelCell(category.id, option.id, value === '__none__' ? '' : value)}
+                            <Input
+                              value={option.excelCell || ''}
+                              onChange={(e) => handleUpdateOptionExcelCell(category.id, option.id, e.target.value.toUpperCase())}
+                              className="w-20 h-7 text-xs font-mono text-center"
+                              placeholder="np. D10"
                               disabled={!canEdit()}
-                            >
-                              <SelectTrigger className="w-24 h-7">
-                                <SelectValue placeholder="—" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">—</SelectItem>
-                                {excelTemplate?.cells?.map(cell => (
-                                  <SelectItem key={cell.cell} value={cell.cell}>
-                                    {cell.cell} ({cell.value.substring(0, 15)})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            />
                           </div>
                         </div>
                       ))}
