@@ -406,8 +406,12 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         responseType: 'blob'
       });
       
-      // Use order ID as filename
-      const filename = `${orderId}.pdf`;
+      // Generate filename: BALIA_ClientName_Date_Time
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\./g, '-');
+      const timeStr = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/:/g, '');
+      const safeName = formData.fullName.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_') || 'Klient';
+      const filename = `BALIA_${safeName}_${dateStr}_${timeStr}.pdf`;
       
       // Download the PDF
       const blob = new Blob([response.data], { type: 'application/pdf' });
