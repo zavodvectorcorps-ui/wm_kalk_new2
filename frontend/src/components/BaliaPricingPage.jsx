@@ -395,7 +395,7 @@ export const BaliaPricingPage = () => {
                       {model.imageUrl ? (
                         <div className="relative">
                           <img 
-                            src={getFullImageUrl(model.imageUrl)} 
+                            src={getFullImageUrl(model.heaterVariants?.[0]?.imageUrl || model.imageUrl)} 
                             alt={getName(model)} 
                             className="w-full h-32 object-contain rounded bg-gray-50"
                           />
@@ -418,34 +418,38 @@ export const BaliaPricingPage = () => {
                       
                       <div>
                         <h3 className="font-semibold">{getName(model)}</h3>
-                        <p className="text-lg font-bold text-blue-600">{model.basePrice} {prices.currencySymbol}</p>
-                        <Badge variant="outline" className="mt-1">
-                          {model.heaterType === 'external' ? txt.external : txt.integrated}
-                        </Badge>
+                        {/* Show both heater variant prices if available */}
+                        {model.heaterVariants?.length > 0 ? (
+                          <div className="space-y-1 mt-1">
+                            {model.heaterVariants.map(v => (
+                              <div key={v.type} className="flex items-center gap-2 text-sm">
+                                <Badge variant={v.type === 'integrated' ? 'default' : 'outline'} className="text-xs">
+                                  {v.type === 'integrated' ? 'Встр.' : 'Внеш.'}
+                                </Badge>
+                                <span className="font-bold text-blue-600">{v.price} {prices.currencySymbol}</span>
+                                {v.imageUrl && <CheckCircle className="h-3 w-3 text-green-500" />}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-lg font-bold text-blue-600">{model.basePrice} {prices.currencySymbol}</p>
+                            <Badge variant="outline" className="mt-1">
+                              {model.heaterType === 'external' ? txt.external : txt.integrated}
+                            </Badge>
+                          </>
+                        )}
                       </div>
                       
                       {canEdit() && (
                         <div className="flex gap-2">
-                          <label className="flex-1">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => handleImageUpload(e, 'model', model.id)}
-                            />
-                            <Button variant="outline" size="sm" className="w-full" asChild>
-                              <span>
-                                <Upload className="h-3 w-3 mr-1" />
-                                {txt.uploadImage}
-                              </span>
-                            </Button>
-                          </label>
                           <Button 
                             variant="outline" 
                             size="sm"
                             onClick={() => setEditModelDialog({ open: true, model, isNew: false })}
                           >
-                            <Edit2 className="h-3 w-3" />
+                            <Edit2 className="h-3 w-3 mr-1" />
+                            Редактировать
                           </Button>
                           <Button 
                             variant="outline" 
