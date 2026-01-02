@@ -503,5 +503,6 @@ export const useSaunaPricing = () => {
     handleSaveEditOption,
     handleUpdateOptionPrice,
     handleToggleOptionQuantity,
+    handleReorderOptions,
   };
 };
