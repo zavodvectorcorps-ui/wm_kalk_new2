@@ -106,6 +106,7 @@ export const BaliaPricingPage = () => {
 
   useEffect(() => {
     fetchPrices();
+    fetchNbpRate();
   }, []);
 
   const fetchPrices = async () => {
@@ -117,6 +118,21 @@ export const BaliaPricingPage = () => {
       toast.error(txt.error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNbpRate = async () => {
+    try {
+      const response = await fetch('https://api.nbp.pl/api/exchangerates/rates/a/eur/?format=json');
+      const data = await response.json();
+      if (data.rates && data.rates[0]) {
+        setNbpRate({
+          rate: data.rates[0].mid,
+          date: data.rates[0].effectiveDate
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching NBP rate:', error);
     }
   };
 
