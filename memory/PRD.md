@@ -5,6 +5,14 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Drag-and-Drop Feature (2026-01-02)
+- **Feature**: Added drag-and-drop for reordering categories and options
+- **Library**: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities
+- **Component**: SortableList (`/app/frontend/src/components/ui/sortable-list.jsx`)
+- **Works in**: Balia (categories + options), Sauna (categories)
+- **UI**: GripVertical icon on left side, shadow on drag
+- **Status**: ✅ Tested and working
+
 ### Category/Option Reordering Feature (2026-01-02)
 - **Feature**: Added up/down arrow buttons to reorder categories and options in admin panel
 - **Location**: BaliaPricingPage.jsx - Kategorie tab
