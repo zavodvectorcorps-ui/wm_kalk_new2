@@ -56,6 +56,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
     fullAddress: '',
     orderDate: new Date().toISOString().split('T')[0],
     selectedModel: '',
+    selectedHeaterType: 'integrated', // New: heater type selection
     selections: {},
     notes: '',
   });
