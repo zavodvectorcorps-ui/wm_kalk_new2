@@ -223,6 +223,18 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
     return model.imageUrl || '';
   };
   
+  // Get hint based on heater selection
+  const getModelHint = (model) => {
+    if (!model) return '';
+    // If model has heater variants, get hint from selected variant first
+    if (model.heaterVariants?.length > 0) {
+      const variant = model.heaterVariants.find(v => v.type === formData.selectedHeaterType);
+      if (variant?.hint) return variant.hint;
+    }
+    // Fallback to model's general hint
+    return model.hint || '';
+  };
+  
   // Get price based on heater selection
   const getModelPrice = (model) => {
     if (!model) return 0;
