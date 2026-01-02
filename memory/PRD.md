@@ -57,7 +57,7 @@ A full-featured quoting and order management application for Saunas and Balias (
 - PDF filename format: `{TYPE}_{ClientName}_{OrderID}.pdf`
 - Image lazy loading and PDF compression
 
-### Session 2 - Refactoring & TechSpec Integration (Current)
+### Session 2 - Refactoring & TechSpec Integration
 - Added TechSpec tab to Admin Panel (5 tabs total)
 - Added project type selector (Sauna/Balia) to TechSpec tab
 - Created backend for Balia tech specs (`/api/balia-tech-spec`)
@@ -66,6 +66,20 @@ A full-featured quoting and order management application for Saunas and Balias (
   - `OrderFilters` component
   - `OrdersPagination` component
 - Code reduction: ~1285 lines → reusable components
+
+### Session 3 - Balia Model Structure Overhaul & Bug Fixes (2 Jan 2025)
+- **Major**: Rearchitected Balia product selection in calculator and admin panel
+  - Models now have "heater variants" (integrated/external), each with own price, image, and hint
+  - Added `HeaterVariant` class to `/app/backend/models/balia.py`
+  - Updated `ModelEditDialog` in `BaliaPricingPage.jsx` for variant editing
+- **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
+  - Root cause: Pydantic models didn't support heaterVariants array and string specs
+  - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
+- **Bug Fix**: Fixed order duplication when editing (was creating new instead of updating)
+- **Bug Fix**: Fixed 404 error when saving edited Sauna orders from Admin Panel
+- **Bug Fix**: Fixed "0" appearing in total price column on orders page
+- **Bug Fix**: Fixed discount amount input stuck in calculation loop
+- **Security**: Changed super-admin password from `159357` to `220066`
 
 ## File Structure
 
