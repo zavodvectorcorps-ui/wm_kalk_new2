@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Eye, Flame, Search, Trash2, Gift, Percent, Wrench, Download, Edit, Shield, Calculator, Waves } from 'lucide-react';
+import { Eye, Flame, Search, Trash2, Gift, Percent, Wrench, Download, Edit, Shield, Calculator, Waves, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { TechSpecModal } from './tech-spec';
