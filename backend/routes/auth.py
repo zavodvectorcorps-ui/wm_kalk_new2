@@ -121,8 +121,8 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
         update_data["access"] = user_data.access
     
     if user_data.role:
-        if user_data.role not in ["employee", "observer"]:
-            raise HTTPException(status_code=400, detail="Role must be 'employee' or 'observer'")
+        if user_data.role not in ["admin", "employee", "observer"]:
+            raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee' or 'observer'")
         update_data["role"] = user_data.role
     
     if update_data:
