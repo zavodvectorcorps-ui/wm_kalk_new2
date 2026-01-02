@@ -689,20 +689,32 @@ export const BaliaPricingPage = () => {
   );
 };
 
-// Model Edit Dialog Component
+// Model Edit Dialog Component with Heater Variants
 const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySymbol }) => {
   const [formData, setFormData] = useState(model || {});
   const [uploading, setUploading] = useState(false);
+  const [uploadingVariant, setUploadingVariant] = useState(null);
   
   useEffect(() => {
-    setFormData(model || {});
+    // Initialize heaterVariants if not present
+    if (model) {
+      const data = { ...model };
+      if (!data.heaterVariants || data.heaterVariants.length === 0) {
+        // Convert old format to new format
+        data.heaterVariants = [
+          { type: 'integrated', price: data.basePrice || 0, imageUrl: data.imageUrl || '' },
+          { type: 'external', price: data.basePrice || 0, imageUrl: '' }
+        ];
+      }
+      setFormData(data);
+    }
   }, [model]);
 
-  const handleUpload = async (e) => {
+  const handleVariantImageUpload = async (e, variantType) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
+    setUploadingVariant(variantType);
     const formDataUpload = new FormData();
     formDataUpload.append('file', file);
 
@@ -713,73 +725,213 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
         body: formDataUpload
       });
       const data = await response.json();
-      // Save FULL URL with domain (like in Sauna)
       const fullUrl = `${API_URL}${data.url}`;
-      setFormData(prev => ({ ...prev, imageUrl: fullUrl }));
+      
+      setFormData(prev => ({
+        ...prev,
+        heaterVariants: prev.heaterVariants.map(v => 
+          v.type === variantType ? { ...v, imageUrl: fullUrl } : v
+        )
+      }));
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
-      setUploading(false);
+      setUploadingVariant(null);
     }
+  };
+
+  const updateVariantPrice = (variantType, price) => {
+    setFormData(prev => ({
+      ...prev,
+      heaterVariants: prev.heaterVariants.map(v => 
+        v.type === variantType ? { ...v, price: parseFloat(price) || 0 } : v
+      )
+    }));
+  };
+
+  const removeVariantImage = (variantType) => {
+    setFormData(prev => ({
+      ...prev,
+      heaterVariants: prev.heaterVariants.map(v => 
+        v.type === variantType ? { ...v, imageUrl: '' } : v
+      )
+    }));
   };
 
   if (!model) return null;
 
+  const integratedVariant = formData.heaterVariants?.find(v => v.type === 'integrated') || { type: 'integrated', price: 0, imageUrl: '' };
+  const externalVariant = formData.heaterVariants?.find(v => v.type === 'external') || { type: 'external', price: 0, imageUrl: '' };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isNew ? txt.newModel : txt.editModel}</DialogTitle>
+          <DialogDescription>
+            Для каждой модели можно задать два варианта печки с разными ценами и фото
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          {/* Image upload with BaliaImageUploader */}
-          <BaliaImageUploader
-            value={formData.imageUrl || ''}
-            onChange={(url) => setFormData({ ...formData, imageUrl: url })}
-            label={txt.image}
-          />
-          
+        <div className="space-y-6 py-4">
+          {/* Basic Model Info */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{txt.nameRu}</Label>
+              <Input 
+                value={formData.nameRu || ''} 
+                onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
+                placeholder="Круглая 200см"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{txt.namePl}</Label>
+              <Input 
+                value={formData.namePl || ''} 
+                onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
+                placeholder="Okrągła 200cm"
+              />
+            </div>
+          </div>
+
+          {/* Hint field */}
           <div className="space-y-2">
-            <Label>{txt.nameRu}</Label>
+            <Label>Подсказка / Hint</Label>
             <Input 
-              value={formData.nameRu || ''} 
-              onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
+              value={formData.hint || ''} 
+              onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
+              placeholder="Дополнительная информация о модели"
             />
           </div>
-          <div className="space-y-2">
-            <Label>{txt.namePl}</Label>
-            <Input 
-              value={formData.namePl || ''} 
-              onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{txt.basePrice} ({currencySymbol})</Label>
-            <Input 
-              type="number"
-              value={formData.basePrice || 0} 
-              onChange={(e) => setFormData({ ...formData, basePrice: parseFloat(e.target.value) || 0 })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{txt.heaterType}</Label>
-            <Select 
-              value={formData.heaterType || 'external'} 
-              onValueChange={(v) => setFormData({ ...formData, heaterType: v })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="external">{txt.external}</SelectItem>
-                <SelectItem value="integrated">{txt.integrated}</SelectItem>
-              </SelectContent>
-            </Select>
+
+          {/* Heater Variants Section */}
+          <div className="border rounded-lg p-4 bg-orange-50 space-y-4">
+            <h3 className="font-semibold text-orange-800 flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Варианты печки
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {/* Integrated Heater Variant */}
+              <div className="border rounded-lg p-3 bg-white space-y-3">
+                <h4 className="font-medium text-sm">Встроенная печь (Zintegrowany)</h4>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">Цена ({currencySymbol})</Label>
+                  <Input 
+                    type="number"
+                    value={integratedVariant.price || 0} 
+                    onChange={(e) => updateVariantPrice('integrated', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">Фото</Label>
+                  {integratedVariant.imageUrl ? (
+                    <div className="relative">
+                      <img 
+                        src={integratedVariant.imageUrl} 
+                        alt="Integrated" 
+                        className="w-full h-24 object-contain rounded border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0"
+                        onClick={() => removeVariantImage('integrated')}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="block">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleVariantImageUpload(e, 'integrated')}
+                      />
+                      <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50">
+                        {uploadingVariant === 'integrated' ? (
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-orange-500" />
+                        ) : (
+                          <>
+                            <Upload className="h-6 w-6 mx-auto text-gray-400" />
+                            <span className="text-xs text-gray-500">Загрузить фото</span>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* External Heater Variant */}
+              <div className="border rounded-lg p-3 bg-white space-y-3">
+                <h4 className="font-medium text-sm">Внешняя печь (Zewnętrzny)</h4>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">Цена ({currencySymbol})</Label>
+                  <Input 
+                    type="number"
+                    value={externalVariant.price || 0} 
+                    onChange={(e) => updateVariantPrice('external', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs">Фото</Label>
+                  {externalVariant.imageUrl ? (
+                    <div className="relative">
+                      <img 
+                        src={externalVariant.imageUrl} 
+                        alt="External" 
+                        className="w-full h-24 object-contain rounded border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0"
+                        onClick={() => removeVariantImage('external')}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="block">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleVariantImageUpload(e, 'external')}
+                      />
+                      <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50">
+                        {uploadingVariant === 'external' ? (
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-orange-500" />
+                        ) : (
+                          <>
+                            <Upload className="h-6 w-6 mx-auto text-gray-400" />
+                            <span className="text-xs text-gray-500">Загрузить фото</span>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
-          <Button onClick={() => onSave(formData)}>{txt.save}</Button>
+          <Button onClick={() => {
+            // Set basePrice to first variant price for backwards compatibility
+            const updatedData = {
+              ...formData,
+              basePrice: integratedVariant.price,
+              imageUrl: integratedVariant.imageUrl || externalVariant.imageUrl
+            };
+            onSave(updatedData);
+          }}>{txt.save}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
