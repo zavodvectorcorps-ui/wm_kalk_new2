@@ -1011,6 +1011,135 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
               </div>
             </div>
           </div>
+
+          {/* Specifications Section */}
+          <div className="border rounded-lg p-4 bg-blue-50 space-y-4">
+            <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Спецификации / Specyfikacje
+            </h3>
+            
+            <div className="grid grid-cols-3 gap-3">
+              {/* Dimensions for round tubs */}
+              <div className="space-y-1">
+                <Label className="text-xs">Внешний диаметр</Label>
+                <Input 
+                  value={formData.specs?.outerDiameter || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, outerDiameter: e.target.value }
+                  }))}
+                  placeholder="200cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Внутренний диаметр</Label>
+                <Input 
+                  value={formData.specs?.innerDiameter || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, innerDiameter: e.target.value }
+                  }))}
+                  placeholder="160cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Размеры (ДxШ)</Label>
+                <Input 
+                  value={formData.specs?.dimensions || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, dimensions: e.target.value }
+                  }))}
+                  placeholder="170x200cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Глубина</Label>
+                <Input 
+                  value={formData.specs?.depth || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, depth: e.target.value }
+                  }))}
+                  placeholder="100cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Объём воды</Label>
+                <Input 
+                  value={formData.specs?.volume || formData.specs?.waterCapacity || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, volume: e.target.value, waterCapacity: e.target.value }
+                  }))}
+                  placeholder="1500L"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Кол-во мест</Label>
+                <Input 
+                  type="number"
+                  value={formData.specs?.seats || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, seats: parseInt(e.target.value) || 0 }
+                  }))}
+                  placeholder="6"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Высота общая</Label>
+                <Input 
+                  value={formData.specs?.totalHeight || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, totalHeight: e.target.value }
+                  }))}
+                  placeholder="120cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Мощность печи</Label>
+                <Input 
+                  value={formData.specs?.heaterPower || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, heaterPower: e.target.value }
+                  }))}
+                  placeholder="24kW"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Вес (пустая)</Label>
+                <Input 
+                  value={formData.specs?.weight || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, weight: e.target.value }
+                  }))}
+                  placeholder="350kg"
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
