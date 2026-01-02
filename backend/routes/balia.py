@@ -83,6 +83,256 @@ async def update_prices(prices: PriceData):
     return {"message": "Prices updated successfully"}
 
 
+@router.get("/prices/export")
+async def export_prices():
+    """Export prices to Excel file"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    
+    prices = await db.prices.find_one({"_id": "default"})
+    if not prices:
+        raise HTTPException(status_code=404, detail="Prices not found")
+    
+    wb = Workbook()
+    
+    # Styles
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    section_fill = PatternFill(start_color="D6DCE5", end_color="D6DCE5", fill_type="solid")
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # === Sheet 1: Models ===
+    ws_models = wb.active
+    ws_models.title = "Modele"
+    
+    # Header
+    model_headers = ["ID", "Nazwa (RU)", "Nazwa (PL)", "Typ печi", "Zakup EUR", "Marża %", "Cena PLN", "Kolor HEX"]
+    for col, header in enumerate(model_headers, 1):
+        cell = ws_models.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = thin_border
+    
+    row = 2
+    for model in prices.get('models', []):
+        model_name_ru = model.get('nameRu', model.get('name', ''))
+        model_name_pl = model.get('namePl', model.get('name', ''))
+        
+        for variant in model.get('heaterVariants', []):
+            ws_models.cell(row=row, column=1, value=model.get('id', '')).border = thin_border
+            ws_models.cell(row=row, column=2, value=model_name_ru).border = thin_border
+            ws_models.cell(row=row, column=3, value=model_name_pl).border = thin_border
+            ws_models.cell(row=row, column=4, value=variant.get('type', '')).border = thin_border
+            ws_models.cell(row=row, column=5, value=variant.get('purchasePriceEur', 0)).border = thin_border
+            ws_models.cell(row=row, column=6, value=variant.get('markupPercent', 30)).border = thin_border
+            ws_models.cell(row=row, column=7, value=variant.get('price', 0)).border = thin_border
+            ws_models.cell(row=row, column=8, value=variant.get('colorPreview', '')).border = thin_border
+            row += 1
+    
+    # Auto-width columns
+    for col in range(1, len(model_headers) + 1):
+        ws_models.column_dimensions[chr(64 + col)].width = 15
+    
+    # === Sheet 2: Options ===
+    ws_options = wb.create_sheet("Opcje")
+    
+    option_headers = ["Kategoria ID", "Kategoria (RU)", "Opcja ID", "Opcja (RU)", "Opcja (PL)", "Zakup EUR", "Marża %", "Cena PLN", "Kolor HEX"]
+    for col, header in enumerate(option_headers, 1):
+        cell = ws_options.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = thin_border
+    
+    row = 2
+    for category in prices.get('categories', []):
+        cat_id = category.get('id', '')
+        cat_name_ru = category.get('nameRu', category.get('name', ''))
+        
+        for option in category.get('options', []):
+            ws_options.cell(row=row, column=1, value=cat_id).border = thin_border
+            ws_options.cell(row=row, column=2, value=cat_name_ru).border = thin_border
+            ws_options.cell(row=row, column=3, value=option.get('id', '')).border = thin_border
+            ws_options.cell(row=row, column=4, value=option.get('nameRu', option.get('name', ''))).border = thin_border
+            ws_options.cell(row=row, column=5, value=option.get('namePl', '')).border = thin_border
+            ws_options.cell(row=row, column=6, value=option.get('purchasePriceEur', 0)).border = thin_border
+            ws_options.cell(row=row, column=7, value=option.get('markupPercent', 30)).border = thin_border
+            ws_options.cell(row=row, column=8, value=option.get('price', 0)).border = thin_border
+            ws_options.cell(row=row, column=9, value=option.get('colorPreview', '')).border = thin_border
+            row += 1
+    
+    # Auto-width columns
+    for col in range(1, len(option_headers) + 1):
+        ws_options.column_dimensions[chr(64 + col)].width = 18
+    
+    # === Sheet 3: Settings ===
+    ws_settings = wb.create_sheet("Ustawienia")
+    
+    ws_settings.cell(row=1, column=1, value="Parametr").font = header_font
+    ws_settings.cell(row=1, column=1).fill = header_fill
+    ws_settings.cell(row=1, column=2, value="Wartość").font = header_font
+    ws_settings.cell(row=1, column=2).fill = header_fill
+    
+    settings = [
+        ("Waluta", prices.get('currency', 'PLN')),
+        ("Symbol waluty", prices.get('currencySymbol', 'zł')),
+        ("Kurs EUR", prices.get('eurRate', 4.30)),
+        ("Domyślna marża %", prices.get('defaultMarkupPercent', 30)),
+    ]
+    
+    for row, (param, value) in enumerate(settings, 2):
+        ws_settings.cell(row=row, column=1, value=param).border = thin_border
+        ws_settings.cell(row=row, column=2, value=value).border = thin_border
+    
+    ws_settings.column_dimensions['A'].width = 20
+    ws_settings.column_dimensions['B'].width = 15
+    
+    # Save to buffer
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    
+    filename = f"cennik_balia_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+from fastapi import UploadFile, File
+
+@router.post("/prices/import")
+async def import_prices(file: UploadFile = File(...)):
+    """Import prices from Excel file"""
+    from openpyxl import load_workbook
+    
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are supported")
+    
+    try:
+        contents = await file.read()
+        buffer = io.BytesIO(contents)
+        wb = load_workbook(buffer, read_only=True)
+        
+        # Get current prices
+        prices = await db.prices.find_one({"_id": "default"})
+        if not prices:
+            prices = {}
+        
+        updated_models = 0
+        updated_options = 0
+        updated_settings = 0
+        
+        # === Import Models ===
+        if "Modele" in wb.sheetnames:
+            ws = wb["Modele"]
+            models = prices.get('models', [])
+            
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if not row[0]:  # Skip empty rows
+                    continue
+                    
+                model_id, name_ru, name_pl, heater_type, purchase_eur, markup, price, color = row[:8]
+                
+                # Find and update model
+                for model in models:
+                    if model.get('id') == model_id:
+                        # Update variant
+                        for variant in model.get('heaterVariants', []):
+                            if variant.get('type') == heater_type:
+                                if purchase_eur is not None:
+                                    variant['purchasePriceEur'] = float(purchase_eur or 0)
+                                if markup is not None:
+                                    variant['markupPercent'] = float(markup or 30)
+                                if price is not None:
+                                    variant['price'] = float(price or 0)
+                                if color:
+                                    variant['colorPreview'] = str(color)
+                                updated_models += 1
+                        break
+            
+            prices['models'] = models
+        
+        # === Import Options ===
+        if "Opcje" in wb.sheetnames:
+            ws = wb["Opcje"]
+            categories = prices.get('categories', [])
+            
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if not row[0]:  # Skip empty rows
+                    continue
+                
+                cat_id, cat_name, opt_id, opt_name_ru, opt_name_pl, purchase_eur, markup, price, color = row[:9]
+                
+                # Find and update option
+                for category in categories:
+                    if category.get('id') == cat_id:
+                        for option in category.get('options', []):
+                            if option.get('id') == opt_id:
+                                if purchase_eur is not None:
+                                    option['purchasePriceEur'] = float(purchase_eur or 0)
+                                if markup is not None:
+                                    option['markupPercent'] = float(markup or 30)
+                                if price is not None:
+                                    option['price'] = float(price or 0)
+                                if color:
+                                    option['colorPreview'] = str(color)
+                                updated_options += 1
+                                break
+                        break
+            
+            prices['categories'] = categories
+        
+        # === Import Settings ===
+        if "Ustawienia" in wb.sheetnames:
+            ws = wb["Ustawienia"]
+            
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if not row[0]:
+                    continue
+                    
+                param, value = row[:2]
+                
+                if param == "Waluta":
+                    prices['currency'] = str(value)
+                    updated_settings += 1
+                elif param == "Symbol waluty":
+                    prices['currencySymbol'] = str(value)
+                    updated_settings += 1
+                elif param == "Kurs EUR":
+                    prices['eurRate'] = float(value or 4.30)
+                    updated_settings += 1
+                elif param == "Domyślna marża %":
+                    prices['defaultMarkupPercent'] = float(value or 30)
+                    updated_settings += 1
+        
+        # Save to database
+        await db.prices.update_one(
+            {"_id": "default"},
+            {"$set": prices},
+            upsert=True
+        )
+        
+        return {
+            "message": "Import successful",
+            "updated_models": updated_models,
+            "updated_options": updated_options,
+            "updated_settings": updated_settings
+        }
+        
+    except Exception as e:
+        logger.error(f"Import error: {e}")
+        raise HTTPException(status_code=400, detail=f"Error importing file: {str(e)}")
+
+
 @router.post("/clear-images")
 async def clear_all_images():
     """Clear all image URLs from models and options"""
