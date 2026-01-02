@@ -6,16 +6,19 @@ import uuid
 
 
 class ModelSpec(BaseModel):
-    outerDiameter: Optional[int] = None
-    innerDiameter: Optional[int] = None
-    outerWidth: Optional[int] = None
-    outerLength: Optional[int] = None
-    innerWidth: Optional[int] = None
-    innerLength: Optional[int] = None
-    depth: Optional[int] = 0
-    totalHeight: Optional[int] = 0
-    heaterPower: Optional[int] = 0
-    waterCapacity: Optional[int] = 0
+    """Model specifications - accepts both int and string values like '200cm'."""
+    model_config = ConfigDict(extra="allow")
+    
+    outerDiameter: Optional[Any] = None
+    innerDiameter: Optional[Any] = None
+    outerWidth: Optional[Any] = None
+    outerLength: Optional[Any] = None
+    innerWidth: Optional[Any] = None
+    innerLength: Optional[Any] = None
+    depth: Optional[Any] = 0
+    totalHeight: Optional[Any] = 0
+    heaterPower: Optional[Any] = 0
+    waterCapacity: Optional[Any] = 0
 
 
 class HeaterVariant(BaseModel):
