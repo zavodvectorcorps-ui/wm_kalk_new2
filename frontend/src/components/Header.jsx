@@ -104,7 +104,7 @@ export const Header = ({
                 <FileText className="h-4 w-4" />
                 {t('orders')}
               </Button>
-              {calculatorType === 'balia' && isAdminAuthenticated && (
+              {calculatorType === 'balia' && (
                 <Button
                   variant={activeTab === 'weborders' ? 'default' : 'ghost'}
                   size="sm"

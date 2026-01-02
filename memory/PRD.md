@@ -5,6 +5,16 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Embed Calculator Widget (2026-01-02)
+- **Feature**: Public embeddable calculator for external websites
+- **URL**: `/embed/balia` - no authentication required
+- **Backend**: `/api/public/prices`, `/api/public/web-order` - public endpoints
+- **Admin**: "Internet" tab in Balia navigation for web orders
+- **Orders**: Stored in `web_orders` collection with statuses (new/processing/completed/cancelled)
+- **Notifications**: Sound alert when new orders arrive (30sec polling)
+- **Customer data**: Name, phone, comment
+- **Status**: ✅ Tested (17 backend tests + frontend tests)
+
 ### Excel Mapping Feature (2026-01-02)
 - **Feature**: Added Excel Mapping tab in Balia admin for configuring option → Excel cell mapping
 - **Backend**: `/api/excel-template-structure` endpoint reads production_template.xlsx structure
