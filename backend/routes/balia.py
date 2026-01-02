@@ -488,9 +488,14 @@ async def generate_pdf(request: PDFRequest):
             cat_image_url = cat_info.get('imageUrl', '')
             image_url = opt_image_url or cat_image_url
             
+            logger.info(f"Option {opt_id}: opt_image_url={opt_image_url}, cat_image_url={cat_image_url}, using={image_url}")
+            
             # Load image
             option_img = await load_option_image(image_url)
             img_cell = option_img if option_img else ''
+            
+            if option_img:
+                logger.info(f"Successfully loaded image for option {opt_id}")
             
             if is_gift:
                 # Show as gift with strikethrough price and WM-Group label
