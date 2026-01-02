@@ -1,0 +1,74 @@
+{
+  "summary": "Iteration 14: Testing drag-and-drop functionality for OPTIONS in Sauna admin panel (/admin/prices/sauna → Opcje tab). All features working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_14.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "OptionsTab.jsx correctly uses SortableList component for drag-and-drop",
+    "handleReorderOptions function in useSaunaPricing.js correctly updates state",
+    "GripVertical icons (6-dot pattern) visible on left side of each option",
+    "cursor-grab class applied to drag handles for proper cursor feedback",
+    "SortableList component uses @dnd-kit/core and @dnd-kit/sortable libraries",
+    "Order persistence verified - saved order persists after page reload/re-login"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A - Frontend only testing",
+    "frontend": "100% - All drag-and-drop tests passed"
+  },
+  "test_credentials": {
+    "admin_user": "admin",
+    "admin_password": "220066"
+  },
+  "seed_data_creation": "No seed data created - using existing prices data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Drag-and-drop for OPTIONS in Sauna verified working: 1) GripVertical icons visible on left side of each option in all categories, 2) Options can be dragged to reorder within each category, 3) 'Zapisz wszystkie zmiany' button saves the new order, 4) Order persists after page reload/re-login",
+  "features_verified": {
+    "sauna_options_drag_handles": {
+      "status": "PASS",
+      "details": "Found 56 GripVertical drag handle icons on Sauna Opcje tab - one for each option across all 14 categories"
+    },
+    "sauna_options_drag_and_drop": {
+      "status": "PASS",
+      "details": "Successfully dragged 'Bez pieca' from position 1 to position 7 in 'Piece' category. Also verified swapping first two items."
+    },
+    "sauna_options_save": {
+      "status": "PASS",
+      "details": "'Zapisz wszystkie zmiany' button works - green 'Zapisano!' toast notification displayed"
+    },
+    "sauna_options_order_persistence": {
+      "status": "PASS",
+      "details": "Order persisted after save and re-login. 'Bez pieca' remained at position 7 after new session started."
+    }
+  },
+  "tests_performed": {
+    "frontend_ui_tests": {
+      "test_1_drag_handles_visible": "PASS - Found 56 GripVertical icons and 56 cursor-grab elements on Opcje tab",
+      "test_2_categories_displayed": "PASS - Found 14 category containers (Kolor, Piece, Strona Pieca, Zbiornik na wodę, etc.)",
+      "test_3_drag_and_drop_reorder": "PASS - Dragged 'Bez pieca' from position 1 to position 7 in Piece category",
+      "test_4_save_functionality": "PASS - 'Zapisz wszystkie zmiany' button clicked, 'Zapisano!' toast displayed",
+      "test_5_order_persistence": "PASS - After re-login, order was preserved (Bez pieca at position 7)"
+    }
+  },
+  "technical_implementation": {
+    "library_used": "@dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities",
+    "components": {
+      "SortableList": "/app/frontend/src/components/ui/sortable-list.jsx - Universal sortable list component",
+      "OptionsTab": "/app/frontend/src/components/sauna-pricing/OptionsTab.jsx - Uses SortableList for options",
+      "useSaunaPricing": "/app/frontend/src/components/sauna-pricing/useSaunaPricing.js - handleReorderOptions function"
+    },
+    "drag_activation": "PointerSensor with 8px distance constraint",
+    "visual_feedback": "isDragging state adds shadow-lg and ring-2 ring-primary/20 classes"
+  }
+}
