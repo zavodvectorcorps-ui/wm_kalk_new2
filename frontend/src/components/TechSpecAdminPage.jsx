@@ -248,7 +248,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
     };
 
     try {
-      await axios.post(`${API_URL}/api/tech-spec/category`, category);
+      await axios.post(`${API_URL}${apiBasePath}/category`, category);
       setCategories(prev => [...prev, category]);
       setNewCategory({ name: '', masterCategoryId: '', inputType: 'radio', layout: 'row', displayWidth: 'half', hasImages: false });
       setCategoryDialogOpen(false);
@@ -263,7 +263,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
     if (!editingCategory) return;
 
     try {
-      await axios.put(`${API_URL}/api/tech-spec/category/${editingCategory.id}`, editingCategory);
+      await axios.put(`${API_URL}${apiBasePath}/category/${editingCategory.id}`, editingCategory);
       setCategories(prev => prev.map(c => c.id === editingCategory.id ? editingCategory : c));
       setEditingCategory(null);
       toast.success(txt.saved);
@@ -277,7 +277,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
     if (!window.confirm('Удалить подкатегорию?')) return;
 
     try {
-      await axios.delete(`${API_URL}/api/tech-spec/category/${categoryId}`);
+      await axios.delete(`${API_URL}${apiBasePath}/category/${categoryId}`);
       setCategories(prev => prev.filter(c => c.id !== categoryId));
       if (selectedCategory?.id === categoryId) {
         setSelectedCategory(null);
@@ -291,7 +291,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
 
   const handleMoveCategory = async (categoryId, direction) => {
     try {
-      await axios.post(`${API_URL}/api/tech-spec/category/${categoryId}/move?direction=${direction}`);
+      await axios.post(`${API_URL}${apiBasePath}/category/${categoryId}/move?direction=${direction}`);
       fetchData();
     } catch (error) {
       console.error('Error moving category:', error);
