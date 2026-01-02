@@ -59,6 +59,8 @@ class BaliaModel(BaseModel):
 
 
 class CategoryOption(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    
     id: str
     name: str
     nameRu: Optional[str] = ""
@@ -66,8 +68,12 @@ class CategoryOption(BaseModel):
     price: float
     imageUrl: Optional[str] = ""
     hint: Optional[str] = ""
+    hintPl: Optional[str] = ""
     applicableTo: Optional[str] = None
     sortOrder: int
+    # Pricing calculation fields
+    purchasePriceEur: Optional[float] = 0  # Purchase price in EUR
+    markupPercent: Optional[float] = 30  # Markup percentage
 
 
 class BaliaCategory(BaseModel):
