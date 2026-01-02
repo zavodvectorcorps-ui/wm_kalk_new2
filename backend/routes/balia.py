@@ -817,8 +817,16 @@ async def generate_pdf(request: PDFRequest):
             if specs_lines:
                 specs_text = "<br/><br/><font size='9' color='#6B7280'>" + " | ".join(specs_lines) + "</font>"
         
+        # Get heater type info
+        heater_type = getattr(request, 'heaterType', None) or request.__dict__.get('heaterType', '')
+        heater_type_name = getattr(request, 'heaterTypeName', None) or request.__dict__.get('heaterTypeName', '')
+        if not heater_type_name and heater_type:
+            heater_type_name = 'Piec zintegrowany' if heater_type == 'integrated' else 'Piec zewnętrzny'
+        
+        heater_text = f"<br/><font size='10' color='#059669'><b>Typ pieca: {heater_type_name}</b></font>" if heater_type_name else ""
+        
         model_text = Paragraph(f'''<b><font size="14" color="#1E40AF">WYBRANY MODEL</font></b><br/><br/>
-        <font size="12"><b>{model_name}</b></font><br/><br/>
+        <font size="12"><b>{model_name}</b></font>{heater_text}<br/><br/>
         <font size="11">Cena bazowa: <b>{model_price:,.0f} {currency}</b></font>{specs_text}'''.replace(',', ' '),
         ParagraphStyle('ModelText', fontName='DejaVuSans', fontSize=11, textColor=TEXT_COLOR))
         
