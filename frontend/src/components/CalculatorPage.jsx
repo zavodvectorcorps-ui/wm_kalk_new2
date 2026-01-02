@@ -781,7 +781,16 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
               <CardTitle className="text-blue-700">{t('balia.options')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {prices.categories?.map(category => (
+              {prices.categories?.filter(category => {
+                // Filter dependent categories - show only if parent value matches
+                if (category.dependsOn && category.dependsOnValue) {
+                  const parentValue = formData.selections[category.dependsOn];
+                  if (parentValue !== category.dependsOnValue) {
+                    return false;
+                  }
+                }
+                return true;
+              }).map(category => (
                 <div key={category.id} className="border-b pb-4 last:border-b-0">
                   <div className="flex items-center gap-3 mb-3">
                     {category.imageUrl && (
