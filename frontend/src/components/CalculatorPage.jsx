@@ -882,6 +882,41 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                                   className="w-full h-full object-cover"
                                   loading="eager"
                                 />
+                              ) : option.colorPreview ? (
+                                <div 
+                                  className="w-full h-full flex items-center justify-center relative"
+                                  style={{ backgroundColor: option.colorPreview }}
+                                >
+                                  {/* Glitter effect for special colors */}
+                                  {option.id?.includes('black_gold') && (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/30 via-transparent to-yellow-600/20" />
+                                  )}
+                                  {option.id?.includes('black_pink') && (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-pink-400/30 via-transparent to-pink-600/20" />
+                                  )}
+                                  {option.id?.includes('black_silver') && (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-gray-300/40 via-transparent to-gray-400/30" />
+                                  )}
+                                  {option.id?.includes('marble') && (
+                                    <div className="absolute inset-0 opacity-30" 
+                                         style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")'}} 
+                                    />
+                                  )}
+                                  {option.id?.includes('pearl') && (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-white/20" />
+                                  )}
+                                  {option.id?.includes('galaxy') && (
+                                    <>
+                                      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-blue-900/30 to-indigo-900/50" />
+                                      <div className="absolute w-1 h-1 bg-white rounded-full top-2 left-3 animate-pulse" />
+                                      <div className="absolute w-0.5 h-0.5 bg-white rounded-full top-6 right-4" />
+                                      <div className="absolute w-1 h-1 bg-white rounded-full bottom-3 left-6 animate-pulse" />
+                                    </>
+                                  )}
+                                  {option.id?.includes('snowflake') && (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-100/30 via-white/20 to-cyan-100/30" />
+                                  )}
+                                </div>
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                   <Package className="h-6 w-6 text-gray-400" />
