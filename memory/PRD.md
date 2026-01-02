@@ -92,8 +92,10 @@ A full-featured quoting and order management application for Saunas and Balias (
 - **Feature**: Added EUR→PLN pricing calculation system
   - Settings: EUR exchange rate (eurRate), default markup percent (defaultMarkupPercent)
   - Model variants: purchasePriceEur, markupPercent per heater variant
+  - **Options**: purchasePriceEur, markupPercent per option (same system)
   - Formula: Закупка (EUR) × Курс × (1 + Наценка%) = Розничная цена (PLN)
-  - "Пересчитать все цены" button to recalculate all retail prices at once
+  - "Пересчитать все цены" button recalculates both models AND options
+  - **NBP Rate Hint**: Shows current EUR/PLN rate from Narodowy Bank Polski with "применить" button
   - Example: 300 EUR × 4.30 × 1.30 = 1677 PLN
 - **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
   - Root cause: Pydantic models didn't support heaterVariants array and string specs
