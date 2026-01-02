@@ -12,7 +12,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     access: str  # 'balia', 'sauna', or 'all'
-    role: str = "employee"  # 'employee' or 'observer'
+    role: str = "employee"  # 'admin', 'employee' or 'observer'
 
 
 class UserUpdate(BaseModel):
