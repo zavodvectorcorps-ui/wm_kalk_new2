@@ -947,15 +947,15 @@ export const BaliaPricingPage = () => {
                         <div className="flex items-center gap-2">
                           <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
                           <Select
-                            value={model.excelCell || ''}
-                            onValueChange={(value) => handleUpdateModelExcelCell(model.id, value)}
+                            value={model.excelCell || '__none__'}
+                            onValueChange={(value) => handleUpdateModelExcelCell(model.id, value === '__none__' ? '' : value)}
                             disabled={!canEdit()}
                           >
                             <SelectTrigger className="w-24 h-8">
                               <SelectValue placeholder="—" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">—</SelectItem>
+                              <SelectItem value="__none__">—</SelectItem>
                               {excelTemplate?.cells?.map(cell => (
                                 <SelectItem key={cell.cell} value={cell.cell}>
                                   {cell.cell} ({cell.value.substring(0, 15)})
@@ -988,15 +988,15 @@ export const BaliaPricingPage = () => {
                               <div className="flex items-center gap-2">
                                 <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
                                 <Select
-                                  value={hv.excelCell || ''}
-                                  onValueChange={(value) => handleUpdateHeaterVariantExcelCell(model.id, idx, value)}
+                                  value={hv.excelCell || '__none__'}
+                                  onValueChange={(value) => handleUpdateHeaterVariantExcelCell(model.id, idx, value === '__none__' ? '' : value)}
                                   disabled={!canEdit()}
                                 >
                                   <SelectTrigger className="w-24 h-7">
                                     <SelectValue placeholder="—" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">—</SelectItem>
+                                    <SelectItem value="__none__">—</SelectItem>
                                     {excelTemplate?.cells?.map(cell => (
                                       <SelectItem key={cell.cell} value={cell.cell}>
                                         {cell.cell} ({cell.value.substring(0, 15)})
@@ -1040,15 +1040,15 @@ export const BaliaPricingPage = () => {
                           <div className="flex items-center gap-2">
                             <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
                             <Select
-                              value={option.excelCell || ''}
-                              onValueChange={(value) => handleUpdateOptionExcelCell(category.id, option.id, value)}
+                              value={option.excelCell || '__none__'}
+                              onValueChange={(value) => handleUpdateOptionExcelCell(category.id, option.id, value === '__none__' ? '' : value)}
                               disabled={!canEdit()}
                             >
                               <SelectTrigger className="w-24 h-7">
                                 <SelectValue placeholder="—" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">—</SelectItem>
+                                <SelectItem value="__none__">—</SelectItem>
                                 {excelTemplate?.cells?.map(cell => (
                                   <SelectItem key={cell.cell} value={cell.cell}>
                                     {cell.cell} ({cell.value.substring(0, 15)})
