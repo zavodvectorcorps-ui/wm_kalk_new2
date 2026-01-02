@@ -5,6 +5,13 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Excel Mapping Feature (2026-01-02)
+- **Feature**: Added Excel Mapping tab in Balia admin for configuring option → Excel cell mapping
+- **Backend**: `/api/excel-template-structure` endpoint reads production_template.xlsx structure
+- **Frontend**: New "Excel" tab with editable IDs and cell dropdowns for models, heater variants, and options
+- **Logic**: `generate-production-excel` now uses excelCell from DB instead of hardcoded mapping
+- **Status**: ✅ Tested and working
+
 ### Drag-and-Drop Feature (2026-01-02)
 - **Feature**: Added drag-and-drop for reordering categories and options
 - **Library**: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities
