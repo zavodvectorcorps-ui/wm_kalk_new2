@@ -431,8 +431,8 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
                               PDF
                             </Button>
                             
-                            {/* Tech Spec (Sauna only) */}
-                            {isSauna && (
+                            {/* Tech Spec Button */}
+                            {isSauna ? (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -444,6 +444,16 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
                               >
                                 <Wrench className="h-4 w-4 mr-1" />
                                 {txt.techSpec}
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDownloadTechnical(order)}
+                                data-testid={`admin-techspec-btn-${order.id}`}
+                              >
+                                <FileSpreadsheet className="h-4 w-4 mr-1" />
+                                Excel
                               </Button>
                             )}
                             
