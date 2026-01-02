@@ -36,7 +36,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const UserManagement = () => {
   const { i18n } = useTranslation();
-  const { token } = useAuth();
+  const { token, isSuperAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -44,6 +44,9 @@ export const UserManagement = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({ username: '', password: '', access: 'all', role: 'employee' });
+  
+  // Check if current user is super-admin (can assign admin role)
+  const canAssignAdminRole = isSuperAdmin && isSuperAdmin();
 
   const texts = {
     ru: {
