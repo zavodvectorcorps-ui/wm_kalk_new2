@@ -1354,6 +1354,22 @@ const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, tx
               onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
             />
           </div>
+          <div className="space-y-2">
+            <Label>Подсказка (RU)</Label>
+            <Input 
+              value={formData.hint || ''} 
+              onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
+              placeholder="Описание опции для клиента..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Podpowiedź (PL)</Label>
+            <Input 
+              value={formData.hintPl || ''} 
+              onChange={(e) => setFormData({ ...formData, hintPl: e.target.value })}
+              placeholder="Opis opcji dla klienta..."
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
