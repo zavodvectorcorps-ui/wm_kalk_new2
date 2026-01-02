@@ -150,6 +150,60 @@ export const BaliaPricingPage = () => {
     }
   };
 
+  // Export prices to Excel
+  const handleExport = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/prices/export`, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const filename = `cennik_balia_${new Date().toISOString().slice(0,10)}.xlsx`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(lang === 'ru' ? 'Прайс-лист экспортирован' : 'Cennik wyeksportowany');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error(lang === 'ru' ? 'Ошибка экспорта' : 'Błąd eksportu');
+    }
+  };
+
+  // Import prices from Excel
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await axios.post(`${API_URL}/api/prices/import`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      toast.success(
+        lang === 'ru' 
+          ? `Импортировано: ${response.data.updated_models} моделей, ${response.data.updated_options} опций` 
+          : `Zaimportowano: ${response.data.updated_models} modeli, ${response.data.updated_options} opcji`
+      );
+      
+      // Reload prices
+      fetchPrices();
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error(lang === 'ru' ? 'Ошибка импорта' : 'Błąd importu');
+    }
+    
+    // Reset file input
+    e.target.value = '';
+  };
+
   const handleImageUpload = async (e, type, targetId, categoryId = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
