@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { ClipboardList, BarChart3, DollarSign, Users, Waves, Flame, ArrowLeft } from 'lucide-react';
+import { ClipboardList, BarChart3, DollarSign, Users, Waves, Flame, ArrowLeft, FileText } from 'lucide-react';
 import { AdminOrdersPage } from './AdminOrdersPage';
 import { StatisticsPage } from './StatisticsPage';
 import { BaliaPricingPage } from './BaliaPricingPage';
 import { SaunaPricingPage } from './SaunaPricingPage';
 import { UserManagement } from './UserManagement';
+import { TechSpecAdminPage } from './TechSpecAdminPage';
 
 export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
   const { i18n } = useTranslation();
