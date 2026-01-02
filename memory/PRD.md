@@ -35,11 +35,12 @@ A full-featured quoting and order management application for Saunas and Balias (
 - Admin gifts feature (price = 0 for items)
 - PDF generation with optimized images
 
-### 5. Technical Specifications (Sauna)
-- Master categories management
+### 5. Technical Specifications
+- Master categories management (separate for Sauna and Balia)
 - Subcategories with various input types
 - Options with images and hints
 - Tech spec modal for orders
+- Separate MongoDB collections: `tech_spec_config` (Sauna), `balia_tech_spec_config` (Balia)
 
 ## Tech Stack
 - **Frontend**: React with Shadcn/UI, TailwindCSS
