@@ -19,7 +19,7 @@ A full-featured quoting and order management application for Saunas and Balias (
   - Edit, preview, download PDF, delete actions
 - **Statistics Tab**: Analytics with filters by project type
 - **Prices Tab**: Manage models, categories, and options pricing
-- **TechSpec Tab**: Manage technical specifications for Saunas
+- **TechSpec Tab**: Manage technical specifications with project type selector (Sauna/Balia)
 - **Employees Tab**: User management with role-based access
 
 ### 3. Role-Based Access Control
