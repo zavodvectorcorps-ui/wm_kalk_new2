@@ -81,6 +81,9 @@ export const AuthProvider = ({ children }) => {
 
   const isAdmin = () => user?.role === 'admin';
   
+  // Super-admin is the user with username 'admin'
+  const isSuperAdmin = () => user?.role === 'admin' && user?.username === 'admin';
+  
   const isObserver = () => user?.role === 'observer';
   
   const canEdit = () => user?.role === 'admin' || user?.role === 'employee';
@@ -103,6 +106,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAdmin,
+    isSuperAdmin,
     isObserver,
     canEdit,
     canViewPricing,
