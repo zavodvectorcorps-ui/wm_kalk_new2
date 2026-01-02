@@ -104,6 +104,17 @@ export const Header = ({
                 <FileText className="h-4 w-4" />
                 {t('orders')}
               </Button>
+              {calculatorType === 'balia' && isAdminAuthenticated && (
+                <Button
+                  variant={activeTab === 'weborders' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('weborders')}
+                  className="flex items-center gap-2"
+                >
+                  <Globe className="h-4 w-4" />
+                  {i18n.language === 'pl' ? 'Internet' : 'Интернет'}
+                </Button>
+              )}
               <Button
                 variant={activeTab === 'statistics' ? 'default' : 'ghost'}
                 size="sm"
