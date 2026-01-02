@@ -171,6 +171,9 @@ class Order(BaseModel):
     modelName: Optional[str] = None
     modelPrice: Optional[float] = 0.0
     modelImageUrl: Optional[str] = None  # Store model image URL
+    heaterType: Optional[str] = None  # "integrated" or "external"
+    heaterTypeName: Optional[str] = None  # Display name for heater type
+    selectedHeaterVariantId: Optional[str] = None  # ID for Excel mapping
     selections: Optional[Dict[str, Any]] = {}
     selectedOptions: Optional[List[Dict[str, Any]]] = []
     notes: str = ""
