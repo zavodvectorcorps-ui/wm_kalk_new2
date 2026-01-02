@@ -1,11 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Waves, Flame, ArrowRight, Lock } from 'lucide-react';
+import { Waves, Flame, ArrowRight, Lock, Shield } from 'lucide-react';
 
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
+  const { isAdmin } = useAuth();
 
   const texts = {
     ru: {
@@ -15,6 +17,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       baliaDesc: 'Калькулятор для конфигурации и расчёта стоимости купелей с джакузи',
       saunaTitle: 'Сауна (Sauna)',
       saunaDesc: 'Калькулятор для конфигурации и расчёта стоимости саун',
+      adminTitle: 'Админ панель',
+      adminDesc: 'Управление всеми заказами, статистика и настройки цен',
       select: 'Выбрать',
       comingSoon: 'Скоро',
       noAccess: 'Нет доступа',
@@ -26,6 +30,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       baliaDesc: 'Kalkulator do konfiguracji i wyceny bali z jacuzzi',
       saunaTitle: 'Sauna',
       saunaDesc: 'Kalkulator do konfiguracji i wyceny saun',
+      adminTitle: 'Panel administracyjny',
+      adminDesc: 'Zarządzanie wszystkimi zamówieniami, statystyki i ustawienia cen',
       select: 'Wybierz',
       comingSoon: 'Wkrótce',
       noAccess: 'Brak dostępu',
@@ -37,10 +43,11 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
 
   const canAccessBalia = hasAccess ? hasAccess('balia') : true;
   const canAccessSauna = hasAccess ? hasAccess('sauna') : true;
+  const canAccessAdmin = isAdmin && isAdmin();
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-6xl">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
@@ -52,7 +59,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
         </div>
 
         {/* Calculator Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className={`grid grid-cols-1 gap-6 ${canAccessAdmin ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-4xl mx-auto'}`}>
           {/* Balia Card */}
           <Card 
             className={`group transition-all duration-300 border-2 ${
@@ -138,6 +145,32 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Admin Panel Card - Only visible for admins */}
+          {canAccessAdmin && (
+            <Card 
+              className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-purple-500/50"
+              onClick={() => onSelectCalculator('admin')}
+            >
+              <CardContent className="p-8">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors bg-purple-500/10 group-hover:bg-purple-500/20">
+                    <Shield className="w-10 h-10 text-purple-500" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground mb-3">
+                    {txt.adminTitle}
+                  </h2>
+                  <p className="text-muted-foreground mb-6">
+                    {txt.adminDesc}
+                  </p>
+                  <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-purple-500/50 text-purple-600 hover:bg-purple-500/10 hover:text-purple-600">
+                    {txt.select}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
