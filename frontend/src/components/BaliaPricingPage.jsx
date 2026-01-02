@@ -411,17 +411,28 @@ export const BaliaPricingPage = () => {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{txt.models}</CardTitle>
               {canEdit() && (
-                <Button 
-                  size="sm" 
-                  onClick={() => setEditModelDialog({ open: true, model: {
-                    name: '', nameRu: '', namePl: '', basePrice: 0, imageUrl: '',
-                    heaterType: 'external', type: 'fiberglass', shape: 'round', size: '',
-                    specs: {}
-                  }, isNew: true })}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  {txt.addModel}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setBulkEditDialog({ open: true })}
+                    className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                  >
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    {lang === 'ru' ? 'Массовое изменение цен' : 'Zmiana cen hurtowo'}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setEditModelDialog({ open: true, model: {
+                      name: '', nameRu: '', namePl: '', basePrice: 0, imageUrl: '',
+                      heaterType: 'external', type: 'fiberglass', shape: 'round', size: '',
+                      specs: {}
+                    }, isNew: true })}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {txt.addModel}
+                  </Button>
+                </div>
               )}
             </CardHeader>
             <CardContent>
