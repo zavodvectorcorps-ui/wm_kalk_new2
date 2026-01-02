@@ -406,15 +406,11 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         responseType: 'blob'
       });
       
-      // Generate filename: BALIA_ClientName_Date_Time
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\./g, '-');
-      const timeStr = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/:/g, '');
-      // Keep name with cyrillic/polish chars, just replace spaces and remove unsafe chars
+      // Generate filename: BALIA_ClientName_OrderId
       let safeName = (formData.fullName || 'Klient').replace(/\s+/g, '_');
       safeName = safeName.replace(/[<>:"/\\|?*]/g, '');
       if (!safeName || safeName === '_') safeName = 'Klient';
-      const filename = `BALIA_${safeName}_${dateStr}_${timeStr}.pdf`;
+      const filename = `BALIA_${safeName}_${orderId}.pdf`;
       
       // Download the PDF
       const blob = new Blob([response.data], { type: 'application/pdf' });
