@@ -695,12 +695,13 @@ export const BaliaPricingPage = () => {
             <CardHeader>
               <CardTitle>{txt.settings}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Currency Settings */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{txt.currency}</Label>
                   <Input 
-                    value={prices.currency || 'EUR'} 
+                    value={prices.currency || 'PLN'} 
                     onChange={(e) => setPrices(prev => ({ ...prev, currency: e.target.value }))}
                     disabled={!canEdit()}
                   />
@@ -708,11 +709,87 @@ export const BaliaPricingPage = () => {
                 <div className="space-y-2">
                   <Label>{txt.currencySymbol}</Label>
                   <Input 
-                    value={prices.currencySymbol || '€'} 
+                    value={prices.currencySymbol || 'zł'} 
                     onChange={(e) => setPrices(prev => ({ ...prev, currencySymbol: e.target.value }))}
                     disabled={!canEdit()}
                   />
                 </div>
+              </div>
+
+              {/* EUR Exchange Rate Section */}
+              <Separator />
+              <div className="border rounded-lg p-4 bg-amber-50 space-y-4">
+                <h3 className="font-semibold text-amber-800 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  {lang === 'ru' ? 'Расчёт цен (закупка в EUR)' : 'Kalkulacja cen (zakup w EUR)'}
+                </h3>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>{lang === 'ru' ? 'Курс EUR → PLN' : 'Kurs EUR → PLN'}</Label>
+                    <Input 
+                      type="number"
+                      step="0.01"
+                      value={prices.eurRate || 4.30} 
+                      onChange={(e) => setPrices(prev => ({ ...prev, eurRate: parseFloat(e.target.value) || 4.30 }))}
+                      disabled={!canEdit()}
+                      placeholder="4.30"
+                    />
+                    <p className="text-xs text-muted-foreground">1 EUR = {prices.eurRate || 4.30} PLN</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{lang === 'ru' ? 'Наценка по умолч. (%)' : 'Domyślna marża (%)'}</Label>
+                    <Input 
+                      type="number"
+                      value={prices.defaultMarkupPercent || 30} 
+                      onChange={(e) => setPrices(prev => ({ ...prev, defaultMarkupPercent: parseFloat(e.target.value) || 30 }))}
+                      disabled={!canEdit()}
+                      placeholder="30"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        // Recalculate all retail prices based on purchase prices
+                        const rate = prices.eurRate || 4.30;
+                        const defaultMarkup = prices.defaultMarkupPercent || 30;
+                        
+                        setPrices(prev => ({
+                          ...prev,
+                          models: prev.models.map(model => {
+                            const updatedVariants = model.heaterVariants?.map(v => {
+                              if (v.purchasePriceEur && v.purchasePriceEur > 0) {
+                                const costPln = v.purchasePriceEur * rate;
+                                const markup = v.markupPercent ?? defaultMarkup;
+                                const retailPrice = Math.round(costPln * (1 + markup / 100));
+                                return { ...v, price: retailPrice };
+                              }
+                              return v;
+                            }) || [];
+                            
+                            return {
+                              ...model,
+                              heaterVariants: updatedVariants,
+                              basePrice: updatedVariants[0]?.price || model.basePrice
+                            };
+                          })
+                        }));
+                        toast.success(lang === 'ru' ? 'Цены пересчитаны' : 'Ceny przeliczone');
+                      }}
+                      disabled={!canEdit()}
+                      className="w-full"
+                    >
+                      {lang === 'ru' ? 'Пересчитать все цены' : 'Przelicz wszystkie ceny'}
+                    </Button>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-amber-700">
+                  {lang === 'ru' 
+                    ? 'Формула: Закупка (EUR) × Курс × (1 + Наценка%) = Розничная цена (PLN)' 
+                    : 'Formuła: Zakup (EUR) × Kurs × (1 + Marża%) = Cena detaliczna (PLN)'}
+                </p>
               </div>
             </CardContent>
           </Card>
