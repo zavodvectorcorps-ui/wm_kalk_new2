@@ -76,6 +76,10 @@ A full-featured quoting and order management application for Saunas and Balias (
   - Change all prices by percentage (+10%, -5%) or absolute amount (+100 EUR)
   - Apply to all variants, only integrated, or only external heaters
   - UI: Orange "Массовое изменение цен" button in Models tab header
+- **Feature**: Added specifications editing for Balia models
+  - Edit: outerDiameter, innerDiameter, dimensions, depth, volume, seats, totalHeight, heaterPower, weight
+  - Specs displayed in model cards with emoji indicators (📐📏💧👥)
+  - Blue "Спецификации" section in model edit dialog
 - **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
   - Root cause: Pydantic models didn't support heaterVariants array and string specs
   - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
