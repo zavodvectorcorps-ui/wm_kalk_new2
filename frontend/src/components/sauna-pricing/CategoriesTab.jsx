@@ -16,8 +16,7 @@ export const CategoriesTab = ({
   handleAddCategory,
   handleSaveEditCategory,
   handleDeleteCategory,
-  handleMoveCategoryUp,
-  handleMoveCategoryDown,
+  handleReorderCategories,
   handleCategoryDisplayTypeChange,
 }) => {
   const { canEdit } = useAuth();
