@@ -254,6 +254,30 @@ const AppContent = () => {
     );
   }
 
+  // Admin Panel
+  if (currentCalculator === 'admin' && isAdmin()) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <Header 
+          activeTab={activeTab} 
+          onTabChange={handleTabChange}
+          isAdminAuthenticated={isAdmin()}
+          onAdminLogout={handleLogout}
+          showNavigation={false}
+          showUsers={false}
+          calculatorType="admin"
+        />
+        
+        <AdminPanel 
+          onBackToLanding={handleBackToLanding}
+          onEditInCalculator={handleEditOrderInCalculator}
+        />
+        
+        <Toaster position="top-right" richColors />
+      </div>
+    );
+  }
+
   return null;
 };
 
