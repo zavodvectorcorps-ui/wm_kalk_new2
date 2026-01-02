@@ -80,6 +80,15 @@ A full-featured quoting and order management application for Saunas and Balias (
   - Edit: outerDiameter, innerDiameter, dimensions, depth, volume, seats, totalHeight, heaterPower, weight
   - Specs displayed in model cards with emoji indicators (📐📏💧👥)
   - Blue "Спецификации" section in model edit dialog
+- **Feature**: Added model specs to PDF generation
+  - PDF now shows: Średnica zewnętrzna, Średnica wewnętrzna, Wymiary, Głębokość, Pojemność, Ilość miejsc, Wysokość, Moc pieca, Waga
+  - Specs displayed in Polish language under model name
+- **Feature**: Added hint/hintPl fields for options editing
+  - OptionEditDialog now has "Подсказка (RU)" and "Podpowiedź (PL)" fields
+  - Allows describing options to help customers understand features
+- **Feature**: Changed currency from EUR to PLN (Polish złoty)
+  - Currency symbol: zł
+  - All prices now displayed in PLN
 - **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
   - Root cause: Pydantic models didn't support heaterVariants array and string specs
   - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
