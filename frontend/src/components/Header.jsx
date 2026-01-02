@@ -277,6 +277,17 @@ export const Header = ({
                     {t('pricing')}
                   </Button>
                 )}
+                {calculatorType === 'balia' && isAdminAuthenticated && (
+                  <Button
+                    variant={activeTab === 'embed' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleTabChange('embed')}
+                    className="w-full justify-start gap-2"
+                  >
+                    <Code className="h-4 w-4" />
+                    {i18n.language === 'pl' ? 'Kod' : 'Код'}
+                  </Button>
+                )}
                 {calculatorType === 'sauna' && (isAdminAuthenticated || canViewPricing()) && (
                   <Button
                     variant={activeTab === 'techspec' ? 'default' : 'ghost'}
