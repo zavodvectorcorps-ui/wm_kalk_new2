@@ -1,0 +1,115 @@
+{
+  "summary": "Iteration 16: Testing web orders feature - public embed calculator and admin web orders management. Fixed critical bug: missing 'timezone' import in balia.py causing 500 error on PUT /api/web-orders/{id}. All 17 backend tests pass, all frontend features working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/test_web_orders.py",
+    "/app/test_reports/pytest/pytest_results_iteration16.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fixed bug: 'timezone' was not imported in /app/backend/routes/balia.py line 1202, causing NameError on PUT /api/web-orders/{id} when status changed from 'new'"
+  ],
+  "updated_files": [
+    "/app/backend/routes/balia.py",
+    "/app/tests/test_web_orders.py"
+  ],
+  "success_rate": {
+    "backend": "100% - 17/17 tests passed",
+    "frontend": "100% - All features working"
+  },
+  "test_credentials": {
+    "admin_user": "admin",
+    "admin_password": "220066"
+  },
+  "seed_data_creation": "Created test web orders via /api/public/web-order endpoint during testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Web orders feature fully tested and working. Public calculator at /embed/balia creates orders in web_orders collection. Admin sees 'Internet' tab in Balia navigation. Status change, notes, delete all working.",
+  "features_verified": {
+    "public_prices_api": {
+      "status": "PASS",
+      "endpoint": "GET /api/public/prices",
+      "details": "Returns prices without auth, contains models and categories arrays"
+    },
+    "public_web_order_api": {
+      "status": "PASS",
+      "endpoint": "POST /api/public/web-order",
+      "details": "Creates order without auth, returns orderId starting with WEB-, validates required fields"
+    },
+    "web_orders_list_api": {
+      "status": "PASS",
+      "endpoint": "GET /api/web-orders",
+      "details": "Returns list of web orders sorted by createdAt desc"
+    },
+    "web_order_details_api": {
+      "status": "PASS",
+      "endpoint": "GET /api/web-orders/{id}",
+      "details": "Returns single order, 404 for nonexistent"
+    },
+    "web_order_update_api": {
+      "status": "PASS",
+      "endpoint": "PUT /api/web-orders/{id}",
+      "details": "Updates status and notes, adds processedAt timestamp"
+    },
+    "web_order_delete_api": {
+      "status": "PASS",
+      "endpoint": "DELETE /api/web-orders/{id}",
+      "details": "Deletes order, 404 for nonexistent"
+    },
+    "new_orders_count_api": {
+      "status": "PASS",
+      "endpoint": "GET /api/web-orders/new-count",
+      "details": "Returns count of orders with status='new'"
+    },
+    "embed_calculator_page": {
+      "status": "PASS",
+      "url": "/embed/balia",
+      "details": "Public calculator loads without auth, shows models, heater variants, options, customer form, submits order successfully"
+    },
+    "admin_internet_tab": {
+      "status": "PASS",
+      "details": "Internet tab visible in Balia navigation for admin, shows web orders list with status badges"
+    },
+    "admin_order_details": {
+      "status": "PASS",
+      "details": "Order details dialog shows customer info, model, heater type, total, status selector, manager notes, delete button"
+    },
+    "admin_status_change": {
+      "status": "PASS",
+      "details": "Status dropdown works with options: Nowy, W trakcie, Zakończony, Anulowany. Toast notification on change."
+    },
+    "admin_notes_save": {
+      "status": "PASS",
+      "details": "Manager notes textarea saves with Zapisz button, toast notification on save"
+    }
+  },
+  "bug_fixed": {
+    "issue": "NameError: name 'timezone' is not defined",
+    "location": "/app/backend/routes/balia.py line 1202",
+    "cause": "Missing import of 'timezone' from datetime module",
+    "fix": "Changed 'from datetime import datetime, timedelta' to 'from datetime import datetime, timedelta, timezone'",
+    "impact": "PUT /api/web-orders/{id} was returning 500 error when status changed from 'new'"
+  },
+  "tests_performed": {
+    "backend_pytest": {
+      "total": 17,
+      "passed": 17,
+      "failed": 0,
+      "test_file": "/app/tests/test_web_orders.py"
+    },
+    "frontend_playwright": {
+      "embed_calculator_flow": "PASS - Model selection, heater variant, options, customer form, order submission, success dialog",
+      "admin_web_orders_page": "PASS - Login, navigate to Balia, Internet tab, order list, order details",
+      "admin_status_change": "PASS - Status dropdown, change to 'W trakcie', toast notification",
+      "admin_notes_save": "PASS - Add notes, save, toast notification"
+    }
+  }
+}
