@@ -997,8 +997,13 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     pdf_data = buffer.getvalue()
     buffer.close()
     
-    current_date_file = datetime.now().strftime('%d-%m-%Y')
+    # Generate filename: SAUNA_ClientName_Date_Time
+    current_datetime = datetime.now()
+    date_str = current_datetime.strftime('%d-%m-%Y')
+    time_str = current_datetime.strftime('%H%M%S')
+    
     try:
+        # Sanitize client name for filename (remove special chars, replace spaces with underscore)
         safe_name = ''.join(c for c in request.fullName if c.isascii() and (c.isalnum() or c in '-_. '))
         safe_name = safe_name.replace(' ', '_')
         if not safe_name:
@@ -1006,7 +1011,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     except:
         safe_name = "Klient"
     
-    filename = f"Oferta_{safe_name}_{current_date_file}.pdf"
+    filename = f"SAUNA_{safe_name}_{date_str}_{time_str}.pdf"
     
     return StreamingResponse(
         io.BytesIO(pdf_data),
