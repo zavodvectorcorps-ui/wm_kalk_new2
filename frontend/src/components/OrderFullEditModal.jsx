@@ -536,7 +536,13 @@ export const OrderFullEditModal = ({
                     <Button
                       size="sm"
                       variant={discountMode === 'amount' ? 'default' : 'outline'}
-                      onClick={() => setDiscountMode('amount')}
+                      onClick={() => {
+                        setDiscountMode('amount');
+                        // Initialize amount input with current discount amount
+                        const { subtotal } = calculateTotals(formData);
+                        const currentAmount = subtotal * ((formData.discountPercent || 0) / 100);
+                        setDiscountAmountInput(Math.round(currentAmount).toString());
+                      }}
                       className="flex-1"
                     >
                       <DollarSign className="h-3 w-3 mr-1" />
