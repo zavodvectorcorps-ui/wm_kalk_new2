@@ -130,6 +130,74 @@ default_balia_prices = {
     
     # ========== CATEGORIES ==========
     "categories": [
+        # Bowl Material
+        {
+            "id": "bowl_material",
+            "name": "Bowl Material",
+            "nameRu": "Материал чаши",
+            "namePl": "Materiał wanny",
+            "imageUrl": "",
+            "inputType": "radio",
+            "displayType": "tiles",
+            "sortOrder": 0,
+            "options": [
+                {"id": "fiberglass", "name": "Fiberglass", "nameRu": "Глассфайбер", "namePl": "Włókno szklane", "price": 0, "hint": "Прочный и долговечный материал", "hintPl": "Trwały i wytrzymały materiał", "sortOrder": 0, "purchasePriceEur": 0, "markupPercent": 30},
+                {"id": "acrylic", "name": "Acrylic", "nameRu": "Акрил", "namePl": "Akryl", "price": 0, "hint": "Гладкая поверхность, легкий уход", "hintPl": "Gładka powierzchnia, łatwa pielęgnacja", "sortOrder": 1, "purchasePriceEur": 0, "markupPercent": 30}
+            ]
+        },
+        # Fiberglass Colors (depends on bowl_material=fiberglass)
+        {
+            "id": "fiberglass_color",
+            "name": "Fiberglass Color",
+            "nameRu": "Цвет Глассфайбер",
+            "namePl": "Kolor włókna szklanego",
+            "imageUrl": "",
+            "inputType": "radio",
+            "displayType": "tiles",
+            "sortOrder": 1,
+            "dependsOn": "bowl_material",
+            "dependsOnValue": "fiberglass",
+            "options": [
+                {"id": "fg_white", "name": "White", "nameRu": "Белый", "namePl": "Biały", "price": 0, "sortOrder": 0, "colorPreview": "#FFFFFF"},
+                {"id": "fg_ivory", "name": "Ivory", "nameRu": "Слоновая кость", "namePl": "Kość słoniowa", "price": 0, "sortOrder": 1, "colorPreview": "#FFFFF0"},
+                {"id": "fg_blue", "name": "Blue", "nameRu": "Синий", "namePl": "Niebieski", "price": 0, "sortOrder": 2, "colorPreview": "#4169E1"},
+                {"id": "fg_gray", "name": "Gray", "nameRu": "Серый", "namePl": "Szary", "price": 0, "sortOrder": 3, "colorPreview": "#808080"},
+                {"id": "fg_pearl_red", "name": "Pearl Red", "nameRu": "Перламутровый красный", "namePl": "Perłowy czerwony", "price": 0, "sortOrder": 4, "colorPreview": "#E8A0A0"},
+                {"id": "fg_pearl_blue", "name": "Pearl Blue", "nameRu": "Перламутровый синий", "namePl": "Perłowy niebieski", "price": 0, "sortOrder": 5, "colorPreview": "#A0C4E8"},
+                {"id": "fg_pearl_brown", "name": "Pearl Brown", "nameRu": "Перламутровый коричневый", "namePl": "Perłowy brązowy", "price": 0, "sortOrder": 6, "colorPreview": "#C4A080"},
+                {"id": "fg_pearl_gray", "name": "Pearl Gray", "nameRu": "Перламутровый серый", "namePl": "Perłowy szary", "price": 0, "sortOrder": 7, "colorPreview": "#B8B8B8"},
+                {"id": "fg_pearl_white", "name": "Pearl White", "nameRu": "Перламутровый белый", "namePl": "Perłowy biały", "price": 0, "sortOrder": 8, "colorPreview": "#F8F8FF"},
+                {"id": "fg_galaxy", "name": "Galaxy", "nameRu": "Галактика", "namePl": "Galaktyka", "price": 0, "sortOrder": 9, "colorPreview": "#1a1a2e"},
+                {"id": "fg_snowflake", "name": "Snowflake", "nameRu": "Снежинка", "namePl": "Płatek śniegu", "price": 0, "sortOrder": 10, "colorPreview": "#E8F4F8"},
+                {"id": "fg_emerald", "name": "Emerald", "nameRu": "Изумруд", "namePl": "Szmaragd", "price": 0, "sortOrder": 11, "colorPreview": "#50C878"},
+                {"id": "fg_black_gold", "name": "Black with Gold Glitter", "nameRu": "Черный с золотым блеском", "namePl": "Czarny ze złotym brokatem", "price": 0, "sortOrder": 12, "colorPreview": "#1a1a1a"},
+                {"id": "fg_black_pink", "name": "Black with Pink Glitter", "nameRu": "Черный с розовым блеском", "namePl": "Czarny z różowym brokatem", "price": 0, "sortOrder": 13, "colorPreview": "#1a1a1a"},
+                {"id": "fg_black_silver", "name": "Black with Silver Glitter", "nameRu": "Черный с серебряным блеском", "namePl": "Czarny ze srebrnym brokatem", "price": 0, "sortOrder": 14, "colorPreview": "#1a1a1a"}
+            ]
+        },
+        # Acrylic Colors (depends on bowl_material=acrylic)
+        {
+            "id": "acrylic_color",
+            "name": "Acrylic Color",
+            "nameRu": "Цвет Акрил",
+            "namePl": "Kolor akrylu",
+            "imageUrl": "",
+            "inputType": "radio",
+            "displayType": "tiles",
+            "sortOrder": 2,
+            "dependsOn": "bowl_material",
+            "dependsOnValue": "acrylic",
+            "options": [
+                {"id": "ac_white", "name": "Akril White", "nameRu": "Акрил Белый", "namePl": "Akryl Biały", "price": 0, "sortOrder": 0, "colorPreview": "#FFFFFF"},
+                {"id": "ac_green_marble", "name": "Akril Green Marble", "nameRu": "Акрил Зеленый мрамор", "namePl": "Akryl Zielony marmur", "price": 0, "sortOrder": 1, "colorPreview": "#90EE90"},
+                {"id": "ac_brown_marble", "name": "Akril Brown Marble", "nameRu": "Акрил Коричневый мрамор", "namePl": "Akryl Brązowy marmur", "price": 0, "sortOrder": 2, "colorPreview": "#8B7355"},
+                {"id": "ac_blue_marble", "name": "Akril Blue Marble", "nameRu": "Акрил Синий мрамор", "namePl": "Akryl Niebieski marmur", "price": 0, "sortOrder": 3, "colorPreview": "#87CEEB"},
+                {"id": "ac_white_marble", "name": "Akril White Marble", "nameRu": "Акрил Белый мрамор", "namePl": "Akryl Biały marmur", "price": 0, "sortOrder": 4, "colorPreview": "#F5F5F5"},
+                {"id": "ac_coffee_marble", "name": "Akril Coffee Marble", "nameRu": "Акрил Кофейный мрамор", "namePl": "Akryl Kawowy marmur", "price": 0, "sortOrder": 5, "colorPreview": "#6F4E37"},
+                {"id": "ac_black_marble", "name": "Akril Black Marble", "nameRu": "Акрил Черный мрамор", "namePl": "Akryl Czarny marmur", "price": 0, "sortOrder": 6, "colorPreview": "#2F2F2F"}
+            ]
+        },
+        # Hydromassage
         {
             "id": "hydromassage",
             "name": "Hydromassage",
@@ -138,7 +206,7 @@ default_balia_prices = {
             "imageUrl": "",
             "inputType": "radio",
             "displayType": "dropdown",
-            "sortOrder": 1,
+            "sortOrder": 3,
             "options": [
                 {"id": "none_hydro", "name": "Without hydromassage", "nameRu": "Без гидромассажа", "namePl": "Bez hydromasażu", "price": 0, "hint": "", "sortOrder": 1},
                 {"id": "hydro_6_8", "name": "Hydromassage 1.1kW (6-8 jets)", "nameRu": "Гидромассаж 1.1кВт (6-8 форсунок)", "namePl": "Hydromasaż 1.1kW (6-8 dysz)", "price": 300, "hint": "Гидромассаж 1.1 kW с 6–8 форсунками высокого давления. Дает мощный массаж, помогает снять мышечное напряжение, уменьшить боли, улучшить локальное кровообращение и расслабиться.", "sortOrder": 2},
@@ -153,7 +221,7 @@ default_balia_prices = {
             "imageUrl": "",
             "inputType": "checkbox",
             "displayType": "grid",
-            "sortOrder": 2,
+            "sortOrder": 4,
             "options": [
                 {"id": "air_bubble", "name": "Air bubble 0.7kW (12-18 nozzles)", "nameRu": "Воздушные пузырьки 0.7кВт (12-18 форсунок)", "namePl": "Bąbelki powietrza 0.7kW (12-18 dysz)", "price": 300, "hint": "Воздушный массаж 0.7 kW с 12–18 форсунками. Более мягкий, чем гидромассаж: много пузырьков, эффект невесомости и легкого покалывания по всей поверхности тела.", "sortOrder": 1}
             ]
@@ -166,7 +234,7 @@ default_balia_prices = {
             "imageUrl": "",
             "inputType": "checkbox",
             "displayType": "grid",
-            "sortOrder": 3,
+            "sortOrder": 5,
             "options": [
                 {"id": "led_inside_1", "name": "LED inside (1 pc)", "nameRu": "LED внутри (1 шт)", "namePl": "LED wewnątrz (1 szt)", "price": 50, "hint": "Один RGB‑светильник внутри чаши. 7 цветов (белый, жёлтый, розовый, красный, зелёный, бирюзовый, синий), можно зафиксировать цвет или включить автосмену.", "sortOrder": 1},
                 {"id": "led_inside_2", "name": "LED inside (2 pc)", "nameRu": "LED внутри (2 шт)", "namePl": "LED wewnątrz (2 szt)", "price": 80, "hint": "Два внутренних RGB‑светильника. Подсветка распределяется более равномерно по всей купели, визуально эффектнее в темное время суток.", "sortOrder": 2},
@@ -183,7 +251,7 @@ default_balia_prices = {
             "imageUrl": "",
             "inputType": "radio",
             "displayType": "dropdown",
-            "sortOrder": 4,
+            "sortOrder": 6,
             "options": [
                 {"id": "no_cover", "name": "Without cover", "nameRu": "Без крышки", "namePl": "Bez pokrywy", "price": 0, "hint": "", "applicableTo": "all", "sortOrder": 1},
                 {"id": "cover_200_with_tub", "name": "Cover 200cm (with hottub)", "nameRu": "Крышка 200см (с купелью)", "namePl": "Pokrywa 200cm (z balią)", "price": 100, "hint": "Круглая термокрышка 200 см при заказе вместе с купелью. Удерживает тепло, уменьшает расход дров/электричества и защищает воду от мусора.", "applicableTo": "round_200", "sortOrder": 2},
