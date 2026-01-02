@@ -367,7 +367,7 @@ async def generate_pdf(request: PDFRequest):
         elements.append(model_table)
         elements.append(Spacer(1, 12))
     
-    # ========== SELECTED OPTIONS - Always in Polish ==========
+    # ========== SELECTED OPTIONS WITH IMAGES - Always in Polish ==========
     # Get admin gifts list if available
     admin_gifts = getattr(request, 'adminGifts', []) or []
     
@@ -375,21 +375,75 @@ async def generate_pdf(request: PDFRequest):
         elements.append(Paragraph('<b>WYBRANE OPCJE</b>', section_title_style))
         elements.append(Spacer(1, 6))
         
-        # Load prices from DB to get Polish names
+        # Load prices from DB to get Polish names and images
         prices_data = await db.prices.find_one({"_id": "default"})
         categories_map = {}
         if prices_data:
             for cat in prices_data.get('categories', []):
                 cat_id = cat.get('id')
                 cat_name_pl = cat.get('namePl') or cat.get('name', '')
+                cat_image_url = cat.get('imageUrl', '')
                 options_map = {}
                 for opt in cat.get('options', []):
                     opt_id = opt.get('id')
                     opt_name_pl = opt.get('namePl') or opt.get('name', '')
-                    options_map[opt_id] = opt_name_pl
-                categories_map[cat_id] = {'name': cat_name_pl, 'options': options_map}
+                    opt_image_url = opt.get('imageUrl', '')
+                    options_map[opt_id] = {
+                        'name': opt_name_pl,
+                        'imageUrl': opt_image_url
+                    }
+                categories_map[cat_id] = {
+                    'name': cat_name_pl, 
+                    'imageUrl': cat_image_url,
+                    'options': options_map
+                }
         
-        options_data = [['Kategoria', 'Wybrana opcja', 'Cena']]
+        # Helper function to load and resize option image
+        async def load_option_image(image_url: str, max_width: int = 60, max_height: int = 45):
+            """Load option image from MongoDB or URL"""
+            if not image_url:
+                return None
+            try:
+                img_data = None
+                
+                # Try loading from MongoDB first
+                if '/api/uploads/' in image_url:
+                    img_data = await load_image_from_mongodb(image_url)
+                
+                # Fallback to HTTP download for external URLs
+                if not img_data and image_url.startswith('http'):
+                    try:
+                        img_data = urllib.request.urlopen(image_url, timeout=5).read()
+                    except:
+                        pass
+                
+                if img_data:
+                    # Compress and resize image
+                    img_buffer = io.BytesIO(img_data)
+                    pil_img = PILImage.open(img_buffer)
+                    
+                    # Convert to RGB if necessary
+                    if pil_img.mode in ('RGBA', 'P'):
+                        pil_img = pil_img.convert('RGB')
+                    
+                    # Resize preserving aspect ratio
+                    orig_width, orig_height = pil_img.size
+                    ratio = min(max_width / orig_width, max_height / orig_height)
+                    new_width = int(orig_width * ratio)
+                    new_height = int(orig_height * ratio)
+                    pil_img = pil_img.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
+                    
+                    # Compress
+                    output = io.BytesIO()
+                    pil_img.save(output, format='JPEG', quality=70, optimize=True)
+                    output.seek(0)
+                    
+                    return RLImage(output, width=new_width, height=new_height)
+            except Exception as e:
+                logger.warning(f"Could not load option image: {e}")
+            return None
+        
+        options_data = [['', 'Kategoria', 'Wybrana opcja', 'Cena']]
         total_options_price = 0
         gifts_total = 0
         gift_rows = []  # Track which rows are gifts for styling
@@ -423,13 +477,23 @@ async def generate_pdf(request: PDFRequest):
             else:
                 total_options_price += price
             
-            # Get Polish names from DB, fallback to provided names
+            # Get Polish names and images from DB, fallback to provided names
             cat_info = categories_map.get(cat_id, {})
             cat_name = cat_info.get('name', opt.get('categoryName', ''))
-            opt_name = cat_info.get('options', {}).get(opt_id, opt.get('optionName', '') or opt.get('name', ''))
+            opt_info = cat_info.get('options', {}).get(opt_id, {})
+            opt_name = opt_info.get('name', opt.get('optionName', '') or opt.get('name', ''))
+            
+            # Get image URL - option image first, then category image as fallback
+            opt_image_url = opt_info.get('imageUrl', '')
+            cat_image_url = cat_info.get('imageUrl', '')
+            image_url = opt_image_url or cat_image_url
+            
+            # Load image
+            option_img = await load_option_image(image_url)
+            img_cell = option_img if option_img else ''
             
             if is_gift:
-                # Show as gift with strikethrough price and WM-Group label - use Paragraph for HTML tags
+                # Show as gift with strikethrough price and WM-Group label
                 price_text = f"<strike>{price:,.0f} {currency}</strike><br/>🎁 Prezent od WM-Group".replace(',', ' ')
                 price_cell = Paragraph(price_text, gift_price_style)
                 gift_rows.append(idx + 1)  # +1 because of header row
@@ -437,13 +501,13 @@ async def generate_pdf(request: PDFRequest):
                 price_text = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
                 price_cell = Paragraph(price_text, normal_price_style)
             
-            options_data.append([cat_name, opt_name, price_cell])
+            options_data.append([img_cell, cat_name, opt_name, price_cell])
         
         # Add subtotal row for options
         if total_options_price > 0 or gifts_total > 0:
-            options_data.append(['', 'Opcje razem:', f"+{total_options_price:,.0f} {currency}".replace(',', ' ')])
+            options_data.append(['', '', 'Opcje razem:', f"+{total_options_price:,.0f} {currency}".replace(',', ' ')])
         
-        options_table = Table(options_data, colWidths=[160, 260, 100])
+        options_table = Table(options_data, colWidths=[70, 130, 230, 90])
         
         # Build table style
         table_style = [
