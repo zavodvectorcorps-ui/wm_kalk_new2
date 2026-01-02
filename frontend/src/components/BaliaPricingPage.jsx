@@ -787,6 +787,7 @@ export const BaliaPricingPage = () => {
                         
                         setPrices(prev => ({
                           ...prev,
+                          // Recalculate model prices
                           models: prev.models.map(model => {
                             const updatedVariants = model.heaterVariants?.map(v => {
                               if (v.purchasePriceEur && v.purchasePriceEur > 0) {
@@ -803,7 +804,20 @@ export const BaliaPricingPage = () => {
                               heaterVariants: updatedVariants,
                               basePrice: updatedVariants[0]?.price || model.basePrice
                             };
-                          })
+                          }),
+                          // Recalculate option prices
+                          categories: prev.categories.map(cat => ({
+                            ...cat,
+                            options: cat.options?.map(opt => {
+                              if (opt.purchasePriceEur && opt.purchasePriceEur > 0) {
+                                const costPln = opt.purchasePriceEur * rate;
+                                const markup = opt.markupPercent ?? defaultMarkup;
+                                const retailPrice = Math.round(costPln * (1 + markup / 100));
+                                return { ...opt, price: retailPrice };
+                              }
+                              return opt;
+                            }) || []
+                          }))
                         }));
                         toast.success(lang === 'ru' ? 'Цены пересчитаны' : 'Ceny przeliczone');
                       }}
