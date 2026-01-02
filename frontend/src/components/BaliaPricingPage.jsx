@@ -640,184 +640,145 @@ export const BaliaPricingPage = () => {
               {prices.categories?.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">{txt.noCategories}</p>
               ) : (
-                prices.categories?.map((category, catIndex) => (
-                  <div key={category.id} className="border rounded-lg p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {/* Move buttons */}
-                        {canEdit() && (
-                          <div className="flex flex-col gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              disabled={catIndex === 0}
-                              onClick={() => handleMoveCategory(category.id, 'up')}
-                              title={lang === 'pl' ? 'Przenieś w górę' : 'Переместить вверх'}
-                            >
-                              <ChevronUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              disabled={catIndex === prices.categories.length - 1}
-                              onClick={() => handleMoveCategory(category.id, 'down')}
-                              title={lang === 'pl' ? 'Przenieś w dół' : 'Переместить вниз'}
-                            >
-                              <ChevronDown className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                        {category.imageUrl && (
-                          <img 
-                            src={getFullImageUrl(category.imageUrl)} 
-                            alt={getName(category)}
-                            className="w-12 h-12 object-contain rounded"
-                          />
-                        )}
-                        <div>
-                          <h3 className="font-semibold">{getName(category)}</h3>
-                          <div className="flex items-center gap-2">
+                <SortableList
+                  items={prices.categories || []}
+                  onReorder={handleReorderCategories}
+                  disabled={!canEdit()}
+                  renderItem={(category, catIndex) => (
+                    <div className="border rounded-lg p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {category.imageUrl && (
+                            <img 
+                              src={getFullImageUrl(category.imageUrl)} 
+                              alt={getName(category)}
+                              className="w-12 h-12 object-contain rounded"
+                            />
+                          )}
+                          <div>
+                            <h3 className="font-semibold flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">#{catIndex + 1}</span>
+                              {getName(category)}
+                            </h3>
                             <Badge variant="outline" className="text-xs">
                               {category.inputType === 'checkbox' ? txt.checkbox : txt.dropdown}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">#{catIndex + 1}</span>
                           </div>
                         </div>
-                      </div>
-                      
-                      {canEdit() && (
-                        <div className="flex gap-2">
-                          <label>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => handleImageUpload(e, 'category', category.id)}
-                            />
-                            <Button variant="outline" size="sm" asChild>
-                              <span><Upload className="h-3 w-3" /></span>
-                            </Button>
-                          </label>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setEditCategoryDialog({ open: true, category, isNew: false })}
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => handleDeleteCategory(category.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <Separator />
-                    
-                    {/* Options list */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium text-muted-foreground">{txt.options}</h4>
+                        
                         {canEdit() && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => setEditOptionDialog({ 
-                              open: true, 
-                              categoryId: category.id, 
-                              option: { name: '', nameRu: '', namePl: '', price: 0, imageUrl: '' }, 
-                              isNew: true 
-                            })}
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            {txt.addOption}
-                          </Button>
+                          <div className="flex gap-2">
+                            <label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => handleImageUpload(e, 'category', category.id)}
+                              />
+                              <Button variant="outline" size="sm" asChild>
+                                <span><Upload className="h-3 w-3" /></span>
+                              </Button>
+                            </label>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setEditCategoryDialog({ open: true, category, isNew: false })}
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => handleDeleteCategory(category.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         )}
                       </div>
                       
-                      {category.options?.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-2">{txt.noOptions}</p>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {category.options?.map((option, optIndex) => (
-                            <div key={option.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                              <div className="flex items-center gap-2">
-                                {/* Option move buttons */}
-                                {canEdit() && (
-                                  <div className="flex flex-col gap-0">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-5 w-5 p-0"
-                                      disabled={optIndex === 0}
-                                      onClick={() => handleMoveOption(category.id, option.id, 'up')}
-                                    >
-                                      <ChevronUp className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-5 w-5 p-0"
-                                      disabled={optIndex === category.options.length - 1}
-                                      onClick={() => handleMoveOption(category.id, option.id, 'down')}
-                                    >
-                                      <ChevronDown className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                                {option.imageUrl && (
-                                  <img 
-                                    src={getFullImageUrl(option.imageUrl)} 
-                                    alt={getName(option)}
-                                    className="w-8 h-8 object-contain rounded"
-                                  />
-                                )}
-                                <span className="text-sm">{getName(option)}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-blue-600">
-                                  {option.price > 0 ? `+${option.price} ${prices.currencySymbol}` : '-'}
-                                </span>
-                                {canEdit() && (
-                                  <>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon"
-                                      className="h-6 w-6"
-                                      onClick={() => setEditOptionDialog({ 
-                                        open: true, 
-                                        categoryId: category.id, 
-                                        option, 
-                                        isNew: false 
-                                      })}
-                                    >
-                                      <Edit2 className="h-3 w-3" />
-                                    </Button>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon"
-                                      className="h-6 w-6 text-destructive"
-                                      onClick={() => handleDeleteOption(category.id, option.id)}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                      <Separator />
+                      
+                      {/* Options list */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium text-muted-foreground">{txt.options}</h4>
+                          {canEdit() && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setEditOptionDialog({ 
+                                open: true, 
+                                categoryId: category.id, 
+                                option: { name: '', nameRu: '', namePl: '', price: 0, imageUrl: '' }, 
+                                isNew: true 
+                              })}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              {txt.addOption}
+                            </Button>
+                          )}
                         </div>
-                      )}
+                        
+                        {category.options?.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-2">{txt.noOptions}</p>
+                        ) : (
+                          <SortableList
+                            items={category.options || []}
+                            onReorder={(newOptions) => handleReorderOptions(category.id, newOptions)}
+                            disabled={!canEdit()}
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+                            renderItem={(option) => (
+                              <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                                <div className="flex items-center gap-2">
+                                  {option.imageUrl && (
+                                    <img 
+                                      src={getFullImageUrl(option.imageUrl)} 
+                                      alt={getName(option)}
+                                      className="w-8 h-8 object-contain rounded"
+                                    />
+                                  )}
+                                  <span className="text-sm">{getName(option)}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-blue-600">
+                                    {option.price > 0 ? `+${option.price} ${prices.currencySymbol}` : '-'}
+                                  </span>
+                                  {canEdit() && (
+                                    <>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => setEditOptionDialog({ 
+                                          open: true, 
+                                          categoryId: category.id, 
+                                          option, 
+                                          isNew: false 
+                                        })}
+                                      >
+                                        <Edit2 className="h-3 w-3" />
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon"
+                                        className="h-6 w-6 text-destructive"
+                                        onClick={() => handleDeleteOption(category.id, option.id)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  )}
+                />
               )}
             </CardContent>
           </Card>
