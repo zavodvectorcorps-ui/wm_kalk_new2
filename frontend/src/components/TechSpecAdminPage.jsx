@@ -176,7 +176,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
     };
 
     try {
-      await axios.post(`${API_URL}/api/tech-spec/master-category`, master);
+      await axios.post(`${API_URL}${apiBasePath}/master-category`, master);
       setMasterCategories(prev => [...prev, master]);
       setNewMaster({ name: '' });
       setMasterDialogOpen(false);
