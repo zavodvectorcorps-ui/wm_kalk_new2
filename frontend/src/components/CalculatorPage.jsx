@@ -202,6 +202,39 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   };
 
   const selectedModel = prices.models?.find(m => m.id === formData.selectedModel);
+  
+  // Get selected heater variant for current model
+  const selectedHeaterVariant = selectedModel?.heaterVariants?.find(
+    v => v.type === formData.selectedHeaterType
+  ) || selectedModel?.heaterVariants?.[0];
+  
+  // Get the correct image URL based on heater selection
+  const getModelImageUrl = (model) => {
+    if (!model) return '';
+    // If model has heater variants, get image from selected variant
+    if (model.heaterVariants?.length > 0) {
+      const variant = model.heaterVariants.find(v => v.type === formData.selectedHeaterType);
+      if (variant?.imageUrl) return variant.imageUrl;
+      // Fallback to first variant's image
+      if (model.heaterVariants[0]?.imageUrl) return model.heaterVariants[0].imageUrl;
+    }
+    // Fallback to model's own image
+    return model.imageUrl || '';
+  };
+  
+  // Get price based on heater selection
+  const getModelPrice = (model) => {
+    if (!model) return 0;
+    // If model has heater variants, get price from selected variant
+    if (model.heaterVariants?.length > 0) {
+      const variant = model.heaterVariants.find(v => v.type === formData.selectedHeaterType);
+      if (variant?.price !== undefined) return variant.price;
+      // Fallback to first variant's price
+      if (model.heaterVariants[0]?.price !== undefined) return model.heaterVariants[0].price;
+    }
+    // Fallback to model's base price
+    return model.basePrice || 0;
+  };
 
   const calculateSubtotal = () => {
     let total = selectedModel?.basePrice || 0;
