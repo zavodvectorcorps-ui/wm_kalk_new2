@@ -103,6 +103,11 @@ A full-featured quoting and order management application for Saunas and Balias (
   - acrylic_color: 7 colors (White, Green/Brown/Blue/White/Coffee/Black Marble)
   - Dependent categories: dependsOn + dependsOnValue fields control visibility
   - Color selection resets when material changes; hidden categories excluded from price calculation
+- **Feature**: Color preview system (2 Jan 2025)
+  - colorPreview field (HEX) for options with visual preview
+  - Color picker in OptionEditDialog for easy color selection
+  - Special CSS effects in calculator: glitter gradients, marble texture, pearl shimmer, galaxy stars, snowflake frost
+- **Bug Fix**: Fixed OptionEditDialog scroll (added max-h-[90vh] overflow-y-auto)
 - **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
   - Root cause: Pydantic models didn't support heaterVariants array and string specs
   - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
