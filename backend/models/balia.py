@@ -12,28 +12,42 @@ class ModelSpec(BaseModel):
     outerLength: Optional[int] = None
     innerWidth: Optional[int] = None
     innerLength: Optional[int] = None
-    depth: int
-    totalHeight: int
-    heaterPower: int
-    waterCapacity: int
+    depth: Optional[int] = 0
+    totalHeight: Optional[int] = 0
+    heaterPower: Optional[int] = 0
+    waterCapacity: Optional[int] = 0
+
+
+class HeaterVariant(BaseModel):
+    """Heater variant with its own price and image."""
+    type: str  # "integrated" or "external"
+    price: float = 0
+    imageUrl: Optional[str] = ""
+    hint: Optional[str] = ""
+    hintPl: Optional[str] = ""
 
 
 class BaliaModel(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    
     id: str
-    name: str
+    name: Optional[str] = ""
     nameRu: Optional[str] = ""
     namePl: Optional[str] = ""
-    type: str
-    shape: str
-    size: str
-    heaterType: str
-    imageUrl: str = ""
-    specs: ModelSpec
+    type: Optional[str] = "fiberglass"
+    shape: Optional[str] = "round"
+    size: Optional[str] = ""
+    heaterType: Optional[str] = "external"  # Legacy field
+    imageUrl: Optional[str] = ""
+    specs: Optional[ModelSpec] = None
     includes: Optional[List[str]] = []
-    basePrice: float
-    currency: str
-    sortOrder: int
-    active: bool = True
+    basePrice: Optional[float] = 0  # Legacy field, now from heaterVariants
+    currency: Optional[str] = "EUR"
+    sortOrder: Optional[int] = 0
+    active: Optional[bool] = True
+    hint: Optional[str] = ""  # General model hint
+    # New: heater variants with individual prices and images
+    heaterVariants: Optional[List[HeaterVariant]] = []
 
 
 class CategoryOption(BaseModel):
