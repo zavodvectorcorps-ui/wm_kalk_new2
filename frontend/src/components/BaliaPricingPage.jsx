@@ -489,6 +489,18 @@ export const BaliaPricingPage = () => {
                             </Badge>
                           </>
                         )}
+                        
+                        {/* Show key specs */}
+                        {model.specs && (
+                          <div className="mt-2 pt-2 border-t text-xs text-muted-foreground space-y-0.5">
+                            {(model.specs.outerDiameter || model.specs.dimensions) && (
+                              <p>📐 {model.specs.dimensions || `Ø ${model.specs.outerDiameter}`}</p>
+                            )}
+                            {model.specs.depth && <p>📏 Глубина: {model.specs.depth}</p>}
+                            {model.specs.volume && <p>💧 Объём: {model.specs.volume}</p>}
+                            {model.specs.seats > 0 && <p>👥 Мест: {model.specs.seats}</p>}
+                          </div>
+                        )}
                       </div>
                       
                       {canEdit() && (
