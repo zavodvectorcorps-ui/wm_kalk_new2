@@ -1,0 +1,85 @@
+{
+  "summary": "Iteration 12: Testing category and option ordering feature in Balia admin panel. All 7 tests passed. Categories have up/down arrow buttons (ChevronUp/ChevronDown), first category's up button is disabled, last category's down button is disabled, clicking arrows changes order, options within categories also have ordering buttons, and order persists after saving.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Balia Admin - Kategorie opcji",
+        "issues": ["404 errors for model images (images not uploaded yet) - cosmetic only, doesn't affect functionality"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_12.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "handleMoveCategory(categoryId, direction) function correctly swaps categories and updates sortOrder",
+    "handleMoveOption(categoryId, optionId, direction) function correctly swaps options within a category",
+    "ChevronUp button disabled for first category (catIndex === 0)",
+    "ChevronDown button disabled for last category (catIndex === prices.categories.length - 1)",
+    "ChevronUp button disabled for first option (optIndex === 0)",
+    "ChevronDown button disabled for last option (optIndex === category.options.length - 1)",
+    "Position number displayed as #{catIndex + 1} for categories",
+    "Save functionality (handleSaveAll) correctly persists the new order to backend"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A - Frontend only testing",
+    "frontend": "100% - All 7 ordering tests passed"
+  },
+  "test_credentials": {
+    "admin_user": "admin",
+    "admin_password": "220066"
+  },
+  "seed_data_creation": "No seed data created - using existing prices data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Category and option ordering feature verified working: 1) Navigate to Admin Panel > Ceny > Kategorie opcji, 2) Each category has ChevronUp/ChevronDown buttons for reordering, 3) First category's UP button is disabled, last category's DOWN button is disabled, 4) Clicking arrows swaps categories/options, 5) Position number shown as #1, #2, etc., 6) 'Zapisz wszystko' button saves the new order to backend, 7) Order persists after page refresh/re-login",
+  "features_verified": {
+    "category_up_down_buttons": {
+      "status": "PASS",
+      "details": "Each category has ChevronUp and ChevronDown buttons in a flex column for reordering"
+    },
+    "first_category_up_disabled": {
+      "status": "PASS",
+      "details": "First category (Materiał wanny) has UP button disabled (catIndex === 0)"
+    },
+    "last_category_down_disabled": {
+      "status": "PASS",
+      "details": "Last category (Elektronika #17) has DOWN button disabled (catIndex === categories.length - 1)"
+    },
+    "category_reordering": {
+      "status": "PASS",
+      "details": "Clicking DOWN on first category swapped 'Materiał wanny' with 'Kolor włókna szklanego'"
+    },
+    "option_up_down_buttons": {
+      "status": "PASS",
+      "details": "Each option within a category has ChevronUp and ChevronDown buttons"
+    },
+    "option_reordering": {
+      "status": "PASS",
+      "details": "Clicking DOWN on first option swapped 'Włókno szklane' with 'Akryl'"
+    },
+    "order_persistence": {
+      "status": "PASS",
+      "details": "After clicking 'Zapisz wszystko' and re-logging in, the new order was preserved"
+    }
+  },
+  "tests_performed": {
+    "frontend_ui_tests": {
+      "test_1_first_category_up_disabled": "PASS - First category 'Materiał wanny' has UP button disabled",
+      "test_2_first_category_down_enabled": "PASS - First category has DOWN button enabled",
+      "test_3_last_category_buttons": "PASS - Last category 'Elektronika' (#17) has DOWN disabled, UP enabled",
+      "test_4_category_down_click": "PASS - Categories swapped: ['Materiał wanny', 'Kolor włókna szklanego'] → ['Kolor włókna szklanego', 'Materiał wanny']",
+      "test_5_category_up_click": "PASS - Order restored: ['Materiał wanny', 'Kolor włókna szklanego', 'Kolor akrylu']",
+      "test_6_option_reordering": "PASS - Options swapped: ['Włókno szklane', 'Akryl'] → ['Akryl', 'Włókno szklane']",
+      "test_7_save_persistence": "PASS - Order persisted after save and re-login"
+    }
+  }
+}
