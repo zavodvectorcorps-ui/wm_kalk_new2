@@ -129,6 +129,7 @@ export const SaunaPricingPage = () => {
             handleSaveEditOption={handleSaveEditOption}
             handleUpdateOptionPrice={handleUpdateOptionPrice}
             handleToggleOptionQuantity={handleToggleOptionQuantity}
+            handleReorderOptions={handleReorderOptions}
           />
         </TabsContent>
 
