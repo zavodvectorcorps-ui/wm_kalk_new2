@@ -614,7 +614,10 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
       const now = new Date();
       const dateStr = now.toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\./g, '-');
       const timeStr = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/:/g, '');
-      const safeName = formData.fullName.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_') || 'Klient';
+      // Keep name with cyrillic/polish chars, just replace spaces and remove unsafe chars
+      let safeName = (formData.fullName || 'Klient').replace(/\s+/g, '_');
+      safeName = safeName.replace(/[<>:"/\\|?*]/g, '');
+      if (!safeName || safeName === '_') safeName = 'Klient';
       const filename = `SAUNA_${safeName}_${dateStr}_${timeStr}.pdf`;
       
       link.setAttribute('download', filename);
