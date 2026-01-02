@@ -7,7 +7,8 @@ import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '../ui/dialog';
 import { Label } from '../ui/label';
-import { Plus, ArrowUp, ArrowDown, Edit2, Trash2, Save, X, LayoutGrid, List } from 'lucide-react';
+import { SortableList } from '../ui/sortable-list';
+import { Plus, Edit2, Trash2, Save, X, LayoutGrid, List } from 'lucide-react';
 
 export const CategoriesTab = ({
   prices,
