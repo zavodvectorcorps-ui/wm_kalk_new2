@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import List
 from datetime import datetime, timedelta
+from urllib.parse import quote
 import io
 import os
 import logging
