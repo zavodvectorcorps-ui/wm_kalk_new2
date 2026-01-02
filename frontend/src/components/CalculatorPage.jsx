@@ -999,7 +999,23 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                         onValueChange={(value) => handleSelectionChange(category.id, value)}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue />
+                          {(() => {
+                            const selectedOpt = category.options?.find(o => o.id === formData.selections[category.id]);
+                            if (selectedOpt) {
+                              return (
+                                <div className="flex items-center gap-2">
+                                  {selectedOpt.colorPreview && (
+                                    <div 
+                                      className="w-5 h-5 rounded border border-gray-300 flex-shrink-0"
+                                      style={{ backgroundColor: selectedOpt.colorPreview }}
+                                    />
+                                  )}
+                                  <span>{getOptionName(selectedOpt)}</span>
+                                </div>
+                              );
+                            }
+                            return <SelectValue placeholder={lang === 'pl' ? 'Wybierz...' : 'Выберите...'} />;
+                          })()}
                         </SelectTrigger>
                         <SelectContent>
                           {category.options?.map(option => (
