@@ -442,6 +442,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         heaterTypeName: formData.selectedHeaterType === 'integrated' 
           ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
           : (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь'),
+        selectedHeaterVariantId: selectedHeaterVariant?.id || `${selectedModel?.id}_${formData.selectedHeaterType}`,
         selections: formData.selections,
         selectedOptions,
         notes: formData.notes,
