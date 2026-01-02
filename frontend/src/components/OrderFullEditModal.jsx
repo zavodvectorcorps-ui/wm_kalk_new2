@@ -567,8 +567,9 @@ export const OrderFullEditModal = ({
                       <Input
                         type="number"
                         min="0"
-                        step="100"
-                        value={Math.round(discountAmount)}
+                        step="1"
+                        value={discountAmountInput}
+                        placeholder={Math.round(discountAmount).toString()}
                         onChange={(e) => handleDiscountAmountChange(e.target.value)}
                         className="w-32 h-9"
                       />
