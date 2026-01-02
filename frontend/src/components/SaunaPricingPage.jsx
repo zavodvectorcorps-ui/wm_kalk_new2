@@ -35,8 +35,7 @@ export const SaunaPricingPage = () => {
     handleAddCategory,
     handleSaveEditCategory,
     handleDeleteCategory,
-    handleMoveCategoryUp,
-    handleMoveCategoryDown,
+    handleReorderCategories,
     handleCategoryDisplayTypeChange,
     // Options
     handleAddOption,
