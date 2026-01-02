@@ -400,7 +400,7 @@ async def get_excel_template_structure():
 
 @router.post("/generate-production-excel")
 async def generate_production_excel(request: dict):
-    """Generate production Excel with selected options marked with X"""
+    """Generate production Excel with selected options marked with X using DB mapping"""
     from openpyxl import load_workbook
     from openpyxl.styles import Font, Alignment
     
@@ -416,170 +416,78 @@ async def generate_production_excel(request: dict):
     x_font = Font(bold=True, size=14)
     x_align = Alignment(horizontal='center', vertical='center')
     
+    # Get prices data with excelCell mappings from DB
+    prices = await db.prices.find_one({"_id": "default"})
+    if not prices:
+        raise HTTPException(status_code=500, detail="Prices not found")
+    
+    # Build mapping from DB
+    # Models mapping: model_id -> excelCell
+    model_mapping = {}
+    heater_mapping = {}  # heaterVariant id -> excelCell
+    for model in prices.get('models', []):
+        model_id = model.get('id')
+        if model_id and model.get('excelCell'):
+            model_mapping[model_id] = model.get('excelCell')
+        # HeaterVariants mapping
+        for hv in model.get('heaterVariants', []):
+            hv_id = hv.get('id')
+            if hv_id and hv.get('excelCell'):
+                heater_mapping[hv_id] = hv.get('excelCell')
+    
+    # Options mapping: option_id -> excelCell
+    option_mapping = {}
+    for cat in prices.get('categories', []):
+        for opt in cat.get('options', []):
+            opt_id = opt.get('id')
+            if opt_id and opt.get('excelCell'):
+                option_mapping[opt_id] = opt.get('excelCell')
+    
+    logger.info(f"Loaded mappings - Models: {len(model_mapping)}, Heaters: {len(heater_mapping)}, Options: {len(option_mapping)}")
+    
+    def mark_cell(cell_ref):
+        """Put X in specified cell"""
+        if cell_ref:
+            ws[cell_ref] = 'X'
+            ws[cell_ref].font = x_font
+            ws[cell_ref].alignment = x_align
+            logger.info(f"Marked cell: {cell_ref}")
+    
     # Customer data
     ws['B2'] = request.get('fullName', '')
     ws['B4'] = request.get('fullAddress', '')
     
-    # Mapping of calculator option IDs to Excel cells
-    # Row 10 - Heater type, colors, lid, wood finish
-    heater_mapping = {
-        'external': 'B10',
-        'integrated': 'C10',
-    }
-    
-    fiberglass_color_mapping = {
-        'fg_white': 'D10',
-        'fg_ivory': 'E10',
-        'fg_blue': 'F10',
-        'fg_gray': 'G10',
-        'fg_pearl_red': 'H10',
-        'fg_pearl_blue': 'I10',
-        'fg_pearl_brown': 'J10',
-        'fg_pearl_gray': 'K10',
-        'fg_pearl_white': 'L10',
-        'fg_galaxy': 'M10',
-        'fg_snowflake': 'N10',
-        'fg_emerald': 'O10',
-        'fg_black_gold': 'P10',
-        'fg_black_pink': 'Q10',
-        'fg_black_silver': 'R10',
-    }
-    
-    acrylic_color_mapping = {
-        'ac_white': 'V10',
-        'ac_green_marble': 'W10',
-        'ac_brown_marble': 'X10',
-        'ac_blue_marble': 'Y10',
-        'ac_white_marble': 'Z10',
-        'ac_coffee_marble': 'AA10',
-        'ac_black_marble': 'AB10',
-    }
-    
-    lid_mapping = {
-        'glass_fiber_lid': 'AD10',
-        'spa_lid': 'AE10',
-    }
-    
-    wood_finish_mapping = {
-        'natural': 'AF10',
-        'painted': 'AG10',
-        'oiled': 'AH10',
-    }
-    
-    # Row 16 - Accessories, model, wood type
-    accessories_mapping = {
-        # Hydromassage options
-        'hydromassage_basic': 'B16',
-        'hydromassage_premium': 'B16',
-        # Air bubble
-        'air_bubble_yes': 'C16',
-        # LED options
-        'outside_led_12': 'D16',
-        'inside_led_1': 'E16',
-        'inside_led_2': 'F16',
-        'inside_led_3': 'G16',
-        'outside_led_stripe': 'H16',
-        'inside_led_mini': 'I16',
-        # Other accessories
-        'insulation_yes': 'J16',
-        'head_pillow': 'K16',
-        'sand_filter': 'L16',
-        'sand_filter_crane': 'M16',
-        'sand_filter_stairs': 'N16',
-        'sand_filter_box': 'O16',
-        'v4a_heater': 'P16',
-        'electricity_box': 'Q16',
-        'chimney_extension': 'R16',
-        'extra_chimney': 'S16',
-        'bluetooth_radio': 'T16',
-        'electric_heater': 'U16',
-        'electric_thermometer': 'V16',
-    }
-    
-    model_mapping = {
-        'round_200': 'Y16',
-        'round_225': 'Z16',
-        'square_170x200': 'AA16',
-        'square_220x220': 'AB16',
-        'square_230x230': 'AC16',
-        'square_245x245': 'AD16',
-    }
-    
-    wood_type_mapping = {
-        'spruce': 'AE16',
-        'thermo': 'AF16',
-        'wpc': 'AG16',
-        'red_cedric': 'AH16',
-    }
-    
-    def mark_cell(cell_ref):
-        """Put X in specified cell"""
-        ws[cell_ref] = 'X'
-        ws[cell_ref].font = x_font
-        ws[cell_ref].alignment = x_align
-    
-    # Process heater type
-    heater_type = request.get('selectedHeaterType', '')
-    if heater_type in heater_mapping:
-        mark_cell(heater_mapping[heater_type])
-    
     # Process model
     model_id = request.get('modelId', '')
-    if model_id in model_mapping:
+    if model_id and model_id in model_mapping:
         mark_cell(model_mapping[model_id])
+        logger.info(f"Model {model_id} -> {model_mapping[model_id]}")
     
-    # Process selected options
-    selected_options = request.get('selectedOptions', [])
+    # Process heater variant
+    heater_variant_id = request.get('selectedHeaterVariantId', '') or request.get('heaterVariantId', '')
+    if heater_variant_id and heater_variant_id in heater_mapping:
+        mark_cell(heater_mapping[heater_variant_id])
+        logger.info(f"Heater {heater_variant_id} -> {heater_mapping[heater_variant_id]}")
+    
+    # Process selected options from selections dict
     selections = request.get('selections', {})
-    
-    # Process selections dict (category_id -> option_id or {option_id: true})
     for cat_id, selection in selections.items():
-        if cat_id == 'bowl_material':
-            # Material type (fiberglass or acrylic) - just note which type
-            continue
-        elif cat_id == 'fiberglass_color':
-            if selection in fiberglass_color_mapping:
-                mark_cell(fiberglass_color_mapping[selection])
-        elif cat_id == 'acrylic_color':
-            if selection in acrylic_color_mapping:
-                mark_cell(acrylic_color_mapping[selection])
-        elif cat_id == 'lid':
-            if selection in lid_mapping:
-                mark_cell(lid_mapping[selection])
-        elif cat_id == 'wood_finish':
-            if selection in wood_finish_mapping:
-                mark_cell(wood_finish_mapping[selection])
-        elif cat_id == 'wood_type':
-            if selection in wood_type_mapping:
-                mark_cell(wood_type_mapping[selection])
-        elif isinstance(selection, dict):
+        if isinstance(selection, dict):
             # Checkbox type - multiple selections
             for opt_id, is_selected in selection.items():
-                if is_selected:
-                    if opt_id in accessories_mapping:
-                        mark_cell(accessories_mapping[opt_id])
-        else:
-            # Radio type - single selection
-            if selection in accessories_mapping:
-                mark_cell(accessories_mapping[selection])
+                if is_selected and opt_id in option_mapping:
+                    mark_cell(option_mapping[opt_id])
+        elif isinstance(selection, str):
+            # Radio/dropdown type - single selection
+            if selection in option_mapping:
+                mark_cell(option_mapping[selection])
     
     # Also check selectedOptions array for backward compatibility
+    selected_options = request.get('selectedOptions', [])
     for opt in selected_options:
         opt_id = opt.get('id', '') if isinstance(opt, dict) else str(opt)
-        
-        # Check all mappings
-        all_mappings = {
-            **fiberglass_color_mapping,
-            **acrylic_color_mapping,
-            **lid_mapping,
-            **wood_finish_mapping,
-            **accessories_mapping,
-            **model_mapping,
-            **wood_type_mapping,
-        }
-        
-        if opt_id in all_mappings:
-            mark_cell(all_mappings[opt_id])
+        if opt_id in option_mapping:
+            mark_cell(option_mapping[opt_id])
     
     # Add notes if present
     notes = request.get('notes', '')
