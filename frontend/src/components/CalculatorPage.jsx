@@ -592,67 +592,129 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
               <CardTitle className="text-blue-700">{t('balia.selectModel')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {prices.models?.map(model => (
-                  <div
-                    key={model.id}
-                    onClick={() => handleModelSelect(model.id)}
-                    className={`relative p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.selectedModel === model.id
-                        ? 'border-blue-500 bg-blue-50 shadow-md'
-                        : 'border-gray-200 hover:border-blue-300'
-                    }`}
-                  >
-                    {/* Info icon for model hint */}
-                    {model.hint && (
-                      <Tooltip>
-                        <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <div className="absolute top-2 left-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full p-1 z-10 cursor-help shadow-sm">
-                            <Info className="h-4 w-4" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {prices.models?.map(model => {
+                  const isSelected = formData.selectedModel === model.id;
+                  // Get preview image (first variant or model image)
+                  const previewImage = model.heaterVariants?.[0]?.imageUrl || model.imageUrl;
+                  // Check if model has multiple heater options
+                  const hasHeaterOptions = model.heaterVariants?.length > 1;
+                  
+                  return (
+                    <div
+                      key={model.id}
+                      onClick={() => handleModelSelect(model.id)}
+                      className={`relative p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-50 shadow-md'
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}
+                    >
+                      {/* Info icon for model hint */}
+                      {model.hint && (
+                        <Tooltip>
+                          <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <div className="absolute top-2 left-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full p-1 z-10 cursor-help shadow-sm">
+                              <Info className="h-4 w-4" />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
+                            {model.hint}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      <div className="w-full h-28 rounded mb-2 bg-gray-100 overflow-hidden relative">
+                        {previewImage ? (
+                          <img 
+                            src={getImageUrl(previewImage)} 
+                            alt={getModelName(model)}
+                            className="w-full h-full object-contain"
+                            loading="eager"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Droplets className="h-8 w-8 text-gray-400" />
                           </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
-                          {model.hint}
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    <div className="w-full h-32 rounded mb-2 bg-gray-100 overflow-hidden relative">
-                      {model.imageUrl ? (
-                        <img 
-                          src={getImageUrl(model.imageUrl)} 
-                          alt={getModelName(model)}
-                          className="w-full h-full object-contain"
-                          loading="eager"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Droplets className="h-8 w-8 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-semibold text-xs">{getModelName(model)}</span>
+                        {isSelected && (
+                          <Check className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      {hasHeaterOptions && (
+                        <div className="text-xs text-muted-foreground">
+                          {lang === 'pl' ? '2 warianty pieca' : '2 варианта печи'}
                         </div>
                       )}
                     </div>
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold text-sm">{getModelName(model)}</span>
-                      {formData.selectedModel === model.id && (
-                        <Check className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                      )}
-                    </div>
-                    <div className="text-lg font-bold text-blue-600">
-                      {model.basePrice} {prices.currencySymbol}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {model.heaterType === 'external' ? t('balia.externalHeater') : t('balia.integratedHeater')}
-                    </div>
-                    {model.type === 'acrylic' && (
-                      <Badge variant="outline" className="mt-2 text-xs">Acrylic</Badge>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+
+              {/* Heater Type Selection - appears when model is selected and has variants */}
+              {selectedModel && selectedModel.heaterVariants?.length > 1 && (
+                <div className="mt-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
+                  <Label className="text-sm font-semibold text-orange-800 mb-3 block">
+                    {lang === 'pl' ? 'Wybierz typ pieca:' : 'Выберите тип печки:'}
+                  </Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedModel.heaterVariants.map(variant => {
+                      const isVariantSelected = formData.selectedHeaterType === variant.type;
+                      const variantLabel = variant.type === 'integrated' 
+                        ? (lang === 'pl' ? 'Zintegrowany piec' : 'Встроенная печь')
+                        : (lang === 'pl' ? 'Zewnętrzny piec' : 'Внешняя печь');
+                      
+                      return (
+                        <div
+                          key={variant.type}
+                          onClick={() => handleHeaterTypeChange(variant.type)}
+                          className={`p-3 border-2 rounded-lg cursor-pointer transition-all flex items-center gap-3 ${
+                            isVariantSelected
+                              ? 'border-orange-500 bg-orange-100 shadow-md'
+                              : 'border-orange-200 bg-white hover:border-orange-400'
+                          }`}
+                        >
+                          {variant.imageUrl && (
+                            <img 
+                              src={getImageUrl(variant.imageUrl)} 
+                              alt={variantLabel}
+                              className="w-16 h-16 object-contain rounded bg-white"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-sm">{variantLabel}</span>
+                              {isVariantSelected && (
+                                <Check className="h-4 w-4 text-orange-600" />
+                              )}
+                            </div>
+                            <div className="text-lg font-bold text-orange-600">
+                              {variant.price?.toLocaleString('pl-PL')} {prices.currencySymbol}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Model Specs */}
               {selectedModel && (
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  {/* Selected configuration image */}
+                  {getModelImageUrl(selectedModel) && (
+                    <div className="mb-4 flex justify-center">
+                      <img 
+                        src={getImageUrl(getModelImageUrl(selectedModel))} 
+                        alt={getModelName(selectedModel)}
+                        className="max-h-48 object-contain rounded-lg shadow-sm"
+                      />
+                    </div>
+                  )}
                   {/* Model hint as text block */}
                   {selectedModel.hint && (
                     <div className="flex items-start gap-2 mb-3 p-2 bg-white rounded-md border border-blue-100">
