@@ -76,6 +76,10 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
     if user_data.role not in ["admin", "employee", "observer"]:
         raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee' or 'observer'")
     
+    # Only super-admin (username: 'admin') can create users with 'admin' role
+    if user_data.role == "admin" and admin.get("username") != "admin":
+        raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")
+    
     new_user = {
         "id": str(uuid.uuid4()),
         "username": user_data.username,
