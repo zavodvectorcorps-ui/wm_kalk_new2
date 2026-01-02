@@ -231,3 +231,33 @@ class PDFRequest(BaseModel):
     total: float = 0.0
     type: str = "customer"
     language: str = "pl"
+
+
+class WebOrder(BaseModel):
+    """Order from public website calculator"""
+    model_config = ConfigDict(extra="allow")
+    
+    id: str = Field(default_factory=lambda: f"WEB-{datetime.now(timezone.utc).strftime('%d%m%Y-%H%M%S')}")
+    # Customer data
+    customerName: str
+    customerPhone: str
+    customerComment: Optional[str] = ""
+    # Order data
+    modelId: Optional[str] = None
+    modelName: Optional[str] = None
+    modelPrice: Optional[float] = 0.0
+    modelImageUrl: Optional[str] = None
+    heaterVariantType: Optional[str] = None  # "integrated" or "external"
+    selections: Optional[Dict[str, Any]] = {}
+    selectedOptions: Optional[List[Dict[str, Any]]] = []
+    subtotal: Optional[float] = 0.0
+    total: float = 0.0
+    currency: str = "PLN"
+    # Status
+    status: str = "new"  # new, processing, completed, cancelled
+    # Metadata
+    createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    processedBy: Optional[str] = None
+    processedAt: Optional[str] = None
+    notes: Optional[str] = ""  # Manager notes
+
