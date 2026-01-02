@@ -1130,3 +1130,93 @@ async def generate_pdf(request: PDFRequest):
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"}
     )
+
+
+# ============================================================
+# WEB ORDERS - Public API for embedded calculator
+# ============================================================
+
+from models.balia import WebOrder
+
+@router.get("/public/prices")
+async def get_public_prices():
+    """Get prices for public calculator (no auth required)"""
+    prices = await db.prices.find_one({"_id": "default"})
+    if not prices:
+        return default_balia_prices
+    
+    prices.pop('_id', None)
+    
+    # Ensure critical fields are arrays
+    if not isinstance(prices.get('models'), list):
+        prices['models'] = default_balia_prices.get('models', [])
+    if not isinstance(prices.get('categories'), list):
+        prices['categories'] = default_balia_prices.get('categories', [])
+    
+    return prices
+
+
+@router.post("/public/web-order")
+async def create_web_order(order: WebOrder):
+    """Create order from public website (no auth required)"""
+    order_dict = order.model_dump()
+    order_dict['source'] = 'website'
+    await db.web_orders.insert_one(order_dict)
+    
+    # Return success without sensitive data
+    return {
+        "success": True,
+        "orderId": order.id,
+        "message": "Zamówienie zostało przyjęte. Skontaktujemy się wkrótce."
+    }
+
+
+@router.get("/web-orders")
+async def get_web_orders():
+    """Get all web orders (requires auth)"""
+    orders = await db.web_orders.find({}, {"_id": 0}).sort("createdAt", -1).to_list(1000)
+    return orders
+
+
+@router.get("/web-orders/new-count")
+async def get_new_web_orders_count():
+    """Get count of new (unprocessed) web orders for notifications"""
+    count = await db.web_orders.count_documents({"status": "new"})
+    return {"count": count}
+
+
+@router.get("/web-orders/{order_id}")
+async def get_web_order(order_id: str):
+    """Get single web order by ID"""
+    order = await db.web_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@router.put("/web-orders/{order_id}")
+async def update_web_order(order_id: str, updates: dict):
+    """Update web order (status, notes, etc.)"""
+    # Add timestamp for status changes
+    if 'status' in updates and updates['status'] != 'new':
+        updates['processedAt'] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.web_orders.update_one(
+        {"id": order_id},
+        {"$set": updates}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    updated = await db.web_orders.find_one({"id": order_id}, {"_id": 0})
+    return updated
+
+
+@router.delete("/web-orders/{order_id}")
+async def delete_web_order(order_id: str):
+    """Delete web order"""
+    result = await db.web_orders.delete_one({"id": order_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return {"message": "Order deleted successfully"}
+
