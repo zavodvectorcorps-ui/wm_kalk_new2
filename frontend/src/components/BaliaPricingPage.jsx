@@ -47,6 +47,7 @@ export const BaliaPricingPage = () => {
   const [saving, setSaving] = useState(false);
   const [prices, setPrices] = useState({ models: [], categories: [], currency: 'EUR', currencySymbol: '€' });
   const [nbpRate, setNbpRate] = useState(null);
+  const [excelTemplate, setExcelTemplate] = useState(null);
   
   // Dialog states
   const [editModelDialog, setEditModelDialog] = useState({ open: false, model: null, isNew: false });
