@@ -91,7 +91,7 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 max-w-7xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="orders" className="gap-2">
               <ClipboardList className="h-4 w-4" />
               <span className="hidden sm:inline">{txt.orders}</span>
@@ -103,6 +103,10 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
             <TabsTrigger value="prices" className="gap-2">
               <DollarSign className="h-4 w-4" />
               <span className="hidden sm:inline">{txt.prices}</span>
+            </TabsTrigger>
+            <TabsTrigger value="techspec" className="gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">{txt.techSpec}</span>
             </TabsTrigger>
             <TabsTrigger value="employees" className="gap-2">
               <Users className="h-4 w-4" />
