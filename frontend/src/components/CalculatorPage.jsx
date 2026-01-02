@@ -237,7 +237,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   };
 
   const calculateSubtotal = () => {
-    let total = selectedModel?.basePrice || 0;
+    let total = getModelPrice(selectedModel);
     
     prices.categories?.forEach(category => {
       const selection = formData.selections[category.id];
