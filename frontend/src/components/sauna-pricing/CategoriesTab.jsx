@@ -103,37 +103,17 @@ export const CategoriesTab = ({
         {prices.categories?.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">{txt.noCategories}</p>
         ) : (
-          <div className="space-y-2">
-            {prices.categories?.map((category, index) => (
-              <div
-                key={category.id}
-                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg flex-wrap gap-2"
-              >
-                {canEdit() && (
-                  <div className="flex flex-col gap-0.5 mr-2">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
-                      disabled={index === 0}
-                      onClick={() => handleMoveCategoryUp(category.id)}
-                    >
-                      <ArrowUp className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
-                      disabled={index === prices.categories.length - 1}
-                      onClick={() => handleMoveCategoryDown(category.id)}
-                    >
-                      <ArrowDown className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-                
+          <SortableList
+            items={prices.categories || []}
+            onReorder={handleReorderCategories}
+            disabled={!canEdit()}
+            renderItem={(category, index) => (
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg flex-wrap gap-2">
                 <div className="flex-1 min-w-[150px]">
-                  <div className="font-medium">{category.name}</div>
+                  <div className="font-medium flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                    {category.name}
+                  </div>
                   <div className="text-sm text-muted-foreground flex flex-wrap gap-2 items-center">
                     <Badge variant="outline" className="mr-2">
                       {category.inputType === 'checkbox' ? txt.checkbox : txt.radio}
@@ -212,8 +192,8 @@ export const CategoriesTab = ({
                   ) : null}
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          />
         )}
       </CardContent>
     </Card>
