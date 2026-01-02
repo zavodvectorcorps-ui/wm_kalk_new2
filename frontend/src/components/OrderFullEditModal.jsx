@@ -155,6 +155,7 @@ export const OrderFullEditModal = ({
         requestedDiscountNote: order.requestedDiscountNote || '',
       });
       setDiscountMode('percent'); // Reset discount mode
+      setDiscountAmountInput(''); // Reset amount input
     }
   }, [order?.id, open]); // Use order.id as dependency for proper re-render
   
