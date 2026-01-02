@@ -432,7 +432,7 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
         open={previewModalOpen}
         onOpenChange={setPreviewModalOpen}
         order={selectedOrder}
-        isSauna={selectedOrder?._type === 'sauna'}
+        calculatorType={selectedOrder?._type === 'sauna' ? 'sauna' : 'balia'}
       />
 
       {/* Tech Spec Modal */}
