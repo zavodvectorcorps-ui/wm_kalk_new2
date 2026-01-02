@@ -74,6 +74,8 @@ class CategoryOption(BaseModel):
     # Pricing calculation fields
     purchasePriceEur: Optional[float] = 0  # Purchase price in EUR
     markupPercent: Optional[float] = 30  # Markup percentage
+    # Color preview for color options
+    colorPreview: Optional[str] = ""  # HEX color code for preview (e.g., #FFFFFF)
 
 
 class BaliaCategory(BaseModel):
