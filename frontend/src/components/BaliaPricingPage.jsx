@@ -404,30 +404,18 @@ export const BaliaPricingPage = () => {
     });
   };
 
-  // Move option up/down within category
-  const handleMoveOption = (categoryId, optionId, direction) => {
+  // Drag-and-drop reorder for categories
+  const handleReorderCategories = (newCategories) => {
+    setPrices(prev => ({ ...prev, categories: newCategories }));
+  };
+
+  // Drag-and-drop reorder for options within a category
+  const handleReorderOptions = (categoryId, newOptions) => {
     setPrices(prev => ({
       ...prev,
-      categories: prev.categories.map(cat => {
-        if (cat.id !== categoryId) return cat;
-        
-        const options = [...(cat.options || [])];
-        const index = options.findIndex(o => o.id === optionId);
-        if (index === -1) return cat;
-        
-        const newIndex = direction === 'up' ? index - 1 : index + 1;
-        if (newIndex < 0 || newIndex >= options.length) return cat;
-        
-        // Swap options
-        [options[index], options[newIndex]] = [options[newIndex], options[index]];
-        
-        // Update sortOrder
-        options.forEach((opt, idx) => {
-          opt.sortOrder = idx;
-        });
-        
-        return { ...cat, options };
-      })
+      categories: prev.categories.map(cat =>
+        cat.id === categoryId ? { ...cat, options: newOptions } : cat
+      )
     }));
   };
 
