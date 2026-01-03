@@ -12,9 +12,10 @@ import { Checkbox } from './ui/checkbox';
 import { toast, Toaster } from 'sonner';
 import { 
   Send, Check, Loader2, ChevronRight, Phone, User, MessageSquare,
-  Info, ShoppingCart
+  Info, ShoppingCart, HelpCircle
 } from 'lucide-react';
 import axios from 'axios';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
