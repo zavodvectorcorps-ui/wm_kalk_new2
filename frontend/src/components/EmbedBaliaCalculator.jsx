@@ -382,37 +382,37 @@ export const EmbedBaliaCalculator = () => {
                   {/* Specifications */}
                   {selectedModel.specs && (
                     <div className="grid grid-cols-2 gap-2 text-sm mt-2">
-                      {selectedModel.specs.outerDiameter && (
+                      {!!(selectedModel.specs.outerDiameter && selectedModel.specs.outerDiameter !== 0 && selectedModel.specs.outerDiameter !== '0') && (
                         <div className="flex items-center gap-1">
                           <span className="text-muted-foreground">Średnica:</span>
                           <span className="font-medium">{selectedModel.specs.outerDiameter}</span>
                         </div>
                       )}
-                      {selectedModel.specs.dimensions && (
+                      {!!selectedModel.specs.dimensions && (
                         <div className="flex items-center gap-1">
                           <span className="text-muted-foreground">Wymiary:</span>
                           <span className="font-medium">{selectedModel.specs.dimensions}</span>
                         </div>
                       )}
-                      {selectedModel.specs.depth && (
+                      {!!(selectedModel.specs.depth && selectedModel.specs.depth !== 0 && selectedModel.specs.depth !== '0') && (
                         <div className="flex items-center gap-1">
                           <span className="text-muted-foreground">Głębokość:</span>
                           <span className="font-medium">{selectedModel.specs.depth}</span>
                         </div>
                       )}
-                      {selectedModel.specs.volume && (
+                      {!!selectedModel.specs.volume && (
                         <div className="flex items-center gap-1">
                           <span className="text-muted-foreground">Pojemność:</span>
                           <span className="font-medium">{selectedModel.specs.volume}</span>
                         </div>
                       )}
-                      {selectedModel.specs.seats > 0 && (
+                      {!!(selectedModel.specs.seats && selectedModel.specs.seats !== 0 && selectedModel.specs.seats !== '0') && (
                         <div className="flex items-center gap-1">
                           <span className="text-muted-foreground">Miejsca:</span>
                           <span className="font-medium">{selectedModel.specs.seats}</span>
                         </div>
                       )}
-                      {selectedModel.specs.heaterPower && (
+                      {!!(selectedModel.specs.heaterPower && selectedModel.specs.heaterPower !== 0 && selectedModel.specs.heaterPower !== '0') && (
                         <div className="flex items-center gap-1">
                           <span className="text-muted-foreground">Moc pieca:</span>
                           <span className="font-medium">{selectedModel.specs.heaterPower}</span>
