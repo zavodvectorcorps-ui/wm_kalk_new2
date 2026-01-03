@@ -451,16 +451,28 @@ export const BackupPage = () => {
       <Card className="mt-6 border-blue-200 bg-blue-50/50">
         <CardContent className="pt-6">
           <div className="flex gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">Что включает бэкап:</p>
-              <ul className="list-disc list-inside space-y-1 text-blue-700">
-                <li>Заказы (Balia, Sauna, Web-заказы)</li>
-                <li>Пользователи и сотрудники</li>
-                <li>Настройки цен и изображения</li>
-                <li>Технические характеристики</li>
-                <li>Пользовательские поля</li>
-              </ul>
+              <p className="font-medium mb-1">Что включает полный бэкап:</p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-blue-700">
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Заказы Balia</li>
+                  <li>Заказы Sauna</li>
+                  <li>Web-заказы</li>
+                  <li>Пользователи</li>
+                  <li>Цены Balia (с картинками)</li>
+                  <li>Цены Sauna (с картинками)</li>
+                </ul>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Технические характеристики</li>
+                  <li>Конфиг спецификаций Balia</li>
+                  <li>Конфиг спецификаций Sauna</li>
+                  <li>Пользовательские поля</li>
+                  <li>Все настройки системы</li>
+                  <li>Настройки Telegram</li>
+                  <li>Все загруженные файлы</li>
+                </ul>
+              </div>
             </div>
           </div>
         </CardContent>
