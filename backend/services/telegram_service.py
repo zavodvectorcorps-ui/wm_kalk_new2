@@ -1,8 +1,9 @@
-"""Telegram notification service for order alerts."""
+"""Telegram notification service for order alerts and backup delivery."""
 import os
 import httpx
 import logging
 from typing import Optional, Dict, Any, List
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ def get_telegram_config():
     return {
         'bot_token': os.environ.get('TELEGRAM_BOT_TOKEN', ''),
         'chat_id': os.environ.get('TELEGRAM_CHAT_ID', ''),
+        'backup_chat_id': os.environ.get('TELEGRAM_BACKUP_CHAT_ID', ''),
         'enabled': os.environ.get('TELEGRAM_NOTIFICATIONS_ENABLED', 'true').lower() == 'true'
     }
 
