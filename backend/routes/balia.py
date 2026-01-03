@@ -817,11 +817,28 @@ async def generate_pdf(request: PDFRequest):
             if specs_lines:
                 specs_text = "<br/><br/><font size='9' color='#6B7280'>" + " | ".join(specs_lines) + "</font>"
         
-        # Get heater type info
-        heater_type = getattr(request, 'heaterType', None) or request.__dict__.get('heaterType', '')
-        heater_type_name = getattr(request, 'heaterTypeName', None) or request.__dict__.get('heaterTypeName', '')
+        # Get heater type info - try multiple ways to access the field
+        heater_type = None
+        heater_type_name = None
+        
+        # Try accessing as Pydantic model attribute
+        if hasattr(request, 'heaterType') and request.heaterType:
+            heater_type = request.heaterType
+        # Try accessing from model_dump()
+        request_dict = request.model_dump() if hasattr(request, 'model_dump') else {}
+        if not heater_type and request_dict.get('heaterType'):
+            heater_type = request_dict.get('heaterType')
+        
+        if hasattr(request, 'heaterTypeName') and request.heaterTypeName:
+            heater_type_name = request.heaterTypeName
+        elif request_dict.get('heaterTypeName'):
+            heater_type_name = request_dict.get('heaterTypeName')
+        
+        # Generate heater type name from type if not provided
         if not heater_type_name and heater_type:
             heater_type_name = 'Piec zintegrowany' if heater_type == 'integrated' else 'Piec zewnętrzny'
+        
+        logger.info(f"PDF heater info: type={heater_type}, name={heater_type_name}")
         
         heater_text = f"<br/><font size='10' color='#059669'><b>Typ pieca: {heater_type_name}</b></font>" if heater_type_name else ""
         
