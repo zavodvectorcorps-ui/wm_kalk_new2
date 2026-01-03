@@ -21,6 +21,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from database import db
 from models.balia import PriceData, Order, PDFRequest
 from data.balia_defaults import default_balia_prices
+from services.telegram_service import notify_new_order
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Balia Calculator"])
