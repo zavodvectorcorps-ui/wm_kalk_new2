@@ -89,6 +89,24 @@ async def get_prices():
     prices.setdefault('currency', 'EUR')
     prices.setdefault('currencySymbol', '€')
     
+    # === ENSURE HEATER VARIANTS HAVE IDs ===
+    variants_updated = False
+    for model in prices.get('models', []):
+        model_id = model.get('id', '')
+        for hv in model.get('heaterVariants', []):
+            if not hv.get('id'):
+                # Generate ID from model_id + heater type
+                hv['id'] = f"{model_id}_{hv.get('type', 'unknown')}"
+                variants_updated = True
+                logger.info(f"Generated heater variant ID: {hv['id']}")
+    
+    # Save if variants were updated
+    if variants_updated:
+        await db.prices.update_one(
+            {"_id": "default"},
+            {"$set": {"models": prices['models']}}
+        )
+    
     return prices
 
 
