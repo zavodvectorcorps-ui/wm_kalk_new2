@@ -268,8 +268,8 @@ export const EmbedBaliaCalculator = () => {
                     }
                   `}
                 >
-                  {/* Hint icon */}
-                  {model.hint && (
+                  {/* Hint icon - prefer Polish hint */}
+                  {(model.hintPl || model.hint) && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -278,7 +278,7 @@ export const EmbedBaliaCalculator = () => {
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-xs text-xs bg-gray-900 text-white p-2">
-                          {model.hint}
+                          {model.hintPl || model.hint}
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
