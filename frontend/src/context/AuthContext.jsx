@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyToken = async (authToken) => {
     const response = await fetch(`${API_URL}/api/auth/verify`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
