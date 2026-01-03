@@ -597,6 +597,95 @@ async def import_backup(file: UploadFile = File(...)):
                     logger.info(f"Imported {len(data)} customer fields")
                 except Exception as e:
                     import_stats["errors"].append(f"customer_fields: {str(e)}")
+            
+            # Import tech_spec_config (Sauna spec configuration)
+            if "tech_spec_config.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("tech_spec_config.json").decode('utf-8'))
+                    await db.tech_spec_config.delete_many({})
+                    for config in data:
+                        config.pop('_id', None)
+                        await db.tech_spec_config.insert_one(config)
+                    import_stats["imported"]["tech_spec_config"] = len(data)
+                    logger.info(f"Imported {len(data)} tech_spec_config")
+                except Exception as e:
+                    import_stats["errors"].append(f"tech_spec_config: {str(e)}")
+            
+            # Import balia_tech_spec_config (Balia spec configuration)
+            if "balia_tech_spec_config.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("balia_tech_spec_config.json").decode('utf-8'))
+                    await db.balia_tech_spec_config.delete_many({})
+                    for config in data:
+                        config.pop('_id', None)
+                        await db.balia_tech_spec_config.insert_one(config)
+                    import_stats["imported"]["balia_tech_spec_config"] = len(data)
+                    logger.info(f"Imported {len(data)} balia_tech_spec_config")
+                except Exception as e:
+                    import_stats["errors"].append(f"balia_tech_spec_config: {str(e)}")
+            
+            # Import images collection
+            if "images_collection.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("images_collection.json").decode('utf-8'))
+                    await db.images.delete_many({})
+                    for img in data:
+                        img.pop('_id', None)
+                        await db.images.insert_one(img)
+                    import_stats["imported"]["images_collection"] = len(data)
+                    logger.info(f"Imported {len(data)} image references")
+                except Exception as e:
+                    import_stats["errors"].append(f"images_collection: {str(e)}")
+            
+            # Import all settings
+            if "settings.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("settings.json").decode('utf-8'))
+                    for setting in data:
+                        setting_type = setting.get('type')
+                        if setting_type:
+                            setting.pop('_id', None)
+                            await db.settings.update_one(
+                                {"type": setting_type},
+                                {"$set": setting},
+                                upsert=True
+                            )
+                    import_stats["imported"]["settings"] = len(data)
+                    logger.info(f"Imported {len(data)} settings")
+                except Exception as e:
+                    import_stats["errors"].append(f"settings: {str(e)}")
+            
+            # Import uploaded files
+            uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+            os.makedirs(uploads_dir, exist_ok=True)
+            uploaded_count = 0
+            for name in file_list:
+                if name.startswith("uploads/") and not name.endswith("/"):
+                    try:
+                        filename = name.replace("uploads/", "")
+                        file_data = zip_file.read(name)
+                        filepath = os.path.join(uploads_dir, filename)
+                        with open(filepath, 'wb') as f:
+                            f.write(file_data)
+                        uploaded_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to restore file {name}: {e}")
+            if uploaded_count > 0:
+                import_stats["imported"]["uploaded_files"] = uploaded_count
+                logger.info(f"Restored {uploaded_count} uploaded files")
+            
+            # Note about Telegram config
+            if "telegram_config.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("telegram_config.json").decode('utf-8'))
+                    import_stats["telegram_config"] = {
+                        "note": "Telegram config found in backup. Update .env manually if needed.",
+                        "bot_token_present": bool(data.get("bot_token")),
+                        "chat_id_present": bool(data.get("chat_id"))
+                    }
+                    logger.info("Telegram config found in backup - requires manual .env update")
+                except Exception as e:
+                    logger.warning(f"Failed to read telegram_config: {e}")
         
         # Ensure phone field exists even if customer_fields was not in backup
         await ensure_phone_field_exists()
