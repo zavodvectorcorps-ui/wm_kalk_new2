@@ -1413,11 +1413,13 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
 
           {/* Hint field */}
           <div className="space-y-2">
-            <Label>Подсказка / Hint</Label>
-            <Input 
+            <Label>Описание модели / Hint</Label>
+            <textarea 
               value={formData.hint || ''} 
               onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
-              placeholder="Дополнительная информация о модели"
+              placeholder="Подробное описание модели: характеристики, особенности, преимущества..."
+              className="w-full min-h-[80px] px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              rows={3}
             />
           </div>
 
