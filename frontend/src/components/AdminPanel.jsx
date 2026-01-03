@@ -148,6 +148,10 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
           <TabsContent value="employees">
             <UserManagement />
           </TabsContent>
+
+          <TabsContent value="backup">
+            <BackupPage />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
