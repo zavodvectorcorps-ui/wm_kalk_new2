@@ -362,16 +362,19 @@ async def import_backup(file: UploadFile = File(...)):
                     logger.error(f"Error importing balia_prices: {e}")
                     import_stats["errors"].append(f"balia_prices: {str(e)}")
             
-            # Import Sauna prices
+            # Import Sauna prices (to sauna_prices collection)
             if "sauna_prices.json" in file_list:
                 try:
                     data = json.loads(zip_file.read("sauna_prices.json").decode('utf-8'))
                     data.pop('_id', None)
-                    await db.prices.delete_one({"type": "sauna_prices"})
-                    await db.prices.insert_one(data)
+                    data["_id"] = "default"
+                    # Sauna prices are in separate collection
+                    await db.sauna_prices.delete_one({"_id": "default"})
+                    await db.sauna_prices.insert_one(data)
                     import_stats["imported"]["sauna_prices"] = 1
-                    logger.info("Imported sauna prices")
+                    logger.info(f"Imported sauna prices with {len(data.get('models', []))} models")
                 except Exception as e:
+                    logger.error(f"Error importing sauna_prices: {e}")
                     import_stats["errors"].append(f"sauna_prices: {str(e)}")
             
             # Import Tech specs
