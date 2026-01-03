@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { 
   Globe, Phone, User, MessageSquare, Clock, CheckCircle, XCircle, 
   Loader2, Trash2, Eye, FileText, FileSpreadsheet, RefreshCw, Bell, BellOff,
-  Package
+  Package, Edit2, ArrowRight, ExternalLink
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -21,7 +21,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 // Notification sound URL (simple beep)
 const NOTIFICATION_SOUND_URL = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleA4YR6PW0ZmGOU9hgZ+ZoaWtrKWbj3heR0M7Mjd+p7/KxaWBWz02LzJDfqO8xcu7n3dYQDIuNj1jhq7AyrqadlI8LiwxPVyEp7rGvJxyUDsqKzE8WYCjt8K7m3RQOywqLjlVfKC2wbubdFA7LCosMTtZgKS4wrybdFA7LCosMTtZgKS4wrybdFA7';
 
-export const WebOrdersPage = () => {
+export const WebOrdersPage = ({ onEditInCalculator }) => {
   const { i18n } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +29,7 @@ export const WebOrdersPage = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastCount, setLastCount] = useState(0);
+  const [transferring, setTransferring] = useState(false);
   const audioRef = useRef(null);
   const pollIntervalRef = useRef(null);
 
