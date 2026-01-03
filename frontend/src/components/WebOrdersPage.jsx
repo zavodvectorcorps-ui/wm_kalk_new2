@@ -342,6 +342,27 @@ export const WebOrdersPage = ({ onEditInCalculator }) => {
                       <p className="text-muted-foreground">{txt.created}</p>
                       <p className="font-medium">{formatDate(order.createdAt)}</p>
                     </div>
+                    {order.status !== 'transferred' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTransferToMain(order);
+                        }}
+                        disabled={transferring}
+                        className="ml-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title={txt.transferToMain}
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {order.status === 'transferred' && (
+                      <Badge variant="outline" className="text-green-600">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        {lang === 'ru' ? 'Перенесён' : 'Przeniesiony'}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardContent>
