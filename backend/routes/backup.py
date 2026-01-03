@@ -882,10 +882,14 @@ async def create_auto_backup():
         # Send to Telegram if configured
         telegram_sent = False
         telegram_config = await db.settings.find_one({"type": "telegram_backup"})
+        logger.info(f"Auto backup: telegram_config = {telegram_config}")
+        
         if telegram_config and telegram_config.get("enabled") and telegram_config.get("chat_id"):
-            try:
-                bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
-                if bot_token:
+            bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+            logger.info(f"Auto backup: bot_token present = {bool(bot_token)}, chat_id = {telegram_config.get('chat_id')}")
+            
+            if bot_token:
+                try:
                     # Create ZIP for Telegram
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
