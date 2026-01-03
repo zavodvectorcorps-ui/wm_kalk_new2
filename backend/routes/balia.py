@@ -1708,7 +1708,19 @@ from services.telegram_service import test_telegram_connection, get_telegram_con
 
 @router.get("/telegram/settings")
 async def get_telegram_settings():
-    """Get current Telegram notification settings"""
+    """Get current Telegram notification settings from DB or env"""
+    # First try database
+    db_settings = await db.settings.find_one({"type": "telegram_settings"})
+    if db_settings:
+        return {
+            "bot_token": db_settings.get('bot_token', '')[:20] + "..." if db_settings.get('bot_token') else "",
+            "chat_id": db_settings.get('chat_id', ''),
+            "enabled": db_settings.get('enabled', True),
+            "bot_token_set": bool(db_settings.get('bot_token')),
+            "chat_id_set": bool(db_settings.get('chat_id'))
+        }
+    
+    # Fallback to env
     config = get_telegram_config()
     return {
         "bot_token": config['bot_token'][:20] + "..." if config['bot_token'] else "",
