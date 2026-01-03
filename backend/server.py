@@ -46,15 +46,27 @@ async def health_check():
     """Health check endpoint for deployment monitoring"""
     return {"status": "healthy", "service": "wm-calculator-backend"}
 
-# CORS middleware - allow all origins for maximum compatibility
-# This is necessary because the app is accessed from multiple domains:
-# - wm-kalkulator.pl (custom domain)
-# - spa-planner.emergent.host (production)
-# - preview URLs (development)
+# CORS middleware - allow specific origins for credentials
+# List all domains the app is accessed from
+allowed_origins = [
+    "https://wm-kalkulator.pl",
+    "https://www.wm-kalkulator.pl",
+    "https://spa-planner.emergent.host",
+    "http://localhost:3000",
+    "http://localhost:8001",
+]
+# Add any additional origins from environment
+env_origins = os.environ.get('CORS_ORIGINS', '')
+if env_origins:
+    for origin in env_origins.split(','):
+        origin = origin.strip()
+        if origin and origin not in allowed_origins:
+            allowed_origins.append(origin)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
