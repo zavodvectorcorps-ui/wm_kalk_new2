@@ -28,6 +28,7 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
       prices: 'Цены',
       employees: 'Сотрудники',
       techSpec: 'Тех.задание',
+      backup: 'Бэкап',
       selectProject: 'Выберите проект:',
       balia: 'Купели',
       sauna: 'Сауны',
