@@ -146,13 +146,18 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
 
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
-    """Delete an employee (admin only)"""
+    """Delete a user (admin only). Super-admin can delete anyone except themselves."""
     user = await db.users.find_one({"id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if user.get("role") == "admin":
-        raise HTTPException(status_code=403, detail="Cannot delete admin user")
+    # Cannot delete super-admin account
+    if user.get("username") == "admin":
+        raise HTTPException(status_code=403, detail="Cannot delete super-admin account")
+    
+    # Only super-admin can delete other admins
+    if user.get("role") == "admin" and admin.get("username") != "admin":
+        raise HTTPException(status_code=403, detail="Only super-admin can delete admin users")
     
     await db.users.delete_one({"id": user_id})
     return {"message": "User deleted successfully"}
