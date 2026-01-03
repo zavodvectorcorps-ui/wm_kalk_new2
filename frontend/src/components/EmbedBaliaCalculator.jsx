@@ -447,14 +447,14 @@ export const EmbedBaliaCalculator = () => {
                       />
                     )}
                     {getName(category)}
-                    {category.hint && (
+                    {(category.hintPl || category.hint) && (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent side="top" className="max-w-xs text-xs">
-                            {category.hint}
+                            {category.hintPl || category.hint}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -478,7 +478,7 @@ export const EmbedBaliaCalculator = () => {
                               }
                             `}
                           >
-                            {option.hint && (
+                            {(option.hintPl || option.hint) && (
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -487,7 +487,7 @@ export const EmbedBaliaCalculator = () => {
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent side="top" className="max-w-xs text-xs">
-                                    {option.hint}
+                                    {option.hintPl || option.hint}
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
