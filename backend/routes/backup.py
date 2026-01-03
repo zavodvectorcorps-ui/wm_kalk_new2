@@ -31,19 +31,23 @@ def set_database(database):
 
 
 async def get_telegram_bot_token():
-    """Get Telegram bot token from env or settings."""
+    """Get Telegram bot token from multiple sources."""
+    # 1. Try environment variable first
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
-    if not bot_token:
-        # Try telegram_settings first
-        tg_settings = await db.settings.find_one({"type": "telegram_settings"})
-        if tg_settings and tg_settings.get('bot_token'):
-            bot_token = tg_settings.get('bot_token', '')
-    if not bot_token:
-        # Try telegram_backup settings (might have bot_token stored there)
-        tg_backup = await db.settings.find_one({"type": "telegram_backup"})
-        if tg_backup and tg_backup.get('bot_token'):
-            bot_token = tg_backup.get('bot_token', '')
-    return bot_token
+    if bot_token:
+        return bot_token
+    
+    # 2. Try telegram_settings (order notifications settings)
+    tg_settings = await db.settings.find_one({"type": "telegram_settings"})
+    if tg_settings and tg_settings.get('bot_token'):
+        return tg_settings.get('bot_token', '')
+    
+    # 3. Try telegram_backup settings
+    tg_backup = await db.settings.find_one({"type": "telegram_backup"})
+    if tg_backup and tg_backup.get('bot_token'):
+        return tg_backup.get('bot_token', '')
+    
+    return ''
 
 
 class TelegramBackupConfig(BaseModel):
