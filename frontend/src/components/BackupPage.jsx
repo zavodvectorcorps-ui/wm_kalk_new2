@@ -400,6 +400,71 @@ export const BackupPage = () => {
         </CardContent>
       </Card>
 
+      {/* Telegram Backup */}
+      <Card className="mb-6 border-blue-200">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-blue-500" />
+            Бэкап в Telegram
+          </CardTitle>
+          <CardDescription>
+            Отправка резервных копий в отдельный Telegram чат
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Chat ID для бэкапов</Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="-100xxxxxxxxxx"
+                value={telegramConfig.chat_id}
+                onChange={(e) => setTelegramConfig({ ...telegramConfig, chat_id: e.target.value })}
+                className="flex-1"
+              />
+              <Button 
+                variant="outline" 
+                onClick={handleTestTelegram}
+                disabled={testingTelegram || !telegramConfig.chat_id}
+              >
+                {testingTelegram ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Тест'
+                )}
+              </Button>
+              <Button 
+                onClick={handleSaveTelegramConfig}
+                disabled={loading || !telegramConfig.chat_id}
+              >
+                Сохранить
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Создайте отдельный чат/группу для бэкапов и добавьте туда бота. 
+              Chat ID можно узнать через @userinfobot или @getidsbot
+            </p>
+          </div>
+          
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              Последняя отправка: {formatDate(telegramConfig.last_sent)}
+            </div>
+            <Button 
+              onClick={handleSendToTelegram}
+              disabled={sendingToTelegram || !telegramConfig.chat_id}
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600"
+            >
+              {sendingToTelegram ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {sendingToTelegram ? 'Отправка...' : 'Отправить в Telegram'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Auto Backup Settings */}
       <Card className="mb-6">
         <CardHeader>
