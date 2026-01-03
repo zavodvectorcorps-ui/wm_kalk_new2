@@ -1761,15 +1761,8 @@ const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySym
 
 // Category Edit Dialog Component
 const CategoryEditDialog = ({ open, category, isNew, onClose, onSave, txt }) => {
-  const [formData, setFormData] = useState({});
-  
-  // Update form when category changes (only when dialog opens)
-  const categoryKey = category?.id || 'new';
-  useEffect(() => {
-    if (open && category) {
-      setFormData(category);
-    }
-  }, [open, categoryKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Use key prop approach - component remounts when category changes
+  const [formData, setFormData] = useState(() => category || {});
 
   if (!category) return null;
 
