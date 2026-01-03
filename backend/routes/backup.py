@@ -221,7 +221,8 @@ async def convert_url_images_to_base64(data: dict, base_url: str) -> dict:
 async def export_backup():
     """
     Export all data as a ZIP file containing JSON files for each collection.
-    Includes: orders, sauna_orders, web_orders, users, prices (balia & sauna)
+    Includes: orders, sauna_orders, web_orders, users, prices (balia & sauna),
+    tech_spec_config, balia_tech_spec_config, images collection, uploaded files, telegram settings
     """
     try:
         # Create in-memory ZIP file
@@ -229,7 +230,7 @@ async def export_backup():
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             backup_manifest = {
-                "version": "1.0",
+                "version": "2.0",
                 "createdAt": datetime.now(timezone.utc).isoformat(),
                 "collections": []
             }
@@ -304,13 +305,37 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "sauna_prices", "count": 1})
                 logger.info("Exported sauna prices with embedded images")
             
-            # Export Tech specs
+            # Export Tech specs (legacy)
             tech_specs = await db.tech_specs.find({}).to_list(1000)
             if tech_specs:
                 tech_specs = [serialize_for_json(t) for t in tech_specs]
                 zip_file.writestr("tech_specs.json", json.dumps(tech_specs, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "tech_specs", "count": len(tech_specs)})
                 logger.info(f"Exported {len(tech_specs)} tech specs")
+            
+            # Export tech_spec_config (Sauna spec configuration)
+            tech_spec_config = await db.tech_spec_config.find({}).to_list(100)
+            if tech_spec_config:
+                tech_spec_config = [serialize_for_json(t) for t in tech_spec_config]
+                zip_file.writestr("tech_spec_config.json", json.dumps(tech_spec_config, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "tech_spec_config", "count": len(tech_spec_config)})
+                logger.info(f"Exported {len(tech_spec_config)} tech_spec_config")
+            
+            # Export balia_tech_spec_config (Balia spec configuration)
+            balia_tech_spec_config = await db.balia_tech_spec_config.find({}).to_list(100)
+            if balia_tech_spec_config:
+                balia_tech_spec_config = [serialize_for_json(t) for t in balia_tech_spec_config]
+                zip_file.writestr("balia_tech_spec_config.json", json.dumps(balia_tech_spec_config, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "balia_tech_spec_config", "count": len(balia_tech_spec_config)})
+                logger.info(f"Exported {len(balia_tech_spec_config)} balia_tech_spec_config")
+            
+            # Export images collection (image references)
+            images_collection = await db.images.find({}).to_list(1000)
+            if images_collection:
+                images_collection = [serialize_for_json(i) for i in images_collection]
+                zip_file.writestr("images_collection.json", json.dumps(images_collection, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "images_collection", "count": len(images_collection)})
+                logger.info(f"Exported {len(images_collection)} image references")
             
             # Export Customer fields
             customer_fields = await db.customer_fields.find({}).to_list(100)
@@ -320,11 +345,42 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "customer_fields", "count": len(customer_fields)})
                 logger.info(f"Exported {len(customer_fields)} customer fields")
             
-            # Export Backup settings
-            backup_settings = await db.settings.find_one({"type": "backup_settings"})
-            if backup_settings:
-                backup_settings = serialize_for_json(backup_settings)
-                zip_file.writestr("backup_settings.json", json.dumps(backup_settings, ensure_ascii=False, indent=2))
+            # Export all settings (backup_settings, telegram, etc.)
+            all_settings = await db.settings.find({}).to_list(100)
+            if all_settings:
+                all_settings = [serialize_for_json(s) for s in all_settings]
+                zip_file.writestr("settings.json", json.dumps(all_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "settings", "count": len(all_settings)})
+                logger.info(f"Exported {len(all_settings)} settings")
+            
+            # Export Telegram configuration from .env
+            telegram_config = {
+                "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
+                "chat_id": os.environ.get('TELEGRAM_CHAT_ID', '')
+            }
+            if telegram_config["bot_token"] or telegram_config["chat_id"]:
+                zip_file.writestr("telegram_config.json", json.dumps(telegram_config, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "telegram_config", "count": 1})
+                logger.info("Exported Telegram configuration")
+            
+            # Export uploaded files from /backend/uploads/
+            uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+            if os.path.exists(uploads_dir):
+                uploaded_files = []
+                for filename in os.listdir(uploads_dir):
+                    filepath = os.path.join(uploads_dir, filename)
+                    if os.path.isfile(filepath):
+                        try:
+                            with open(filepath, 'rb') as f:
+                                file_data = f.read()
+                                # Store file in ZIP under uploads/ folder
+                                zip_file.writestr(f"uploads/{filename}", file_data)
+                                uploaded_files.append(filename)
+                        except Exception as e:
+                            logger.warning(f"Failed to backup file {filename}: {e}")
+                if uploaded_files:
+                    backup_manifest["collections"].append({"name": "uploaded_files", "count": len(uploaded_files)})
+                    logger.info(f"Exported {len(uploaded_files)} uploaded files")
             
             # Write manifest
             zip_file.writestr("manifest.json", json.dumps(backup_manifest, ensure_ascii=False, indent=2))
