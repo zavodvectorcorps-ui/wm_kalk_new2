@@ -743,8 +743,18 @@ async def generate_pdf(request: PDFRequest):
         try:
             img_data = None
             
-            # Try loading from MongoDB first
-            if '/api/uploads/' in model_image_url:
+            # Handle Base64 data URI
+            if model_image_url.startswith('data:image'):
+                try:
+                    # Extract base64 part from data URI
+                    base64_data = model_image_url.split(',', 1)[1]
+                    img_data = base64.b64decode(base64_data)
+                    logger.info(f"Decoded Base64 model image, size: {len(img_data)} bytes")
+                except Exception as e:
+                    logger.warning(f"Could not decode Base64 model image: {e}")
+            
+            # Try loading from MongoDB
+            if not img_data and '/api/uploads/' in model_image_url:
                 img_data = await load_image_from_mongodb(model_image_url)
                 if img_data:
                     logger.info(f"Loaded model image from MongoDB")
@@ -753,7 +763,7 @@ async def generate_pdf(request: PDFRequest):
             if not img_data and model_image_url.startswith('http'):
                 try:
                     img_data = urllib.request.urlopen(model_image_url, timeout=5).read()
-                    logger.info(f"Downloaded model image from URL: {model_image_url}")
+                    logger.info(f"Downloaded model image from URL: {model_image_url[:80]}...")
                 except Exception as e:
                     logger.warning(f"Could not download image from URL: {e}")
             
