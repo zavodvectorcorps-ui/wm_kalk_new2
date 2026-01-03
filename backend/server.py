@@ -14,6 +14,7 @@ from routes.balia_tech_spec import router as balia_tech_spec_router
 from routes.upload import router as upload_router
 from routes.customer_fields import router as customer_fields_router
 from routes.statistics import router as statistics_router
+from routes.backup import router as backup_router, set_database as set_backup_db
 
 # Configure logging
 logging.basicConfig(
