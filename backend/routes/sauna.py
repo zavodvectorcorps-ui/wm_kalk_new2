@@ -316,6 +316,160 @@ async def delete_sauna_order(order_id: str):
     return {"message": "Order deleted successfully"}
 
 
+async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
+    """Generate PDF for sauna order and return as bytes (for Telegram)"""
+    from reportlab.lib.units import mm
+    
+    buffer = io.BytesIO()
+    
+    try:
+        pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+        pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+    except:
+        pass
+    
+    # Colors - Orange theme for Sauna
+    ORANGE = colors.HexColor('#EA580C')
+    ORANGE_LIGHT = colors.HexColor('#FFF7ED')
+    ORANGE_DARK = colors.HexColor('#C2410C')
+    ORANGE_BORDER = colors.HexColor('#FDBA74')
+    GREEN = colors.HexColor('#059669')
+    GREEN_LIGHT = colors.HexColor('#ECFDF5')
+    TEXT_COLOR = colors.HexColor('#1F2937')
+    MUTED = colors.HexColor('#6B7280')
+    
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=15*mm,
+        leftMargin=15*mm,
+        topMargin=10*mm,
+        bottomMargin=15*mm
+    )
+    
+    elements = []
+    
+    # Generate offer number
+    offer_number = request.orderId if request.orderId else f"SAUNA-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    
+    # Custom styles
+    title_style = ParagraphStyle('Title', fontName='DejaVuSans-Bold', fontSize=22, textColor=ORANGE_DARK, alignment=TA_CENTER)
+    subtitle_style = ParagraphStyle('Subtitle', fontName='DejaVuSans', fontSize=10, textColor=MUTED, alignment=TA_CENTER)
+    section_style = ParagraphStyle('Section', fontName='DejaVuSans-Bold', fontSize=13, textColor=ORANGE_DARK, spaceBefore=12)
+    
+    # Header
+    elements.append(Paragraph("OFERTA CENOWA - SAUNA", title_style))
+    elements.append(Spacer(1, 2*mm))
+    elements.append(Paragraph(f"Nr oferty: {offer_number} | Data: {datetime.now().strftime('%d.%m.%Y')}", subtitle_style))
+    elements.append(Spacer(1, 6*mm))
+    
+    # Customer info section
+    elements.append(Paragraph("📋 DANE KLIENTA", section_style))
+    customer_data = [
+        ["Imię i nazwisko:", request.fullName or "-"],
+        ["Telefon:", request.phoneNumber or "-"],
+        ["Email:", request.email or "-"],
+    ]
+    if request.fullAddress:
+        customer_data.append(["Adres:", request.fullAddress])
+    if request.notes:
+        customer_data.append(["Uwagi:", request.notes])
+    
+    customer_table = Table(customer_data, colWidths=[50*mm, 125*mm])
+    customer_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR', (0, 0), (0, -1), MUTED),
+        ('TEXTCOLOR', (1, 0), (1, -1), TEXT_COLOR),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(customer_table)
+    elements.append(Spacer(1, 6*mm))
+    
+    # Model section
+    elements.append(Paragraph("🧖 WYBRANY MODEL", section_style))
+    model_info = [
+        ["Model:", request.modelName or request.selectedModel or "-"],
+        ["Cena bazowa:", f"{request.basePrice:,} zł".replace(",", " ")],
+    ]
+    
+    model_table = Table(model_info, colWidths=[50*mm, 125*mm])
+    model_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR', (0, 0), (0, -1), MUTED),
+        ('TEXTCOLOR', (1, 0), (1, -1), TEXT_COLOR),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(model_table)
+    elements.append(Spacer(1, 6*mm))
+    
+    # Options section - from selections
+    if request.selections:
+        elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))
+        options_data = [["Opcja", "Wartość"]]
+        
+        for key, value in request.selections.items():
+            if value and value != "none":
+                display_key = key.replace("_", " ").title()
+                display_value = str(value).replace("_", " ").title() if isinstance(value, str) else str(value)
+                options_data.append([display_key, display_value])
+        
+        if len(options_data) > 1:
+            options_table = Table(options_data, colWidths=[90*mm, 85*mm])
+            options_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
+                ('FONTNAME', (0, 1), (-1, -1), 'DejaVuSans'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BACKGROUND', (0, 0), (-1, 0), ORANGE_LIGHT),
+                ('TEXTCOLOR', (0, 0), (-1, 0), ORANGE_DARK),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 0.5, ORANGE_BORDER),
+            ]))
+            elements.append(options_table)
+            elements.append(Spacer(1, 6*mm))
+    
+    # Total section
+    elements.append(Paragraph("💰 PODSUMOWANIE", section_style))
+    
+    total = request.total or 0
+    total_formatted = f"{total:,.0f}".replace(",", " ")
+    
+    total_data = [["RAZEM DO ZAPŁATY:", f"{total_formatted} zł"]]
+    
+    total_table = Table(total_data, colWidths=[125*mm, 50*mm])
+    total_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 14),
+        ('BACKGROUND', (0, 0), (-1, -1), GREEN_LIGHT),
+        ('TEXTCOLOR', (0, 0), (0, -1), TEXT_COLOR),
+        ('TEXTCOLOR', (1, 0), (1, -1), GREEN),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOX', (0, 0), (-1, -1), 1, GREEN),
+    ]))
+    elements.append(total_table)
+    elements.append(Spacer(1, 8*mm))
+    
+    # Footer
+    footer_style = ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)
+    elements.append(Paragraph("Oferta ważna 14 dni od daty wystawienia.", footer_style))
+    elements.append(Paragraph("Oferta nie stanowi oferty handlowej w rozumieniu Kodeksu Cywilnego.", footer_style))
+    
+    doc.build(elements)
+    
+    pdf_data = buffer.getvalue()
+    buffer.close()
+    
+    return pdf_data
+
+
 @router.post("/generate-pdf")
 async def generate_sauna_pdf(request: SaunaPDFRequest):
     """Generate PDF for sauna order - Professional offer format"""
