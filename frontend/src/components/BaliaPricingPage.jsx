@@ -1251,6 +1251,7 @@ export const BaliaPricingPage = () => {
 
       {/* Edit Category Dialog */}
       <CategoryEditDialog
+        key={editCategoryDialog.category?.id || 'new-category'}
         open={editCategoryDialog.open}
         category={editCategoryDialog.category}
         isNew={editCategoryDialog.isNew}
@@ -1261,6 +1262,7 @@ export const BaliaPricingPage = () => {
 
       {/* Edit Option Dialog */}
       <OptionEditDialog
+        key={editOptionDialog.option?.id || 'new-option'}
         open={editOptionDialog.open}
         option={editOptionDialog.option}
         categoryId={editOptionDialog.categoryId}
