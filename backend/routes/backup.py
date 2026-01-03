@@ -885,7 +885,7 @@ async def create_auto_backup():
         logger.info(f"Auto backup: telegram_config = {telegram_config}")
         
         if telegram_config and telegram_config.get("enabled") and telegram_config.get("chat_id"):
-            bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+            bot_token = await get_telegram_bot_token()
             logger.info(f"Auto backup: bot_token present = {bool(bot_token)}, chat_id = {telegram_config.get('chat_id')}")
             
             if bot_token:
