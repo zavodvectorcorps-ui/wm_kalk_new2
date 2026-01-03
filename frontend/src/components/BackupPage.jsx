@@ -16,7 +16,9 @@ import {
   FileArchive,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Send,
+  MessageCircle
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -33,6 +35,15 @@ export const BackupPage = () => {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [creatingBackup, setCreatingBackup] = useState(false);
+  
+  // Telegram backup state
+  const [telegramConfig, setTelegramConfig] = useState({
+    chat_id: '',
+    enabled: false,
+    last_sent: null
+  });
+  const [sendingToTelegram, setSendingToTelegram] = useState(false);
+  const [testingTelegram, setTestingTelegram] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     try {
