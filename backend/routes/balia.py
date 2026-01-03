@@ -733,12 +733,14 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
     customer_data = [
         ["Imię i nazwisko:", request.fullName or "-"],
         ["Telefon:", request.phoneNumber or "-"],
-        ["Email:", request.email or "-"],
+        ["Email:", getattr(request, 'email', None) or "-"],
     ]
-    if request.address:
-        customer_data.append(["Adres:", request.address])
-    if request.notes:
-        customer_data.append(["Uwagi:", request.notes])
+    address = getattr(request, 'fullAddress', None) or getattr(request, 'address', None)
+    if address:
+        customer_data.append(["Adres:", address])
+    notes = getattr(request, 'notes', None)
+    if notes:
+        customer_data.append(["Uwagi:", notes])
     
     customer_table = Table(customer_data, colWidths=[50*mm, 125*mm])
     customer_table.setStyle(TableStyle([
