@@ -25,6 +25,7 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
     ru: {
       backToSelection: 'Назад к выбору',
       orders: 'Заказы',
+      webOrders: 'Интернет',
       statistics: 'Статистика',
       prices: 'Цены',
       employees: 'Сотрудники',
