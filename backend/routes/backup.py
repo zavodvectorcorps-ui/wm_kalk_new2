@@ -923,6 +923,7 @@ async def create_auto_backup():
                         bot_token=bot_token
                     )
                     telegram_sent = tg_result.get("success", False)
+                    logger.info(f"Auto backup Telegram result: {tg_result}")
                     
                     if telegram_sent:
                         await db.settings.update_one(
@@ -931,8 +932,14 @@ async def create_auto_backup():
                             upsert=True
                         )
                         logger.info("Auto backup sent to Telegram")
-            except Exception as tg_error:
-                logger.warning(f"Failed to send auto backup to Telegram: {tg_error}")
+                    else:
+                        logger.warning(f"Auto backup Telegram failed: {tg_result.get('error', 'unknown')}")
+                except Exception as tg_error:
+                    logger.warning(f"Failed to send auto backup to Telegram: {tg_error}")
+            else:
+                logger.warning("Auto backup: TELEGRAM_BOT_TOKEN not set")
+        else:
+            logger.info(f"Auto backup: Telegram not configured or disabled. config={telegram_config}")
         
         return {
             "success": True,
