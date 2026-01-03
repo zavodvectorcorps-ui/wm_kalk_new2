@@ -269,7 +269,7 @@ export const EmbedBaliaCalculator = () => {
                 >
                   {model.imageUrl && (
                     <img 
-                      src={model.imageUrl} 
+                      src={getImageUrl(model.imageUrl)} 
                       alt={getName(model)}
                       className="w-full h-24 object-contain mb-2"
                     />
