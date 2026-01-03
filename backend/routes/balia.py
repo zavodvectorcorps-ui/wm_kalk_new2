@@ -925,14 +925,25 @@ async def generate_pdf(request: PDFRequest):
         
         # Helper function to load and resize option image
         async def load_option_image(image_url: str, max_width: int = 60, max_height: int = 45):
-            """Load option image from MongoDB or external URL"""
+            """Load option image from MongoDB, base64, or external URL"""
             if not image_url:
                 return None
             try:
                 img_data = None
                 
-                # Try loading from MongoDB first
-                if '/api/uploads/' in image_url:
+                # Handle base64 images
+                if image_url.startswith('data:image'):
+                    try:
+                        # Extract base64 data after the comma
+                        base64_data = image_url.split(',', 1)[1] if ',' in image_url else image_url
+                        import base64
+                        img_data = base64.b64decode(base64_data)
+                        logger.info(f"Decoded base64 image: {len(img_data)} bytes")
+                    except Exception as e:
+                        logger.warning(f"Failed to decode base64 image: {e}")
+                
+                # Try loading from MongoDB
+                if not img_data and '/api/uploads/' in image_url:
                     img_data = await load_image_from_mongodb(image_url)
                     if img_data:
                         logger.info(f"Loaded option image from MongoDB: {len(img_data)} bytes")
