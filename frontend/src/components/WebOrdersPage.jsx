@@ -564,6 +564,12 @@ export const WebOrdersPage = ({ onEditInCalculator }) => {
           )}
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="telegram" className="mt-6">
+          <TelegramSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
