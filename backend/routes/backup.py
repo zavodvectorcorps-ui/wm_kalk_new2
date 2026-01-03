@@ -200,13 +200,19 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "balia_prices", "count": 1})
                 logger.info("Exported balia prices with embedded images")
             
-            # Export Sauna prices (including images as base64)
-            sauna_prices = await db.prices.find_one({"type": "sauna_prices"})
+            # Export Sauna prices (from sauna_prices collection)
+            # Sauna prices are stored in a separate collection, not in 'prices'
+            sauna_prices = await db.sauna_prices.find_one({"_id": "default"})
+            if not sauna_prices:
+                sauna_prices = await db.sauna_prices.find_one({})
             if sauna_prices:
                 sauna_prices = serialize_for_json(sauna_prices)
-                base_url = os.environ.get('REACT_APP_BACKEND_URL', os.environ.get('API_BASE_URL', ''))
+                base_url = os.environ.get('API_BASE_URL', os.environ.get('REACT_APP_BACKEND_URL', ''))
                 if base_url:
-                    sauna_prices = await embed_images_in_data(sauna_prices, base_url)
+                    try:
+                        sauna_prices = await embed_images_in_data(sauna_prices, base_url)
+                    except Exception as e:
+                        logger.warning(f"Failed to embed images in sauna_prices: {e}")
                 zip_file.writestr("sauna_prices.json", json.dumps(sauna_prices, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "sauna_prices", "count": 1})
                 logger.info("Exported sauna prices with embedded images")
