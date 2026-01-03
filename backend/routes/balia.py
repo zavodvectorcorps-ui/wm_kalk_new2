@@ -118,12 +118,15 @@ async def get_prices():
 @router.post("/prices")
 async def update_prices(prices: PriceData):
     """Update pricing"""
+    global _prices_cache
     price_dict = prices.model_dump()
     await db.prices.update_one(
         {"_id": "default"},
         {"$set": price_dict},
         upsert=True
     )
+    # Invalidate cache
+    _prices_cache = {"data": None, "expires": 0}
     return {"message": "Prices updated successfully"}
 
 
