@@ -1734,11 +1734,24 @@ async def test_telegram_settings(data: dict):
 
 @router.post("/telegram/settings")
 async def update_telegram_settings(data: dict):
-    """Update Telegram settings in environment"""
-    # Note: In production, you'd want to store this in DB or update env file properly
-    # For now, we update the environment variables for the current process
+    """Update Telegram settings in database and environment"""
     import os
     
+    # Save to database for persistence
+    settings_data = {
+        "type": "telegram_settings",
+        "bot_token": data.get('bot_token', ''),
+        "chat_id": str(data.get('chat_id', '')),
+        "enabled": data.get('enabled', True)
+    }
+    
+    await db.settings.update_one(
+        {"type": "telegram_settings"},
+        {"$set": settings_data},
+        upsert=True
+    )
+    
+    # Also update environment variables for current process
     if 'bot_token' in data and data['bot_token']:
         os.environ['TELEGRAM_BOT_TOKEN'] = data['bot_token']
     
@@ -1748,4 +1761,4 @@ async def update_telegram_settings(data: dict):
     if 'enabled' in data:
         os.environ['TELEGRAM_NOTIFICATIONS_ENABLED'] = 'true' if data['enabled'] else 'false'
     
-    return {"success": True, "message": "Settings updated"}
+    return {"success": True, "message": "Settings saved to database"}
