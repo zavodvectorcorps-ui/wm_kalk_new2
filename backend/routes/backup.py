@@ -180,6 +180,45 @@ async def ensure_phone_field_exists():
         logger.error(f"Error ensuring phone field: {e}")
 
 
+async def convert_url_images_to_base64(data: dict, base_url: str) -> dict:
+    """Convert URL images to base64 during import"""
+    async def download_image(url: str) -> Optional[str]:
+        if not url or url.startswith('data:'):
+            return url
+        full_url = url if url.startswith('http') else f"{base_url}{url}"
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(full_url)
+                if response.status_code == 200:
+                    content_type = response.headers.get('content-type', 'image/jpeg')
+                    b64 = base64.b64encode(response.content).decode('utf-8')
+                    logger.info(f"Downloaded and converted image: {url[:50]}...")
+                    return f"data:{content_type};base64,{b64}"
+        except Exception as e:
+            logger.warning(f"Failed to download image {url}: {e}")
+        return url
+    
+    # Process models
+    for model in data.get('models', []):
+        if model.get('imageUrl') and not model['imageUrl'].startswith('data:'):
+            model['imageUrl'] = await download_image(model['imageUrl'])
+        for variant in model.get('heaterVariants', []):
+            if variant.get('imageUrl') and not variant['imageUrl'].startswith('data:'):
+                variant['imageUrl'] = await download_image(variant['imageUrl'])
+    
+    # Process categories and options
+    for cat in data.get('categories', []):
+        if cat.get('imageUrl') and not cat['imageUrl'].startswith('data:'):
+            cat['imageUrl'] = await download_image(cat['imageUrl'])
+        for opt in cat.get('options', []):
+            if opt.get('imageUrl') and not opt['imageUrl'].startswith('data:'):
+                opt['imageUrl'] = await download_image(opt['imageUrl'])
+    
+    return data
+    except Exception as e:
+        logger.error(f"Error ensuring phone field: {e}")
+
+
 @router.post("/export")
 async def export_backup():
     """
