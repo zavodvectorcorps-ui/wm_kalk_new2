@@ -591,11 +591,34 @@ async def create_order(order: Order):
     order_dict = order.model_dump()
     await db.orders.insert_one(order_dict)
     
-    # Send Telegram notification for new balia order
+    # Send Telegram notification with PDF for new balia order
     try:
-        await notify_new_order(order_dict, order_type='balia', is_web_order=False)
+        # Generate PDF for the order
+        from models.balia import PDFRequest
+        pdf_request = PDFRequest(
+            orderId=order_dict.get('id'),
+            fullName=order_dict.get('fullName'),
+            phoneNumber=order_dict.get('phoneNumber'),
+            email=order_dict.get('email'),
+            address=order_dict.get('address'),
+            notes=order_dict.get('notes'),
+            modelName=order_dict.get('modelName'),
+            heaterType=order_dict.get('heaterType'),
+            modelSpecs=order_dict.get('modelSpecs'),
+            selectedOptions=order_dict.get('selectedOptions', []),
+            total=order_dict.get('total'),
+            currency=order_dict.get('currency', 'PLN'),
+            currencySymbol=order_dict.get('currencySymbol', 'zł')
+        )
+        pdf_data = await generate_pdf_bytes(pdf_request)
+        await notify_new_order(order_dict, order_type='balia', is_web_order=False, pdf_data=pdf_data)
     except Exception as e:
-        logger.warning(f"Failed to send Telegram notification for order: {e}")
+        logger.warning(f"Failed to send Telegram notification with PDF for order: {e}")
+        # Fallback: try to send without PDF
+        try:
+            await notify_new_order(order_dict, order_type='balia', is_web_order=False)
+        except:
+            pass
     
     return order
 
