@@ -38,6 +38,7 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
     pl: {
       backToSelection: 'Powrót do wyboru',
       orders: 'Zamówienia',
+      webOrders: 'Internet',
       statistics: 'Statystyki',
       prices: 'Ceny',
       employees: 'Pracownicy',
