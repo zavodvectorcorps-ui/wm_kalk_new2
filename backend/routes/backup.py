@@ -406,11 +406,45 @@ async def import_backup(file: UploadFile = File(...)):
                     await db.customer_fields.delete_many({})
                     for field in data:
                         field.pop('_id', None)
+                        # Ensure phone field exists for balia
+                        if field.get('calculatorType') == 'balia':
+                            fields_list = field.get('fields', [])
+                            field_ids = [f.get('id') for f in fields_list]
+                            if 'phoneNumber' not in field_ids:
+                                # Add phone field after fullName
+                                phone_field = {
+                                    "id": "phoneNumber",
+                                    "name": "Phone",
+                                    "nameRu": "Телефон",
+                                    "namePl": "Telefon",
+                                    "fieldType": "phone",
+                                    "placeholder": "",
+                                    "placeholderRu": "",
+                                    "placeholderPl": "",
+                                    "required": True,
+                                    "sortOrder": 2,
+                                    "active": True
+                                }
+                                # Insert after fullName (index 1) or at position 1
+                                insert_pos = 1
+                                for i, f in enumerate(fields_list):
+                                    if f.get('id') == 'fullName':
+                                        insert_pos = i + 1
+                                        break
+                                fields_list.insert(insert_pos, phone_field)
+                                # Update sortOrder for fields after phone
+                                for i, f in enumerate(fields_list):
+                                    f['sortOrder'] = i + 1
+                                field['fields'] = fields_list
+                                logger.info("Added missing phoneNumber field to balia customer fields")
                         await db.customer_fields.insert_one(field)
                     import_stats["imported"]["customer_fields"] = len(data)
                     logger.info(f"Imported {len(data)} customer fields")
                 except Exception as e:
                     import_stats["errors"].append(f"customer_fields: {str(e)}")
+        
+        # Ensure phone field exists even if customer_fields was not in backup
+        await ensure_phone_field_exists()
         
         if import_stats["errors"]:
             import_stats["success"] = False
