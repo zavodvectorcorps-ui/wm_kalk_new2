@@ -181,13 +181,21 @@ async def export_backup():
                 logger.info(f"Exported {len(users)} users")
             
             # Export Balia prices (including images as base64)
+            # Try to find by type first, then by having models
             balia_prices = await db.prices.find_one({"type": "balia_prices"})
+            if not balia_prices:
+                balia_prices = await db.prices.find_one({"models": {"$exists": True}})
             if balia_prices:
                 balia_prices = serialize_for_json(balia_prices)
+                # Ensure type is set for import compatibility
+                balia_prices["type"] = "balia_prices"
                 # Embed images as base64 for portability
-                base_url = os.environ.get('REACT_APP_BACKEND_URL', os.environ.get('API_BASE_URL', ''))
+                base_url = os.environ.get('API_BASE_URL', os.environ.get('REACT_APP_BACKEND_URL', ''))
                 if base_url:
-                    balia_prices = await embed_images_in_data(balia_prices, base_url)
+                    try:
+                        balia_prices = await embed_images_in_data(balia_prices, base_url)
+                    except Exception as e:
+                        logger.warning(f"Failed to embed images in balia_prices: {e}")
                 zip_file.writestr("balia_prices.json", json.dumps(balia_prices, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "balia_prices", "count": 1})
                 logger.info("Exported balia prices with embedded images")
