@@ -159,7 +159,9 @@ const AppContent = () => {
                 {txt.backToSelection}
               </Button>
             </div>
-            <UserManagement />
+            <Suspense fallback={<PageLoader />}>
+              <UserManagement />
+            </Suspense>
           </>
         ) : (
           <LandingPage onSelectCalculator={handleSelectCalculator} hasAccess={hasAccess} />
