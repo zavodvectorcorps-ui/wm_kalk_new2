@@ -479,6 +479,33 @@ export const WebOrdersPage = ({ onEditInCalculator }) => {
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
                 <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => handleTransferToMain(selectedOrder)}
+                  disabled={transferring}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {transferring ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4 mr-1" />
+                  )}
+                  {txt.transferToMain}
+                </Button>
+                {onEditInCalculator && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      onEditInCalculator(selectedOrder);
+                      setDetailsOpen(false);
+                    }}
+                  >
+                    <Edit2 className="h-4 w-4 mr-1" />
+                    {txt.editInCalculator}
+                  </Button>
+                )}
+                <Button
                   variant="destructive"
                   size="sm"
                   onClick={() => handleDelete(selectedOrder.id)}
