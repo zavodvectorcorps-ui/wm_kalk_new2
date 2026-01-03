@@ -401,6 +401,12 @@ async def import_backup(file: UploadFile = File(...)):
                     data = json.loads(zip_file.read("balia_prices.json").decode('utf-8'))
                     data.pop('_id', None)
                     data.pop('type', None)
+                    
+                    # Download images if they are URLs (not base64)
+                    base_url = os.environ.get('BACKUP_SOURCE_URL', '')
+                    if base_url:
+                        data = await convert_url_images_to_base64(data, base_url)
+                    
                     # API uses _id: "default" to find prices
                     data["_id"] = "default"
                     # Delete existing prices document
@@ -417,6 +423,12 @@ async def import_backup(file: UploadFile = File(...)):
                 try:
                     data = json.loads(zip_file.read("sauna_prices.json").decode('utf-8'))
                     data.pop('_id', None)
+                    
+                    # Download images if they are URLs (not base64)
+                    base_url = os.environ.get('BACKUP_SOURCE_URL', '')
+                    if base_url:
+                        data = await convert_url_images_to_base64(data, base_url)
+                    
                     data["_id"] = "default"
                     # Sauna prices are in separate collection
                     await db.sauna_prices.delete_one({"_id": "default"})
