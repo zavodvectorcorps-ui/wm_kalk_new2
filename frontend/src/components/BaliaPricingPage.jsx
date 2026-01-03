@@ -1810,10 +1810,13 @@ const CategoryEditDialog = ({ open, category, isNew, onClose, onSave, txt }) => 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="radio">{txt.dropdown}</SelectItem>
-                <SelectItem value="checkbox">{txt.checkbox}</SelectItem>
+                <SelectItem value="radio">Один выбор (radio)</SelectItem>
+                <SelectItem value="checkbox">Несколько (checkbox)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Radio — можно выбрать только один вариант, Checkbox — несколько
+            </p>
           </div>
           <div className="space-y-2">
             <Label>{txt.displayType || 'Тип отображения'}</Label>
