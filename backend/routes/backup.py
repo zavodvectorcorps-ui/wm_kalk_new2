@@ -1064,14 +1064,15 @@ async def save_telegram_backup_config(config: TelegramBackupConfig):
             "auto_send": config.enabled  # Auto-send when enabled
         }
         
+        # If bot_token provided, save it too
+        if config.bot_token:
+            update_data["bot_token"] = config.bot_token
+        
         await db.settings.update_one(
             {"type": "telegram_backup"},
             {"$set": update_data},
             upsert=True
         )
-        
-        # Also update .env if chat_id changed
-        # Note: .env updates require restart, so we store in DB primarily
         
         return {"success": True, "config": update_data}
     except Exception as e:
