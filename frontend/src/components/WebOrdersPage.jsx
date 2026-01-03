@@ -200,7 +200,7 @@ export const WebOrdersPage = ({ onEditInCalculator }) => {
     
     setTransferring(true);
     try {
-      const response = await axios.post(`${API_URL}/api/web-orders/${order.id}/promote`);
+      const response = await axios.post(`${API_URL}/api/web-orders/${order.id}/transfer-to-main`);
       if (response.data.success) {
         toast.success(lang === 'ru' ? 'Заказ перенесён в основной список' : 'Zamówienie przeniesione do głównej listy');
         setDetailsOpen(false);
