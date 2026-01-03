@@ -269,11 +269,32 @@ async def create_sauna_order(order: SaunaOrder):
     order_dict = order.model_dump()
     await db.sauna_orders.insert_one(order_dict)
     
-    # Send Telegram notification for new sauna order
+    # Send Telegram notification with PDF for new sauna order
     try:
-        await notify_new_order(order_dict, order_type='sauna', is_web_order=False)
+        pdf_request = SaunaPDFRequest(
+            orderId=order_dict.get('id', ''),
+            fullName=order_dict.get('fullName', ''),
+            phoneNumber=order_dict.get('phoneNumber', ''),
+            fullAddress=order_dict.get('fullAddress', ''),
+            email=order_dict.get('email', ''),
+            orderDate=order_dict.get('orderDate', order_dict.get('createdAt', datetime.now().isoformat())),
+            selectedModel=order_dict.get('selectedModel', ''),
+            modelName=order_dict.get('modelName', ''),
+            basePrice=order_dict.get('basePrice', 0),
+            selections=order_dict.get('selections', {}),
+            quantities=order_dict.get('quantities', {}),
+            notes=order_dict.get('notes', ''),
+            total=order_dict.get('total', 0)
+        )
+        pdf_data = await generate_sauna_pdf_bytes(pdf_request)
+        await notify_new_order(order_dict, order_type='sauna', is_web_order=False, pdf_data=pdf_data)
     except Exception as e:
-        logger.warning(f"Failed to send Telegram notification for sauna order: {e}")
+        logger.warning(f"Failed to send Telegram notification with PDF for sauna order: {e}")
+        # Fallback: try to send without PDF
+        try:
+            await notify_new_order(order_dict, order_type='sauna', is_web_order=False)
+        except:
+            pass
     
     return order
 
