@@ -1505,14 +1505,3 @@ async def update_telegram_settings(data: dict):
         os.environ['TELEGRAM_NOTIFICATIONS_ENABLED'] = 'true' if data['enabled'] else 'false'
     
     return {"success": True, "message": "Settings updated"}
-
-        {"$set": {"status": "transferred", "transferredToId": new_id, "transferredAt": datetime.now(timezone.utc).isoformat()}}
-    )
-    
-    return {
-        "success": True,
-        "newOrderId": new_id,
-        "message": "Order transferred to main list"
-    }
-
-
