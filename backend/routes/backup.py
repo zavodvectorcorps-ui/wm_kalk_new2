@@ -1068,9 +1068,20 @@ async def test_telegram_backup_connection(config: TelegramBackupConfig):
     try:
         from services.telegram_service import test_backup_chat_connection
         
+        # Try to get bot token from multiple sources
         bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+        
+        # If not in env, try to get from telegram notifications settings
         if not bot_token:
-            return {"success": False, "error": "Токен бота не настроен. Настройте его в разделе Telegram уведомлений."}
+            tg_settings = await db.settings.find_one({"type": "telegram_settings"})
+            if tg_settings:
+                bot_token = tg_settings.get('bot_token', '')
+        
+        if not bot_token:
+            return {"success": False, "error": "Токен бота не настроен. Сначала настройте Telegram уведомления."}
+        
+        if not config.chat_id:
+            return {"success": False, "error": "Введите Chat ID"}
         
         result = await test_backup_chat_connection(bot_token, config.chat_id)
         return result
