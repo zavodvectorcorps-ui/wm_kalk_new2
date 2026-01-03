@@ -57,7 +57,7 @@ async def get_admin_user(current_user: dict = Depends(get_current_user)):
 
 async def init_admin_user():
     """Initialize admin user if not exists"""
-    admin = await db.users.find_one({"role": "admin"})
+    admin = await db.users.find_one({"username": "admin"})
     if not admin:
         admin_user = {
             "id": str(uuid.uuid4()),
@@ -68,16 +68,3 @@ async def init_admin_user():
             "createdAt": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(admin_user)
-    
-    # Initialize observer user if not exists
-    observer = await db.users.find_one({"role": "observer"})
-    if not observer:
-        observer_user = {
-            "id": str(uuid.uuid4()),
-            "username": "Наблюдатель",
-            "password": hash_password("observer123"),
-            "role": "observer",
-            "access": "all",
-            "createdAt": datetime.now(timezone.utc).isoformat()
-        }
-        await db.users.insert_one(observer_user)
