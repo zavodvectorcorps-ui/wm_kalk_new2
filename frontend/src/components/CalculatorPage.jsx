@@ -417,15 +417,21 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
           }
         }
         
-        // If nothing selected in this category, add "not selected" entry
+        // If nothing selected in this category, add "Bez [category]" entry
         if (!hasSelection) {
+          const categoryName = cat[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || cat.name;
+          // Generate "Bez X" / "Без X" format
+          const withoutText = lang === 'pl' 
+            ? `Bez ${categoryName.toLowerCase().replace(/^(.)/, (m) => m.toLowerCase())}`
+            : `Без ${categoryName.toLowerCase()}`;
+          
           selectedOptions.push({
             id: `${cat.id}_not_selected`,
             categoryId: cat.id,
-            categoryName: cat[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || cat.name,
+            categoryName: categoryName,
             optionId: null,
-            optionName: lang === 'pl' ? 'Nie wybrano' : 'Не выбрано',
-            name: lang === 'pl' ? 'Nie wybrano' : 'Не выбрано',
+            optionName: withoutText,
+            name: withoutText,
             price: 0,
             notSelected: true
           });
