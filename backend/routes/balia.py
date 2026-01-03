@@ -1322,6 +1322,12 @@ async def create_web_order(order: WebOrder):
     order_dict['source'] = 'website'
     await db.web_orders.insert_one(order_dict)
     
+    # Send Telegram notification
+    try:
+        await notify_new_order(order_dict, is_web_order=True)
+    except Exception as e:
+        logger.warning(f"Failed to send Telegram notification for web order: {e}")
+    
     # Return success without sensitive data
     return {
         "success": True,
