@@ -8,13 +8,15 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Separator } from './ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 import { 
   Globe, Phone, User, MessageSquare, Clock, CheckCircle, XCircle, 
   Loader2, Trash2, Eye, FileText, FileSpreadsheet, RefreshCw, Bell, BellOff,
-  Package, Edit2, ArrowRight, ExternalLink
+  Package, Edit2, ArrowRight, ExternalLink, Bot, Settings
 } from 'lucide-react';
 import axios from 'axios';
+import { TelegramSettings } from './TelegramSettings';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
