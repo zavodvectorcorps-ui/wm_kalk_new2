@@ -7,6 +7,7 @@ from urllib.parse import quote
 import io
 import os
 import logging
+import time
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -23,6 +24,10 @@ from data.balia_defaults import default_balia_prices
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Balia Calculator"])
+
+# Simple in-memory cache for prices (60 seconds TTL)
+_prices_cache = {"data": None, "expires": 0}
+CACHE_TTL = 60  # seconds
 
 
 @router.get("/")
