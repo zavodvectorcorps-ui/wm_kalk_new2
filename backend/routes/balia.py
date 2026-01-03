@@ -932,9 +932,9 @@ async def generate_pdf(request: PDFRequest):
                 # If not in MongoDB and it's a relative URL, try full external URL
                 if not img_data and '/api/uploads/' in image_url:
                     try:
-                        # Convert relative URL to absolute using API_URL env var or request URL
+                        # Convert relative URL to absolute using API_URL env var
                         import os
-                        base_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://excel-mapping.preview.emergentagent.com')
+                        base_url = os.environ.get('API_BASE_URL', os.environ.get('REACT_APP_BACKEND_URL', ''))
                         full_url = f"{base_url}{image_url}"
                         img_data = urllib.request.urlopen(full_url, timeout=10).read()
                         # Check if it's actually image data (not JSON error)
