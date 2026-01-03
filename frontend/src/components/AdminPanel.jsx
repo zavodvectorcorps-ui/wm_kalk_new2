@@ -98,10 +98,14 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 max-w-7xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-6">
+          <TabsList className="grid w-full grid-cols-7 mb-6">
             <TabsTrigger value="orders" className="gap-2">
               <ClipboardList className="h-4 w-4" />
               <span className="hidden sm:inline">{txt.orders}</span>
+            </TabsTrigger>
+            <TabsTrigger value="weborders" className="gap-2">
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline">{txt.webOrders}</span>
             </TabsTrigger>
             <TabsTrigger value="statistics" className="gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -127,6 +131,10 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
 
           <TabsContent value="orders">
             <AdminOrdersPage onEditInCalculator={onEditInCalculator} />
+          </TabsContent>
+
+          <TabsContent value="weborders">
+            <WebOrdersPage />
           </TabsContent>
 
           <TabsContent value="statistics">
