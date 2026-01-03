@@ -268,6 +268,13 @@ async def create_sauna_order(order: SaunaOrder):
     """Create a new sauna order"""
     order_dict = order.model_dump()
     await db.sauna_orders.insert_one(order_dict)
+    
+    # Send Telegram notification for new sauna order
+    try:
+        await notify_new_order(order_dict, order_type='sauna', is_web_order=False)
+    except Exception as e:
+        logger.warning(f"Failed to send Telegram notification for sauna order: {e}")
+    
     return order
 
 
