@@ -591,9 +591,9 @@ async def create_order(order: Order):
     order_dict = order.model_dump()
     await db.orders.insert_one(order_dict)
     
-    # Send Telegram notification for new order
+    # Send Telegram notification for new balia order
     try:
-        await notify_new_order(order_dict, is_web_order=False)
+        await notify_new_order(order_dict, order_type='balia', is_web_order=False)
     except Exception as e:
         logger.warning(f"Failed to send Telegram notification for order: {e}")
     
