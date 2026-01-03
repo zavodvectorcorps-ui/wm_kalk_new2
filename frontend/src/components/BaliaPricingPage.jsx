@@ -398,6 +398,16 @@ export const BaliaPricingPage = () => {
     setPrices(prev => ({ ...prev, categories: newCategories }));
   };
 
+  // Drag-and-drop reorder for models
+  const handleReorderModels = (newModels) => {
+    // Update sortOrder for each model
+    const modelsWithOrder = newModels.map((model, index) => ({
+      ...model,
+      sortOrder: index + 1
+    }));
+    setPrices(prev => ({ ...prev, models: modelsWithOrder }));
+  };
+
   // Drag-and-drop reorder for options within a category
   const handleReorderOptions = (categoryId, newOptions) => {
     setPrices(prev => ({
