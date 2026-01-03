@@ -1,29 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import './i18n/config';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { LandingPage } from './components/LandingPage';
 import { LandingHeader } from './components/LandingHeader';
 import { Header } from './components/Header';
-import { CalculatorPage } from './components/CalculatorPage';
-import { OrdersPage } from './components/OrdersPage';
-import { PricingPage } from './components/PricingPage';
-import { BaliaPricingPage } from './components/BaliaPricingPage';
-import { UserManagement } from './components/UserManagement';
-import { SaunaCalculator } from './components/SaunaCalculator';
-import { SaunaPricingPage } from './components/SaunaPricingPage';
-import { TechSpecAdminPage } from './components/TechSpecAdminPage';
-import { StatisticsPage } from './components/StatisticsPage';
-import { AdminPanel } from './components/AdminPanel';
-import { WebOrdersPage } from './components/WebOrdersPage';
-import { EmbedBaliaCalculator } from './components/EmbedBaliaCalculator';
-import { EmbedCodePage } from './components/EmbedCodePage';
-import { BackupPage } from './components/BackupPage';
 import { Toaster } from './components/ui/sonner';
 import { Button } from './components/ui/button';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import './App.css';
+
+// Lazy load heavy components for faster initial load
+const CalculatorPage = lazy(() => import('./components/CalculatorPage').then(m => ({ default: m.CalculatorPage })));
+const OrdersPage = lazy(() => import('./components/OrdersPage').then(m => ({ default: m.OrdersPage })));
+const BaliaPricingPage = lazy(() => import('./components/BaliaPricingPage').then(m => ({ default: m.BaliaPricingPage })));
+const UserManagement = lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
+const SaunaCalculator = lazy(() => import('./components/SaunaCalculator').then(m => ({ default: m.SaunaCalculator })));
+const SaunaPricingPage = lazy(() => import('./components/SaunaPricingPage').then(m => ({ default: m.SaunaPricingPage })));
+const TechSpecAdminPage = lazy(() => import('./components/TechSpecAdminPage').then(m => ({ default: m.TechSpecAdminPage })));
+const StatisticsPage = lazy(() => import('./components/StatisticsPage').then(m => ({ default: m.StatisticsPage })));
+const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
+const WebOrdersPage = lazy(() => import('./components/WebOrdersPage').then(m => ({ default: m.WebOrdersPage })));
+const EmbedBaliaCalculator = lazy(() => import('./components/EmbedBaliaCalculator').then(m => ({ default: m.EmbedBaliaCalculator })));
+const EmbedCodePage = lazy(() => import('./components/EmbedCodePage').then(m => ({ default: m.EmbedCodePage })));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const AppContent = () => {
   const { i18n } = useTranslation();
