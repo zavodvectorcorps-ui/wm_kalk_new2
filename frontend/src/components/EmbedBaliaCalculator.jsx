@@ -349,6 +349,83 @@ export const EmbedBaliaCalculator = () => {
           </Card>
         )}
 
+        {/* Selected Model Details with Specs and Hint */}
+        {selectedModel && selectedHeaterVariant && (
+          <Card className="border-blue-200 bg-blue-50/30">
+            <CardContent className="pt-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Image */}
+                <div className="md:w-1/3">
+                  {(selectedHeaterVariant?.imageUrl || selectedModel.imageUrl) && (
+                    <img 
+                      src={getImageUrl(selectedHeaterVariant?.imageUrl || selectedModel.imageUrl)} 
+                      alt={getName(selectedModel)}
+                      className="w-full h-32 object-contain rounded-lg bg-white p-2"
+                    />
+                  )}
+                </div>
+                
+                {/* Details */}
+                <div className="md:w-2/3 space-y-2">
+                  <h3 className="font-semibold text-lg">{getName(selectedModel)}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedHeaterVariant?.type === 'integrated' ? 'Piec zintegrowany' : 'Piec zewnętrzny'}
+                  </p>
+                  
+                  {/* Hint/Description */}
+                  {selectedModel.hint && (
+                    <p className="text-sm text-gray-600 bg-white p-2 rounded border-l-2 border-blue-400">
+                      {selectedModel.hint}
+                    </p>
+                  )}
+                  
+                  {/* Specifications */}
+                  {selectedModel.specs && (
+                    <div className="grid grid-cols-2 gap-2 text-sm mt-2">
+                      {selectedModel.specs.outerDiameter && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground">Średnica:</span>
+                          <span className="font-medium">{selectedModel.specs.outerDiameter}</span>
+                        </div>
+                      )}
+                      {selectedModel.specs.dimensions && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground">Wymiary:</span>
+                          <span className="font-medium">{selectedModel.specs.dimensions}</span>
+                        </div>
+                      )}
+                      {selectedModel.specs.depth && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground">Głębokość:</span>
+                          <span className="font-medium">{selectedModel.specs.depth}</span>
+                        </div>
+                      )}
+                      {selectedModel.specs.volume && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground">Pojemność:</span>
+                          <span className="font-medium">{selectedModel.specs.volume}</span>
+                        </div>
+                      )}
+                      {selectedModel.specs.seats > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground">Miejsca:</span>
+                          <span className="font-medium">{selectedModel.specs.seats}</span>
+                        </div>
+                      )}
+                      {selectedModel.specs.heaterPower && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground">Moc pieca:</span>
+                          <span className="font-medium">{selectedModel.specs.heaterPower}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Step 3: Options */}
         {selectedModel && (
           <Card>
