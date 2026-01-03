@@ -471,6 +471,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         modelName: selectedModel?.[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || selectedModel?.name,
         modelPrice: getModelPrice(selectedModel),
         modelImageUrl: getImageUrl(getModelImageUrl(selectedModel)) || '',
+        modelSpecs: selectedModel?.specs || {},
         heaterType: formData.selectedHeaterType,
         heaterTypeName: formData.selectedHeaterType === 'integrated' 
           ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
