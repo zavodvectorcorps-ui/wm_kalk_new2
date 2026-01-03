@@ -439,6 +439,13 @@ export const EmbedBaliaCalculator = () => {
               {prices.categories?.filter(cat => isCategoryVisible(cat)).map(category => (
                 <div key={category.id} className="space-y-2">
                   <Label className="font-medium flex items-center gap-2">
+                    {category.imageUrl && (
+                      <img 
+                        src={getImageUrl(category.imageUrl)} 
+                        alt={getName(category)}
+                        className="w-8 h-8 object-contain rounded"
+                      />
+                    )}
                     {getName(category)}
                     {category.hint && (
                       <TooltipProvider>
