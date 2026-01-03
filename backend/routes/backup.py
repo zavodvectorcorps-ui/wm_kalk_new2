@@ -330,53 +330,53 @@ async def import_backup(file: UploadFile = File(...)):
             file_list = zip_file.namelist()
             logger.info(f"Found files in backup: {file_list}")
             
-            # Import Balia orders
+            # Import Balia orders - REPLACE ALL (full restore)
             if "balia_orders.json" in file_list:
                 try:
                     data = json.loads(zip_file.read("balia_orders.json").decode('utf-8'))
+                    # Delete all existing orders and insert from backup
+                    await db.orders.delete_many({})
                     count = 0
                     for order in data:
                         order.pop('_id', None)  # Remove _id to allow new insertion
-                        # Check if order with same orderId exists
-                        existing = await db.orders.find_one({"orderId": order.get("orderId")})
-                        if not existing:
-                            await db.orders.insert_one(order)
-                            count += 1
+                        await db.orders.insert_one(order)
+                        count += 1
                     import_stats["imported"]["balia_orders"] = count
-                    logger.info(f"Imported {count} balia orders")
+                    logger.info(f"Imported {count} balia orders (replaced all)")
                 except Exception as e:
+                    logger.error(f"Error importing balia_orders: {e}")
                     import_stats["errors"].append(f"balia_orders: {str(e)}")
             
-            # Import Sauna orders
+            # Import Sauna orders - REPLACE ALL (full restore)
             if "sauna_orders.json" in file_list:
                 try:
                     data = json.loads(zip_file.read("sauna_orders.json").decode('utf-8'))
+                    await db.sauna_orders.delete_many({})
                     count = 0
                     for order in data:
                         order.pop('_id', None)
-                        existing = await db.sauna_orders.find_one({"orderId": order.get("orderId")})
-                        if not existing:
-                            await db.sauna_orders.insert_one(order)
-                            count += 1
+                        await db.sauna_orders.insert_one(order)
+                        count += 1
                     import_stats["imported"]["sauna_orders"] = count
-                    logger.info(f"Imported {count} sauna orders")
+                    logger.info(f"Imported {count} sauna orders (replaced all)")
                 except Exception as e:
+                    logger.error(f"Error importing sauna_orders: {e}")
                     import_stats["errors"].append(f"sauna_orders: {str(e)}")
             
-            # Import Web orders
+            # Import Web orders - REPLACE ALL (full restore)
             if "web_orders.json" in file_list:
                 try:
                     data = json.loads(zip_file.read("web_orders.json").decode('utf-8'))
+                    await db.web_orders.delete_many({})
                     count = 0
                     for order in data:
                         order.pop('_id', None)
-                        existing = await db.web_orders.find_one({"orderId": order.get("orderId")})
-                        if not existing:
-                            await db.web_orders.insert_one(order)
-                            count += 1
+                        await db.web_orders.insert_one(order)
+                        count += 1
                     import_stats["imported"]["web_orders"] = count
-                    logger.info(f"Imported {count} web orders")
+                    logger.info(f"Imported {count} web orders (replaced all)")
                 except Exception as e:
+                    logger.error(f"Error importing web_orders: {e}")
                     import_stats["errors"].append(f"web_orders: {str(e)}")
             
             # Import Users
