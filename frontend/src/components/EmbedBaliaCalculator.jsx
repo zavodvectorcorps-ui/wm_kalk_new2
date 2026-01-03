@@ -304,6 +304,13 @@ export const EmbedBaliaCalculator = () => {
                       }
                     `}
                   >
+                    {variant.imageUrl && (
+                      <img 
+                        src={getImageUrl(variant.imageUrl)} 
+                        alt={variant.type}
+                        className="w-full h-20 object-contain mb-2"
+                      />
+                    )}
                     <p className="font-medium text-center">
                       {variant.type === 'integrated' ? 'Piec zintegrowany' : 'Piec zewnętrzny'}
                     </p>
