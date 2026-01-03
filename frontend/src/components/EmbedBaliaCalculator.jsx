@@ -438,40 +438,178 @@ export const EmbedBaliaCalculator = () => {
             <CardContent className="space-y-4">
               {prices.categories?.filter(cat => isCategoryVisible(cat)).map(category => (
                 <div key={category.id} className="space-y-2">
-                  <Label className="font-medium">{getName(category)}</Label>
+                  <Label className="font-medium flex items-center gap-2">
+                    {getName(category)}
+                    {category.hint && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs text-xs">
+                            {category.hint}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </Label>
                   
+                  {/* Checkbox - multiple selection */}
                   {category.inputType === 'checkbox' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    category.displayType === 'tiles' ? (
+                      /* Tiles display for checkbox */
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {category.options?.map(option => (
+                          <div
+                            key={option.id}
+                            onClick={() => handleCheckboxChange(category.id, option.id, !selections[category.id]?.[option.id])}
+                            className={`
+                              relative p-3 rounded-lg border-2 cursor-pointer transition-all text-center
+                              ${selections[category.id]?.[option.id]
+                                ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                                : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                              }
+                            `}
+                          >
+                            {option.hint && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <div className="absolute top-1 right-1 text-blue-500">
+                                      <Info className="h-3 w-3" />
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-xs text-xs">
+                                    {option.hint}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {option.imageUrl && (
+                              <img 
+                                src={getImageUrl(option.imageUrl)} 
+                                alt={getName(option)}
+                                className="w-full h-16 object-contain mb-2"
+                              />
+                            )}
+                            {option.colorPreview && (
+                              <div 
+                                className="w-8 h-8 rounded-full border-2 mx-auto mb-2"
+                                style={{ backgroundColor: option.colorPreview }}
+                              />
+                            )}
+                            <p className="text-sm font-medium">{getName(option)}</p>
+                            {option.price > 0 && (
+                              <p className="text-xs text-blue-600 mt-1">+{option.price} {currencySymbol}</p>
+                            )}
+                            {selections[category.id]?.[option.id] && (
+                              <div className="absolute top-1 left-1 bg-blue-500 rounded-full p-0.5">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      /* List display for checkbox */
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {category.options?.map(option => (
+                          <div
+                            key={option.id}
+                            className="flex items-center gap-2 p-2 rounded border hover:bg-gray-50"
+                          >
+                            <Checkbox
+                              id={option.id}
+                              checked={selections[category.id]?.[option.id] || false}
+                              onCheckedChange={(checked) => handleCheckboxChange(category.id, option.id, checked)}
+                            />
+                            {option.imageUrl && (
+                              <img 
+                                src={getImageUrl(option.imageUrl)} 
+                                alt={getName(option)}
+                                className="w-10 h-10 object-contain rounded"
+                              />
+                            )}
+                            <label htmlFor={option.id} className="flex-1 cursor-pointer text-sm">
+                              {option.colorPreview && (
+                                <span 
+                                  className="inline-block w-4 h-4 rounded border mr-2 align-middle"
+                                  style={{ backgroundColor: option.colorPreview }}
+                                />
+                              )}
+                              {getName(option)}
+                              {option.hint && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="h-3 w-3 inline ml-1 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-xs text-xs">
+                                      {option.hint}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </label>
+                            {option.price > 0 && (
+                              <span className="text-blue-600 text-sm font-medium">
+                                +{option.price} {currencySymbol}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  ) : category.displayType === 'tiles' ? (
+                    /* Tiles display for radio (single selection) */
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {category.options?.map(option => (
                         <div
                           key={option.id}
-                          className="flex items-center gap-2 p-2 rounded border hover:bg-gray-50"
+                          onClick={() => handleSelectionChange(category.id, option.id)}
+                          className={`
+                            relative p-3 rounded-lg border-2 cursor-pointer transition-all text-center
+                            ${selections[category.id] === option.id
+                              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                              : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                            }
+                          `}
                         >
-                          <Checkbox
-                            id={option.id}
-                            checked={selections[category.id]?.[option.id] || false}
-                            onCheckedChange={(checked) => handleCheckboxChange(category.id, option.id, checked)}
-                          />
+                          {option.hint && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                  <div className="absolute top-1 right-1 text-blue-500">
+                                    <Info className="h-3 w-3" />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs text-xs">
+                                  {option.hint}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                           {option.imageUrl && (
                             <img 
                               src={getImageUrl(option.imageUrl)} 
                               alt={getName(option)}
-                              className="w-10 h-10 object-contain rounded"
+                              className="w-full h-16 object-contain mb-2"
                             />
                           )}
-                          <label htmlFor={option.id} className="flex-1 cursor-pointer text-sm">
-                            {option.colorPreview && (
-                              <span 
-                                className="inline-block w-4 h-4 rounded border mr-2 align-middle"
-                                style={{ backgroundColor: option.colorPreview }}
-                              />
-                            )}
-                            {getName(option)}
-                          </label>
+                          {option.colorPreview && (
+                            <div 
+                              className="w-8 h-8 rounded-full border-2 mx-auto mb-2"
+                              style={{ backgroundColor: option.colorPreview }}
+                            />
+                          )}
+                          <p className="text-sm font-medium">{getName(option)}</p>
                           {option.price > 0 && (
-                            <span className="text-blue-600 text-sm font-medium">
-                              +{option.price} {currencySymbol}
-                            </span>
+                            <p className="text-xs text-blue-600 mt-1">+{option.price} {currencySymbol}</p>
+                          )}
+                          {selections[category.id] === option.id && (
+                            <div className="absolute top-1 left-1 bg-blue-500 rounded-full p-0.5">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
                           )}
                         </div>
                       ))}
