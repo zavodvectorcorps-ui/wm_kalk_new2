@@ -166,9 +166,15 @@ export const BackupPage = () => {
       });
 
       if (response.ok) {
-        toast.success('Автоматический бэкап создан');
+        const result = await response.json();
+        if (result.telegram_sent) {
+          toast.success('Бэкап создан и отправлен в Telegram');
+        } else {
+          toast.success('Бэкап создан');
+        }
         fetchBackups();
         fetchSettings();
+        fetchTelegramConfig();
       } else {
         toast.error('Ошибка при создании бэкапа');
       }
