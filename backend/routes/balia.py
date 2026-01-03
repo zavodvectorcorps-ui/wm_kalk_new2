@@ -1281,3 +1281,68 @@ async def delete_web_order(order_id: str):
         raise HTTPException(status_code=404, detail="Order not found")
     return {"message": "Order deleted successfully"}
 
+
+@router.post("/web-orders/{order_id}/transfer-to-main")
+async def transfer_web_order_to_main(order_id: str, updates: dict = None):
+    """Transfer web order to main orders list"""
+    # Get web order
+    web_order = await db.web_orders.find_one({"id": order_id}, {"_id": 0})
+    if not web_order:
+        raise HTTPException(status_code=404, detail="Web order not found")
+    
+    # Apply any updates (from editing in calculator)
+    if updates:
+        web_order.update(updates)
+    
+    # Create new order ID for main list
+    new_id = f"WMB-{datetime.now(timezone.utc).strftime('%d-%m-%Y-%H%M%S')}"
+    
+    # Convert to main order format
+    main_order = {
+        "id": new_id,
+        "fullName": web_order.get('customerName', ''),
+        "phoneNumber": web_order.get('customerPhone', ''),
+        "fullAddress": web_order.get('fullAddress', updates.get('fullAddress', '') if updates else ''),
+        "orderDate": datetime.now(timezone.utc).strftime('%Y-%m-%d'),
+        "modelId": web_order.get('modelId'),
+        "modelName": web_order.get('modelName'),
+        "modelPrice": web_order.get('modelPrice', 0),
+        "modelImageUrl": web_order.get('modelImageUrl'),
+        "heaterType": web_order.get('heaterType') or web_order.get('heaterVariantType'),
+        "heaterTypeName": web_order.get('heaterTypeName'),
+        "selectedHeaterVariantId": web_order.get('selectedHeaterVariantId'),
+        "selections": web_order.get('selections', {}),
+        "selectedOptions": web_order.get('selectedOptions', []),
+        "subtotal": web_order.get('subtotal', 0),
+        "total": web_order.get('total', 0),
+        "currency": web_order.get('currency', 'PLN'),
+        "notes": web_order.get('customerComment', ''),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "source": "web",  # Mark as from web
+        "originalWebOrderId": order_id,  # Reference to original web order
+    }
+    
+    # Apply additional updates if provided
+    if updates:
+        for key in ['fullName', 'phoneNumber', 'fullAddress', 'modelId', 'modelName', 
+                    'modelPrice', 'heaterType', 'heaterTypeName', 'selections', 
+                    'selectedOptions', 'subtotal', 'total', 'notes', 'discountPercent']:
+            if key in updates:
+                main_order[key] = updates[key]
+    
+    # Insert into main orders
+    await db.orders.insert_one(main_order)
+    
+    # Update web order status to 'transferred'
+    await db.web_orders.update_one(
+        {"id": order_id},
+        {"$set": {"status": "transferred", "transferredToId": new_id, "transferredAt": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {
+        "success": True,
+        "newOrderId": new_id,
+        "message": "Order transferred to main list"
+    }
+
+
