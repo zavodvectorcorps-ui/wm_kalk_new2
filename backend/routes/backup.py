@@ -1038,6 +1038,34 @@ async def delete_backup(backup_id: str):
 
 # ============== Telegram Backup Endpoints ==============
 
+@router.get("/telegram/debug")
+async def debug_telegram_backup_config():
+    """Debug endpoint to check telegram configuration status."""
+    try:
+        bot_token = await get_telegram_bot_token()
+        telegram_backup = await db.settings.find_one({"type": "telegram_backup"})
+        telegram_settings = await db.settings.find_one({"type": "telegram_settings"})
+        
+        return {
+            "bot_token_found": bool(bot_token),
+            "bot_token_source": "env" if os.environ.get('TELEGRAM_BOT_TOKEN') else ("telegram_settings" if telegram_settings and telegram_settings.get('bot_token') else ("telegram_backup" if telegram_backup and telegram_backup.get('bot_token') else "none")),
+            "telegram_backup_config": {
+                "exists": bool(telegram_backup),
+                "enabled": telegram_backup.get('enabled') if telegram_backup else False,
+                "chat_id": telegram_backup.get('chat_id', '') if telegram_backup else '',
+                "has_bot_token": bool(telegram_backup.get('bot_token')) if telegram_backup else False
+            },
+            "telegram_settings_config": {
+                "exists": bool(telegram_settings),
+                "has_bot_token": bool(telegram_settings.get('bot_token')) if telegram_settings else False,
+                "chat_id": telegram_settings.get('chat_id', '') if telegram_settings else ''
+            },
+            "env_bot_token_set": bool(os.environ.get('TELEGRAM_BOT_TOKEN', ''))
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.get("/telegram/config")
 async def get_telegram_backup_config():
     """Get Telegram backup configuration."""
