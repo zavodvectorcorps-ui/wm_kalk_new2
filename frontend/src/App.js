@@ -218,7 +218,6 @@ const AppContent = () => {
           {activeTab === 'pricing' && canViewPricing() && <BaliaPricingPage />}
           {activeTab === 'embed' && isAdmin() && <EmbedCodePage />}
           {activeTab === 'users' && isAdmin() && <UserManagement />}
-          {activeTab === 'backup' && isAdmin() && <BackupPage />}
         </main>
         
         <Toaster position="top-right" richColors />
