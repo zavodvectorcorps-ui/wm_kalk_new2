@@ -157,6 +157,17 @@ export const Header = ({
                   {txt.techSpec}
                 </Button>
               )}
+              {isAdminAuthenticated && (
+                <Button
+                  variant={activeTab === 'backup' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('backup')}
+                  className="flex items-center gap-2"
+                >
+                  <Database className="h-4 w-4" />
+                  {i18n.language === 'pl' ? 'Backup' : 'Бэкап'}
+                </Button>
+              )}
             </>
           )}
           {showUsers && isAdminAuthenticated && (
