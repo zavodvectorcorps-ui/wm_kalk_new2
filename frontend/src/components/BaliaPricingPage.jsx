@@ -1789,6 +1789,32 @@ const CategoryEditDialog = ({ open, category, isNew, onClose, onSave, txt }) => 
               onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
             />
           </div>
+          
+          {/* Without labels for "not selected" display */}
+          <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+            <div className="space-y-2">
+              <Label className="text-xs">Bez ... (PL)</Label>
+              <Input 
+                value={formData.withoutLabelPl || ''} 
+                onChange={(e) => setFormData({ ...formData, withoutLabelPl: e.target.value })}
+                placeholder="np. Bez hydromasażu"
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Без ... (RU)</Label>
+              <Input 
+                value={formData.withoutLabelRu || ''} 
+                onChange={(e) => setFormData({ ...formData, withoutLabelRu: e.target.value })}
+                placeholder="напр. Без гидромассажа"
+                className="text-sm"
+              />
+            </div>
+            <p className="col-span-2 text-xs text-muted-foreground">
+              Текст для отображения когда опция не выбрана в заказе
+            </p>
+          </div>
+          
           <div className="space-y-2">
             <Label>{txt.inputType}</Label>
             <Select 
