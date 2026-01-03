@@ -215,8 +215,6 @@ async def convert_url_images_to_base64(data: dict, base_url: str) -> dict:
                 opt['imageUrl'] = await download_image(opt['imageUrl'])
     
     return data
-    except Exception as e:
-        logger.error(f"Error ensuring phone field: {e}")
 
 
 @router.post("/export")
