@@ -5,6 +5,21 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### All Categories in Order Feature (2026-01-03)
+- **Feature**: All product categories now appear in order data and PDF, even if no option was selected
+- **Display**: Categories without selection show "Nie wybrano" (not selected) in gray with "-" price
+- **Frontend**: `CalculatorPage.jsx` - adds `notSelected: true` entries for empty categories
+- **Backend**: `balia.py` - `generate_pdf()` handles `notSelected` flag with gray styling
+- **Purpose**: Production team can see all categories and know what was explicitly not chosen
+- **Status**: ✅ Tested and working
+
+### Iframe Static Hints (2026-01-03)
+- **Feature**: Selected option hints display statically under the option in embed calculator
+- **Location**: `/app/frontend/src/components/EmbedBaliaCalculator.jsx` (lines 673-701)
+- **Display**: Blue box with hint text appears below selected option
+- **Works for**: Both single-selection (radio) and multi-selection (checkbox) options
+- **Status**: ✅ Tested and working
+
 ### Embed Calculator Widget (2026-01-02)
 - **Feature**: Public embeddable calculator for external websites
 - **URL**: `/embed/balia` - no authentication required
