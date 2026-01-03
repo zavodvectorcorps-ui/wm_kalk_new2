@@ -129,17 +129,38 @@ def format_order_notification(order: Dict[str, Any], order_type: str = 'balia', 
     return message
 
 
-async def notify_new_order(order: Dict[str, Any], order_type: str = 'balia', is_web_order: bool = False) -> bool:
-    """Send notification about a new order.
+async def notify_new_order(order: Dict[str, Any], order_type: str = 'balia', is_web_order: bool = False, pdf_data: bytes = None) -> bool:
+    """Send notification about a new order, optionally with PDF attachment.
     
     Args:
         order: Order data dictionary
         order_type: 'balia' or 'sauna'
         is_web_order: True if order came from website iframe
+        pdf_data: Optional PDF file bytes to attach
     """
     try:
         message = format_order_notification(order, order_type, is_web_order)
-        return await send_telegram_message(message)
+        
+        # If PDF provided, send as document with caption
+        if pdf_data:
+            order_id = order.get('id') or order.get('orderId', 'unknown')
+            customer_name = order.get('fullName') or order.get('customerName', 'Klient')
+            safe_name = customer_name.replace(' ', '_')
+            safe_name = ''.join(c for c in safe_name if c not in '<>:"/\\|?*')
+            
+            type_prefix = "BALIA" if order_type == 'balia' else "SAUNA"
+            filename = f"{type_prefix}_{safe_name}_{order_id}.pdf"
+            
+            result = await send_telegram_file(
+                file_data=pdf_data,
+                filename=filename,
+                caption=message,
+                chat_id=None,  # Use default from config
+                bot_token=None
+            )
+            return result.get('success', False)
+        else:
+            return await send_telegram_message(message)
     except Exception as e:
         logger.error(f"Failed to send order notification: {e}")
         return False
