@@ -849,16 +849,18 @@ async def generate_pdf(request: PDFRequest):
         # Get Polish model name and specs from DB
         model_name = request.modelName
         model_price = request.modelPrice or 0
-        model_specs = None
+        model_specs = getattr(request, 'modelSpecs', None) or {}
         
-        # Try to get Polish name and specs from database
+        # Try to get Polish name and specs from database if not provided
         if request.modelId:
             prices_data_for_model = await db.prices.find_one({"_id": "default"})
             if prices_data_for_model:
                 for m in prices_data_for_model.get('models', []):
                     if m.get('id') == request.modelId:
                         model_name = m.get('namePl') or m.get('name', model_name)
-                        model_specs = m.get('specs')
+                        # Use request specs if provided, otherwise fallback to DB
+                        if not model_specs:
+                            model_specs = m.get('specs', {})
                         break
         
         # Create model info content with specs
