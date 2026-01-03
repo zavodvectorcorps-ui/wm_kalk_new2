@@ -266,12 +266,13 @@ export const BackupPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: telegramConfig.chat_id,
-          enabled: telegramConfig.enabled
+          enabled: true  // Always enable when saving
         })
       });
 
       if (response.ok) {
-        toast.success('Настройки Telegram сохранены');
+        setTelegramConfig({ ...telegramConfig, enabled: true });
+        toast.success('Настройки Telegram сохранены и включены');
       } else {
         toast.error('Ошибка сохранения');
       }
