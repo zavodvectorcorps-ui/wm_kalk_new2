@@ -1834,12 +1834,8 @@ const CategoryEditDialog = ({ open, category, isNew, onClose, onSave, txt }) => 
 
 // Option Edit Dialog Component
 const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, txt, currencySymbol }) => {
-  const [formData, setFormData] = useState(option || {});
+  const [formData, setFormData] = useState(() => option || {});
   const [uploading, setUploading] = useState(false);
-  
-  useEffect(() => {
-    setFormData(option || {});
-  }, [option]);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
