@@ -1007,45 +1007,67 @@ async def generate_pdf(request: PDFRequest):
             cat_id = opt.get('categoryId', '')
             opt_id = opt.get('optionId', '') or opt.get('id', '')
             price = opt.get('price', 0)
+            is_not_selected = opt.get('notSelected', False) or opt_id is None or 'not_selected' in str(opt.get('id', ''))
             
             # Check if this option is a gift
-            is_gift = opt_id in admin_gifts
+            is_gift = opt_id in admin_gifts if opt_id else False
             
             if is_gift:
                 gifts_total += price
-            else:
+            elif not is_not_selected:
                 total_options_price += price
             
             # Get Polish names and images from DB, fallback to provided names
             cat_info = categories_map.get(cat_id, {})
             cat_name = cat_info.get('name', opt.get('categoryName', ''))
-            opt_info = cat_info.get('options', {}).get(opt_id, {})
-            opt_name = opt_info.get('name', opt.get('optionName', '') or opt.get('name', ''))
             
-            # Get image URL - option image first, then category image as fallback
-            opt_image_url = opt_info.get('imageUrl', '')
-            cat_image_url = cat_info.get('imageUrl', '')
-            image_url = opt_image_url or cat_image_url
-            
-            logger.info(f"Option {opt_id}: opt_image_url={opt_image_url}, cat_image_url={cat_image_url}, using={image_url}")
-            
-            # Load image
-            option_img = await load_option_image(image_url)
-            img_cell = option_img if option_img else ''
-            
-            if option_img:
-                logger.info(f"Successfully loaded image for option {opt_id}")
-            
-            if is_gift:
-                # Show as gift with strikethrough price and WM-Group label
-                price_text = f"<strike>{price:,.0f} {currency}</strike><br/>🎁 Prezent od WM-Group".replace(',', ' ')
-                price_cell = Paragraph(price_text, gift_price_style)
-                gift_rows.append(idx + 1)  # +1 because of header row
+            if is_not_selected:
+                # Not selected - show in gray
+                opt_name = 'Nie wybrano'
+                img_cell = ''
+                price_text = '-'
+                price_cell = Paragraph(price_text, ParagraphStyle(
+                    'NotSelected',
+                    fontName='DejaVuSans',
+                    fontSize=9,
+                    textColor=colors.HexColor('#999999'),
+                    alignment=TA_RIGHT
+                ))
+                not_selected_style = ParagraphStyle(
+                    'NotSelectedText',
+                    fontName='DejaVuSans',
+                    fontSize=9,
+                    textColor=colors.HexColor('#999999')
+                )
+                options_data.append([img_cell, cat_name, Paragraph(opt_name, not_selected_style), price_cell])
             else:
-                price_text = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
-                price_cell = Paragraph(price_text, normal_price_style)
-            
-            options_data.append([img_cell, cat_name, opt_name, price_cell])
+                opt_info = cat_info.get('options', {}).get(opt_id, {})
+                opt_name = opt_info.get('name', opt.get('optionName', '') or opt.get('name', ''))
+                
+                # Get image URL - option image first, then category image as fallback
+                opt_image_url = opt_info.get('imageUrl', '')
+                cat_image_url = cat_info.get('imageUrl', '')
+                image_url = opt_image_url or cat_image_url
+                
+                logger.info(f"Option {opt_id}: opt_image_url={opt_image_url}, cat_image_url={cat_image_url}, using={image_url}")
+                
+                # Load image
+                option_img = await load_option_image(image_url)
+                img_cell = option_img if option_img else ''
+                
+                if option_img:
+                    logger.info(f"Successfully loaded image for option {opt_id}")
+                
+                if is_gift:
+                    # Show as gift with strikethrough price and WM-Group label
+                    price_text = f"<strike>{price:,.0f} {currency}</strike><br/>🎁 Prezent od WM-Group".replace(',', ' ')
+                    price_cell = Paragraph(price_text, gift_price_style)
+                    gift_rows.append(idx + 1)  # +1 because of header row
+                else:
+                    price_text = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
+                    price_cell = Paragraph(price_text, normal_price_style)
+                
+                options_data.append([img_cell, cat_name, opt_name, price_cell])
         
         # Add subtotal row for options
         if total_options_price > 0 or gifts_total > 0:
