@@ -12,6 +12,9 @@ import io
 import zipfile
 import base64
 import logging
+import httpx
+import os
+import re
 from bson import ObjectId
 
 logger = logging.getLogger(__name__)
@@ -48,6 +51,84 @@ def serialize_for_json(obj):
     elif isinstance(obj, list):
         return [serialize_for_json(item) for item in obj]
     return obj
+
+async def download_image_as_base64(url: str) -> Optional[str]:
+    """Download an image and convert to base64"""
+    try:
+        if not url or not url.startswith('http'):
+            return None
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url)
+            if response.status_code == 200:
+                content_type = response.headers.get('content-type', 'image/jpeg')
+                b64 = base64.b64encode(response.content).decode('utf-8')
+                return f"data:{content_type};base64,{b64}"
+    except Exception as e:
+        logger.warning(f"Failed to download image {url}: {e}")
+    return None
+
+def extract_images_from_data(data: dict) -> dict:
+    """Extract all image URLs from prices data and create a mapping"""
+    images = {}
+    
+    def process_url(url: str, path: str):
+        if url and isinstance(url, str) and (url.startswith('http') or url.startswith('/api/uploads')):
+            images[path] = url
+    
+    # Process models
+    for i, model in enumerate(data.get('models', [])):
+        if model.get('imageUrl'):
+            process_url(model['imageUrl'], f'models.{i}.imageUrl')
+        for j, variant in enumerate(model.get('heaterVariants', [])):
+            if variant.get('imageUrl'):
+                process_url(variant['imageUrl'], f'models.{i}.heaterVariants.{j}.imageUrl')
+    
+    # Process categories and options
+    for i, cat in enumerate(data.get('categories', [])):
+        if cat.get('imageUrl'):
+            process_url(cat['imageUrl'], f'categories.{i}.imageUrl')
+        for j, opt in enumerate(cat.get('options', [])):
+            if opt.get('imageUrl'):
+                process_url(opt['imageUrl'], f'categories.{i}.options.{j}.imageUrl')
+    
+    return images
+
+async def embed_images_in_data(data: dict, base_url: str) -> dict:
+    """Download images and embed them as base64 in the data"""
+    images = extract_images_from_data(data)
+    embedded = {}
+    
+    for path, url in images.items():
+        # Make URL absolute if relative
+        if url.startswith('/api/uploads'):
+            url = f"{base_url}{url}"
+        
+        b64 = await download_image_as_base64(url)
+        if b64:
+            embedded[path] = b64
+            logger.info(f"Embedded image: {path}")
+    
+    # Apply embedded images back to data
+    def set_nested(d, path, value):
+        keys = path.split('.')
+        for key in keys[:-1]:
+            if key.isdigit():
+                d = d[int(key)]
+            else:
+                d = d[key]
+        final_key = keys[-1]
+        if final_key.isdigit():
+            d[int(final_key)] = value
+        else:
+            d[final_key] = value
+    
+    for path, b64 in embedded.items():
+        try:
+            set_nested(data, path, b64)
+        except Exception as e:
+            logger.warning(f"Failed to set {path}: {e}")
+    
+    return data
 
 @router.post("/export")
 async def export_backup():
