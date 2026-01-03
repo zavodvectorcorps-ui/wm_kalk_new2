@@ -130,6 +130,56 @@ async def embed_images_in_data(data: dict, base_url: str) -> dict:
     
     return data
 
+async def ensure_phone_field_exists():
+    """Ensure phone field exists in balia customer fields"""
+    try:
+        balia_fields = await db.customer_fields.find_one({"calculatorType": "balia"})
+        if balia_fields:
+            fields_list = balia_fields.get('fields', [])
+            field_ids = [f.get('id') for f in fields_list]
+            if 'phoneNumber' not in field_ids:
+                phone_field = {
+                    "id": "phoneNumber",
+                    "name": "Phone",
+                    "nameRu": "Телефон",
+                    "namePl": "Telefon",
+                    "fieldType": "phone",
+                    "placeholder": "",
+                    "placeholderRu": "",
+                    "placeholderPl": "",
+                    "required": True,
+                    "sortOrder": 2,
+                    "active": True
+                }
+                insert_pos = 1
+                for i, f in enumerate(fields_list):
+                    if f.get('id') == 'fullName':
+                        insert_pos = i + 1
+                        break
+                fields_list.insert(insert_pos, phone_field)
+                for i, f in enumerate(fields_list):
+                    f['sortOrder'] = i + 1
+                await db.customer_fields.update_one(
+                    {"calculatorType": "balia"},
+                    {"$set": {"fields": fields_list}}
+                )
+                logger.info("Added missing phoneNumber field to existing balia customer fields")
+        else:
+            # Create default balia customer fields with phone
+            default_fields = {
+                "calculatorType": "balia",
+                "fields": [
+                    {"id": "fullName", "name": "Full Name", "nameRu": "ФИО", "namePl": "Imię i nazwisko", "fieldType": "text", "required": True, "sortOrder": 1, "active": True},
+                    {"id": "phoneNumber", "name": "Phone", "nameRu": "Телефон", "namePl": "Telefon", "fieldType": "phone", "required": True, "sortOrder": 2, "active": True},
+                    {"id": "email", "name": "Email", "nameRu": "Email", "namePl": "Email", "fieldType": "email", "required": False, "sortOrder": 3, "active": True}
+                ]
+            }
+            await db.customer_fields.insert_one(default_fields)
+            logger.info("Created default balia customer fields with phoneNumber")
+    except Exception as e:
+        logger.error(f"Error ensuring phone field: {e}")
+
+
 @router.post("/export")
 async def export_backup():
     """
