@@ -189,6 +189,31 @@ export const WebOrdersPage = ({ onEditInCalculator }) => {
     }
   };
 
+  // Transfer order to main list
+  const handleTransferToMain = async (order) => {
+    if (transferring) return;
+    
+    const confirmMsg = lang === 'ru' 
+      ? 'Перенести заказ в основной список?' 
+      : 'Przenieść zamówienie do głównej listy?';
+    if (!window.confirm(confirmMsg)) return;
+    
+    setTransferring(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/web-orders/${order.id}/promote`);
+      if (response.data.success) {
+        toast.success(lang === 'ru' ? 'Заказ перенесён в основной список' : 'Zamówienie przeniesione do głównej listy');
+        setDetailsOpen(false);
+        fetchOrders();
+      }
+    } catch (error) {
+      console.error('Error transferring order:', error);
+      toast.error(lang === 'ru' ? 'Ошибка при переносе' : 'Błąd podczas przenoszenia');
+    } finally {
+      setTransferring(false);
+    }
+  };
+
   // Delete order
   const handleDelete = async (orderId) => {
     if (!window.confirm(txt.confirmDelete)) return;
