@@ -40,6 +40,11 @@ app.include_router(balia_tech_spec_router, prefix="/api")
 app.include_router(upload_router, prefix="/api")
 app.include_router(customer_fields_router, prefix="/api")
 app.include_router(statistics_router, prefix="/api")
+app.include_router(backup_router)
+
+# Initialize backup database reference
+from database import db
+set_backup_db(db)
 
 # Health check endpoint for Kubernetes (without /api prefix)
 @app.get("/health")
