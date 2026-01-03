@@ -52,6 +52,7 @@ allowed_origins = [
     "https://wm-kalkulator.pl",
     "https://www.wm-kalkulator.pl",
     "https://spa-planner.emergent.host",
+    "https://excel-mapping.emergent.host",
     "http://localhost:3000",
     "http://localhost:8001",
 ]
