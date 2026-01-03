@@ -1030,8 +1030,8 @@ async def generate_pdf(request: PDFRequest):
             cat_name = cat_info.get('name', opt.get('categoryName', ''))
             
             if is_not_selected:
-                # Not selected - show in gray
-                opt_name = 'Nie wybrano'
+                # Not selected - show "Bez X" in gray (use name from frontend)
+                opt_name = opt.get('optionName', '') or opt.get('name', '') or 'Nie wybrano'
                 img_cell = ''
                 price_text = '-'
                 price_cell = Paragraph(price_text, ParagraphStyle(
