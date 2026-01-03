@@ -306,10 +306,12 @@ const AppContent = () => {
           calculatorType="admin"
         />
         
-        <AdminPanel 
-          onBackToLanding={handleBackToLanding}
-          onEditInCalculator={handleEditOrderInCalculator}
-        />
+        <Suspense fallback={<PageLoader />}>
+          <AdminPanel 
+            onBackToLanding={handleBackToLanding}
+            onEditInCalculator={handleEditOrderInCalculator}
+          />
+        </Suspense>
         
         <Toaster position="top-right" richColors />
       </div>
