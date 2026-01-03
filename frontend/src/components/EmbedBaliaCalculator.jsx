@@ -677,7 +677,7 @@ export const EmbedBaliaCalculator = () => {
                     </Select>
                   )}
                   
-                  {/* Static hint display for selected option */}
+                  {/* Static hint display for selected option - prefer Polish */}
                   {(() => {
                     // Get selected option(s) hint
                     if (category.inputType === 'checkbox') {
@@ -685,10 +685,10 @@ export const EmbedBaliaCalculator = () => {
                         opt => selections[category.id]?.[opt.id]
                       );
                       if (selectedOpts?.length > 0) {
-                        return selectedOpts.filter(opt => opt.hint).map(opt => (
+                        return selectedOpts.filter(opt => opt.hintPl || opt.hint).map(opt => (
                           <div key={opt.id} className="mt-2 p-2 bg-blue-50 rounded-lg border-l-2 border-blue-400">
                             <p className="text-xs font-medium text-blue-800">{getName(opt)}:</p>
-                            <p className="text-xs text-blue-700">{opt.hint}</p>
+                            <p className="text-xs text-blue-700">{opt.hintPl || opt.hint}</p>
                           </div>
                         ));
                       }
@@ -696,10 +696,10 @@ export const EmbedBaliaCalculator = () => {
                       const selectedOpt = category.options?.find(
                         opt => opt.id === selections[category.id]
                       );
-                      if (selectedOpt?.hint) {
+                      if (selectedOpt?.hintPl || selectedOpt?.hint) {
                         return (
                           <div className="mt-2 p-2 bg-blue-50 rounded-lg border-l-2 border-blue-400">
-                            <p className="text-xs text-blue-700">{selectedOpt.hint}</p>
+                            <p className="text-xs text-blue-700">{selectedOpt.hintPl || selectedOpt.hint}</p>
                           </div>
                         );
                       }
