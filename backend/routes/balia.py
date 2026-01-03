@@ -1447,6 +1447,15 @@ async def transfer_web_order_to_main(order_id: str, updates: dict = None):
     # Update web order status to 'transferred'
     await db.web_orders.update_one(
         {"id": order_id},
+        {"$set": {"status": "transferred", "transferredAt": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {
+        "success": True,
+        "mainOrderId": main_order_id,
+        "webOrderId": order_id,
+        "message": "Order transferred to main list"
+    }
 
 
 # ==================== TELEGRAM SETTINGS ====================
