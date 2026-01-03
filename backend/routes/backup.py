@@ -1100,16 +1100,6 @@ async def test_telegram_backup_connection(config: TelegramBackupConfig):
         return {"success": False, "error": str(e)}
 
 
-async def get_telegram_bot_token():
-    """Get Telegram bot token from env or settings."""
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
-    if not bot_token:
-        tg_settings = await db.settings.find_one({"type": "telegram_settings"})
-        if tg_settings:
-            bot_token = tg_settings.get('bot_token', '')
-    return bot_token
-
-
 @router.post("/telegram/send")
 async def send_backup_to_telegram():
     """Create and send backup to Telegram immediately."""
