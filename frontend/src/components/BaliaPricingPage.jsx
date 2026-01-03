@@ -647,10 +647,19 @@ export const BaliaPricingPage = () => {
               {prices.models?.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">{txt.noModels}</p>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {prices.models?.map(model => (
-                    <div key={model.id} className="border rounded-lg p-4 space-y-3">
-                      {model.imageUrl ? (
+                <SortableList
+                  items={prices.models?.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)) || []}
+                  onReorder={handleReorderModels}
+                  disabled={!canEdit()}
+                  renderItem={(model, modelIndex) => (
+                    <div className="border rounded-lg p-4 space-y-3 bg-card">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs text-muted-foreground font-medium">#{modelIndex + 1}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {model.type === 'acrylic' ? 'Акрил' : 'Стеклопластик'}
+                        </Badge>
+                      </div>
+                      {model.imageUrl || model.heaterVariants?.[0]?.imageUrl ? (
                         <div className="relative">
                           <img 
                             src={getFullImageUrl(model.heaterVariants?.[0]?.imageUrl || model.imageUrl)} 
@@ -698,6 +707,11 @@ export const BaliaPricingPage = () => {
                           </>
                         )}
                         
+                        {/* Show hint/description */}
+                        {model.hint && (
+                          <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{model.hint}</p>
+                        )}
+                        
                         {/* Show key specs */}
                         {model.specs && (
                           <div className="mt-2 pt-2 border-t text-xs text-muted-foreground space-y-0.5">
@@ -732,8 +746,8 @@ export const BaliaPricingPage = () => {
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
+                  )}
+                />
               )}
             </CardContent>
           </Card>
