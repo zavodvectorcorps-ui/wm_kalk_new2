@@ -64,7 +64,10 @@ export const WebOrdersPage = ({ onEditInCalculator }) => {
       external: 'Внешняя',
       confirmDelete: 'Удалить этот заказ?',
       orderDetails: 'Детали заказа',
-      close: 'Закрыть'
+      close: 'Закрыть',
+      editInCalculator: 'Редактировать',
+      transferToMain: 'Перенести в общий список',
+      transferred: 'Перенесён'
     },
     pl: {
       title: 'Zamówienia z internetu',
