@@ -1231,7 +1231,14 @@ from models.balia import WebOrder
 
 @router.get("/public/prices")
 async def get_public_prices():
-    """Get prices for public calculator (no auth required)"""
+    """Get prices for public calculator (no auth required) - with caching"""
+    global _prices_cache
+    
+    # Check cache first
+    current_time = time.time()
+    if _prices_cache["data"] is not None and current_time < _prices_cache["expires"]:
+        return _prices_cache["data"]
+    
     prices = await db.prices.find_one({"_id": "default"})
     if not prices:
         return default_balia_prices
@@ -1243,6 +1250,9 @@ async def get_public_prices():
         prices['models'] = default_balia_prices.get('models', [])
     if not isinstance(prices.get('categories'), list):
         prices['categories'] = default_balia_prices.get('categories', [])
+    
+    # Update cache
+    _prices_cache = {"data": prices, "expires": current_time + CACHE_TTL}
     
     return prices
 
