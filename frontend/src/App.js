@@ -60,10 +60,10 @@ const AppContent = () => {
   const isEmbed = window.location.pathname.startsWith('/embed');
   if (isEmbed) {
     return (
-      <>
+      <Suspense fallback={<PageLoader />}>
         <EmbedBaliaCalculator />
         <Toaster position="top-center" richColors />
-      </>
+      </Suspense>
     );
   }
 
