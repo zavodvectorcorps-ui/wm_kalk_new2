@@ -247,6 +247,89 @@ export const BackupPage = () => {
     }
   };
 
+  const handleSaveTelegramConfig = async () => {
+    if (!telegramConfig.chat_id.trim()) {
+      toast.error('Введите Chat ID');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/backup/telegram/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: telegramConfig.chat_id,
+          enabled: telegramConfig.enabled
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Настройки Telegram сохранены');
+      } else {
+        toast.error('Ошибка сохранения');
+      }
+    } catch (error) {
+      toast.error('Ошибка сохранения');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    if (!telegramConfig.chat_id.trim()) {
+      toast.error('Введите Chat ID');
+      return;
+    }
+    
+    setTestingTelegram(true);
+    try {
+      const response = await fetch(`${API_URL}/api/backup/telegram/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: telegramConfig.chat_id, enabled: true })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Тест успешен! Проверьте чат.');
+      } else {
+        toast.error(result.error || 'Ошибка подключения');
+      }
+    } catch (error) {
+      toast.error('Ошибка подключения');
+    } finally {
+      setTestingTelegram(false);
+    }
+  };
+
+  const handleSendToTelegram = async () => {
+    if (!telegramConfig.chat_id.trim()) {
+      toast.error('Сначала настройте Chat ID');
+      return;
+    }
+    
+    setSendingToTelegram(true);
+    try {
+      const response = await fetch(`${API_URL}/api/backup/telegram/send`, {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(`Бэкап отправлен в Telegram (${formatSize(result.file_size)})`);
+        fetchTelegramConfig();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Ошибка отправки');
+      }
+    } catch (error) {
+      toast.error('Ошибка отправки');
+    } finally {
+      setSendingToTelegram(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Никогда';
     return new Date(dateString).toLocaleString('ru-RU');
