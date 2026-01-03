@@ -5,71 +5,50 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
-### Code Optimization & Refactoring (2026-01-03)
+### BaliaPricingPage Refactoring Complete (2026-01-03)
+- **Refactored**: `BaliaPricingPage.jsx` reduced from **2200 lines to 1086 lines** (~51% reduction)
+- **New Components** in `/app/frontend/src/components/balia-pricing/`:
+  - `ModelCard.jsx` (104 lines) - displays model with image, prices, specs
+  - `CategoryCard.jsx` (99 lines) - displays category with nested options list
+  - `OptionItem.jsx` (47 lines) - displays single option with price and edit buttons
+  - `ModelEditDialog.jsx` (431 lines) - full model editor with heater variants and specs
+  - `CategoryEditDialog.jsx` (110 lines) - category editor with "Bez" labels support
+  - `OptionEditDialog.jsx` (214 lines) - option editor with pricing calculator
+  - `BulkPriceEditDialog.jsx` (162 lines) - bulk price change dialog
+  - `index.js` - exports all components
+- **Benefits**: Better code organization, easier maintenance, improved performance through memoization
+- **Status**: ✅ Tested and working
+
+### Code Optimization & Lazy Loading (2026-01-03)
 - **Lazy Loading**: Implemented React.lazy() and Suspense for all heavy components
 - **Code Splitting**: Main pages are now loaded on demand, reducing initial bundle size
 - **Backend Caching**: Added 60-second in-memory cache for `/api/public/prices` endpoint
-- **Memoized Components in BaliaPricingPage**: 
-  - `ModelCard` - displays model with image, prices, specs (memo)
-  - `CategoryCard` - displays category with nested options list (memo)
-  - `OptionItem` - displays single option with price and edit buttons (memo)
-- **LazyImage**: Created `/app/frontend/src/components/ui/lazy-image.jsx` with image preloading and caching
-- **Component files** in `/app/frontend/src/components/balia-pricing/` (prepared for future extraction)
-- **Status**: ✅ Tested and working - all API endpoints verified, UI functional
-
-### All Categories in Order Feature (2026-01-03)
-- **Feature**: All product categories now appear in order data and PDF, even if no option was selected
-- **Display**: Categories without selection show "Nie wybrano" (not selected) in gray with "-" price
-- **Frontend**: `CalculatorPage.jsx` - adds `notSelected: true` entries for empty categories
-- **Backend**: `balia.py` - `generate_pdf()` handles `notSelected` flag with gray styling
-- **Purpose**: Production team can see all categories and know what was explicitly not chosen
+- **LazyImage**: Created `/app/frontend/src/components/ui/lazy-image.jsx` with image preloading
 - **Status**: ✅ Tested and working
 
-### Iframe Static Hints (2026-01-03)
-- **Feature**: Selected option hints display statically under the option in embed calculator
-- **Location**: `/app/frontend/src/components/EmbedBaliaCalculator.jsx` (lines 673-701)
-- **Display**: Blue box with hint text appears below selected option
-- **Works for**: Both single-selection (radio) and multi-selection (checkbox) options
-- **Status**: ✅ Tested and working
+### "Bez [category]" Feature for Unselected Options (2026-01-03)
+- **Feature**: Unselected options now show "Bez [category name]" instead of "Nie wybrano"
+- **Database**: Added `withoutLabelPl` and `withoutLabelRu` fields to category schema
+- **Admin UI**: CategoryEditDialog includes editable "Bez..." fields
+- **Display**: Price shows "-" for unselected categories
+- **Status**: ✅ Implemented
 
-### Embed Calculator Widget (2026-01-02)
-- **Feature**: Public embeddable calculator for external websites
-- **URL**: `/embed/balia` - no authentication required
-- **Backend**: `/api/public/prices`, `/api/public/web-order` - public endpoints
-- **Admin**: "Internet" tab in Balia navigation for web orders
-- **Orders**: Stored in `web_orders` collection with statuses (new/processing/completed/cancelled)
-- **Notifications**: Sound alert when new orders arrive (30sec polling)
-- **Customer data**: Name, phone, comment
-- **Status**: ✅ Tested (17 backend tests + frontend tests)
+### Category Images in Iframe Calculator (2026-01-03)
+- **Feature**: Category images now display in the header of each option section
+- **Location**: `/app/frontend/src/components/EmbedBaliaCalculator.jsx`
+- **Status**: ✅ Implemented
 
-### Excel Mapping Feature (2026-01-02)
-- **Feature**: Added Excel Mapping tab in Balia admin for configuring option → Excel cell mapping
-- **Backend**: `/api/excel-template-structure` endpoint reads production_template.xlsx structure
-- **Frontend**: New "Excel" tab with editable IDs and cell dropdowns for models, heater variants, and options
-- **Logic**: `generate-production-excel` now uses excelCell from DB instead of hardcoded mapping
-- **Status**: ✅ Tested and working
+### PDF Image Handling Improvements (2026-01-03)
+- **Base64 Support**: PDF generator now handles Base64-encoded images from web orders
+- **Fallback Logic**: If an option has no image, uses the category's image instead
+- **File**: `/app/backend/routes/balia.py` - `load_option_image()` function
+- **Status**: ⏳ Awaiting user verification
 
-### Drag-and-Drop Feature (2026-01-02)
-- **Feature**: Added drag-and-drop for reordering categories and options
-- **Library**: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities
-- **Component**: SortableList (`/app/frontend/src/components/ui/sortable-list.jsx`)
-- **Works in**: Balia (categories + options), Sauna (categories)
-- **UI**: GripVertical icon on left side, shadow on drag
-- **Status**: ✅ Tested and working
-
-### Category/Option Reordering Feature (2026-01-02)
-- **Feature**: Added up/down arrow buttons to reorder categories and options in admin panel
-- **Location**: BaliaPricingPage.jsx - Kategorie tab
-- **Functions**: `handleMoveCategory()`, `handleMoveOption()`
-- **UI**: ChevronUp/ChevronDown buttons, position numbers (#1, #2...)
-- **Status**: ✅ Tested and working
-
-### Bug Fix: Bowl Material and Color Categories Not Displaying (2026-01-02)
-- **Issue**: Categories `bowl_material`, `fiberglass_color`, `acrylic_color` were not appearing on production domain
-- **Root Cause**: New categories in `balia_defaults.py` were not merged into existing database records
-- **Solution**: Added auto-merge logic in `GET /api/prices` to add missing categories from defaults and save to DB
-- **File**: `/app/backend/routes/balia.py` (lines 46-63)
-- **Status**: ✅ Fixed and tested
+### Critical Bug Fixes (2026-01-03)
+- **403 Forbidden on Admin Delete**: Super-admins can now delete other admin users
+- **Observer Auto-Recreation**: Removed automatic creation of observer user on init
+- **405 Method Not Allowed**: Fixed `/api/auth/verify` by changing frontend to use POST
+- **Status**: ✅ All fixed
 
 ## Core Features
 
@@ -79,15 +58,10 @@ A full-featured quoting and order management application for Saunas and Balias (
 - Both support customer info forms, pricing, discounts, and PDF generation
 
 ### 2. Admin Panel (Unified Administration)
-- **Orders Tab**: Unified view of all Balia and Sauna orders with:
-  - Type filtering (Balia/Sauna)
-  - Search by order number, name, or phone
-  - Date range filtering
-  - Pagination (10 orders per page)
-  - Edit, preview, download PDF, delete actions
+- **Orders Tab**: Unified view of all Balia and Sauna orders
 - **Statistics Tab**: Analytics with filters by project type
 - **Prices Tab**: Manage models, categories, and options pricing
-- **TechSpec Tab**: Manage technical specifications with project type selector (Sauna/Balia)
+- **TechSpec Tab**: Manage technical specifications
 - **Employees Tab**: User management with role-based access
 
 ### 3. Role-Based Access Control
@@ -98,162 +72,49 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ### 4. Order Management
 - Full order editing via calculator
-- Quick edit modal for admins (discount, gifts)
-- Discount request/approval workflow
-- Admin gifts feature (price = 0 for items)
-- PDF generation with optimized images
+- PDF generation with images
+- Excel export for production
+- Web orders from iframe widget
 
-### 5. Technical Specifications
-- Master categories management (separate for Sauna and Balia)
-- Subcategories with various input types
-- Options with images and hints
-- Tech spec modal for orders
-- Separate MongoDB collections: `tech_spec_config` (Sauna), `balia_tech_spec_config` (Balia)
-
-## Tech Stack
-- **Frontend**: React with Shadcn/UI, TailwindCSS
-- **Backend**: FastAPI (Python)
-- **Database**: MongoDB
-- **Styling**: Custom components, responsive design
-
-## Recent Updates (January 2025)
-
-### Session 1 - Admin Panel & Role Management
-- Created dedicated Admin Panel with 4 tabs
-- Implemented super-admin system
-- Added comprehensive orders filtering/pagination
-- PDF filename format: `{TYPE}_{ClientName}_{OrderID}.pdf`
-- Image lazy loading and PDF compression
-
-### Session 2 - Refactoring & TechSpec Integration
-- Added TechSpec tab to Admin Panel (5 tabs total)
-- Added project type selector (Sauna/Balia) to TechSpec tab
-- Created backend for Balia tech specs (`/api/balia-tech-spec`)
-- Refactored OrdersPage and AdminOrdersPage with shared components:
-  - `useOrdersFiltering` hook
-  - `OrderFilters` component
-  - `OrdersPagination` component
-- Code reduction: ~1285 lines → reusable components
-
-### Session 3 - Balia Model Structure Overhaul & Bug Fixes (2 Jan 2025)
-- **Major**: Rearchitected Balia product selection in calculator and admin panel
-  - Models now have "heater variants" (integrated/external), each with own price, image, and hint
-  - Added `HeaterVariant` class to `/app/backend/models/balia.py`
-  - Updated `ModelEditDialog` in `BaliaPricingPage.jsx` for variant editing
-- **Feature**: Added bulk price editing for Balia models
-  - Change all prices by percentage (+10%, -5%) or absolute amount (+100 EUR)
-  - Apply to all variants, only integrated, or only external heaters
-  - UI: Orange "Массовое изменение цен" button in Models tab header
-- **Feature**: Added specifications editing for Balia models
-  - Edit: outerDiameter, innerDiameter, dimensions, depth, volume, seats, totalHeight, heaterPower, weight
-  - Specs displayed in model cards with emoji indicators (📐📏💧👥)
-  - Blue "Спецификации" section in model edit dialog
-- **Feature**: Added model specs to PDF generation
-  - PDF now shows: Średnica zewnętrzna, Średnica wewnętrzna, Wymiary, Głębokość, Pojemność, Ilość miejsc, Wysokość, Moc pieca, Waga
-  - Specs displayed in Polish language under model name
-- **Feature**: Added hint/hintPl fields for options editing
-  - OptionEditDialog now has "Подсказка (RU)" and "Podpowiedź (PL)" fields
-  - Allows describing options to help customers understand features
-- **Feature**: Changed currency from EUR to PLN (Polish złoty)
-  - Currency symbol: zł
-  - All prices now displayed in PLN
-- **Feature**: Added EUR→PLN pricing calculation system
-  - Settings: EUR exchange rate (eurRate), default markup percent (defaultMarkupPercent)
-  - Model variants: purchasePriceEur, markupPercent per heater variant
-  - **Options**: purchasePriceEur, markupPercent per option (same system)
-  - Formula: Закупка (EUR) × Курс × (1 + Наценка%) = Розничная цена (PLN)
-  - "Пересчитать все цены" button recalculates both models AND options
-  - **NBP Rate Hint**: Shows current EUR/PLN rate from Narodowy Bank Polski with "применить" button
-  - Example: 300 EUR × 4.30 × 1.30 = 1677 PLN
-- **Feature**: Added bowl material category with dependent colors (2 Jan 2025)
-  - bowl_material category with options: Глассфайбер (fiberglass) and Акрил (acrylic)
-  - fiberglass_color: 15 colors (WHITE, IVORY, BLUE, GRAY, PEARL variants, GALAXY, SNOWFLAKE, EMERALD, BLACK GLITTER variants)
-  - acrylic_color: 7 colors (White, Green/Brown/Blue/White/Coffee/Black Marble)
-  - Dependent categories: dependsOn + dependsOnValue fields control visibility
-  - Color selection resets when material changes; hidden categories excluded from price calculation
-- **Feature**: Color preview system (2 Jan 2025)
-  - colorPreview field (HEX) for options with visual preview
-  - Color picker in OptionEditDialog for easy color selection
-  - Special CSS effects in calculator: glitter gradients, marble texture, pearl shimmer, galaxy stars, snowflake frost
-- **Bug Fix**: Fixed OptionEditDialog scroll (added max-h-[90vh] overflow-y-auto)
-- **Feature**: Excel Export/Import for price list (2 Jan 2025)
-  - Export: Downloads `cennik_balia_YYYY-MM-DD.xlsx` with 3 sheets
-    - Modele: ID, names, heater type, purchase EUR, markup %, price PLN, color HEX
-    - Opcje: category, option, names, purchase EUR, markup %, price PLN, color HEX
-    - Ustawienia: currency, symbol, EUR rate, default markup %
-  - Import: Uploads Excel, updates prices in DB, shows success counts
-  - UI: Green section in Settings tab with Export/Import buttons
-- **Feature**: Production Excel generator for Balia orders (2 Jan 2025)
-  - POST /api/generate-production-excel - generates Excel from template
-  - Template at /app/backend/templates/production_template.xlsx
-  - Marks selected options with X in corresponding cells:
-    - Heater type: B10 (external), C10 (integrated)
-    - Fiberglass colors: D10-R10
-    - Acrylic colors: V10-AB10
-    - Models: Y16-AD16
-    - Accessories: B16-V16
-    - Customer data: B2 (name), B4 (address), B18 (notes)
-  - "Pobierz techniczny" button in OrdersPage downloads Excel for Balia orders
-  - "Excel" button in AdminOrdersPage for Balia orders
-- **Bug Fix**: Fixed 422 Unprocessable Content error when saving Balia prices
-  - Root cause: Pydantic models didn't support heaterVariants array and string specs
-  - Fix: Added flexible types (Any) to ModelSpec, ConfigDict(extra="allow") to BaliaModel
-- **Bug Fix**: Fixed order duplication when editing (was creating new instead of updating)
-- **Bug Fix**: Fixed 404 error when saving edited Sauna orders from Admin Panel
-- **Bug Fix**: Fixed "0" appearing in total price column on orders page
-- **Bug Fix**: Fixed discount amount input stuck in calculation loop
-- **Security**: Changed super-admin password from `159357` to `220066`
-
-## File Structure
+## Code Architecture
 
 ```
-/app
-├── backend/
-│   ├── routes/
-│   │   ├── auth.py              # User authentication & management
-│   │   ├── balia.py             # Balia orders & PDF
-│   │   ├── sauna.py             # Sauna orders & PDF
-│   │   ├── tech_spec.py         # Sauna tech specs API
-│   │   ├── balia_tech_spec.py   # Balia tech specs API (NEW)
-│   │   └── statistics.py        # Analytics
-│   └── models/
-│       └── auth.py              # User models
-├── frontend/
-│   └── src/
-│       ├── components/
-│       │   ├── AdminPanel.jsx         # Main admin container
-│       │   ├── AdminOrdersPage.jsx    # Unified orders (refactored)
-│       │   ├── OrdersPage.jsx         # Single-type orders (refactored)
-│       │   ├── TechSpecAdminPage.jsx  # Tech specs management
-│       │   ├── orders/                # Shared components
-│       │   │   ├── OrderFilters.jsx
-│       │   │   └── OrdersPagination.jsx
-│       │   └── ...
-│       └── hooks/
-│           └── useOrdersFiltering.js  # Shared filtering logic
-└── memory/
-    └── PRD.md
+/app/frontend/src/components/
+├── balia-pricing/           # Refactored components
+│   ├── ModelCard.jsx
+│   ├── CategoryCard.jsx
+│   ├── OptionItem.jsx
+│   ├── ModelEditDialog.jsx
+│   ├── CategoryEditDialog.jsx
+│   ├── OptionEditDialog.jsx
+│   ├── BulkPriceEditDialog.jsx
+│   └── index.js
+├── BaliaPricingPage.jsx     # Main page (1086 lines)
+├── SaunaCalculator.jsx      # Sauna calculator (1342 lines)
+├── CalculatorPage.jsx       # Balia calculator
+├── EmbedBaliaCalculator.jsx # Iframe widget
+└── ui/                      # UI components
 ```
 
-## Backlog
+## Upcoming Tasks (Prioritized)
 
-### P0 (High Priority)
-- None currently
+### P1 - High Priority
+1. **User verification**: Confirm PDF image fixes work correctly
 
-### P1 (Medium Priority)
-- Refactor `SaunaCalculator.jsx` - break into smaller components (~1342 lines)
+### P2 - Medium Priority
+1. **Refactor SaunaCalculator.jsx**: Break down into smaller components (similar to BaliaPricingPage)
+   - CustomerInfoCard, ModelSelectionCard, CategoryOptionCard, OrderSummaryCard
 
-### P2 (Low Priority)
-- Minor dropdown positioning in Balia calculator (not reproducible)
+### P3 - Low Priority
+1. Fix minor dropdown positioning glitch in Balia calculator
 
 ## Test Credentials
-- Super-Admin: `admin` / `220066` (password changed 2 Jan 2025)
-- Regular Admin: `NewAdmin` / `159357`
-- Balia Employee: `balia` / `159357`
-- Sauna Employee: `sauna` / `159357`
-- Observer: `Наблюдатель` / `159357`
+- **Super-Admin**: `admin` / `220066`
+- **Employee (Balia)**: `balia` / `159357`
 
-## Notes
-- User's preferred language: Russian
-- Default UI language: Polish (configurable)
-- Currency: EUR for Balia, PLN for Sauna
+## Key API Endpoints
+- `GET /api/prices` - Balia prices with models and categories
+- `POST /api/prices` - Save Balia prices
+- `GET /api/sauna/prices` - Sauna prices
+- `POST /api/auth/verify` - Token verification (POST method)
+- `DELETE /api/auth/users/{user_id}` - Delete user (super-admin only for admins)
