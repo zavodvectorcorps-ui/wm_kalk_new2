@@ -1,153 +1,177 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to fix bugs and has since expanded to a series of feature developments for a Sauna and Balia (hot tub) quoting application.
-
-PRODUCT REQUIREMENTS implemented in this and previous sessions:
-1.  **Balia Calculator Rework**: Re-architected the product structure to have base models with multiple heater variants, each with a unique price, image, and hint.
-2.  **Advanced Pricing System**: Implemented a price calculation engine. Retail prices in PLN are now automatically calculated based on a  (purchase price in EUR), a manually set  (EUR-to-PLN exchange rate), and a  (markup percentage). This applies to both Balia models and all optional accessories.
-3.  **Dependent Options**: Added support for dependent categories in the calculator. A Bowl Material category (Fiberglass/Acrylic) was created, which dynamically shows the correct set of color options based on the user's selection.
-4.  **Admin Panel Enhancements**:
-    *   Added bulk price editing for Balia models (e.g., apply a +10% increase to all).
-    *   Enabled editing of detailed model specifications (e.g., depth, volume, weight).
-    *   Enabled editing of descriptive hints for all options.
-    *   Added UI for the new pricing system (purchase price, markup, EUR rate).
-    *   Added a UI hint that fetches and displays the current EUR/PLN exchange rate from the National Bank of Poland (NBP) API.
-5.  **Color Previews**: Added visual color swatches to the calculator UI for bowl color options.
-6.  **Excel Integration**:
-    *   **Pricelist Management**: Admins can now export the entire Balia pricelist to an Excel file and import a modified file to update all prices, models, and options.
-    *   **Production Sheet Generation**: Created a feature to generate a pre-filled production order form in Excel format. This is triggered from the orders page and populates a specific template with the customer's selected options.
-7.  **PDF Generation**: Added model specifications to the commercial offer PDF.
-8.  **Bug Fixes & Usability**:
-    *   Fixed a critical bug preventing Balia model edits from being saved.
-    *   Fixed a UI issue where the option editing modal was not scrollable.
-    *   Ensured new categories (like bowl colors) are automatically created on new deployments by adding them to a defaults/seed file.
+The user initially reported a bug where newly added product options (bowl type and colors for Balias) were not appearing on their deployed application. After fixing this, the user requested a series of significant new features:
+1.  **Reordering Functionality**: Add the ability for administrators to change the display order of option categories and the options within them.
+2.  **Drag-and-Drop UI**: Evolve the reordering feature into a more user-friendly drag-and-drop interface for both the Balia and Sauna admin panels.
+3.  **Configurable Excel Mapping**: Replace the hardcoded logic for generating production Excel sheets with a dynamic system. This required a new UI in the admin panel where users can map product/option IDs to specific cells in an Excel template. This also required adding a manual text input for the cell coordinates.
+4.  **UI Enhancements**: Display color swatches within dropdown menus in the main calculator for a better visual experience.
+5.  **Embeddable Calculator Widget**: Create a version of the Balia calculator that can be embedded into an external website using an iframe. This widget should collect customer details and submit them as a web order.
+6.  **Web Order Management**: Add a new Internet Orders section in the admin panel to view and manage these new web orders, accessible to both admins and regular employees.
+7.  **Admin Tools**: Provide a dedicated page for admins to easily copy the iframe embed code.
+8.  **Workflow Improvement**: Allow employees to open a web order in the main calculator to edit it, and then promote the web order to the main, official order list.
+9.  **Bug Fixes**:
+    *   The selected heater (piec) was not being saved with new orders, causing it to be missing from generated PDF offers and Excel production sheets.
+    *   Images for products and options were missing in the new embeddable calculator.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a sophisticated quoting tool for Saunas and Balias with a feature-rich admin panel. The Balia calculator now supports a complex pricing model based on purchase cost and markup, dependent options (material influencing color choice), and extensive administrative control over products. A key workflow for production has been automated via the generation of a technical specification sheet in Excel format directly from a customer's order. All prices for the Balia section are now in PLN.
+The application is a comprehensive quoting tool for Saunas and Balias. Key existing features include:
+- A rich admin panel for managing products, pricing (based on purchase price, markup, and currency rates), and options.
+- Drag-and-drop functionality for reordering categories and options in both Sauna and Balia admin pages.
+- A flexible Excel Mapping system allowing admins to define which product selection corresponds to which cell in a production Excel sheet.
+- An embeddable Balia calculator widget () that feeds into a new Web Orders management page in the admin panel.
+- A workflow for handling web orders: they arrive in a separate list, can be opened for editing in the main calculator, and then promoted to the main order list.
+- The bug related to missing heater information in generated documents (PDF, Excel) has been fixed for all new orders.
+- The embeddable calculator now displays all relevant product and option images.
 
 **Last working item**:
--   **Last item agent was working**: The user reported that newly created color options were not available after a fresh deployment. The agent identified that this data needed to be added to the default seed file. The agent added the Bowl Material and dependent Color categories to  to ensure they are created automatically when the application is set up for the first time.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: N (This change can only be verified by performing a fresh deployment, which is outside the agent's testing scope).
--   **Which testing method agent to use?**: NA (User must verify on their next deployment).
+-   **Last item agent was working**: The agent just finished implementing a multi-part user request to enhance the web order workflow:
+    1.  **Images in iframe**: Added logic to  to correctly display images for models, heater variants, and options.
+    2.  **Edit Web Orders**: Added a button on the  that allows an employee to open a web order in the main  for adjustments.
+    3.  **Promote Web Orders**: Added a Promote to Main List button on  and a corresponding backend endpoint () to move an order from the  collection to the main  collection in the database.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: both. This feature requires end-to-end testing. The frontend part involves verifying the UI changes and navigation. The backend part requires verifying the API endpoint for promoting the order works correctly and the database is updated as expected.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   None.
+-   **Issue 1: The user reported that the heater (piec) is still not showing up in the PDF and Excel file. (P0)**
+    -   **Attempted fixes**: The agent identified that old orders created before the fix do not contain the necessary  and  fields. The agent also fixed the  and  functions to correctly read these fields from new orders. The agent verified with logging that the data is present in the PDF for new orders, but the user's report suggests there might be an issue with orders created from the main orders page or a misunderstanding about old vs. new orders.
+    -   **Next debug checklist**:
+        1.  Verify that when a **new order is created**, the , , and  fields are correctly saved to the  collection in MongoDB.
+        2.  Check the payload sent from  when clicking Download PDF or Download Excel for an existing order. Ensure all required heater fields are included.
+        3.  Add more explicit logging in the backend  and  routes to print the exact request payload received, especially the heater fields.
+        4.  Confirm if the user is testing with an old order or a newly created one. Clarify that the fix only applies to orders created *after* the change was implemented.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical business requirement. The production team needs to know which heater to install, and it must be on the official documents.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   None.
+-   **Task 1: Complete and test the web order workflow enhancements. (P0)**
+    -   **Where to resume**: The code is implemented across , , and . The immediate next step is to perform a full end-to-end test of the entire workflow:
+        1.  Submit a new order via the embeddable calculator.
+        2.  Go to the Web Orders page and confirm the order appears.
+        3.  Click the Edit button and verify it opens in the main calculator with the correct data.
+        4.  Click the Promote to Main List button.
+        5.  Confirm the order is removed from the Web Orders page and now appears in the main Orders page.
+    -   **What will be achieved with this?**: A complete, seamless workflow for handling customer inquiries from the website widget, from submission to final processing.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: None
 
 **Upcoming and Future Tasks**
+-   **Upcoming Tasks**:
+    -   **Add Drag-and-Drop for Models (P1)**: The user requested adding drag-and-drop reordering for the list of Balia and Sauna *models* in the admin panel, similar to what was done for categories and options.
 -   **Future Tasks**:
-    -   **Refactor  (P2)**: This component is large and complex. It should be broken down into smaller, more manageable sub-components for better maintainability. (File: )
-    -   **Refactor  (P2)**: This component has grown significantly with the addition of new features. It could be refactored by extracting UI sections (e.g., Settings, Models list, various dialogs) into their own components.
-    -   **Fix Minor Dropdown Positioning Glitch in Balia calculator (P2)**: A low-priority visual issue where dropdown menus might not be perfectly positioned. It was reported in a previous session and has not been addressed. (File: )
+    -   **Refactor  (P2)**: This file has grown to over 1000 lines and is difficult to maintain. It should be broken down into smaller components (e.g., ModelsList, CategoriesList, ExcelMappingTab).
+    -   **Refactor  (P2)**: This is another large, legacy component that could be broken down for better maintainability.
+    -   **Fix Minor Dropdown Positioning Glitch in Balia calculator (P2)**: A low-priority visual issue where dropdown menus might not be perfectly positioned.
 
 **Completed work in this session**
--   **Bug Fix**: **Resolved critical bug (P0 from previous session)** where edits to Balia models in the admin panel were not being saved due to outdated backend data models.
--   **Feature**: Implemented a comprehensive price calculation system based on EUR purchase price, EUR/PLN exchange rate, and markup percentage for both models and options.
--   **Feature**: Added dependent categories to the calculator (Bowl Material → Colors).
--   **Feature**: Implemented Excel export/import for the entire Balia pricelist.
--   **Feature**: Implemented the generation of a pre-filled Excel production sheet from an order.
--   **Feature**: Added the ability to edit model specifications and option hints in the admin panel.
--   **Feature**: Added color swatch previews in the calculator.
--   **Bug Fix**: Fixed the non-scrolling option edit modal.
--   **Deployment Fix**: Added new color categories to the seed file () to ensure they exist on fresh deployments.
--   **Currency Change**: Switched the Balia calculator currency from EUR to PLN.
+-   **Bug Fix**: Fixed a critical bug where new categories/options from  were not being merged into existing database documents on production.
+-   **Feature**: Implemented drag-and-drop reordering for categories and options in both the Balia and Sauna admin pages using a reusable component.
+-   **Feature**: Replaced hardcoded Excel generation logic with a dynamic Excel Mapping UI in the admin panel, allowing admins to map items to any cell.
+-   **Feature**: Created an embeddable iframe calculator widget ().
+-   **Feature**: Added a Web Orders page in the admin panel (visible to employees) to manage incoming leads from the widget.
+-   **Feature**: Added an Embed Code page for admins.
+-   **Bug Fix**: Corrected the order creation process to save the selected heater variant, ensuring it appears on newly generated PDFs and Excel files.
+-   **Bug Fix/Enhancement**: Implemented auto-generation of stable IDs for heater variants to enable reliable mapping in the new Excel system.
+-   **UI Enhancement**: Added color swatch previews to dropdown menus in the main calculator.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Minor Dropdown Positioning Glitch in Balia calculator (P2)**
-    -   **Debug checklist**: Visual inspection of dropdown components in  under various conditions (different screen sizes, selections).
+    -   **Debug checklist**: Visual inspection of dropdown components in  under various conditions.
     -   **Why to solve this issue and what will be achieved with this?**: Minor UI polish for a better user experience.
     -   **Should Test frontend/backend/both after fix**: frontend
     -   **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
--   None. The critical bug from the previous fork was resolved.
+-   None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Dynamic Pricing Calculation**: The retail price is no longer static but calculated on the fly using the formula: .
--   **Dependent UI Logic**: The frontend calculator dynamically renders option categories based on a  relationship defined in the database, hiding or showing them based on selections in a parent category.
--   **Excel Generation and Parsing ()**: The backend now uses the  library to create, read, and write  files, enabling both full pricelist management and the population of a production template.
--   **Database Seeding**: Essential application data (like product categories) is stored in a  file to ensure it's correctly populated in the database during initial application setup.
+-   **Drag-and-Drop**: Implemented using the  library to create a reusable  UI component for reordering items.
+-   **Dynamic Configuration**: The system moved from hardcoded Excel cell mapping in the backend to a fully dynamic, database-driven configuration managed by the admin through a UI.
+-   **Embeddable Widget & iframe**: A key feature was creating a public, standalone React route () designed to be placed inside an  on a different website.
+-   **Two-Tier Order System**: A new  MongoDB collection was introduced to act as a staging area for incoming leads, separate from the main  collection, with a defined workflow to promote an order.
+-   **On-the-fly Data Migration**: The  backend endpoint was enhanced to perform simple data migrations, such as auto-generating missing IDs for heater variants, ensuring data consistency without a formal migration script.
 
 **key DB schema**
--   ** document**:
-    -   **Root level**: ,  (new fields).
-    -   ** objects**: Added , , , , .
-    -   ** objects**: Added  (ID of parent category),  (parent option value).
-    -   ** objects**: Added , .
-    -   ** objects**: The  field is now a fully editable dictionary.
+-   ** collection (NEW)**: Stores  documents, containing customer contact info (, ) and their selected configuration. Includes a  field.
+-   ** collection**: Documents now include , , and .
+-   ** document**: , , and  objects now have a user-configurable  field for Excel mapping.  also have an auto-generated uid=0(root) gid=0(root) groups=0(root).
 
 **changes in tech stack**
--   **Backend**:  was installed and added to .
+-   **Frontend**: Added , ,  for drag-and-drop functionality.
 
 **All files of reference**
--   : Admin page for all pricing and model management.
--   : The customer-facing calculator UI.
--   : Contains all backend logic for the Balia calculator, including the new Excel endpoints.
--   : Pydantic models defining the data structure for Balia products.
--   : Seed file to ensure data consistency on deployment.
--   : The template for production orders.
+-    (Core backend logic)
+-    (New web order management UI)
+-    (New embeddable widget UI)
+-    (Admin UI for Balias, including new Excel Mapping)
+-    (Reusable DnD component)
+-    (Main customer-facing calculator)
+-    (Main orders list)
 
 **Areas that need refactoring**:
--    has become very large and would benefit from being split into smaller, more focused components.
--    remains a large monolithic component and is a candidate for refactoring.
+-    is urgently in need of being broken down into smaller components. Its size and complexity make it difficult to modify without introducing regressions.
+-    remains a large monolithic component and is a good candidate for future refactoring.
 
 **key api endpoints**
--   : Exports the current pricelist to an Excel file.
--   : Updates the pricelist from an uploaded Excel file.
--   : Generates a production order sheet for a given order ID.
--   : The main endpoint for saving all price and model configuration changes from the admin panel.
+-   : Submits a new order from the embeddable widget.
+-   : Retrieves all web orders for the admin panel.
+-   : Moves a web order to the main  collection, effectively converting it from a lead to a confirmed order.
+-   : (Updated) Now generates the Excel sheet using the dynamic  mapping stored in the database.
+-   : (Updated) Now includes information about the selected heater in the generated PDF offer.
 
 **Critical Info for New Agent**
--   You MUST communicate with the user in **Russian**.
--   The price calculation logic is a core part of the business requirements. Any changes to pricing must consider the , , and  fields.
--   The production Excel generation depends on  mappings defined for each option in the database. The template file is located at .
--   The last fix (adding color options to ) is awaiting user verification on their next deployment. Assume it works, but be aware if the user reports the options are still missing.
+-   You MUST respond to the user in **Russian**.
+-   The highest priority is to **resolve the recurring issue of the heater not appearing in generated documents**. The user has reported this again. You need to investigate if this is due to old data or a bug in the creation/generation flow for new orders.
+-   The second priority is to **thoroughly test the new web order workflow** (edit and promote). The code has been written but has not been verified at all.
+-   Be very cautious when editing . It is a very large and complex file that is a high-risk area for regressions.
 
 **documents and test reports created in this job**
 -    through 
--   
--   
+-    (updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User request**: Generate a production Excel sheet from an order based on a template. (Completed)
-2.  **User request**: Use the existing Download technical button for the production Excel generation. (Completed)
-3.  **User bug report**: Color options are missing on new deployments. (Fixed by adding them to the seed file, pending user verification)
-4.  **User request**: Fix the non-scrolling option edit modal and add color previews to the calculator. (Completed)
-5.  **User request**: Add export/import functionality for the pricelist via Excel. (Completed)
-6.  **User request**: Add a Bowl Material category (Fiberglass/Acrylic) with dependent color options. (Completed)
-7.  **User request**: Allow editing hints for all options and change the currency to PLN. (Completed)
-8.  **User request**: Add model specifications to the generated PDF. (Completed)
-9.  **User request**: Implement a new pricing system based on purchase price (EUR), markup, and an exchange rate. (Completed)
-10. **User request**: Add a UI hint for the NBP exchange rate and apply the new pricing system to options as well. (Completed)
+1.  **User**: The heater (piec) is not showing up in the PDF and Excel sheet.
+2.  **Agent**: Debugs and fixes the issue by ensuring heater data is saved with the order and correctly read during file generation.
+3.  **User**: The heater is still not showing up.
+4.  **Agent**: Investigates further, finds root causes (old orders lacking data, frontend request missing fields), fixes them, and confirms with detailed logging that the text *is* in the generated PDF for new requests.
+5.  **User**: Let's go back to the iframe. It needs to show all the images like the main calculator. Also, employees should be able to open a web order in the main calculator to edit it, and then move it to the main order list.
+6.  **Agent**: Implements the image display, edit functionality, and promotion functionality for web orders.
+7.  **User**: The heater is STILL not appearing in the PDF and in the technical sheet (Excel).
+8.  **Agent**: Acknowledges the persistent issue. Determines old orders lack the data and that new orders should be checked. Finds a bug where the PDF request from the calculator page was missing the heater fields and fixes it.
+9.  **User**: The heater is still not showing up.
+10. **Agent**: Re-investigates and confirms with python-based PDF parsing that the text *is* present in the PDF generated from a test request, concluding the issue might be with the user's testing method or environment. Also finds and fixes a bug where heater variants lacked stable IDs for Excel mapping.
+11. **User**: Let's return to the iframe. It needs images. Also, an employee should be able to open a web order, edit it in the main calculator, and then move it to the general list, perhaps with a different color. (This is the last user request the agent worked on).
 
 **Project Health Check:**
--   **Working**: The application is stable. All requested features have been implemented, and all reported bugs have been fixed. The agent conducted thorough testing using the testing subagent after each significant change.
--   **Broken**: No features are currently known to be broken.
--   **Mocked/Incomplete**: None.
+-   **Working**: Core calculator, admin panel, Drag-and-Drop reordering, and the basic embeddable widget submission flow.
+-   **Broken**: The user reports the heater information is still missing in generated documents, which is a critical failure despite the agent's belief it is fixed. This is the highest priority bug.
+-   **Mocked/Incomplete**: The workflow for editing and promoting a web order is fully coded but completely untested.
 
 **3rd Party Integrations**
--   ****: (Backend) For creating and parsing  Excel files.
--   **NBP API ()**: (Frontend) Used to fetch data for a UI hint; not a critical system dependency.
+-   **, , **: Frontend libraries for implementing drag-and-drop UI.
+-   ****: Backend library for reading and writing  files.
+-   **NBP API ()**: Used in the frontend to fetch the current EUR/PLN exchange rate for a UI hint.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (Used extensively after every feature and major bug fix).
+-   **Testing agent used after significant changes**: YES, used for several features in this session, but not for the very last set of changes.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: Yes, temporary test files were created by the testing agent during its runs (e.g., in ).
--   **Known regressions**: None.
+-   **Test files created**: Test reports are in . No persistent test files were added to the codebase.
+-   **Known regressions**: The user reporting the heater issue repeatedly suggests a potential regression or an incomplete fix.
 
 **Credentials to test flow:**
 -   **Super-Admin**:  / 
--   **Regular Admin**:  / 
 -   **Employee (Balia)**:  / 
--   **Employee (Sauna)**:  / 
 
 **What agent forgot to execute**
--   The agent completed all user requests. The only outstanding item is the user-side verification of the deployment fix, which the agent correctly identified as something it cannot test itself.</analysis>
+-   The agent did not test the last major feature implemented (the full web order workflow: edit and promote).
+-   The agent did not implement drag-and-drop for the *models list* as the user had inquired about, only for categories and options.
+-   The agent has been unable to definitively close the recurring bug about the heater information not appearing in generated documents to the user's satisfaction.</analysis>
