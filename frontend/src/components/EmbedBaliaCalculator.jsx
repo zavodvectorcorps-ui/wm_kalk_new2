@@ -350,6 +350,13 @@ export const EmbedBaliaCalculator = () => {
                             checked={selections[category.id]?.[option.id] || false}
                             onCheckedChange={(checked) => handleCheckboxChange(category.id, option.id, checked)}
                           />
+                          {option.imageUrl && (
+                            <img 
+                              src={getImageUrl(option.imageUrl)} 
+                              alt={getName(option)}
+                              className="w-10 h-10 object-contain rounded"
+                            />
+                          )}
                           <label htmlFor={option.id} className="flex-1 cursor-pointer text-sm">
                             {option.colorPreview && (
                               <span 
@@ -377,6 +384,13 @@ export const EmbedBaliaCalculator = () => {
                           const sel = category.options?.find(o => o.id === selections[category.id]);
                           return sel ? (
                             <div className="flex items-center gap-2">
+                              {sel.imageUrl && (
+                                <img 
+                                  src={getImageUrl(sel.imageUrl)} 
+                                  alt={getName(sel)}
+                                  className="w-6 h-6 object-contain rounded"
+                                />
+                              )}
                               {sel.colorPreview && (
                                 <span 
                                   className="w-4 h-4 rounded border"
@@ -392,6 +406,13 @@ export const EmbedBaliaCalculator = () => {
                         {category.options?.map(option => (
                           <SelectItem key={option.id} value={option.id}>
                             <div className="flex items-center gap-2">
+                              {option.imageUrl && (
+                                <img 
+                                  src={getImageUrl(option.imageUrl)} 
+                                  alt={getName(option)}
+                                  className="w-6 h-6 object-contain rounded"
+                                />
+                              )}
                               {option.colorPreview && (
                                 <span 
                                   className="w-4 h-4 rounded border"
