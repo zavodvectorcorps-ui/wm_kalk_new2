@@ -18,6 +18,18 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
+// Helper to get full image URL
+const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  if (url.startsWith('/api/')) {
+    return `${API_URL}${url}`;
+  }
+  return url;
+};
+
 export const EmbedBaliaCalculator = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
