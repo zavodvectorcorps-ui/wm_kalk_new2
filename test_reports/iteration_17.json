@@ -1,0 +1,94 @@
+{
+  "summary": "Iteration 17: Testing heater type mapping in orders, Excel, and PDF generation. All 11 backend tests pass. Frontend heater selection UI working correctly. PDF shows 'Typ pieca: Piec zintegrowany/zewnętrzny' under model name in green color.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Balia Calculator",
+        "issues": ["404 errors for model images (example.com URLs) - not blocking functionality"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/tests/test_heater_mapping.py",
+    "/app/test_reports/pytest/pytest_results_iteration17.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PDF heater type display implemented correctly at line 820-826 in balia.py - shows 'Typ pieca: {heaterTypeName}' in green (#059669) under model name",
+    "Excel heater mapping logic at line 466-488 correctly searches by selectedHeaterVariantId first, then falls back to pattern matching",
+    "Order model correctly includes heaterType, heaterTypeName, and selectedHeaterVariantId fields",
+    "Frontend CalculatorPage.jsx correctly generates selectedHeaterVariantId as 'modelId_heaterType' pattern when variant has no ID"
+  ],
+  "updated_files": [
+    "/app/tests/test_heater_mapping.py"
+  ],
+  "success_rate": {
+    "backend": "100% - 11/11 tests passed",
+    "frontend": "100% - Heater selection UI working correctly"
+  },
+  "test_credentials": {
+    "balia_user": "balia",
+    "balia_password": "159357"
+  },
+  "seed_data_creation": "Created test orders during testing, cleaned up after each test",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Heater type mapping fully tested. Orders save heaterType, heaterTypeName, selectedHeaterVariantId. PDF shows 'Typ pieca' under model name. Excel marks heater cell if excelCell is configured in admin. Note: heater variants in DB currently don't have 'id' or 'excelCell' fields - admin needs to configure these for Excel marking to work.",
+  "features_verified": {
+    "order_heater_fields": {
+      "status": "PASS",
+      "details": "Orders correctly save heaterType ('integrated'/'external'), heaterTypeName ('Piec zintegrowany'/'Piec zewnętrzny'), and selectedHeaterVariantId"
+    },
+    "excel_heater_mapping": {
+      "status": "PASS",
+      "details": "Excel generation looks for heater mapping by selectedHeaterVariantId first, then by model_id_heater_type pattern. Marks X in cell if excelCell is configured."
+    },
+    "pdf_heater_type_display": {
+      "status": "PASS",
+      "details": "PDF shows 'Typ pieca: Piec zintegrowany' or 'Typ pieca: Piec zewnętrzny' in green color under model name"
+    },
+    "frontend_heater_selection": {
+      "status": "PASS",
+      "details": "UI shows 'Wybierz typ pieca:' section with heater variants when model has multiple options. Summary shows selected heater type with checkmark."
+    }
+  },
+  "tests_performed": {
+    "backend_pytest": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "test_file": "/app/tests/test_heater_mapping.py",
+      "test_cases": [
+        "test_create_order_with_integrated_heater",
+        "test_create_order_with_external_heater",
+        "test_update_order_heater_type",
+        "test_excel_heater_mapping_by_variant_id",
+        "test_excel_heater_mapping_by_pattern",
+        "test_excel_with_full_order_data",
+        "test_pdf_shows_integrated_heater_type",
+        "test_pdf_shows_external_heater_type",
+        "test_pdf_heater_type_under_model_name",
+        "test_pdf_without_heater_type",
+        "test_full_heater_flow"
+      ]
+    },
+    "frontend_playwright": {
+      "login_and_navigation": "PASS - Login with balia/159357, navigate to Balia calculator",
+      "model_selection": "PASS - Models with '2 warianty pieca' correctly labeled",
+      "heater_type_selection": "PASS - 'Wybierz typ pieca:' section shows Zintegrowany/Zewnętrzny options with prices",
+      "summary_display": "PASS - Summary shows selected heater type with checkmark"
+    }
+  },
+  "pdf_verification": {
+    "heater_type_in_pdf": "PASS - PDF contains 'Typ pieca: Piec zewnętrzny' text",
+    "heater_type_position": "Under model name, before base price",
+    "heater_type_color": "Green (#059669)"
+  },
+  "note_for_excel_mapping": "Heater variants in database currently don't have 'id' or 'excelCell' fields configured. Admin needs to configure these in the Excel tab for heater marking to work in production Excel."
+}
