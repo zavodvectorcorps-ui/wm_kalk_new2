@@ -702,9 +702,43 @@ async def generate_pdf(request: PDFRequest):
         offer_number = f"WMB-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
     currency = request.currency or 'EUR'
     
-    # Load model image if provided - from MongoDB or external URL
+    # Load model image - first try from request, then fetch from DB based on heaterType
     model_img = None
     model_image_url = getattr(request, 'modelImageUrl', None)
+    
+    # If modelImageUrl is empty or not provided, get it from DB based on modelId and heaterType
+    if not model_image_url and request.modelId:
+        try:
+            prices_data = await db.prices.find_one({"_id": "default"})
+            if prices_data:
+                for m in prices_data.get('models', []):
+                    if m.get('id') == request.modelId:
+                        heater_type = getattr(request, 'heaterType', None) or 'integrated'
+                        # Look for image in heaterVariants based on selected heater type
+                        heater_variants = m.get('heaterVariants', [])
+                        if heater_variants:
+                            # Find the variant matching the selected heater type
+                            for variant in heater_variants:
+                                if variant.get('type') == heater_type and variant.get('imageUrl'):
+                                    model_image_url = variant.get('imageUrl')
+                                    logger.info(f"Found model image from heaterVariant '{heater_type}': {model_image_url[:50]}...")
+                                    break
+                            # Fallback to first variant with image
+                            if not model_image_url:
+                                for variant in heater_variants:
+                                    if variant.get('imageUrl'):
+                                        model_image_url = variant.get('imageUrl')
+                                        logger.info(f"Using fallback heaterVariant image: {model_image_url[:50]}...")
+                                        break
+                        # Ultimate fallback to model's own imageUrl
+                        if not model_image_url:
+                            model_image_url = m.get('imageUrl', '')
+                            if model_image_url:
+                                logger.info(f"Using model's own imageUrl: {model_image_url[:50]}...")
+                        break
+        except Exception as e:
+            logger.warning(f"Error fetching model image from DB: {e}")
+    
     if model_image_url:
         try:
             img_data = None
