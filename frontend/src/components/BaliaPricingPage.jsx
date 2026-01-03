@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -7,214 +7,26 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Switch } from './ui/switch';
 import { Badge } from './ui/badge';
 import { SortableList } from './ui/sortable-list';
 import { 
-  DollarSign, Save, Loader2, Plus, Trash2, Edit2, 
-  Image as ImageIcon, Upload, X, Eye, Droplets, Package, Settings, User, CheckCircle,
-  Download, FileSpreadsheet
+  DollarSign, Save, Loader2, Plus, 
+  Eye, Droplets, Package, Settings, User,
+  Download, FileSpreadsheet, Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { CustomerFieldsManager } from './CustomerFieldsManager';
-import { BaliaImageUploader } from './BaliaImageUploader';
+import { 
+  ModelCard, 
+  CategoryCard, 
+  ModelEditDialog, 
+  CategoryEditDialog, 
+  OptionEditDialog, 
+  BulkPriceEditDialog 
+} from './balia-pricing';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
-
-// Helper to get full image URL - handles both full URLs and legacy relative paths
-const getFullImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('/api/')) return `${API_URL}${url}`;
-  return url;
-};
-
-// ============ MEMOIZED SUBCOMPONENTS ============
-
-// Model Card Component
-const ModelCard = memo(({ model, modelIndex, currencySymbol, canEdit, getName, txt, onEdit, onDelete, onRemoveImage }) => (
-  <div className="border rounded-lg p-4 space-y-3 bg-card">
-    <div className="flex items-center gap-2 mb-2">
-      <span className="text-xs text-muted-foreground font-medium">#{modelIndex + 1}</span>
-      <Badge variant="outline" className="text-xs">
-        {model.type === 'acrylic' ? 'Акрил' : 'Стеклопластик'}
-      </Badge>
-    </div>
-    {model.imageUrl || model.heaterVariants?.[0]?.imageUrl ? (
-      <div className="relative">
-        <img 
-          src={getFullImageUrl(model.heaterVariants?.[0]?.imageUrl || model.imageUrl)} 
-          alt={getName(model)} 
-          className="w-full h-32 object-contain rounded bg-gray-50"
-          loading="lazy"
-        />
-        {canEdit && (
-          <Button size="icon" variant="destructive" className="absolute top-2 right-2 h-6 w-6" onClick={onRemoveImage}>
-            <X className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
-    ) : (
-      <div className="w-full h-32 bg-muted rounded flex items-center justify-center">
-        <ImageIcon className="h-8 w-8 text-muted-foreground" />
-      </div>
-    )}
-    
-    <div>
-      <h3 className="font-semibold">{getName(model)}</h3>
-      {model.heaterVariants?.length > 0 ? (
-        <div className="space-y-1 mt-1">
-          {model.heaterVariants.map(v => (
-            <div key={v.type} className="flex items-center gap-2 text-sm">
-              <Badge variant={v.type === 'integrated' ? 'default' : 'outline'} className="text-xs">
-                {v.type === 'integrated' ? 'Встр.' : 'Внеш.'}
-              </Badge>
-              <span className="font-bold text-blue-600">{v.price} {currencySymbol}</span>
-              {v.imageUrl && <CheckCircle className="h-3 w-3 text-green-500" />}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          <p className="text-lg font-bold text-blue-600">{model.basePrice} {currencySymbol}</p>
-          <Badge variant="outline" className="mt-1">
-            {model.heaterType === 'external' ? txt.external : txt.integrated}
-          </Badge>
-        </>
-      )}
-      
-      {model.hint && <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{model.hint}</p>}
-      
-      {model.specs && (
-        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground space-y-0.5">
-          {(model.specs.outerDiameter || model.specs.dimensions) && (
-            <p>📐 {model.specs.dimensions || `Ø ${model.specs.outerDiameter}`}</p>
-          )}
-          {model.specs.depth && <p>📏 Глубина: {model.specs.depth}</p>}
-          {model.specs.volume && <p>💧 Объём: {model.specs.volume}</p>}
-          {model.specs.seats > 0 && <p>👥 Мест: {model.specs.seats}</p>}
-        </div>
-      )}
-    </div>
-    
-    {canEdit && (
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={onEdit}>
-          <Edit2 className="h-3 w-3 mr-1" />
-          Редактировать
-        </Button>
-        <Button variant="outline" size="sm" className="text-destructive" onClick={onDelete}>
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      </div>
-    )}
-  </div>
-));
-ModelCard.displayName = 'ModelCard';
-
-// Option Item Component
-const OptionItem = memo(({ option, currencySymbol, canEdit, getName, onEdit, onDelete }) => (
-  <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
-    <div className="flex items-center gap-2">
-      {option.imageUrl && (
-        <img src={getFullImageUrl(option.imageUrl)} alt={getName(option)} className="w-8 h-8 object-contain rounded" loading="lazy" />
-      )}
-      <span className="text-sm">{getName(option)}</span>
-    </div>
-    <div className="flex items-center gap-2">
-      <span className="text-sm font-medium text-blue-600">
-        {option.price > 0 ? `+${option.price} ${currencySymbol}` : '-'}
-      </span>
-      {canEdit && (
-        <>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit}>
-            <Edit2 className="h-3 w-3" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={onDelete}>
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </>
-      )}
-    </div>
-  </div>
-));
-OptionItem.displayName = 'OptionItem';
-
-// Category Card Component
-const CategoryCard = memo(({ 
-  category, catIndex, currencySymbol, canEdit, getName, txt,
-  onEditCategory, onDeleteCategory, onAddOption, onEditOption, onDeleteOption, 
-  onReorderOptions, onImageUpload 
-}) => (
-  <div className="border rounded-lg p-4 space-y-4">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        {category.imageUrl && (
-          <img src={getFullImageUrl(category.imageUrl)} alt={getName(category)} className="w-12 h-12 object-contain rounded" loading="lazy" />
-        )}
-        <div>
-          <h3 className="font-semibold flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">#{catIndex + 1}</span>
-            {getName(category)}
-          </h3>
-          <Badge variant="outline" className="text-xs">
-            {category.inputType === 'checkbox' ? txt.checkbox : txt.dropdown}
-          </Badge>
-        </div>
-      </div>
-      
-      {canEdit && (
-        <div className="flex gap-2">
-          <label>
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => onImageUpload(e, category.id)} />
-            <Button variant="outline" size="sm" asChild><span><Upload className="h-3 w-3" /></span></Button>
-          </label>
-          <Button variant="outline" size="sm" onClick={onEditCategory}><Edit2 className="h-3 w-3" /></Button>
-          <Button variant="outline" size="sm" className="text-destructive" onClick={onDeleteCategory}><Trash2 className="h-3 w-3" /></Button>
-        </div>
-      )}
-    </div>
-    
-    <Separator />
-    
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-muted-foreground">{txt.options}</h4>
-        {canEdit && (
-          <Button variant="ghost" size="sm" onClick={onAddOption}>
-            <Plus className="h-3 w-3 mr-1" />{txt.addOption}
-          </Button>
-        )}
-      </div>
-      
-      {category.options?.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-2">{txt.noOptions}</p>
-      ) : (
-        <SortableList
-          items={category.options || []}
-          onReorder={onReorderOptions}
-          disabled={!canEdit}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-2"
-          renderItem={(option) => (
-            <OptionItem
-              key={option.id}
-              option={option}
-              currencySymbol={currencySymbol}
-              canEdit={canEdit}
-              getName={getName}
-              onEdit={() => onEditOption(option)}
-              onDelete={() => onDeleteOption(option.id)}
-            />
-          )}
-        />
-      )}
-    </div>
-  </div>
-));
-CategoryCard.displayName = 'CategoryCard';
 
 export const BaliaPricingPage = () => {
   const { t, i18n } = useTranslation();
@@ -285,6 +97,7 @@ export const BaliaPricingPage = () => {
     tiles: t('baliaPricing.tiles'),
   };
 
+  // Data fetching
   useEffect(() => {
     fetchPrices();
     fetchNbpRate();
@@ -317,16 +130,14 @@ export const BaliaPricingPage = () => {
       const response = await fetch('https://api.nbp.pl/api/exchangerates/rates/a/eur/?format=json');
       const data = await response.json();
       if (data.rates && data.rates[0]) {
-        setNbpRate({
-          rate: data.rates[0].mid,
-          date: data.rates[0].effectiveDate
-        });
+        setNbpRate({ rate: data.rates[0].mid, date: data.rates[0].effectiveDate });
       }
     } catch (error) {
       console.error('Error fetching NBP rate:', error);
     }
   };
 
+  // Save all changes
   const handleSaveAll = async () => {
     setSaving(true);
     try {
@@ -340,23 +151,18 @@ export const BaliaPricingPage = () => {
     }
   };
 
-  // Export prices to Excel
+  // Export/Import handlers
   const handleExport = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/prices/export`, {
-        responseType: 'blob'
-      });
-      
+      const response = await axios.get(`${API_URL}/api/prices/export`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      const filename = `cennik_balia_${new Date().toISOString().slice(0,10)}.xlsx`;
-      link.setAttribute('download', filename);
+      link.setAttribute('download', `cennik_balia_${new Date().toISOString().slice(0,10)}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
       toast.success(lang === 'ru' ? 'Прайс-лист экспортирован' : 'Cennik wyeksportowany');
     } catch (error) {
       console.error('Export error:', error);
@@ -364,7 +170,6 @@ export const BaliaPricingPage = () => {
     }
   };
 
-  // Import prices from Excel
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -376,25 +181,21 @@ export const BaliaPricingPage = () => {
       const response = await axios.post(`${API_URL}/api/prices/import`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
       toast.success(
         lang === 'ru' 
           ? `Импортировано: ${response.data.updated_models} моделей, ${response.data.updated_options} опций` 
           : `Zaimportowano: ${response.data.updated_models} modeli, ${response.data.updated_options} opcji`
       );
-      
-      // Reload prices
       fetchPrices();
     } catch (error) {
       console.error('Import error:', error);
       toast.error(lang === 'ru' ? 'Ошибка импорта' : 'Błąd importu');
     }
-    
-    // Reset file input
     e.target.value = '';
   };
 
-  const handleImageUpload = async (e, type, targetId, categoryId = null) => {
+  // Image upload handler
+  const handleImageUpload = useCallback(async (e, type, targetId, categoryId = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -403,24 +204,12 @@ export const BaliaPricingPage = () => {
     formData.append('file', file);
 
     try {
-      console.log('Uploading image to:', `${API_URL}/api/upload/image`);
-      
       const response = await axios.post(`${API_URL}/api/upload/image`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 30000 // 30 second timeout
+        timeout: 30000
       });
       
-      console.log('Upload response:', response.data);
-      
-      const relativeUrl = response.data.url;
-      
-      if (!relativeUrl || !relativeUrl.startsWith('/api/uploads/')) {
-        throw new Error('Invalid URL returned from server');
-      }
-      
-      // Save FULL URL with domain (like in Sauna)
-      const imageUrl = `${API_URL}${relativeUrl}`;
-      console.log('Saving full URL:', imageUrl);
+      const imageUrl = `${API_URL}${response.data.url}`;
       
       if (type === 'model') {
         setPrices(prev => ({
@@ -451,9 +240,9 @@ export const BaliaPricingPage = () => {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  };
+  }, []);
 
-  const removeImage = (type, targetId, categoryId = null) => {
+  const removeImage = useCallback((type, targetId, categoryId = null) => {
     if (type === 'model') {
       setPrices(prev => ({
         ...prev,
@@ -474,10 +263,10 @@ export const BaliaPricingPage = () => {
         )
       }));
     }
-  };
+  }, []);
 
   // Model CRUD
-  const handleSaveModel = (modelData) => {
+  const handleSaveModel = useCallback((modelData) => {
     if (editModelDialog.isNew) {
       const newModel = {
         ...modelData,
@@ -494,57 +283,19 @@ export const BaliaPricingPage = () => {
       }));
     }
     setEditModelDialog({ open: false, model: null, isNew: false });
-  };
+  }, [editModelDialog.isNew, prices.models.length]);
 
-  const handleDeleteModel = (modelId) => {
+  const handleDeleteModel = useCallback((modelId) => {
     if (window.confirm(txt.confirmDelete)) {
       setPrices(prev => ({
         ...prev,
         models: prev.models.filter(m => m.id !== modelId)
       }));
     }
-  };
-
-  // Bulk price edit
-  const handleBulkPriceEdit = ({ changeType, value, applyTo }) => {
-    setPrices(prev => ({
-      ...prev,
-      models: prev.models.map(model => {
-        if (!model.heaterVariants || model.heaterVariants.length === 0) {
-          // Legacy model with basePrice
-          if (applyTo === 'all' || applyTo === 'external') {
-            const newPrice = changeType === 'percent' 
-              ? model.basePrice * (1 + value / 100)
-              : model.basePrice + value;
-            return { ...model, basePrice: Math.round(newPrice * 100) / 100 };
-          }
-          return model;
-        }
-        
-        // Model with heaterVariants
-        const newVariants = model.heaterVariants.map(v => {
-          if (applyTo === 'all' || applyTo === v.type) {
-            const newPrice = changeType === 'percent'
-              ? v.price * (1 + value / 100)
-              : v.price + value;
-            return { ...v, price: Math.round(newPrice * 100) / 100 };
-          }
-          return v;
-        });
-        
-        return { 
-          ...model, 
-          heaterVariants: newVariants,
-          basePrice: newVariants[0]?.price || model.basePrice
-        };
-      })
-    }));
-    setBulkEditDialog({ open: false });
-    toast.success(lang === 'ru' ? 'Цены обновлены' : 'Ceny zaktualizowane');
-  };
+  }, [txt.confirmDelete]);
 
   // Category CRUD
-  const handleSaveCategory = (categoryData) => {
+  const handleSaveCategory = useCallback((categoryData) => {
     if (editCategoryDialog.isNew) {
       const newCategory = {
         ...categoryData,
@@ -560,139 +311,19 @@ export const BaliaPricingPage = () => {
       }));
     }
     setEditCategoryDialog({ open: false, category: null, isNew: false });
-  };
+  }, [editCategoryDialog.isNew, prices.categories.length]);
 
-  const handleDeleteCategory = (categoryId) => {
+  const handleDeleteCategory = useCallback((categoryId) => {
     if (window.confirm(txt.confirmDelete)) {
       setPrices(prev => ({
         ...prev,
         categories: prev.categories.filter(c => c.id !== categoryId)
       }));
     }
-  };
-
-  // Drag-and-drop reorder for categories
-  const handleReorderCategories = (newCategories) => {
-    setPrices(prev => ({ ...prev, categories: newCategories }));
-  };
-
-  // Drag-and-drop reorder for models
-  const handleReorderModels = (newModels) => {
-    // Update sortOrder for each model
-    const modelsWithOrder = newModels.map((model, index) => ({
-      ...model,
-      sortOrder: index + 1
-    }));
-    setPrices(prev => ({ ...prev, models: modelsWithOrder }));
-  };
-
-  // Drag-and-drop reorder for options within a category
-  const handleReorderOptions = (categoryId, newOptions) => {
-    setPrices(prev => ({
-      ...prev,
-      categories: prev.categories.map(cat =>
-        cat.id === categoryId ? { ...cat, options: newOptions } : cat
-      )
-    }));
-  };
-
-  // Update Excel cell mapping for models
-  const handleUpdateModelExcelCell = (modelId, excelCell) => {
-    setPrices(prev => ({
-      ...prev,
-      models: prev.models.map(m => 
-        m.id === modelId ? { ...m, excelCell } : m
-      )
-    }));
-  };
-
-  // Update Excel cell mapping for heater variants
-  const handleUpdateHeaterVariantExcelCell = (modelId, variantIndex, excelCell) => {
-    setPrices(prev => ({
-      ...prev,
-      models: prev.models.map(m => {
-        if (m.id !== modelId) return m;
-        const variants = [...(m.heaterVariants || [])];
-        if (variants[variantIndex]) {
-          variants[variantIndex] = { ...variants[variantIndex], excelCell };
-        }
-        return { ...m, heaterVariants: variants };
-      })
-    }));
-  };
-
-  // Update heater variant ID
-  const handleUpdateHeaterVariantId = (modelId, variantIndex, newId) => {
-    setPrices(prev => ({
-      ...prev,
-      models: prev.models.map(m => {
-        if (m.id !== modelId) return m;
-        const variants = [...(m.heaterVariants || [])];
-        if (variants[variantIndex]) {
-          variants[variantIndex] = { ...variants[variantIndex], id: newId };
-        }
-        return { ...m, heaterVariants: variants };
-      })
-    }));
-  };
-
-  // Update Excel cell mapping for options
-  const handleUpdateOptionExcelCell = (categoryId, optionId, excelCell) => {
-    setPrices(prev => ({
-      ...prev,
-      categories: prev.categories.map(cat => {
-        if (cat.id !== categoryId) return cat;
-        return {
-          ...cat,
-          options: cat.options.map(opt =>
-            opt.id === optionId ? { ...opt, excelCell } : opt
-          )
-        };
-      })
-    }));
-  };
-
-  // Update model ID
-  const handleUpdateModelId = (oldId, newId) => {
-    if (!newId || newId === oldId) return;
-    // Check if new ID is unique
-    if (prices.models.some(m => m.id === newId)) {
-      toast.error(lang === 'ru' ? 'ID уже используется' : 'ID już istnieje');
-      return;
-    }
-    setPrices(prev => ({
-      ...prev,
-      models: prev.models.map(m => 
-        m.id === oldId ? { ...m, id: newId } : m
-      )
-    }));
-  };
-
-  // Update option ID
-  const handleUpdateOptionId = (categoryId, oldId, newId) => {
-    if (!newId || newId === oldId) return;
-    // Check if new ID is unique across all options
-    const allOptionIds = prices.categories.flatMap(c => c.options?.map(o => o.id) || []);
-    if (allOptionIds.includes(newId)) {
-      toast.error(lang === 'ru' ? 'ID уже используется' : 'ID już istnieje');
-      return;
-    }
-    setPrices(prev => ({
-      ...prev,
-      categories: prev.categories.map(cat => {
-        if (cat.id !== categoryId) return cat;
-        return {
-          ...cat,
-          options: cat.options.map(opt =>
-            opt.id === oldId ? { ...opt, id: newId } : opt
-          )
-        };
-      })
-    }));
-  };
+  }, [txt.confirmDelete]);
 
   // Option CRUD
-  const handleSaveOption = (optionData, categoryId) => {
+  const handleSaveOption = useCallback((optionData, categoryId) => {
     if (editOptionDialog.isNew) {
       const newOption = {
         ...optionData,
@@ -718,9 +349,9 @@ export const BaliaPricingPage = () => {
       }));
     }
     setEditOptionDialog({ open: false, categoryId: null, option: null, isNew: false });
-  };
+  }, [editOptionDialog.isNew, prices.categories]);
 
-  const handleDeleteOption = (categoryId, optionId) => {
+  const handleDeleteOption = useCallback((categoryId, optionId) => {
     if (window.confirm(txt.confirmDelete)) {
       setPrices(prev => ({
         ...prev,
@@ -731,11 +362,191 @@ export const BaliaPricingPage = () => {
         )
       }));
     }
-  };
+  }, [txt.confirmDelete]);
 
-  const getName = (item) => {
+  // Reorder handlers
+  const handleReorderModels = useCallback((newModels) => {
+    const modelsWithOrder = newModels.map((model, index) => ({
+      ...model,
+      sortOrder: index + 1
+    }));
+    setPrices(prev => ({ ...prev, models: modelsWithOrder }));
+  }, []);
+
+  const handleReorderCategories = useCallback((newCategories) => {
+    setPrices(prev => ({ ...prev, categories: newCategories }));
+  }, []);
+
+  const handleReorderOptions = useCallback((categoryId, newOptions) => {
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat =>
+        cat.id === categoryId ? { ...cat, options: newOptions } : cat
+      )
+    }));
+  }, []);
+
+  // Bulk price edit
+  const handleBulkPriceEdit = useCallback(({ changeType, value, applyTo }) => {
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(model => {
+        if (!model.heaterVariants || model.heaterVariants.length === 0) {
+          if (applyTo === 'all' || applyTo === 'external') {
+            const newPrice = changeType === 'percent' 
+              ? model.basePrice * (1 + value / 100)
+              : model.basePrice + value;
+            return { ...model, basePrice: Math.round(newPrice * 100) / 100 };
+          }
+          return model;
+        }
+        
+        const newVariants = model.heaterVariants.map(v => {
+          if (applyTo === 'all' || applyTo === v.type) {
+            const newPrice = changeType === 'percent'
+              ? v.price * (1 + value / 100)
+              : v.price + value;
+            return { ...v, price: Math.round(newPrice * 100) / 100 };
+          }
+          return v;
+        });
+        
+        return { 
+          ...model, 
+          heaterVariants: newVariants,
+          basePrice: newVariants[0]?.price || model.basePrice
+        };
+      })
+    }));
+    setBulkEditDialog({ open: false });
+    toast.success(lang === 'ru' ? 'Цены обновлены' : 'Ceny zaktualizowane');
+  }, [lang]);
+
+  // Excel mapping handlers
+  const handleUpdateModelExcelCell = useCallback((modelId, excelCell) => {
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(m => m.id === modelId ? { ...m, excelCell } : m)
+    }));
+  }, []);
+
+  const handleUpdateHeaterVariantExcelCell = useCallback((modelId, variantIndex, excelCell) => {
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(m => {
+        if (m.id !== modelId) return m;
+        const variants = [...(m.heaterVariants || [])];
+        if (variants[variantIndex]) {
+          variants[variantIndex] = { ...variants[variantIndex], excelCell };
+        }
+        return { ...m, heaterVariants: variants };
+      })
+    }));
+  }, []);
+
+  const handleUpdateHeaterVariantId = useCallback((modelId, variantIndex, newId) => {
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(m => {
+        if (m.id !== modelId) return m;
+        const variants = [...(m.heaterVariants || [])];
+        if (variants[variantIndex]) {
+          variants[variantIndex] = { ...variants[variantIndex], id: newId };
+        }
+        return { ...m, heaterVariants: variants };
+      })
+    }));
+  }, []);
+
+  const handleUpdateOptionExcelCell = useCallback((categoryId, optionId, excelCell) => {
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id !== categoryId) return cat;
+        return {
+          ...cat,
+          options: cat.options.map(opt =>
+            opt.id === optionId ? { ...opt, excelCell } : opt
+          )
+        };
+      })
+    }));
+  }, []);
+
+  const handleUpdateModelId = useCallback((oldId, newId) => {
+    if (!newId || newId === oldId) return;
+    if (prices.models.some(m => m.id === newId)) {
+      toast.error(lang === 'ru' ? 'ID уже используется' : 'ID już istnieje');
+      return;
+    }
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(m => m.id === oldId ? { ...m, id: newId } : m)
+    }));
+  }, [prices.models, lang]);
+
+  const handleUpdateOptionId = useCallback((categoryId, oldId, newId) => {
+    if (!newId || newId === oldId) return;
+    const allOptionIds = prices.categories.flatMap(c => c.options?.map(o => o.id) || []);
+    if (allOptionIds.includes(newId)) {
+      toast.error(lang === 'ru' ? 'ID уже используется' : 'ID już istnieje');
+      return;
+    }
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id !== categoryId) return cat;
+        return {
+          ...cat,
+          options: cat.options.map(opt => opt.id === oldId ? { ...opt, id: newId } : opt)
+        };
+      })
+    }));
+  }, [prices.categories, lang]);
+
+  // Recalculate prices based on EUR rates
+  const recalculateAllPrices = useCallback(() => {
+    const rate = prices.eurRate || 4.30;
+    const defaultMarkup = prices.defaultMarkupPercent || 30;
+    
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(model => {
+        const updatedVariants = model.heaterVariants?.map(v => {
+          if (v.purchasePriceEur && v.purchasePriceEur > 0) {
+            const costPln = v.purchasePriceEur * rate;
+            const markup = v.markupPercent ?? defaultMarkup;
+            const retailPrice = Math.round(costPln * (1 + markup / 100));
+            return { ...v, price: retailPrice };
+          }
+          return v;
+        }) || [];
+        
+        return {
+          ...model,
+          heaterVariants: updatedVariants,
+          basePrice: updatedVariants[0]?.price || model.basePrice
+        };
+      }),
+      categories: prev.categories.map(cat => ({
+        ...cat,
+        options: cat.options?.map(opt => {
+          if (opt.purchasePriceEur && opt.purchasePriceEur > 0) {
+            const costPln = opt.purchasePriceEur * rate;
+            const markup = opt.markupPercent ?? defaultMarkup;
+            const retailPrice = Math.round(costPln * (1 + markup / 100));
+            return { ...opt, price: retailPrice };
+          }
+          return opt;
+        }) || []
+      }))
+    }));
+    toast.success(lang === 'ru' ? 'Цены пересчитаны' : 'Ceny przeliczone');
+  }, [prices.eurRate, prices.defaultMarkupPercent, lang]);
+
+  const getName = useCallback((item) => {
     return item[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || item.name || '';
-  };
+  }, [lang]);
 
   if (loading) {
     return (
@@ -747,6 +558,7 @@ export const BaliaPricingPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-blue-800 flex items-center gap-2">
           <DollarSign className="h-6 w-6" />
@@ -910,145 +722,19 @@ export const BaliaPricingPage = () => {
 
         {/* Excel Mapping Tab */}
         <TabsContent value="excel">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5" />
-                {lang === 'ru' ? 'Маппинг Excel' : 'Mapowanie Excel'}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {lang === 'ru' 
-                  ? 'Настройте соответствие между ID моделей/опций и ячейками Excel для технического задания'
-                  : 'Skonfiguruj mapowanie ID modeli/opcji do komórek Excel dla specyfikacji technicznej'}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Excel Template Info */}
-              {excelTemplate && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                  <p className="font-medium text-blue-800">
-                    {lang === 'ru' ? 'Шаблон Excel' : 'Szablon Excel'}: {excelTemplate.maxRow} {lang === 'ru' ? 'строк' : 'wierszy'}, {excelTemplate.maxCol} {lang === 'ru' ? 'столбцов' : 'kolumn'}
-                  </p>
-                  <p className="text-blue-600 text-xs mt-1">
-                    {lang === 'ru' 
-                      ? 'Ячейки с данными доступны в выпадающем списке'
-                      : 'Komórki z danymi dostępne w rozwijanym menu'}
-                  </p>
-                </div>
-              )}
-
-              {/* Models Mapping */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg border-b pb-2">
-                  {lang === 'ru' ? 'Модели купелей' : 'Modele bali'}
-                </h3>
-                <div className="space-y-2">
-                  {prices.models?.map(model => (
-                    <div key={model.id} className="border rounded-lg p-3 bg-muted/30">
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <div className="flex-1 min-w-[200px]">
-                          <span className="font-medium">{getName(model)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs text-muted-foreground">ID:</Label>
-                          <Input
-                            value={model.id || ''}
-                            onChange={(e) => handleUpdateModelId(model.id, e.target.value)}
-                            className="w-32 h-8 text-xs font-mono"
-                            disabled={!canEdit()}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
-                          <Input
-                            value={model.excelCell || ''}
-                            onChange={(e) => handleUpdateModelExcelCell(model.id, e.target.value.toUpperCase())}
-                            className="w-20 h-8 text-xs font-mono text-center"
-                            placeholder="np. Y16"
-                            disabled={!canEdit()}
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Heater Variants */}
-                      {model.heaterVariants?.length > 0 && (
-                        <div className="mt-3 pl-4 border-l-2 border-amber-300 space-y-2">
-                          <p className="text-xs text-muted-foreground font-medium">
-                            {lang === 'ru' ? 'Варианты печи:' : 'Warianty pieca:'}
-                          </p>
-                          {model.heaterVariants.map((hv, idx) => (
-                            <div key={idx} className="flex items-center gap-4 flex-wrap bg-amber-50 p-2 rounded">
-                              <span className="text-sm">{hv.type === 'integrated' ? (lang === 'ru' ? 'Встроенная' : 'Zintegrowany') : (lang === 'ru' ? 'Внешняя' : 'Zewnętrzny')}</span>
-                              <div className="flex items-center gap-2">
-                                <Label className="text-xs text-muted-foreground">ID:</Label>
-                                <Input
-                                  value={hv.id || `${model.id}_${hv.type}`}
-                                  onChange={(e) => handleUpdateHeaterVariantId(model.id, idx, e.target.value)}
-                                  className="w-40 h-7 text-xs font-mono"
-                                  disabled={!canEdit()}
-                                  placeholder={`${model.id}_${hv.type}`}
-                                />
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
-                                <Input
-                                  value={hv.excelCell || ''}
-                                  onChange={(e) => handleUpdateHeaterVariantExcelCell(model.id, idx, e.target.value.toUpperCase())}
-                                  className="w-20 h-7 text-xs font-mono text-center"
-                                  placeholder="np. B10"
-                                  disabled={!canEdit()}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Options Mapping */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-lg border-b pb-2">
-                  {lang === 'ru' ? 'Опции по категориям' : 'Opcje wg kategorii'}
-                </h3>
-                {prices.categories?.map(category => (
-                  <div key={category.id} className="border rounded-lg p-3">
-                    <h4 className="font-medium text-sm mb-2 text-primary">{getName(category)}</h4>
-                    <div className="space-y-1">
-                      {category.options?.map(option => (
-                        <div key={option.id} className="flex items-center gap-4 flex-wrap py-1 px-2 bg-muted/30 rounded">
-                          <span className="flex-1 min-w-[150px] text-sm">{getName(option)}</span>
-                          <div className="flex items-center gap-2">
-                            <Label className="text-xs text-muted-foreground">ID:</Label>
-                            <Input
-                              value={option.id || ''}
-                              onChange={(e) => handleUpdateOptionId(category.id, option.id, e.target.value)}
-                              className="w-32 h-7 text-xs font-mono"
-                              disabled={!canEdit()}
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
-                            <Input
-                              value={option.excelCell || ''}
-                              onChange={(e) => handleUpdateOptionExcelCell(category.id, option.id, e.target.value.toUpperCase())}
-                              className="w-20 h-7 text-xs font-mono text-center"
-                              placeholder="np. D10"
-                              disabled={!canEdit()}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <ExcelMappingTab 
+            prices={prices}
+            excelTemplate={excelTemplate}
+            lang={lang}
+            canEdit={canEdit}
+            getName={getName}
+            onUpdateModelId={handleUpdateModelId}
+            onUpdateModelExcelCell={handleUpdateModelExcelCell}
+            onUpdateHeaterVariantId={handleUpdateHeaterVariantId}
+            onUpdateHeaterVariantExcelCell={handleUpdateHeaterVariantExcelCell}
+            onUpdateOptionId={handleUpdateOptionId}
+            onUpdateOptionExcelCell={handleUpdateOptionExcelCell}
+          />
         </TabsContent>
 
         {/* Customer Fields Tab */}
@@ -1058,187 +744,21 @@ export const BaliaPricingPage = () => {
 
         {/* Settings Tab */}
         <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>{txt.settings}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Export/Import Section */}
-              <div className="border rounded-lg p-4 bg-green-50 space-y-4">
-                <h3 className="font-semibold text-green-800 flex items-center gap-2">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  {lang === 'ru' ? 'Экспорт / Импорт прайс-листа' : 'Eksport / Import cennika'}
-                </h3>
-                
-                <div className="flex gap-4">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleExport}
-                    className="flex-1 border-green-300 text-green-700 hover:bg-green-100"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    {lang === 'ru' ? 'Экспорт в Excel' : 'Eksport do Excel'}
-                  </Button>
-                  
-                  <label className="flex-1">
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleImport}
-                      className="hidden"
-                      disabled={!canEdit()}
-                    />
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-green-300 text-green-700 hover:bg-green-100"
-                      disabled={!canEdit()}
-                      asChild
-                    >
-                      <span>
-                        <Upload className="h-4 w-4 mr-2" />
-                        {lang === 'ru' ? 'Импорт из Excel' : 'Import z Excel'}
-                      </span>
-                    </Button>
-                  </label>
-                </div>
-                
-                <p className="text-xs text-green-700">
-                  {lang === 'ru' 
-                    ? 'Экспортируйте прайс-лист для редактирования в Excel. После изменений импортируйте обратно.' 
-                    : 'Wyeksportuj cennik do edycji w Excel. Po zmianach zaimportuj z powrotem.'}
-                </p>
-              </div>
-              
-              <Separator />
-              
-              {/* Currency Settings */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{txt.currency}</Label>
-                  <Input 
-                    value={prices.currency || 'PLN'} 
-                    onChange={(e) => setPrices(prev => ({ ...prev, currency: e.target.value }))}
-                    disabled={!canEdit()}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{txt.currencySymbol}</Label>
-                  <Input 
-                    value={prices.currencySymbol || 'zł'} 
-                    onChange={(e) => setPrices(prev => ({ ...prev, currencySymbol: e.target.value }))}
-                    disabled={!canEdit()}
-                  />
-                </div>
-              </div>
-
-              {/* EUR Exchange Rate Section */}
-              <Separator />
-              <div className="border rounded-lg p-4 bg-amber-50 space-y-4">
-                <h3 className="font-semibold text-amber-800 flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  {lang === 'ru' ? 'Расчёт цен (закупка в EUR)' : 'Kalkulacja cen (zakup w EUR)'}
-                </h3>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>{lang === 'ru' ? 'Курс EUR → PLN' : 'Kurs EUR → PLN'}</Label>
-                    <Input 
-                      type="number"
-                      step="0.01"
-                      value={prices.eurRate || 4.30} 
-                      onChange={(e) => setPrices(prev => ({ ...prev, eurRate: parseFloat(e.target.value) || 4.30 }))}
-                      disabled={!canEdit()}
-                      placeholder="4.30"
-                    />
-                    <p className="text-xs text-muted-foreground">1 EUR = {prices.eurRate || 4.30} PLN</p>
-                    {nbpRate && (
-                      <p className="text-xs text-blue-600">
-                        📊 NBP ({nbpRate.date}): <b>{nbpRate.rate.toFixed(4)}</b> PLN
-                        {canEdit() && (
-                          <button 
-                            onClick={() => setPrices(prev => ({ ...prev, eurRate: nbpRate.rate }))}
-                            className="ml-2 text-blue-700 underline hover:no-underline"
-                          >
-                            {lang === 'ru' ? 'применить' : 'zastosuj'}
-                          </button>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{lang === 'ru' ? 'Наценка по умолч. (%)' : 'Domyślna marża (%)'}</Label>
-                    <Input 
-                      type="number"
-                      value={prices.defaultMarkupPercent || 30} 
-                      onChange={(e) => setPrices(prev => ({ ...prev, defaultMarkupPercent: parseFloat(e.target.value) || 30 }))}
-                      disabled={!canEdit()}
-                      placeholder="30"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        // Recalculate all retail prices based on purchase prices
-                        const rate = prices.eurRate || 4.30;
-                        const defaultMarkup = prices.defaultMarkupPercent || 30;
-                        
-                        setPrices(prev => ({
-                          ...prev,
-                          // Recalculate model prices
-                          models: prev.models.map(model => {
-                            const updatedVariants = model.heaterVariants?.map(v => {
-                              if (v.purchasePriceEur && v.purchasePriceEur > 0) {
-                                const costPln = v.purchasePriceEur * rate;
-                                const markup = v.markupPercent ?? defaultMarkup;
-                                const retailPrice = Math.round(costPln * (1 + markup / 100));
-                                return { ...v, price: retailPrice };
-                              }
-                              return v;
-                            }) || [];
-                            
-                            return {
-                              ...model,
-                              heaterVariants: updatedVariants,
-                              basePrice: updatedVariants[0]?.price || model.basePrice
-                            };
-                          }),
-                          // Recalculate option prices
-                          categories: prev.categories.map(cat => ({
-                            ...cat,
-                            options: cat.options?.map(opt => {
-                              if (opt.purchasePriceEur && opt.purchasePriceEur > 0) {
-                                const costPln = opt.purchasePriceEur * rate;
-                                const markup = opt.markupPercent ?? defaultMarkup;
-                                const retailPrice = Math.round(costPln * (1 + markup / 100));
-                                return { ...opt, price: retailPrice };
-                              }
-                              return opt;
-                            }) || []
-                          }))
-                        }));
-                        toast.success(lang === 'ru' ? 'Цены пересчитаны' : 'Ceny przeliczone');
-                      }}
-                      disabled={!canEdit()}
-                      className="w-full"
-                    >
-                      {lang === 'ru' ? 'Пересчитать все цены' : 'Przelicz wszystkie ceny'}
-                    </Button>
-                  </div>
-                </div>
-                
-                <p className="text-xs text-amber-700">
-                  {lang === 'ru' 
-                    ? 'Формула: Закупка (EUR) × Курс × (1 + Наценка%) = Розничная цена (PLN)' 
-                    : 'Formuła: Zakup (EUR) × Kurs × (1 + Marża%) = Cena detaliczna (PLN)'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <SettingsTab 
+            prices={prices}
+            setPrices={setPrices}
+            nbpRate={nbpRate}
+            lang={lang}
+            canEdit={canEdit}
+            txt={txt}
+            onExport={handleExport}
+            onImport={handleImport}
+            onRecalculate={recalculateAllPrices}
+          />
         </TabsContent>
       </Tabs>
 
-      {/* Edit Model Dialog */}
+      {/* Dialogs */}
       <ModelEditDialog 
         open={editModelDialog.open}
         model={editModelDialog.model}
@@ -1249,7 +769,6 @@ export const BaliaPricingPage = () => {
         currencySymbol={prices.currencySymbol}
       />
 
-      {/* Edit Category Dialog */}
       <CategoryEditDialog
         key={editCategoryDialog.category?.id || 'new-category'}
         open={editCategoryDialog.open}
@@ -1260,7 +779,6 @@ export const BaliaPricingPage = () => {
         txt={txt}
       />
 
-      {/* Edit Option Dialog */}
       <OptionEditDialog
         key={editOptionDialog.option?.id || 'new-option'}
         open={editOptionDialog.open}
@@ -1273,7 +791,6 @@ export const BaliaPricingPage = () => {
         currencySymbol={prices.currencySymbol}
       />
 
-      {/* Bulk Price Edit Dialog */}
       <BulkPriceEditDialog
         open={bulkEditDialog.open}
         onClose={() => setBulkEditDialog({ open: false })}
@@ -1286,915 +803,284 @@ export const BaliaPricingPage = () => {
   );
 };
 
-// Model Edit Dialog Component with Heater Variants
-const ModelEditDialog = ({ open, model, isNew, onClose, onSave, txt, currencySymbol }) => {
-  const [formData, setFormData] = useState(model || {});
-  const [uploading, setUploading] = useState(false);
-  const [uploadingVariant, setUploadingVariant] = useState(null);
-  
-  useEffect(() => {
-    // Initialize heaterVariants and specs if not present
-    if (model) {
-      const data = { ...model };
-      if (!data.heaterVariants || data.heaterVariants.length === 0) {
-        // Convert old format to new format
-        data.heaterVariants = [
-          { type: 'integrated', price: data.basePrice || 0, imageUrl: data.imageUrl || '' },
-          { type: 'external', price: data.basePrice || 0, imageUrl: '' }
-        ];
-      }
-      // Initialize specs if not present
-      if (!data.specs) {
-        data.specs = {};
-      }
-      setFormData(data);
-    }
-  }, [model]);
-
-  const handleVariantImageUpload = async (e, variantType) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingVariant(variantType);
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
-
-    try {
-      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
-      const response = await fetch(`${API_URL}/api/upload/image`, {
-        method: 'POST',
-        body: formDataUpload
-      });
-      const data = await response.json();
-      const fullUrl = `${API_URL}${data.url}`;
-      
-      setFormData(prev => ({
-        ...prev,
-        heaterVariants: prev.heaterVariants.map(v => 
-          v.type === variantType ? { ...v, imageUrl: fullUrl } : v
-        )
-      }));
-    } catch (error) {
-      console.error('Upload error:', error);
-    } finally {
-      setUploadingVariant(null);
-    }
-  };
-
-  const updateVariantPrice = (variantType, price) => {
-    setFormData(prev => ({
-      ...prev,
-      heaterVariants: prev.heaterVariants.map(v => 
-        v.type === variantType ? { ...v, price: parseFloat(price) || 0 } : v
-      )
-    }));
-  };
-
-  const updateVariantField = (variantType, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      heaterVariants: prev.heaterVariants.map(v => 
-        v.type === variantType ? { ...v, [field]: value } : v
-      )
-    }));
-  };
-
-  const removeVariantImage = (variantType) => {
-    setFormData(prev => ({
-      ...prev,
-      heaterVariants: prev.heaterVariants.map(v => 
-        v.type === variantType ? { ...v, imageUrl: '' } : v
-      )
-    }));
-  };
-
-  if (!model) return null;
-
-  const integratedVariant = formData.heaterVariants?.find(v => v.type === 'integrated') || { type: 'integrated', price: 0, imageUrl: '' };
-  const externalVariant = formData.heaterVariants?.find(v => v.type === 'external') || { type: 'external', price: 0, imageUrl: '' };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isNew ? txt.newModel : txt.editModel}</DialogTitle>
-          <DialogDescription>
-            Настройка вариантов печки, цен и технических характеристик модели
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-6 py-4">
-          {/* Basic Model Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{txt.nameRu}</Label>
-              <Input 
-                value={formData.nameRu || ''} 
-                onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
-                placeholder="Круглая 200см"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{txt.namePl}</Label>
-              <Input 
-                value={formData.namePl || ''} 
-                onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
-                placeholder="Okrągła 200cm"
-              />
-            </div>
-          </div>
-
-          {/* Hint field */}
-          <div className="space-y-2">
-            <Label>Описание модели / Hint</Label>
-            <textarea 
-              value={formData.hint || ''} 
-              onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
-              placeholder="Подробное описание модели: характеристики, особенности, преимущества..."
-              className="w-full min-h-[80px] px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-              rows={3}
-            />
-          </div>
-
-          {/* Heater Variants Section */}
-          <div className="border rounded-lg p-4 bg-orange-50 space-y-4">
-            <h3 className="font-semibold text-orange-800 flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Варианты печки
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              {/* Integrated Heater Variant */}
-              <div className="border rounded-lg p-3 bg-white space-y-3">
-                <h4 className="font-medium text-sm">Встроенная печь (Zintegrowany)</h4>
-                
-                {/* Purchase Price Section */}
-                <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
-                      <Input 
-                        type="number"
-                        step="0.01"
-                        value={integratedVariant.purchasePriceEur || ''} 
-                        onChange={(e) => updateVariantField('integrated', 'purchasePriceEur', parseFloat(e.target.value) || 0)}
-                        placeholder="300"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-amber-700">Наценка (%)</Label>
-                      <Input 
-                        type="number"
-                        value={integratedVariant.markupPercent ?? 30} 
-                        onChange={(e) => updateVariantField('integrated', 'markupPercent', parseFloat(e.target.value) || 0)}
-                        placeholder="30"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                  </div>
-                  {integratedVariant.purchasePriceEur > 0 && (
-                    <p className="text-xs text-amber-600">
-                      Расчёт: {integratedVariant.purchasePriceEur} EUR × курс × {1 + (integratedVariant.markupPercent ?? 30)/100}
-                    </p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Розничная цена ({currencySymbol})</Label>
-                  <Input 
-                    type="number"
-                    value={integratedVariant.price || 0} 
-                    onChange={(e) => updateVariantPrice('integrated', e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Подсказка для этого варианта</Label>
-                  <Input 
-                    value={integratedVariant.hint || ''} 
-                    onChange={(e) => updateVariantField('integrated', 'hint', e.target.value)}
-                    placeholder="Описание модели со встроенной печью..."
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Фото</Label>
-                  {integratedVariant.imageUrl ? (
-                    <div className="relative">
-                      <img 
-                        src={integratedVariant.imageUrl} 
-                        alt="Integrated" 
-                        className="w-full h-24 object-contain rounded border"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-1 right-1 h-6 w-6 p-0"
-                        onClick={() => removeVariantImage('integrated')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="block">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleVariantImageUpload(e, 'integrated')}
-                      />
-                      <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50">
-                        {uploadingVariant === 'integrated' ? (
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-orange-500" />
-                        ) : (
-                          <>
-                            <Upload className="h-6 w-6 mx-auto text-gray-400" />
-                            <span className="text-xs text-gray-500">Загрузить фото</span>
-                          </>
-                        )}
-                      </div>
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* External Heater Variant */}
-              <div className="border rounded-lg p-3 bg-white space-y-3">
-                <h4 className="font-medium text-sm">Внешняя печь (Zewnętrzny)</h4>
-                
-                {/* Purchase Price Section */}
-                <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
-                      <Input 
-                        type="number"
-                        step="0.01"
-                        value={externalVariant.purchasePriceEur || ''} 
-                        onChange={(e) => updateVariantField('external', 'purchasePriceEur', parseFloat(e.target.value) || 0)}
-                        placeholder="280"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-amber-700">Наценка (%)</Label>
-                      <Input 
-                        type="number"
-                        value={externalVariant.markupPercent ?? 30} 
-                        onChange={(e) => updateVariantField('external', 'markupPercent', parseFloat(e.target.value) || 0)}
-                        placeholder="30"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                  </div>
-                  {externalVariant.purchasePriceEur > 0 && (
-                    <p className="text-xs text-amber-600">
-                      Расчёт: {externalVariant.purchasePriceEur} EUR × курс × {1 + (externalVariant.markupPercent ?? 30)/100}
-                    </p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Розничная цена ({currencySymbol})</Label>
-                  <Input 
-                    type="number"
-                    value={externalVariant.price || 0} 
-                    onChange={(e) => updateVariantPrice('external', e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Подсказка для этого варианта</Label>
-                  <Input 
-                    value={externalVariant.hint || ''} 
-                    onChange={(e) => updateVariantField('external', 'hint', e.target.value)}
-                    placeholder="Описание модели с внешней печью..."
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Фото</Label>
-                  {externalVariant.imageUrl ? (
-                    <div className="relative">
-                      <img 
-                        src={externalVariant.imageUrl} 
-                        alt="External" 
-                        className="w-full h-24 object-contain rounded border"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-1 right-1 h-6 w-6 p-0"
-                        onClick={() => removeVariantImage('external')}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="block">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleVariantImageUpload(e, 'external')}
-                      />
-                      <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50">
-                        {uploadingVariant === 'external' ? (
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-orange-500" />
-                        ) : (
-                          <>
-                            <Upload className="h-6 w-6 mx-auto text-gray-400" />
-                            <span className="text-xs text-gray-500">Загрузить фото</span>
-                          </>
-                        )}
-                      </div>
-                    </label>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Specifications Section */}
-          <div className="border rounded-lg p-4 bg-blue-50 space-y-4">
-            <h3 className="font-semibold text-blue-800 flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Спецификации / Specyfikacje
-            </h3>
-            
-            <div className="grid grid-cols-3 gap-3">
-              {/* Dimensions for round tubs */}
-              <div className="space-y-1">
-                <Label className="text-xs">Внешний диаметр</Label>
-                <Input 
-                  value={formData.specs?.outerDiameter || ''} 
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    specs: { ...prev.specs, outerDiameter: e.target.value }
-                  }))}
-                  placeholder="200cm"
-                  className="h-8 text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-xs">Внутренний диаметр</Label>
-                <Input 
-                  value={formData.specs?.innerDiameter || ''} 
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    specs: { ...prev.specs, innerDiameter: e.target.value }
-                  }))}
-                  placeholder="160cm"
-                  className="h-8 text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-xs">Размеры (ДxШ)</Label>
-                <Input 
-                  value={formData.specs?.dimensions || ''} 
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    specs: { ...prev.specs, dimensions: e.target.value }
-                  }))}
-                  placeholder="170x200cm"
-                  className="h-8 text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-xs">Глубина</Label>
-                <Input 
-                  value={formData.specs?.depth || ''} 
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    specs: { ...prev.specs, depth: e.target.value }
-                  }))}
-                  placeholder="100cm"
-                  className="h-8 text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-xs">Объём воды</Label>
-                <Input 
-                  value={formData.specs?.volume || formData.specs?.waterCapacity || ''} 
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    specs: { ...prev.specs, volume: e.target.value, waterCapacity: e.target.value }
-                  }))}
-                  placeholder="1500L"
-                  className="h-8 text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-xs">Кол-во мест</Label>
-                <Input 
-                  type="number"
-                  value={formData.specs?.seats || ''} 
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    specs: { ...prev.specs, seats: parseInt(e.target.value) || 0 }
-                  }))}
-                  placeholder="6"
-                  className="h-8 text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-xs">Высота общая</Label>
-                <Input 
-                  value={formData.specs?.totalHeight || ''} 
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    specs: { ...prev.specs, totalHeight: e.target.value }
-                  }))}
-                  placeholder="120cm"
-                  className="h-8 text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-xs">Мощность печи</Label>
-                <Input 
-                  value={formData.specs?.heaterPower || ''} 
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    specs: { ...prev.specs, heaterPower: e.target.value }
-                  }))}
-                  placeholder="24kW"
-                  className="h-8 text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-xs">Вес (пустая)</Label>
-                <Input 
-                  value={formData.specs?.weight || ''} 
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    specs: { ...prev.specs, weight: e.target.value }
-                  }))}
-                  placeholder="350kg"
-                  className="h-8 text-sm"
-                />
-              </div>
-            </div>
-          </div>
+// Excel Mapping Tab Component
+const ExcelMappingTab = ({ 
+  prices, excelTemplate, lang, canEdit, getName,
+  onUpdateModelId, onUpdateModelExcelCell, 
+  onUpdateHeaterVariantId, onUpdateHeaterVariantExcelCell,
+  onUpdateOptionId, onUpdateOptionExcelCell
+}) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <FileSpreadsheet className="h-5 w-5" />
+        {lang === 'ru' ? 'Маппинг Excel' : 'Mapowanie Excel'}
+      </CardTitle>
+      <p className="text-sm text-muted-foreground">
+        {lang === 'ru' 
+          ? 'Настройте соответствие между ID моделей/опций и ячейками Excel для технического задания'
+          : 'Skonfiguruj mapowanie ID modeli/opcji do komórek Excel dla specyfikacji technicznej'}
+      </p>
+    </CardHeader>
+    <CardContent className="space-y-6">
+      {excelTemplate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+          <p className="font-medium text-blue-800">
+            {lang === 'ru' ? 'Шаблон Excel' : 'Szablon Excel'}: {excelTemplate.maxRow} {lang === 'ru' ? 'строк' : 'wierszy'}, {excelTemplate.maxCol} {lang === 'ru' ? 'столбцов' : 'kolumn'}
+          </p>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
-          <Button onClick={() => {
-            // Set basePrice to first variant price for backwards compatibility
-            const updatedData = {
-              ...formData,
-              basePrice: integratedVariant.price,
-              imageUrl: integratedVariant.imageUrl || externalVariant.imageUrl
-            };
-            onSave(updatedData);
-          }}>{txt.save}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
+      )}
 
-// Category Edit Dialog Component
-const CategoryEditDialog = ({ open, category, isNew, onClose, onSave, txt }) => {
-  // Use key prop approach - component remounts when category changes
-  const [formData, setFormData] = useState(() => category || {});
-
-  if (!category) return null;
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isNew ? txt.newCategory : txt.editCategory}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>{txt.nameRu}</Label>
-            <Input 
-              value={formData.nameRu || ''} 
-              onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>{txt.namePl}</Label>
-            <Input 
-              value={formData.namePl || ''} 
-              onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
-            />
-          </div>
-          
-          {/* Without labels for "not selected" display */}
-          <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
-            <div className="space-y-2">
-              <Label className="text-xs">Bez ... (PL)</Label>
-              <Input 
-                value={formData.withoutLabelPl || ''} 
-                onChange={(e) => setFormData({ ...formData, withoutLabelPl: e.target.value })}
-                placeholder="np. Bez hydromasażu"
-                className="text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Без ... (RU)</Label>
-              <Input 
-                value={formData.withoutLabelRu || ''} 
-                onChange={(e) => setFormData({ ...formData, withoutLabelRu: e.target.value })}
-                placeholder="напр. Без гидромассажа"
-                className="text-sm"
-              />
-            </div>
-            <p className="col-span-2 text-xs text-muted-foreground">
-              Текст для отображения когда опция не выбрана в заказе
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>{txt.inputType}</Label>
-            <Select 
-              value={formData.inputType || 'radio'} 
-              onValueChange={(v) => setFormData({ ...formData, inputType: v })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="radio">Один выбор (radio)</SelectItem>
-                <SelectItem value="checkbox">Несколько (checkbox)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Radio — можно выбрать только один вариант, Checkbox — несколько
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label>{txt.displayType || 'Тип отображения'}</Label>
-            <Select 
-              value={formData.displayType || 'list'} 
-              onValueChange={(v) => setFormData({ ...formData, displayType: v })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="list">{txt.list || 'Список'}</SelectItem>
-                <SelectItem value="tiles">{txt.tiles || 'Плитки'}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
-          <Button onClick={() => onSave(formData)}>{txt.save}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// Option Edit Dialog Component
-const OptionEditDialog = ({ open, option, categoryId, isNew, onClose, onSave, txt, currencySymbol }) => {
-  const [formData, setFormData] = useState(() => option || {});
-  const [uploading, setUploading] = useState(false);
-
-  const handleUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
-
-    try {
-      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
-      const response = await fetch(`${API_URL}/api/upload/image`, {
-        method: 'POST',
-        body: formDataUpload
-      });
-      const data = await response.json();
-      // Save FULL URL with domain (like in Sauna)
-      const fullUrl = `${API_URL}${data.url}`;
-      setFormData(prev => ({ ...prev, imageUrl: fullUrl }));
-    } catch (error) {
-      console.error('Upload error:', error);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  if (!option) return null;
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isNew ? txt.newOption : txt.editOption}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          {/* Image upload */}
-          <div className="space-y-2">
-            <Label>{txt.image}</Label>
-            <div className="flex items-center gap-3">
-              {formData.imageUrl ? (
-                <div className="relative">
-                  <img 
-                    src={getFullImageUrl(formData.imageUrl)} 
-                    alt="Option"
-                    className="w-16 h-16 object-contain rounded border bg-gray-50"
-                  />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-5 w-5"
-                    onClick={() => setFormData({ ...formData, imageUrl: '' })}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+      {/* Models Mapping */}
+      <div className="space-y-3">
+        <h3 className="font-semibold text-lg border-b pb-2">
+          {lang === 'ru' ? 'Модели купелей' : 'Modele bali'}
+        </h3>
+        <div className="space-y-2">
+          {prices.models?.map(model => (
+            <div key={model.id} className="border rounded-lg p-3 bg-muted/30">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <span className="font-medium">{getName(model)}</span>
                 </div>
-              ) : (
-                <div className="w-16 h-16 bg-muted rounded border flex items-center justify-center">
-                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">ID:</Label>
+                  <Input
+                    value={model.id || ''}
+                    onChange={(e) => onUpdateModelId(model.id, e.target.value)}
+                    className="w-32 h-8 text-xs font-mono"
+                    disabled={!canEdit()}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
+                  <Input
+                    value={model.excelCell || ''}
+                    onChange={(e) => onUpdateModelExcelCell(model.id, e.target.value.toUpperCase())}
+                    className="w-20 h-8 text-xs font-mono text-center"
+                    placeholder="np. Y16"
+                    disabled={!canEdit()}
+                  />
+                </div>
+              </div>
+              
+              {model.heaterVariants?.length > 0 && (
+                <div className="mt-3 pl-4 border-l-2 border-amber-300 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {lang === 'ru' ? 'Варианты печи:' : 'Warianty pieca:'}
+                  </p>
+                  {model.heaterVariants.map((hv, idx) => (
+                    <div key={idx} className="flex items-center gap-4 flex-wrap bg-amber-50 p-2 rounded">
+                      <span className="text-sm">{hv.type === 'integrated' ? (lang === 'ru' ? 'Встроенная' : 'Zintegrowany') : (lang === 'ru' ? 'Внешняя' : 'Zewnętrzny')}</span>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">ID:</Label>
+                        <Input
+                          value={hv.id || `${model.id}_${hv.type}`}
+                          onChange={(e) => onUpdateHeaterVariantId(model.id, idx, e.target.value)}
+                          className="w-40 h-7 text-xs font-mono"
+                          disabled={!canEdit()}
+                          placeholder={`${model.id}_${hv.type}`}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
+                        <Input
+                          value={hv.excelCell || ''}
+                          onChange={(e) => onUpdateHeaterVariantExcelCell(model.id, idx, e.target.value.toUpperCase())}
+                          className="w-20 h-7 text-xs font-mono text-center"
+                          placeholder="np. B10"
+                          disabled={!canEdit()}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-              <label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleUpload}
-                  disabled={uploading}
-                />
-                <Button type="button" variant="outline" size="sm" asChild disabled={uploading}>
-                  <span>
-                    {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
-                    {txt.uploadImage}
-                  </span>
-                </Button>
-              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Options Mapping */}
+      <div className="space-y-3">
+        <h3 className="font-semibold text-lg border-b pb-2">
+          {lang === 'ru' ? 'Опции по категориям' : 'Opcje wg kategorii'}
+        </h3>
+        {prices.categories?.map(category => (
+          <div key={category.id} className="border rounded-lg p-3">
+            <h4 className="font-medium text-sm mb-2 text-primary">{getName(category)}</h4>
+            <div className="space-y-1">
+              {category.options?.map(option => (
+                <div key={option.id} className="flex items-center gap-4 flex-wrap py-1 px-2 bg-muted/30 rounded">
+                  <span className="flex-1 min-w-[150px] text-sm">{getName(option)}</span>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">ID:</Label>
+                    <Input
+                      value={option.id || ''}
+                      onChange={(e) => onUpdateOptionId(category.id, option.id, e.target.value)}
+                      className="w-32 h-7 text-xs font-mono"
+                      disabled={!canEdit()}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">{lang === 'ru' ? 'Ячейка:' : 'Komórka:'}</Label>
+                    <Input
+                      value={option.excelCell || ''}
+                      onChange={(e) => onUpdateOptionExcelCell(category.id, option.id, e.target.value.toUpperCase())}
+                      className="w-20 h-7 text-xs font-mono text-center"
+                      placeholder="np. D10"
+                      disabled={!canEdit()}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// Settings Tab Component
+const SettingsTab = ({ prices, setPrices, nbpRate, lang, canEdit, txt, onExport, onImport, onRecalculate }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>{txt.settings}</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-6">
+      {/* Export/Import Section */}
+      <div className="border rounded-lg p-4 bg-green-50 space-y-4">
+        <h3 className="font-semibold text-green-800 flex items-center gap-2">
+          <FileSpreadsheet className="h-4 w-4" />
+          {lang === 'ru' ? 'Экспорт / Импорт прайс-листа' : 'Eksport / Import cennika'}
+        </h3>
+        
+        <div className="flex gap-4">
+          <Button 
+            variant="outline" 
+            onClick={onExport}
+            className="flex-1 border-green-300 text-green-700 hover:bg-green-100"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {lang === 'ru' ? 'Экспорт в Excel' : 'Eksport do Excel'}
+          </Button>
           
-          <div className="space-y-2">
-            <Label>{txt.nameRu}</Label>
-            <Input 
-              value={formData.nameRu || ''} 
-              onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
+          <label className="flex-1">
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={onImport}
+              className="hidden"
+              disabled={!canEdit()}
             />
-          </div>
+            <Button 
+              variant="outline" 
+              className="w-full border-green-300 text-green-700 hover:bg-green-100"
+              disabled={!canEdit()}
+              asChild
+            >
+              <span>
+                <Upload className="h-4 w-4 mr-2" />
+                {lang === 'ru' ? 'Импорт из Excel' : 'Import z Excel'}
+              </span>
+            </Button>
+          </label>
+        </div>
+        
+        <p className="text-xs text-green-700">
+          {lang === 'ru' 
+            ? 'Экспортируйте прайс-лист для редактирования в Excel. После изменений импортируйте обратно.' 
+            : 'Wyeksportuj cennik do edycji w Excel. Po zmianach zaimportuj z powrotem.'}
+        </p>
+      </div>
+      
+      <Separator />
+      
+      {/* Currency Settings */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>{txt.currency}</Label>
+          <Input 
+            value={prices.currency || 'PLN'} 
+            onChange={(e) => setPrices(prev => ({ ...prev, currency: e.target.value }))}
+            disabled={!canEdit()}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>{txt.currencySymbol}</Label>
+          <Input 
+            value={prices.currencySymbol || 'zł'} 
+            onChange={(e) => setPrices(prev => ({ ...prev, currencySymbol: e.target.value }))}
+            disabled={!canEdit()}
+          />
+        </div>
+      </div>
+
+      {/* EUR Exchange Rate Section */}
+      <Separator />
+      <div className="border rounded-lg p-4 bg-amber-50 space-y-4">
+        <h3 className="font-semibold text-amber-800 flex items-center gap-2">
+          <DollarSign className="h-4 w-4" />
+          {lang === 'ru' ? 'Расчёт цен (закупка в EUR)' : 'Kalkulacja cen (zakup w EUR)'}
+        </h3>
+        
+        <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label>{txt.namePl}</Label>
+            <Label>{lang === 'ru' ? 'Курс EUR → PLN' : 'Kurs EUR → PLN'}</Label>
             <Input 
-              value={formData.namePl || ''} 
-              onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
+              type="number"
+              step="0.01"
+              value={prices.eurRate || 4.30} 
+              onChange={(e) => setPrices(prev => ({ ...prev, eurRate: parseFloat(e.target.value) || 4.30 }))}
+              disabled={!canEdit()}
+              placeholder="4.30"
             />
-          </div>
-          
-          {/* Purchase Price Section */}
-          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
-            <h4 className="text-sm font-medium text-amber-800">Ценообразование / Kalkulacja</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
-                <Input 
-                  type="number"
-                  step="0.01"
-                  value={formData.purchasePriceEur || ''} 
-                  onChange={(e) => setFormData({ ...formData, purchasePriceEur: parseFloat(e.target.value) || 0 })}
-                  placeholder="50"
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-amber-700">Наценка (%)</Label>
-                <Input 
-                  type="number"
-                  value={formData.markupPercent ?? 30} 
-                  onChange={(e) => setFormData({ ...formData, markupPercent: parseFloat(e.target.value) || 0 })}
-                  placeholder="30"
-                  className="h-8 text-sm"
-                />
-              </div>
-            </div>
-            {formData.purchasePriceEur > 0 && (
-              <p className="text-xs text-amber-600">
-                Расчёт: {formData.purchasePriceEur} EUR × курс × {(1 + (formData.markupPercent ?? 30)/100).toFixed(2)}
+            <p className="text-xs text-muted-foreground">1 EUR = {prices.eurRate || 4.30} PLN</p>
+            {nbpRate && (
+              <p className="text-xs text-blue-600">
+                NBP ({nbpRate.date}): <b>{nbpRate.rate.toFixed(4)}</b> PLN
+                {canEdit() && (
+                  <button 
+                    onClick={() => setPrices(prev => ({ ...prev, eurRate: nbpRate.rate }))}
+                    className="ml-2 text-blue-700 underline hover:no-underline"
+                  >
+                    {lang === 'ru' ? 'применить' : 'zastosuj'}
+                  </button>
+                )}
               </p>
             )}
           </div>
-          
           <div className="space-y-2">
-            <Label>{txt.price} ({currencySymbol}) - Розничная</Label>
+            <Label>{lang === 'ru' ? 'Наценка по умолч. (%)' : 'Domyślna marża (%)'}</Label>
             <Input 
               type="number"
-              value={formData.price || 0} 
-              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+              value={prices.defaultMarkupPercent || 30} 
+              onChange={(e) => setPrices(prev => ({ ...prev, defaultMarkupPercent: parseFloat(e.target.value) || 30 }))}
+              disabled={!canEdit()}
+              placeholder="30"
             />
           </div>
-          
-          {/* Color Preview for color options */}
-          <div className="space-y-2">
-            <Label>Превью цвета (HEX)</Label>
-            <div className="flex items-center gap-3">
-              <Input 
-                value={formData.colorPreview || ''} 
-                onChange={(e) => setFormData({ ...formData, colorPreview: e.target.value })}
-                placeholder="#FFFFFF"
-                className="flex-1"
-              />
-              {formData.colorPreview && (
-                <div 
-                  className="w-10 h-10 rounded border-2 border-gray-300 shadow-inner"
-                  style={{ backgroundColor: formData.colorPreview }}
-                />
-              )}
-              <input
-                type="color"
-                value={formData.colorPreview || '#FFFFFF'}
-                onChange={(e) => setFormData({ ...formData, colorPreview: e.target.value })}
-                className="w-10 h-10 rounded cursor-pointer border-0"
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Подсказка (RU)</Label>
-            <Input 
-              value={formData.hint || ''} 
-              onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
-              placeholder="Описание опции для клиента..."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Podpowiedź (PL)</Label>
-            <Input 
-              value={formData.hintPl || ''} 
-              onChange={(e) => setFormData({ ...formData, hintPl: e.target.value })}
-              placeholder="Opis opcji dla klienta..."
-            />
+          <div className="flex items-end">
+            <Button 
+              variant="outline" 
+              onClick={onRecalculate}
+              disabled={!canEdit()}
+              className="w-full"
+            >
+              {lang === 'ru' ? 'Пересчитать все цены' : 'Przelicz wszystkie ceny'}
+            </Button>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
-          <Button onClick={() => onSave(formData, categoryId)}>{txt.save}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// Bulk Price Edit Dialog Component
-const BulkPriceEditDialog = ({ open, onClose, onApply, currencySymbol, modelsCount, lang }) => {
-  const [changeType, setChangeType] = useState('percent'); // 'percent' | 'absolute'
-  const [value, setValue] = useState(0);
-  const [applyTo, setApplyTo] = useState('all'); // 'all' | 'integrated' | 'external'
-
-  const handleApply = () => {
-    if (value === 0) {
-      return;
-    }
-    onApply({ changeType, value: parseFloat(value), applyTo });
-  };
-
-  const getPreviewText = () => {
-    if (value === 0) return '';
-    const sign = value > 0 ? '+' : '';
-    if (changeType === 'percent') {
-      return `${sign}${value}%`;
-    }
-    return `${sign}${value} ${currencySymbol}`;
-  };
-
-  const txt = {
-    title: lang === 'ru' ? 'Массовое изменение цен' : 'Zmiana cen hurtowo',
-    description: lang === 'ru' 
-      ? `Применить изменение ко всем ${modelsCount} моделям` 
-      : `Zastosuj zmianę do wszystkich ${modelsCount} modeli`,
-    changeType: lang === 'ru' ? 'Тип изменения' : 'Typ zmiany',
-    percent: lang === 'ru' ? 'Процент (%)' : 'Procent (%)',
-    absolute: lang === 'ru' ? `Сумма (${currencySymbol})` : `Kwota (${currencySymbol})`,
-    value: lang === 'ru' ? 'Значение' : 'Wartość',
-    applyTo: lang === 'ru' ? 'Применить к' : 'Zastosuj do',
-    all: lang === 'ru' ? 'Все варианты' : 'Wszystkie warianty',
-    integrated: lang === 'ru' ? 'Только встроенная печь' : 'Tylko zintegrowany',
-    external: lang === 'ru' ? 'Только внешняя печь' : 'Tylko zewnętrzny',
-    preview: lang === 'ru' ? 'Предпросмотр' : 'Podgląd',
-    example: lang === 'ru' ? 'Пример: 1000 → ' : 'Przykład: 1000 → ',
-    cancel: lang === 'ru' ? 'Отмена' : 'Anuluj',
-    apply: lang === 'ru' ? 'Применить' : 'Zastosuj',
-    warning: lang === 'ru' 
-      ? 'Изменения будут применены после нажатия "Сохранить всё"' 
-      : 'Zmiany zostaną zastosowane po kliknięciu "Zapisz wszystko"',
-  };
-
-  const calculateExample = () => {
-    const base = 1000;
-    if (changeType === 'percent') {
-      return Math.round(base * (1 + value / 100) * 100) / 100;
-    }
-    return base + parseFloat(value || 0);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-orange-500" />
-            {txt.title}
-          </DialogTitle>
-          <DialogDescription>{txt.description}</DialogDescription>
-        </DialogHeader>
         
-        <div className="space-y-4 py-4">
-          {/* Change Type */}
-          <div className="space-y-2">
-            <Label>{txt.changeType}</Label>
-            <Select value={changeType} onValueChange={setChangeType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="percent">{txt.percent}</SelectItem>
-                <SelectItem value="absolute">{txt.absolute}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Value */}
-          <div className="space-y-2">
-            <Label>{txt.value}</Label>
-            <div className="flex items-center gap-2">
-              <Input 
-                type="number"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder={changeType === 'percent' ? '10' : '100'}
-                className="flex-1"
-              />
-              <span className="text-muted-foreground font-medium w-12">
-                {changeType === 'percent' ? '%' : currencySymbol}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {lang === 'ru' ? 'Используйте отрицательные значения для уменьшения' : 'Użyj ujemnych wartości, aby zmniejszyć'}
-            </p>
-          </div>
-
-          {/* Apply To */}
-          <div className="space-y-2">
-            <Label>{txt.applyTo}</Label>
-            <Select value={applyTo} onValueChange={setApplyTo}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{txt.all}</SelectItem>
-                <SelectItem value="integrated">{txt.integrated}</SelectItem>
-                <SelectItem value="external">{txt.external}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Preview */}
-          {value !== 0 && value !== '' && (
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm font-medium text-blue-800">{txt.preview}</p>
-              <p className="text-lg font-bold text-blue-600">
-                {txt.example}{calculateExample()} {currencySymbol}
-              </p>
-              <p className="text-xs text-blue-600 mt-1">
-                ({getPreviewText()})
-              </p>
-            </div>
-          )}
-
-          {/* Warning */}
-          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-            <p className="text-xs text-amber-700">
-              ⚠️ {txt.warning}
-            </p>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
-          <Button 
-            onClick={handleApply} 
-            disabled={value === 0 || value === ''}
-            className="bg-orange-600 hover:bg-orange-700"
-          >
-            {txt.apply}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
+        <p className="text-xs text-amber-700">
+          {lang === 'ru' 
+            ? 'Формула: Закупка (EUR) × Курс × (1 + Наценка%) = Розничная цена (PLN)' 
+            : 'Formuła: Zakup (EUR) × Kurs × (1 + Marża%) = Cena detaliczna (PLN)'}
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+);
