@@ -638,6 +638,201 @@ async def delete_order(order_id: str):
     return {"message": "Order deleted successfully"}
 
 
+async def generate_pdf_bytes(request: PDFRequest) -> bytes:
+    """Generate PDF and return as bytes (for Telegram sending)"""
+    import urllib.request
+    import base64
+    from PIL import Image as PILImage
+    
+    async def load_image_from_mongodb(image_url: str) -> bytes:
+        """Load image from MongoDB by extracting ID from URL"""
+        if not image_url or '/api/uploads/' not in image_url:
+            return None
+        try:
+            filename = image_url.split('/api/uploads/')[-1]
+            file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
+            image_doc = await db.images.find_one({"id": file_id})
+            if image_doc:
+                return base64.b64decode(image_doc["content"])
+        except Exception as e:
+            logger.warning(f"Could not load image from MongoDB: {e}")
+        return None
+    
+    buffer = io.BytesIO()
+    
+    try:
+        pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+        pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+    except Exception as e:
+        logger.warning(f"Could not register fonts: {e}")
+    
+    # Colors - Blue theme for Balia (water theme)
+    BLUE = colors.HexColor('#2563EB')
+    BLUE_LIGHT = colors.HexColor('#EFF6FF')
+    BLUE_DARK = colors.HexColor('#1E40AF')
+    BLUE_BORDER = colors.HexColor('#93C5FD')
+    GREEN = colors.HexColor('#059669')
+    GREEN_LIGHT = colors.HexColor('#ECFDF5')
+    TEXT_COLOR = colors.HexColor('#1F2937')
+    MUTED = colors.HexColor('#6B7280')
+    WHITE = colors.white
+    
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=15*mm,
+        leftMargin=15*mm,
+        topMargin=10*mm,
+        bottomMargin=15*mm
+    )
+    
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Generate offer number
+    offer_number = request.orderId if request.orderId else f"WM-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    
+    # Custom styles
+    title_style = ParagraphStyle('Title', fontName='DejaVuSans-Bold', fontSize=22, textColor=BLUE_DARK, alignment=TA_CENTER)
+    subtitle_style = ParagraphStyle('Subtitle', fontName='DejaVuSans', fontSize=10, textColor=MUTED, alignment=TA_CENTER)
+    section_style = ParagraphStyle('Section', fontName='DejaVuSans-Bold', fontSize=13, textColor=BLUE_DARK, spaceBefore=12)
+    normal_style = ParagraphStyle('Normal', fontName='DejaVuSans', fontSize=10, textColor=TEXT_COLOR)
+    
+    # Header
+    elements.append(Paragraph("OFERTA CENOWA", title_style))
+    elements.append(Spacer(1, 2*mm))
+    elements.append(Paragraph(f"Nr oferty: {offer_number} | Data: {datetime.now().strftime('%d.%m.%Y')}", subtitle_style))
+    elements.append(Spacer(1, 6*mm))
+    
+    # Customer info section
+    elements.append(Paragraph("📋 DANE KLIENTA", section_style))
+    customer_data = [
+        ["Imię i nazwisko:", request.fullName or "-"],
+        ["Telefon:", request.phoneNumber or "-"],
+        ["Email:", request.email or "-"],
+    ]
+    if request.address:
+        customer_data.append(["Adres:", request.address])
+    if request.notes:
+        customer_data.append(["Uwagi:", request.notes])
+    
+    customer_table = Table(customer_data, colWidths=[50*mm, 125*mm])
+    customer_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR', (0, 0), (0, -1), MUTED),
+        ('TEXTCOLOR', (1, 0), (1, -1), TEXT_COLOR),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    elements.append(customer_table)
+    elements.append(Spacer(1, 6*mm))
+    
+    # Model section
+    elements.append(Paragraph("🛁 WYBRANY MODEL", section_style))
+    
+    heater_type = request.heaterType or 'external'
+    heater_type_name = "Zintegrowany" if heater_type == 'integrated' else "Zewnętrzny"
+    
+    model_info = [
+        ["Model:", request.modelName or "-"],
+        ["Piec:", heater_type_name],
+    ]
+    
+    # Add specs if available
+    if request.modelSpecs:
+        specs = request.modelSpecs
+        if specs.get('dimensions'):
+            model_info.append(["Wymiary:", specs['dimensions']])
+        if specs.get('innerDiameter'):
+            model_info.append(["Średnica wewnętrzna:", f"{specs['innerDiameter']} cm"])
+        if specs.get('depth'):
+            model_info.append(["Głębokość:", f"{specs['depth']} cm"])
+        if specs.get('capacity'):
+            model_info.append(["Pojemność:", f"{specs['capacity']} L"])
+        if specs.get('persons'):
+            model_info.append(["Liczba osób:", f"{specs['persons']}"])
+    
+    model_table = Table(model_info, colWidths=[50*mm, 125*mm])
+    model_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR', (0, 0), (0, -1), MUTED),
+        ('TEXTCOLOR', (1, 0), (1, -1), TEXT_COLOR),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(model_table)
+    elements.append(Spacer(1, 6*mm))
+    
+    # Options section
+    if request.selectedOptions:
+        elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))
+        
+        options_data = [["Opcja", "Cena"]]
+        for opt in request.selectedOptions:
+            opt_name = opt.get('optionName') or opt.get('name') or opt.get('namePl', '-')
+            opt_price = opt.get('optionPrice') or opt.get('price', 0)
+            currency_symbol = request.currencySymbol or 'zł'
+            options_data.append([opt_name, f"{opt_price:,.0f} {currency_symbol}".replace(",", " ")])
+        
+        options_table = Table(options_data, colWidths=[125*mm, 50*mm])
+        options_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
+            ('FONTNAME', (0, 1), (-1, -1), 'DejaVuSans'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BACKGROUND', (0, 0), (-1, 0), BLUE_LIGHT),
+            ('TEXTCOLOR', (0, 0), (-1, 0), BLUE_DARK),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, BLUE_BORDER),
+        ]))
+        elements.append(options_table)
+        elements.append(Spacer(1, 6*mm))
+    
+    # Total section
+    elements.append(Paragraph("💰 PODSUMOWANIE", section_style))
+    
+    currency_symbol = request.currencySymbol or 'zł'
+    total = request.total or 0
+    total_formatted = f"{total:,.0f}".replace(",", " ")
+    
+    total_data = [
+        ["RAZEM DO ZAPŁATY:", f"{total_formatted} {currency_symbol}"]
+    ]
+    
+    total_table = Table(total_data, colWidths=[125*mm, 50*mm])
+    total_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 14),
+        ('BACKGROUND', (0, 0), (-1, -1), GREEN_LIGHT),
+        ('TEXTCOLOR', (0, 0), (0, -1), TEXT_COLOR),
+        ('TEXTCOLOR', (1, 0), (1, -1), GREEN),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOX', (0, 0), (-1, -1), 1, GREEN),
+    ]))
+    elements.append(total_table)
+    elements.append(Spacer(1, 8*mm))
+    
+    # Footer
+    footer_style = ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)
+    elements.append(Paragraph("Oferta ważna 14 dni od daty wystawienia.", footer_style))
+    elements.append(Paragraph("Oferta nie stanowi oferty handlowej w rozumieniu Kodeksu Cywilnego.", footer_style))
+    
+    doc.build(elements)
+    
+    pdf_data = buffer.getvalue()
+    buffer.close()
+    
+    return pdf_data
+
+
 @router.post("/generate-pdf")
 async def generate_pdf(request: PDFRequest):
     """Generate professional PDF order form for Balia - Polish only"""
