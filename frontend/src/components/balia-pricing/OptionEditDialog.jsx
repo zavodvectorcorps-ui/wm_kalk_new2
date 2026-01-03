@@ -1,32 +1,33 @@
-import React, { memo, useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import React, { memo, useState } from 'react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Upload, X, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+const getFullImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/api/')) return `${API_URL}${url}`;
+  return url;
+};
 
 export const OptionEditDialog = memo(({ 
   open, 
-  onOpenChange, 
   option,
+  categoryId,
   isNew,
-  currencySymbol,
+  onClose,
   onSave,
-  onDelete,
   txt,
-  apiUrl
+  currencySymbol
 }) => {
-  const [formData, setFormData] = useState(option || {});
+  const [formData, setFormData] = useState(() => option || {});
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    if (option) {
-      setFormData(option);
-    }
-  }, [option]);
-
-  const handleImageUpload = async (e) => {
+  const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -35,144 +36,175 @@ export const OptionEditDialog = memo(({
     formDataUpload.append('file', file);
 
     try {
-      const response = await axios.post(`${apiUrl}/api/upload/image`, formDataUpload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formDataUpload
       });
-      
-      const imageUrl = `${apiUrl}${response.data.url}`;
-      setFormData(prev => ({ ...prev, imageUrl }));
+      const data = await response.json();
+      const fullUrl = `${API_URL}${data.url}`;
+      setFormData(prev => ({ ...prev, imageUrl: fullUrl }));
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Upload error:', error);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleSave = () => {
-    onSave(formData);
-    onOpenChange(false);
-  };
+  if (!option) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isNew ? txt.newOption : txt.editOption}</DialogTitle>
-          <DialogDescription>
-            {isNew ? 'Добавьте новую опцию' : 'Редактировать опцию'}
-          </DialogDescription>
         </DialogHeader>
-
         <div className="space-y-4 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{txt.nameRu}</Label>
-              <Input 
-                value={formData.nameRu || ''} 
-                onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
-                placeholder="Название RU"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{txt.namePl}</Label>
-              <Input 
-                value={formData.namePl || ''} 
-                onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
-                placeholder="Nazwa PL"
-              />
+          {/* Image upload */}
+          <div className="space-y-2">
+            <Label>{txt.image}</Label>
+            <div className="flex items-center gap-3">
+              {formData.imageUrl ? (
+                <div className="relative">
+                  <img 
+                    src={getFullImageUrl(formData.imageUrl)} 
+                    alt="Option"
+                    className="w-16 h-16 object-contain rounded border bg-gray-50"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-5 w-5"
+                    onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="w-16 h-16 bg-muted rounded border flex items-center justify-center">
+                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                </div>
+              )}
+              <label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleUpload}
+                  disabled={uploading}
+                />
+                <Button type="button" variant="outline" size="sm" asChild disabled={uploading}>
+                  <span>
+                    {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                    {txt.uploadImage}
+                  </span>
+                </Button>
+              </label>
             </div>
           </div>
-
+          
           <div className="space-y-2">
-            <Label>{txt.price} ({currencySymbol})</Label>
+            <Label>{txt.nameRu}</Label>
+            <Input 
+              value={formData.nameRu || ''} 
+              onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{txt.namePl}</Label>
+            <Input 
+              value={formData.namePl || ''} 
+              onChange={(e) => setFormData({ ...formData, namePl: e.target.value })}
+            />
+          </div>
+          
+          {/* Purchase Price Section */}
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
+            <h4 className="text-sm font-medium text-amber-800">Ценообразование / Kalkulacja</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  value={formData.purchasePriceEur || ''} 
+                  onChange={(e) => setFormData({ ...formData, purchasePriceEur: parseFloat(e.target.value) || 0 })}
+                  placeholder="50"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-amber-700">Наценка (%)</Label>
+                <Input 
+                  type="number"
+                  value={formData.markupPercent ?? 30} 
+                  onChange={(e) => setFormData({ ...formData, markupPercent: parseFloat(e.target.value) || 0 })}
+                  placeholder="30"
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            {formData.purchasePriceEur > 0 && (
+              <p className="text-xs text-amber-600">
+                Расчёт: {formData.purchasePriceEur} EUR × курс × {(1 + (formData.markupPercent ?? 30)/100).toFixed(2)}
+              </p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label>{txt.price} ({currencySymbol}) - Розничная</Label>
             <Input 
               type="number"
               value={formData.price || 0} 
               onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-              placeholder="0"
             />
           </div>
-
-          {/* Hint */}
+          
+          {/* Color Preview for color options */}
           <div className="space-y-2">
-            <Label>Подсказка / Hint</Label>
-            <textarea 
-              value={formData.hint || ''} 
-              onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
-              placeholder="Описание опции..."
-              className="w-full min-h-[60px] px-3 py-2 text-sm border rounded-md"
-              rows={2}
-            />
-          </div>
-
-          {/* Color preview */}
-          <div className="space-y-2">
-            <Label>Цвет (для палитры)</Label>
-            <div className="flex gap-2">
-              <Input 
-                type="color"
-                value={formData.colorPreview || '#ffffff'} 
-                onChange={(e) => setFormData({ ...formData, colorPreview: e.target.value })}
-                className="w-16 h-10 p-1"
-              />
+            <Label>Превью цвета (HEX)</Label>
+            <div className="flex items-center gap-3">
               <Input 
                 value={formData.colorPreview || ''} 
                 onChange={(e) => setFormData({ ...formData, colorPreview: e.target.value })}
-                placeholder="#ffffff"
+                placeholder="#FFFFFF"
                 className="flex-1"
+              />
+              {formData.colorPreview && (
+                <div 
+                  className="w-10 h-10 rounded border-2 border-gray-300 shadow-inner"
+                  style={{ backgroundColor: formData.colorPreview }}
+                />
+              )}
+              <input
+                type="color"
+                value={formData.colorPreview || '#FFFFFF'}
+                onChange={(e) => setFormData({ ...formData, colorPreview: e.target.value })}
+                className="w-10 h-10 rounded cursor-pointer border-0"
               />
             </div>
           </div>
-
-          {/* Image upload */}
+          
           <div className="space-y-2">
-            <Label>{txt.image}</Label>
-            {formData.imageUrl ? (
-              <div className="relative inline-block">
-                <img 
-                  src={formData.imageUrl} 
-                  alt="Preview" 
-                  className="w-32 h-32 object-contain rounded border"
-                />
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="absolute top-1 right-1 h-6 w-6 p-0"
-                  onClick={() => setFormData({ ...formData, imageUrl: '' })}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ) : (
-              <label className="block">
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50">
-                  {uploading ? (
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
-                  ) : (
-                    <>
-                      <Upload className="h-8 w-8 mx-auto text-gray-400" />
-                      <span className="text-sm text-gray-500 mt-2 block">{txt.uploadImage}</span>
-                    </>
-                  )}
-                </div>
-              </label>
-            )}
+            <Label>Подсказка (RU)</Label>
+            <Input 
+              value={formData.hint || ''} 
+              onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
+              placeholder="Описание опции для клиента..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Podpowiedź (PL)</Label>
+            <Input 
+              value={formData.hintPl || ''} 
+              onChange={(e) => setFormData({ ...formData, hintPl: e.target.value })}
+              placeholder="Opis opcji dla klienta..."
+            />
           </div>
         </div>
-
         <DialogFooter>
-          {!isNew && (
-            <Button variant="destructive" onClick={onDelete}>
-              {txt.delete}
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {txt.cancel}
-          </Button>
-          <Button onClick={handleSave}>
-            {txt.save}
-          </Button>
+          <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
+          <Button onClick={() => onSave(formData, categoryId)}>{txt.save}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

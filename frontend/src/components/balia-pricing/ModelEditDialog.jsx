@@ -1,103 +1,121 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Switch } from '../ui/switch';
-import { Settings, Upload, X, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { Settings, Upload, X, Loader2, Package } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export const ModelEditDialog = memo(({ 
   open, 
-  onOpenChange, 
   model,
   isNew,
-  currencySymbol,
+  onClose,
   onSave,
-  onDelete,
   txt,
-  apiUrl
+  currencySymbol
 }) => {
   const [formData, setFormData] = useState(model || {});
   const [uploadingVariant, setUploadingVariant] = useState(null);
-
-  React.useEffect(() => {
+  
+  useEffect(() => {
     if (model) {
-      setFormData({
-        ...model,
-        heaterVariants: model.heaterVariants || [
-          { type: 'integrated', price: model.basePrice || 0 },
-          { type: 'external', price: model.basePrice || 0 }
-        ]
-      });
+      const data = { ...model };
+      if (!data.heaterVariants || data.heaterVariants.length === 0) {
+        data.heaterVariants = [
+          { type: 'integrated', price: data.basePrice || 0, imageUrl: data.imageUrl || '' },
+          { type: 'external', price: data.basePrice || 0, imageUrl: '' }
+        ];
+      }
+      if (!data.specs) {
+        data.specs = {};
+      }
+      setFormData(data);
     }
   }, [model]);
 
-  const integratedVariant = formData.heaterVariants?.find(v => v.type === 'integrated') || { type: 'integrated', price: 0 };
-  const externalVariant = formData.heaterVariants?.find(v => v.type === 'external') || { type: 'external', price: 0 };
-
-  const updateVariantField = (type, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      heaterVariants: (prev.heaterVariants || []).map(v => 
-        v.type === type ? { ...v, [field]: value } : v
-      )
-    }));
-  };
-
-  const updateVariantPrice = (type, value) => {
-    const price = parseFloat(value) || 0;
-    setFormData(prev => ({
-      ...prev,
-      heaterVariants: (prev.heaterVariants || []).map(v => 
-        v.type === type ? { ...v, price } : v
-      )
-    }));
-  };
-
-  const handleVariantImageUpload = async (e, type) => {
+  const handleVariantImageUpload = async (e, variantType) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadingVariant(type);
+    setUploadingVariant(variantType);
     const formDataUpload = new FormData();
     formDataUpload.append('file', file);
 
     try {
-      const response = await axios.post(`${apiUrl}/api/upload/image`, formDataUpload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formDataUpload
       });
+      const data = await response.json();
+      const fullUrl = `${API_URL}${data.url}`;
       
-      const imageUrl = `${apiUrl}${response.data.url}`;
-      updateVariantField(type, 'imageUrl', imageUrl);
+      setFormData(prev => ({
+        ...prev,
+        heaterVariants: prev.heaterVariants.map(v => 
+          v.type === variantType ? { ...v, imageUrl: fullUrl } : v
+        )
+      }));
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Upload error:', error);
     } finally {
       setUploadingVariant(null);
     }
   };
 
-  const removeVariantImage = (type) => {
-    updateVariantField(type, 'imageUrl', '');
+  const updateVariantPrice = (variantType, price) => {
+    setFormData(prev => ({
+      ...prev,
+      heaterVariants: prev.heaterVariants.map(v => 
+        v.type === variantType ? { ...v, price: parseFloat(price) || 0 } : v
+      )
+    }));
   };
 
+  const updateVariantField = (variantType, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      heaterVariants: prev.heaterVariants.map(v => 
+        v.type === variantType ? { ...v, [field]: value } : v
+      )
+    }));
+  };
+
+  const removeVariantImage = (variantType) => {
+    setFormData(prev => ({
+      ...prev,
+      heaterVariants: prev.heaterVariants.map(v => 
+        v.type === variantType ? { ...v, imageUrl: '' } : v
+      )
+    }));
+  };
+
+  if (!model) return null;
+
+  const integratedVariant = formData.heaterVariants?.find(v => v.type === 'integrated') || { type: 'integrated', price: 0, imageUrl: '' };
+  const externalVariant = formData.heaterVariants?.find(v => v.type === 'external') || { type: 'external', price: 0, imageUrl: '' };
+
   const handleSave = () => {
-    onSave(formData);
-    onOpenChange(false);
+    const updatedData = {
+      ...formData,
+      basePrice: integratedVariant.price,
+      imageUrl: integratedVariant.imageUrl || externalVariant.imageUrl
+    };
+    onSave(updatedData);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isNew ? txt.newModel : txt.editModel}</DialogTitle>
           <DialogDescription>
-            {isNew ? 'Добавьте новую модель' : 'Редактировать модель и варианты печей'}
+            Настройка вариантов печки, цен и технических характеристик модели
           </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          {/* Name fields */}
+        <div className="space-y-6 py-4">
+          {/* Basic Model Info */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{txt.nameRu}</Label>
@@ -123,13 +141,13 @@ export const ModelEditDialog = memo(({
             <textarea 
               value={formData.hint || ''} 
               onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
-              placeholder="Подробное описание модели..."
+              placeholder="Подробное описание модели: характеристики, особенности, преимущества..."
               className="w-full min-h-[80px] px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
               rows={3}
             />
           </div>
 
-          {/* Heater Variants */}
+          {/* Heater Variants Section */}
           <div className="border rounded-lg p-4 bg-orange-50 space-y-4">
             <h3 className="font-semibold text-orange-800 flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -137,76 +155,187 @@ export const ModelEditDialog = memo(({
             </h3>
             
             <div className="grid grid-cols-2 gap-4">
-              {/* Integrated */}
-              <VariantEditor
+              {/* Integrated Heater Variant */}
+              <VariantEditor 
                 variant={integratedVariant}
-                type="integrated"
-                label="Встроенная печь"
+                variantType="integrated"
+                label="Встроенная печь (Zintegrowany)"
                 currencySymbol={currencySymbol}
-                uploading={uploadingVariant === 'integrated'}
-                onPriceChange={(v) => updateVariantPrice('integrated', v)}
-                onFieldChange={(f, v) => updateVariantField('integrated', f, v)}
+                uploadingVariant={uploadingVariant}
+                onPriceChange={(price) => updateVariantPrice('integrated', price)}
+                onFieldChange={(field, value) => updateVariantField('integrated', field, value)}
                 onImageUpload={(e) => handleVariantImageUpload(e, 'integrated')}
                 onRemoveImage={() => removeVariantImage('integrated')}
               />
-              
-              {/* External */}
-              <VariantEditor
+
+              {/* External Heater Variant */}
+              <VariantEditor 
                 variant={externalVariant}
-                type="external"
-                label="Внешняя печь"
+                variantType="external"
+                label="Внешняя печь (Zewnętrzny)"
                 currencySymbol={currencySymbol}
-                uploading={uploadingVariant === 'external'}
-                onPriceChange={(v) => updateVariantPrice('external', v)}
-                onFieldChange={(f, v) => updateVariantField('external', f, v)}
+                uploadingVariant={uploadingVariant}
+                onPriceChange={(price) => updateVariantPrice('external', price)}
+                onFieldChange={(field, value) => updateVariantField('external', field, value)}
                 onImageUpload={(e) => handleVariantImageUpload(e, 'external')}
                 onRemoveImage={() => removeVariantImage('external')}
               />
             </div>
           </div>
 
-          {/* Active toggle */}
-          <div className="flex items-center gap-3">
-            <Switch 
-              checked={formData.active !== false}
-              onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
-            />
-            <Label>{txt.active}</Label>
+          {/* Specifications Section */}
+          <div className="border rounded-lg p-4 bg-blue-50 space-y-4">
+            <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Спецификации / Specyfikacje
+            </h3>
+            
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Внешний диаметр</Label>
+                <Input 
+                  value={formData.specs?.outerDiameter || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, outerDiameter: e.target.value }
+                  }))}
+                  placeholder="200cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Внутренний диаметр</Label>
+                <Input 
+                  value={formData.specs?.innerDiameter || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, innerDiameter: e.target.value }
+                  }))}
+                  placeholder="160cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Размеры (ДxШ)</Label>
+                <Input 
+                  value={formData.specs?.dimensions || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, dimensions: e.target.value }
+                  }))}
+                  placeholder="170x200cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Глубина</Label>
+                <Input 
+                  value={formData.specs?.depth || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, depth: e.target.value }
+                  }))}
+                  placeholder="100cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Объём воды</Label>
+                <Input 
+                  value={formData.specs?.volume || formData.specs?.waterCapacity || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, volume: e.target.value, waterCapacity: e.target.value }
+                  }))}
+                  placeholder="1500L"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Кол-во мест</Label>
+                <Input 
+                  type="number"
+                  value={formData.specs?.seats || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, seats: parseInt(e.target.value) || 0 }
+                  }))}
+                  placeholder="6"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Высота общая</Label>
+                <Input 
+                  value={formData.specs?.totalHeight || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, totalHeight: e.target.value }
+                  }))}
+                  placeholder="120cm"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Мощность печи</Label>
+                <Input 
+                  value={formData.specs?.heaterPower || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, heaterPower: e.target.value }
+                  }))}
+                  placeholder="24kW"
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Вес (пустая)</Label>
+                <Input 
+                  value={formData.specs?.weight || ''} 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    specs: { ...prev.specs, weight: e.target.value }
+                  }))}
+                  placeholder="350kg"
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
           </div>
         </div>
-
         <DialogFooter>
-          {!isNew && (
-            <Button variant="destructive" onClick={onDelete}>
-              {txt.delete}
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {txt.cancel}
-          </Button>
-          <Button onClick={handleSave}>
-            {txt.save}
-          </Button>
+          <Button variant="outline" onClick={onClose}>{txt.cancel}</Button>
+          <Button onClick={handleSave}>{txt.save}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 });
 
+// Variant Editor Sub-component
 const VariantEditor = memo(({ 
   variant, 
-  type, 
+  variantType, 
   label, 
   currencySymbol, 
-  uploading, 
+  uploadingVariant,
   onPriceChange, 
-  onFieldChange,
-  onImageUpload,
-  onRemoveImage
+  onFieldChange, 
+  onImageUpload, 
+  onRemoveImage 
 }) => (
   <div className="border rounded-lg p-3 bg-white space-y-3">
     <h4 className="font-medium text-sm">{label}</h4>
     
+    {/* Purchase Price Section */}
     <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-2">
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
@@ -231,6 +360,11 @@ const VariantEditor = memo(({
           />
         </div>
       </div>
+      {variant.purchasePriceEur > 0 && (
+        <p className="text-xs text-amber-600">
+          Расчёт: {variant.purchasePriceEur} EUR × курс × {1 + (variant.markupPercent ?? 30)/100}
+        </p>
+      )}
     </div>
     
     <div className="space-y-2">
@@ -243,12 +377,21 @@ const VariantEditor = memo(({
     </div>
     
     <div className="space-y-2">
+      <Label className="text-xs">Подсказка для этого варианта</Label>
+      <Input 
+        value={variant.hint || ''} 
+        onChange={(e) => onFieldChange('hint', e.target.value)}
+        placeholder="Описание модели с этой печью..."
+      />
+    </div>
+    
+    <div className="space-y-2">
       <Label className="text-xs">Фото</Label>
       {variant.imageUrl ? (
         <div className="relative">
           <img 
             src={variant.imageUrl} 
-            alt={type} 
+            alt={variantType} 
             className="w-full h-24 object-contain rounded border"
           />
           <Button
@@ -262,14 +405,19 @@ const VariantEditor = memo(({
         </div>
       ) : (
         <label className="block">
-          <input type="file" accept="image/*" className="hidden" onChange={onImageUpload} />
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onImageUpload}
+          />
           <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50">
-            {uploading ? (
+            {uploadingVariant === variantType ? (
               <Loader2 className="h-6 w-6 animate-spin mx-auto text-orange-500" />
             ) : (
               <>
                 <Upload className="h-6 w-6 mx-auto text-gray-400" />
-                <span className="text-xs text-gray-500">Загрузить</span>
+                <span className="text-xs text-gray-500">Загрузить фото</span>
               </>
             )}
           </div>
