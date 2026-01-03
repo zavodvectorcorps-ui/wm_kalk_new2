@@ -1733,12 +1733,27 @@ async def get_telegram_settings():
 
 @router.post("/telegram/test")
 async def test_telegram_settings(data: dict):
-    """Test Telegram connection with provided credentials"""
+    """Test Telegram connection with provided or saved credentials"""
     bot_token = data.get('bot_token', '')
     chat_id = data.get('chat_id', '')
     
+    # If not provided, try to get from database
     if not bot_token or not chat_id:
-        return {"success": False, "error": "Bot token and chat ID are required"}
+        db_settings = await db.settings.find_one({"type": "telegram_settings"})
+        if db_settings:
+            if not bot_token:
+                bot_token = db_settings.get('bot_token', '')
+            if not chat_id:
+                chat_id = db_settings.get('chat_id', '')
+    
+    # If still not found, try environment
+    if not bot_token:
+        bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+    if not chat_id:
+        chat_id = os.environ.get('TELEGRAM_CHAT_ID', '')
+    
+    if not bot_token or not chat_id:
+        return {"success": False, "error": "Сначала сохраните токен бота и Chat ID"}
     
     result = await test_telegram_connection(bot_token, chat_id)
     return result
