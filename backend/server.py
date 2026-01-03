@@ -46,6 +46,63 @@ app.include_router(backup_router)
 from database import db
 set_backup_db(db)
 
+# Startup event to ensure phone field exists
+@app.on_event("startup")
+async def startup_event():
+    """Ensure required fields exist on startup"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Check and add phone field for balia
+        balia_fields = await db.customer_fields.find_one({"calculatorType": "balia"})
+        if balia_fields:
+            fields_list = balia_fields.get('fields', [])
+            field_ids = [f.get('id') for f in fields_list]
+            if 'phoneNumber' not in field_ids:
+                phone_field = {
+                    "id": "phoneNumber",
+                    "name": "Phone",
+                    "nameRu": "Телефон",
+                    "namePl": "Telefon",
+                    "fieldType": "phone",
+                    "placeholder": "",
+                    "placeholderRu": "",
+                    "placeholderPl": "",
+                    "required": True,
+                    "sortOrder": 2,
+                    "active": True
+                }
+                # Insert after fullName
+                insert_pos = 1
+                for i, f in enumerate(fields_list):
+                    if f.get('id') == 'fullName':
+                        insert_pos = i + 1
+                        break
+                fields_list.insert(insert_pos, phone_field)
+                # Update sortOrder
+                for i, f in enumerate(fields_list):
+                    f['sortOrder'] = i + 1
+                await db.customer_fields.update_one(
+                    {"calculatorType": "balia"},
+                    {"$set": {"fields": fields_list}}
+                )
+                logger.info("Added phoneNumber field to balia customer fields")
+        else:
+            # Create default balia customer fields
+            default_fields = {
+                "calculatorType": "balia",
+                "fields": [
+                    {"id": "fullName", "name": "Full Name", "nameRu": "ФИО", "namePl": "Imię i nazwisko", "fieldType": "text", "required": True, "sortOrder": 1, "active": True, "placeholder": "", "placeholderRu": "", "placeholderPl": ""},
+                    {"id": "phoneNumber", "name": "Phone", "nameRu": "Телефон", "namePl": "Telefon", "fieldType": "phone", "required": True, "sortOrder": 2, "active": True, "placeholder": "", "placeholderRu": "", "placeholderPl": ""},
+                    {"id": "email", "name": "Email", "nameRu": "Email", "namePl": "Email", "fieldType": "email", "required": False, "sortOrder": 3, "active": True, "placeholder": "", "placeholderRu": "", "placeholderPl": ""}
+                ]
+            }
+            await db.customer_fields.insert_one(default_fields)
+            logger.info("Created default balia customer fields with phoneNumber")
+    except Exception as e:
+        logger.error(f"Error in startup event: {e}")
+
 # Health check endpoint for Kubernetes (without /api prefix)
 @app.get("/health")
 async def health_check():
