@@ -262,17 +262,29 @@ const AppContent = () => {
         </div>
         
         {activeTab === 'users' && isAdmin() ? (
-          <UserManagement />
+          <Suspense fallback={<PageLoader />}>
+            <UserManagement />
+          </Suspense>
         ) : activeTab === 'orders' ? (
-          <OrdersPage calculatorType="sauna" onEditInCalculator={(order) => handleEditOrderInCalculator(order, 'sauna')} />
+          <Suspense fallback={<PageLoader />}>
+            <OrdersPage calculatorType="sauna" onEditInCalculator={(order) => handleEditOrderInCalculator(order, 'sauna')} />
+          </Suspense>
         ) : activeTab === 'statistics' ? (
-          <StatisticsPage calculatorType="sauna" />
+          <Suspense fallback={<PageLoader />}>
+            <StatisticsPage calculatorType="sauna" />
+          </Suspense>
         ) : activeTab === 'pricing' && canViewPricing() ? (
-          <SaunaPricingPage />
+          <Suspense fallback={<PageLoader />}>
+            <SaunaPricingPage />
+          </Suspense>
         ) : activeTab === 'techspec' && canViewPricing() ? (
-          <TechSpecAdminPage />
+          <Suspense fallback={<PageLoader />}>
+            <TechSpecAdminPage />
+          </Suspense>
         ) : (
-          <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} />
+          <Suspense fallback={<PageLoader />}>
+            <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} />
+          </Suspense>
         )}
         
         <Toaster position="top-right" richColors />
