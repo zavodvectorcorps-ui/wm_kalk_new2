@@ -262,8 +262,6 @@ const AppContent = () => {
           <SaunaPricingPage />
         ) : activeTab === 'techspec' && canViewPricing() ? (
           <TechSpecAdminPage />
-        ) : activeTab === 'backup' && isAdmin() ? (
-          <BackupPage />
         ) : (
           <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} />
         )}
