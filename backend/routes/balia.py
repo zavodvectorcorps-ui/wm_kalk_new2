@@ -1447,6 +1447,56 @@ async def transfer_web_order_to_main(order_id: str, updates: dict = None):
     # Update web order status to 'transferred'
     await db.web_orders.update_one(
         {"id": order_id},
+
+
+# ==================== TELEGRAM SETTINGS ====================
+
+from services.telegram_service import test_telegram_connection, get_telegram_config
+
+@router.get("/telegram/settings")
+async def get_telegram_settings():
+    """Get current Telegram notification settings"""
+    config = get_telegram_config()
+    return {
+        "bot_token": config['bot_token'][:20] + "..." if config['bot_token'] else "",
+        "chat_id": config['chat_id'],
+        "enabled": config['enabled'],
+        "bot_token_set": bool(config['bot_token']),
+        "chat_id_set": bool(config['chat_id'])
+    }
+
+
+@router.post("/telegram/test")
+async def test_telegram_settings(data: dict):
+    """Test Telegram connection with provided credentials"""
+    bot_token = data.get('bot_token', '')
+    chat_id = data.get('chat_id', '')
+    
+    if not bot_token or not chat_id:
+        return {"success": False, "error": "Bot token and chat ID are required"}
+    
+    result = await test_telegram_connection(bot_token, chat_id)
+    return result
+
+
+@router.post("/telegram/settings")
+async def update_telegram_settings(data: dict):
+    """Update Telegram settings in environment"""
+    # Note: In production, you'd want to store this in DB or update env file properly
+    # For now, we update the environment variables for the current process
+    import os
+    
+    if 'bot_token' in data and data['bot_token']:
+        os.environ['TELEGRAM_BOT_TOKEN'] = data['bot_token']
+    
+    if 'chat_id' in data and data['chat_id']:
+        os.environ['TELEGRAM_CHAT_ID'] = str(data['chat_id'])
+    
+    if 'enabled' in data:
+        os.environ['TELEGRAM_NOTIFICATIONS_ENABLED'] = 'true' if data['enabled'] else 'false'
+    
+    return {"success": True, "message": "Settings updated"}
+
         {"$set": {"status": "transferred", "transferredToId": new_id, "transferredAt": datetime.now(timezone.utc).isoformat()}}
     )
     
