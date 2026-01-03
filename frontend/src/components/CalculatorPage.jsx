@@ -377,15 +377,18 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
     
     setSaving(true);
     try {
-      // Prepare selected options - include ALL selected options, not just those with price > 0
+      // Prepare selected options - include ALL categories, show "не выбрано" if nothing selected
       const selectedOptions = [];
       prices.categories?.forEach(cat => {
         const selection = formData.selections[cat.id];
+        let hasSelection = false;
+        
         if (cat.inputType === 'checkbox') {
           Object.entries(selection || {}).forEach(([optId, isSelected]) => {
             if (isSelected) {
               const opt = cat.options?.find(o => o.id === optId);
               if (opt) {
+                hasSelection = true;
                 selectedOptions.push({
                   id: opt.id,
                   categoryId: cat.id,
@@ -401,6 +404,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         } else if (selection) {
           const opt = cat.options?.find(o => o.id === selection);
           if (opt) {
+            hasSelection = true;
             selectedOptions.push({
               id: opt.id,
               categoryId: cat.id,
@@ -411,6 +415,20 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
               price: opt.price
             });
           }
+        }
+        
+        // If nothing selected in this category, add "not selected" entry
+        if (!hasSelection) {
+          selectedOptions.push({
+            id: `${cat.id}_not_selected`,
+            categoryId: cat.id,
+            categoryName: cat[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || cat.name,
+            optionId: null,
+            optionName: lang === 'pl' ? 'Nie wybrano' : 'Не выбрано',
+            name: lang === 'pl' ? 'Nie wybrano' : 'Не выбрано',
+            price: 0,
+            notSelected: true
+          });
         }
       });
 
