@@ -265,38 +265,56 @@ export const WebOrdersPage = ({ onEditInCalculator }) => {
       {/* Hidden audio element for notifications */}
       <audio ref={audioRef} src={NOTIFICATION_SOUND_URL} preload="auto" />
 
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Globe className="h-6 w-6 text-blue-600" />
-          <h1 className="text-2xl font-bold">{txt.title}</h1>
-          {newOrdersCount > 0 && (
-            <Badge variant="destructive" className="animate-pulse">
-              {newOrdersCount} {txt.newOrder.toLowerCase()}
-            </Badge>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={soundEnabled ? 'text-green-600' : 'text-gray-400'}
-          >
-            {soundEnabled ? <Bell className="h-4 w-4 mr-1" /> : <BellOff className="h-4 w-4 mr-1" />}
-            {soundEnabled ? txt.soundOn : txt.soundOff}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchOrders(true)}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            {txt.refresh}
-          </Button>
-        </div>
-      </div>
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="orders" className="gap-2">
+            <Globe className="h-4 w-4" />
+            {lang === 'ru' ? 'Заказы' : 'Zamówienia'}
+            {newOrdersCount > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
+                {newOrdersCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="telegram" className="gap-2">
+            <Bot className="h-4 w-4" />
+            Telegram
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders" className="mt-6">
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <Globe className="h-6 w-6 text-blue-600" />
+              <h1 className="text-2xl font-bold">{txt.title}</h1>
+              {newOrdersCount > 0 && (
+                <Badge variant="destructive" className="animate-pulse">
+                  {newOrdersCount} {txt.newOrder.toLowerCase()}
+                </Badge>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={soundEnabled ? 'text-green-600' : 'text-gray-400'}
+              >
+                {soundEnabled ? <Bell className="h-4 w-4 mr-1" /> : <BellOff className="h-4 w-4 mr-1" />}
+                {soundEnabled ? txt.soundOn : txt.soundOff}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchOrders(true)}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                {txt.refresh}
+              </Button>
+            </div>
+          </div>
 
       {/* Orders List */}
       {orders.length === 0 ? (
