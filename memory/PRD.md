@@ -9,15 +9,13 @@ A full-featured quoting and order management application for Saunas and Balias (
 - **Lazy Loading**: Implemented React.lazy() and Suspense for all heavy components
 - **Code Splitting**: Main pages are now loaded on demand, reducing initial bundle size
 - **Backend Caching**: Added 60-second in-memory cache for `/api/public/prices` endpoint
-- **Component Library**: Created `/app/frontend/src/components/balia-pricing/` with reusable components:
-  - `ModelCard.jsx` - Model display with memo
-  - `CategoryCard.jsx` - Category display with nested options
-  - `OptionItem.jsx` - Single option item
-  - `ModelEditDialog.jsx` - Model editing dialog
-  - `CategoryEditDialog.jsx` - Category editing dialog
-  - `OptionEditDialog.jsx` - Option editing dialog
+- **Memoized Components in BaliaPricingPage**: 
+  - `ModelCard` - displays model with image, prices, specs (memo)
+  - `CategoryCard` - displays category with nested options list (memo)
+  - `OptionItem` - displays single option with price and edit buttons (memo)
 - **LazyImage**: Created `/app/frontend/src/components/ui/lazy-image.jsx` with image preloading and caching
-- **Status**: ✅ Tested and working
+- **Component files** in `/app/frontend/src/components/balia-pricing/` (prepared for future extraction)
+- **Status**: ✅ Tested and working - all API endpoints verified, UI functional
 
 ### All Categories in Order Feature (2026-01-03)
 - **Feature**: All product categories now appear in order data and PDF, even if no option was selected
