@@ -480,8 +480,13 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         orderDate: formData.orderDate,
         modelId: selectedModel?.id,
         modelName: getModelName(selectedModel),
-        modelPrice: selectedModel?.basePrice || 0,
-        modelImageUrl: getImageUrl(selectedModel?.imageUrl) || '',
+        modelPrice: getModelPrice(selectedModel),
+        modelImageUrl: getImageUrl(getModelImageUrl(selectedModel)) || '',
+        heaterType: formData.selectedHeaterType,
+        heaterTypeName: formData.selectedHeaterType === 'integrated' 
+          ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
+          : (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь'),
+        selectedHeaterVariantId: selectedHeaterVariant?.id || `${selectedModel?.id}_${formData.selectedHeaterType}`,
         selections: formData.selections,
         selectedOptions,
         notes: formData.notes,
