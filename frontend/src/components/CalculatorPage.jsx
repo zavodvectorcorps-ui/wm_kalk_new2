@@ -516,6 +516,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         modelName: getModelName(selectedModel),
         modelPrice: getModelPrice(selectedModel),
         modelImageUrl: getImageUrl(getModelImageUrl(selectedModel)) || '',
+        modelSpecs: selectedModel?.specs || {},
         heaterType: formData.selectedHeaterType,
         heaterTypeName: formData.selectedHeaterType === 'integrated' 
           ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
