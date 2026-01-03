@@ -218,13 +218,15 @@ const AppContent = () => {
         </div>
         
         <main>
-          {activeTab === 'calculator' && <CalculatorPage key={pricesUpdated} editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} />}
-          {activeTab === 'orders' && <OrdersPage onEditInCalculator={(order) => handleEditOrderInCalculator(order, 'balia')} />}
-          {activeTab === 'weborders' && <WebOrdersPage />}
-          {activeTab === 'statistics' && <StatisticsPage calculatorType="balia" />}
-          {activeTab === 'pricing' && canViewPricing() && <BaliaPricingPage />}
-          {activeTab === 'embed' && isAdmin() && <EmbedCodePage />}
-          {activeTab === 'users' && isAdmin() && <UserManagement />}
+          <Suspense fallback={<PageLoader />}>
+            {activeTab === 'calculator' && <CalculatorPage key={pricesUpdated} editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} />}
+            {activeTab === 'orders' && <OrdersPage onEditInCalculator={(order) => handleEditOrderInCalculator(order, 'balia')} />}
+            {activeTab === 'weborders' && <WebOrdersPage />}
+            {activeTab === 'statistics' && <StatisticsPage calculatorType="balia" />}
+            {activeTab === 'pricing' && canViewPricing() && <BaliaPricingPage />}
+            {activeTab === 'embed' && isAdmin() && <EmbedCodePage />}
+            {activeTab === 'users' && isAdmin() && <UserManagement />}
+          </Suspense>
         </main>
         
         <Toaster position="top-right" richColors />
