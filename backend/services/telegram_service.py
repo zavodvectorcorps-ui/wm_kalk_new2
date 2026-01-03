@@ -216,3 +216,177 @@ async def test_telegram_connection(bot_token: str, chat_id: str) -> Dict[str, An
                 
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+async def send_telegram_file(
+    file_data: bytes, 
+    filename: str, 
+    caption: str = "", 
+    chat_id: str = None, 
+    bot_token: str = None
+) -> Dict[str, Any]:
+    """Send a file to Telegram chat.
+    
+    Args:
+        file_data: File content as bytes
+        filename: Name of the file
+        caption: Optional caption for the file
+        chat_id: Target chat ID (uses backup_chat_id from config if not provided)
+        bot_token: Bot token (uses config if not provided)
+    
+    Returns:
+        Dict with success status and details
+    """
+    config = get_telegram_config()
+    
+    token = bot_token or config['bot_token']
+    target_chat_id = chat_id or config['backup_chat_id'] or config['chat_id']
+    
+    if not token:
+        return {"success": False, "error": "TELEGRAM_BOT_TOKEN not configured"}
+    
+    if not target_chat_id:
+        return {"success": False, "error": "Chat ID not configured"}
+    
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+    
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            # Prepare multipart form data
+            files = {
+                'document': (filename, file_data, 'application/zip')
+            }
+            data = {
+                'chat_id': target_chat_id,
+                'caption': caption,
+                'parse_mode': 'HTML'
+            }
+            
+            response = await client.post(url, files=files, data=data)
+            
+            if response.status_code == 200 and response.json().get('ok'):
+                result = response.json().get('result', {})
+                document = result.get('document', {})
+                return {
+                    "success": True,
+                    "file_id": document.get('file_id', ''),
+                    "file_size": document.get('file_size', 0),
+                    "message_id": result.get('message_id', 0)
+                }
+            else:
+                error_desc = response.json().get('description', 'Unknown error')
+                logger.error(f"Telegram API error: {response.status_code} - {error_desc}")
+                return {"success": False, "error": error_desc}
+                
+    except Exception as e:
+        logger.error(f"Failed to send Telegram file: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def send_backup_to_telegram(
+    backup_data: bytes, 
+    backup_info: Dict[str, Any],
+    chat_id: str = None,
+    bot_token: str = None
+) -> Dict[str, Any]:
+    """Send backup file to Telegram with formatted caption.
+    
+    Args:
+        backup_data: ZIP file content as bytes
+        backup_info: Backup metadata (collections, date, etc.)
+        chat_id: Target chat ID
+        bot_token: Bot token
+    
+    Returns:
+        Dict with success status and details
+    """
+    from datetime import datetime
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
+    filename = f"backup_{timestamp}.zip"
+    
+    # Format caption with backup info
+    collections_info = backup_info.get('collections', [])
+    total_items = sum(c.get('count', 0) for c in collections_info)
+    
+    # Format file size
+    size_bytes = len(backup_data)
+    if size_bytes > 1024 * 1024:
+        size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
+    elif size_bytes > 1024:
+        size_str = f"{size_bytes / 1024:.1f} KB"
+    else:
+        size_str = f"{size_bytes} B"
+    
+    caption = f"""💾 <b>Backup - {timestamp}</b>
+
+📊 <b>Статистика:</b>
+• Коллекций: {len(collections_info)}
+• Всего записей: {total_items}
+• Размер: {size_str}
+
+📁 <b>Содержимое:</b>
+"""
+    
+    # Add collection details (compact)
+    for col in collections_info[:8]:  # Max 8 to fit caption limit
+        caption += f"• {col.get('name', 'unknown')}: {col.get('count', 0)}\n"
+    
+    if len(collections_info) > 8:
+        caption += f"• ... и ещё {len(collections_info) - 8} коллекций"
+    
+    return await send_telegram_file(
+        file_data=backup_data,
+        filename=filename,
+        caption=caption,
+        chat_id=chat_id,
+        bot_token=bot_token
+    )
+
+
+async def test_backup_chat_connection(bot_token: str, chat_id: str) -> Dict[str, Any]:
+    """Test connection to backup Telegram chat."""
+    try:
+        async with httpx.AsyncClient() as client:
+            # Verify bot token
+            bot_response = await client.get(
+                f"https://api.telegram.org/bot{bot_token}/getMe",
+                timeout=10.0
+            )
+            
+            if bot_response.status_code != 200:
+                return {"success": False, "error": "Неверный токен бота"}
+            
+            bot_data = bot_response.json()
+            if not bot_data.get('ok'):
+                return {"success": False, "error": "Ошибка верификации токена"}
+            
+            bot_info = bot_data.get('result', {})
+            
+            # Try to send test message
+            test_response = await client.post(
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                json={
+                    "chat_id": chat_id,
+                    "text": "✅ <b>Тест подключения для бэкапов успешен!</b>\n\nЭтот чат будет использоваться для автоматических резервных копий.",
+                    "parse_mode": "HTML"
+                },
+                timeout=10.0
+            )
+            
+            if test_response.status_code == 200 and test_response.json().get('ok'):
+                return {
+                    "success": True,
+                    "bot_name": bot_info.get('first_name', ''),
+                    "bot_username": bot_info.get('username', ''),
+                    "message": "Тестовое сообщение отправлено"
+                }
+            else:
+                error_desc = test_response.json().get('description', 'Unknown error')
+                if 'chat not found' in error_desc.lower():
+                    return {"success": False, "error": "Чат не найден. Убедитесь, что бот добавлен в чат."}
+                return {"success": False, "error": f"Ошибка отправки: {error_desc}"}
+                
+    except Exception as e:
+        return {"success": False, "error": str(e)}
