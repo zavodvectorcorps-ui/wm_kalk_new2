@@ -261,13 +261,28 @@ export const EmbedBaliaCalculator = () => {
                   key={model.id}
                   onClick={() => handleSelectModel(model)}
                   className={`
-                    p-3 rounded-lg border-2 cursor-pointer transition-all
+                    relative p-3 rounded-lg border-2 cursor-pointer transition-all
                     ${selectedModel?.id === model.id 
                       ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
                       : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                     }
                   `}
                 >
+                  {/* Hint icon */}
+                  {model.hint && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <div className="absolute top-1 right-1 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full p-1 z-10 cursor-help">
+                            <Info className="h-3 w-3" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-xs bg-gray-900 text-white p-2">
+                          {model.hint}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   {model.imageUrl && (
                     <img 
                       src={getImageUrl(model.imageUrl)} 
@@ -276,6 +291,15 @@ export const EmbedBaliaCalculator = () => {
                     />
                   )}
                   <p className="font-medium text-sm text-center">{getName(model)}</p>
+                  {/* Specs preview */}
+                  {model.specs && (
+                    <div className="mt-1 text-xs text-muted-foreground text-center space-y-0.5">
+                      {(model.specs.outerDiameter || model.specs.dimensions) && (
+                        <p>📐 {model.specs.dimensions || `Ø ${model.specs.outerDiameter}`}</p>
+                      )}
+                      {model.specs.volume && <p>💧 {model.specs.volume}</p>}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
