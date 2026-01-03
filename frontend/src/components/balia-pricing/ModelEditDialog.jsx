@@ -135,16 +135,28 @@ export const ModelEditDialog = memo(({
             </div>
           </div>
 
-          {/* Hint field */}
-          <div className="space-y-2">
-            <Label>Описание модели / Hint</Label>
-            <textarea 
-              value={formData.hint || ''} 
-              onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
-              placeholder="Подробное описание модели: характеристики, особенности, преимущества..."
-              className="w-full min-h-[80px] px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-              rows={3}
-            />
+          {/* Hint fields - RU and PL */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Описание (RU)</Label>
+              <textarea 
+                value={formData.hint || ''} 
+                onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
+                placeholder="Подробное описание модели..."
+                className="w-full min-h-[60px] px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Opis (PL)</Label>
+              <textarea 
+                value={formData.hintPl || ''} 
+                onChange={(e) => setFormData({ ...formData, hintPl: e.target.value })}
+                placeholder="Szczegółowy opis modelu..."
+                className="w-full min-h-[60px] px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                rows={2}
+              />
+            </div>
           </div>
 
           {/* Heater Variants Section */}
