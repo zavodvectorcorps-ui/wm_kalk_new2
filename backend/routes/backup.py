@@ -34,14 +34,21 @@ async def get_telegram_bot_token():
     """Get Telegram bot token from env or settings."""
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
     if not bot_token:
+        # Try telegram_settings first
         tg_settings = await db.settings.find_one({"type": "telegram_settings"})
-        if tg_settings:
+        if tg_settings and tg_settings.get('bot_token'):
             bot_token = tg_settings.get('bot_token', '')
+    if not bot_token:
+        # Try telegram_backup settings (might have bot_token stored there)
+        tg_backup = await db.settings.find_one({"type": "telegram_backup"})
+        if tg_backup and tg_backup.get('bot_token'):
+            bot_token = tg_backup.get('bot_token', '')
     return bot_token
 
 
 class TelegramBackupConfig(BaseModel):
     chat_id: str
+    bot_token: Optional[str] = None
     enabled: bool = True
 
 class BackupSettings(BaseModel):
