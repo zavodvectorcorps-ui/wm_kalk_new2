@@ -310,9 +310,18 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                 </TableHeader>
                 <TableBody>
                   {paginatedOrders.map((order, index) => (
-                    <TableRow key={order.id || index} data-testid={`order-row-${order.id}`}>
+                    <TableRow 
+                      key={order.id || index} 
+                      data-testid={`order-row-${order.id}`}
+                      className={order.source === 'web' || order.source === 'website' ? 'bg-blue-50/50' : ''}
+                    >
                       <TableCell className="font-medium font-mono text-sm">
-                        {order.id || '-'}
+                        <div className="flex items-center gap-2">
+                          {(order.source === 'web' || order.source === 'website') && (
+                            <Globe className="h-4 w-4 text-blue-500" title={i18n.language === 'pl' ? 'Z internetu' : 'Из интернета'} />
+                          )}
+                          {order.id || '-'}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div>
