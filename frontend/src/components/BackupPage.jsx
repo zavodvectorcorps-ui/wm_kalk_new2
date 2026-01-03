@@ -69,10 +69,23 @@ export const BackupPage = () => {
     }
   }, []);
 
+  const fetchTelegramConfig = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/backup/telegram/config`);
+      if (response.ok) {
+        const data = await response.json();
+        setTelegramConfig(data);
+      }
+    } catch (error) {
+      console.error('Error fetching telegram config:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSettings();
     fetchBackups();
-  }, [fetchSettings, fetchBackups]);
+    fetchTelegramConfig();
+  }, [fetchSettings, fetchBackups, fetchTelegramConfig]);
 
   const handleExport = async () => {
     setExporting(true);
