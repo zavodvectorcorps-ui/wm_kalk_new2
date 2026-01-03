@@ -812,37 +812,45 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                   )}
                   <h4 className="font-semibold text-blue-800 mb-2">{t('balia.modelInfo')}</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                    {/* Diameter for round models */}
-                    {selectedModel.specs?.outerDiameter && (
-                      <div><span className="text-muted-foreground">{t('balia.outerDiameter')}:</span> {selectedModel.specs.outerDiameter}</div>
+                    {/* Outer Diameter */}
+                    {selectedModel.specs?.outerDiameter && selectedModel.specs.outerDiameter !== '0' && (
+                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Внеш. диаметр' : 'Śr. zewnętrzna'}:</span> {selectedModel.specs.outerDiameter}{!String(selectedModel.specs.outerDiameter).includes('cm') ? 'cm' : ''}</div>
+                    )}
+                    {/* Inner Diameter */}
+                    {selectedModel.specs?.innerDiameter && selectedModel.specs.innerDiameter !== '0' && (
+                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Внутр. диаметр' : 'Śr. wewnętrzna'}:</span> {selectedModel.specs.innerDiameter}{!String(selectedModel.specs.innerDiameter).includes('cm') ? 'cm' : ''}</div>
                     )}
                     {/* Dimensions for non-round models */}
                     {selectedModel.specs?.dimensions && (
-                      <div><span className="text-muted-foreground">{t('balia.size')}:</span> {selectedModel.specs.dimensions}</div>
+                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Размеры' : 'Wymiary'}:</span> {selectedModel.specs.dimensions}</div>
                     )}
                     {/* Legacy: outerWidth x outerLength */}
                     {!selectedModel.specs?.dimensions && selectedModel.specs?.outerWidth && (
-                      <div><span className="text-muted-foreground">{t('balia.size')}:</span> {selectedModel.specs.outerWidth}×{selectedModel.specs.outerLength}</div>
+                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Размеры' : 'Wymiary'}:</span> {selectedModel.specs.outerWidth}×{selectedModel.specs.outerLength}cm</div>
                     )}
                     {/* Depth */}
-                    {selectedModel.specs?.depth && (
-                      <div><span className="text-muted-foreground">{t('balia.depth')}:</span> {selectedModel.specs.depth}</div>
+                    {selectedModel.specs?.depth && selectedModel.specs.depth !== '0' && (
+                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Глубина' : 'Głębokość'}:</span> {selectedModel.specs.depth}{!String(selectedModel.specs.depth).includes('cm') ? 'cm' : ''}</div>
                     )}
-                    {/* Volume (water capacity) - check both fields */}
+                    {/* Total Height */}
+                    {selectedModel.specs?.totalHeight && selectedModel.specs.totalHeight !== 0 && selectedModel.specs.totalHeight !== '0' && (
+                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Высота' : 'Wysokość'}:</span> {selectedModel.specs.totalHeight}{!String(selectedModel.specs.totalHeight).includes('cm') ? 'cm' : ''}</div>
+                    )}
+                    {/* Volume (water capacity) */}
                     {(selectedModel.specs?.volume || selectedModel.specs?.waterCapacity) && (
-                      <div><span className="text-muted-foreground">{t('balia.waterCapacity')}:</span> {selectedModel.specs.volume || selectedModel.specs.waterCapacity}</div>
+                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Объём воды' : 'Pojemność wody'}:</span> {selectedModel.specs.volume || selectedModel.specs.waterCapacity}{!String(selectedModel.specs.volume || selectedModel.specs.waterCapacity).includes('L') ? 'L' : ''}</div>
                     )}
                     {/* Seats */}
-                    {selectedModel.specs?.seats > 0 && (
+                    {selectedModel.specs?.seats && selectedModel.specs.seats !== 0 && selectedModel.specs.seats !== '0' && (
                       <div><span className="text-muted-foreground">{lang === 'ru' ? 'Мест' : 'Miejsc'}:</span> {selectedModel.specs.seats}</div>
                     )}
-                    {/* Heater power - only show if non-zero */}
-                    {selectedModel.specs?.heaterPower > 0 && (
-                      <div><span className="text-muted-foreground">{t('balia.heaterPower')}:</span> {selectedModel.specs.heaterPower} kW</div>
+                    {/* Heater power */}
+                    {selectedModel.specs?.heaterPower && selectedModel.specs.heaterPower !== 0 && selectedModel.specs.heaterPower !== '0' && (
+                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Мощность печи' : 'Moc pieca'}:</span> {selectedModel.specs.heaterPower}{!String(selectedModel.specs.heaterPower).includes('kW') ? 'kW' : ''}</div>
                     )}
-                    {/* Total height */}
-                    {selectedModel.specs?.totalHeight > 0 && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Высота' : 'Wysokość'}:</span> {selectedModel.specs.totalHeight}</div>
+                    {/* Weight */}
+                    {selectedModel.specs?.weight && selectedModel.specs.weight !== '0' && (
+                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Вес' : 'Waga'}:</span> {selectedModel.specs.weight}{!String(selectedModel.specs.weight).includes('kg') ? 'kg' : ''}</div>
                     )}
                   </div>
                   {selectedModel.includes && selectedModel.includes.length > 0 && (
