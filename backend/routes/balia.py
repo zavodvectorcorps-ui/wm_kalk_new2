@@ -1553,10 +1553,11 @@ async def create_web_order(order: WebOrder):
         from models.balia import PDFRequest
         pdf_request = PDFRequest(
             orderId=order_dict.get('id'),
-            fullName=order_dict.get('fullName'),
-            phoneNumber=order_dict.get('phoneNumber'),
+            fullName=order_dict.get('fullName', ''),
+            phoneNumber=order_dict.get('phoneNumber', ''),
+            fullAddress=order_dict.get('fullAddress', order_dict.get('address', '')),
+            orderDate=order_dict.get('orderDate', order_dict.get('createdAt', datetime.now(timezone.utc).isoformat())),
             email=order_dict.get('email'),
-            address=order_dict.get('address'),
             notes=order_dict.get('notes'),
             modelName=order_dict.get('modelName'),
             heaterType=order_dict.get('heaterType'),
