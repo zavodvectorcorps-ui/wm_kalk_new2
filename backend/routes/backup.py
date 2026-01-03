@@ -344,12 +344,18 @@ async def import_backup(file: UploadFile = File(...)):
                 try:
                     data = json.loads(zip_file.read("balia_prices.json").decode('utf-8'))
                     data.pop('_id', None)
-                    # Replace existing balia prices
-                    await db.prices.delete_one({"type": "balia_prices"})
+                    # Replace ALL prices documents (delete any existing)
+                    # First try by type, then by having models
+                    deleted = await db.prices.delete_one({"type": "balia_prices"})
+                    if deleted.deleted_count == 0:
+                        await db.prices.delete_one({"models": {"$exists": True}})
+                    # Ensure type is set
+                    data["type"] = "balia_prices"
                     await db.prices.insert_one(data)
                     import_stats["imported"]["balia_prices"] = 1
-                    logger.info("Imported balia prices")
+                    logger.info(f"Imported balia prices with {len(data.get('models', []))} models")
                 except Exception as e:
+                    logger.error(f"Error importing balia_prices: {e}")
                     import_stats["errors"].append(f"balia_prices: {str(e)}")
             
             # Import Sauna prices
