@@ -771,41 +771,90 @@ async def list_backups():
 async def create_auto_backup():
     """
     Create an automatic backup and store it in the database.
+    Also sends to Telegram if configured.
     Called by a scheduled task or manually.
     """
     try:
+        from services.telegram_service import send_backup_to_telegram as send_to_tg
+        
         # Create backup data
         backup_data = {
             "createdAt": datetime.now(timezone.utc).isoformat(),
             "collections": {}
         }
         
+        # For Telegram - create ZIP with full data
+        backup_manifest = {
+            "version": "2.0",
+            "createdAt": backup_data["createdAt"],
+            "collections": []
+        }
+        
         # Collect all data
         balia_orders = await db.orders.find({}).to_list(10000)
         backup_data["collections"]["balia_orders"] = [serialize_for_json(o) for o in balia_orders]
+        if balia_orders:
+            backup_manifest["collections"].append({"name": "balia_orders", "count": len(balia_orders)})
         
         sauna_orders = await db.sauna_orders.find({}).to_list(10000)
         backup_data["collections"]["sauna_orders"] = [serialize_for_json(o) for o in sauna_orders]
+        if sauna_orders:
+            backup_manifest["collections"].append({"name": "sauna_orders", "count": len(sauna_orders)})
         
         web_orders = await db.web_orders.find({}).to_list(10000)
         backup_data["collections"]["web_orders"] = [serialize_for_json(o) for o in web_orders]
+        if web_orders:
+            backup_manifest["collections"].append({"name": "web_orders", "count": len(web_orders)})
         
         users = await db.users.find({}).to_list(1000)
         backup_data["collections"]["users"] = [serialize_for_json(u) for u in users]
+        if users:
+            backup_manifest["collections"].append({"name": "users", "count": len(users)})
         
         balia_prices = await db.prices.find_one({"type": "balia_prices"})
+        if not balia_prices:
+            balia_prices = await db.prices.find_one({"models": {"$exists": True}})
         if balia_prices:
             backup_data["collections"]["balia_prices"] = serialize_for_json(balia_prices)
+            backup_manifest["collections"].append({"name": "balia_prices", "count": 1})
         
-        sauna_prices = await db.prices.find_one({"type": "sauna_prices"})
+        sauna_prices = await db.sauna_prices.find_one({"_id": "default"})
+        if not sauna_prices:
+            sauna_prices = await db.sauna_prices.find_one({})
         if sauna_prices:
             backup_data["collections"]["sauna_prices"] = serialize_for_json(sauna_prices)
+            backup_manifest["collections"].append({"name": "sauna_prices", "count": 1})
         
         tech_specs = await db.tech_specs.find({}).to_list(1000)
         backup_data["collections"]["tech_specs"] = [serialize_for_json(t) for t in tech_specs]
+        if tech_specs:
+            backup_manifest["collections"].append({"name": "tech_specs", "count": len(tech_specs)})
         
         customer_fields = await db.customer_fields.find({}).to_list(100)
         backup_data["collections"]["customer_fields"] = [serialize_for_json(f) for f in customer_fields]
+        if customer_fields:
+            backup_manifest["collections"].append({"name": "customer_fields", "count": len(customer_fields)})
+        
+        # Additional collections for full backup
+        tech_spec_config = await db.tech_spec_config.find({}).to_list(100)
+        backup_data["collections"]["tech_spec_config"] = [serialize_for_json(t) for t in tech_spec_config]
+        if tech_spec_config:
+            backup_manifest["collections"].append({"name": "tech_spec_config", "count": len(tech_spec_config)})
+        
+        balia_tech_spec_config = await db.balia_tech_spec_config.find({}).to_list(100)
+        backup_data["collections"]["balia_tech_spec_config"] = [serialize_for_json(t) for t in balia_tech_spec_config]
+        if balia_tech_spec_config:
+            backup_manifest["collections"].append({"name": "balia_tech_spec_config", "count": len(balia_tech_spec_config)})
+        
+        images_collection = await db.images.find({}).to_list(1000)
+        backup_data["collections"]["images_collection"] = [serialize_for_json(i) for i in images_collection]
+        if images_collection:
+            backup_manifest["collections"].append({"name": "images_collection", "count": len(images_collection)})
+        
+        all_settings = await db.settings.find({}).to_list(100)
+        backup_data["collections"]["settings"] = [serialize_for_json(s) for s in all_settings]
+        if all_settings:
+            backup_manifest["collections"].append({"name": "settings", "count": len(all_settings)})
         
         # Calculate size
         backup_json = json.dumps(backup_data)
@@ -830,11 +879,63 @@ async def create_auto_backup():
             for old_backup in all_backups[retain_count:]:
                 await db.backups.delete_one({"_id": old_backup["_id"]})
         
+        # Send to Telegram if configured
+        telegram_sent = False
+        telegram_config = await db.settings.find_one({"type": "telegram_backup"})
+        if telegram_config and telegram_config.get("enabled") and telegram_config.get("chat_id"):
+            try:
+                bot_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+                if bot_token:
+                    # Create ZIP for Telegram
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                        for name, data in backup_data["collections"].items():
+                            if data:
+                                zip_file.writestr(f"{name}.json", json.dumps(data, ensure_ascii=False, indent=2))
+                        
+                        # Add uploaded files
+                        uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+                        if os.path.exists(uploads_dir):
+                            uploaded_count = 0
+                            for filename in os.listdir(uploads_dir):
+                                filepath = os.path.join(uploads_dir, filename)
+                                if os.path.isfile(filepath):
+                                    try:
+                                        with open(filepath, 'rb') as f:
+                                            zip_file.writestr(f"uploads/{filename}", f.read())
+                                            uploaded_count += 1
+                                    except:
+                                        pass
+                            if uploaded_count:
+                                backup_manifest["collections"].append({"name": "uploaded_files", "count": uploaded_count})
+                        
+                        zip_file.writestr("manifest.json", json.dumps(backup_manifest, ensure_ascii=False, indent=2))
+                    
+                    zip_buffer.seek(0)
+                    tg_result = await send_to_tg(
+                        backup_data=zip_buffer.getvalue(),
+                        backup_info=backup_manifest,
+                        chat_id=telegram_config["chat_id"],
+                        bot_token=bot_token
+                    )
+                    telegram_sent = tg_result.get("success", False)
+                    
+                    if telegram_sent:
+                        await db.settings.update_one(
+                            {"type": "telegram_backup"},
+                            {"$set": {"last_sent": backup_data["createdAt"]}},
+                            upsert=True
+                        )
+                        logger.info("Auto backup sent to Telegram")
+            except Exception as tg_error:
+                logger.warning(f"Failed to send auto backup to Telegram: {tg_error}")
+        
         return {
             "success": True,
             "backupId": str(result.inserted_id),
             "createdAt": backup_data["createdAt"],
-            "size": backup_data["size"]
+            "size": backup_data["size"],
+            "telegram_sent": telegram_sent
         }
         
     except Exception as e:
