@@ -420,10 +420,19 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         // If nothing selected in this category, add "Bez [category]" entry
         if (!hasSelection) {
           const categoryName = cat[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || cat.name;
-          // Generate "Bez X" / "Без X" format
-          const withoutText = lang === 'pl' 
-            ? `Bez ${categoryName.toLowerCase().replace(/^(.)/, (m) => m.toLowerCase())}`
-            : `Без ${categoryName.toLowerCase()}`;
+          
+          // Use custom "without" label if provided, otherwise generate from category name
+          let withoutText;
+          if (cat.withoutLabelPl && lang === 'pl') {
+            withoutText = cat.withoutLabelPl;
+          } else if (cat.withoutLabelRu && lang !== 'pl') {
+            withoutText = cat.withoutLabelRu;
+          } else {
+            // Fallback: generate "Bez X" / "Без X" format
+            withoutText = lang === 'pl' 
+              ? `Bez ${categoryName.toLowerCase()}`
+              : `Без ${categoryName.toLowerCase()}`;
+          }
           
           selectedOptions.push({
             id: `${cat.id}_not_selected`,
