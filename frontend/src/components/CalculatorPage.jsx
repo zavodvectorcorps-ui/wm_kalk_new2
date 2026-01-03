@@ -816,43 +816,73 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                     {/* Outer Diameter */}
                     {!!(selectedModel.specs?.outerDiameter && selectedModel.specs.outerDiameter !== '0' && selectedModel.specs.outerDiameter !== 0) && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Внеш. диаметр' : 'Śr. zewnętrzna'}:</span> {selectedModel.specs.outerDiameter}{!String(selectedModel.specs.outerDiameter).includes('cm') ? 'cm' : ''}</div>
+                      <div className="flex items-center gap-1.5">
+                        <Circle className="h-3.5 w-3.5 text-blue-500" />
+                        <span>{selectedModel.specs.outerDiameter}{!String(selectedModel.specs.outerDiameter).includes('cm') ? 'cm' : ''}</span>
+                      </div>
                     )}
                     {/* Inner Diameter */}
                     {!!(selectedModel.specs?.innerDiameter && selectedModel.specs.innerDiameter !== '0' && selectedModel.specs.innerDiameter !== 0) && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Внутр. диаметр' : 'Śr. wewnętrzna'}:</span> {selectedModel.specs.innerDiameter}{!String(selectedModel.specs.innerDiameter).includes('cm') ? 'cm' : ''}</div>
+                      <div className="flex items-center gap-1.5">
+                        <Circle className="h-3 w-3 text-blue-400" />
+                        <span>{selectedModel.specs.innerDiameter}{!String(selectedModel.specs.innerDiameter).includes('cm') ? 'cm' : ''}</span>
+                      </div>
                     )}
                     {/* Dimensions for non-round models */}
                     {!!selectedModel.specs?.dimensions && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Размеры' : 'Wymiary'}:</span> {selectedModel.specs.dimensions}</div>
+                      <div className="flex items-center gap-1.5">
+                        <Ruler className="h-3.5 w-3.5 text-blue-500" />
+                        <span>{selectedModel.specs.dimensions}</span>
+                      </div>
                     )}
                     {/* Legacy: outerWidth x outerLength */}
                     {!!(!selectedModel.specs?.dimensions && selectedModel.specs?.outerWidth && selectedModel.specs.outerWidth !== 0) && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Размеры' : 'Wymiary'}:</span> {selectedModel.specs.outerWidth}×{selectedModel.specs.outerLength}cm</div>
+                      <div className="flex items-center gap-1.5">
+                        <Ruler className="h-3.5 w-3.5 text-blue-500" />
+                        <span>{selectedModel.specs.outerWidth}×{selectedModel.specs.outerLength}cm</span>
+                      </div>
                     )}
                     {/* Depth */}
                     {!!(selectedModel.specs?.depth && selectedModel.specs.depth !== '0' && selectedModel.specs.depth !== 0) && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Глубина' : 'Głębokość'}:</span> {selectedModel.specs.depth}{!String(selectedModel.specs.depth).includes('cm') ? 'cm' : ''}</div>
+                      <div className="flex items-center gap-1.5">
+                        <ArrowDownUp className="h-3.5 w-3.5 text-cyan-500" />
+                        <span>{selectedModel.specs.depth}{!String(selectedModel.specs.depth).includes('cm') ? 'cm' : ''}</span>
+                      </div>
                     )}
                     {/* Total Height */}
                     {!!(selectedModel.specs?.totalHeight && selectedModel.specs.totalHeight !== 0 && selectedModel.specs.totalHeight !== '0') && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Высота' : 'Wysokość'}:</span> {selectedModel.specs.totalHeight}{!String(selectedModel.specs.totalHeight).includes('cm') ? 'cm' : ''}</div>
+                      <div className="flex items-center gap-1.5">
+                        <ArrowDownUp className="h-3.5 w-3.5 text-indigo-500" />
+                        <span>{selectedModel.specs.totalHeight}{!String(selectedModel.specs.totalHeight).includes('cm') ? 'cm' : ''}</span>
+                      </div>
                     )}
                     {/* Volume (water capacity) */}
                     {!!(selectedModel.specs?.volume || (selectedModel.specs?.waterCapacity && selectedModel.specs.waterCapacity !== 0)) && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Объём воды' : 'Pojemność wody'}:</span> {selectedModel.specs.volume || selectedModel.specs.waterCapacity}{!String(selectedModel.specs.volume || selectedModel.specs.waterCapacity).includes('L') ? 'L' : ''}</div>
+                      <div className="flex items-center gap-1.5">
+                        <Droplets className="h-3.5 w-3.5 text-blue-500" />
+                        <span>{selectedModel.specs.volume || selectedModel.specs.waterCapacity}{!String(selectedModel.specs.volume || selectedModel.specs.waterCapacity).includes('L') ? 'L' : ''}</span>
+                      </div>
                     )}
                     {/* Seats */}
                     {!!(selectedModel.specs?.seats && selectedModel.specs.seats !== 0 && selectedModel.specs.seats !== '0') && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Мест' : 'Miejsc'}:</span> {selectedModel.specs.seats}</div>
+                      <div className="flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-green-500" />
+                        <span>{selectedModel.specs.seats} {lang === 'ru' ? 'мест' : 'miejsc'}</span>
+                      </div>
                     )}
                     {/* Heater power */}
                     {!!(selectedModel.specs?.heaterPower && selectedModel.specs.heaterPower !== 0 && selectedModel.specs.heaterPower !== '0') && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Мощность печи' : 'Moc pieca'}:</span> {selectedModel.specs.heaterPower}{!String(selectedModel.specs.heaterPower).includes('kW') ? 'kW' : ''}</div>
+                      <div className="flex items-center gap-1.5">
+                        <Flame className="h-3.5 w-3.5 text-orange-500" />
+                        <span>{selectedModel.specs.heaterPower}{!String(selectedModel.specs.heaterPower).includes('kW') ? 'kW' : ''}</span>
+                      </div>
                     )}
                     {/* Weight */}
                     {!!(selectedModel.specs?.weight && selectedModel.specs.weight !== '0' && selectedModel.specs.weight !== 0) && (
-                      <div><span className="text-muted-foreground">{lang === 'ru' ? 'Вес' : 'Waga'}:</span> {selectedModel.specs.weight}{!String(selectedModel.specs.weight).includes('kg') ? 'kg' : ''}</div>
+                      <div className="flex items-center gap-1.5">
+                        <Weight className="h-3.5 w-3.5 text-gray-500" />
+                        <span>{selectedModel.specs.weight}{!String(selectedModel.specs.weight).includes('kg') ? 'kg' : ''}</span>
+                      </div>
                     )}
                   </div>
                   {selectedModel.includes && selectedModel.includes.length > 0 && (
