@@ -669,6 +669,36 @@ export const EmbedBaliaCalculator = () => {
                       </SelectContent>
                     </Select>
                   )}
+                  
+                  {/* Static hint display for selected option */}
+                  {(() => {
+                    // Get selected option(s) hint
+                    if (category.inputType === 'checkbox') {
+                      const selectedOpts = category.options?.filter(
+                        opt => selections[category.id]?.[opt.id]
+                      );
+                      if (selectedOpts?.length > 0) {
+                        return selectedOpts.filter(opt => opt.hint).map(opt => (
+                          <div key={opt.id} className="mt-2 p-2 bg-blue-50 rounded-lg border-l-2 border-blue-400">
+                            <p className="text-xs font-medium text-blue-800">{getName(opt)}:</p>
+                            <p className="text-xs text-blue-700">{opt.hint}</p>
+                          </div>
+                        ));
+                      }
+                    } else {
+                      const selectedOpt = category.options?.find(
+                        opt => opt.id === selections[category.id]
+                      );
+                      if (selectedOpt?.hint) {
+                        return (
+                          <div className="mt-2 p-2 bg-blue-50 rounded-lg border-l-2 border-blue-400">
+                            <p className="text-xs text-blue-700">{selectedOpt.hint}</p>
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
                 </div>
               ))}
             </CardContent>
