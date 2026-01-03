@@ -1,6 +1,7 @@
 """
 Backup and restore functionality for the application.
 Supports export/import of orders, users, prices, and images.
+Includes Telegram backup delivery.
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from fastapi.responses import StreamingResponse
@@ -27,6 +28,11 @@ db = None
 def set_database(database):
     global db
     db = database
+
+
+class TelegramBackupConfig(BaseModel):
+    chat_id: str
+    enabled: bool = True
 
 class BackupSettings(BaseModel):
     enabled: bool = False
