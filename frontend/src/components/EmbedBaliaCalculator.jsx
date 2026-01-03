@@ -372,10 +372,10 @@ export const EmbedBaliaCalculator = () => {
                     {selectedHeaterVariant?.type === 'integrated' ? 'Piec zintegrowany' : 'Piec zewnętrzny'}
                   </p>
                   
-                  {/* Hint/Description */}
-                  {selectedModel.hint && (
+                  {/* Hint/Description - prefer Polish */}
+                  {(selectedModel.hintPl || selectedModel.hint) && (
                     <p className="text-sm text-gray-600 bg-white p-2 rounded border-l-2 border-blue-400">
-                      {selectedModel.hint}
+                      {selectedModel.hintPl || selectedModel.hint}
                     </p>
                   )}
                   
