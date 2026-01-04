@@ -419,11 +419,20 @@ export const LogisticsPage = () => {
       });
       
       if (res.ok) {
-        fetchTrips();
+        // Update selected trip locally
+        if (selectedTrip?.id === tripId) {
+          setSelectedTrip(prev => ({
+            ...prev,
+            orderIds: prev.orderIds.filter(id => id !== orderId)
+          }));
+        }
+        fetchTrips(activeSection);
         fetchAllOrders();
+        toast.success('Заказ убран из рейса');
       }
     } catch (error) {
       console.error('Error removing order:', error);
+      toast.error('Ошибка удаления заказа из рейса');
     }
   };
 
