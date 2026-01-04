@@ -434,6 +434,13 @@ export const LogisticsPage = () => {
     fetchAllOrders();
     fetchTrips();
   }, [fetchAllOrders, fetchTrips]);
+  
+  // Reload trips when section changes
+  useEffect(() => {
+    fetchTrips(activeSection);
+    setActiveInnerTab('orders');
+    setSelectedTrip(null);
+  }, [activeSection, fetchTrips]);
 
   // Initialize geocoder and autocomplete when map is loaded
   const onMapLoad = useCallback((map) => {
