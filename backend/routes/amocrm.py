@@ -31,8 +31,17 @@ logger = logging.getLogger(__name__)
 class FieldMapping(BaseModel):
     fullName: str = ""
     phoneNumber: str = ""
+    orderNumber: str = ""
+    # Address - can be single field or 3 separate
     fullAddress: str = ""
-    notes: str = ""
+    addressIndex: str = ""
+    addressCity: str = ""
+    addressStreet: str = ""
+    # Order details
+    orderContents: str = ""
+    orderComment: str = ""
+    dealSum: str = ""
+    debtSum: str = ""
 
 
 class AmoCRMSettings(BaseModel):
@@ -55,8 +64,15 @@ def get_default_settings():
         "field_mapping": {
             "fullName": "",
             "phoneNumber": "",
+            "orderNumber": "",
             "fullAddress": "",
-            "notes": ""
+            "addressIndex": "",
+            "addressCity": "",
+            "addressStreet": "",
+            "orderContents": "",
+            "orderComment": "",
+            "dealSum": "",
+            "debtSum": ""
         },
         "amocrm_domain": "",
         "amocrm_token": "",
