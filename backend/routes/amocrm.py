@@ -569,8 +569,15 @@ async def receive_webhook_section(
         webhook_logs.insert_one(log_entry)
         return {"status": "ok", "message": "No data to process"}
     
+    # Get field mapping for this specific section
+    all_mappings = settings.get("field_mapping", {})
+    # Support both old (flat) and new (per-section) structure
+    if section in all_mappings:
+        field_mapping = all_mappings[section]
+    else:
+        field_mapping = all_mappings  # Old flat structure
+    
     # First extract basic data from webhook to get lead ID
-    field_mapping = settings.get("field_mapping", {})
     basic_lead_data = extract_lead_data(data, field_mapping)
     lead_id = basic_lead_data.get("amocrm_id")
     
