@@ -141,7 +141,7 @@ A full-featured quoting and order management application for Saunas and Balias (
 ## Upcoming Tasks (Prioritized)
 
 ### P1 - High Priority
-1. **Migrate Google Autocomplete**: Update `AddressAutocomplete.jsx` to use `PlaceAutocompleteElement` (deprecated warning)
+1. **PlaceAutocompleteElement Migration (Optional)**: The new Google API is available but requires `Places API (New)` enabled in Google Cloud. Current legacy Autocomplete still works and is supported. Migration can be done when user enables the new API.
 
 ### P2 - Medium Priority
 1. **Refactor SaunaCalculator.jsx**: Break down into smaller components (similar to BaliaPricingPage)
