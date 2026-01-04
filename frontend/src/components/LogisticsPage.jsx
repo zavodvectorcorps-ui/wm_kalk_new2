@@ -169,47 +169,27 @@ export const LogisticsPage = () => {
     geocoderRef.current = new window.google.maps.Geocoder();
   }, []);
 
-  // Initialize PlaceAutocompleteElement when form opens
+  // Initialize autocomplete when form opens
   useEffect(() => {
     if (!isLoaded || !showOrderForm || !addressInputRef.current) return;
     if (autocompleteRef.current) return; // Already initialized
     
-    // Check if PlaceAutocompleteElement is available (new API)
-    if (window.google?.maps?.places?.PlaceAutocompleteElement) {
-      try {
-        const placeAutocomplete = new window.google.maps.places.PlaceAutocompleteElement({
-          componentRestrictions: { country: ['pl', 'de', 'cz', 'sk', 'lt', 'lv', 'ee', 'ua', 'by'] }
-        });
-        
-        // Style the element
-        placeAutocomplete.style.cssText = `
-          width: 100%;
-          height: 40px;
-          border: 1px solid hsl(var(--input));
-          border-radius: calc(var(--radius) - 2px);
-          padding: 0 12px;
-          font-size: 14px;
-          background: hsl(var(--background));
-        `;
-        
-        // Replace input with autocomplete element
-        const container = addressInputRef.current.parentNode;
-        container.replaceChild(placeAutocomplete, addressInputRef.current);
-        addressInputRef.current = placeAutocomplete;
-        
-        placeAutocomplete.addEventListener('gmp-select', async (event) => {
-          const place = event.placePrediction.toPlace();
-          await place.fetchFields({ fields: ['formattedAddress', 'location'] });
-          setNewOrderForm(prev => ({ ...prev, fullAddress: place.formattedAddress || '' }));
-        });
-        
-        autocompleteRef.current = placeAutocomplete;
-      } catch (e) {
-        console.log('PlaceAutocompleteElement not available, using legacy Autocomplete');
-        initLegacyAutocomplete();
-      }
-    } else {
-      initLegacyAutocomplete();
+    // Use legacy Autocomplete (still supported, works reliably)
+    try {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: ['pl', 'de', 'cz', 'sk', 'lt', 'lv', 'ee', 'ua', 'by'] },
+        fields: ['formatted_address', 'geometry']
+      });
+      
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace();
+        if (place?.formatted_address) {
+          setNewOrderForm(prev => ({ ...prev, fullAddress: place.formatted_address }));
+        }
+      });
+    } catch (e) {
+      console.error('Failed to initialize autocomplete:', e);
     }
     
     return () => {
@@ -218,24 +198,6 @@ export const LogisticsPage = () => {
       }
     };
   }, [isLoaded, showOrderForm]);
-
-  // Legacy autocomplete fallback
-  const initLegacyAutocomplete = () => {
-    if (!addressInputRef.current || autocompleteRef.current) return;
-    
-    autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
-      types: ['address'],
-      componentRestrictions: { country: ['pl', 'de', 'cz', 'sk', 'lt', 'lv', 'ee', 'ua', 'by'] },
-      fields: ['formatted_address', 'geometry']
-    });
-    
-    autocompleteRef.current.addListener('place_changed', () => {
-      const place = autocompleteRef.current.getPlace();
-      if (place?.formatted_address) {
-        setNewOrderForm(prev => ({ ...prev, fullAddress: place.formatted_address }));
-      }
-    });
-  };
 
   // Geocode address to coordinates
   const geocodeAddress = useCallback((address) => {
