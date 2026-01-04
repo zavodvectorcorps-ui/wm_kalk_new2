@@ -119,10 +119,11 @@ export const LogisticsPage = () => {
   
   // Trips (рейсы) state
   const [trips, setTrips] = useState([]);
-  const [showTripsTab, setShowTripsTab] = useState(false);
+  const [activeInnerTab, setActiveInnerTab] = useState('orders'); // 'orders' or 'trips'
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showCreateTripModal, setShowCreateTripModal] = useState(false);
   const [newTripName, setNewTripName] = useState('');
+  const [newTripDriver, setNewTripDriver] = useState('');
   const [creatingTrip, setCreatingTrip] = useState(false);
   
   // Drivers state
