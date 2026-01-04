@@ -416,17 +416,32 @@ async def receive_webhook_section(
             webhook_logs.insert_one(log_entry)
             return {"status": "ok", "message": "Order already exists"}
     
-    # Create order
+    # Create order with all mapped fields
     now = datetime.now(timezone.utc).isoformat()
     section_prefix = {"greenhouse": "GH", "balia": "BAL", "sauna": "SAU"}
     section_names = {"greenhouse": "Теплицы", "balia": "Купели", "sauna": "Сауны"}
     
+    # Build notes from various fields
+    notes_parts = []
+    notes_parts.append(f"Из amoCRM ({section_names.get(section, section)})")
+    if lead_data.get("amocrm_name"):
+        notes_parts.append(f"Сделка: {lead_data['amocrm_name']}")
+    if lead_data.get("orderContents"):
+        notes_parts.append(f"Состав: {lead_data['orderContents']}")
+    if lead_data.get("orderComment"):
+        notes_parts.append(f"Комментарий: {lead_data['orderComment']}")
+    
     order_data = {
         "id": f"AMO-{section_prefix.get(section, 'X')}-{lead_data.get('amocrm_id', int(datetime.now().timestamp()))}",
-        "fullName": lead_data.get("fullName", "Без имени"),
+        "fullName": lead_data.get("fullName", "") or "Без имени",
         "phoneNumber": lead_data.get("phoneNumber", ""),
         "fullAddress": lead_data.get("fullAddress", ""),
-        "notes": f"Из amoCRM ({section_names.get(section, section)}). Сделка: {lead_data.get('amocrm_name', '')}. Бюджет: {lead_data.get('price', 0)}",
+        "orderNumber": lead_data.get("orderNumber", ""),
+        "orderContents": lead_data.get("orderContents", ""),
+        "orderComment": lead_data.get("orderComment", ""),
+        "dealSum": lead_data.get("dealSum", ""),
+        "debtSum": lead_data.get("debtSum", ""),
+        "notes": ". ".join(notes_parts),
         "orderDate": now,
         "createdAt": now,
         "source": "amocrm",
