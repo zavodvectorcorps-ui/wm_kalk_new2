@@ -1392,6 +1392,13 @@ async def send_backup_to_telegram():
                 backup_manifest["collections"].append({"name": "settings", "count": len(all_settings)})
             
             # Telegram config
+            # amoCRM settings
+            amocrm_settings = await db.amocrm_settings.find({}).to_list(100)
+            if amocrm_settings:
+                amocrm_settings = [serialize_for_json(s) for s in amocrm_settings]
+                zip_file.writestr("amocrm_settings.json", json.dumps(amocrm_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "amocrm_settings", "count": len(amocrm_settings)})
+            
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
                 "chat_id": os.environ.get('TELEGRAM_CHAT_ID', ''),
