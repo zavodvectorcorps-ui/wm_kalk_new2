@@ -189,7 +189,6 @@ export const LogisticsPage = () => {
         const orders = await res.json();
         return orders
           .map(o => ({ ...o, orderType: sectionId }))
-          .filter(o => o.fullAddress || o.address)
           .sort((a, b) => new Date(b.orderDate || b.createdAt) - new Date(a.orderDate || a.createdAt));
       }
       return [];
