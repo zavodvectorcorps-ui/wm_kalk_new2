@@ -53,6 +53,17 @@ export const LogisticsPage = () => {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [orderType, setOrderType] = useState('all'); // 'all', 'balia', 'sauna'
   
+  // New order form state
+  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [newOrderForm, setNewOrderForm] = useState({
+    fullName: '',
+    phoneNumber: '',
+    fullAddress: '',
+    orderComposition: '',
+    orderType: 'balia'
+  });
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  
   const mapRef = useRef(null);
   const geocoderRef = useRef(null);
 
