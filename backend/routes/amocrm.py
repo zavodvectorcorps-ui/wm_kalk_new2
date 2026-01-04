@@ -374,7 +374,11 @@ async def sync_status_to_amocrm(
     status: str,
     comment: Optional[str] = None
 ):
-    """Sync delivery status back to amoCRM."""
+    """Sync delivery status back to amoCRM.
+    
+    Returns success even if sync is skipped (credentials not configured)
+    to avoid breaking the frontend workflow.
+    """
     settings = get_amocrm_settings()
     
     domain = settings.get("amocrm_domain", "")
@@ -382,8 +386,10 @@ async def sync_status_to_amocrm(
     status_field_id = settings.get("status_field_id", "")
     comment_field_id = settings.get("comment_field_id", "")
     
+    # If credentials are not configured, skip silently
     if not domain or not token:
-        raise HTTPException(status_code=400, detail="amoCRM credentials not configured")
+        logger.info(f"Skipping amoCRM sync for {amocrm_id}: credentials not configured")
+        return {"status": "skipped", "message": "amoCRM credentials not configured"}
     
     # Build update payload
     custom_fields_values = []
@@ -400,8 +406,19 @@ async def sync_status_to_amocrm(
             "values": [{"value": comment}]
         })
     
+    # If no fields configured, skip silently
     if not custom_fields_values:
-        raise HTTPException(status_code=400, detail="No field IDs configured for sync")
+        logger.info(f"Skipping amoCRM sync for {amocrm_id}: no field IDs configured")
+        return {"status": "skipped", "message": "No field IDs configured for sync"}
+    
+    # Log sync attempt
+    sync_log = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "type": "status_sync",
+        "amocrm_id": amocrm_id,
+        "status": status,
+        "comment": comment
+    }
     
     # Make API request to amoCRM
     url = f"https://{domain}/api/v4/leads/{amocrm_id}"
@@ -418,16 +435,27 @@ async def sync_status_to_amocrm(
             response = await client.patch(url, json=payload, headers=headers)
             
             if response.status_code == 200:
+                sync_log["result"] = "success"
+                webhook_logs.insert_one(sync_log)
+                logger.info(f"Successfully synced status '{status}' to amoCRM lead {amocrm_id}")
                 return {"status": "ok", "message": "Status synced to amoCRM"}
             else:
+                sync_log["result"] = "error"
+                sync_log["error"] = response.text
+                webhook_logs.insert_one(sync_log)
                 logger.error(f"amoCRM API error: {response.status_code} - {response.text}")
-                raise HTTPException(
-                    status_code=response.status_code, 
-                    detail=f"amoCRM API error: {response.text}"
-                )
+                # Return error info but don't throw exception
+                return {
+                    "status": "error", 
+                    "message": f"amoCRM API error: {response.status_code}",
+                    "detail": response.text
+                }
     except httpx.RequestError as e:
+        sync_log["result"] = "error"
+        sync_log["error"] = str(e)
+        webhook_logs.insert_one(sync_log)
         logger.error(f"amoCRM request error: {e}")
-        raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
+        return {"status": "error", "message": f"Connection error: {str(e)}"}
 
 
 @router.get("/logs")
