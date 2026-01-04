@@ -242,16 +242,6 @@ def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str] = None
     
     logger.info(f"Final lead_data: {lead_data}")
     return lead_data
-                lead_data["fullAddress"] = value
-            elif "имя" in field_name or "name" in field_name or "контакт" in field_name:
-                lead_data["fullName"] = value
-        
-        # Fallback to lead name if no contact name
-        if not lead_data.get("fullName"):
-            lead_data["fullName"] = lead_data.get("amocrm_name", "Без имени")
-    
-    logger.info(f"Final lead_data: {lead_data}")
-    return lead_data
 
 
 def get_collection_for_section(section: str):
