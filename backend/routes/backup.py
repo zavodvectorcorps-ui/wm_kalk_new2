@@ -1297,12 +1297,33 @@ async def send_backup_to_telegram():
                 zip_file.writestr("sauna_orders.json", json.dumps(sauna_orders, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "sauna_orders", "count": len(sauna_orders)})
             
+            # Greenhouse orders
+            greenhouse_orders = await db.greenhouse_orders.find({}).to_list(10000)
+            if greenhouse_orders:
+                greenhouse_orders = [serialize_for_json(o) for o in greenhouse_orders]
+                zip_file.writestr("greenhouse_orders.json", json.dumps(greenhouse_orders, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "greenhouse_orders", "count": len(greenhouse_orders)})
+            
             # Web orders
             web_orders = await db.web_orders.find({}).to_list(10000)
             if web_orders:
                 web_orders = [serialize_for_json(o) for o in web_orders]
                 zip_file.writestr("web_orders.json", json.dumps(web_orders, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "web_orders", "count": len(web_orders)})
+            
+            # Trips (logistics routes)
+            trips = await db.trips.find({}).to_list(10000)
+            if trips:
+                trips = [serialize_for_json(t) for t in trips]
+                zip_file.writestr("trips.json", json.dumps(trips, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "trips", "count": len(trips)})
+            
+            # Drivers
+            drivers = await db.drivers.find({}).to_list(1000)
+            if drivers:
+                drivers = [serialize_for_json(d) for d in drivers]
+                zip_file.writestr("drivers.json", json.dumps(drivers, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "drivers", "count": len(drivers)})
             
             # Users
             users = await db.users.find({}).to_list(1000)
