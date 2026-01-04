@@ -1762,13 +1762,71 @@ export const LogisticsPage = () => {
                               
                               {expandedOrder === order.id && (
                                 <div className="mt-3 pt-3 border-t space-y-3 text-sm">
+                                  {/* Structured amoCRM data */}
+                                  {order.amocrm_id && (
+                                    <div className="bg-purple-50 rounded-lg p-3 space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-medium text-purple-700">Данные из amoCRM</span>
+                                        {order.amocrm_link && (
+                                          <a
+                                            href={order.amocrm_link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                                          >
+                                            <ExternalLink className="h-3 w-3" />
+                                            Открыть в amoCRM
+                                          </a>
+                                        )}
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        {order.orderNumber && (
+                                          <div>
+                                            <span className="text-muted-foreground">№ заказа:</span>
+                                            <span className="ml-1 font-medium">{order.orderNumber}</span>
+                                          </div>
+                                        )}
+                                        {order.dealSum && (
+                                          <div className="flex items-center gap-1">
+                                            <DollarSign className="h-3 w-3 text-green-600" />
+                                            <span className="text-muted-foreground">Сумма:</span>
+                                            <span className="ml-1 font-medium">{order.dealSum}</span>
+                                          </div>
+                                        )}
+                                        {order.debtSum && (
+                                          <div className="text-red-600">
+                                            <span className="text-muted-foreground">Долг:</span>
+                                            <span className="ml-1 font-medium">{order.debtSum}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                      {order.orderContents && (
+                                        <div className="text-xs">
+                                          <span className="text-muted-foreground">Состав:</span>
+                                          <p className="mt-1 p-2 bg-white rounded border text-xs whitespace-pre-wrap">{order.orderContents}</p>
+                                        </div>
+                                      )}
+                                      {order.orderComment && (
+                                        <div className="text-xs">
+                                          <span className="text-muted-foreground flex items-center gap-1">
+                                            <MessageSquare className="h-3 w-3" />
+                                            Комментарий:
+                                          </span>
+                                          <p className="mt-1 p-2 bg-white rounded border text-xs">{order.orderComment}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
                                   {order.phoneNumber && (
                                     <p className="flex items-center gap-2">
                                       <Phone className="h-3 w-3" />
-                                      {order.phoneNumber}
+                                      <a href={`tel:${order.phoneNumber}`} className="text-blue-600 hover:underline">
+                                        {order.phoneNumber}
+                                      </a>
                                     </p>
                                   )}
-                                  {order.notes && (
+                                  {order.notes && !order.amocrm_id && (
                                     <p className="flex items-start gap-2">
                                       <FileText className="h-3 w-3 mt-0.5" />
                                       <span className="break-words">{order.notes}</span>
