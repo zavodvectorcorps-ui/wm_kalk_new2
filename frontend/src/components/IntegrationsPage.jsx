@@ -308,6 +308,77 @@ export const IntegrationsPage = () => {
             />
           </div>
 
+          {/* Field Mapping */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Маппинг полей amoCRM
+              </CardTitle>
+              <CardDescription>
+                Укажите ID полей из amoCRM для переноса данных. Оставьте пустым для автоматического поиска по названию поля.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>ID поля для имени клиента</Label>
+                  <Input
+                    value={settings.field_mapping?.fullName || ''}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      field_mapping: { ...prev.field_mapping, fullName: e.target.value }
+                    }))}
+                    placeholder="Например: 123456"
+                  />
+                  <p className="text-xs text-muted-foreground">Или автопоиск: "имя", "name", "контакт"</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>ID поля для телефона</Label>
+                  <Input
+                    value={settings.field_mapping?.phoneNumber || ''}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      field_mapping: { ...prev.field_mapping, phoneNumber: e.target.value }
+                    }))}
+                    placeholder="Например: 123457"
+                  />
+                  <p className="text-xs text-muted-foreground">Или автопоиск: "телефон", "phone"</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>ID поля для адреса</Label>
+                  <Input
+                    value={settings.field_mapping?.fullAddress || ''}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      field_mapping: { ...prev.field_mapping, fullAddress: e.target.value }
+                    }))}
+                    placeholder="Например: 123458"
+                  />
+                  <p className="text-xs text-muted-foreground">Или автопоиск: "адрес", "address"</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>ID поля для примечаний</Label>
+                  <Input
+                    value={settings.field_mapping?.notes || ''}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      field_mapping: { ...prev.field_mapping, notes: e.target.value }
+                    }))}
+                    placeholder="Например: 123459"
+                  />
+                  <p className="text-xs text-muted-foreground">Дополнительные комментарии</p>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <p className="text-sm">
+                  <strong>Как найти ID поля:</strong> В amoCRM откройте карточку сделки → F12 (DevTools) → 
+                  наведите на нужное поле → найдите атрибут <code>data-field-id</code> или посмотрите в URL API запроса.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Save Button */}
           <div className="flex justify-end">
             <Button onClick={saveSettings} disabled={saving} size="lg">
