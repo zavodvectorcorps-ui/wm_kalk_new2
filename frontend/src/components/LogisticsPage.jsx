@@ -1007,11 +1007,11 @@ export const LogisticsPage = () => {
       )}
 
       {/* Section Tabs */}
-      <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v)} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
+      <Tabs value={activeSection} onValueChange={(v) => { setActiveSection(v); setShowTripsTab(false); }} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 mb-4">
           {Object.entries(SECTIONS).map(([key, section]) => {
             const Icon = section.icon;
-            const orderCount = sectionData[key].orders.length;
+            const unassignedCount = getUnassignedOrders(sectionData[key].orders).length;
             return (
               <TabsTrigger 
                 key={key} 
@@ -1020,10 +1020,20 @@ export const LogisticsPage = () => {
               >
                 <Icon className={`h-4 w-4 ${section.color}`} />
                 <span>{section.name.ru}</span>
-                <Badge variant="secondary" className="ml-1">{orderCount}</Badge>
+                <Badge variant="secondary" className="ml-1">{unassignedCount}</Badge>
               </TabsTrigger>
             );
           })}
+          {/* Trips Tab */}
+          <TabsTrigger 
+            value="trips"
+            onClick={() => setShowTripsTab(true)}
+            className="gap-2"
+          >
+            <Route className="h-4 w-4 text-purple-600" />
+            <span>Рейсы</span>
+            <Badge variant="secondary" className="ml-1">{trips.length}</Badge>
+          </TabsTrigger>
         </TabsList>
 
         {Object.keys(SECTIONS).map(sectionKey => (
