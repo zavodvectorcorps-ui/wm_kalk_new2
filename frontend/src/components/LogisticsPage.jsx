@@ -500,8 +500,8 @@ export const LogisticsPage = () => {
 
   // Optimize trip route using Google Maps Directions API
   const optimizeTripRoute = async () => {
-    if (!selectedTrip || !selectedTrip.orderIds || selectedTrip.orderIds.length < 2) {
-      toast.error('Нужно минимум 2 заказа для оптимизации');
+    if (!selectedTrip || !selectedTrip.orderIds || selectedTrip.orderIds.length < 1) {
+      toast.error('Добавьте заказы в рейс');
       return;
     }
 
@@ -510,8 +510,16 @@ export const LogisticsPage = () => {
       .map(id => sectionData[selectedTrip.section]?.orders.find(o => o.id === id))
       .filter(o => o && o.lat && o.lng);
 
-    if (ordersWithCoords.length < 2) {
-      toast.error('Нужно минимум 2 заказа с координатами на карте');
+    if (ordersWithCoords.length < 1) {
+      toast.error('Нужен минимум 1 заказ с координатами на карте');
+      return;
+    }
+
+    // Use warehouse as origin/destination if available
+    const useWarehouse = warehouseCoords && warehouseCoords.lat && warehouseCoords.lng;
+    
+    if (!useWarehouse && ordersWithCoords.length < 2) {
+      toast.error('Укажите адрес склада в настройках или добавьте минимум 2 заказа');
       return;
     }
 
@@ -519,21 +527,34 @@ export const LogisticsPage = () => {
     try {
       const directionsService = new window.google.maps.DirectionsService();
       
-      // Use first order as origin and last as destination
-      const origin = { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
-      const destination = { lat: ordersWithCoords[ordersWithCoords.length - 1].lat, lng: ordersWithCoords[ordersWithCoords.length - 1].lng };
+      // Origin and destination - warehouse or first/last order
+      const origin = useWarehouse 
+        ? { lat: warehouseCoords.lat, lng: warehouseCoords.lng }
+        : { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
+      const destination = useWarehouse 
+        ? { lat: warehouseCoords.lat, lng: warehouseCoords.lng }
+        : { lat: ordersWithCoords[ordersWithCoords.length - 1].lat, lng: ordersWithCoords[ordersWithCoords.length - 1].lng };
       
-      // Middle orders as waypoints
-      const waypoints = ordersWithCoords.slice(1, -1).map(o => ({
-        location: { lat: o.lat, lng: o.lng },
-        stopover: true
-      }));
+      // All orders as waypoints when using warehouse
+      let waypoints;
+      if (useWarehouse) {
+        waypoints = ordersWithCoords.map(o => ({
+          location: { lat: o.lat, lng: o.lng },
+          stopover: true
+        }));
+      } else {
+        // Middle orders as waypoints
+        waypoints = ordersWithCoords.slice(1, -1).map(o => ({
+          location: { lat: o.lat, lng: o.lng },
+          stopover: true
+        }));
+      }
 
       const result = await directionsService.route({
         origin,
         destination,
         waypoints,
-        optimizeWaypoints: true, // Key: Google will reorder waypoints for optimal route
+        optimizeWaypoints: true, // Google will reorder waypoints for optimal route
         travelMode: window.google.maps.TravelMode.DRIVING
       });
 
@@ -541,14 +562,20 @@ export const LogisticsPage = () => {
       const waypointOrder = result.routes[0].waypoint_order;
       
       // Build new order IDs array based on optimization
-      const middleOrders = ordersWithCoords.slice(1, -1);
-      const optimizedMiddle = waypointOrder.map(i => middleOrders[i]);
-      const optimizedOrders = [
-        ordersWithCoords[0],
-        ...optimizedMiddle,
-        ordersWithCoords[ordersWithCoords.length - 1]
-      ];
-      const newOrderIds = optimizedOrders.map(o => o.id);
+      let newOrderIds;
+      if (useWarehouse) {
+        // All orders were waypoints, reorder them all
+        newOrderIds = waypointOrder.map(i => ordersWithCoords[i].id);
+      } else {
+        const middleOrders = ordersWithCoords.slice(1, -1);
+        const optimizedMiddle = waypointOrder.map(i => middleOrders[i]);
+        const optimizedOrders = [
+          ordersWithCoords[0],
+          ...optimizedMiddle,
+          ordersWithCoords[ordersWithCoords.length - 1]
+        ];
+        newOrderIds = optimizedOrders.map(o => o.id);
+      }
       
       // Add any orders without coordinates at the end
       const ordersWithoutCoords = selectedTrip.orderIds.filter(id => {
@@ -560,11 +587,14 @@ export const LogisticsPage = () => {
       // Update trip with new order
       await updateTripOrderIds(selectedTrip.id, newOrderIds);
       
-      // Calculate route info
-      const totalDistance = result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0);
-      const totalDuration = result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0);
+      // Save route for display
+      setTripDirections(result);
+      setTripRouteInfo({
+        distance: result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0),
+        duration: result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0)
+      });
       
-      toast.success(`Маршрут оптимизирован! ${formatDistance(totalDistance)}, ${formatDuration(totalDuration)}`);
+      toast.success(`Маршрут оптимизирован! ${formatDistance(result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0))}, ${formatDuration(result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0))}`);
     } catch (error) {
       console.error('Error optimizing route:', error);
       toast.error('Ошибка оптимизации маршрута');
@@ -572,6 +602,89 @@ export const LogisticsPage = () => {
       setOptimizingRoute(false);
     }
   };
+
+  // Build trip route for display (without optimization)
+  const buildTripRoute = async () => {
+    if (!selectedTrip || !selectedTrip.orderIds || selectedTrip.orderIds.length < 1) {
+      setTripDirections(null);
+      setTripRouteInfo(null);
+      return;
+    }
+
+    // Get orders with coordinates in current order
+    const ordersWithCoords = selectedTrip.orderIds
+      .map(id => sectionData[selectedTrip.section]?.orders.find(o => o.id === id))
+      .filter(o => o && o.lat && o.lng);
+
+    if (ordersWithCoords.length < 1) {
+      setTripDirections(null);
+      setTripRouteInfo(null);
+      return;
+    }
+
+    const useWarehouse = warehouseCoords && warehouseCoords.lat && warehouseCoords.lng;
+    
+    if (!useWarehouse && ordersWithCoords.length < 2) {
+      setTripDirections(null);
+      setTripRouteInfo(null);
+      return;
+    }
+
+    setBuildingTripRoute(true);
+    try {
+      const directionsService = new window.google.maps.DirectionsService();
+      
+      const origin = useWarehouse 
+        ? { lat: warehouseCoords.lat, lng: warehouseCoords.lng }
+        : { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
+      const destination = useWarehouse 
+        ? { lat: warehouseCoords.lat, lng: warehouseCoords.lng }
+        : { lat: ordersWithCoords[ordersWithCoords.length - 1].lat, lng: ordersWithCoords[ordersWithCoords.length - 1].lng };
+      
+      let waypoints;
+      if (useWarehouse) {
+        waypoints = ordersWithCoords.map(o => ({
+          location: { lat: o.lat, lng: o.lng },
+          stopover: true
+        }));
+      } else {
+        waypoints = ordersWithCoords.slice(1, -1).map(o => ({
+          location: { lat: o.lat, lng: o.lng },
+          stopover: true
+        }));
+      }
+
+      const result = await directionsService.route({
+        origin,
+        destination,
+        waypoints,
+        optimizeWaypoints: false, // Keep current order
+        travelMode: window.google.maps.TravelMode.DRIVING
+      });
+
+      setTripDirections(result);
+      setTripRouteInfo({
+        distance: result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0),
+        duration: result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0)
+      });
+    } catch (error) {
+      console.error('Error building trip route:', error);
+      setTripDirections(null);
+      setTripRouteInfo(null);
+    } finally {
+      setBuildingTripRoute(false);
+    }
+  };
+
+  // Build trip route when selected trip changes
+  useEffect(() => {
+    if (selectedTrip && isLoaded && activeInnerTab === 'trips') {
+      buildTripRoute();
+    } else {
+      setTripDirections(null);
+      setTripRouteInfo(null);
+    }
+  }, [selectedTrip, selectedTrip?.orderIds, isLoaded, activeInnerTab, warehouseCoords]);
 
   // Update trip order IDs (for reordering)
   const updateTripOrderIds = async (tripId, newOrderIds) => {
