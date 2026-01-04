@@ -58,10 +58,6 @@ def get_default_settings():
     return {
         "type": "amocrm",
         "enabled": False,
-        "secret_key": "",
-        "greenhouse": {"enabled": False, "pipeline_id": "", "status_id": ""},
-        "balia": {"enabled": False, "pipeline_id": "", "status_id": ""},
-        "sauna": {"enabled": False, "pipeline_id": "", "status_id": ""},
         "amocrm_domain": "",
         "amocrm_token": "",
         "status_field_id": "",
