@@ -248,8 +248,9 @@ async def convert_url_images_to_base64(data: dict, base_url: str) -> dict:
 async def export_backup():
     """
     Export all data as a ZIP file containing JSON files for each collection.
-    Includes: orders, sauna_orders, web_orders, users, prices (balia & sauna),
-    tech_spec_config, balia_tech_spec_config, images collection, uploaded files, telegram settings
+    Includes: orders, sauna_orders, greenhouse_orders, web_orders, trips, users, 
+    prices (balia & sauna), tech_spec_config, balia_tech_spec_config, 
+    images collection, uploaded files, telegram settings, amocrm settings
     """
     try:
         # Create in-memory ZIP file
@@ -257,7 +258,7 @@ async def export_backup():
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             backup_manifest = {
-                "version": "2.0",
+                "version": "3.0",
                 "createdAt": datetime.now(timezone.utc).isoformat(),
                 "collections": []
             }
@@ -278,6 +279,14 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "sauna_orders", "count": len(sauna_orders)})
                 logger.info(f"Exported {len(sauna_orders)} sauna orders")
             
+            # Export Greenhouse orders
+            greenhouse_orders = await db.greenhouse_orders.find({}).to_list(10000)
+            if greenhouse_orders:
+                greenhouse_orders = [serialize_for_json(o) for o in greenhouse_orders]
+                zip_file.writestr("greenhouse_orders.json", json.dumps(greenhouse_orders, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "greenhouse_orders", "count": len(greenhouse_orders)})
+                logger.info(f"Exported {len(greenhouse_orders)} greenhouse orders")
+            
             # Export Web orders
             web_orders = await db.web_orders.find({}).to_list(10000)
             if web_orders:
@@ -285,6 +294,22 @@ async def export_backup():
                 zip_file.writestr("web_orders.json", json.dumps(web_orders, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "web_orders", "count": len(web_orders)})
                 logger.info(f"Exported {len(web_orders)} web orders")
+            
+            # Export Trips (logistics routes)
+            trips = await db.trips.find({}).to_list(10000)
+            if trips:
+                trips = [serialize_for_json(t) for t in trips]
+                zip_file.writestr("trips.json", json.dumps(trips, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "trips", "count": len(trips)})
+                logger.info(f"Exported {len(trips)} trips")
+            
+            # Export Drivers
+            drivers = await db.drivers.find({}).to_list(1000)
+            if drivers:
+                drivers = [serialize_for_json(d) for d in drivers]
+                zip_file.writestr("drivers.json", json.dumps(drivers, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "drivers", "count": len(drivers)})
+                logger.info(f"Exported {len(drivers)} drivers")
             
             # Export Users (employees)
             users = await db.users.find({}).to_list(1000)
@@ -372,13 +397,21 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "customer_fields", "count": len(customer_fields)})
                 logger.info(f"Exported {len(customer_fields)} customer fields")
             
-            # Export all settings (backup_settings, telegram, etc.)
+            # Export all settings (backup_settings, telegram, amocrm, etc.)
             all_settings = await db.settings.find({}).to_list(100)
             if all_settings:
                 all_settings = [serialize_for_json(s) for s in all_settings]
                 zip_file.writestr("settings.json", json.dumps(all_settings, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "settings", "count": len(all_settings)})
                 logger.info(f"Exported {len(all_settings)} settings")
+            
+            # Export amoCRM integration settings
+            amocrm_settings = await db.amocrm_settings.find({}).to_list(100)
+            if amocrm_settings:
+                amocrm_settings = [serialize_for_json(s) for s in amocrm_settings]
+                zip_file.writestr("amocrm_settings.json", json.dumps(amocrm_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "amocrm_settings", "count": len(amocrm_settings)})
+                logger.info(f"Exported {len(amocrm_settings)} amoCRM settings")
             
             # Export Telegram configuration from .env
             telegram_config = {
