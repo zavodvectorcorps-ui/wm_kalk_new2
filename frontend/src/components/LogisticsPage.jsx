@@ -2011,278 +2011,352 @@ export const LogisticsPage = () => {
 
             {/* Trips View */}
             {activeInnerTab === 'trips' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Trips List for this section */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Route className="h-5 w-5 text-purple-600" />
-                        Рейсы — {SECTIONS[sectionKey].name.ru}
-                      </CardTitle>
-                      <Badge variant="secondary" className="bg-purple-100">
-                        {trips.filter(t => t.section === sectionKey).length}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {trips.filter(t => t.section === sectionKey).length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground mb-4">
-                          Нет рейсов для этой категории
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => setActiveInnerTab('orders')}
-                        >
-                          <Package className="h-4 w-4 mr-2" />
-                          Перейти к заказам
-                        </Button>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                {/* Trips List - Left Column */}
+                <div className="lg:col-span-3">
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Route className="h-4 w-4 text-purple-600" />
+                          Рейсы
+                        </CardTitle>
+                        <Badge variant="secondary" className="bg-purple-100 text-xs">
+                          {trips.filter(t => t.section === sectionKey).length}
+                        </Badge>
                       </div>
-                    ) : (
-                      <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                        {trips.filter(t => t.section === sectionKey).map((trip) => (
-                          <div
-                            key={trip.id}
-                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                              selectedTrip?.id === trip.id ? 'bg-purple-50 border-purple-300' : 'hover:bg-muted/50'
-                            }`}
-                            onClick={() => setSelectedTrip(trip)}
-                            data-testid={`trip-card-${trip.id}`}
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      {trips.filter(t => t.section === sectionKey).length === 0 ? (
+                        <div className="text-center py-6">
+                          <p className="text-muted-foreground text-sm mb-3">
+                            Нет рейсов
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setActiveInnerTab('orders')}
                           >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium">{trip.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {trip.orderIds?.length || 0} заказов
-                                </p>
-                                {trip.driverName && (
-                                  <p className="text-sm text-blue-600 flex items-center gap-1 mt-1">
-                                    <User className="h-3 w-3" />
-                                    {trip.driverName}
+                            <Package className="h-3 w-3 mr-1" />
+                            К заказам
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                          {trips.filter(t => t.section === sectionKey).map((trip) => (
+                            <div
+                              key={trip.id}
+                              className={`p-2 border rounded-lg cursor-pointer transition-colors ${
+                                selectedTrip?.id === trip.id ? 'bg-purple-50 border-purple-300' : 'hover:bg-muted/50'
+                              }`}
+                              onClick={() => setSelectedTrip(trip)}
+                              data-testid={`trip-card-${trip.id}`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium text-sm truncate">{trip.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {trip.orderIds?.length || 0} заказов
                                   </p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge className={
+                                  {trip.driverName && (
+                                    <p className="text-xs text-blue-600 flex items-center gap-1 mt-0.5">
+                                      <User className="h-3 w-3" />
+                                      {trip.driverName}
+                                    </p>
+                                  )}
+                                </div>
+                                <Badge className={`text-xs flex-shrink-0 ${
                                   trip.status === 'completed' ? 'bg-green-100 text-green-700' : 
                                   trip.status === 'cancelled' ? 'bg-red-100 text-red-700' :
                                   'bg-blue-100 text-blue-700'
-                                }>
-                                  {trip.status === 'completed' ? 'Доставлен' : 
-                                   trip.status === 'cancelled' ? 'Отменён' : 'Активен'}
+                                }`}>
+                                  {trip.status === 'completed' ? '✓' : 
+                                   trip.status === 'cancelled' ? '✕' : '●'}
                                 </Badge>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => { e.stopPropagation(); deleteTrip(trip.id); }}
-                                  className="text-red-500 hover:text-red-700"
-                                  data-testid={`delete-trip-${trip.id}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Selected Trip Details */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">
-                      {selectedTrip ? selectedTrip.name : 'Выберите рейс'}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedTrip && selectedTrip.section === sectionKey ? (
-                      <div className="space-y-4">
-                        {/* Driver assignment */}
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Водитель:</Label>
-                          <Select
-                            value={selectedTrip.driverId || 'none'}
-                            onValueChange={(value) => {
-                              const driver = drivers.find(d => d.id === value);
-                              updateTrip(selectedTrip.id, {
-                                driverId: value === 'none' ? null : value,
-                                driverName: driver?.name || null
-                              });
-                              // Update local state immediately
-                              setSelectedTrip(prev => ({
-                                ...prev,
-                                driverId: value === 'none' ? null : value,
-                                driverName: driver?.name || null
-                              }));
-                            }}
-                          >
-                            <SelectTrigger className="w-full" data-testid="trip-driver-select">
-                              <SelectValue placeholder="Выберите водителя" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Не назначен</SelectItem>
-                              {drivers.map(d => (
-                                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          ))}
                         </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
 
-                        {/* Status */}
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Статус:</Label>
-                          <Select
-                            value={selectedTrip.status || 'active'}
-                            onValueChange={(value) => {
-                              updateTrip(selectedTrip.id, { status: value });
-                              setSelectedTrip(prev => ({ ...prev, status: value }));
-                            }}
-                          >
-                            <SelectTrigger className="w-full" data-testid="trip-status-select">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="active">Активен</SelectItem>
-                              <SelectItem value="completed">Доставлен</SelectItem>
-                              <SelectItem value="cancelled">Отменён</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Orders in trip with reordering */}
-                        <div className="border-t pt-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <p className="text-sm font-medium">Заказы в рейсе ({selectedTrip.orderIds?.length || 0}):</p>
-                            {selectedTrip.orderIds?.length >= 2 && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={optimizeTripRoute}
-                                disabled={optimizingRoute}
-                                className="gap-1"
-                                data-testid="optimize-route-btn"
-                              >
-                                {optimizingRoute ? (
-                                  <RefreshCw className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Sparkles className="h-3 w-3" />
-                                )}
-                                Оптимизировать
-                              </Button>
-                            )}
+                {/* Trip Details - Middle Column */}
+                <div className="lg:col-span-4">
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">
+                        {selectedTrip ? selectedTrip.name : 'Выберите рейс'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      {selectedTrip && selectedTrip.section === sectionKey ? (
+                        <div className="space-y-3">
+                          {/* Driver assignment */}
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium">Водитель:</Label>
+                            <Select
+                              value={selectedTrip.driverId || 'none'}
+                              onValueChange={(value) => {
+                                const driver = drivers.find(d => d.id === value);
+                                updateTrip(selectedTrip.id, {
+                                  driverId: value === 'none' ? null : value,
+                                  driverName: driver?.name || null
+                                });
+                                setSelectedTrip(prev => ({
+                                  ...prev,
+                                  driverId: value === 'none' ? null : value,
+                                  driverName: driver?.name || null
+                                }));
+                              }}
+                            >
+                              <SelectTrigger className="h-8 text-sm" data-testid="trip-driver-select">
+                                <SelectValue placeholder="Выберите водителя" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Не назначен</SelectItem>
+                                {drivers.map(d => (
+                                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Перетащите заказы для изменения порядка
-                          </p>
-                          <div className="space-y-1 max-h-[300px] overflow-y-auto">
-                            {selectedTrip.orderIds?.map((orderId, index) => {
-                              const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
-                              return order ? (
-                                <div 
-                                  key={orderId} 
-                                  className={`flex items-center gap-2 p-2 bg-muted rounded cursor-grab active:cursor-grabbing transition-all ${
-                                    draggedOrderIndex === index ? 'opacity-50 scale-95' : ''
-                                  }`}
-                                  draggable
-                                  onDragStart={(e) => handleDragStart(e, index)}
-                                  onDragOver={(e) => handleDragOver(e, index)}
-                                  onDrop={(e) => handleDrop(e, index)}
-                                  onDragEnd={handleDragEnd}
+
+                          {/* Status */}
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium">Статус:</Label>
+                            <Select
+                              value={selectedTrip.status || 'active'}
+                              onValueChange={(value) => {
+                                updateTrip(selectedTrip.id, { status: value });
+                                setSelectedTrip(prev => ({ ...prev, status: value }));
+                              }}
+                            >
+                              <SelectTrigger className="h-8 text-sm" data-testid="trip-status-select">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Активен</SelectItem>
+                                <SelectItem value="completed">Доставлен</SelectItem>
+                                <SelectItem value="cancelled">Отменён</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Route info */}
+                          {tripRouteInfo && (
+                            <div className="flex gap-3 p-2 bg-purple-50 rounded-lg text-sm">
+                              <div className="flex items-center gap-1">
+                                <Navigation className="h-3 w-3 text-purple-600" />
+                                <span className="font-medium">{formatDistance(tripRouteInfo.distance)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-purple-600" />
+                                <span className="font-medium">{formatDuration(tripRouteInfo.duration)}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Orders in trip with reordering */}
+                          <div className="border-t pt-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-medium">Заказы ({selectedTrip.orderIds?.length || 0}):</p>
+                              {selectedTrip.orderIds?.length >= 1 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={optimizeTripRoute}
+                                  disabled={optimizingRoute}
+                                  className="gap-1 h-7 text-xs"
+                                  data-testid="optimize-route-btn"
                                 >
-                                  {/* Drag handle and index */}
-                                  <div className="flex items-center gap-1 text-muted-foreground flex-shrink-0">
-                                    <GripVertical className="h-4 w-4" />
-                                    <span className="text-xs font-medium w-5 text-center">{index + 1}</span>
-                                  </div>
-                                  
-                                  {/* Order info */}
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{order.fullName || order.customerName}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{order.fullAddress || order.address}</p>
-                                  </div>
-                                  
-                                  {/* Map status indicator */}
-                                  {order.lat && order.lng ? (
-                                    <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 flex-shrink-0">
-                                      ✓
-                                    </span>
+                                  {optimizingRoute ? (
+                                    <RefreshCw className="h-3 w-3 animate-spin" />
                                   ) : (
-                                    <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 flex-shrink-0">
-                                      ?
-                                    </span>
+                                    <Sparkles className="h-3 w-3" />
                                   )}
-                                  
-                                  {/* Move buttons */}
-                                  <div className="flex flex-col gap-0.5 flex-shrink-0">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0"
-                                      onClick={() => moveOrderUp(index)}
-                                      disabled={index === 0}
-                                      title="Переместить вверх"
-                                    >
-                                      <ArrowUp className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-5 w-5 p-0"
-                                      onClick={() => moveOrderDown(index)}
-                                      disabled={index === selectedTrip.orderIds.length - 1}
-                                      title="Переместить вниз"
-                                    >
-                                      <ArrowDown className="h-3 w-3" />
+                                  Оптимизировать
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Перетащите для изменения порядка
+                            </p>
+                            <div className="space-y-1 max-h-[250px] overflow-y-auto">
+                              {selectedTrip.orderIds?.map((orderId, index) => {
+                                const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
+                                return order ? (
+                                  <div 
+                                    key={orderId} 
+                                    className={`flex items-center gap-1 p-1.5 bg-muted rounded cursor-grab active:cursor-grabbing transition-all text-xs ${
+                                      draggedOrderIndex === index ? 'opacity-50 scale-95' : ''
+                                    }`}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDrop={(e) => handleDrop(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                  >
+                                    <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                    <span className="font-medium w-4 text-center text-muted-foreground">{index + 1}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium truncate">{order.fullName || order.customerName}</p>
+                                      <p className="text-muted-foreground truncate">{order.fullAddress || order.address}</p>
+                                    </div>
+                                    {order.lat && order.lng ? (
+                                      <span className="px-1 rounded bg-green-100 text-green-700 flex-shrink-0">✓</span>
+                                    ) : (
+                                      <span className="px-1 rounded bg-gray-100 text-gray-500 flex-shrink-0">?</span>
+                                    )}
+                                    <div className="flex flex-col flex-shrink-0">
+                                      <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderUp(index)} disabled={index === 0}>
+                                        <ArrowUp className="h-2.5 w-2.5" />
+                                      </Button>
+                                      <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderDown(index)} disabled={index === selectedTrip.orderIds.length - 1}>
+                                        <ArrowDown className="h-2.5 w-2.5" />
+                                      </Button>
+                                    </div>
+                                    <Button size="sm" variant="ghost" onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)} className="text-red-500 h-5 w-5 p-0 flex-shrink-0">
+                                      <X className="h-3 w-3" />
                                     </Button>
                                   </div>
-                                  
-                                  {/* Remove button */}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)}
-                                    className="text-red-500 hover:text-red-700 flex-shrink-0 h-6 w-6 p-0"
-                                    title="Убрать из рейса"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div key={orderId} className="p-2 bg-muted rounded text-xs text-muted-foreground">
-                                  Заказ {orderId} не найден
-                                </div>
-                              );
-                            })}
-                            {(!selectedTrip.orderIds || selectedTrip.orderIds.length === 0) && (
-                              <p className="text-center text-muted-foreground py-4 text-sm">
-                                В рейсе нет заказов
-                              </p>
-                            )}
+                                ) : (
+                                  <div key={orderId} className="p-1.5 bg-muted rounded text-xs text-muted-foreground">
+                                    Заказ {orderId} не найден
+                                  </div>
+                                );
+                              })}
+                              {(!selectedTrip.orderIds || selectedTrip.orderIds.length === 0) && (
+                                <p className="text-center text-muted-foreground py-3 text-xs">
+                                  Нет заказов
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Delete Trip Button */}
-                        <div className="border-t pt-4">
+                          {/* Delete Trip Button */}
                           <Button
                             variant="outline"
-                            className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                            size="sm"
+                            className="w-full text-red-600 border-red-200 hover:bg-red-50 mt-2"
                             onClick={() => deleteTrip(selectedTrip.id)}
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-3 w-3 mr-1" />
                             Удалить рейс
                           </Button>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-8">
-                        Выберите рейс слева для просмотра деталей
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
+                      ) : (
+                        <p className="text-center text-muted-foreground py-8 text-sm">
+                          Выберите рейс слева
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Trip Map - Right Column */}
+                <div className="lg:col-span-5">
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Карта маршрута
+                        {buildingTripRoute && <RefreshCw className="h-3 w-3 animate-spin ml-2" />}
+                      </CardTitle>
+                      {!warehouseCoords && (
+                        <p className="text-xs text-orange-600 flex items-center gap-1 mt-1">
+                          <Warehouse className="h-3 w-3" />
+                          Укажите адрес склада в настройках для построения полного маршрута
+                        </p>
+                      )}
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      {!isLoaded ? (
+                        <div className="flex items-center justify-center h-[400px] bg-muted rounded-lg">
+                          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : (
+                        <GoogleMap
+                          mapContainerStyle={{ width: '100%', height: '400px', borderRadius: '8px' }}
+                          center={defaultCenter}
+                          zoom={6}
+                          onLoad={(map) => { tripMapRef.current = map; }}
+                          options={{
+                            streetViewControl: false,
+                            mapTypeControl: false,
+                            fullscreenControl: true
+                          }}
+                        >
+                          {/* Warehouse marker */}
+                          {warehouseCoords && warehouseCoords.lat && warehouseCoords.lng && (
+                            <Marker
+                              key="warehouse-trip"
+                              position={{ lat: warehouseCoords.lat, lng: warehouseCoords.lng }}
+                              title={`Склад: ${warehouseAddress}`}
+                              icon={{
+                                path: window.google.maps.SymbolPath.CIRCLE,
+                                scale: 14,
+                                fillColor: '#f97316',
+                                fillOpacity: 1,
+                                strokeColor: 'white',
+                                strokeWeight: 3
+                              }}
+                              label={{
+                                text: 'С',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                fontSize: '12px'
+                              }}
+                            />
+                          )}
+                          
+                          {/* Order markers for selected trip */}
+                          {selectedTrip && selectedTrip.orderIds?.map((orderId, index) => {
+                            const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
+                            if (!order || !order.lat || !order.lng) return null;
+                            return (
+                              <Marker
+                                key={`trip-order-${orderId}`}
+                                position={{ lat: order.lat, lng: order.lng }}
+                                title={`${index + 1}. ${order.fullName || order.customerName}\n${order.fullAddress || order.address}`}
+                                label={{
+                                  text: String(index + 1),
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  fontSize: '11px'
+                                }}
+                                icon={{
+                                  path: window.google.maps.SymbolPath.CIRCLE,
+                                  scale: 14,
+                                  fillColor: '#9333ea',
+                                  fillOpacity: 1,
+                                  strokeColor: 'white',
+                                  strokeWeight: 2
+                                }}
+                              />
+                            );
+                          })}
+                          
+                          {/* Route */}
+                          {tripDirections && (
+                            <DirectionsRenderer
+                              directions={tripDirections}
+                              options={{
+                                suppressMarkers: true,
+                                polylineOptions: {
+                                  strokeColor: '#9333ea',
+                                  strokeWeight: 4,
+                                  strokeOpacity: 0.8
+                                }
+                              }}
+                            />
+                          )}
+                        </GoogleMap>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             )}
           </TabsContent>
