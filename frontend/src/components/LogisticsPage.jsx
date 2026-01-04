@@ -421,14 +421,27 @@ export const LogisticsPage = () => {
       return;
     }
 
+    // Get selected orders with coordinates
+    const ordersWithCoords = currentData.selectedOrders
+      .map(id => currentData.orders.find(o => o.id === id))
+      .filter(o => o && o.lat && o.lng);
+
+    if (ordersWithCoords.length < 2) {
+      toast.error('Нужно минимум 2 заказа с координатами на карте');
+      return;
+    }
+
     setBuildingRoute(true);
     try {
       const directionsService = new window.google.maps.DirectionsService();
       
-      const origin = currentData.markers[0].position;
-      const destination = currentData.markers[currentData.markers.length - 1].position;
-      const waypoints = currentData.markers.slice(1, -1).map(m => ({
-        location: m.position,
+      const origin = { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
+      const destination = { 
+        lat: ordersWithCoords[ordersWithCoords.length - 1].lat, 
+        lng: ordersWithCoords[ordersWithCoords.length - 1].lng 
+      };
+      const waypoints = ordersWithCoords.slice(1, -1).map(o => ({
+        location: { lat: o.lat, lng: o.lng },
         stopover: true
       }));
 
@@ -466,7 +479,6 @@ export const LogisticsPage = () => {
       [activeSection]: {
         ...prev[activeSection],
         selectedOrders: [],
-        markers: [],
         directions: null,
         routeInfo: null
       }
