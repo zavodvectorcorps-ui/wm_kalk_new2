@@ -28,12 +28,6 @@ webhook_logs = db["webhook_logs"]
 logger = logging.getLogger(__name__)
 
 
-class PipelineConfig(BaseModel):
-    enabled: bool = False
-    pipeline_id: str = ""
-    status_id: str = ""
-
-
 class AmoCRMSettings(BaseModel):
     enabled: bool = False
     # amoCRM API credentials for syncing back
@@ -42,15 +36,6 @@ class AmoCRMSettings(BaseModel):
     # Field IDs for status sync
     status_field_id: str = ""  # Custom field ID for delivery status
     comment_field_id: str = ""  # Custom field ID for comments/date
-
-
-class AmoCRMSettingsResponse(BaseModel):
-    enabled: bool
-    webhook_urls: dict
-    amocrm_domain: str
-    amocrm_token: str
-    status_field_id: str
-    comment_field_id: str
 
 
 def get_default_settings():
