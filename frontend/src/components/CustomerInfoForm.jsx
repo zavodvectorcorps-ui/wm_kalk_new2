@@ -65,6 +65,15 @@ export const DynamicCustomerForm = ({
     }
   };
 
+  const handleAddressChange = (fieldId, address, details) => {
+    if (setFormData) {
+      setFormData(prev => ({ ...prev, [fieldId]: address }));
+    } else if (onChange) {
+      // Create synthetic event for compatibility
+      onChange({ target: { name: fieldId, value: address } });
+    }
+  };
+
   const getFieldLabel = (field) => {
     if (lang === 'ru') return field.nameRu || field.name;
     if (lang === 'pl') return field.namePl || field.name;
