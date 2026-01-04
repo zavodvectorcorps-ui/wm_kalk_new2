@@ -6,6 +6,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { User, Phone, MapPin, Calendar, Mail, FileText } from 'lucide-react';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
