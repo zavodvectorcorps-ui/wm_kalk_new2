@@ -2145,40 +2145,46 @@ export const LogisticsPage = () => {
                           </Button>
                         </div>
                       ) : (
-                        <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                          {trips.filter(t => t.section === sectionKey).map((trip) => (
-                            <div
-                              key={trip.id}
-                              className={`p-2 border rounded-lg cursor-pointer transition-colors ${
-                                selectedTrip?.id === trip.id ? 'bg-purple-50 border-purple-300' : 'hover:bg-muted/50'
-                              }`}
-                              onClick={() => setSelectedTrip(trip)}
-                              data-testid={`trip-card-${trip.id}`}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0 flex-1">
-                                  <p className="font-medium text-sm truncate">{trip.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {trip.orderIds?.length || 0} заказов
-                                  </p>
-                                  {trip.driverName && (
-                                    <p className="text-xs text-blue-600 flex items-center gap-1 mt-0.5">
-                                      <User className="h-3 w-3" />
-                                      {trip.driverName}
-                                    </p>
-                                  )}
+                        <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                          {/* Group trips by status */}
+                          {Object.entries(TRIP_STATUSES).map(([statusKey, statusInfo]) => {
+                            const statusTrips = trips.filter(t => t.section === sectionKey && (t.status || 'planned') === statusKey);
+                            if (statusTrips.length === 0) return null;
+                            const StatusIcon = statusInfo.icon;
+                            return (
+                              <div key={statusKey} className="space-y-2">
+                                <div className={`flex items-center gap-2 text-xs font-medium px-2 py-1 rounded ${statusInfo.color}`}>
+                                  <StatusIcon className="h-3 w-3" />
+                                  {statusInfo.label} ({statusTrips.length})
                                 </div>
-                                <Badge className={`text-xs flex-shrink-0 ${
-                                  trip.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                                  trip.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                  'bg-blue-100 text-blue-700'
-                                }`}>
-                                  {trip.status === 'completed' ? '✓' : 
-                                   trip.status === 'cancelled' ? '✕' : '●'}
-                                </Badge>
+                                {statusTrips.map((trip) => (
+                                  <div
+                                    key={trip.id}
+                                    className={`p-2 border rounded-lg cursor-pointer transition-colors ${
+                                      selectedTrip?.id === trip.id ? 'bg-purple-50 border-purple-300' : 'hover:bg-muted/50'
+                                    }`}
+                                    onClick={() => setSelectedTrip(trip)}
+                                    data-testid={`trip-card-${trip.id}`}
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-sm truncate">{trip.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {trip.orderIds?.length || 0} заказов
+                                        </p>
+                                        {trip.driverName && (
+                                          <p className="text-xs text-blue-600 flex items-center gap-1 mt-0.5">
+                                            <User className="h-3 w-3" />
+                                            {trip.driverName}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </CardContent>
