@@ -189,6 +189,49 @@ export const LogisticsPage = () => {
     }
   }, []);
 
+  // Load warehouse settings from localStorage
+  useEffect(() => {
+    const savedWarehouse = localStorage.getItem('logistics_warehouse');
+    if (savedWarehouse) {
+      try {
+        const data = JSON.parse(savedWarehouse);
+        setWarehouseAddress(data.address || '');
+        setWarehouseCoords(data.coords || null);
+      } catch (e) {
+        console.error('Failed to load warehouse settings:', e);
+      }
+    }
+  }, []);
+
+  // Save warehouse settings
+  const saveWarehouseSettings = async () => {
+    if (!warehouseAddress.trim()) {
+      toast.error('Введите адрес склада');
+      return;
+    }
+    
+    setSavingSettings(true);
+    try {
+      // Geocode warehouse address
+      const coords = await geocodeAddress(warehouseAddress);
+      setWarehouseCoords(coords);
+      
+      // Save to localStorage
+      localStorage.setItem('logistics_warehouse', JSON.stringify({
+        address: warehouseAddress,
+        coords
+      }));
+      
+      toast.success('Настройки сохранены');
+      setShowSettingsModal(false);
+    } catch (error) {
+      console.error('Failed to geocode warehouse:', error);
+      toast.error('Не удалось определить координаты склада. Проверьте адрес.');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   // Save drivers to localStorage
   const saveDrivers = (newDrivers) => {
     setDrivers(newDrivers);
