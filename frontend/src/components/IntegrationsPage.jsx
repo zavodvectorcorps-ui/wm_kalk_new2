@@ -126,23 +126,12 @@ export const IntegrationsPage = () => {
     }
   };
 
-  const copyWebhookUrl = () => {
-    navigator.clipboard.writeText(settings.webhook_url);
-    setCopied(true);
+  const copyWebhookUrl = (section) => {
+    const url = settings.webhook_urls?.[section] || '';
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(section);
     toast.success('URL скопирован');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const generateSecretKey = () => {
-    const key = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
-    setSettings(prev => ({ ...prev, secret_key: key }));
-  };
-
-  const updatePipelineConfig = (section, field, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [section]: { ...prev[section], [field]: value }
-    }));
+    setTimeout(() => setCopiedUrl(null), 2000);
   };
 
   const getStatusBadge = (status) => {
