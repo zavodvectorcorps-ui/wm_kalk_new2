@@ -101,7 +101,7 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 max-w-7xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-8 mb-6">
+          <TabsList className="grid w-full grid-cols-7 mb-6">
             <TabsTrigger value="orders" className="gap-2">
               <ClipboardList className="h-4 w-4" />
               <span className="hidden sm:inline">{txt.orders}</span>
@@ -117,10 +117,6 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
             <TabsTrigger value="prices" className="gap-2">
               <DollarSign className="h-4 w-4" />
               <span className="hidden sm:inline">{txt.prices}</span>
-            </TabsTrigger>
-            <TabsTrigger value="techspec" className="gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">{txt.techSpec}</span>
             </TabsTrigger>
             <TabsTrigger value="employees" className="gap-2">
               <Users className="h-4 w-4" />
@@ -154,13 +150,17 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
             {pricesType === 'balia' ? (
               <BaliaPricingPage />
             ) : (
-              <SaunaPricingPage />
+              <div className="space-y-6">
+                <SaunaPricingPage />
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    {txt.techSpec}
+                  </h3>
+                  <TechSpecAdminPage projectType="sauna" />
+                </div>
+              </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="techspec">
-            <TypeSelector value={techSpecType} onChange={setTechSpecType} />
-            <TechSpecAdminPage projectType={techSpecType} />
           </TabsContent>
 
           <TabsContent value="employees">
