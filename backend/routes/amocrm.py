@@ -222,6 +222,13 @@ async def get_settings(request: Request):
             "balia": f"{base_url}/api/integrations/amocrm/webhook/balia",
             "sauna": f"{base_url}/api/integrations/amocrm/webhook/sauna"
         },
+        # Field mapping
+        "field_mapping": settings.get("field_mapping", {
+            "fullName": "",
+            "phoneNumber": "",
+            "fullAddress": "",
+            "notes": ""
+        }),
         # Sync settings (for two-way sync)
         "amocrm_domain": settings.get("amocrm_domain", ""),
         "amocrm_token": settings.get("amocrm_token", ""),
