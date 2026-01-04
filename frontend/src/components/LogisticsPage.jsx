@@ -1063,8 +1063,7 @@ export const LogisticsPage = () => {
                                           updateDeliveryStatus(order.id, order.deliveryStatus || 'pending', e.target.value);
                                         }
                                       }}
-                                      />
-                                    </div>
+                                    />
                                     
                                     {order.amocrm_id && (
                                       <p className="text-xs text-purple-500 flex items-center gap-1">
