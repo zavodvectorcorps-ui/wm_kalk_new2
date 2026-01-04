@@ -5,6 +5,19 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Two-Way amoCRM Sync Backend (2026-01-04)
+- **Feature**: Backend logic for syncing delivery status back to amoCRM
+- **Endpoint**: `POST /api/integrations/amocrm/sync-status` - updates lead in amoCRM
+- **Improvements**:
+  - Graceful handling when credentials not configured (returns `skipped` status instead of error)
+  - All sync attempts logged to `webhook_logs` collection for debugging
+  - Frontend handles sync response properly
+- **How it works**: When delivery status changes in Logistics, the system automatically sends the new status to amoCRM custom field if API credentials are configured
+- **Files updated**:
+  - `/app/backend/routes/amocrm.py` - Improved sync-status endpoint
+  - `/app/frontend/src/components/LogisticsPage.jsx` - Better sync response handling
+- **Status**: ✅ Implemented (requires user to configure amoCRM credentials)
+
 ### Delivery Status in Logistics (2026-01-04)
 - **Visual Status Badge**: Each order card shows delivery status (Ожидает, Готовится, В пути, Доставлено)
 - **Status Change**: Dropdown in expanded card to change status
