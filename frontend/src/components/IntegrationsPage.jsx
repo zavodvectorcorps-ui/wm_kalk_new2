@@ -297,7 +297,7 @@ export const IntegrationsPage = () => {
                   <Badge variant="outline" className="h-6 w-6 rounded-full p-0 flex items-center justify-center shrink-0">2</Badge>
                   <div>
                     <p className="font-medium">Добавьте Webhook в Digital Pipeline</p>
-                    <p className="text-muted-foreground">В настройках воронки amoCRM добавьте действие "WebHook" на нужный этап</p>
+                    <p className="text-muted-foreground">В настройках воронки amoCRM добавьте действие WebHook на нужный этап</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
