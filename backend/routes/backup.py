@@ -516,6 +516,22 @@ async def import_backup(file: UploadFile = File(...)):
                     logger.error(f"Error importing sauna_orders: {e}")
                     import_stats["errors"].append(f"sauna_orders: {str(e)}")
             
+            # Import Greenhouse orders - REPLACE ALL (full restore)
+            if "greenhouse_orders.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("greenhouse_orders.json").decode('utf-8'))
+                    await db.greenhouse_orders.delete_many({})
+                    count = 0
+                    for order in data:
+                        order.pop('_id', None)
+                        await db.greenhouse_orders.insert_one(order)
+                        count += 1
+                    import_stats["imported"]["greenhouse_orders"] = count
+                    logger.info(f"Imported {count} greenhouse orders (replaced all)")
+                except Exception as e:
+                    logger.error(f"Error importing greenhouse_orders: {e}")
+                    import_stats["errors"].append(f"greenhouse_orders: {str(e)}")
+            
             # Import Web orders - REPLACE ALL (full restore)
             if "web_orders.json" in file_list:
                 try:
