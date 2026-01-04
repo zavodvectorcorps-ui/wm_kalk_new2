@@ -901,7 +901,7 @@ async def create_auto_backup():
         
         # For Telegram - create ZIP with full data
         backup_manifest = {
-            "version": "2.0",
+            "version": "3.0",
             "createdAt": backup_data["createdAt"],
             "collections": []
         }
@@ -917,10 +917,25 @@ async def create_auto_backup():
         if sauna_orders:
             backup_manifest["collections"].append({"name": "sauna_orders", "count": len(sauna_orders)})
         
+        greenhouse_orders = await db.greenhouse_orders.find({}).to_list(10000)
+        backup_data["collections"]["greenhouse_orders"] = [serialize_for_json(o) for o in greenhouse_orders]
+        if greenhouse_orders:
+            backup_manifest["collections"].append({"name": "greenhouse_orders", "count": len(greenhouse_orders)})
+        
         web_orders = await db.web_orders.find({}).to_list(10000)
         backup_data["collections"]["web_orders"] = [serialize_for_json(o) for o in web_orders]
         if web_orders:
             backup_manifest["collections"].append({"name": "web_orders", "count": len(web_orders)})
+        
+        trips = await db.trips.find({}).to_list(10000)
+        backup_data["collections"]["trips"] = [serialize_for_json(t) for t in trips]
+        if trips:
+            backup_manifest["collections"].append({"name": "trips", "count": len(trips)})
+        
+        drivers = await db.drivers.find({}).to_list(1000)
+        backup_data["collections"]["drivers"] = [serialize_for_json(d) for d in drivers]
+        if drivers:
+            backup_manifest["collections"].append({"name": "drivers", "count": len(drivers)})
         
         users = await db.users.find({}).to_list(1000)
         backup_data["collections"]["users"] = [serialize_for_json(u) for u in users]
