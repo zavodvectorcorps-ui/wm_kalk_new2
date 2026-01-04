@@ -251,16 +251,19 @@ export const LogisticsPage = () => {
     saveDrivers(drivers.filter(d => d.id !== driverId));
   };
 
-  // Fetch orders for a specific section
+  // Fetch orders for a specific section (only amoCRM orders for logistics)
   const fetchSectionOrders = useCallback(async (sectionId) => {
     const section = SECTIONS[sectionId];
     try {
       const res = await fetch(`${API_URL}${section.endpoint}`);
       if (res.ok) {
-        const orders = await res.json();
-        return orders
+        const allOrders = await res.json();
+        // Filter only amoCRM orders for logistics
+        const orders = allOrders
+          .filter(o => o.amocrm_id || o.source === 'amocrm')
           .map(o => ({ ...o, orderType: sectionId }))
           .sort((a, b) => new Date(b.orderDate || b.createdAt) - new Date(a.orderDate || a.createdAt));
+        return orders;
       }
       return [];
     } catch (error) {
