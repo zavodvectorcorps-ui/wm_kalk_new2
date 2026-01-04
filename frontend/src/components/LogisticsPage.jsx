@@ -2359,8 +2359,6 @@ export const LogisticsPage = () => {
                                       </Select>
                                     </div>
                                   </div>
-                                    </Button>
-                                  </div>
                                 ) : (
                                   <div key={orderId} className="p-1.5 bg-muted rounded text-xs text-muted-foreground">
                                     Заказ {orderId} не найден
