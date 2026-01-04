@@ -64,7 +64,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
         </div>
 
         {/* Calculator Cards */}
-        <div className={`grid grid-cols-1 gap-6 ${canAccessAdmin ? 'md:grid-cols-3' : 'md:grid-cols-2 max-w-4xl mx-auto'}`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Balia Card */}
           <Card 
             className={`group transition-all duration-300 border-2 ${
