@@ -139,7 +139,6 @@ def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str] = None
     Args:
         data: Parsed webhook data
         field_mapping: Optional dict mapping our fields to amoCRM field IDs
-                      e.g. {"fullName": "123456", "phoneNumber": "123457"}
     """
     lead_data = {}
     field_mapping = field_mapping or {}
@@ -166,95 +165,120 @@ def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str] = None
     if isinstance(leads, list):
         lead = leads[0] if leads else None
     elif isinstance(leads, dict):
-        # Dict with keys like "0", "1", etc.
         lead = leads.get("0") or leads.get(0) or next(iter(leads.values()), None)
     
     logger.info(f"Extracted lead: {lead}")
     
-    if isinstance(lead, dict):
-        # Basic fields
-        lead_data["amocrm_id"] = str(lead.get("id", ""))
-        lead_data["amocrm_name"] = lead.get("name", "")
-        lead_data["pipeline_id"] = str(lead.get("pipeline_id", ""))
-        lead_data["status_id"] = str(lead.get("status_id", ""))
-        lead_data["price"] = lead.get("price", 0)
+    if not isinstance(lead, dict):
+        return lead_data
+    
+    # Basic fields from lead
+    lead_data["amocrm_id"] = str(lead.get("id", ""))
+    lead_data["amocrm_name"] = lead.get("name", "")
+    lead_data["pipeline_id"] = str(lead.get("pipeline_id", ""))
+    lead_data["status_id"] = str(lead.get("status_id", ""))
+    lead_data["price"] = lead.get("price", 0)
+    
+    # Extract custom fields
+    custom_fields = lead.get("custom_fields", [])
+    fields_list = []
+    if isinstance(custom_fields, list):
+        fields_list = custom_fields
+    elif isinstance(custom_fields, dict):
+        fields_list = list(custom_fields.values())
+    
+    # Build maps of field_id -> value and field_name -> value
+    field_values_by_id = {}
+    field_values_by_name = {}
+    
+    for field in fields_list:
+        if not isinstance(field, dict):
+            continue
         
-        # Extract custom fields (could be list or dict with "0", "1" keys)
-        custom_fields = lead.get("custom_fields", [])
-        fields_list = []
-        if isinstance(custom_fields, list):
-            fields_list = custom_fields
-        elif isinstance(custom_fields, dict):
-            # Convert dict to list
-            fields_list = list(custom_fields.values())
+        field_id = str(field.get("id", ""))
+        field_name = str(field.get("name", "")).lower()
+        values = field.get("values", [])
         
-        # Build a map of field_id -> value for quick lookup
-        field_values_by_id = {}
-        field_values_by_name = {}
+        # Handle values as dict or list
+        value = ""
+        if isinstance(values, list) and values:
+            value = values[0].get("value", "") if isinstance(values[0], dict) else str(values[0])
+        elif isinstance(values, dict):
+            first_val = values.get("0") or next(iter(values.values()), {})
+            value = first_val.get("value", "") if isinstance(first_val, dict) else str(first_val)
         
-        for field in fields_list:
-            if not isinstance(field, dict):
-                continue
-            
-            field_id = str(field.get("id", ""))
-            field_name = str(field.get("name", "")).lower()
-            values = field.get("values", [])
-            
-            # Handle values as dict or list
-            value = ""
-            if isinstance(values, list) and values:
-                value = values[0].get("value", "") if isinstance(values[0], dict) else str(values[0])
-            elif isinstance(values, dict):
-                first_val = values.get("0") or next(iter(values.values()), {})
-                value = first_val.get("value", "") if isinstance(first_val, dict) else str(first_val)
-            
-            if field_id:
-                field_values_by_id[field_id] = value
-            if field_name:
-                field_values_by_name[field_name] = value
-        
-        # Map fields - priority: explicit ID > auto-detect by name
-        
-        # fullName
-        if field_mapping.get("fullName"):
-            lead_data["fullName"] = field_values_by_id.get(field_mapping["fullName"], "")
-        else:
-            # Auto-detect
+        if field_id:
+            field_values_by_id[field_id] = value
+        if field_name:
+            field_values_by_name[field_name] = value
+    
+    # Helper to get field value by ID or auto-detect by keywords
+    def get_field_value(mapping_key, auto_keywords=None):
+        if field_mapping.get(mapping_key):
+            return field_values_by_id.get(field_mapping[mapping_key], "")
+        if auto_keywords:
             for name, value in field_values_by_name.items():
-                if "имя" in name or "name" in name or "контакт" in name or "фио" in name:
-                    lead_data["fullName"] = value
-                    break
+                if any(kw in name for kw in auto_keywords):
+                    return value
+        return ""
+    
+    # === MAP ALL FIELDS ===
+    
+    # Имя клиента
+    lead_data["fullName"] = get_field_value("fullName", ["имя", "name", "контакт", "фио", "клиент"])
+    if not lead_data["fullName"]:
+        lead_data["fullName"] = lead_data.get("amocrm_name", "")
+    
+    # Телефон клиента
+    lead_data["phoneNumber"] = get_field_value("phoneNumber", ["телефон", "phone", "тел", "моб"])
+    
+    # Номер заказа
+    lead_data["orderNumber"] = get_field_value("orderNumber", ["номер заказа", "order number", "№ заказа"])
+    
+    # Адрес - может быть одним полем или 3 отдельными
+    full_address = get_field_value("fullAddress", ["адрес", "address"])
+    
+    # Если полный адрес пустой, пробуем собрать из 3 полей
+    if not full_address:
+        address_parts = []
         
-        # phoneNumber
-        if field_mapping.get("phoneNumber"):
-            lead_data["phoneNumber"] = field_values_by_id.get(field_mapping["phoneNumber"], "")
-        else:
-            for name, value in field_values_by_name.items():
-                if "телефон" in name or "phone" in name or "тел" in name:
-                    lead_data["phoneNumber"] = value
-                    break
+        # Индекс
+        index_val = get_field_value("addressIndex", ["индекс", "postal", "zip"])
+        if index_val:
+            address_parts.append(index_val)
         
-        # fullAddress
-        if field_mapping.get("fullAddress"):
-            lead_data["fullAddress"] = field_values_by_id.get(field_mapping["fullAddress"], "")
-        else:
-            for name, value in field_values_by_name.items():
-                if "адрес" in name or "address" in name:
-                    lead_data["fullAddress"] = value
-                    break
+        # Город
+        city_val = get_field_value("addressCity", ["город", "city", "населенный пункт"])
+        if city_val:
+            address_parts.append(city_val)
         
-        # notes
-        if field_mapping.get("notes"):
-            lead_data["notes"] = field_values_by_id.get(field_mapping["notes"], "")
-        else:
-            for name, value in field_values_by_name.items():
-                if "примечан" in name or "коммент" in name or "note" in name or "comment" in name:
-                    lead_data["notes"] = value
-                    break
+        # Улица
+        street_val = get_field_value("addressStreet", ["улица", "street", "ул."])
+        if street_val:
+            address_parts.append(street_val)
         
-        # Fallback to lead name if no contact name
-        if not lead_data.get("fullName"):
-            lead_data["fullName"] = lead_data.get("amocrm_name", "Без имени")
+        if address_parts:
+            full_address = ", ".join(address_parts)
+    
+    lead_data["fullAddress"] = full_address
+    
+    # Состав заказа
+    lead_data["orderContents"] = get_field_value("orderContents", ["состав", "комплектация", "товар", "продукт"])
+    
+    # Комментарий к заказу
+    lead_data["orderComment"] = get_field_value("orderComment", ["коммент", "примечан", "note", "comment"])
+    
+    # Сумма сделки - если не указано поле, берём из бюджета сделки
+    deal_sum = get_field_value("dealSum", ["сумма сделки", "стоимость", "итого"])
+    if not deal_sum and lead_data.get("price"):
+        deal_sum = str(lead_data["price"])
+    lead_data["dealSum"] = deal_sum
+    
+    # Сумма задолженности
+    lead_data["debtSum"] = get_field_value("debtSum", ["задолженность", "долг", "остаток", "debt"])
+    
+    # Для обратной совместимости - notes
+    lead_data["notes"] = lead_data.get("orderComment", "")
     
     logger.info(f"Final lead_data: {lead_data}")
     return lead_data
