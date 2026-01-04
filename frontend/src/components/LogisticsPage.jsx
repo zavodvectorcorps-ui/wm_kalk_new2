@@ -1152,11 +1152,23 @@ export const LogisticsPage = () => {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <SectionIcon className={`h-5 w-5 ${currentSection.color}`} />
-                      {currentSection.name.ru}
+                      {currentSection.name.ru} (без рейса)
                     </CardTitle>
-                    <Badge variant="secondary" className={currentSection.bgColor}>
-                      {sectionData[sectionKey].orders.length} заказов
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {currentData.selectedOrders.length > 0 && (
+                        <Button
+                          size="sm"
+                          onClick={() => setShowCreateTripModal(true)}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Создать рейс ({currentData.selectedOrders.length})
+                        </Button>
+                      )}
+                      <Badge variant="secondary" className={currentSection.bgColor}>
+                        {getUnassignedOrders(sectionData[sectionKey].orders).length} заказов
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
