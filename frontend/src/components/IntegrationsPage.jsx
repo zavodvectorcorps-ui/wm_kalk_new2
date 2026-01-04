@@ -174,45 +174,39 @@ export const IntegrationsPage = () => {
     );
   }
 
-  const PipelineConfigCard = ({ section, icon: Icon, title, color, bgColor }) => (
-    <Card className={`border-2 ${settings[section]?.enabled ? `${bgColor}/20 border-${color}/30` : ''}`}>
+  // Webhook URL Card component
+  const WebhookUrlCard = ({ section, icon: Icon, title, color, bgColor }) => (
+    <Card className={`border-2 ${bgColor}/20`}>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Icon className={`h-5 w-5 ${color}`} />
-            {title}
-          </CardTitle>
-          <Switch
-            checked={settings[section]?.enabled || false}
-            onCheckedChange={(checked) => updatePipelineConfig(section, 'enabled', checked)}
-          />
-        </div>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Icon className={`h-5 w-5 ${color}`} />
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-2">
-          <Label className="text-sm">ID воронки (Pipeline ID)</Label>
-          <Input
-            value={settings[section]?.pipeline_id || ''}
-            onChange={(e) => updatePipelineConfig(section, 'pipeline_id', e.target.value)}
-            placeholder="Например: 1234567"
-            disabled={!settings[section]?.enabled}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-sm">ID этапа (Status ID) - опционально</Label>
-          <Input
-            value={settings[section]?.status_id || ''}
-            onChange={(e) => updatePipelineConfig(section, 'status_id', e.target.value)}
-            placeholder="Например: 142"
-            disabled={!settings[section]?.enabled}
-          />
+          <Label className="text-sm">URL для Webhook</Label>
+          <div className="flex gap-2">
+            <Input
+              value={settings.webhook_urls?.[section] || ''}
+              readOnly
+              className="font-mono text-xs bg-muted"
+            />
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => copyWebhookUrl(section)}
+            >
+              {copiedUrl === section ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
         <Button
           size="sm"
           variant="outline"
           onClick={() => testIntegration(section)}
           disabled={testing === section}
-          className="w-full mt-2"
+          className="w-full"
         >
           {testing === section ? (
             <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -236,7 +230,7 @@ export const IntegrationsPage = () => {
         <TabsList>
           <TabsTrigger value="settings" className="gap-2">
             <Settings className="h-4 w-4" />
-            Настройки
+            Webhook URLs
           </TabsTrigger>
           <TabsTrigger value="sync" className="gap-2">
             <ArrowLeftRight className="h-4 w-4" />
@@ -260,7 +254,7 @@ export const IntegrationsPage = () => {
                     amoCRM Webhook
                   </CardTitle>
                   <CardDescription>
-                    Автоматическое создание заказов при переходе сделки на определённый этап
+                    Автоматическое создание заказов при переходе сделки на нужный этап
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -273,63 +267,31 @@ export const IntegrationsPage = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Webhook URL */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Webhook className="h-4 w-4" />
-                  URL для Webhook (единый для всех воронок)
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={settings.webhook_url}
-                    readOnly
-                    className="font-mono text-sm bg-muted"
-                  />
-                  <Button variant="outline" onClick={copyWebhookUrl}>
-                    {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Secret Key */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Секретный ключ
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={settings.secret_key}
-                    onChange={(e) => setSettings(prev => ({ ...prev, secret_key: e.target.value }))}
-                    placeholder="Оставьте пустым или сгенерируйте"
-                    className="font-mono"
-                  />
-                  <Button variant="outline" onClick={generateSecretKey}>
-                    Сгенерировать
-                  </Button>
-                </div>
-              </div>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Скопируйте нужный URL и вставьте его в настройки Digital Pipeline в amoCRM на этапе, 
+                при достижении которого должен создаваться заказ.
+              </p>
             </CardContent>
           </Card>
 
-          {/* Pipeline Configurations */}
+          {/* Webhook URLs for each section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <PipelineConfigCard
+            <WebhookUrlCard
               section="greenhouse"
               icon={Warehouse}
               title="Теплицы"
               color="text-green-600"
               bgColor="bg-green-100"
             />
-            <PipelineConfigCard
+            <WebhookUrlCard
               section="balia"
               icon={Waves}
               title="Купели"
               color="text-blue-600"
               bgColor="bg-blue-100"
             />
-            <PipelineConfigCard
+            <WebhookUrlCard
               section="sauna"
               icon={Flame}
               title="Сауны"
@@ -342,7 +304,7 @@ export const IntegrationsPage = () => {
           <div className="flex justify-end">
             <Button onClick={saveSettings} disabled={saving} size="lg">
               {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Сохранить все настройки
+              Сохранить настройки
             </Button>
           </div>
 
@@ -357,19 +319,19 @@ export const IntegrationsPage = () => {
             <CardContent className="space-y-3 text-sm">
               <div className="flex gap-3">
                 <Badge variant="outline" className="h-6 w-6 rounded-full p-0 flex items-center justify-center shrink-0">1</Badge>
-                <p>Определите ID воронок в amoCRM (в настройках или через API)</p>
+                <p>Включите интеграцию и сохраните настройки</p>
               </div>
               <div className="flex gap-3">
                 <Badge variant="outline" className="h-6 w-6 rounded-full p-0 flex items-center justify-center shrink-0">2</Badge>
-                <p>Введите ID воронки для каждого раздела и включите нужные разделы</p>
+                <p>Скопируйте URL webhook для нужного раздела (Теплицы, Купели или Сауны)</p>
               </div>
               <div className="flex gap-3">
                 <Badge variant="outline" className="h-6 w-6 rounded-full p-0 flex items-center justify-center shrink-0">3</Badge>
-                <p>Скопируйте URL webhook и добавьте его в настройки Digital Pipeline в amoCRM на нужный этап</p>
+                <p>В amoCRM откройте настройки воронки → Digital Pipeline → выберите этап → добавьте Webhook с скопированным URL</p>
               </div>
               <div className="flex gap-3">
                 <Badge variant="outline" className="h-6 w-6 rounded-full p-0 flex items-center justify-center shrink-0">4</Badge>
-                <p>Переведите тестовую сделку на этап - заказ появится в соответствующем разделе Логистики</p>
+                <p>Переведите тестовую сделку на этот этап — заказ появится в соответствующем разделе Логистики</p>
               </div>
               <div className="pt-3 border-t">
                 <a 
