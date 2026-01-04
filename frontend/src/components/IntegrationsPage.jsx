@@ -32,21 +32,21 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 export const IntegrationsPage = () => {
   const [settings, setSettings] = useState({
     enabled: false,
-    secret_key: '',
-    greenhouse: { enabled: false, pipeline_id: '', status_id: '' },
-    balia: { enabled: false, pipeline_id: '', status_id: '' },
-    sauna: { enabled: false, pipeline_id: '', status_id: '' },
+    webhook_urls: {
+      greenhouse: '',
+      balia: '',
+      sauna: ''
+    },
     amocrm_domain: '',
     amocrm_token: '',
     status_field_id: '',
-    comment_field_id: '',
-    webhook_url: ''
+    comment_field_id: ''
   });
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('settings');
 
   useEffect(() => {
