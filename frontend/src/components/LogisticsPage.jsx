@@ -324,13 +324,16 @@ export const LogisticsPage = () => {
     
     setCreatingTrip(true);
     try {
+      const driver = drivers.find(d => d.id === newTripDriver);
       const res = await fetch(`${API_URL}/api/trips`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newTripName,
           section: activeSection,
-          orderIds: currentData.selectedOrders
+          orderIds: currentData.selectedOrders,
+          driverId: newTripDriver || null,
+          driverName: driver?.name || null
         })
       });
       
@@ -339,16 +342,20 @@ export const LogisticsPage = () => {
         toast.success(`Рейс "${trip.name}" создан`);
         setShowCreateTripModal(false);
         setNewTripName('');
+        setNewTripDriver('');
         
         // Refresh data
         fetchAllOrders();
-        fetchTrips();
+        fetchTrips(activeSection);
         
         // Clear selection
         setSectionData(prev => ({
           ...prev,
           [activeSection]: { ...prev[activeSection], selectedOrders: [] }
         }));
+        
+        // Switch to trips tab
+        setActiveInnerTab('trips');
       } else {
         throw new Error('Failed to create trip');
       }
