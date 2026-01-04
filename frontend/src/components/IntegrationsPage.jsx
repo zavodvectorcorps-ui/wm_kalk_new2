@@ -37,6 +37,14 @@ export const IntegrationsPage = () => {
       balia: '',
       sauna: ''
     },
+    // Field mapping - user specifies amoCRM field IDs
+    field_mapping: {
+      fullName: '',      // ID поля для имени
+      phoneNumber: '',   // ID поля для телефона
+      fullAddress: '',   // ID поля для адреса
+      notes: ''          // ID поля для примечаний
+    },
+    // Two-way sync settings
     amocrm_domain: '',
     amocrm_token: '',
     status_field_id: '',
