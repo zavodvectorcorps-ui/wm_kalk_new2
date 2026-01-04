@@ -76,26 +76,24 @@ def parse_amocrm_webhook(body: bytes) -> Dict[str, Any]:
         decoded = body.decode('utf-8')
         parsed = parse_qs(decoded)
         
-        # Convert to nested structure
+        # Convert to nested structure (supporting both dicts and arrays)
         result = {}
         for key, values in parsed.items():
-            # Handle nested keys like leads[update][0][id]
+            # Handle nested keys like leads[status][0][id]
             parts = key.replace(']', '').split('[')
             current = result
+            
             for i, part in enumerate(parts[:-1]):
-                if part.isdigit():
-                    part = int(part)
+                next_part = parts[i + 1] if i + 1 < len(parts) else None
+                
+                # Determine if next level should be dict
+                # We use dict with string keys for everything (simpler)
                 if part not in current:
-                    next_part = parts[i + 1] if i + 1 < len(parts) else None
-                    if next_part and next_part.isdigit():
-                        current[part] = []
-                    else:
-                        current[part] = {}
+                    current[part] = {}
+                
                 current = current[part]
             
             last_key = parts[-1]
-            if last_key.isdigit():
-                last_key = int(last_key)
             current[last_key] = values[0] if len(values) == 1 else values
         
         return result
