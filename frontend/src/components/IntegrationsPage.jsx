@@ -64,6 +64,7 @@ export const IntegrationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [copiedUrl, setCopiedUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('settings');
 
