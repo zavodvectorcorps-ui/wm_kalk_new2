@@ -952,10 +952,22 @@ export const LogisticsPage = () => {
                                 <MapPin className="h-3 w-3" />
                                 {order.fullAddress || order.address}
                               </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {formatDate(order.orderDate || order.createdAt)}
-                                {order.amocrm_id && <span className="ml-2 text-purple-500">• amoCRM</span>}
-                              </p>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                <span>{formatDate(order.orderDate || order.createdAt)}</span>
+                                {order.routeNumber && (
+                                  <Badge variant="outline" className="text-xs py-0 px-1">
+                                    <Hash className="h-2 w-2 mr-1" />
+                                    Рейс {order.routeNumber}
+                                  </Badge>
+                                )}
+                                {order.driverName && (
+                                  <Badge variant="outline" className="text-xs py-0 px-1">
+                                    <User className="h-2 w-2 mr-1" />
+                                    {order.driverName}
+                                  </Badge>
+                                )}
+                                {order.amocrm_id && <span className="text-purple-500">• amoCRM</span>}
+                              </div>
                               
                               {expandedOrder === order.id && (
                                 <div className="mt-3 pt-3 border-t space-y-3 text-sm">
@@ -972,8 +984,52 @@ export const LogisticsPage = () => {
                                     </p>
                                   )}
                                   
+                                  {/* Route & Driver */}
+                                  <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                                    <div className="space-y-1">
+                                      <Label className="text-xs text-muted-foreground">№ рейса</Label>
+                                      <Input
+                                        placeholder="Номер"
+                                        defaultValue={order.routeNumber || ''}
+                                        className="h-8 text-xs"
+                                        onBlur={(e) => {
+                                          if (e.target.value !== (order.routeNumber || '')) {
+                                            updateOrderField(order.id, { routeNumber: e.target.value });
+                                            toast.success('Рейс обновлён');
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs text-muted-foreground">Водитель</Label>
+                                      <Select
+                                        value={order.driverId || 'none'}
+                                        onValueChange={(value) => {
+                                          const driver = drivers.find(d => d.id === value);
+                                          updateOrderField(order.id, { 
+                                            driverId: value === 'none' ? '' : value, 
+                                            driverName: driver?.name || '' 
+                                          });
+                                          toast.success('Водитель назначен');
+                                        }}
+                                      >
+                                        <SelectTrigger className="h-8 text-xs">
+                                          <SelectValue placeholder="Выбрать" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">Не назначен</SelectItem>
+                                          {drivers.map(driver => (
+                                            <SelectItem key={driver.id} value={driver.id}>
+                                              {driver.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                  
                                   {/* Status Change */}
-                                  <div className="pt-2 border-t space-y-2">
+                                  <div className="space-y-2">
                                     <Label className="text-xs text-muted-foreground">Статус доставки</Label>
                                     <Select
                                       value={order.deliveryStatus || 'pending'}
@@ -998,16 +1054,15 @@ export const LogisticsPage = () => {
                                     </Select>
                                     
                                     {/* Delivery Comment */}
-                                    <div className="flex gap-2">
-                                      <Input
-                                        placeholder="Дата/комментарий доставки"
-                                        defaultValue={order.deliveryComment || ''}
-                                        className="h-8 text-xs"
-                                        onBlur={(e) => {
-                                          if (e.target.value !== (order.deliveryComment || '')) {
-                                            updateDeliveryStatus(order.id, order.deliveryStatus || 'pending', e.target.value);
-                                          }
-                                        }}
+                                    <Input
+                                      placeholder="Дата/комментарий доставки"
+                                      defaultValue={order.deliveryComment || ''}
+                                      className="h-8 text-xs"
+                                      onBlur={(e) => {
+                                        if (e.target.value !== (order.deliveryComment || '')) {
+                                          updateDeliveryStatus(order.id, order.deliveryStatus || 'pending', e.target.value);
+                                        }
+                                      }}
                                       />
                                     </div>
                                     
