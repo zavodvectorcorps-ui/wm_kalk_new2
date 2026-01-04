@@ -344,8 +344,9 @@ async def receive_webhook_section(
         webhook_logs.insert_one(log_entry)
         return {"status": "ok", "message": "No data to process"}
     
-    # Extract lead data
-    lead_data = extract_lead_data(data)
+    # Extract lead data with field mapping from settings
+    field_mapping = settings.get("field_mapping", {})
+    lead_data = extract_lead_data(data, field_mapping)
     log_entry["parsed_data"] = lead_data
     
     # Get collection for this section
