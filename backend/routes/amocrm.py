@@ -28,8 +28,17 @@ webhook_logs = db["webhook_logs"]
 logger = logging.getLogger(__name__)
 
 
+class FieldMapping(BaseModel):
+    fullName: str = ""
+    phoneNumber: str = ""
+    fullAddress: str = ""
+    notes: str = ""
+
+
 class AmoCRMSettings(BaseModel):
     enabled: bool = False
+    # Field mapping - user-specified amoCRM field IDs
+    field_mapping: FieldMapping = FieldMapping()
     # amoCRM API credentials for syncing back
     amocrm_domain: str = ""  # e.g., "mycompany.amocrm.ru"
     amocrm_token: str = ""  # Long-lived token
@@ -43,6 +52,12 @@ def get_default_settings():
     return {
         "type": "amocrm",
         "enabled": False,
+        "field_mapping": {
+            "fullName": "",
+            "phoneNumber": "",
+            "fullAddress": "",
+            "notes": ""
+        },
         "amocrm_domain": "",
         "amocrm_token": "",
         "status_field_id": "",
