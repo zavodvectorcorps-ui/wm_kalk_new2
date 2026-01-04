@@ -155,15 +155,6 @@ def extract_lead_data(data: Dict[str, Any]) -> Dict[str, Any]:
     return lead_data
 
 
-def determine_section(pipeline_id: str, settings: Dict) -> Optional[str]:
-    """Determine which section the lead belongs to based on pipeline_id."""
-    for section in ["greenhouse", "balia", "sauna"]:
-        section_config = settings.get(section, {})
-        if section_config.get("enabled") and section_config.get("pipeline_id") == pipeline_id:
-            return section
-    return None
-
-
 def get_collection_for_section(section: str):
     """Get MongoDB collection for section."""
     if section == "greenhouse":
