@@ -468,10 +468,13 @@ export const LogisticsPage = () => {
     }
   };
 
-  // Update delivery status
-  const updateDeliveryStatus = async (orderId, newStatus, deliveryComment = '') => {
+  // Update order fields (status, driver, route, comment)
+  const updateOrderField = async (orderId, updates) => {
     try {
       const order = currentData.orders.find(o => o.id === orderId);
+      if (!order) return;
+      
+      const updatedOrder = { ...order, ...updates };
       
       // Update in local state first for immediate feedback
       setSectionData(prev => ({
@@ -479,7 +482,7 @@ export const LogisticsPage = () => {
         [activeSection]: {
           ...prev[activeSection],
           orders: prev[activeSection].orders.map(o => 
-            o.id === orderId ? { ...o, deliveryStatus: newStatus, deliveryComment } : o
+            o.id === orderId ? updatedOrder : o
           )
         }
       }));
@@ -488,34 +491,62 @@ export const LogisticsPage = () => {
       const response = await fetch(`${API_URL}${currentSection.endpoint}/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ...order,
-          deliveryStatus: newStatus, 
-          deliveryComment 
-        })
+        body: JSON.stringify(updatedOrder)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update status');
+        throw new Error('Failed to update order');
       }
 
-      // Sync to amoCRM if order has amocrm_id
-      if (order?.amocrm_id) {
+      // Sync to amoCRM if order has amocrm_id and status changed
+      if (order?.amocrm_id && updates.deliveryStatus) {
         try {
-          const statusLabel = DELIVERY_STATUSES[newStatus]?.label || newStatus;
-          await fetch(`${API_URL}/api/integrations/amocrm/sync-status?amocrm_id=${order.amocrm_id}&status=${encodeURIComponent(statusLabel)}&comment=${encodeURIComponent(deliveryComment)}`, {
+          const statusLabel = DELIVERY_STATUSES[updates.deliveryStatus]?.label || updates.deliveryStatus;
+          const comment = updates.deliveryComment || order.deliveryComment || '';
+          await fetch(`${API_URL}/api/integrations/amocrm/sync-status?amocrm_id=${order.amocrm_id}&status=${encodeURIComponent(statusLabel)}&comment=${encodeURIComponent(comment)}`, {
             method: 'POST'
           });
-          toast.success('Статус синхронизирован с amoCRM');
         } catch (syncError) {
           console.error('Failed to sync to amoCRM:', syncError);
         }
       }
 
-      toast.success('Статус обновлён');
+      return true;
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error('Error updating order:', error);
+      return false;
+    }
+  };
+
+  // Legacy function for backward compatibility
+  const updateDeliveryStatus = async (orderId, newStatus, deliveryComment = '') => {
+    const success = await updateOrderField(orderId, { deliveryStatus: newStatus, deliveryComment });
+    if (success) {
+      toast.success('Статус обновлён');
+    } else {
       toast.error('Ошибка обновления статуса');
+      fetchAllOrders();
+    }
+  };
+
+  // Bulk update selected orders
+  const bulkUpdateOrders = async (updates) => {
+    const selectedIds = currentData.selectedOrders;
+    if (selectedIds.length === 0) {
+      toast.error('Выберите заказы');
+      return;
+    }
+
+    let successCount = 0;
+    for (const orderId of selectedIds) {
+      const success = await updateOrderField(orderId, updates);
+      if (success) successCount++;
+    }
+
+    if (successCount > 0) {
+      toast.success(`Обновлено ${successCount} из ${selectedIds.length} заказов`);
+    } else {
+      toast.error('Ошибка обновления');
       fetchAllOrders();
     }
   };
