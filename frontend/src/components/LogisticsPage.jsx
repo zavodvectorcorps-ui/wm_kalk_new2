@@ -442,6 +442,153 @@ export const LogisticsPage = () => {
     }
   };
 
+  // Optimize trip route using Google Maps Directions API
+  const optimizeTripRoute = async () => {
+    if (!selectedTrip || !selectedTrip.orderIds || selectedTrip.orderIds.length < 2) {
+      toast.error('Нужно минимум 2 заказа для оптимизации');
+      return;
+    }
+
+    // Get orders with coordinates
+    const ordersWithCoords = selectedTrip.orderIds
+      .map(id => sectionData[selectedTrip.section]?.orders.find(o => o.id === id))
+      .filter(o => o && o.lat && o.lng);
+
+    if (ordersWithCoords.length < 2) {
+      toast.error('Нужно минимум 2 заказа с координатами на карте');
+      return;
+    }
+
+    setOptimizingRoute(true);
+    try {
+      const directionsService = new window.google.maps.DirectionsService();
+      
+      // Use first order as origin and last as destination
+      const origin = { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
+      const destination = { lat: ordersWithCoords[ordersWithCoords.length - 1].lat, lng: ordersWithCoords[ordersWithCoords.length - 1].lng };
+      
+      // Middle orders as waypoints
+      const waypoints = ordersWithCoords.slice(1, -1).map(o => ({
+        location: { lat: o.lat, lng: o.lng },
+        stopover: true
+      }));
+
+      const result = await directionsService.route({
+        origin,
+        destination,
+        waypoints,
+        optimizeWaypoints: true, // Key: Google will reorder waypoints for optimal route
+        travelMode: window.google.maps.TravelMode.DRIVING
+      });
+
+      // Get optimized order from waypoint_order
+      const waypointOrder = result.routes[0].waypoint_order;
+      
+      // Build new order IDs array based on optimization
+      const middleOrders = ordersWithCoords.slice(1, -1);
+      const optimizedMiddle = waypointOrder.map(i => middleOrders[i]);
+      const optimizedOrders = [
+        ordersWithCoords[0],
+        ...optimizedMiddle,
+        ordersWithCoords[ordersWithCoords.length - 1]
+      ];
+      const newOrderIds = optimizedOrders.map(o => o.id);
+      
+      // Add any orders without coordinates at the end
+      const ordersWithoutCoords = selectedTrip.orderIds.filter(id => {
+        const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === id);
+        return !order || !order.lat || !order.lng;
+      });
+      newOrderIds.push(...ordersWithoutCoords);
+
+      // Update trip with new order
+      await updateTripOrderIds(selectedTrip.id, newOrderIds);
+      
+      // Calculate route info
+      const totalDistance = result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+      const totalDuration = result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0);
+      
+      toast.success(`Маршрут оптимизирован! ${formatDistance(totalDistance)}, ${formatDuration(totalDuration)}`);
+    } catch (error) {
+      console.error('Error optimizing route:', error);
+      toast.error('Ошибка оптимизации маршрута');
+    } finally {
+      setOptimizingRoute(false);
+    }
+  };
+
+  // Update trip order IDs (for reordering)
+  const updateTripOrderIds = async (tripId, newOrderIds) => {
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${tripId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderIds: newOrderIds })
+      });
+      
+      if (res.ok) {
+        // Update local state
+        setSelectedTrip(prev => prev ? { ...prev, orderIds: newOrderIds } : null);
+        fetchTrips(activeSection);
+      }
+    } catch (error) {
+      console.error('Error updating trip order:', error);
+    }
+  };
+
+  // Move order up in trip
+  const moveOrderUp = async (index) => {
+    if (!selectedTrip || index <= 0) return;
+    
+    const newOrderIds = [...selectedTrip.orderIds];
+    [newOrderIds[index - 1], newOrderIds[index]] = [newOrderIds[index], newOrderIds[index - 1]];
+    
+    await updateTripOrderIds(selectedTrip.id, newOrderIds);
+    toast.success('Порядок изменён');
+  };
+
+  // Move order down in trip
+  const moveOrderDown = async (index) => {
+    if (!selectedTrip || index >= selectedTrip.orderIds.length - 1) return;
+    
+    const newOrderIds = [...selectedTrip.orderIds];
+    [newOrderIds[index], newOrderIds[index + 1]] = [newOrderIds[index + 1], newOrderIds[index]];
+    
+    await updateTripOrderIds(selectedTrip.id, newOrderIds);
+    toast.success('Порядок изменён');
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, index) => {
+    setDraggedOrderIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e, dropIndex) => {
+    e.preventDefault();
+    if (draggedOrderIndex === null || draggedOrderIndex === dropIndex) {
+      setDraggedOrderIndex(null);
+      return;
+    }
+    
+    const newOrderIds = [...selectedTrip.orderIds];
+    const [draggedItem] = newOrderIds.splice(draggedOrderIndex, 1);
+    newOrderIds.splice(dropIndex, 0, draggedItem);
+    
+    await updateTripOrderIds(selectedTrip.id, newOrderIds);
+    setDraggedOrderIndex(null);
+    toast.success('Порядок изменён');
+  };
+
+  const handleDragEnd = () => {
+    setDraggedOrderIndex(null);
+  };
+
   // Get orders without trip (for general list)
   const getUnassignedOrders = (orders) => {
     return orders.filter(o => !o.tripId);
