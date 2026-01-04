@@ -138,6 +138,10 @@ export const SaunaPricingPage = () => {
           />
         </TabsContent>
 
+        <TabsContent value="techspec">
+          <TechSpecAdminPage projectType="sauna" />
+        </TabsContent>
+
         <TabsContent value="customer">
           <CustomerFieldsManager calculatorType="sauna" />
         </TabsContent>
