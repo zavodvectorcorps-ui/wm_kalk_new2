@@ -16,7 +16,7 @@ db = client[DB_NAME]
 
 trips_collection = db["trips"]
 greenhouse_orders = db["greenhouse_orders"]
-balia_orders = db["balia_orders"]
+balia_orders = db["orders"]  # Balia orders are stored in 'orders' collection
 sauna_orders = db["sauna_orders"]
 
 
