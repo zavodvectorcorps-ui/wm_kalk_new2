@@ -1065,7 +1065,21 @@ export const LogisticsPage = () => {
                               </div>
                               <p className="text-sm text-muted-foreground flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
-                                {order.fullAddress || order.address}
+                                <span className="truncate">{order.fullAddress || order.address || 'Нет адреса'}</span>
+                                {/* Map indicator */}
+                                {(order.lat && order.lng) ? (
+                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 whitespace-nowrap">
+                                    ✓ на карте
+                                  </span>
+                                ) : (order.fullAddress || order.address) ? (
+                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 whitespace-nowrap">
+                                    ⏳ геокодинг
+                                  </span>
+                                ) : (
+                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 whitespace-nowrap">
+                                    нет адреса
+                                  </span>
+                                )}
                               </p>
                               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                                 <span>{formatDate(order.orderDate || order.createdAt)}</span>
