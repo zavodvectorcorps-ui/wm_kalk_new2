@@ -113,6 +113,14 @@ export const LogisticsPage = () => {
   const [buildingRoute, setBuildingRoute] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
   
+  // Drivers state
+  const [drivers, setDrivers] = useState(DEFAULT_DRIVERS);
+  const [showDriversModal, setShowDriversModal] = useState(false);
+  const [newDriverName, setNewDriverName] = useState('');
+  
+  // Bulk actions state
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  
   // New order form state
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [newOrderForm, setNewOrderForm] = useState({
@@ -136,6 +144,37 @@ export const LogisticsPage = () => {
   // Get current section data
   const currentData = sectionData[activeSection];
   const currentSection = SECTIONS[activeSection];
+
+  // Load drivers from localStorage
+  useEffect(() => {
+    const savedDrivers = localStorage.getItem('logistics_drivers');
+    if (savedDrivers) {
+      try {
+        setDrivers(JSON.parse(savedDrivers));
+      } catch (e) {
+        console.error('Failed to load drivers:', e);
+      }
+    }
+  }, []);
+
+  // Save drivers to localStorage
+  const saveDrivers = (newDrivers) => {
+    setDrivers(newDrivers);
+    localStorage.setItem('logistics_drivers', JSON.stringify(newDrivers));
+  };
+
+  // Add driver
+  const addDriver = () => {
+    if (!newDriverName.trim()) return;
+    const newDriver = { id: `driver_${Date.now()}`, name: newDriverName.trim() };
+    saveDrivers([...drivers, newDriver]);
+    setNewDriverName('');
+  };
+
+  // Remove driver
+  const removeDriver = (driverId) => {
+    saveDrivers(drivers.filter(d => d.id !== driverId));
+  };
 
   // Fetch orders for a specific section
   const fetchSectionOrders = useCallback(async (sectionId) => {
