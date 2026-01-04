@@ -5,6 +5,25 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Simplified amoCRM Integration (2026-01-05)
+- **Feature**: Simplified webhook URLs — one per section, no complex configuration
+- **3 Separate URLs**:
+  - `/api/integrations/amocrm/webhook/greenhouse` — для Теплиц
+  - `/api/integrations/amocrm/webhook/balia` — для Купелей
+  - `/api/integrations/amocrm/webhook/sauna` — для Саун
+- **Removed**: Secret key, Pipeline ID, Status ID settings (not needed)
+- **How it works**: Copy URL, paste into amoCRM Digital Pipeline on desired stage
+- **Files updated**:
+  - `/app/backend/routes/amocrm.py` - New section-specific endpoints
+  - `/app/frontend/src/components/IntegrationsPage.jsx` - Simplified UI with 3 URL cards
+- **Status**: ✅ Implemented
+
+### Sauna Pricing - Specyfikacja Tab (2026-01-05)
+- **Feature**: Moved "Specyfikacja" from bottom of page to separate tab
+- **Tabs now**: Modele saun, Kategorie opcji, Opcje, Specyfikacja, Klient
+- **Files**: `/app/frontend/src/components/SaunaPricingPage.jsx`
+- **Status**: ✅ Implemented
+
 ### Two-Way amoCRM Sync Backend (2026-01-04)
 - **Feature**: Backend logic for syncing delivery status back to amoCRM
 - **Endpoint**: `POST /api/integrations/amocrm/sync-status` - updates lead in amoCRM
