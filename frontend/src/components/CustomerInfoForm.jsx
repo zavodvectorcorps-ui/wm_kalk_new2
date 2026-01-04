@@ -100,6 +100,25 @@ export const DynamicCustomerForm = ({
     const placeholder = getPlaceholder(field);
     const value = formData[field.id] || '';
 
+    // Use AddressAutocomplete for address fields
+    const isAddressField = field.id.toLowerCase().includes('address') || 
+                           field.fieldType === 'address';
+    
+    if (isAddressField) {
+      return (
+        <div key={field.id} className="space-y-2">
+          <Label htmlFor={field.id} className="text-sm font-medium">
+            {label} {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <AddressAutocomplete
+            value={value}
+            onChange={(address, details) => handleAddressChange(field.id, address, details)}
+            placeholder={placeholder || 'Wpisz adres...'}
+          />
+        </div>
+      );
+    }
+
     if (field.fieldType === 'textarea') {
       return (
         <div key={field.id} className="space-y-2">
