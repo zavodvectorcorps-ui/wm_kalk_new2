@@ -84,17 +84,9 @@ def get_default_settings():
         "type": "amocrm",
         "enabled": False,
         "field_mapping": {
-            "fullName": "",
-            "phoneNumber": "",
-            "orderNumber": "",
-            "fullAddress": "",
-            "addressIndex": "",
-            "addressCity": "",
-            "addressStreet": "",
-            "orderContents": "",
-            "orderComment": "",
-            "dealSum": "",
-            "debtSum": ""
+            "greenhouse": {**DEFAULT_FIELD_MAPPING},
+            "balia": {**DEFAULT_FIELD_MAPPING},
+            "sauna": {**DEFAULT_FIELD_MAPPING}
         },
         "amocrm_domain": "",
         "amocrm_token": "",
@@ -108,11 +100,34 @@ def get_amocrm_settings():
     settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
     if not settings:
         return get_default_settings()
+    
     # Ensure all fields exist (for backward compatibility)
     defaults = get_default_settings()
     for key, value in defaults.items():
         if key not in settings:
             settings[key] = value
+    
+    # Normalize field_mapping to new structure (separate for each section)
+    field_mapping = settings.get("field_mapping", {})
+    if field_mapping and "greenhouse" not in field_mapping and "balia" not in field_mapping:
+        # Old structure - single mapping, convert to new structure
+        old_mapping = field_mapping
+        settings["field_mapping"] = {
+            "greenhouse": {**DEFAULT_FIELD_MAPPING, **old_mapping},
+            "balia": {**DEFAULT_FIELD_MAPPING, **old_mapping},
+            "sauna": {**DEFAULT_FIELD_MAPPING, **old_mapping}
+        }
+    else:
+        # Ensure each section has all fields
+        for section in ["greenhouse", "balia", "sauna"]:
+            if section not in settings["field_mapping"]:
+                settings["field_mapping"][section] = {**DEFAULT_FIELD_MAPPING}
+            else:
+                settings["field_mapping"][section] = {
+                    **DEFAULT_FIELD_MAPPING, 
+                    **settings["field_mapping"].get(section, {})
+                }
+    
     return settings
 
 
