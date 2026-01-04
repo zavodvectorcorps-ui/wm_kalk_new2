@@ -425,7 +425,6 @@ export const LogisticsPage = () => {
   // Update delivery status
   const updateDeliveryStatus = async (orderId, newStatus, deliveryComment = '') => {
     try {
-      const collection = get_collection_for_section(activeSection);
       const order = currentData.orders.find(o => o.id === orderId);
       
       // Update in local state first for immediate feedback
@@ -464,7 +463,6 @@ export const LogisticsPage = () => {
           toast.success('Статус синхронизирован с amoCRM');
         } catch (syncError) {
           console.error('Failed to sync to amoCRM:', syncError);
-          // Don't show error - sync is optional
         }
       }
 
@@ -472,7 +470,6 @@ export const LogisticsPage = () => {
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Ошибка обновления статуса');
-      // Revert on error
       fetchAllOrders();
     }
   };
