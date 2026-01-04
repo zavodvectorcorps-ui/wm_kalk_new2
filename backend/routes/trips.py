@@ -107,14 +107,18 @@ async def create_trip(trip_data: TripCreate):
     prefix = section_prefix.get(trip_data.section, "TRIP")
     trip_id = f"{prefix}-{int(datetime.now().timestamp())}"
     
+    # Initialize order statuses as pending
+    order_statuses = {oid: "pending" for oid in trip_data.orderIds}
+    
     trip = {
         "id": trip_id,
         "name": trip_data.name,
         "section": trip_data.section,
         "orderIds": trip_data.orderIds,
+        "orderStatuses": order_statuses,  # Status per order
         "driverId": trip_data.driverId,
         "driverName": trip_data.driverName,
-        "status": "active",
+        "status": "planned",  # planned, in_transit, completed
         "createdAt": now,
         "updatedAt": now
     }
