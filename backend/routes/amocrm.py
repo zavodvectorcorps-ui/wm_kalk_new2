@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import os
 import json
 import logging
+import httpx
 from urllib.parse import parse_qs
 
 router = APIRouter(prefix="/api/integrations/amocrm", tags=["amocrm"])
@@ -19,51 +20,74 @@ DB_NAME = os.environ.get("DB_NAME", "wm_kalkulator")
 client = MongoClient(MONGO_URL)
 db = client[DB_NAME]
 greenhouse_orders = db["greenhouse_orders"]
+balia_orders = db["orders"]  # Balia orders collection
+sauna_orders = db["sauna_orders"]
 integration_settings = db["integration_settings"]
 webhook_logs = db["webhook_logs"]
 
 logger = logging.getLogger(__name__)
 
 
+class PipelineConfig(BaseModel):
+    enabled: bool = False
+    pipeline_id: str = ""
+    status_id: str = ""
+
+
 class AmoCRMSettings(BaseModel):
     enabled: bool = False
     secret_key: str = ""
-    pipeline_id: Optional[str] = None
-    status_id: Optional[str] = None
-    field_mapping: Dict[str, str] = {
-        "fullName": "name",  # amoCRM field -> our field
-        "phoneNumber": "phone",
-        "fullAddress": "address",
-        "notes": "notes"
-    }
+    # Separate pipeline configs for each section
+    greenhouse: PipelineConfig = PipelineConfig()
+    balia: PipelineConfig = PipelineConfig()
+    sauna: PipelineConfig = PipelineConfig()
+    # amoCRM API credentials for syncing back
+    amocrm_domain: str = ""  # e.g., "mycompany.amocrm.ru"
+    amocrm_token: str = ""  # Long-lived token
+    # Field IDs for status sync
+    status_field_id: str = ""  # Custom field ID for delivery status
+    comment_field_id: str = ""  # Custom field ID for comments/date
 
 
 class AmoCRMSettingsResponse(BaseModel):
     enabled: bool
     secret_key: str
-    pipeline_id: Optional[str]
-    status_id: Optional[str]
-    field_mapping: Dict[str, str]
+    greenhouse: PipelineConfig
+    balia: PipelineConfig
+    sauna: PipelineConfig
+    amocrm_domain: str
+    amocrm_token: str
+    status_field_id: str
+    comment_field_id: str
     webhook_url: str
+
+
+def get_default_settings():
+    """Get default amoCRM settings."""
+    return {
+        "type": "amocrm",
+        "enabled": False,
+        "secret_key": "",
+        "greenhouse": {"enabled": False, "pipeline_id": "", "status_id": ""},
+        "balia": {"enabled": False, "pipeline_id": "", "status_id": ""},
+        "sauna": {"enabled": False, "pipeline_id": "", "status_id": ""},
+        "amocrm_domain": "",
+        "amocrm_token": "",
+        "status_field_id": "",
+        "comment_field_id": ""
+    }
 
 
 def get_amocrm_settings():
     """Get amoCRM integration settings from database."""
     settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
     if not settings:
-        return {
-            "type": "amocrm",
-            "enabled": False,
-            "secret_key": "",
-            "pipeline_id": None,
-            "status_id": None,
-            "field_mapping": {
-                "fullName": "name",
-                "phoneNumber": "phone",
-                "fullAddress": "address",
-                "notes": "notes"
-            }
-        }
+        return get_default_settings()
+    # Ensure all fields exist (for backward compatibility)
+    defaults = get_default_settings()
+    for key, value in defaults.items():
+        if key not in settings:
+            settings[key] = value
     return settings
 
 
@@ -90,7 +114,6 @@ def parse_amocrm_webhook(body: bytes) -> Dict[str, Any]:
                 if part.isdigit():
                     part = int(part)
                 if part not in current:
-                    # Check if next part is digit to create list
                     next_part = parts[i + 1] if i + 1 < len(parts) else None
                     if next_part and next_part.isdigit():
                         current[part] = []
@@ -109,7 +132,7 @@ def parse_amocrm_webhook(body: bytes) -> Dict[str, Any]:
         return {}
 
 
-def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str]) -> Dict[str, Any]:
+def extract_lead_data(data: Dict[str, Any]) -> Dict[str, Any]:
     """Extract lead data from amoCRM webhook payload."""
     lead_data = {}
     
@@ -160,7 +183,27 @@ def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str]) -> Di
     return lead_data
 
 
-@router.get("/settings", response_model=AmoCRMSettingsResponse)
+def determine_section(pipeline_id: str, settings: Dict) -> Optional[str]:
+    """Determine which section the lead belongs to based on pipeline_id."""
+    for section in ["greenhouse", "balia", "sauna"]:
+        section_config = settings.get(section, {})
+        if section_config.get("enabled") and section_config.get("pipeline_id") == pipeline_id:
+            return section
+    return None
+
+
+def get_collection_for_section(section: str):
+    """Get MongoDB collection for section."""
+    if section == "greenhouse":
+        return greenhouse_orders
+    elif section == "balia":
+        return balia_orders
+    elif section == "sauna":
+        return sauna_orders
+    return None
+
+
+@router.get("/settings")
 async def get_settings(request: Request):
     """Get amoCRM integration settings."""
     settings = get_amocrm_settings()
@@ -174,9 +217,13 @@ async def get_settings(request: Request):
     return {
         "enabled": settings.get("enabled", False),
         "secret_key": settings.get("secret_key", ""),
-        "pipeline_id": settings.get("pipeline_id"),
-        "status_id": settings.get("status_id"),
-        "field_mapping": settings.get("field_mapping", {}),
+        "greenhouse": settings.get("greenhouse", {}),
+        "balia": settings.get("balia", {}),
+        "sauna": settings.get("sauna", {}),
+        "amocrm_domain": settings.get("amocrm_domain", ""),
+        "amocrm_token": settings.get("amocrm_token", ""),
+        "status_field_id": settings.get("status_field_id", ""),
+        "comment_field_id": settings.get("comment_field_id", ""),
         "webhook_url": webhook_url
     }
 
@@ -240,21 +287,42 @@ async def receive_webhook(
         return {"status": "ok", "message": "No data to process"}
     
     # Extract lead data
-    field_mapping = settings.get("field_mapping", {})
-    lead_data = extract_lead_data(data, field_mapping)
-    
+    lead_data = extract_lead_data(data)
     log_entry["parsed_data"] = lead_data
     
-    # Check if this lead matches our pipeline/status filter
-    target_pipeline = settings.get("pipeline_id")
-    target_status = settings.get("status_id")
+    # Determine which section this belongs to
+    pipeline_id = lead_data.get("pipeline_id", "")
+    section = determine_section(pipeline_id, settings)
     
-    if target_pipeline and lead_data.get("pipeline_id") != target_pipeline:
+    if not section:
+        # Try to match by status_id if no pipeline match
+        for sec in ["greenhouse", "balia", "sauna"]:
+            sec_config = settings.get(sec, {})
+            if sec_config.get("enabled"):
+                target_status = sec_config.get("status_id", "")
+                if target_status and lead_data.get("status_id") == target_status:
+                    section = sec
+                    break
+    
+    if not section:
         log_entry["status"] = "skipped"
-        log_entry["reason"] = f"Pipeline mismatch: {lead_data.get('pipeline_id')} != {target_pipeline}"
+        log_entry["reason"] = f"No matching pipeline/status config for pipeline_id={pipeline_id}"
         webhook_logs.insert_one(log_entry)
-        return {"status": "ok", "message": "Pipeline does not match"}
+        return {"status": "ok", "message": "No matching configuration"}
     
+    log_entry["section"] = section
+    
+    # Get collection for this section
+    collection = get_collection_for_section(section)
+    if not collection:
+        log_entry["status"] = "error"
+        log_entry["reason"] = f"Unknown section: {section}"
+        webhook_logs.insert_one(log_entry)
+        return {"status": "ok", "message": "Unknown section"}
+    
+    # Check status filter
+    section_config = settings.get(section, {})
+    target_status = section_config.get("status_id", "")
     if target_status and lead_data.get("status_id") != target_status:
         log_entry["status"] = "skipped"
         log_entry["reason"] = f"Status mismatch: {lead_data.get('status_id')} != {target_status}"
@@ -262,17 +330,18 @@ async def receive_webhook(
         return {"status": "ok", "message": "Status does not match"}
     
     # Check if order with this amoCRM ID already exists
-    existing = greenhouse_orders.find_one({"amocrm_id": lead_data.get("amocrm_id")})
+    existing = collection.find_one({"amocrm_id": lead_data.get("amocrm_id")})
     if existing:
         log_entry["status"] = "skipped"
         log_entry["reason"] = "Order already exists"
         webhook_logs.insert_one(log_entry)
         return {"status": "ok", "message": "Order already exists"}
     
-    # Create greenhouse order
+    # Create order
     now = datetime.now(timezone.utc).isoformat()
+    section_prefix = {"greenhouse": "GH", "balia": "BAL", "sauna": "SAU"}
     order_data = {
-        "id": f"AMO-{lead_data.get('amocrm_id', datetime.now().timestamp())}",
+        "id": f"AMO-{section_prefix.get(section, 'X')}-{lead_data.get('amocrm_id', datetime.now().timestamp())}",
         "fullName": lead_data.get("fullName", "Без имени"),
         "phoneNumber": lead_data.get("phoneNumber", ""),
         "fullAddress": lead_data.get("fullAddress", ""),
@@ -281,20 +350,84 @@ async def receive_webhook(
         "createdAt": now,
         "source": "amocrm",
         "status": "new",
+        "deliveryStatus": "pending",  # For sync back
+        "deliveryComment": "",
         "amocrm_id": lead_data.get("amocrm_id"),
         "amocrm_data": lead_data
     }
     
-    greenhouse_orders.insert_one(order_data)
+    collection.insert_one(order_data)
     order_data.pop("_id", None)
     
     log_entry["status"] = "success"
     log_entry["created_order_id"] = order_data["id"]
     webhook_logs.insert_one(log_entry)
     
-    logger.info(f"Created greenhouse order from amoCRM: {order_data['id']}")
+    logger.info(f"Created {section} order from amoCRM: {order_data['id']}")
     
-    return {"status": "ok", "order_id": order_data["id"]}
+    return {"status": "ok", "order_id": order_data["id"], "section": section}
+
+
+@router.post("/sync-status")
+async def sync_status_to_amocrm(
+    amocrm_id: str,
+    status: str,
+    comment: Optional[str] = None
+):
+    """Sync delivery status back to amoCRM."""
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    status_field_id = settings.get("status_field_id", "")
+    comment_field_id = settings.get("comment_field_id", "")
+    
+    if not domain or not token:
+        raise HTTPException(status_code=400, detail="amoCRM credentials not configured")
+    
+    # Build update payload
+    custom_fields_values = []
+    
+    if status_field_id:
+        custom_fields_values.append({
+            "field_id": int(status_field_id),
+            "values": [{"value": status}]
+        })
+    
+    if comment_field_id and comment:
+        custom_fields_values.append({
+            "field_id": int(comment_field_id),
+            "values": [{"value": comment}]
+        })
+    
+    if not custom_fields_values:
+        raise HTTPException(status_code=400, detail="No field IDs configured for sync")
+    
+    # Make API request to amoCRM
+    url = f"https://{domain}/api/v4/leads/{amocrm_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "custom_fields_values": custom_fields_values
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(url, json=payload, headers=headers)
+            
+            if response.status_code == 200:
+                return {"status": "ok", "message": "Status synced to amoCRM"}
+            else:
+                logger.error(f"amoCRM API error: {response.status_code} - {response.text}")
+                raise HTTPException(
+                    status_code=response.status_code, 
+                    detail=f"amoCRM API error: {response.text}"
+                )
+    except httpx.RequestError as e:
+        logger.error(f"amoCRM request error: {e}")
+        raise HTTPException(status_code=500, detail=f"Connection error: {str(e)}")
 
 
 @router.get("/logs")
@@ -304,24 +437,33 @@ async def get_webhook_logs(limit: int = 50):
     return logs
 
 
-@router.post("/test")
-async def test_webhook():
-    """Create a test order to verify integration."""
+@router.post("/test/{section}")
+async def test_webhook(section: str):
+    """Create a test order in specified section."""
+    if section not in ["greenhouse", "balia", "sauna"]:
+        raise HTTPException(status_code=400, detail="Invalid section")
+    
+    collection = get_collection_for_section(section)
     now = datetime.now(timezone.utc).isoformat()
     
+    section_names = {"greenhouse": "Теплицы", "balia": "Купели", "sauna": "Сауны"}
+    section_prefix = {"greenhouse": "GH", "balia": "BAL", "sauna": "SAU"}
+    
     order_data = {
-        "id": f"TEST-{int(datetime.now().timestamp())}",
-        "fullName": "Тест amoCRM",
+        "id": f"TEST-{section_prefix[section]}-{int(datetime.now().timestamp())}",
+        "fullName": f"Тест amoCRM - {section_names[section]}",
         "phoneNumber": "+48 000 000 000",
-        "fullAddress": "Тестовый адрес, Варшава",
+        "fullAddress": f"Тестовый адрес для {section_names[section]}, Варшава",
         "notes": "Тестовый заказ для проверки интеграции",
         "orderDate": now,
         "createdAt": now,
         "source": "amocrm_test",
-        "status": "new"
+        "status": "new",
+        "deliveryStatus": "pending",
+        "deliveryComment": ""
     }
     
-    greenhouse_orders.insert_one(order_data)
+    collection.insert_one(order_data)
     order_data.pop("_id", None)
     
-    return {"status": "ok", "message": "Test order created", "order": order_data}
+    return {"status": "ok", "message": f"Test order created in {section}", "order": order_data}
