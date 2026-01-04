@@ -2248,7 +2248,6 @@ export const LogisticsPage = () => {
                               <SelectContent>
                                 <SelectItem value="active">Активен</SelectItem>
                                 <SelectItem value="completed">Доставлен</SelectItem>
-                                <SelectItem value="cancelled">Отменён</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -2267,7 +2266,7 @@ export const LogisticsPage = () => {
                             </div>
                           )}
 
-                          {/* Orders in trip with reordering */}
+                          {/* Orders in trip with reordering and individual statuses */}
                           <div className="border-t pt-3">
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-xs font-medium">Заказы ({selectedTrip.orderIds?.length || 0}):</p>
@@ -2289,16 +2288,15 @@ export const LogisticsPage = () => {
                                 </Button>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground mb-2">
-                              Перетащите для изменения порядка
-                            </p>
-                            <div className="space-y-1 max-h-[250px] overflow-y-auto">
+                            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
                               {selectedTrip.orderIds?.map((orderId, index) => {
                                 const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
+                                const orderStatus = selectedTrip.orderStatuses?.[orderId] || 'pending';
+                                const statusInfo = ORDER_TRIP_STATUSES[orderStatus] || ORDER_TRIP_STATUSES.pending;
                                 return order ? (
                                   <div 
                                     key={orderId} 
-                                    className={`flex items-center gap-1 p-1.5 bg-muted rounded cursor-grab active:cursor-grabbing transition-all text-xs ${
+                                    className={`p-2 bg-muted rounded transition-all text-xs ${
                                       draggedOrderIndex === index ? 'opacity-50 scale-95' : ''
                                     }`}
                                     draggable
@@ -2307,27 +2305,60 @@ export const LogisticsPage = () => {
                                     onDrop={(e) => handleDrop(e, index)}
                                     onDragEnd={handleDragEnd}
                                   >
-                                    <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                                    <span className="font-medium w-4 text-center text-muted-foreground">{index + 1}</span>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium truncate">{order.fullName || order.customerName}</p>
-                                      <p className="text-muted-foreground truncate">{order.fullAddress || order.address}</p>
-                                    </div>
-                                    {order.lat && order.lng ? (
-                                      <span className="px-1 rounded bg-green-100 text-green-700 flex-shrink-0">✓</span>
-                                    ) : (
-                                      <span className="px-1 rounded bg-gray-100 text-gray-500 flex-shrink-0">?</span>
-                                    )}
-                                    <div className="flex flex-col flex-shrink-0">
-                                      <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderUp(index)} disabled={index === 0}>
-                                        <ArrowUp className="h-2.5 w-2.5" />
+                                    <div className="flex items-center gap-1 cursor-grab active:cursor-grabbing">
+                                      <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                      <span className="font-bold w-5 text-center text-purple-600">{index + 1}</span>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <p className="font-medium truncate">{order.fullName || order.customerName}</p>
+                                          {order.amocrm_link && (
+                                            <a href={order.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700">
+                                              <ExternalLink className="h-3 w-3" />
+                                            </a>
+                                          )}
+                                        </div>
+                                        <p className="text-muted-foreground truncate">{order.fullAddress || order.address}</p>
+                                        {order.phoneNumber && (
+                                          <p className="text-muted-foreground">{order.phoneNumber}</p>
+                                        )}
+                                      </div>
+                                      {order.lat && order.lng ? (
+                                        <span className="px-1 rounded bg-green-100 text-green-700 flex-shrink-0">✓</span>
+                                      ) : (
+                                        <span className="px-1 rounded bg-gray-100 text-gray-500 flex-shrink-0">?</span>
+                                      )}
+                                      <div className="flex flex-col flex-shrink-0">
+                                        <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderUp(index)} disabled={index === 0}>
+                                          <ArrowUp className="h-2.5 w-2.5" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderDown(index)} disabled={index === selectedTrip.orderIds.length - 1}>
+                                          <ArrowDown className="h-2.5 w-2.5" />
+                                        </Button>
+                                      </div>
+                                      <Button size="sm" variant="ghost" onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)} className="text-red-500 h-5 w-5 p-0 flex-shrink-0">
+                                        <X className="h-3 w-3" />
                                       </Button>
-                                      <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderDown(index)} disabled={index === selectedTrip.orderIds.length - 1}>
-                                        <ArrowDown className="h-2.5 w-2.5" />
-                                      </Button>
                                     </div>
-                                    <Button size="sm" variant="ghost" onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)} className="text-red-500 h-5 w-5 p-0 flex-shrink-0">
-                                      <X className="h-3 w-3" />
+                                    {/* Individual order status */}
+                                    <div className="flex items-center gap-2 mt-2 pl-6">
+                                      <span className="text-muted-foreground">Статус:</span>
+                                      <Select
+                                        value={orderStatus}
+                                        onValueChange={(value) => updateOrderStatusInTrip(selectedTrip.id, orderId, value)}
+                                      >
+                                        <SelectTrigger className={`h-6 text-xs w-auto min-w-[120px] ${statusInfo.color}`}>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {Object.entries(ORDER_TRIP_STATUSES).map(([key, info]) => (
+                                            <SelectItem key={key} value={key}>
+                                              <span className={`px-2 py-0.5 rounded ${info.color}`}>{info.label}</span>
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
                                     </Button>
                                   </div>
                                 ) : (
