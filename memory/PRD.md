@@ -5,6 +5,17 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### amoCRM Integration Enhanced (2026-01-04)
+- **Multiple Pipelines**: Separate webhook configs for Теплицы, Купели, Сауны
+- **Each section**: Own Pipeline ID, Status ID, Enable/Disable toggle, Test button
+- **Sync to amoCRM**: Settings for domain, API token, field IDs for status & comments
+- **Moved TechSpec**: Спецификация moved from main menu to Prices→Sauna section
+- **Files updated**:
+  - `/app/backend/routes/amocrm.py` - Multi-pipeline support, sync API
+  - `/app/frontend/src/components/IntegrationsPage.jsx` - 3 tabs: Settings, Sync, Logs
+  - `/app/frontend/src/components/AdminPanel.jsx` - 7 tabs, TechSpec inside Prices
+- **Status**: ✅ Implemented and tested
+
 ### amoCRM Integration (2026-01-04)
 - **Feature**: Webhook integration with amoCRM for automatic order creation
 - **Endpoint**: `POST /api/integrations/amocrm/webhook` - receives webhooks from amoCRM
