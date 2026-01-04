@@ -10,6 +10,22 @@ A full-featured quoting and order management application for Saunas and Balias (
 - **Structure**: Each category (Теплицы, Купели, Сауны) has nested tabs:
   - **Заказы** - Orders without assigned trip
   - **Рейсы** - List of trips with their orders
+- **New 3-Column Layout** (2026-01-05):
+  - **Left column**: List of trips for current category
+  - **Middle column**: Trip details (driver, status, orders with reordering)
+  - **Right column**: Interactive map with route visualization
+- **Warehouse Settings** (2026-01-05):
+  - New "Настройки" (Settings) button in header
+  - Configure warehouse address (starting/ending point for all routes)
+  - Warehouse shown as **orange marker "С"** on all maps
+  - Used as origin and destination when optimizing routes
+- **Route Optimization & Reordering**:
+  - **Оптимизировать button** - Uses Google Maps Directions API with `optimizeWaypoints: true` to automatically reorder stops for shortest driving route from warehouse
+  - **Route info display** - Shows total distance (km) and duration (min)
+  - **Arrow buttons (↑↓)** - Move orders up/down in the list one position at a time
+  - **Drag & drop** - Drag orders by the grip handle (⋮⋮) to reorder manually
+  - **Order numbers** - Show current position (1, 2, 3...) in the delivery sequence
+  - **Coordinate indicator** - Shows ✓ (green) for geocoded orders, ? (gray) for orders without map coordinates
 - **Trip Creation**:
   - Select orders from the list using checkboxes
   - Click "Создать рейс" button
@@ -21,14 +37,8 @@ A full-featured quoting and order management application for Saunas and Balias (
   - Change status (Активен, Доставлен, Отменён)
   - Remove individual orders from trip (return to general list)
   - Delete entire trip (all orders return to general list)
-- **Route Optimization & Reordering** (2026-01-05):
-  - **Оптимизировать button** - Uses Google Maps Directions API with `optimizeWaypoints: true` to automatically reorder stops for shortest driving route
-  - **Arrow buttons (↑↓)** - Move orders up/down in the list one position at a time
-  - **Drag & drop** - Drag orders by the grip handle (⋮⋮) to reorder manually
-  - **Order numbers** - Show current position (1, 2, 3...) in the delivery sequence
-  - **Coordinate indicator** - Shows ✓ (green) for geocoded orders, ? (gray) for orders without map coordinates
 - **Files**:
-  - `/app/frontend/src/components/LogisticsPage.jsx` - UI with nested tabs and reordering
+  - `/app/frontend/src/components/LogisticsPage.jsx` - UI with nested tabs, 3-column layout, route visualization
   - `/app/backend/routes/trips.py` - Trips API (CRUD operations)
 - **API Endpoints**:
   - `GET /api/trips?section=balia` - Get trips by category
