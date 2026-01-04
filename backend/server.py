@@ -15,6 +15,7 @@ from routes.upload import router as upload_router
 from routes.customer_fields import router as customer_fields_router
 from routes.statistics import router as statistics_router
 from routes.backup import router as backup_router, set_database as set_backup_db
+from routes.greenhouse import router as greenhouse_router
 
 # Configure logging
 logging.basicConfig(
@@ -41,6 +42,7 @@ app.include_router(upload_router, prefix="/api")
 app.include_router(customer_fields_router, prefix="/api")
 app.include_router(statistics_router, prefix="/api")
 app.include_router(backup_router)
+app.include_router(greenhouse_router)
 
 # Initialize backup database reference
 from database import db
