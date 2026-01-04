@@ -378,11 +378,147 @@ export const LogisticsPage = () => {
           <Truck className="h-8 w-8 text-[#355c7d]" />
           <h1 className="text-2xl font-bold text-gray-900">Логистика</h1>
         </div>
-        <Button variant="outline" onClick={fetchOrders} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Обновить
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowOrderForm(!showOrderForm)}
+            className="bg-[#355c7d] hover:bg-[#2a4a63]"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Создать заказ
+          </Button>
+          <Button variant="outline" onClick={fetchOrders} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Обновить
+          </Button>
+        </div>
       </div>
+
+      {/* Create Order Form */}
+      {showOrderForm && (
+        <Card className="border-[#355c7d]/30 bg-[#355c7d]/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Plus className="h-5 w-5 text-[#355c7d]" />
+                Новый заказ
+              </CardTitle>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => setShowOrderForm(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Name */}
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-sm font-medium flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  Имя клиента *
+                </Label>
+                <Input
+                  id="fullName"
+                  value={newOrderForm.fullName}
+                  onChange={(e) => setNewOrderForm(prev => ({ ...prev, fullName: e.target.value }))}
+                  placeholder="Введите имя"
+                  data-testid="order-form-name"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber" className="text-sm font-medium flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  Телефон
+                </Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  value={newOrderForm.phoneNumber}
+                  onChange={(e) => setNewOrderForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                  placeholder="+48 123 456 789"
+                  data-testid="order-form-phone"
+                />
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="fullAddress" className="text-sm font-medium flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  Адрес доставки *
+                </Label>
+                <AddressAutocomplete
+                  value={newOrderForm.fullAddress}
+                  onChange={(address) => setNewOrderForm(prev => ({ ...prev, fullAddress: address }))}
+                  placeholder="Введите адрес..."
+                  data-testid="order-form-address"
+                />
+              </div>
+
+              {/* Order Composition */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="orderComposition" className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  Состав заказа
+                </Label>
+                <Textarea
+                  id="orderComposition"
+                  value={newOrderForm.orderComposition}
+                  onChange={(e) => setNewOrderForm(prev => ({ ...prev, orderComposition: e.target.value }))}
+                  placeholder="Опишите состав заказа..."
+                  rows={3}
+                  data-testid="order-form-composition"
+                />
+              </div>
+
+              {/* Order Type */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Тип заказа</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={newOrderForm.orderType === 'balia' ? 'default' : 'outline'}
+                    onClick={() => setNewOrderForm(prev => ({ ...prev, orderType: 'balia' }))}
+                    data-testid="order-form-type-balia"
+                  >
+                    Balia
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={newOrderForm.orderType === 'sauna' ? 'default' : 'outline'}
+                    onClick={() => setNewOrderForm(prev => ({ ...prev, orderType: 'sauna' }))}
+                    data-testid="order-form-type-sauna"
+                  >
+                    Sauna
+                  </Button>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end items-end">
+                <Button
+                  onClick={handleCreateOrder}
+                  disabled={creatingOrder || !newOrderForm.fullName || !newOrderForm.fullAddress}
+                  className="bg-[#355c7d] hover:bg-[#2a4a63]"
+                  data-testid="order-form-submit"
+                >
+                  {creatingOrder ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  Создать заказ
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Orders List */}
