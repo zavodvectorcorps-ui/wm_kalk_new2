@@ -1585,160 +1585,214 @@ export const LogisticsPage = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-        ))}
+              </>
+            )}
 
-        {/* Trips Tab Content */}
-        <TabsContent value="trips" className="mt-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Trips List */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Route className="h-5 w-5 text-purple-600" />
-                    Рейсы
-                  </CardTitle>
-                  <Badge variant="secondary" className="bg-purple-100">{trips.length}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {trips.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    Нет рейсов. Выберите заказы и нажмите &quot;Создать рейс&quot;
-                  </p>
-                ) : (
-                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                    {trips.map((trip) => (
-                      <div
-                        key={trip.id}
-                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                          selectedTrip?.id === trip.id ? 'bg-purple-50 border-purple-300' : 'hover:bg-muted/50'
-                        }`}
-                        onClick={() => setSelectedTrip(trip)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{trip.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {trip.orderIds?.length || 0} заказов • {SECTIONS[trip.section]?.name.ru || trip.section}
-                            </p>
-                            {trip.driverName && (
-                              <p className="text-sm text-blue-600 flex items-center gap-1 mt-1">
-                                <User className="h-3 w-3" />
-                                {trip.driverName}
+            {/* Trips View */}
+            {activeInnerTab === 'trips' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Trips List for this section */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Route className="h-5 w-5 text-purple-600" />
+                        Рейсы — {SECTIONS[sectionKey].name.ru}
+                      </CardTitle>
+                      <Badge variant="secondary" className="bg-purple-100">
+                        {trips.filter(t => t.section === sectionKey).length}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {trips.filter(t => t.section === sectionKey).length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground mb-4">
+                          Нет рейсов для этой категории
+                        </p>
+                        <Button
+                          variant="outline"
+                          onClick={() => setActiveInnerTab('orders')}
+                        >
+                          <Package className="h-4 w-4 mr-2" />
+                          Перейти к заказам
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                        {trips.filter(t => t.section === sectionKey).map((trip) => (
+                          <div
+                            key={trip.id}
+                            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                              selectedTrip?.id === trip.id ? 'bg-purple-50 border-purple-300' : 'hover:bg-muted/50'
+                            }`}
+                            onClick={() => setSelectedTrip(trip)}
+                            data-testid={`trip-card-${trip.id}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{trip.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {trip.orderIds?.length || 0} заказов
+                                </p>
+                                {trip.driverName && (
+                                  <p className="text-sm text-blue-600 flex items-center gap-1 mt-1">
+                                    <User className="h-3 w-3" />
+                                    {trip.driverName}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge className={
+                                  trip.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                                  trip.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                  'bg-blue-100 text-blue-700'
+                                }>
+                                  {trip.status === 'completed' ? 'Доставлен' : 
+                                   trip.status === 'cancelled' ? 'Отменён' : 'Активен'}
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => { e.stopPropagation(); deleteTrip(trip.id); }}
+                                  className="text-red-500 hover:text-red-700"
+                                  data-testid={`delete-trip-${trip.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Selected Trip Details */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">
+                      {selectedTrip ? selectedTrip.name : 'Выберите рейс'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedTrip && selectedTrip.section === sectionKey ? (
+                      <div className="space-y-4">
+                        {/* Driver assignment */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Водитель:</Label>
+                          <Select
+                            value={selectedTrip.driverId || 'none'}
+                            onValueChange={(value) => {
+                              const driver = drivers.find(d => d.id === value);
+                              updateTrip(selectedTrip.id, {
+                                driverId: value === 'none' ? null : value,
+                                driverName: driver?.name || null
+                              });
+                              // Update local state immediately
+                              setSelectedTrip(prev => ({
+                                ...prev,
+                                driverId: value === 'none' ? null : value,
+                                driverName: driver?.name || null
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="w-full" data-testid="trip-driver-select">
+                              <SelectValue placeholder="Выберите водителя" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Не назначен</SelectItem>
+                              {drivers.map(d => (
+                                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Status */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Статус:</Label>
+                          <Select
+                            value={selectedTrip.status || 'active'}
+                            onValueChange={(value) => {
+                              updateTrip(selectedTrip.id, { status: value });
+                              setSelectedTrip(prev => ({ ...prev, status: value }));
+                            }}
+                          >
+                            <SelectTrigger className="w-full" data-testid="trip-status-select">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Активен</SelectItem>
+                              <SelectItem value="completed">Доставлен</SelectItem>
+                              <SelectItem value="cancelled">Отменён</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Orders in trip */}
+                        <div className="border-t pt-4">
+                          <p className="text-sm font-medium mb-2">Заказы в рейсе ({selectedTrip.orderIds?.length || 0}):</p>
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                            {selectedTrip.orderIds?.map(orderId => {
+                              const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
+                              return order ? (
+                                <div key={orderId} className="flex items-center justify-between p-2 bg-muted rounded">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{order.fullName || order.customerName}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{order.fullAddress || order.address}</p>
+                                    {order.phoneNumber && (
+                                      <p className="text-xs text-muted-foreground">{order.phoneNumber}</p>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)}
+                                    className="text-red-500 hover:text-red-700 flex-shrink-0"
+                                    title="Убрать из рейса"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div key={orderId} className="p-2 bg-muted rounded text-xs text-muted-foreground">
+                                  Заказ {orderId} не найден
+                                </div>
+                              );
+                            })}
+                            {(!selectedTrip.orderIds || selectedTrip.orderIds.length === 0) && (
+                              <p className="text-center text-muted-foreground py-4 text-sm">
+                                В рейсе нет заказов
                               </p>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={trip.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}>
-                              {trip.status === 'completed' ? 'Доставлен' : 'Активен'}
-                            </Badge>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => { e.stopPropagation(); deleteTrip(trip.id); }}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                        </div>
+
+                        {/* Delete Trip Button */}
+                        <div className="border-t pt-4">
+                          <Button
+                            variant="outline"
+                            className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={() => deleteTrip(selectedTrip.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Удалить рейс
+                          </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Selected Trip Details */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">
-                  {selectedTrip ? selectedTrip.name : 'Выберите рейс'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {selectedTrip ? (
-                  <div className="space-y-4">
-                    {/* Driver assignment */}
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm">Водитель:</Label>
-                      <Select
-                        value={selectedTrip.driverId || 'none'}
-                        onValueChange={(value) => {
-                          const driver = drivers.find(d => d.id === value);
-                          updateTrip(selectedTrip.id, {
-                            driverId: value === 'none' ? null : value,
-                            driverName: driver?.name || null
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="w-[200px]">
-                          <SelectValue placeholder="Выберите водителя" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Не назначен</SelectItem>
-                          {drivers.map(d => (
-                            <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm">Статус:</Label>
-                      <Select
-                        value={selectedTrip.status || 'active'}
-                        onValueChange={(value) => updateTrip(selectedTrip.id, { status: value })}
-                      >
-                        <SelectTrigger className="w-[200px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="active">Активен</SelectItem>
-                          <SelectItem value="completed">Доставлен</SelectItem>
-                          <SelectItem value="cancelled">Отменён</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Orders in trip */}
-                    <div className="border-t pt-4">
-                      <p className="text-sm font-medium mb-2">Заказы в рейсе:</p>
-                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                        {selectedTrip.orderIds?.map(orderId => {
-                          const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
-                          return order ? (
-                            <div key={orderId} className="flex items-center justify-between p-2 bg-muted rounded">
-                              <div>
-                                <p className="text-sm font-medium">{order.fullName}</p>
-                                <p className="text-xs text-muted-foreground">{order.fullAddress}</p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)}
-                                className="text-red-500"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : null;
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">
-                    Выберите рейс слева для просмотра деталей
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8">
+                        Выберите рейс слева для просмотра деталей
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+        ))}
       </Tabs>
 
       {/* Create Trip Modal */}
