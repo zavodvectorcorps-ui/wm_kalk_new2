@@ -53,6 +53,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
+    email: '',
     fullAddress: '',
     orderDate: new Date().toISOString().split('T')[0],
     selectedModel: '',
