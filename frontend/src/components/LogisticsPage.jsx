@@ -422,6 +422,61 @@ export const LogisticsPage = () => {
     }
   };
 
+  // Update delivery status
+  const updateDeliveryStatus = async (orderId, newStatus, deliveryComment = '') => {
+    try {
+      const collection = get_collection_for_section(activeSection);
+      const order = currentData.orders.find(o => o.id === orderId);
+      
+      // Update in local state first for immediate feedback
+      setSectionData(prev => ({
+        ...prev,
+        [activeSection]: {
+          ...prev[activeSection],
+          orders: prev[activeSection].orders.map(o => 
+            o.id === orderId ? { ...o, deliveryStatus: newStatus, deliveryComment } : o
+          )
+        }
+      }));
+
+      // Update in database
+      const response = await fetch(`${API_URL}${currentSection.endpoint}/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          ...order,
+          deliveryStatus: newStatus, 
+          deliveryComment 
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+
+      // Sync to amoCRM if order has amocrm_id
+      if (order?.amocrm_id) {
+        try {
+          const statusLabel = DELIVERY_STATUSES[newStatus]?.label || newStatus;
+          await fetch(`${API_URL}/api/integrations/amocrm/sync-status?amocrm_id=${order.amocrm_id}&status=${encodeURIComponent(statusLabel)}&comment=${encodeURIComponent(deliveryComment)}`, {
+            method: 'POST'
+          });
+          toast.success('Статус синхронизирован с amoCRM');
+        } catch (syncError) {
+          console.error('Failed to sync to amoCRM:', syncError);
+          // Don't show error - sync is optional
+        }
+      }
+
+      toast.success('Статус обновлён');
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Ошибка обновления статуса');
+      // Revert on error
+      fetchAllOrders();
+    }
+  };
+
   // Format date
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
