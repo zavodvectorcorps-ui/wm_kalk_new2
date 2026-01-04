@@ -127,7 +127,9 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
     try {
       const endpoint = isSauna ? `${API_URL}/api/sauna/orders` : `${API_URL}/api/orders`;
       const response = await axios.get(endpoint);
-      setOrders(response.data);
+      // Filter out amoCRM orders - they belong to logistics, not calculator
+      const calculatorOrders = response.data.filter(o => !o.amocrm_id && o.source !== 'amocrm');
+      setOrders(calculatorOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error(t('error'));
