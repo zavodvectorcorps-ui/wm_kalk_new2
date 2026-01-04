@@ -279,19 +279,21 @@ async def receive_webhook_section(
     
     # Get collection for this section
     collection = get_collection_for_section(section)
-    if not collection:
+    if collection is None:
         log_entry["status"] = "error"
         log_entry["reason"] = f"Unknown section: {section}"
         webhook_logs.insert_one(log_entry)
         return {"status": "ok", "message": "Unknown section"}
     
     # Check if order with this amoCRM ID already exists
-    existing = collection.find_one({"amocrm_id": lead_data.get("amocrm_id")})
-    if existing:
-        log_entry["status"] = "skipped"
-        log_entry["reason"] = "Order already exists"
-        webhook_logs.insert_one(log_entry)
-        return {"status": "ok", "message": "Order already exists"}
+    amocrm_id = lead_data.get("amocrm_id")
+    if amocrm_id:
+        existing = collection.find_one({"amocrm_id": amocrm_id})
+        if existing:
+            log_entry["status"] = "skipped"
+            log_entry["reason"] = "Order already exists"
+            webhook_logs.insert_one(log_entry)
+            return {"status": "ok", "message": "Order already exists"}
     
     # Create order
     now = datetime.now(timezone.utc).isoformat()
