@@ -133,6 +133,145 @@ def parse_amocrm_webhook(body: bytes) -> Dict[str, Any]:
         return {}
 
 
+async def fetch_lead_from_amocrm(lead_id: str, domain: str, token: str) -> Optional[Dict[str, Any]]:
+    """Fetch full lead data from amoCRM API.
+    
+    Rate limit: max 7 requests/sec per integration.
+    """
+    if not domain or not token or not lead_id:
+        logger.warning(f"Missing amoCRM credentials or lead_id for API fetch")
+        return None
+    
+    url = f"https://{domain}/api/v4/leads/{lead_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"Successfully fetched lead {lead_id} from amoCRM API")
+                return data
+            elif response.status_code == 429:
+                logger.warning(f"amoCRM API rate limit exceeded for lead {lead_id}")
+                return None
+            else:
+                logger.error(f"amoCRM API error {response.status_code}: {response.text}")
+                return None
+    except Exception as e:
+        logger.error(f"Failed to fetch lead from amoCRM: {e}")
+        return None
+
+
+def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str, str] = None) -> Dict[str, Any]:
+    """Extract lead data from amoCRM API response (full data with custom_fields_values).
+    
+    API response format is different from webhook format.
+    """
+    lead_data = {}
+    field_mapping = field_mapping or {}
+    
+    if not api_data:
+        return lead_data
+    
+    # Basic fields from API response
+    lead_data["amocrm_id"] = str(api_data.get("id", ""))
+    lead_data["amocrm_name"] = api_data.get("name", "")
+    lead_data["pipeline_id"] = str(api_data.get("pipeline_id", ""))
+    lead_data["status_id"] = str(api_data.get("status_id", ""))
+    lead_data["price"] = api_data.get("price", 0)
+    
+    # Extract custom_fields_values from API response
+    custom_fields = api_data.get("custom_fields_values", [])
+    
+    # Build map of field_id -> value
+    field_values_by_id = {}
+    
+    for field in custom_fields:
+        if not isinstance(field, dict):
+            continue
+        
+        field_id = str(field.get("field_id", ""))
+        values = field.get("values", [])
+        
+        # Get first value
+        value = ""
+        if isinstance(values, list) and values:
+            first_val = values[0]
+            if isinstance(first_val, dict):
+                value = first_val.get("value", "")
+            else:
+                value = str(first_val)
+        
+        if field_id and value:
+            field_values_by_id[field_id] = value
+    
+    logger.info(f"Extracted field values by ID: {field_values_by_id}")
+    
+    # Map fields using provided IDs
+    def get_value(mapping_key):
+        field_id = field_mapping.get(mapping_key, "")
+        if field_id:
+            return field_values_by_id.get(field_id, "")
+        return ""
+    
+    # === MAP ALL FIELDS ===
+    
+    # Имя клиента
+    lead_data["fullName"] = get_value("fullName") or lead_data.get("amocrm_name", "")
+    
+    # Телефон клиента
+    lead_data["phoneNumber"] = get_value("phoneNumber")
+    
+    # Номер заказа
+    lead_data["orderNumber"] = get_value("orderNumber")
+    
+    # Адрес - одно поле или 3 отдельных
+    full_address = get_value("fullAddress")
+    if not full_address:
+        address_parts = []
+        index_val = get_value("addressIndex")
+        city_val = get_value("addressCity")
+        street_val = get_value("addressStreet")
+        
+        if index_val:
+            address_parts.append(index_val)
+        if city_val:
+            address_parts.append(city_val)
+        if street_val:
+            address_parts.append(street_val)
+        
+        if address_parts:
+            full_address = ", ".join(address_parts)
+    
+    lead_data["fullAddress"] = full_address
+    
+    # Состав заказа
+    lead_data["orderContents"] = get_value("orderContents")
+    
+    # Комментарий к заказу
+    lead_data["orderComment"] = get_value("orderComment")
+    
+    # Сумма сделки
+    deal_sum = get_value("dealSum")
+    if not deal_sum and lead_data.get("price"):
+        deal_sum = str(lead_data["price"])
+    lead_data["dealSum"] = deal_sum
+    
+    # Сумма задолженности
+    lead_data["debtSum"] = get_value("debtSum")
+    
+    # Notes for compatibility
+    lead_data["notes"] = lead_data.get("orderComment", "")
+    
+    logger.info(f"Final lead_data from API: {lead_data}")
+    return lead_data
+
+
 def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str] = None) -> Dict[str, Any]:
     """Extract lead data from amoCRM webhook payload.
     
