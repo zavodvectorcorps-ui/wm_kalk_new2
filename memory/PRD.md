@@ -116,11 +116,12 @@ A full-featured quoting and order management application for Saunas and Balias (
 ## Upcoming Tasks (Prioritized)
 
 ### P1 - High Priority
-1. **User verification**: Confirm PDF image fixes work correctly
+1. **Migrate Google Autocomplete**: Update `AddressAutocomplete.jsx` to use `PlaceAutocompleteElement` (deprecated warning)
 
 ### P2 - Medium Priority
 1. **Refactor SaunaCalculator.jsx**: Break down into smaller components (similar to BaliaPricingPage)
    - CustomerInfoCard, ModelSelectionCard, CategoryOptionCard, OrderSummaryCard
+2. **Finalize Sauna Lead Statistics Strategy**: Track leads from Telegram group where adding bot is not allowed
 
 ### P3 - Low Priority
 1. Fix minor dropdown positioning glitch in Balia calculator
