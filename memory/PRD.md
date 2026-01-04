@@ -5,6 +5,20 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Logistics as Standalone Section (2026-01-04)
+- **Feature**: Moved Logistics from Admin Panel tab to a standalone section on the landing page
+- **Access Control**: Added `logistics` as a new access type alongside `balia` and `sauna`
+- **User Management**: Updated UI to use checkboxes for granular access control (Balia, Sauna, Logistics)
+- **Backend Model**: Updated `UserCreate`/`UserUpdate` to support array of access types
+- **Files Modified**:
+  - `/app/frontend/src/components/LandingPage.jsx` - Added Logistics card
+  - `/app/frontend/src/App.js` - Added Logistics route
+  - `/app/frontend/src/components/AdminPanel.jsx` - Removed Logistics tab
+  - `/app/frontend/src/components/UserManagement.jsx` - Checkboxes for access control
+  - `/app/frontend/src/context/AuthContext.jsx` - Support array access in `hasAccess`
+  - `/app/backend/models/auth.py` - Union[str, List[str]] for access field
+- **Status**: ✅ Implemented and tested
+
 ### Logistics Page - Create Order Form (2026-01-04)
 - **Feature**: Added "Create Order" form directly in the Logistics page
 - **Fields**: Customer name*, Phone, Address* (with Google Places autocomplete), Order composition, Order type (Balia/Sauna)
