@@ -1800,31 +1800,69 @@ export const LogisticsPage = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>Создать рейс</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Route className="h-5 w-5 text-purple-600" />
+                Создать рейс — {currentSection.name.ru}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Название рейса</Label>
+              <div className="space-y-2">
+                <Label>Название рейса *</Label>
                 <Input
                   value={newTripName}
                   onChange={(e) => setNewTripName(e.target.value)}
                   placeholder="Например: Рейс 15 января"
+                  data-testid="trip-name-input"
                 />
               </div>
-              <p className="text-sm text-muted-foreground">
-                Выбрано заказов: {currentData.selectedOrders.length}
-              </p>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setShowCreateTripModal(false)}>
+              
+              <div className="space-y-2">
+                <Label>Водитель</Label>
+                <Select
+                  value={newTripDriver}
+                  onValueChange={setNewTripDriver}
+                >
+                  <SelectTrigger data-testid="trip-driver-input">
+                    <SelectValue placeholder="Выберите водителя (опционально)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {drivers.map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">Выбранные заказы: {currentData.selectedOrders.length}</p>
+                <div className="max-h-[150px] overflow-y-auto space-y-1">
+                  {currentData.selectedOrders.map(orderId => {
+                    const order = currentData.orders.find(o => o.id === orderId);
+                    return order ? (
+                      <p key={orderId} className="text-xs text-muted-foreground truncate">
+                        • {order.fullName || order.customerName} — {order.fullAddress || order.address || 'без адреса'}
+                      </p>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+              
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" onClick={() => {
+                  setShowCreateTripModal(false);
+                  setNewTripName('');
+                  setNewTripDriver('');
+                }}>
                   Отмена
                 </Button>
                 <Button 
                   onClick={createTrip}
                   disabled={creatingTrip || !newTripName.trim()}
                   className="bg-purple-600 hover:bg-purple-700"
+                  data-testid="create-trip-submit"
                 >
-                  {creatingTrip ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Создать
+                  {creatingTrip ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Создать рейс
                 </Button>
               </div>
             </CardContent>
