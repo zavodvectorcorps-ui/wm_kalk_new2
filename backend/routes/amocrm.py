@@ -264,8 +264,17 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
     # Телефон клиента
     lead_data["phoneNumber"] = get_value("phoneNumber")
     
-    # Номер заказа
-    lead_data["orderNumber"] = get_value("orderNumber")
+    # Номер заказа - use lead ID if no custom field specified
+    order_number = get_value("orderNumber")
+    if not order_number:
+        order_number = str(lead_data.get("amocrm_id", ""))
+    lead_data["orderNumber"] = order_number
+    
+    # amoCRM link - generate direct link to lead card
+    amocrm_id = lead_data.get("amocrm_id")
+    if amocrm_id:
+        # Domain will be added later when creating order
+        lead_data["amocrm_link"] = f"/leads/detail/{amocrm_id}"
     
     # Адрес - одно поле или 3 отдельных
     full_address = get_value("fullAddress")
