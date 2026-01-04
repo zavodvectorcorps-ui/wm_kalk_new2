@@ -507,9 +507,17 @@ export const LogisticsPage = () => {
         try {
           const statusLabel = DELIVERY_STATUSES[updates.deliveryStatus]?.label || updates.deliveryStatus;
           const comment = updates.deliveryComment || order.deliveryComment || '';
-          await fetch(`${API_URL}/api/integrations/amocrm/sync-status?amocrm_id=${order.amocrm_id}&status=${encodeURIComponent(statusLabel)}&comment=${encodeURIComponent(comment)}`, {
+          const syncResponse = await fetch(`${API_URL}/api/integrations/amocrm/sync-status?amocrm_id=${order.amocrm_id}&status=${encodeURIComponent(statusLabel)}&comment=${encodeURIComponent(comment)}`, {
             method: 'POST'
           });
+          const syncResult = await syncResponse.json();
+          if (syncResult.status === 'ok') {
+            console.log('Status synced to amoCRM');
+          } else if (syncResult.status === 'skipped') {
+            console.log('amoCRM sync skipped:', syncResult.message);
+          } else {
+            console.warn('amoCRM sync error:', syncResult.message);
+          }
         } catch (syncError) {
           console.error('Failed to sync to amoCRM:', syncError);
         }
