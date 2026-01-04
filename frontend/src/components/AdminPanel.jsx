@@ -9,7 +9,6 @@ import { StatisticsPage } from './StatisticsPage';
 import { BaliaPricingPage } from './BaliaPricingPage';
 import { SaunaPricingPage } from './SaunaPricingPage';
 import { UserManagement } from './UserManagement';
-import { TechSpecAdminPage } from './TechSpecAdminPage';
 import { BackupPage } from './BackupPage';
 import { WebOrdersPage } from './WebOrdersPage';
 import { IntegrationsPage } from './IntegrationsPage';
