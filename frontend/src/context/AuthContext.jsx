@@ -97,6 +97,10 @@ export const AuthProvider = ({ children }) => {
     if (user.role === 'admin') return true;
     if (user.role === 'observer') return true;
     if (user.access === 'all') return true;
+    // Support both string and array access
+    if (Array.isArray(user.access)) {
+      return user.access.includes(calculator);
+    }
     return user.access === calculator;
   };
 
