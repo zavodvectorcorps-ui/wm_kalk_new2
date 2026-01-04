@@ -1279,26 +1279,57 @@ export const LogisticsPage = () => {
                         fullscreenControl: true
                       }}
                     >
-                      {sectionData[sectionKey].markers.map((marker, index) => (
-                        <Marker
-                          key={marker.id}
-                          position={marker.position}
-                          title={`${index + 1}. ${marker.title}`}
-                          label={{
-                            text: String(index + 1),
-                            color: 'white',
-                            fontWeight: 'bold'
-                          }}
-                          icon={{
-                            path: window.google.maps.SymbolPath.CIRCLE,
-                            scale: 12,
-                            fillColor: currentSection.markerColor,
-                            fillOpacity: 1,
-                            strokeColor: 'white',
-                            strokeWeight: 2
-                          }}
-                        />
-                      ))}
+                      {/* All orders with coordinates */}
+                      {sectionData[sectionKey].orders
+                        .filter(order => order.lat && order.lng)
+                        .map((order) => {
+                          const isSelected = sectionData[sectionKey].selectedOrders.includes(order.id);
+                          const selectedIndex = isSelected 
+                            ? sectionData[sectionKey].selectedOrders.indexOf(order.id) + 1 
+                            : null;
+                          
+                          return (
+                            <Marker
+                              key={order.id}
+                              position={{ lat: order.lat, lng: order.lng }}
+                              title={`${order.fullName || order.customerName}\n${order.fullAddress || order.address}`}
+                              label={isSelected ? {
+                                text: String(selectedIndex),
+                                color: 'white',
+                                fontWeight: 'bold'
+                              } : undefined}
+                              icon={{
+                                path: window.google.maps.SymbolPath.CIRCLE,
+                                scale: isSelected ? 14 : 8,
+                                fillColor: isSelected ? currentSection.markerColor : '#9ca3af',
+                                fillOpacity: isSelected ? 1 : 0.7,
+                                strokeColor: isSelected ? 'white' : '#6b7280',
+                                strokeWeight: isSelected ? 2 : 1
+                              }}
+                              onClick={() => {
+                                // Toggle selection on click
+                                const currentSelected = sectionData[sectionKey].selectedOrders;
+                                if (isSelected) {
+                                  setSectionData(prev => ({
+                                    ...prev,
+                                    [sectionKey]: {
+                                      ...prev[sectionKey],
+                                      selectedOrders: currentSelected.filter(id => id !== order.id)
+                                    }
+                                  }));
+                                } else {
+                                  setSectionData(prev => ({
+                                    ...prev,
+                                    [sectionKey]: {
+                                      ...prev[sectionKey],
+                                      selectedOrders: [...currentSelected, order.id]
+                                    }
+                                  }));
+                                }
+                              }}
+                            />
+                          );
+                        })}
                       
                       {sectionData[sectionKey].directions && (
                         <DirectionsRenderer
