@@ -81,15 +81,20 @@ export const AddressAutocomplete = ({
   };
 
   if (!GOOGLE_MAPS_API_KEY) {
-    // Fallback to regular input if no API key
+    // Fallback to regular input if no API key - always show the field
     return (
-      <Input
-        value={inputValue}
-        onChange={handleInputChange}
-        placeholder={placeholder}
-        className={className}
-        disabled={disabled}
-      />
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+          <MapPin className="h-4 w-4" />
+        </div>
+        <Input
+          value={inputValue}
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          className={`pl-10 ${className}`}
+          disabled={disabled}
+        />
+      </div>
     );
   }
 
