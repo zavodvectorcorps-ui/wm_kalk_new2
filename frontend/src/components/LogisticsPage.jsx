@@ -707,21 +707,34 @@ export const LogisticsPage = () => {
                               className="mt-1"
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between gap-2">
                                 <p className="font-medium truncate">
                                   {order.fullName || order.customerName}
                                 </p>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
-                                >
-                                  {expandedOrder === order.id ? (
-                                    <ChevronUp className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4" />
-                                  )}
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  {/* Delivery Status Badge */}
+                                  {(() => {
+                                    const status = DELIVERY_STATUSES[order.deliveryStatus] || DELIVERY_STATUSES.pending;
+                                    const StatusIcon = status.icon;
+                                    return (
+                                      <Badge className={`${status.color} text-xs gap-1`}>
+                                        <StatusIcon className="h-3 w-3" />
+                                        {status.label}
+                                      </Badge>
+                                    );
+                                  })()}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                                  >
+                                    {expandedOrder === order.id ? (
+                                      <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
                               </div>
                               <p className="text-sm text-muted-foreground flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
@@ -729,10 +742,11 @@ export const LogisticsPage = () => {
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">
                                 {formatDate(order.orderDate || order.createdAt)}
+                                {order.amocrm_id && <span className="ml-2 text-purple-500">• amoCRM</span>}
                               </p>
                               
                               {expandedOrder === order.id && (
-                                <div className="mt-3 pt-3 border-t space-y-2 text-sm">
+                                <div className="mt-3 pt-3 border-t space-y-3 text-sm">
                                   {order.phoneNumber && (
                                     <p className="flex items-center gap-2">
                                       <Phone className="h-3 w-3" />
@@ -745,6 +759,53 @@ export const LogisticsPage = () => {
                                       <span className="break-words">{order.notes}</span>
                                     </p>
                                   )}
+                                  
+                                  {/* Status Change */}
+                                  <div className="pt-2 border-t space-y-2">
+                                    <Label className="text-xs text-muted-foreground">Статус доставки</Label>
+                                    <Select
+                                      value={order.deliveryStatus || 'pending'}
+                                      onValueChange={(value) => updateDeliveryStatus(order.id, value, order.deliveryComment || '')}
+                                    >
+                                      <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Object.entries(DELIVERY_STATUSES).map(([key, val]) => {
+                                          const Icon = val.icon;
+                                          return (
+                                            <SelectItem key={key} value={key}>
+                                              <div className="flex items-center gap-2">
+                                                <Icon className="h-3 w-3" />
+                                                {val.label}
+                                              </div>
+                                            </SelectItem>
+                                          );
+                                        })}
+                                      </SelectContent>
+                                    </Select>
+                                    
+                                    {/* Delivery Comment */}
+                                    <div className="flex gap-2">
+                                      <Input
+                                        placeholder="Дата/комментарий доставки"
+                                        defaultValue={order.deliveryComment || ''}
+                                        className="h-8 text-xs"
+                                        onBlur={(e) => {
+                                          if (e.target.value !== (order.deliveryComment || '')) {
+                                            updateDeliveryStatus(order.id, order.deliveryStatus || 'pending', e.target.value);
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                    
+                                    {order.amocrm_id && (
+                                      <p className="text-xs text-purple-500 flex items-center gap-1">
+                                        <Send className="h-3 w-3" />
+                                        Синхр. с amoCRM при изменении
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                             </div>
