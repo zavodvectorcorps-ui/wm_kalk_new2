@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { DynamicCustomerForm } from './CustomerInfoForm';
+import { AddressAutocomplete } from './AddressAutocomplete';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Label } from './ui/label';
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
 import { toast } from 'sonner';
-import { FileDown, Save, RotateCcw, Loader2, Droplets, Check, Package, Info, Percent, Tag, X, Edit, Gift, Shield, Circle, Ruler, ArrowDownUp, Gauge, Users, Flame, Weight } from 'lucide-react';
+import { FileDown, Save, RotateCcw, Loader2, Droplets, Check, Package, Info, Percent, Tag, X, Edit, Gift, Shield, Circle, Ruler, ArrowDownUp, Gauge, Users, Flame, Weight, User, Phone, Mail, MapPin } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
