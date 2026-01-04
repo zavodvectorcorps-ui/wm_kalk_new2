@@ -1540,7 +1540,196 @@ export const LogisticsPage = () => {
             </div>
           </TabsContent>
         ))}
+
+        {/* Trips Tab Content */}
+        <TabsContent value="trips" className="mt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Trips List */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Route className="h-5 w-5 text-purple-600" />
+                    Рейсы
+                  </CardTitle>
+                  <Badge variant="secondary" className="bg-purple-100">{trips.length}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {trips.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    Нет рейсов. Выберите заказы и нажмите "Создать рейс"
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                    {trips.map((trip) => (
+                      <div
+                        key={trip.id}
+                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                          selectedTrip?.id === trip.id ? 'bg-purple-50 border-purple-300' : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => setSelectedTrip(trip)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{trip.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {trip.orderIds?.length || 0} заказов • {SECTIONS[trip.section]?.name.ru || trip.section}
+                            </p>
+                            {trip.driverName && (
+                              <p className="text-sm text-blue-600 flex items-center gap-1 mt-1">
+                                <User className="h-3 w-3" />
+                                {trip.driverName}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className={trip.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}>
+                              {trip.status === 'completed' ? 'Доставлен' : 'Активен'}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => { e.stopPropagation(); deleteTrip(trip.id); }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Selected Trip Details */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">
+                  {selectedTrip ? selectedTrip.name : 'Выберите рейс'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {selectedTrip ? (
+                  <div className="space-y-4">
+                    {/* Driver assignment */}
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm">Водитель:</Label>
+                      <Select
+                        value={selectedTrip.driverId || 'none'}
+                        onValueChange={(value) => {
+                          const driver = drivers.find(d => d.id === value);
+                          updateTrip(selectedTrip.id, {
+                            driverId: value === 'none' ? null : value,
+                            driverName: driver?.name || null
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Выберите водителя" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Не назначен</SelectItem>
+                          {drivers.map(d => (
+                            <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm">Статус:</Label>
+                      <Select
+                        value={selectedTrip.status || 'active'}
+                        onValueChange={(value) => updateTrip(selectedTrip.id, { status: value })}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Активен</SelectItem>
+                          <SelectItem value="completed">Доставлен</SelectItem>
+                          <SelectItem value="cancelled">Отменён</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Orders in trip */}
+                    <div className="border-t pt-4">
+                      <p className="text-sm font-medium mb-2">Заказы в рейсе:</p>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        {selectedTrip.orderIds?.map(orderId => {
+                          const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
+                          return order ? (
+                            <div key={orderId} className="flex items-center justify-between p-2 bg-muted rounded">
+                              <div>
+                                <p className="text-sm font-medium">{order.fullName}</p>
+                                <p className="text-xs text-muted-foreground">{order.fullAddress}</p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)}
+                                className="text-red-500"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    Выберите рейс слева для просмотра деталей
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
+
+      {/* Create Trip Modal */}
+      {showCreateTripModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Создать рейс</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Название рейса</Label>
+                <Input
+                  value={newTripName}
+                  onChange={(e) => setNewTripName(e.target.value)}
+                  placeholder="Например: Рейс 15 января"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Выбрано заказов: {currentData.selectedOrders.length}
+              </p>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setShowCreateTripModal(false)}>
+                  Отмена
+                </Button>
+                <Button 
+                  onClick={createTrip}
+                  disabled={creatingTrip || !newTripName.trim()}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {creatingTrip ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  Создать
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
