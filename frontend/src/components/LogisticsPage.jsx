@@ -471,6 +471,37 @@ export const LogisticsPage = () => {
     }
   };
 
+  // Delete order
+  const deleteOrder = async (orderId) => {
+    if (!window.confirm('Удалить этот заказ?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_URL}${currentSection.endpoint}/${orderId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Remove from local state
+        setSectionData(prev => ({
+          ...prev,
+          [activeSection]: {
+            ...prev[activeSection],
+            orders: prev[activeSection].orders.filter(o => o.id !== orderId),
+            selectedOrders: prev[activeSection].selectedOrders.filter(id => id !== orderId)
+          }
+        }));
+        toast.success('Заказ удалён');
+      } else {
+        throw new Error('Failed to delete');
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Ошибка удаления');
+    }
+  };
+
   // Update order fields (status, driver, route, comment)
   const updateOrderField = async (orderId, updates) => {
     try {
