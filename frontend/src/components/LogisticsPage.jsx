@@ -984,6 +984,14 @@ export const LogisticsPage = () => {
                                       <ChevronDown className="h-4 w-4" />
                                     )}
                                   </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteOrder(order.id)}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               </div>
                               <p className="text-sm text-muted-foreground flex items-center gap-1">
