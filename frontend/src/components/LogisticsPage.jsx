@@ -158,6 +158,11 @@ export const LogisticsPage = () => {
   // Bulk actions state
   const [showBulkActions, setShowBulkActions] = useState(false);
   
+  // Map filter and popup state
+  const [mapFilter, setMapFilter] = useState('free'); // 'all' or 'free' (not in trip)
+  const [selectedMapOrder, setSelectedMapOrder] = useState(null); // Order clicked on map
+  const [mapPopupPosition, setMapPopupPosition] = useState(null); // Position for popup
+  
   // New order form state
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [newOrderForm, setNewOrderForm] = useState({
