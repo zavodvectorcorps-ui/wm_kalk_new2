@@ -1025,11 +1025,12 @@ export const LogisticsPage = () => {
       )}
 
       {/* Section Tabs */}
-      <Tabs value={activeSection} onValueChange={(v) => { setActiveSection(v); setShowTripsTab(false); }} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4">
+      <Tabs value={activeSection} onValueChange={(v) => { setActiveSection(v); }} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           {Object.entries(SECTIONS).map(([key, section]) => {
             const Icon = section.icon;
             const unassignedCount = getUnassignedOrders(sectionData[key].orders).length;
+            const sectionTripsCount = trips.filter(t => t.section === key).length;
             return (
               <TabsTrigger 
                 key={key} 
@@ -1039,23 +1040,51 @@ export const LogisticsPage = () => {
                 <Icon className={`h-4 w-4 ${section.color}`} />
                 <span>{section.name.ru}</span>
                 <Badge variant="secondary" className="ml-1">{unassignedCount}</Badge>
+                {sectionTripsCount > 0 && (
+                  <Badge variant="outline" className="ml-1 bg-purple-100 text-purple-700">{sectionTripsCount} рейс.</Badge>
+                )}
               </TabsTrigger>
             );
           })}
-          {/* Trips Tab */}
-          <TabsTrigger 
-            value="trips"
-            onClick={() => setShowTripsTab(true)}
-            className="gap-2"
-          >
-            <Route className="h-4 w-4 text-purple-600" />
-            <span>Рейсы</span>
-            <Badge variant="secondary" className="ml-1">{trips.length}</Badge>
-          </TabsTrigger>
         </TabsList>
 
         {Object.keys(SECTIONS).map(sectionKey => (
           <TabsContent key={sectionKey} value={sectionKey} className="mt-0">
+            {/* Inner Tabs: Orders / Trips */}
+            <div className="mb-4">
+              <div className="flex gap-2 border-b">
+                <button
+                  onClick={() => setActiveInnerTab('orders')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeInnerTab === 'orders' 
+                      ? `border-[#355c7d] text-[#355c7d]` 
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Package className="h-4 w-4 inline mr-2" />
+                  Заказы
+                  <Badge variant="secondary" className="ml-2">{getUnassignedOrders(sectionData[sectionKey].orders).length}</Badge>
+                </button>
+                <button
+                  onClick={() => setActiveInnerTab('trips')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeInnerTab === 'trips' 
+                      ? 'border-purple-600 text-purple-600' 
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Route className="h-4 w-4 inline mr-2" />
+                  Рейсы
+                  <Badge variant="secondary" className="ml-2 bg-purple-100 text-purple-700">
+                    {trips.filter(t => t.section === sectionKey).length}
+                  </Badge>
+                </button>
+              </div>
+            </div>
+
+            {/* Orders View */}
+            {activeInnerTab === 'orders' && (
+              <>
             {/* Create Order Form */}
             {showOrderForm && activeSection === sectionKey && (
               <Card className={`border-2 ${currentSection.borderColor}/30 ${currentSection.bgColor}/10 mb-6`}>
