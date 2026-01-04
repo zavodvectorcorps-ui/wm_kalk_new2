@@ -780,6 +780,14 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
                     />
                   </div>
                 </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="fullAddress">{txt.fullAddress || 'Adres'}</Label>
+                  <AddressAutocomplete
+                    value={formData.fullAddress}
+                    onChange={(address) => setFormData(prev => ({ ...prev, fullAddress: address }))}
+                    placeholder="ul. Przykładowa 123, Warszawa"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
