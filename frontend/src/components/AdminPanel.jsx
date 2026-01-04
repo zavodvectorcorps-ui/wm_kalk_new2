@@ -20,7 +20,6 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
   const [activeTab, setActiveTab] = useState('orders');
   const [statsType, setStatsType] = useState('balia');
   const [pricesType, setPricesType] = useState('balia');
-  const [techSpecType, setTechSpecType] = useState('sauna');
 
   const texts = {
     ru: {
