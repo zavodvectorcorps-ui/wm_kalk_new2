@@ -473,13 +473,21 @@ export const LogisticsPage = () => {
     }));
   };
 
+  // Get selected orders with coordinates
+  const getSelectedOrdersWithCoords = () => {
+    return currentData.selectedOrders
+      .map(id => currentData.orders.find(o => o.id === id))
+      .filter(o => o && o.lat && o.lng);
+  };
+
   // Open route in Google Maps
   const openInGoogleMaps = () => {
-    if (currentData.markers.length < 2) return;
+    const ordersWithCoords = getSelectedOrdersWithCoords();
+    if (ordersWithCoords.length < 2) return;
 
-    const origin = currentData.markers[0].position;
-    const destination = currentData.markers[currentData.markers.length - 1].position;
-    const waypoints = currentData.markers.slice(1, -1).map(m => `${m.position.lat},${m.position.lng}`).join('|');
+    const origin = ordersWithCoords[0];
+    const destination = ordersWithCoords[ordersWithCoords.length - 1];
+    const waypoints = ordersWithCoords.slice(1, -1).map(o => `${o.lat},${o.lng}`).join('|');
 
     let url = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}`;
     if (waypoints) {
