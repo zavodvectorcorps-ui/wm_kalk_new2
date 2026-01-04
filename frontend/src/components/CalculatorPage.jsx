@@ -513,6 +513,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         orderId: orderId,
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
+        email: formData.email || '',
         fullAddress: formData.fullAddress,
         orderDate: formData.orderDate,
         modelId: selectedModel?.id,
