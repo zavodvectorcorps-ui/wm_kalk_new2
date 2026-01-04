@@ -5,6 +5,17 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Logistics with Three Sections (2026-01-04)
+- **Feature**: Split Logistics into three independent sections: Теплицы (Greenhouses), Купели (Balia), Сауны (Sauna)
+- **Each section has**: Own orders list, own map markers, own routes
+- **Backend**: Created `/api/greenhouse/orders` endpoint for greenhouse orders
+- **Files**:
+  - `/app/frontend/src/components/LogisticsPage.jsx` - Complete rewrite with tabs
+  - `/app/backend/routes/greenhouse.py` - New API for greenhouse orders
+  - `/app/backend/server.py` - Registered greenhouse router
+- **Google Autocomplete**: Using legacy Autocomplete (still supported, works reliably)
+- **Status**: ✅ Implemented and tested
+
 ### Logistics as Standalone Section (2026-01-04)
 - **Feature**: Moved Logistics from Admin Panel tab to a standalone section on the landing page
 - **Access Control**: Added `logistics` as a new access type alongside `balia` and `sauna`
