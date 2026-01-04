@@ -106,21 +106,32 @@ def extract_lead_data(data: Dict[str, Any]) -> Dict[str, Any]:
     """Extract lead data from amoCRM webhook payload."""
     lead_data = {}
     
+    logger.info(f"Extracting lead data from: {data}")
+    
     # Find lead in various possible locations
     leads = None
     if "leads" in data:
-        if "update" in data["leads"]:
-            leads = data["leads"]["update"]
-        elif "add" in data["leads"]:
-            leads = data["leads"]["add"]
-        elif "status" in data["leads"]:
-            leads = data["leads"]["status"]
+        leads_data = data["leads"]
+        if "update" in leads_data:
+            leads = leads_data["update"]
+        elif "add" in leads_data:
+            leads = leads_data["add"]
+        elif "status" in leads_data:
+            leads = leads_data["status"]
     
     if not leads:
+        logger.warning(f"No leads found in data: {data}")
         return lead_data
     
-    # Get first lead
-    lead = leads[0] if isinstance(leads, list) else leads.get("0") or leads
+    # Get first lead - handle both list and dict with "0" key
+    lead = None
+    if isinstance(leads, list):
+        lead = leads[0] if leads else None
+    elif isinstance(leads, dict):
+        # Dict with keys like "0", "1", etc.
+        lead = leads.get("0") or leads.get(0) or next(iter(leads.values()), None)
+    
+    logger.info(f"Extracted lead: {lead}")
     
     if isinstance(lead, dict):
         # Basic fields
@@ -130,26 +141,42 @@ def extract_lead_data(data: Dict[str, Any]) -> Dict[str, Any]:
         lead_data["status_id"] = str(lead.get("status_id", ""))
         lead_data["price"] = lead.get("price", 0)
         
-        # Extract custom fields
+        # Extract custom fields (could be list or dict with "0", "1" keys)
         custom_fields = lead.get("custom_fields", [])
+        fields_list = []
         if isinstance(custom_fields, list):
-            for field in custom_fields:
-                field_name = field.get("name", "").lower()
-                values = field.get("values", [])
-                value = values[0].get("value", "") if values else ""
-                
-                # Map to our fields
-                if "телефон" in field_name or "phone" in field_name:
-                    lead_data["phoneNumber"] = value
-                elif "адрес" in field_name or "address" in field_name:
-                    lead_data["fullAddress"] = value
-                elif "имя" in field_name or "name" in field_name or "контакт" in field_name:
-                    lead_data["fullName"] = value
+            fields_list = custom_fields
+        elif isinstance(custom_fields, dict):
+            # Convert dict to list
+            fields_list = list(custom_fields.values())
+        
+        for field in fields_list:
+            if not isinstance(field, dict):
+                continue
+            field_name = str(field.get("name", "")).lower()
+            values = field.get("values", [])
+            
+            # Handle values as dict or list
+            value = ""
+            if isinstance(values, list) and values:
+                value = values[0].get("value", "") if isinstance(values[0], dict) else str(values[0])
+            elif isinstance(values, dict):
+                first_val = values.get("0") or next(iter(values.values()), {})
+                value = first_val.get("value", "") if isinstance(first_val, dict) else str(first_val)
+            
+            # Map to our fields
+            if "телефон" in field_name or "phone" in field_name:
+                lead_data["phoneNumber"] = value
+            elif "адрес" in field_name or "address" in field_name:
+                lead_data["fullAddress"] = value
+            elif "имя" in field_name or "name" in field_name or "контакт" in field_name:
+                lead_data["fullName"] = value
         
         # Fallback to lead name if no contact name
         if not lead_data.get("fullName"):
-            lead_data["fullName"] = lead_data.get("amocrm_name", "")
+            lead_data["fullName"] = lead_data.get("amocrm_name", "Без имени")
     
+    logger.info(f"Final lead_data: {lead_data}")
     return lead_data
 
 
