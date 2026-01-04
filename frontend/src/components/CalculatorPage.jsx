@@ -80,6 +80,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
         ...prev,
         fullName: editingOrder.fullName || '',
         phoneNumber: editingOrder.phoneNumber || '',
+        email: editingOrder.email || '',
         fullAddress: editingOrder.fullAddress || '',
         orderDate: editingOrder.orderDate || new Date().toISOString().split('T')[0],
         selectedModel: editingOrder.modelId || '',
