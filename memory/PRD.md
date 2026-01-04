@@ -21,13 +21,19 @@ A full-featured quoting and order management application for Saunas and Balias (
   - Change status (Активен, Доставлен, Отменён)
   - Remove individual orders from trip (return to general list)
   - Delete entire trip (all orders return to general list)
+- **Route Optimization & Reordering** (2026-01-05):
+  - **Оптимизировать button** - Uses Google Maps Directions API with `optimizeWaypoints: true` to automatically reorder stops for shortest driving route
+  - **Arrow buttons (↑↓)** - Move orders up/down in the list one position at a time
+  - **Drag & drop** - Drag orders by the grip handle (⋮⋮) to reorder manually
+  - **Order numbers** - Show current position (1, 2, 3...) in the delivery sequence
+  - **Coordinate indicator** - Shows ✓ (green) for geocoded orders, ? (gray) for orders without map coordinates
 - **Files**:
-  - `/app/frontend/src/components/LogisticsPage.jsx` - UI with nested tabs
+  - `/app/frontend/src/components/LogisticsPage.jsx` - UI with nested tabs and reordering
   - `/app/backend/routes/trips.py` - Trips API (CRUD operations)
 - **API Endpoints**:
   - `GET /api/trips?section=balia` - Get trips by category
   - `POST /api/trips` - Create new trip
-  - `PUT /api/trips/{trip_id}` - Update trip (driver, status)
+  - `PUT /api/trips/{trip_id}` - Update trip (driver, status, orderIds for reordering)
   - `DELETE /api/trips/{trip_id}` - Delete trip
   - `POST /api/trips/{trip_id}/remove-orders` - Remove orders from trip
 - **Status**: ✅ Implemented and tested
