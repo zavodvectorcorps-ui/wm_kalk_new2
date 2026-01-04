@@ -1045,6 +1045,121 @@ export const LogisticsPage = () => {
     window.open(url, '_blank');
   };
 
+  // Toggle important flag for order
+  const toggleOrderImportant = async (orderId) => {
+    try {
+      const order = currentData.orders.find(o => o.id === orderId);
+      if (!order) return;
+      
+      const newImportant = !order.isImportant;
+      
+      // Update in backend
+      const endpoint = activeSection === 'greenhouse' ? 'greenhouse' : activeSection === 'sauna' ? 'sauna' : 'balia';
+      await fetch(`${API_URL}/api/${endpoint}/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isImportant: newImportant })
+      });
+      
+      // Update local state
+      setSectionData(prev => ({
+        ...prev,
+        [activeSection]: {
+          ...prev[activeSection],
+          orders: prev[activeSection].orders.map(o => 
+            o.id === orderId ? { ...o, isImportant: newImportant } : o
+          )
+        }
+      }));
+      
+      toast.success(newImportant ? 'Заказ отмечен как важный' : 'Отметка снята');
+    } catch (error) {
+      console.error('Error toggling important:', error);
+      toast.error('Ошибка');
+    }
+  };
+
+  // Add single order to selected (for map popup)
+  const addOrderToSelection = (orderId) => {
+    setSectionData(prev => {
+      const isSelected = prev[activeSection].selectedOrders.includes(orderId);
+      return {
+        ...prev,
+        [activeSection]: {
+          ...prev[activeSection],
+          selectedOrders: isSelected 
+            ? prev[activeSection].selectedOrders.filter(id => id !== orderId)
+            : [...prev[activeSection].selectedOrders, orderId]
+        }
+      };
+    });
+  };
+
+  // Get marker color based on order state
+  const getMarkerColor = (order) => {
+    if (order.isImportant) return '#ef4444'; // Red for important
+    if (order.tripId) return '#9ca3af'; // Gray for in trip
+    return '#22c55e'; // Green for free
+  };
+
+  // Get marker icon for order
+  const getMarkerIcon = (order) => {
+    const color = getMarkerColor(order);
+    const isImportant = order.isImportant;
+    
+    if (isImportant) {
+      // Exclamation mark icon for important
+      return {
+        path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: 'white',
+        strokeWeight: 2,
+        scale: 1.2,
+        anchor: new window.google.maps.Point(12, 12)
+      };
+    }
+    
+    return {
+      path: window.google.maps.SymbolPath.CIRCLE,
+      scale: 10,
+      fillColor: color,
+      fillOpacity: 1,
+      strokeColor: 'white',
+      strokeWeight: 2
+    };
+  };
+
+  // Handle marker click on map
+  const handleMarkerClick = (order, event) => {
+    setSelectedMapOrder(order);
+    // Get pixel position from map
+    if (mapRef.current && event) {
+      const bounds = mapRef.current.getBounds();
+      const projection = mapRef.current.getProjection();
+      if (bounds && projection) {
+        setMapPopupPosition({
+          lat: order.lat,
+          lng: order.lng
+        });
+      }
+    }
+  };
+
+  // Close map popup
+  const closeMapPopup = () => {
+    setSelectedMapOrder(null);
+    setMapPopupPosition(null);
+  };
+
+  // Get orders for map based on filter
+  const getMapOrders = (orders) => {
+    if (mapFilter === 'free') {
+      return orders.filter(o => !o.tripId && o.lat && o.lng);
+    }
+    return orders.filter(o => o.lat && o.lng);
+  };
+
   // Create new order
   const handleCreateOrder = async () => {
     if (!newOrderForm.fullName || !newOrderForm.fullAddress) {
