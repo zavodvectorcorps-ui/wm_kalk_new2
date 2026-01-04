@@ -149,16 +149,7 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
             {pricesType === 'balia' ? (
               <BaliaPricingPage />
             ) : (
-              <div className="space-y-6">
-                <SaunaPricingPage />
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    {txt.techSpec}
-                  </h3>
-                  <TechSpecAdminPage projectType="sauna" />
-                </div>
-              </div>
+              <SaunaPricingPage />
             )}
           </TabsContent>
 
