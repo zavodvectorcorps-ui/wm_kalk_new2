@@ -145,6 +145,31 @@ export const IntegrationsPage = () => {
     }
   };
 
+  const deleteAmocrmOrders = async (section) => {
+    if (!window.confirm(`Удалить ВСЕ заказы из amoCRM в разделе "${section}"?`)) {
+      return;
+    }
+    
+    setDeleting(section);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/amocrm/orders/${section}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Удалено заказов: ${data.deleted_count}`);
+      } else {
+        toast.error('Ошибка удаления');
+      }
+    } catch (error) {
+      console.error('Error deleting:', error);
+      toast.error('Ошибка удаления');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const copyWebhookUrl = (section) => {
     const url = settings.webhook_urls?.[section] || '';
     navigator.clipboard.writeText(url);
