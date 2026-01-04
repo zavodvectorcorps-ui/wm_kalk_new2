@@ -43,7 +43,7 @@ export const UserManagement = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [formData, setFormData] = useState({ username: '', password: '', access: 'all', role: 'employee' });
+  const [formData, setFormData] = useState({ username: '', password: '', access: ['balia', 'sauna', 'logistics'], role: 'employee' });
   
   // Check if current user is super-admin (can assign admin role)
   const canAssignAdminRole = isSuperAdmin && isSuperAdmin();
@@ -55,10 +55,11 @@ export const UserManagement = () => {
       username: 'Имя пользователя',
       password: 'Пароль',
       newPassword: 'Новый пароль (оставьте пустым, чтобы не менять)',
-      access: 'Доступ',
-      accessBalia: 'Только Balia',
-      accessSauna: 'Только Sauna',
-      accessAll: 'Все калькуляторы',
+      access: 'Доступ к разделам',
+      accessBalia: 'Balia (Купели)',
+      accessSauna: 'Sauna (Сауны)',
+      accessLogistics: 'Логистика',
+      accessAll: 'Все разделы',
       role: 'Роль',
       admin: 'Администратор',
       employee: 'Сотрудник',
@@ -92,10 +93,11 @@ export const UserManagement = () => {
       username: 'Nazwa użytkownika',
       password: 'Hasło',
       newPassword: 'Nowe hasło (pozostaw puste, aby nie zmieniać)',
-      access: 'Dostęp',
-      accessBalia: 'Tylko Balia',
-      accessSauna: 'Tylko Sauna',
-      accessAll: 'Wszystkie kalkulatory',
+      access: 'Dostęp do sekcji',
+      accessBalia: 'Balia',
+      accessSauna: 'Sauna',
+      accessLogistics: 'Logistyka',
+      accessAll: 'Wszystkie sekcje',
       role: 'Rola',
       admin: 'Administrator',
       employee: 'Pracownik',
