@@ -614,9 +614,11 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
     setFormData({
       fullName: '',
       phoneNumber: '',
+      email: '',
       fullAddress: '',
       orderDate: new Date().toISOString().split('T')[0],
       selectedModel: '',
+      selectedHeaterType: 'integrated',
       selections: initialSelections,
       notes: '',
     });
