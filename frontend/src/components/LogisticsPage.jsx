@@ -1558,7 +1558,7 @@ export const LogisticsPage = () => {
               <CardContent>
                 {trips.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
-                    Нет рейсов. Выберите заказы и нажмите "Создать рейс"
+                    Нет рейсов. Выберите заказы и нажмите &quot;Создать рейс&quot;
                   </p>
                 ) : (
                   <div className="space-y-2 max-h-[500px] overflow-y-auto">
