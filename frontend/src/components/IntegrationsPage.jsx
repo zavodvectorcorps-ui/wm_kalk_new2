@@ -509,8 +509,23 @@ export const IntegrationsPage = () => {
             </CardContent>
           </Card>
 
-          {/* Save Button */}
-          <div className="flex justify-end">
+          {/* Save Button and Delete */}
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => deleteAmocrmOrders('all')}
+                disabled={deleting === 'all'}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                {deleting === 'all' ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Удалить все заказы amoCRM
+              </Button>
+            </div>
             <Button onClick={saveSettings} disabled={saving} size="lg">
               {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : null}
               Сохранить настройки
