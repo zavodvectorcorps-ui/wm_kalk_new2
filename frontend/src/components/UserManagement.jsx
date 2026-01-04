@@ -245,7 +245,16 @@ export const UserManagement = () => {
 
   const openEditDialog = (user) => {
     setSelectedUser(user);
-    setFormData({ username: user.username, password: '', access: user.access, role: user.role });
+    // Convert legacy string access to array
+    let accessArray = user.access;
+    if (typeof user.access === 'string') {
+      if (user.access === 'all') {
+        accessArray = ['balia', 'sauna', 'logistics'];
+      } else {
+        accessArray = [user.access];
+      }
+    }
+    setFormData({ username: user.username, password: '', access: accessArray, role: user.role });
     setIsEditDialogOpen(true);
   };
 
