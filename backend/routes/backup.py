@@ -987,6 +987,11 @@ async def create_auto_backup():
         if all_settings:
             backup_manifest["collections"].append({"name": "settings", "count": len(all_settings)})
         
+        amocrm_settings = await db.amocrm_settings.find({}).to_list(100)
+        backup_data["collections"]["amocrm_settings"] = [serialize_for_json(s) for s in amocrm_settings]
+        if amocrm_settings:
+            backup_manifest["collections"].append({"name": "amocrm_settings", "count": len(amocrm_settings)})
+        
         # Calculate size
         backup_json = json.dumps(backup_data)
         backup_data["size"] = len(backup_json)
