@@ -129,6 +129,8 @@ export const LogisticsPage = () => {
   const [newTripName, setNewTripName] = useState('');
   const [newTripDriver, setNewTripDriver] = useState('');
   const [creatingTrip, setCreatingTrip] = useState(false);
+  const [optimizingRoute, setOptimizingRoute] = useState(false);
+  const [draggedOrderIndex, setDraggedOrderIndex] = useState(null);
   
   // Drivers state
   const [drivers, setDrivers] = useState(DEFAULT_DRIVERS);
