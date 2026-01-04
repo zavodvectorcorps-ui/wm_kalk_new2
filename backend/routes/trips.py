@@ -250,6 +250,45 @@ async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
     return {"status": "ok", "removed": order_ids}
 
 
+@router.put("/{trip_id}/order-status/{order_id}")
+async def update_order_status_in_trip(trip_id: str, order_id: str, status: str):
+    """Update the delivery status of a single order within a trip."""
+    if status not in ORDER_DELIVERY_STATUSES:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid status. Must be one of: {list(ORDER_DELIVERY_STATUSES.keys())}"
+        )
+    
+    existing = trips_collection.find_one({"id": trip_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    if order_id not in existing.get("orderIds", []):
+        raise HTTPException(status_code=404, detail="Order not in this trip")
+    
+    # Update order status within trip
+    order_statuses = existing.get("orderStatuses", {})
+    order_statuses[order_id] = status
+    
+    trips_collection.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "orderStatuses": order_statuses,
+            "updatedAt": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Also update the order's deliveryStatus in its collection
+    collection = get_section_collection(existing.get("section", ""))
+    if collection is not None:
+        collection.update_one(
+            {"id": order_id},
+            {"$set": {"deliveryStatus": status}}
+        )
+    
+    return {"status": "ok", "order_id": order_id, "new_status": status}
+
+
 @router.delete("/{trip_id}")
 async def delete_trip(trip_id: str):
     """Delete a trip and release its orders back to general list."""
