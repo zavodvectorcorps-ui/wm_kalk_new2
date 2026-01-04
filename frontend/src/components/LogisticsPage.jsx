@@ -492,6 +492,30 @@ export const LogisticsPage = () => {
     }
   };
 
+  // Update order status within trip
+  const updateOrderStatusInTrip = async (tripId, orderId, newStatus) => {
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${tripId}/order-status/${orderId}?status=${newStatus}`, {
+        method: 'PUT'
+      });
+      
+      if (res.ok) {
+        // Update local state
+        if (selectedTrip?.id === tripId) {
+          setSelectedTrip(prev => ({
+            ...prev,
+            orderStatuses: { ...prev.orderStatuses, [orderId]: newStatus }
+          }));
+        }
+        fetchTrips(activeSection);
+        toast.success('Статус обновлён');
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('Ошибка обновления статуса');
+    }
+  };
+
   // Remove order from trip
   const removeOrderFromTrip = async (tripId, orderId) => {
     try {
