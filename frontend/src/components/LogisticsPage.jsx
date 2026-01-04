@@ -198,6 +198,65 @@ export const LogisticsPage = () => {
     }
   }, []);
 
+  // Geocode orders that have addresses but no coordinates
+  const geocodeOrdersInBackground = useCallback(async (orders, sectionId) => {
+    if (!geocoderRef.current) return;
+    
+    const section = SECTIONS[sectionId];
+    const ordersToGeocode = orders.filter(o => 
+      (o.fullAddress || o.address) && !o.lat && !o.lng
+    );
+    
+    // Geocode in batches of 5 to avoid rate limits
+    for (let i = 0; i < ordersToGeocode.length; i += 5) {
+      const batch = ordersToGeocode.slice(i, i + 5);
+      
+      await Promise.all(batch.map(async (order) => {
+        try {
+          const address = order.fullAddress || order.address;
+          const coords = await new Promise((resolve, reject) => {
+            geocoderRef.current.geocode({ address }, (results, status) => {
+              if (status === 'OK' && results[0]) {
+                resolve({
+                  lat: results[0].geometry.location.lat(),
+                  lng: results[0].geometry.location.lng()
+                });
+              } else {
+                reject(new Error(status));
+              }
+            });
+          });
+          
+          // Update order with coordinates in state
+          setSectionData(prev => ({
+            ...prev,
+            [sectionId]: {
+              ...prev[sectionId],
+              orders: prev[sectionId].orders.map(o => 
+                o.id === order.id ? { ...o, lat: coords.lat, lng: coords.lng } : o
+              )
+            }
+          }));
+          
+          // Also save to database
+          fetch(`${API_URL}${section.endpoint}/${order.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...order, lat: coords.lat, lng: coords.lng })
+          }).catch(console.error);
+          
+        } catch (error) {
+          console.log(`Could not geocode order ${order.id}: ${error.message}`);
+        }
+      }));
+      
+      // Wait between batches to respect rate limits
+      if (i + 5 < ordersToGeocode.length) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+  }, []);
+
   // Fetch all orders
   const fetchAllOrders = useCallback(async () => {
     setLoading(true);
@@ -213,13 +272,23 @@ export const LogisticsPage = () => {
         balia: { ...prev.balia, orders: balia },
         sauna: { ...prev.sauna, orders: sauna }
       }));
+      
+      // Geocode orders in background after loading
+      setTimeout(() => {
+        if (geocoderRef.current) {
+          geocodeOrdersInBackground(greenhouse, 'greenhouse');
+          geocodeOrdersInBackground(balia, 'balia');
+          geocodeOrdersInBackground(sauna, 'sauna');
+        }
+      }, 1000);
+      
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Ошибка загрузки заказов');
     } finally {
       setLoading(false);
     }
-  }, [fetchSectionOrders]);
+  }, [fetchSectionOrders, geocodeOrdersInBackground]);
 
   useEffect(() => {
     fetchAllOrders();
