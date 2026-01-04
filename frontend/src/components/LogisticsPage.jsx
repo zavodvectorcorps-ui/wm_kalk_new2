@@ -150,10 +150,23 @@ export const LogisticsPage = () => {
   });
   const [creatingOrder, setCreatingOrder] = useState(false);
   
+  // Settings state (warehouse)
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [warehouseAddress, setWarehouseAddress] = useState('');
+  const [warehouseCoords, setWarehouseCoords] = useState(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  
+  // Trip route state
+  const [tripDirections, setTripDirections] = useState(null);
+  const [tripRouteInfo, setTripRouteInfo] = useState(null);
+  const [buildingTripRoute, setBuildingTripRoute] = useState(false);
+  
   const mapRef = useRef(null);
+  const tripMapRef = useRef(null);
   const geocoderRef = useRef(null);
   const autocompleteRef = useRef(null);
   const addressInputRef = useRef(null);
+  const warehouseInputRef = useRef(null);
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
