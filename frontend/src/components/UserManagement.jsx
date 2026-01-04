@@ -29,7 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table';
-import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye, Truck } from 'lucide-react';
+import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
