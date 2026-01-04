@@ -397,9 +397,11 @@ export const LogisticsPage = () => {
       
       if (res.ok) {
         toast.success('Рейс удалён');
-        fetchTrips();
+        fetchTrips(activeSection);
         fetchAllOrders();
-        setSelectedTrip(null);
+        if (selectedTrip?.id === tripId) {
+          setSelectedTrip(null);
+        }
       }
     } catch (error) {
       console.error('Error deleting trip:', error);
