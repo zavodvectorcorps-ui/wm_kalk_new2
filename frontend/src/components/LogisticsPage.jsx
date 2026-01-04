@@ -1176,13 +1176,13 @@ export const LogisticsPage = () => {
                     <div className="flex items-center justify-center py-8">
                       <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
-                  ) : sectionData[sectionKey].orders.length === 0 ? (
+                  ) : getUnassignedOrders(sectionData[sectionKey].orders).length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">
-                      Нет заказов с адресами
+                      Нет заказов без рейса
                     </p>
                   ) : (
                     <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                      {sectionData[sectionKey].orders.map((order) => (
+                      {getUnassignedOrders(sectionData[sectionKey].orders).map((order) => (
                         <div
                           key={order.id}
                           className={`p-3 border rounded-lg transition-colors ${
