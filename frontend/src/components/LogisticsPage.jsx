@@ -58,12 +58,27 @@ const defaultCenter = {
 
 const libraries = ['places', 'geometry'];
 
-// Delivery status options
+// Delivery status options for individual orders
 const DELIVERY_STATUSES = {
   pending: { label: 'Ожидает', labelPl: 'Oczekuje', color: 'bg-gray-100 text-gray-700', icon: Circle },
   preparing: { label: 'Готовится', labelPl: 'W przygotowaniu', color: 'bg-yellow-100 text-yellow-700', icon: Package },
   in_transit: { label: 'В пути', labelPl: 'W drodze', color: 'bg-blue-100 text-blue-700', icon: Truck },
   delivered: { label: 'Доставлено', labelPl: 'Dostarczone', color: 'bg-green-100 text-green-700', icon: CheckCircle }
+};
+
+// Trip status categories
+const TRIP_STATUSES = {
+  planned: { label: 'Готов к отправке', color: 'bg-yellow-100 text-yellow-700', icon: Package },
+  in_transit: { label: 'В пути', color: 'bg-blue-100 text-blue-700', icon: Truck },
+  completed: { label: 'Доставлен', color: 'bg-green-100 text-green-700', icon: CheckCircle }
+};
+
+// Order status within trip
+const ORDER_TRIP_STATUSES = {
+  pending: { label: 'Ожидает', color: 'bg-gray-100 text-gray-700' },
+  delivering: { label: 'В доставке', color: 'bg-blue-100 text-blue-700' },
+  delivered: { label: 'Доставлен', color: 'bg-green-100 text-green-700' },
+  cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-700' }
 };
 
 // Default drivers (can be edited in settings)
