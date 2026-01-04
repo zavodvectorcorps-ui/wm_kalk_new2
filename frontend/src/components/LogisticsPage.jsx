@@ -592,12 +592,19 @@ export const LogisticsPage = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <Truck className="h-8 w-8 text-[#355c7d]" />
           <h1 className="text-2xl font-bold text-gray-900">Логистика</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button 
+            variant="outline"
+            onClick={() => setShowDriversModal(true)}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Водители
+          </Button>
           <Button 
             onClick={() => {
               setShowOrderForm(!showOrderForm);
@@ -614,6 +621,133 @@ export const LogisticsPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Drivers Modal */}
+      {showDriversModal && (
+        <Card className="border-2 border-[#355c7d]/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Управление водителями
+              </CardTitle>
+              <Button size="sm" variant="ghost" onClick={() => setShowDriversModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                value={newDriverName}
+                onChange={(e) => setNewDriverName(e.target.value)}
+                placeholder="Имя водителя"
+                onKeyPress={(e) => e.key === 'Enter' && addDriver()}
+              />
+              <Button onClick={addDriver}>
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {drivers.map(driver => (
+                <div key={driver.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                  <span className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    {driver.name}
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => removeDriver(driver.id)}>
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              ))}
+              {drivers.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">Нет водителей</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bulk Actions Bar - show when orders are selected */}
+      {currentData.selectedOrders.length > 0 && (
+        <Card className="border-2 border-amber-500/50 bg-amber-50">
+          <CardContent className="py-3">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                  Выбрано: {currentData.selectedOrders.length}
+                </Badge>
+                <span className="text-sm text-muted-foreground">заказов</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Bulk Status */}
+                <Select onValueChange={(status) => bulkUpdateOrders({ deliveryStatus: status })}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="Статус" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(DELIVERY_STATUSES).map(([key, val]) => {
+                      const Icon = val.icon;
+                      return (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-3 w-3" />
+                            {val.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {/* Bulk Driver */}
+                <Select onValueChange={(driverId) => {
+                  const driver = drivers.find(d => d.id === driverId);
+                  if (driver) bulkUpdateOrders({ driverId, driverName: driver.name });
+                }}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="Водитель" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      <span className="text-muted-foreground">Не назначен</span>
+                    </SelectItem>
+                    {drivers.map(driver => (
+                      <SelectItem key={driver.id} value={driver.id}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-3 w-3" />
+                          {driver.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Bulk Route Number */}
+                <Input
+                  className="w-[120px] h-9"
+                  placeholder="№ рейса"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      bulkUpdateOrders({ routeNumber: e.target.value });
+                      e.target.value = '';
+                    }
+                  }}
+                />
+
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={clearRoute}
+                >
+                  Сбросить выбор
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Section Tabs */}
       <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v)} className="w-full">
