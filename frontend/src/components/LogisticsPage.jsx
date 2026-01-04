@@ -298,9 +298,131 @@ export const LogisticsPage = () => {
     }
   }, [fetchSectionOrders, geocodeOrdersInBackground]);
 
+  // Fetch trips
+  const fetchTrips = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/trips`);
+      if (res.ok) {
+        const data = await res.json();
+        setTrips(data);
+      }
+    } catch (error) {
+      console.error('Error fetching trips:', error);
+    }
+  }, []);
+
+  // Create new trip from selected orders
+  const createTrip = async () => {
+    if (!newTripName.trim() || currentData.selectedOrders.length === 0) {
+      toast.error('Введите название рейса и выберите заказы');
+      return;
+    }
+    
+    setCreatingTrip(true);
+    try {
+      const res = await fetch(`${API_URL}/api/trips`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newTripName,
+          section: activeSection,
+          orderIds: currentData.selectedOrders
+        })
+      });
+      
+      if (res.ok) {
+        const trip = await res.json();
+        toast.success(`Рейс "${trip.name}" создан`);
+        setShowCreateTripModal(false);
+        setNewTripName('');
+        
+        // Refresh data
+        fetchAllOrders();
+        fetchTrips();
+        
+        // Clear selection
+        setSectionData(prev => ({
+          ...prev,
+          [activeSection]: { ...prev[activeSection], selectedOrders: [] }
+        }));
+      } else {
+        throw new Error('Failed to create trip');
+      }
+    } catch (error) {
+      console.error('Error creating trip:', error);
+      toast.error('Ошибка создания рейса');
+    } finally {
+      setCreatingTrip(false);
+    }
+  };
+
+  // Update trip (assign driver, change status)
+  const updateTrip = async (tripId, updates) => {
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${tripId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      
+      if (res.ok) {
+        fetchTrips();
+        toast.success('Рейс обновлён');
+      }
+    } catch (error) {
+      console.error('Error updating trip:', error);
+      toast.error('Ошибка обновления');
+    }
+  };
+
+  // Delete trip (return orders to general list)
+  const deleteTrip = async (tripId) => {
+    if (!window.confirm('Удалить рейс? Заказы вернутся в общий список.')) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${tripId}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        toast.success('Рейс удалён');
+        fetchTrips();
+        fetchAllOrders();
+        setSelectedTrip(null);
+      }
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      toast.error('Ошибка удаления');
+    }
+  };
+
+  // Remove order from trip
+  const removeOrderFromTrip = async (tripId, orderId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${tripId}/remove-orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([orderId])
+      });
+      
+      if (res.ok) {
+        fetchTrips();
+        fetchAllOrders();
+      }
+    } catch (error) {
+      console.error('Error removing order:', error);
+    }
+  };
+
+  // Get orders without trip (for general list)
+  const getUnassignedOrders = (orders) => {
+    return orders.filter(o => !o.tripId);
+  };
+
   useEffect(() => {
     fetchAllOrders();
-  }, [fetchAllOrders]);
+    fetchTrips();
+  }, [fetchAllOrders, fetchTrips]);
 
   // Initialize geocoder and autocomplete when map is loaded
   const onMapLoad = useCallback((map) => {
