@@ -58,6 +58,13 @@ const DELIVERY_STATUSES = {
   delivered: { label: 'Доставлено', labelPl: 'Dostarczone', color: 'bg-green-100 text-green-700', icon: CheckCircle }
 };
 
+// Default drivers (can be edited in settings)
+const DEFAULT_DRIVERS = [
+  { id: 'driver1', name: 'Водитель 1' },
+  { id: 'driver2', name: 'Водитель 2' },
+  { id: 'driver3', name: 'Водитель 3' }
+];
+
 // Section configurations
 const SECTIONS = {
   greenhouse: {
