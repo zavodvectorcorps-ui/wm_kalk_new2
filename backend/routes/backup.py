@@ -731,6 +731,52 @@ async def import_backup(file: UploadFile = File(...)):
                 except Exception as e:
                     import_stats["errors"].append(f"settings: {str(e)}")
             
+            # Import Trips (logistics routes) - REPLACE ALL
+            if "trips.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("trips.json").decode('utf-8'))
+                    await db.trips.delete_many({})
+                    count = 0
+                    for trip in data:
+                        trip.pop('_id', None)
+                        await db.trips.insert_one(trip)
+                        count += 1
+                    import_stats["imported"]["trips"] = count
+                    logger.info(f"Imported {count} trips (replaced all)")
+                except Exception as e:
+                    logger.error(f"Error importing trips: {e}")
+                    import_stats["errors"].append(f"trips: {str(e)}")
+            
+            # Import Drivers - REPLACE ALL
+            if "drivers.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("drivers.json").decode('utf-8'))
+                    await db.drivers.delete_many({})
+                    count = 0
+                    for driver in data:
+                        driver.pop('_id', None)
+                        await db.drivers.insert_one(driver)
+                        count += 1
+                    import_stats["imported"]["drivers"] = count
+                    logger.info(f"Imported {count} drivers (replaced all)")
+                except Exception as e:
+                    logger.error(f"Error importing drivers: {e}")
+                    import_stats["errors"].append(f"drivers: {str(e)}")
+            
+            # Import amoCRM settings
+            if "amocrm_settings.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("amocrm_settings.json").decode('utf-8'))
+                    await db.amocrm_settings.delete_many({})
+                    for setting in data:
+                        setting.pop('_id', None)
+                        await db.amocrm_settings.insert_one(setting)
+                    import_stats["imported"]["amocrm_settings"] = len(data)
+                    logger.info(f"Imported {len(data)} amoCRM settings")
+                except Exception as e:
+                    logger.error(f"Error importing amocrm_settings: {e}")
+                    import_stats["errors"].append(f"amocrm_settings: {str(e)}")
+            
             # Import uploaded files
             uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
             os.makedirs(uploads_dir, exist_ok=True)
