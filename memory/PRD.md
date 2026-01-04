@@ -5,6 +5,24 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### amoCRM Integration (2026-01-04)
+- **Feature**: Webhook integration with amoCRM for automatic order creation
+- **Endpoint**: `POST /api/integrations/amocrm/webhook` - receives webhooks from amoCRM
+- **Settings UI**: New "Интеграции" tab in Admin Panel with:
+  - Enable/disable toggle
+  - Webhook URL (copy to amoCRM)
+  - Secret key for security
+  - Pipeline ID and Status ID filters
+  - Step-by-step instructions
+  - Webhook logs viewer
+  - Test order creation button
+- **How it works**: When a deal moves to the configured stage in amoCRM, it automatically creates an order in Greenhouse section of Logistics
+- **Files**:
+  - `/app/backend/routes/amocrm.py` - API endpoints
+  - `/app/frontend/src/components/IntegrationsPage.jsx` - Settings UI
+  - `/app/frontend/src/components/AdminPanel.jsx` - Added Integrations tab
+- **Status**: ✅ Implemented and tested
+
 ### Logistics with Three Sections (2026-01-04)
 - **Feature**: Split Logistics into three independent sections: Теплицы (Greenhouses), Купели (Balia), Сауны (Sauna)
 - **Each section has**: Own orders list, own map markers, own routes
