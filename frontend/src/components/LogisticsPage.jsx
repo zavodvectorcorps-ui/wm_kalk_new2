@@ -1965,6 +1965,29 @@ export const LogisticsPage = () => {
                           );
                         })}
                       
+                      {/* Warehouse marker */}
+                      {warehouseCoords && warehouseCoords.lat && warehouseCoords.lng && (
+                        <Marker
+                          key="warehouse"
+                          position={{ lat: warehouseCoords.lat, lng: warehouseCoords.lng }}
+                          title={`Склад: ${warehouseAddress}`}
+                          icon={{
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: 12,
+                            fillColor: '#f97316',
+                            fillOpacity: 1,
+                            strokeColor: 'white',
+                            strokeWeight: 3
+                          }}
+                          label={{
+                            text: 'С',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '11px'
+                          }}
+                        />
+                      )}
+                      
                       {sectionData[sectionKey].directions && (
                         <DirectionsRenderer
                           directions={sectionData[sectionKey].directions}
