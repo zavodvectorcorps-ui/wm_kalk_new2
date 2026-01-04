@@ -23,27 +23,21 @@ class GreenhouseOrder(BaseModel):
     id: Optional[str] = None
     fullName: str
     phoneNumber: Optional[str] = None
-    fullAddress: str
+    fullAddress: Optional[str] = ""
     notes: Optional[str] = None
     orderDate: Optional[str] = None
     createdAt: Optional[str] = None
     source: Optional[str] = "logistics"
     status: Optional[str] = "new"
+    deliveryStatus: Optional[str] = "pending"
+    deliveryComment: Optional[str] = ""
+    driverName: Optional[str] = ""
+    routeNumber: Optional[str] = ""
+    amocrm_id: Optional[str] = None
+    amocrm_data: Optional[dict] = None
 
 
-class GreenhouseOrderResponse(BaseModel):
-    id: str
-    fullName: str
-    phoneNumber: Optional[str] = None
-    fullAddress: str
-    notes: Optional[str] = None
-    orderDate: str
-    createdAt: str
-    source: str
-    status: str
-
-
-@router.get("/orders", response_model=List[GreenhouseOrderResponse])
+@router.get("/orders")
 async def get_greenhouse_orders():
     """Get all greenhouse orders."""
     orders = list(greenhouse_orders.find({}, {"_id": 0}))
