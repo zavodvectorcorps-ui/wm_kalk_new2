@@ -167,7 +167,7 @@ export const UserManagement = () => {
       if (response.ok) {
         toast.success(txt.userAdded);
         setIsAddDialogOpen(false);
-        setFormData({ username: '', password: '', access: 'all', role: 'employee' });
+        setFormData({ username: '', password: '', access: ['balia', 'sauna', 'logistics'], role: 'employee' });
         fetchUsers();
       } else {
         const error = await response.json();
@@ -206,7 +206,7 @@ export const UserManagement = () => {
         toast.success(txt.userUpdated);
         setIsEditDialogOpen(false);
         setSelectedUser(null);
-        setFormData({ username: '', password: '', access: 'all', role: 'employee' });
+        setFormData({ username: '', password: '', access: ['balia', 'sauna', 'logistics'], role: 'employee' });
         fetchUsers();
       } else {
         const error = await response.json();
