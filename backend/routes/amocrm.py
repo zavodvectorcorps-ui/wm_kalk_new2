@@ -628,6 +628,34 @@ async def receive_webhook_section(
     return {"status": "ok", "order_id": order_data["id"], "section": section}
 
 
+@router.delete("/orders/{section}")
+async def delete_amocrm_orders(section: str):
+    """Delete all amoCRM orders from a section.
+    
+    Useful for clearing test orders before reconfiguring.
+    """
+    if section not in ["greenhouse", "balia", "sauna", "all"]:
+        raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
+    
+    deleted_count = 0
+    
+    if section == "all" or section == "greenhouse":
+        result = greenhouse_orders.delete_many({"source": "amocrm"})
+        deleted_count += result.deleted_count
+    
+    if section == "all" or section == "balia":
+        result = balia_orders.delete_many({"source": "amocrm"})
+        deleted_count += result.deleted_count
+    
+    if section == "all" or section == "sauna":
+        result = sauna_orders.delete_many({"source": "amocrm"})
+        deleted_count += result.deleted_count
+    
+    logger.info(f"Deleted {deleted_count} amoCRM orders from {section}")
+    
+    return {"status": "ok", "deleted_count": deleted_count, "section": section}
+
+
 # Keep old endpoint for backward compatibility but simplified
 @router.post("/webhook")
 async def receive_webhook_legacy(
