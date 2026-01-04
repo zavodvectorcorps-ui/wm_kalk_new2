@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Label } from './ui/label';
 import { toast } from 'sonner';
 import { 
   MapPin, 
@@ -14,8 +17,14 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  Package
+  Package,
+  Plus,
+  User,
+  Phone,
+  FileText,
+  X
 } from 'lucide-react';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
