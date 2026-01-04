@@ -30,6 +30,21 @@ import {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Default field mapping template
+const DEFAULT_FIELD_MAPPING = {
+  fullName: '',           // Имя клиента
+  phoneNumber: '',        // Телефон клиента
+  orderNumber: '',        // Номер заказа в amoCRM
+  fullAddress: '',        // Полный адрес (одно поле)
+  addressIndex: '',       // Индекс (часть адреса)
+  addressCity: '',        // Город (часть адреса)
+  addressStreet: '',      // Улица (часть адреса)
+  orderContents: '',      // Состав заказа
+  orderComment: '',       // Комментарий к заказу
+  dealSum: '',            // Сумма сделки
+  debtSum: ''             // Сумма задолженности
+};
+
 export const IntegrationsPage = () => {
   const [settings, setSettings] = useState({
     enabled: false,
@@ -38,21 +53,11 @@ export const IntegrationsPage = () => {
       balia: '',
       sauna: ''
     },
-    // Field mapping - user specifies amoCRM field IDs
+    // Field mapping - separate for each section
     field_mapping: {
-      fullName: '',           // Имя клиента
-      phoneNumber: '',        // Телефон клиента
-      orderNumber: '',        // Номер заказа в amoCRM
-      // Адрес - может быть одним полем или 3 отдельными
-      fullAddress: '',        // Полный адрес (одно поле)
-      addressIndex: '',       // Индекс (часть адреса)
-      addressCity: '',        // Город (часть адреса)
-      addressStreet: '',      // Улица (часть адреса)
-      // Дополнительные поля
-      orderContents: '',      // Состав заказа
-      orderComment: '',       // Комментарий к заказу
-      dealSum: '',            // Сумма сделки
-      debtSum: ''             // Сумма задолженности
+      greenhouse: { ...DEFAULT_FIELD_MAPPING },
+      balia: { ...DEFAULT_FIELD_MAPPING },
+      sauna: { ...DEFAULT_FIELD_MAPPING }
     },
     // Two-way sync settings
     amocrm_domain: '',
@@ -67,6 +72,7 @@ export const IntegrationsPage = () => {
   const [deleting, setDeleting] = useState(null);
   const [copiedUrl, setCopiedUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('settings');
+  const [activeMappingSection, setActiveMappingSection] = useState('greenhouse');
 
   useEffect(() => {
     fetchSettings();
