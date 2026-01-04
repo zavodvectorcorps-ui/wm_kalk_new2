@@ -377,7 +377,7 @@ export const LogisticsPage = () => {
       });
       
       if (res.ok) {
-        fetchTrips();
+        fetchTrips(activeSection);
         toast.success('Рейс обновлён');
       }
     } catch (error) {
