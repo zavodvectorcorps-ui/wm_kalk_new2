@@ -254,6 +254,41 @@ export const UserManagement = () => {
   };
 
   const getAccessBadge = (access) => {
+    // Handle array access
+    if (Array.isArray(access)) {
+      if (access.length === 3 && access.includes('balia') && access.includes('sauna') && access.includes('logistics')) {
+        return (
+          <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700">
+            <Shield className="w-3 h-3" />
+            {txt.accessAll}
+          </Badge>
+        );
+      }
+      return (
+        <div className="flex flex-wrap gap-1">
+          {access.includes('balia') && (
+            <Badge variant="secondary" className="gap-1">
+              <Waves className="w-3 h-3" />
+              Balia
+            </Badge>
+          )}
+          {access.includes('sauna') && (
+            <Badge variant="secondary" className="gap-1 bg-orange-100 text-orange-700">
+              <Flame className="w-3 h-3" />
+              Sauna
+            </Badge>
+          )}
+          {access.includes('logistics') && (
+            <Badge variant="secondary" className="gap-1 bg-teal-100 text-teal-700">
+              <Truck className="w-3 h-3" />
+              Logistics
+            </Badge>
+          )}
+        </div>
+      );
+    }
+    
+    // Legacy string access
     switch (access) {
       case 'balia':
         return (
@@ -267,6 +302,13 @@ export const UserManagement = () => {
           <Badge variant="secondary" className="gap-1 bg-orange-100 text-orange-700">
             <Flame className="w-3 h-3" />
             Sauna
+          </Badge>
+        );
+      case 'logistics':
+        return (
+          <Badge variant="secondary" className="gap-1 bg-teal-100 text-teal-700">
+            <Truck className="w-3 h-3" />
+            Logistics
           </Badge>
         );
       case 'all':
