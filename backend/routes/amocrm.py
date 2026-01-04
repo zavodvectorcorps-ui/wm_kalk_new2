@@ -648,12 +648,20 @@ async def receive_webhook_section(
     if lead_data.get("orderComment"):
         notes_parts.append(f"Комментарий: {lead_data['orderComment']}")
     
+    # Generate full amoCRM link with domain
+    amocrm_link = ""
+    domain = settings.get("amocrm_domain", "")
+    if domain and lead_data.get("amocrm_id"):
+        # Remove protocol if present
+        domain_clean = domain.replace("https://", "").replace("http://", "").rstrip("/")
+        amocrm_link = f"https://{domain_clean}/leads/detail/{lead_data.get('amocrm_id')}"
+    
     order_data = {
         "id": f"AMO-{section_prefix.get(section, 'X')}-{lead_data.get('amocrm_id', int(datetime.now().timestamp()))}",
         "fullName": lead_data.get("fullName", "") or "Без имени",
         "phoneNumber": lead_data.get("phoneNumber", ""),
         "fullAddress": lead_data.get("fullAddress", ""),
-        "orderNumber": lead_data.get("orderNumber", ""),
+        "orderNumber": lead_data.get("orderNumber", "") or str(lead_data.get("amocrm_id", "")),
         "orderContents": lead_data.get("orderContents", ""),
         "orderComment": lead_data.get("orderComment", ""),
         "dealSum": lead_data.get("dealSum", ""),
@@ -663,9 +671,10 @@ async def receive_webhook_section(
         "createdAt": now,
         "source": "amocrm",
         "status": "new",
-        "deliveryStatus": "pending",
+        "deliveryStatus": "pending",  # pending, delivering, delivered, cancelled
         "deliveryComment": "",
         "amocrm_id": lead_data.get("amocrm_id"),
+        "amocrm_link": amocrm_link,
         "amocrm_data": lead_data
     }
     
