@@ -7,6 +7,7 @@ import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 import { 
   MapPin, 
@@ -22,9 +23,11 @@ import {
   User,
   Phone,
   FileText,
-  X
+  X,
+  Waves,
+  Flame,
+  Warehouse
 } from 'lucide-react';
-import { AddressAutocomplete } from './AddressAutocomplete';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
@@ -42,16 +45,53 @@ const defaultCenter = {
 
 const libraries = ['places', 'geometry'];
 
+// Section configurations
+const SECTIONS = {
+  greenhouse: {
+    id: 'greenhouse',
+    name: { ru: 'Теплицы', pl: 'Szklarnie' },
+    icon: Warehouse,
+    color: 'text-green-600',
+    bgColor: 'bg-green-100',
+    borderColor: 'border-green-500',
+    endpoint: '/api/greenhouse/orders',
+    markerColor: '#16a34a'
+  },
+  balia: {
+    id: 'balia',
+    name: { ru: 'Купели', pl: 'Balie' },
+    icon: Waves,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+    borderColor: 'border-blue-500',
+    endpoint: '/api/orders',
+    markerColor: '#2563eb'
+  },
+  sauna: {
+    id: 'sauna',
+    name: { ru: 'Сауны', pl: 'Sauny' },
+    icon: Flame,
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-100',
+    borderColor: 'border-orange-500',
+    endpoint: '/api/sauna/orders',
+    markerColor: '#ea580c'
+  }
+};
+
 export const LogisticsPage = () => {
-  const [orders, setOrders] = useState([]);
-  const [selectedOrders, setSelectedOrders] = useState([]);
+  const [activeSection, setActiveSection] = useState('balia');
+  
+  // State for each section
+  const [sectionData, setSectionData] = useState({
+    greenhouse: { orders: [], selectedOrders: [], markers: [], directions: null, routeInfo: null },
+    balia: { orders: [], selectedOrders: [], markers: [], directions: null, routeInfo: null },
+    sauna: { orders: [], selectedOrders: [], markers: [], directions: null, routeInfo: null }
+  });
+  
   const [loading, setLoading] = useState(true);
-  const [directions, setDirections] = useState(null);
-  const [routeInfo, setRouteInfo] = useState(null);
   const [buildingRoute, setBuildingRoute] = useState(false);
-  const [markers, setMarkers] = useState([]);
   const [expandedOrder, setExpandedOrder] = useState(null);
-  const [orderType, setOrderType] = useState('all'); // 'all', 'balia', 'sauna'
   
   // New order form state
   const [showOrderForm, setShowOrderForm] = useState(false);
@@ -59,58 +99,143 @@ export const LogisticsPage = () => {
     fullName: '',
     phoneNumber: '',
     fullAddress: '',
-    orderComposition: '',
-    orderType: 'balia'
+    orderComposition: ''
   });
   const [creatingOrder, setCreatingOrder] = useState(false);
   
   const mapRef = useRef(null);
   const geocoderRef = useRef(null);
+  const autocompleteRef = useRef(null);
+  const addressInputRef = useRef(null);
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries
   });
 
+  // Get current section data
+  const currentData = sectionData[activeSection];
+  const currentSection = SECTIONS[activeSection];
+
+  // Fetch orders for a specific section
+  const fetchSectionOrders = useCallback(async (sectionId) => {
+    const section = SECTIONS[sectionId];
+    try {
+      const res = await fetch(`${API_URL}${section.endpoint}`);
+      if (res.ok) {
+        const orders = await res.json();
+        return orders
+          .map(o => ({ ...o, orderType: sectionId }))
+          .filter(o => o.fullAddress || o.address)
+          .sort((a, b) => new Date(b.orderDate || b.createdAt) - new Date(a.orderDate || a.createdAt));
+      }
+      return [];
+    } catch (error) {
+      console.error(`Error fetching ${sectionId} orders:`, error);
+      return [];
+    }
+  }, []);
+
   // Fetch all orders
-  const fetchOrders = useCallback(async () => {
+  const fetchAllOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const [baliaRes, saunaRes] = await Promise.all([
-        fetch(`${API_URL}/api/orders`),
-        fetch(`${API_URL}/api/sauna/orders`)
+      const [greenhouse, balia, sauna] = await Promise.all([
+        fetchSectionOrders('greenhouse'),
+        fetchSectionOrders('balia'),
+        fetchSectionOrders('sauna')
       ]);
       
-      const baliaOrders = baliaRes.ok ? await baliaRes.json() : [];
-      const saunaOrders = saunaRes.ok ? await saunaRes.json() : [];
-      
-      // Combine and mark order types
-      const allOrders = [
-        ...baliaOrders.map(o => ({ ...o, orderType: 'balia' })),
-        ...saunaOrders.map(o => ({ ...o, orderType: 'sauna' }))
-      ].filter(o => o.fullAddress || o.address);
-      
-      // Sort by date, newest first
-      allOrders.sort((a, b) => new Date(b.orderDate || b.createdAt) - new Date(a.orderDate || a.createdAt));
-      
-      setOrders(allOrders);
+      setSectionData(prev => ({
+        greenhouse: { ...prev.greenhouse, orders: greenhouse },
+        balia: { ...prev.balia, orders: balia },
+        sauna: { ...prev.sauna, orders: sauna }
+      }));
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Ошибка загрузки заказов');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchSectionOrders]);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    fetchAllOrders();
+  }, [fetchAllOrders]);
 
-  // Initialize geocoder when map is loaded
+  // Initialize geocoder and autocomplete when map is loaded
   const onMapLoad = useCallback((map) => {
     mapRef.current = map;
     geocoderRef.current = new window.google.maps.Geocoder();
   }, []);
+
+  // Initialize PlaceAutocompleteElement when form opens
+  useEffect(() => {
+    if (!isLoaded || !showOrderForm || !addressInputRef.current) return;
+    if (autocompleteRef.current) return; // Already initialized
+    
+    // Check if PlaceAutocompleteElement is available (new API)
+    if (window.google?.maps?.places?.PlaceAutocompleteElement) {
+      try {
+        const placeAutocomplete = new window.google.maps.places.PlaceAutocompleteElement({
+          componentRestrictions: { country: ['pl', 'de', 'cz', 'sk', 'lt', 'lv', 'ee', 'ua', 'by'] }
+        });
+        
+        // Style the element
+        placeAutocomplete.style.cssText = `
+          width: 100%;
+          height: 40px;
+          border: 1px solid hsl(var(--input));
+          border-radius: calc(var(--radius) - 2px);
+          padding: 0 12px;
+          font-size: 14px;
+          background: hsl(var(--background));
+        `;
+        
+        // Replace input with autocomplete element
+        const container = addressInputRef.current.parentNode;
+        container.replaceChild(placeAutocomplete, addressInputRef.current);
+        addressInputRef.current = placeAutocomplete;
+        
+        placeAutocomplete.addEventListener('gmp-select', async (event) => {
+          const place = event.placePrediction.toPlace();
+          await place.fetchFields({ fields: ['formattedAddress', 'location'] });
+          setNewOrderForm(prev => ({ ...prev, fullAddress: place.formattedAddress || '' }));
+        });
+        
+        autocompleteRef.current = placeAutocomplete;
+      } catch (e) {
+        console.log('PlaceAutocompleteElement not available, using legacy Autocomplete');
+        initLegacyAutocomplete();
+      }
+    } else {
+      initLegacyAutocomplete();
+    }
+    
+    return () => {
+      if (autocompleteRef.current && window.google?.maps?.event) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [isLoaded, showOrderForm]);
+
+  // Legacy autocomplete fallback
+  const initLegacyAutocomplete = () => {
+    if (!addressInputRef.current || autocompleteRef.current) return;
+    
+    autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+      types: ['address'],
+      componentRestrictions: { country: ['pl', 'de', 'cz', 'sk', 'lt', 'lv', 'ee', 'ua', 'by'] },
+      fields: ['formatted_address', 'geometry']
+    });
+    
+    autocompleteRef.current.addListener('place_changed', () => {
+      const place = autocompleteRef.current.getPlace();
+      if (place?.formatted_address) {
+        setNewOrderForm(prev => ({ ...prev, fullAddress: place.formatted_address }));
+      }
+    });
+  };
 
   // Geocode address to coordinates
   const geocodeAddress = useCallback((address) => {
@@ -136,37 +261,43 @@ export const LogisticsPage = () => {
   // Update markers when selection changes
   useEffect(() => {
     const updateMarkers = async () => {
-      if (!isLoaded || selectedOrders.length === 0) {
-        setMarkers([]);
+      if (!isLoaded || currentData.selectedOrders.length === 0) {
+        setSectionData(prev => ({
+          ...prev,
+          [activeSection]: { ...prev[activeSection], markers: [] }
+        }));
         return;
       }
 
       const newMarkers = [];
-      for (const orderId of selectedOrders) {
-        const order = orders.find(o => o.id === orderId);
+      for (const orderId of currentData.selectedOrders) {
+        const order = currentData.orders.find(o => o.id === orderId);
         if (order) {
           const address = order.fullAddress || order.address;
           try {
             const coords = await geocodeAddress(address);
             newMarkers.push({
-              orderId: order.id,
+              id: order.id,
               position: coords,
-              title: `${order.fullName}\n${address}`,
-              order
+              title: order.fullName || order.customerName,
+              address
             });
           } catch (error) {
-            console.warn(`Failed to geocode address: ${address}`, error);
+            console.error(`Failed to geocode: ${address}`, error);
           }
         }
       }
-      setMarkers(newMarkers);
+      
+      setSectionData(prev => ({
+        ...prev,
+        [activeSection]: { ...prev[activeSection], markers: newMarkers }
+      }));
 
       // Fit bounds to show all markers
       if (newMarkers.length > 0 && mapRef.current) {
         const bounds = new window.google.maps.LatLngBounds();
-        newMarkers.forEach(marker => bounds.extend(marker.position));
+        newMarkers.forEach(m => bounds.extend(m.position));
         mapRef.current.fitBounds(bounds);
-        
         if (newMarkers.length === 1) {
           mapRef.current.setZoom(14);
         }
@@ -174,52 +305,36 @@ export const LogisticsPage = () => {
     };
 
     updateMarkers();
-  }, [selectedOrders, orders, isLoaded, geocodeAddress]);
+  }, [currentData.selectedOrders, currentData.orders, isLoaded, geocodeAddress, activeSection]);
 
   // Toggle order selection
   const toggleOrderSelection = (orderId) => {
-    setSelectedOrders(prev => {
-      if (prev.includes(orderId)) {
-        return prev.filter(id => id !== orderId);
-      } else {
-        return [...prev, orderId];
-      }
+    setSectionData(prev => {
+      const current = prev[activeSection];
+      const newSelected = current.selectedOrders.includes(orderId)
+        ? current.selectedOrders.filter(id => id !== orderId)
+        : [...current.selectedOrders, orderId];
+      return {
+        ...prev,
+        [activeSection]: { ...current, selectedOrders: newSelected, directions: null, routeInfo: null }
+      };
     });
-    setDirections(null);
-    setRouteInfo(null);
   };
 
-  // Select all visible orders
-  const selectAllOrders = () => {
-    const filteredOrders = getFilteredOrders();
-    const allIds = filteredOrders.map(o => o.id);
-    setSelectedOrders(allIds);
-  };
-
-  // Clear selection
-  const clearSelection = () => {
-    setSelectedOrders([]);
-    setDirections(null);
-    setRouteInfo(null);
-    setMarkers([]);
-  };
-
-  // Build route between selected orders
+  // Build route
   const buildRoute = async () => {
-    if (markers.length < 2) {
+    if (currentData.markers.length < 2) {
       toast.error('Выберите минимум 2 заказа для построения маршрута');
       return;
     }
 
     setBuildingRoute(true);
-    
     try {
       const directionsService = new window.google.maps.DirectionsService();
       
-      // Use first marker as origin, last as destination, rest as waypoints
-      const origin = markers[0].position;
-      const destination = markers[markers.length - 1].position;
-      const waypoints = markers.slice(1, -1).map(m => ({
+      const origin = currentData.markers[0].position;
+      const destination = currentData.markers[currentData.markers.length - 1].position;
+      const waypoints = currentData.markers.slice(1, -1).map(m => ({
         location: m.position,
         stopover: true
       }));
@@ -232,24 +347,17 @@ export const LogisticsPage = () => {
         travelMode: window.google.maps.TravelMode.DRIVING
       });
 
-      setDirections(result);
-
-      // Calculate total distance and duration
-      let totalDistance = 0;
-      let totalDuration = 0;
-      result.routes[0].legs.forEach(leg => {
-        totalDistance += leg.distance.value;
-        totalDuration += leg.duration.value;
-      });
-
-      setRouteInfo({
-        distance: (totalDistance / 1000).toFixed(1),
-        duration: Math.round(totalDuration / 60),
-        legs: result.routes[0].legs,
-        waypointOrder: result.routes[0].waypoint_order
-      });
-
-      toast.success('Маршрут построен');
+      setSectionData(prev => ({
+        ...prev,
+        [activeSection]: {
+          ...prev[activeSection],
+          directions: result,
+          routeInfo: {
+            distance: result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0),
+            duration: result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0)
+          }
+        }
+      }));
     } catch (error) {
       console.error('Error building route:', error);
       toast.error('Ошибка построения маршрута');
@@ -258,13 +366,27 @@ export const LogisticsPage = () => {
     }
   };
 
+  // Clear route
+  const clearRoute = () => {
+    setSectionData(prev => ({
+      ...prev,
+      [activeSection]: {
+        ...prev[activeSection],
+        selectedOrders: [],
+        markers: [],
+        directions: null,
+        routeInfo: null
+      }
+    }));
+  };
+
   // Open route in Google Maps
   const openInGoogleMaps = () => {
-    if (markers.length < 2) return;
+    if (currentData.markers.length < 2) return;
 
-    const origin = markers[0].position;
-    const destination = markers[markers.length - 1].position;
-    const waypoints = markers.slice(1, -1).map(m => `${m.position.lat},${m.position.lng}`).join('|');
+    const origin = currentData.markers[0].position;
+    const destination = currentData.markers[currentData.markers.length - 1].position;
+    const waypoints = currentData.markers.slice(1, -1).map(m => `${m.position.lat},${m.position.lng}`).join('|');
 
     let url = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}`;
     if (waypoints) {
@@ -284,7 +406,7 @@ export const LogisticsPage = () => {
 
     setCreatingOrder(true);
     try {
-      const orderId = `LOG-${Date.now()}`;
+      const orderId = `LOG-${activeSection.toUpperCase()}-${Date.now()}`;
       const orderData = {
         id: orderId,
         fullName: newOrderForm.fullName,
@@ -297,12 +419,7 @@ export const LogisticsPage = () => {
         status: 'new'
       };
 
-      // Choose endpoint based on order type
-      const endpoint = newOrderForm.orderType === 'sauna' 
-        ? `${API_URL}/api/sauna/orders`
-        : `${API_URL}/api/orders`;
-
-      const response = await fetch(endpoint, {
+      const response = await fetch(`${API_URL}${currentSection.endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
@@ -318,10 +435,10 @@ export const LogisticsPage = () => {
         fullName: '',
         phoneNumber: '',
         fullAddress: '',
-        orderComposition: '',
-        orderType: 'balia'
+        orderComposition: ''
       });
-      fetchOrders();
+      autocompleteRef.current = null;
+      fetchAllOrders();
     } catch (error) {
       console.error('Error creating order:', error);
       toast.error('Ошибка создания заказа');
@@ -330,16 +447,10 @@ export const LogisticsPage = () => {
     }
   };
 
-  // Filter orders by type
-  const getFilteredOrders = () => {
-    if (orderType === 'all') return orders;
-    return orders.filter(o => o.orderType === orderType);
-  };
-
   // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('ru-RU', {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('pl-PL', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -347,28 +458,28 @@ export const LogisticsPage = () => {
   };
 
   // Format duration
-  const formatDuration = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}ч ${mins}мин`;
-    }
-    return `${mins}мин`;
+  const formatDuration = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return hours > 0 ? `${hours}ч ${minutes}мин` : `${minutes}мин`;
+  };
+
+  // Format distance
+  const formatDistance = (meters) => {
+    return (meters / 1000).toFixed(1) + ' км';
   };
 
   if (loadError) {
     return (
-      <div className="p-6">
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <p className="text-red-600">Ошибка загрузки Google Maps. Проверьте API ключ.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="m-6">
+        <CardContent className="p-6">
+          <p className="text-red-500">Ошибка загрузки Google Maps. Проверьте API ключ.</p>
+        </CardContent>
+      </Card>
     );
   }
 
-  const filteredOrders = getFilteredOrders();
+  const SectionIcon = currentSection.icon;
 
   return (
     <div className="p-6 space-y-6">
@@ -380,408 +491,364 @@ export const LogisticsPage = () => {
         </div>
         <div className="flex gap-2">
           <Button 
-            onClick={() => setShowOrderForm(!showOrderForm)}
+            onClick={() => {
+              setShowOrderForm(!showOrderForm);
+              autocompleteRef.current = null;
+            }}
             className="bg-[#355c7d] hover:bg-[#2a4a63]"
           >
             <Plus className="h-4 w-4 mr-2" />
             Создать заказ
           </Button>
-          <Button variant="outline" onClick={fetchOrders} disabled={loading}>
+          <Button variant="outline" onClick={fetchAllOrders} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Обновить
           </Button>
         </div>
       </div>
 
-      {/* Create Order Form */}
-      {showOrderForm && (
-        <Card className="border-[#355c7d]/30 bg-[#355c7d]/5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Plus className="h-5 w-5 text-[#355c7d]" />
-                Новый заказ
-              </CardTitle>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                onClick={() => setShowOrderForm(false)}
+      {/* Section Tabs */}
+      <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v)} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
+          {Object.entries(SECTIONS).map(([key, section]) => {
+            const Icon = section.icon;
+            const orderCount = sectionData[key].orders.length;
+            return (
+              <TabsTrigger 
+                key={key} 
+                value={key}
+                className={`gap-2 data-[state=active]:${section.bgColor}`}
               >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Name */}
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-sm font-medium flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  Имя клиента *
-                </Label>
-                <Input
-                  id="fullName"
-                  value={newOrderForm.fullName}
-                  onChange={(e) => setNewOrderForm(prev => ({ ...prev, fullName: e.target.value }))}
-                  placeholder="Введите имя"
-                  data-testid="order-form-name"
-                />
-              </div>
+                <Icon className={`h-4 w-4 ${section.color}`} />
+                <span>{section.name.ru}</span>
+                <Badge variant="secondary" className="ml-1">{orderCount}</Badge>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
 
-              {/* Phone */}
-              <div className="space-y-2">
-                <Label htmlFor="phoneNumber" className="text-sm font-medium flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  Телефон
-                </Label>
-                <Input
-                  id="phoneNumber"
-                  type="tel"
-                  value={newOrderForm.phoneNumber}
-                  onChange={(e) => setNewOrderForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                  placeholder="+48 123 456 789"
-                  data-testid="order-form-phone"
-                />
-              </div>
-
-              {/* Address */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="fullAddress" className="text-sm font-medium flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  Адрес доставки *
-                </Label>
-                <AddressAutocomplete
-                  value={newOrderForm.fullAddress}
-                  onChange={(address) => setNewOrderForm(prev => ({ ...prev, fullAddress: address }))}
-                  placeholder="Введите адрес..."
-                  data-testid="order-form-address"
-                />
-              </div>
-
-              {/* Order Composition */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="orderComposition" className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  Состав заказа
-                </Label>
-                <Textarea
-                  id="orderComposition"
-                  value={newOrderForm.orderComposition}
-                  onChange={(e) => setNewOrderForm(prev => ({ ...prev, orderComposition: e.target.value }))}
-                  placeholder="Опишите состав заказа..."
-                  rows={3}
-                  data-testid="order-form-composition"
-                />
-              </div>
-
-              {/* Order Type */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Тип заказа</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={newOrderForm.orderType === 'balia' ? 'default' : 'outline'}
-                    onClick={() => setNewOrderForm(prev => ({ ...prev, orderType: 'balia' }))}
-                    data-testid="order-form-type-balia"
-                  >
-                    Balia
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={newOrderForm.orderType === 'sauna' ? 'default' : 'outline'}
-                    onClick={() => setNewOrderForm(prev => ({ ...prev, orderType: 'sauna' }))}
-                    data-testid="order-form-type-sauna"
-                  >
-                    Sauna
-                  </Button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end items-end">
-                <Button
-                  onClick={handleCreateOrder}
-                  disabled={creatingOrder || !newOrderForm.fullName || !newOrderForm.fullAddress}
-                  className="bg-[#355c7d] hover:bg-[#2a4a63]"
-                  data-testid="order-form-submit"
-                >
-                  {creatingOrder ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4 mr-2" />
-                  )}
-                  Создать заказ
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Orders List */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Заказы с адресами
-              </CardTitle>
-              <Badge variant="secondary">{filteredOrders.length}</Badge>
-            </div>
-            
-            {/* Filter tabs */}
-            <div className="flex gap-2 mt-3">
-              <Button 
-                size="sm" 
-                variant={orderType === 'all' ? 'default' : 'outline'}
-                onClick={() => setOrderType('all')}
-              >
-                Все
-              </Button>
-              <Button 
-                size="sm" 
-                variant={orderType === 'balia' ? 'default' : 'outline'}
-                onClick={() => setOrderType('balia')}
-              >
-                Бали
-              </Button>
-              <Button 
-                size="sm" 
-                variant={orderType === 'sauna' ? 'default' : 'outline'}
-                onClick={() => setOrderType('sauna')}
-              >
-                Сауны
-              </Button>
-            </div>
-
-            {/* Selection controls */}
-            <div className="flex gap-2 mt-3">
-              <Button size="sm" variant="outline" onClick={selectAllOrders}>
-                Выбрать все
-              </Button>
-              <Button size="sm" variant="outline" onClick={clearSelection}>
-                Снять выбор
-              </Button>
-              {selectedOrders.length > 0 && (
-                <Badge className="ml-auto">Выбрано: {selectedOrders.length}</Badge>
-              )}
-            </div>
-          </CardHeader>
-          
-          <CardContent className="max-h-[500px] overflow-y-auto space-y-2">
-            {loading ? (
-              <div className="text-center py-8 text-gray-500">Загрузка...</div>
-            ) : filteredOrders.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">Нет заказов с адресами</div>
-            ) : (
-              filteredOrders.map((order) => {
-                const address = order.fullAddress || order.address;
-                const isSelected = selectedOrders.includes(order.id);
-                const isExpanded = expandedOrder === order.id;
-                
-                return (
-                  <div
-                    key={order.id}
-                    className={`p-3 rounded-lg border transition-colors ${
-                      isSelected 
-                        ? 'border-[#355c7d] bg-[#355c7d]/5' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleOrderSelection(order.id)}
-                        className="mt-1"
+        {Object.keys(SECTIONS).map(sectionKey => (
+          <TabsContent key={sectionKey} value={sectionKey} className="mt-0">
+            {/* Create Order Form */}
+            {showOrderForm && activeSection === sectionKey && (
+              <Card className={`border-2 ${currentSection.borderColor}/30 ${currentSection.bgColor}/10 mb-6`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <SectionIcon className={`h-5 w-5 ${currentSection.color}`} />
+                      Новый заказ - {currentSection.name.ru}
+                    </CardTitle>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => {
+                        setShowOrderForm(false);
+                        autocompleteRef.current = null;
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName" className="text-sm font-medium flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        Имя клиента *
+                      </Label>
+                      <Input
+                        id="fullName"
+                        value={newOrderForm.fullName}
+                        onChange={(e) => setNewOrderForm(prev => ({ ...prev, fullName: e.target.value }))}
+                        placeholder="Введите имя"
+                        data-testid="order-form-name"
                       />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-gray-900 truncate">
-                            {order.fullName}
-                          </span>
-                          <Badge 
-                            variant="outline" 
-                            className={order.orderType === 'balia' ? 'text-blue-600' : 'text-orange-600'}
-                          >
-                            {order.orderType === 'balia' ? 'Баля' : 'Сауна'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-start gap-1 text-sm text-gray-600">
-                          <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                          <span className="break-words">{address}</span>
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          {formatDate(order.orderDate || order.createdAt)} • #{order.id?.slice(-6)}
-                        </div>
-                        
-                        {/* Expanded details */}
-                        {isExpanded && (
-                          <div className="mt-2 pt-2 border-t text-sm space-y-1">
-                            {order.phoneNumber && (
-                              <div>📞 {order.phoneNumber}</div>
-                            )}
-                            {order.modelName && (
-                              <div>📦 {order.modelName}</div>
-                            )}
-                            {order.total && (
-                              <div>💰 {order.total.toLocaleString()} zł</div>
-                            )}
-                          </div>
+                    </div>
+
+                    {/* Phone */}
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber" className="text-sm font-medium flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        Телефон
+                      </Label>
+                      <Input
+                        id="phoneNumber"
+                        type="tel"
+                        value={newOrderForm.phoneNumber}
+                        onChange={(e) => setNewOrderForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        placeholder="+48 123 456 789"
+                        data-testid="order-form-phone"
+                      />
+                    </div>
+
+                    {/* Address */}
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="fullAddress" className="text-sm font-medium flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        Адрес доставки *
+                      </Label>
+                      <Input
+                        ref={addressInputRef}
+                        id="fullAddress"
+                        value={newOrderForm.fullAddress}
+                        onChange={(e) => setNewOrderForm(prev => ({ ...prev, fullAddress: e.target.value }))}
+                        placeholder="Введите адрес..."
+                        data-testid="order-form-address"
+                      />
+                    </div>
+
+                    {/* Order Composition */}
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="orderComposition" className="text-sm font-medium flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        Состав заказа
+                      </Label>
+                      <Textarea
+                        id="orderComposition"
+                        value={newOrderForm.orderComposition}
+                        onChange={(e) => setNewOrderForm(prev => ({ ...prev, orderComposition: e.target.value }))}
+                        placeholder="Опишите состав заказа..."
+                        rows={3}
+                        data-testid="order-form-composition"
+                      />
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="md:col-span-2 flex justify-end">
+                      <Button
+                        onClick={handleCreateOrder}
+                        disabled={creatingOrder || !newOrderForm.fullName || !newOrderForm.fullAddress}
+                        className="bg-[#355c7d] hover:bg-[#2a4a63]"
+                        data-testid="order-form-submit"
+                      >
+                        {creatingOrder ? (
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4 mr-2" />
                         )}
+                        Создать заказ
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Orders List */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <SectionIcon className={`h-5 w-5 ${currentSection.color}`} />
+                      {currentSection.name.ru}
+                    </CardTitle>
+                    <Badge variant="secondary" className={currentSection.bgColor}>
+                      {sectionData[sectionKey].orders.length} заказов
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : sectionData[sectionKey].orders.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      Нет заказов с адресами
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      {sectionData[sectionKey].orders.map((order) => (
+                        <div
+                          key={order.id}
+                          className={`p-3 border rounded-lg transition-colors ${
+                            sectionData[sectionKey].selectedOrders.includes(order.id)
+                              ? `${currentSection.bgColor} ${currentSection.borderColor}`
+                              : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              checked={sectionData[sectionKey].selectedOrders.includes(order.id)}
+                              onCheckedChange={() => toggleOrderSelection(order.id)}
+                              className="mt-1"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium truncate">
+                                  {order.fullName || order.customerName}
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                                >
+                                  {expandedOrder === order.id ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {order.fullAddress || order.address}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDate(order.orderDate || order.createdAt)}
+                              </p>
+                              
+                              {expandedOrder === order.id && (
+                                <div className="mt-3 pt-3 border-t space-y-2 text-sm">
+                                  {order.phoneNumber && (
+                                    <p className="flex items-center gap-2">
+                                      <Phone className="h-3 w-3" />
+                                      {order.phoneNumber}
+                                    </p>
+                                  )}
+                                  {order.notes && (
+                                    <p className="flex items-start gap-2">
+                                      <FileText className="h-3 w-3 mt-0.5" />
+                                      <span className="break-words">{order.notes}</span>
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Map */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Карта
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      {sectionData[sectionKey].selectedOrders.length > 0 && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={clearRoute}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Сбросить
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={buildRoute}
+                            disabled={buildingRoute || sectionData[sectionKey].markers.length < 2}
+                            className={`${currentSection.bgColor} ${currentSection.color} hover:opacity-90`}
+                          >
+                            {buildingRoute ? (
+                              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Route className="h-4 w-4 mr-1" />
+                            )}
+                            Построить маршрут
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Route Info */}
+                  {sectionData[sectionKey].routeInfo && (
+                    <div className={`flex gap-4 mt-3 p-3 ${currentSection.bgColor}/50 rounded-lg`}>
+                      <div className="flex items-center gap-2">
+                        <Navigation className={`h-4 w-4 ${currentSection.color}`} />
+                        <span className="text-sm font-medium">
+                          {formatDistance(sectionData[sectionKey].routeInfo.distance)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className={`h-4 w-4 ${currentSection.color}`} />
+                        <span className="text-sm font-medium">
+                          {formatDuration(sectionData[sectionKey].routeInfo.duration)}
+                        </span>
                       </div>
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
+                        onClick={openInGoogleMaps}
+                        className="ml-auto"
                       >
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        <Navigation className="h-4 w-4 mr-1" />
+                        Открыть в Google Maps
                       </Button>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Map */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Карта
-              </CardTitle>
-              <div className="flex gap-2">
-                <Button
-                  onClick={buildRoute}
-                  disabled={selectedOrders.length < 2 || buildingRoute || !isLoaded}
-                  className="bg-[#355c7d] hover:bg-[#2a4a63]"
-                >
-                  {buildingRoute ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Route className="h-4 w-4 mr-2" />
                   )}
-                  Построить маршрут
-                </Button>
-              </div>
+                </CardHeader>
+                <CardContent>
+                  {!isLoaded ? (
+                    <div className="flex items-center justify-center h-[500px] bg-muted rounded-lg">
+                      <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <GoogleMap
+                      mapContainerStyle={mapContainerStyle}
+                      center={defaultCenter}
+                      zoom={6}
+                      onLoad={onMapLoad}
+                      options={{
+                        streetViewControl: false,
+                        mapTypeControl: false,
+                        fullscreenControl: true
+                      }}
+                    >
+                      {sectionData[sectionKey].markers.map((marker, index) => (
+                        <Marker
+                          key={marker.id}
+                          position={marker.position}
+                          title={`${index + 1}. ${marker.title}`}
+                          label={{
+                            text: String(index + 1),
+                            color: 'white',
+                            fontWeight: 'bold'
+                          }}
+                          icon={{
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: 12,
+                            fillColor: currentSection.markerColor,
+                            fillOpacity: 1,
+                            strokeColor: 'white',
+                            strokeWeight: 2
+                          }}
+                        />
+                      ))}
+                      
+                      {sectionData[sectionKey].directions && (
+                        <DirectionsRenderer
+                          directions={sectionData[sectionKey].directions}
+                          options={{
+                            suppressMarkers: true,
+                            polylineOptions: {
+                              strokeColor: currentSection.markerColor,
+                              strokeWeight: 4,
+                              strokeOpacity: 0.8
+                            }
+                          }}
+                        />
+                      )}
+                    </GoogleMap>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-          </CardHeader>
-          
-          <CardContent>
-            {!isLoaded ? (
-              <div className="h-[500px] flex items-center justify-center bg-gray-100 rounded-lg">
-                <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-              </div>
-            ) : (
-              <GoogleMap
-                mapContainerStyle={mapContainerStyle}
-                center={defaultCenter}
-                zoom={6}
-                onLoad={onMapLoad}
-                options={{
-                  streetViewControl: false,
-                  mapTypeControl: false,
-                  fullscreenControl: true
-                }}
-              >
-                {/* Markers */}
-                {!directions && markers.map((marker, index) => (
-                  <Marker
-                    key={marker.orderId}
-                    position={marker.position}
-                    label={{
-                      text: String(index + 1),
-                      color: 'white',
-                      fontWeight: 'bold'
-                    }}
-                    title={marker.title}
-                  />
-                ))}
-
-                {/* Directions */}
-                {directions && (
-                  <DirectionsRenderer
-                    directions={directions}
-                    options={{
-                      suppressMarkers: false,
-                      polylineOptions: {
-                        strokeColor: '#355c7d',
-                        strokeWeight: 4
-                      }
-                    }}
-                  />
-                )}
-              </GoogleMap>
-            )}
-
-            {/* Route Info */}
-            {routeInfo && (
-              <div className="mt-4 p-4 bg-[#355c7d]/5 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900">Информация о маршруте</h3>
-                  <Button size="sm" onClick={openInGoogleMaps}>
-                    <Navigation className="h-4 w-4 mr-2" />
-                    Открыть в Google Maps
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Route className="h-5 w-5 text-[#355c7d]" />
-                    <div>
-                      <div className="text-sm text-gray-500">Расстояние</div>
-                      <div className="font-semibold">{routeInfo.distance} км</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-[#355c7d]" />
-                    <div>
-                      <div className="text-sm text-gray-500">Время в пути</div>
-                      <div className="font-semibold">{formatDuration(routeInfo.duration)}</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Route legs */}
-                <div className="mt-4 space-y-2">
-                  <div className="text-sm font-medium text-gray-700">Порядок точек:</div>
-                  {routeInfo.legs.map((leg, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <Badge variant="outline" className="w-6 h-6 flex items-center justify-center p-0">
-                        {index + 1}
-                      </Badge>
-                      <span className="text-gray-600 truncate flex-1">{leg.start_address}</span>
-                      <span className="text-gray-400">→</span>
-                      <span className="text-gray-500">{leg.distance.text}</span>
-                    </div>
-                  ))}
-                  <div className="flex items-center gap-2 text-sm">
-                    <Badge variant="outline" className="w-6 h-6 flex items-center justify-center p-0 bg-green-50 text-green-600">
-                      ✓
-                    </Badge>
-                    <span className="text-gray-600 truncate flex-1">
-                      {routeInfo.legs[routeInfo.legs.length - 1]?.end_address}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Empty state */}
-            {selectedOrders.length === 0 && !loading && (
-              <div className="mt-4 text-center text-gray-500 text-sm">
-                Выберите заказы из списка слева, чтобы увидеть их на карте
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };
-
-export default LogisticsPage;
