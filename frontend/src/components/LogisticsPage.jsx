@@ -31,7 +31,11 @@ import {
   CheckCircle,
   Circle,
   Send,
-  Calendar
+  Calendar,
+  Users,
+  Hash,
+  Trash2,
+  Settings
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
