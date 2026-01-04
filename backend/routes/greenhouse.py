@@ -1,9 +1,8 @@
 """Greenhouse orders routes."""
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timezone
-from bson import ObjectId
 import os
 
 router = APIRouter(prefix="/api/greenhouse", tags=["greenhouse"])
