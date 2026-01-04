@@ -86,10 +86,14 @@ export const SaunaPricingPage = () => {
       </div>
 
       <Tabs defaultValue="models" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="models">{txt.models}</TabsTrigger>
           <TabsTrigger value="categories">{txt.categories}</TabsTrigger>
           <TabsTrigger value="options">{txt.options}</TabsTrigger>
+          <TabsTrigger value="techspec" className="gap-1">
+            <FileText className="h-3 w-3" />
+            {lang === 'ru' ? 'Спецификация' : 'Specyfikacja'}
+          </TabsTrigger>
           <TabsTrigger value="customer" className="gap-1">
             <User className="h-3 w-3" />
             {lang === 'ru' ? 'Клиент' : 'Klient'}
