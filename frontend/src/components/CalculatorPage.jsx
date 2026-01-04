@@ -670,8 +670,80 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Customer & Model */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Customer Info */}
-          <DynamicCustomerForm calculatorType="balia" formData={formData} setFormData={setFormData} />
+          {/* Customer Info - Static Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-700">
+                <User className="h-5 w-5" />
+                {t('balia.customerInfo')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">
+                    {lang === 'pl' ? 'Imię i nazwisko' : 'ФИО'} <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="fullName"
+                      value={formData.fullName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                      className="pl-10"
+                      placeholder={lang === 'pl' ? 'Jan Kowalski' : 'Иван Иванов'}
+                    />
+                  </div>
+                </div>
+
+                {/* Phone */}
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">
+                    {lang === 'pl' ? 'Telefon' : 'Телефон'} <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                      className="pl-10"
+                      placeholder="+48 123 456 789"
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      className="pl-10"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-2">
+                  <Label htmlFor="fullAddress">
+                    {lang === 'pl' ? 'Adres' : 'Адрес'}
+                  </Label>
+                  <AddressAutocomplete
+                    value={formData.fullAddress}
+                    onChange={(address) => setFormData(prev => ({ ...prev, fullAddress: address }))}
+                    placeholder="ul. Przykładowa 123, Warszawa"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Model Selection */}
           <Card>
