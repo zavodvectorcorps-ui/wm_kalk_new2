@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Save, Loader2, Flame, Eye, User } from 'lucide-react';
+import { Save, Loader2, Flame, Eye, User, FileText } from 'lucide-react';
 import { CustomerFieldsManager } from './CustomerFieldsManager';
+import { TechSpecAdminPage } from './TechSpecAdminPage';
 
 import { 
   useSaunaPricing, 
