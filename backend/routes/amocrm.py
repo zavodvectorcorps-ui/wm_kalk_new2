@@ -244,18 +244,26 @@ async def save_settings(settings: AmoCRMSettings):
     return {"message": "Settings saved successfully"}
 
 
-@router.post("/webhook")
-async def receive_webhook(
+
+@router.post("/webhook/{section}")
+async def receive_webhook_section(
     request: Request,
-    key: Optional[str] = None
+    section: str
 ):
-    """Receive webhook from amoCRM when lead moves to specified stage."""
+    """Receive webhook from amoCRM for a specific section.
+    
+    section: greenhouse, balia, or sauna
+    """
+    if section not in ["greenhouse", "balia", "sauna"]:
+        raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
+    
     settings = get_amocrm_settings()
     
     # Log webhook receipt
     log_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "source": "amocrm",
+        "section": section,
         "status": "received"
     }
     
@@ -265,14 +273,6 @@ async def receive_webhook(
         log_entry["reason"] = "Integration disabled"
         webhook_logs.insert_one(log_entry)
         return {"status": "ok", "message": "Integration disabled"}
-    
-    # Verify secret key
-    secret_key = settings.get("secret_key", "")
-    if secret_key and key != secret_key:
-        log_entry["status"] = "rejected"
-        log_entry["reason"] = "Invalid secret key"
-        webhook_logs.insert_one(log_entry)
-        raise HTTPException(status_code=403, detail="Invalid secret key")
     
     # Parse webhook body
     body = await request.body()
@@ -290,28 +290,6 @@ async def receive_webhook(
     lead_data = extract_lead_data(data)
     log_entry["parsed_data"] = lead_data
     
-    # Determine which section this belongs to
-    pipeline_id = lead_data.get("pipeline_id", "")
-    section = determine_section(pipeline_id, settings)
-    
-    if not section:
-        # Try to match by status_id if no pipeline match
-        for sec in ["greenhouse", "balia", "sauna"]:
-            sec_config = settings.get(sec, {})
-            if sec_config.get("enabled"):
-                target_status = sec_config.get("status_id", "")
-                if target_status and lead_data.get("status_id") == target_status:
-                    section = sec
-                    break
-    
-    if not section:
-        log_entry["status"] = "skipped"
-        log_entry["reason"] = f"No matching pipeline/status config for pipeline_id={pipeline_id}"
-        webhook_logs.insert_one(log_entry)
-        return {"status": "ok", "message": "No matching configuration"}
-    
-    log_entry["section"] = section
-    
     # Get collection for this section
     collection = get_collection_for_section(section)
     if not collection:
@@ -319,15 +297,6 @@ async def receive_webhook(
         log_entry["reason"] = f"Unknown section: {section}"
         webhook_logs.insert_one(log_entry)
         return {"status": "ok", "message": "Unknown section"}
-    
-    # Check status filter
-    section_config = settings.get(section, {})
-    target_status = section_config.get("status_id", "")
-    if target_status and lead_data.get("status_id") != target_status:
-        log_entry["status"] = "skipped"
-        log_entry["reason"] = f"Status mismatch: {lead_data.get('status_id')} != {target_status}"
-        webhook_logs.insert_one(log_entry)
-        return {"status": "ok", "message": "Status does not match"}
     
     # Check if order with this amoCRM ID already exists
     existing = collection.find_one({"amocrm_id": lead_data.get("amocrm_id")})
@@ -340,17 +309,19 @@ async def receive_webhook(
     # Create order
     now = datetime.now(timezone.utc).isoformat()
     section_prefix = {"greenhouse": "GH", "balia": "BAL", "sauna": "SAU"}
+    section_names = {"greenhouse": "Теплицы", "balia": "Купели", "sauna": "Сауны"}
+    
     order_data = {
-        "id": f"AMO-{section_prefix.get(section, 'X')}-{lead_data.get('amocrm_id', datetime.now().timestamp())}",
+        "id": f"AMO-{section_prefix.get(section, 'X')}-{lead_data.get('amocrm_id', int(datetime.now().timestamp()))}",
         "fullName": lead_data.get("fullName", "Без имени"),
         "phoneNumber": lead_data.get("phoneNumber", ""),
         "fullAddress": lead_data.get("fullAddress", ""),
-        "notes": f"Из amoCRM. Сделка: {lead_data.get('amocrm_name', '')}. Бюджет: {lead_data.get('price', 0)}",
+        "notes": f"Из amoCRM ({section_names.get(section, section)}). Сделка: {lead_data.get('amocrm_name', '')}. Бюджет: {lead_data.get('price', 0)}",
         "orderDate": now,
         "createdAt": now,
         "source": "amocrm",
         "status": "new",
-        "deliveryStatus": "pending",  # For sync back
+        "deliveryStatus": "pending",
         "deliveryComment": "",
         "amocrm_id": lead_data.get("amocrm_id"),
         "amocrm_data": lead_data
@@ -366,6 +337,17 @@ async def receive_webhook(
     logger.info(f"Created {section} order from amoCRM: {order_data['id']}")
     
     return {"status": "ok", "order_id": order_data["id"], "section": section}
+
+
+# Keep old endpoint for backward compatibility but simplified
+@router.post("/webhook")
+async def receive_webhook_legacy(
+    request: Request,
+    key: Optional[str] = None
+):
+    """Legacy webhook endpoint - redirects to balia by default."""
+    # For backward compatibility, default to balia section
+    return await receive_webhook_section(request, "balia")
 
 
 @router.post("/sync-status")
