@@ -5,7 +5,7 @@
 ### Order Full Edit Functionality Tests
 
 #### Test Environment:
-- Backend URL: https://pwa-delivery-app.preview.emergentagent.com/api
+- Backend URL: https://order-tracker-238.preview.emergentagent.com/api
 - Admin credentials: admin / 159357
 
 #### Test Scenarios Completed:
@@ -48,7 +48,7 @@
 
 7. **✅ PDF Generation with Model Images (NEW):**
    - Balia PDF with MongoDB model image (full URL): ✅ PASS
-     - modelImageUrl: "https://pwa-delivery-app.preview.emergentagent.com/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg"
+     - modelImageUrl: "https://order-tracker-238.preview.emergentagent.com/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg"
      - PDF generated successfully (132,582 bytes)
      - PDF size > 100KB indicates image is included
    - Balia PDF with relative MongoDB path: ✅ PASS
@@ -165,7 +165,7 @@
 ## Frontend Testing Summary - December 31, 2025
 
 ### Test Environment:
-- Frontend URL: https://pwa-delivery-app.preview.emergentagent.com
+- Frontend URL: https://order-tracker-238.preview.emergentagent.com
 - Admin credentials: admin / 159357
 - Browser: Playwright automation
 - Language: Polish (PL)
@@ -249,7 +249,7 @@ The Order Full Edit functionality is **WORKING CORRECTLY** with all major featur
 ## Sauna Order Creation 422 Error Fix Testing Results - COMPLETED ✅
 
 ### Test Environment:
-- Backend URL: https://pwa-delivery-app.preview.emergentagent.com/api
+- Backend URL: https://order-tracker-238.preview.emergentagent.com/api
 - Test Date: December 31, 2025
 
 ### Test Scenarios Completed:
@@ -368,7 +368,7 @@ setRequestedDiscountNote(editingOrder.requestedDiscountNote || '');
 ### Backend Testing Results (Dec 31, 2025 - Session 2):
 
 #### Test Environment:
-- Backend URL: https://pwa-delivery-app.preview.emergentagent.com/api
+- Backend URL: https://order-tracker-238.preview.emergentagent.com/api
 - Test Date: December 31, 2025
 
 #### Test Scenarios Completed:
@@ -453,7 +453,7 @@ setRequestedDiscountNote(editingOrder.requestedDiscountNote || '');
 ## Review Request Testing Results - January 2, 2025
 
 ### Test Environment:
-- Backend URL: https://pwa-delivery-app.preview.emergentagent.com/api
+- Backend URL: https://order-tracker-238.preview.emergentagent.com/api
 - Test Date: January 2, 2025
 - Testing Agent: Backend Testing Agent
 
