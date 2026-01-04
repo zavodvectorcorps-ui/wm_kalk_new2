@@ -2064,7 +2064,29 @@ export const LogisticsPage = () => {
                       <MapPin className="h-5 w-5" />
                       Карта
                     </CardTitle>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      {/* Map filter */}
+                      <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                        <Button
+                          size="sm"
+                          variant={mapFilter === 'free' ? 'default' : 'ghost'}
+                          onClick={() => setMapFilter('free')}
+                          className="h-7 text-xs"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Свободные
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={mapFilter === 'all' ? 'default' : 'ghost'}
+                          onClick={() => setMapFilter('all')}
+                          className="h-7 text-xs"
+                        >
+                          <Filter className="h-3 w-3 mr-1" />
+                          Все
+                        </Button>
+                      </div>
+                      
                       {sectionData[sectionKey].selectedOrders.length > 0 && (
                         <>
                           <Button
@@ -2096,6 +2118,26 @@ export const LogisticsPage = () => {
                     </div>
                   </div>
                   
+                  {/* Legend */}
+                  <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span>Свободные</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                      <span>В рейсе</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span>Важные</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                      <span>Склад</span>
+                    </div>
+                  </div>
+                  
                   {/* Route Info */}
                   {sectionData[sectionKey].routeInfo && (
                     <div className={`flex gap-4 mt-3 p-3 ${currentSection.bgColor}/50 rounded-lg`}>
@@ -2123,17 +2165,19 @@ export const LogisticsPage = () => {
                     </div>
                   )}
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative">
                   {!isLoaded ? (
                     <div className="flex items-center justify-center h-[500px] bg-muted rounded-lg">
                       <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
                   ) : (
+                    <>
                     <GoogleMap
                       mapContainerStyle={mapContainerStyle}
                       center={defaultCenter}
                       zoom={6}
                       onLoad={onMapLoad}
+                      onClick={() => closeMapPopup()}
                       options={{
                         streetViewControl: false,
                         mapTypeControl: false,
