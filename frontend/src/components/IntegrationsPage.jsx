@@ -361,167 +361,267 @@ export const IntegrationsPage = () => {
             />
           </div>
 
-          {/* Field Mapping */}
+          {/* Field Mapping - Separate for each section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
+                <ArrowLeftRight className="h-5 w-5" />
                 Маппинг полей amoCRM
               </CardTitle>
               <CardDescription>
-                Укажите ID полей из amoCRM для переноса данных. Заказы переносятся даже если некоторые поля пустые.
+                Укажите ID полей из amoCRM для каждой категории отдельно. Поля могут отличаться для разных продуктов.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Basic fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Имя клиента</Label>
-                  <Input
-                    value={settings.field_mapping?.fullName || ''}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      field_mapping: { ...prev.field_mapping, fullName: e.target.value }
-                    }))}
-                    placeholder="ID поля"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Телефон клиента</Label>
-                  <Input
-                    value={settings.field_mapping?.phoneNumber || ''}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      field_mapping: { ...prev.field_mapping, phoneNumber: e.target.value }
-                    }))}
-                    placeholder="ID поля"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Номер заказа</Label>
-                  <Input
-                    value={settings.field_mapping?.orderNumber || ''}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      field_mapping: { ...prev.field_mapping, orderNumber: e.target.value }
-                    }))}
-                    placeholder="ID поля"
-                  />
-                </div>
+            <CardContent className="space-y-4">
+              {/* Section tabs */}
+              <div className="flex gap-2 border-b pb-2">
+                <Button
+                  variant={activeMappingSection === 'greenhouse' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveMappingSection('greenhouse')}
+                  className={activeMappingSection === 'greenhouse' ? 'bg-green-600 hover:bg-green-700' : ''}
+                >
+                  <Warehouse className="h-4 w-4 mr-1" />
+                  Теплицы
+                </Button>
+                <Button
+                  variant={activeMappingSection === 'balia' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveMappingSection('balia')}
+                  className={activeMappingSection === 'balia' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                >
+                  <Waves className="h-4 w-4 mr-1" />
+                  Купели
+                </Button>
+                <Button
+                  variant={activeMappingSection === 'sauna' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveMappingSection('sauna')}
+                  className={activeMappingSection === 'sauna' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                >
+                  <Flame className="h-4 w-4 mr-1" />
+                  Сауны
+                </Button>
               </div>
 
-              {/* Address fields */}
-              <div className="border rounded-lg p-4 space-y-4">
-                <Label className="text-base font-semibold">Адрес клиента</Label>
-                <p className="text-sm text-muted-foreground">
-                  Укажите одно поле с полным адресом ИЛИ три отдельных поля (индекс, город, улица) — они будут объединены автоматически
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Field mapping for active section */}
+              <div className="space-y-6">
+                {/* Basic fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-sm">Полный адрес (одно поле)</Label>
+                    <Label>Имя клиента</Label>
                     <Input
-                      value={settings.field_mapping?.fullAddress || ''}
+                      value={settings.field_mapping?.[activeMappingSection]?.fullName || ''}
                       onChange={(e) => setSettings(prev => ({
                         ...prev,
-                        field_mapping: { ...prev.field_mapping, fullAddress: e.target.value }
+                        field_mapping: { 
+                          ...prev.field_mapping, 
+                          [activeMappingSection]: {
+                            ...prev.field_mapping[activeMappingSection],
+                            fullName: e.target.value 
+                          }
+                        }
                       }))}
                       placeholder="ID поля"
                     />
                   </div>
-                  <div className="text-sm text-muted-foreground flex items-center justify-center">
-                    — или —
+                  <div className="space-y-2">
+                    <Label>Телефон клиента</Label>
+                    <Input
+                      value={settings.field_mapping?.[activeMappingSection]?.phoneNumber || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        field_mapping: { 
+                          ...prev.field_mapping, 
+                          [activeMappingSection]: {
+                            ...prev.field_mapping[activeMappingSection],
+                            phoneNumber: e.target.value 
+                          }
+                        }
+                      }))}
+                      placeholder="ID поля"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Номер заказа</Label>
+                    <Input
+                      value={settings.field_mapping?.[activeMappingSection]?.orderNumber || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        field_mapping: { 
+                          ...prev.field_mapping, 
+                          [activeMappingSection]: {
+                            ...prev.field_mapping[activeMappingSection],
+                            orderNumber: e.target.value 
+                          }
+                        }
+                      }))}
+                      placeholder="ID поля"
+                    />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm">Индекс</Label>
-                    <Input
-                      value={settings.field_mapping?.addressIndex || ''}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        field_mapping: { ...prev.field_mapping, addressIndex: e.target.value }
-                      }))}
-                      placeholder="ID поля"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Город</Label>
-                    <Input
-                      value={settings.field_mapping?.addressCity || ''}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        field_mapping: { ...prev.field_mapping, addressCity: e.target.value }
-                      }))}
-                      placeholder="ID поля"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Улица</Label>
-                    <Input
-                      value={settings.field_mapping?.addressStreet || ''}
-                      onChange={(e) => setSettings(prev => ({
-                        ...prev,
-                        field_mapping: { ...prev.field_mapping, addressStreet: e.target.value }
-                      }))}
-                      placeholder="ID поля"
-                    />
-                  </div>
-                </div>
-              </div>
 
-              {/* Order details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Состав заказа</Label>
-                  <Input
-                    value={settings.field_mapping?.orderContents || ''}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      field_mapping: { ...prev.field_mapping, orderContents: e.target.value }
-                    }))}
-                    placeholder="ID поля"
-                  />
+                {/* Address fields */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <Label className="text-base font-semibold">Адрес клиента</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Укажите одно поле с полным адресом ИЛИ три отдельных поля (индекс, город, улица)
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Полный адрес (одно поле)</Label>
+                      <Input
+                        value={settings.field_mapping?.[activeMappingSection]?.fullAddress || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: { 
+                            ...prev.field_mapping, 
+                            [activeMappingSection]: {
+                              ...prev.field_mapping[activeMappingSection],
+                              fullAddress: e.target.value 
+                            }
+                          }
+                        }))}
+                        placeholder="ID поля"
+                      />
+                    </div>
+                    <div className="text-sm text-muted-foreground flex items-center justify-center">
+                      — или —
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Индекс</Label>
+                      <Input
+                        value={settings.field_mapping?.[activeMappingSection]?.addressIndex || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: { 
+                            ...prev.field_mapping, 
+                            [activeMappingSection]: {
+                              ...prev.field_mapping[activeMappingSection],
+                              addressIndex: e.target.value 
+                            }
+                          }
+                        }))}
+                        placeholder="ID поля"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Город</Label>
+                      <Input
+                        value={settings.field_mapping?.[activeMappingSection]?.addressCity || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: { 
+                            ...prev.field_mapping, 
+                            [activeMappingSection]: {
+                              ...prev.field_mapping[activeMappingSection],
+                              addressCity: e.target.value 
+                            }
+                          }
+                        }))}
+                        placeholder="ID поля"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Улица</Label>
+                      <Input
+                        value={settings.field_mapping?.[activeMappingSection]?.addressStreet || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: { 
+                            ...prev.field_mapping, 
+                            [activeMappingSection]: {
+                              ...prev.field_mapping[activeMappingSection],
+                              addressStreet: e.target.value 
+                            }
+                          }
+                        }))}
+                        placeholder="ID поля"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Комментарий к заказу</Label>
-                  <Input
-                    value={settings.field_mapping?.orderComment || ''}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      field_mapping: { ...prev.field_mapping, orderComment: e.target.value }
-                    }))}
-                    placeholder="ID поля"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Сумма сделки</Label>
-                  <Input
-                    value={settings.field_mapping?.dealSum || ''}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      field_mapping: { ...prev.field_mapping, dealSum: e.target.value }
-                    }))}
-                    placeholder="ID поля (или из бюджета сделки)"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Сумма задолженности</Label>
-                  <Input
-                    value={settings.field_mapping?.debtSum || ''}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      field_mapping: { ...prev.field_mapping, debtSum: e.target.value }
-                    }))}
-                    placeholder="ID поля"
-                  />
-                </div>
-              </div>
 
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm">
-                  <strong>Как найти ID поля:</strong> В amoCRM откройте карточку сделки → F12 (DevTools) → 
-                  наведите на нужное поле → найдите атрибут <code>data-field-id</code> или посмотрите в URL API запроса.
-                </p>
+                {/* Order details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Состав заказа</Label>
+                    <Input
+                      value={settings.field_mapping?.[activeMappingSection]?.orderContents || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        field_mapping: { 
+                          ...prev.field_mapping, 
+                          [activeMappingSection]: {
+                            ...prev.field_mapping[activeMappingSection],
+                            orderContents: e.target.value 
+                          }
+                        }
+                      }))}
+                      placeholder="ID поля"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Комментарий к заказу</Label>
+                    <Input
+                      value={settings.field_mapping?.[activeMappingSection]?.orderComment || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        field_mapping: { 
+                          ...prev.field_mapping, 
+                          [activeMappingSection]: {
+                            ...prev.field_mapping[activeMappingSection],
+                            orderComment: e.target.value 
+                          }
+                        }
+                      }))}
+                      placeholder="ID поля"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Сумма сделки</Label>
+                    <Input
+                      value={settings.field_mapping?.[activeMappingSection]?.dealSum || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        field_mapping: { 
+                          ...prev.field_mapping, 
+                          [activeMappingSection]: {
+                            ...prev.field_mapping[activeMappingSection],
+                            dealSum: e.target.value 
+                          }
+                        }
+                      }))}
+                      placeholder="ID поля"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Сумма задолженности</Label>
+                    <Input
+                      value={settings.field_mapping?.[activeMappingSection]?.debtSum || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        field_mapping: { 
+                          ...prev.field_mapping, 
+                          [activeMappingSection]: {
+                            ...prev.field_mapping[activeMappingSection],
+                            debtSum: e.target.value 
+                          }
+                        }
+                      }))}
+                      placeholder="ID поля"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm">
+                    <strong>Как найти ID поля:</strong> В amoCRM откройте карточку сделки → F12 (DevTools) → 
+                    наведите на нужное поле → найдите атрибут <code>data-field-id</code> или посмотрите в URL API запроса.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
