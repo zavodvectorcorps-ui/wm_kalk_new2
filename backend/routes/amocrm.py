@@ -532,10 +532,12 @@ async def receive_webhook_section(
         webhook_logs.insert_one(log_entry)
         return {"status": "ok", "message": "No data to process"}
     
-    # Extract lead data with field mapping from settings
+    # First extract basic data from webhook to get lead ID
     field_mapping = settings.get("field_mapping", {})
-    lead_data = extract_lead_data(data, field_mapping)
-    log_entry["parsed_data"] = lead_data
+    basic_lead_data = extract_lead_data(data, field_mapping)
+    lead_id = basic_lead_data.get("amocrm_id")
+    
+    log_entry["webhook_lead_id"] = lead_id
     
     # Get collection for this section
     collection = get_collection_for_section(section)
@@ -546,14 +548,37 @@ async def receive_webhook_section(
         return {"status": "ok", "message": "Unknown section"}
     
     # Check if order with this amoCRM ID already exists
-    amocrm_id = lead_data.get("amocrm_id")
-    if amocrm_id:
-        existing = collection.find_one({"amocrm_id": amocrm_id})
+    if lead_id:
+        existing = collection.find_one({"amocrm_id": lead_id})
         if existing:
             log_entry["status"] = "skipped"
             log_entry["reason"] = "Order already exists"
             webhook_logs.insert_one(log_entry)
             return {"status": "ok", "message": "Order already exists"}
+    
+    # Try to fetch full lead data from amoCRM API
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    lead_data = basic_lead_data  # Default to webhook data
+    
+    if domain and token and lead_id:
+        log_entry["api_fetch_attempt"] = True
+        api_data = await fetch_lead_from_amocrm(lead_id, domain, token)
+        
+        if api_data:
+            # Use API data which includes custom_fields_values
+            lead_data = extract_lead_data_from_api(api_data, field_mapping)
+            log_entry["api_fetch_success"] = True
+            log_entry["api_data_fields"] = list(api_data.get("custom_fields_values", []))[:5]  # Log first 5 fields
+        else:
+            log_entry["api_fetch_success"] = False
+            log_entry["api_fetch_note"] = "Using webhook data (API fetch failed)"
+    else:
+        log_entry["api_fetch_attempt"] = False
+        log_entry["api_fetch_note"] = "API credentials not configured - using webhook data only"
+    
+    log_entry["parsed_data"] = lead_data
     
     # Create order with all mapped fields
     now = datetime.now(timezone.utc).isoformat()
