@@ -338,27 +338,9 @@ export const IntegrationsPage = () => {
 
           {/* Webhook URLs for each section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <WebhookUrlCard
-              section="greenhouse"
-              icon={Warehouse}
-              title="Теплицы"
-              color="text-green-600"
-              bgColor="bg-green-100"
-            />
-            <WebhookUrlCard
-              section="balia"
-              icon={Waves}
-              title="Купели"
-              color="text-blue-600"
-              bgColor="bg-blue-100"
-            />
-            <WebhookUrlCard
-              section="sauna"
-              icon={Flame}
-              title="Сауны"
-              color="text-orange-600"
-              bgColor="bg-orange-100"
-            />
+            {renderWebhookCard("greenhouse", Warehouse, "Теплицы", "text-green-600", "bg-green-100")}
+            {renderWebhookCard("balia", Waves, "Купели", "text-blue-600", "bg-blue-100")}
+            {renderWebhookCard("sauna", Flame, "Сауны", "text-orange-600", "bg-orange-100")}
           </div>
 
           {/* Field Mapping - Separate for each section */}
