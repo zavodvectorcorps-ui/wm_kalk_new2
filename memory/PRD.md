@@ -202,6 +202,14 @@ A full-featured quoting and order management application for Saunas and Balias (
 ### P3 - Low Priority
 1. Fix minor dropdown positioning glitch in Balia calculator
 
+## Completed Features (Summary)
+- ✅ Two-way amoCRM integration (webhook receive + status sync back)
+- ✅ Logistics as standalone section with 3 tabs (Greenhouses, Tubs, Saunas)
+- ✅ Advanced order management (status badges, drivers, route numbers, bulk actions)
+- ✅ Role-based access control with array permissions
+- ✅ BaliaPricingPage refactored (2200→1086 lines)
+- ✅ Code optimization with lazy loading
+
 ## Test Credentials
 - **Super-Admin**: `admin` / `220066`
 - **Employee (Balia)**: `balia` / `159357`
