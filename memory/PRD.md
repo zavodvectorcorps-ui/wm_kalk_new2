@@ -5,6 +5,15 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Delivery Status in Logistics (2026-01-04)
+- **Visual Status Badge**: Each order card shows delivery status (Ожидает, Готовится, В пути, Доставлено)
+- **Status Change**: Dropdown in expanded card to change status
+- **Date/Comment Field**: Input for delivery date or notes
+- **amoCRM Sync**: Auto-sync status to amoCRM when changed (if configured)
+- **Address Field Fix**: AddressAutocomplete now always shows input even without Google Maps API key
+- **Files**: `/app/frontend/src/components/LogisticsPage.jsx`, `/app/frontend/src/components/AddressAutocomplete.jsx`
+- **Status**: ✅ Implemented and tested
+
 ### amoCRM Integration Enhanced (2026-01-04)
 - **Multiple Pipelines**: Separate webhook configs for Теплицы, Купели, Сауны
 - **Each section**: Own Pipeline ID, Status ID, Enable/Disable toggle, Test button
