@@ -44,6 +44,7 @@ app.include_router(customer_fields_router, prefix="/api")
 app.include_router(statistics_router, prefix="/api")
 app.include_router(backup_router)
 app.include_router(greenhouse_router)
+app.include_router(amocrm_router)
 
 # Initialize backup database reference
 from database import db
