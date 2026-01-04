@@ -1,49 +1,55 @@
 <analysis>**original_problem_statement:**
-The user initially requested to enhance the application by adding a full backup system and off-site backups via Telegram. This evolved into a series of feature requests focused on improving order management and logistics:
-1.  **Logistics as a Separate Module**: Convert the Logistics tab in the admin panel into a standalone top-level section with its own access controls for different user roles.
-2.  **Product-Specific Logistics**: Within the new Logistics section, create three separate tabs for Теплицы (Greenhouses), Купели (Hot Tubs), and Сауны (Saunas), each with its own list of orders.
-3.  **amoCRM Integration**: Implement an integration to automatically create new orders in the appropriate logistics section (initially Greenhouses) via webhooks from amoCRM when a lead reaches a specific stage in a sales funnel.
-4.  **Advanced amoCRM Integration**: Expand the integration to support separate amoCRM funnels for each product type (Greenhouses, Tubs, Saunas) and add a UI for configuring two-way synchronization (sending delivery status back to amoCRM).
-5.  **Enhanced Order Management**: In the Logistics page, add functionality to:
-    *   Assign a visual delivery status to each order (e.g., Pending, In Progress, Delivered).
-    *   Assign a Driver and a Route Number to each order.
-    *   Perform bulk actions on selected orders (change status, assign driver/route).
-6.  **UI/UX Improvements & Bug Fixes**:
-    *   Move the Specification section into the Prices -> Saunas sub-section.
-    *   Fix a recurring bug where the address field would disappear from the Balia calculator on production deployment.
+The user's initial high-level goal is to build a comprehensive logistics management system integrated with their amoCRM sales pipeline.
+
+PRODUCT REQUIREMENTS:
+1.  **Simplified amoCRM Integration**: The user found the initial integration (with secret keys, funnel IDs, and stage IDs) too complex. They requested a simpler system with three distinct webhook URLs, one for each product category (Greenhouses, Hot Tubs, Saunas), which can be directly pasted into the amoCRM interface.
+2.  **Custom Field Mapping for amoCRM**: To ensure data from amoCRM is correctly transferred, the user wants to manually map fields. They need to specify the amoCRM custom field IDs for: client name, phone, order number, order composition, comments, deal sum, and debt sum. The system must also support combining a three-part address (postcode, city, street) into a single address field. Orders should be created even if some fields are missing.
+3.  **Fix Recurring Address Field Bug**: A persistent bug causes the address input field to disappear from the Купели (Hot Tubs) calculator on the production environment. The user wants this fixed permanently.
+4.  **UI/UX Improvements**:
+    *   Move the Спецификация (Specification) section from the bottom of the Sauna admin page to its own tab next to Models, Categories, etc., for better organization.
+    *   Add a delete button to each order card in the logistics view.
+5.  **Advanced Logistics & Routes (Рейсы)**: This is a major new feature request for managing delivery trips.
+    *   Orders from the general logistics list should be assignable to a Рейс (Trip/Route).
+    *   Once an order is in a trip, it should disappear from the general list.
+    *   A new top-level Рейсы (Trips) section/tab is needed to view and manage these trips.
+    *   Each trip should have its own list of orders, an assigned driver, and a status (e.g., Planned, Delivered).
+    *   Drivers should be assigned to the entire trip, not individual orders.
+6.  **Map & Geocoding Enhancements**:
+    *   All orders with an address should automatically appear as markers on the main logistics map upon loading.
+    *   Each order card should have a visual indicator to show if its address has been successfully geocoded and is visible on the map.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application now features a dedicated, top-level Logistics section, separate from the Admin Panel, with its own access rights manageable per user. This section is organized into three tabs: Теплицы (Greenhouses), Купели (Hot Tubs), and Сауны (Saunas).
+The application's logistics module has been significantly enhanced. The amoCRM integration was completely refactored to use three simple, dedicated webhook URLs. The integration settings page now includes a detailed UI for mapping amoCRM custom field IDs to internal order fields, including logic to combine a multi-part address. The backend now makes a secondary API call to amoCRM after receiving a webhook to fetch the full lead data, as webhooks alone don't contain custom fields.
 
-A robust amoCRM integration is in place. The admin panel has a new Integrations page where the user can configure webhook settings for each of the three product funnels. It also includes a UI for setting up future two-way status synchronization.
+The recurring bug with the missing address field in the Купели (Hot Tubs) calculator has been addressed with a hardcoded static form, replacing the previous dynamic implementation. The Спецификация section has been moved into its own tab in the Sauna pricing admin page.
 
-The logistics order cards have been significantly enhanced. They now display a visual status badge, and an expanded view allows for assigning a specific driver, a route number, and updating the delivery status and comments. A powerful bulk-action panel appears when multiple orders are selected, allowing for mass updates of status, driver, and route number. The recurring issue with the missing address field has been resolved by making the component more resilient to missing API keys.
+The agent began implementing the Рейсы (Trips) feature by creating the necessary backend API endpoints and database models (). On the frontend (), initial state management and logic have been added to filter out orders that are part of a trip from the main view. Geocoding logic was improved to process all orders on load and display them on the map, with indicators on each card showing their map status.
 
 **Last working item**:
--   **Last item agent was working**: Implementing advanced logistics features: bulk order status updates, driver assignment, and route number assignment. This involved creating a new UI for managing drivers, a context-aware bulk action panel, and updating the individual order cards to display and edit this new information.
--   **Status**: COMPLETED (User has not yet verified this latest change, but agent testing was successful)
--   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: Frontend testing agent. The agent should be instructed to:
+-   **Last item agent was working**: Implementing the Рейсы (Trips) feature. The agent had just finished creating the backend API in  and had started modifying the frontend . The goal was to create a new tab for Trips and filter orders assigned to a trip from the main logistics view.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: Frontend testing agent. Once the UI for creating and viewing trips is complete, the agent should test the full workflow:
     1.  Navigate to the Logistics page.
-    2.  Select multiple orders using the checkboxes.
-    3.  Verify the bulk action panel appears.
-    4.  Use the panel to change the status, assign a driver, and set a route number.
-    5.  Verify the changes are reflected on the individual order cards.
-    6.  Verify the expanded view of a single order card also shows the correct driver and route number.
+    2.  Select several orders and use a Create Trip button.
+    3.  In the creation modal, assign a driver and a name to the trip.
+    4.  Verify that the selected orders disappear from the general list.
+    5.  Navigate to the new Trips tab.
+    6.  Verify the newly created trip is visible with the correct orders and driver.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P1)**: The Google Maps Autocomplete component is still using the legacy . An attempt to migrate to the modern  was reverted as it caused issues with automated testing. This remains as technical debt.
+-   **Issue 1 (P1)**: The Google Maps Autocomplete component is still using the legacy . An attempt to migrate to the modern  in a previous session was reverted as it caused issues with automated testing. This remains as technical debt.
 
 **Issues Detail**:
 -   **Issue 1: Deprecated Google Maps Autocomplete component.**
-    -   **Attempted fixes**: An attempt was made to implement  in , but it broke the agent's ability to programmatically fill the address field during testing. The fix was reverted to the working legacy component to avoid being blocked.
+    -   **Attempted fixes**: An attempt was made to implement  in , but it broke the agent's ability to programmatically fill the address field during testing. The fix was reverted.
     -   **Next debug checklist**:
-        -   Re-evaluate the implementation of . The issue might be with the Playwright selectors used for testing, not the component itself.
-        -   Consult the official Google Maps documentation and examples for headless/programmatic interaction with the new web component.
-        -   Update  and any other instances to use the new element once a reliable testing strategy is found.
+        -   Re-evaluate the implementation of . The issue might be with the test selectors, not the component.
+        -   Consult the official Google Maps documentation for headless/programmatic interaction with the new web component.
+        -   Update  to use the new element once a reliable testing strategy is found.
     -   **Why fix this issue and what will be achieved with the fix?**: To remove technical debt and ensure long-term stability, as the legacy component will eventually be deprecated and removed by Google.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?** N
@@ -51,62 +57,137 @@ The logistics order cards have been significantly enhanced. They now display a v
     -   **Blocked on other issue**: None.
 
 **In progress Task List**:
--   None.
+-   **Task 1: Complete Рейсы (Trips) Feature (P0)**
+    -   **Where to resume**: In . The agent has added state and helper functions for trips and has updated the main order list to filter out orders assigned to a trip. The next steps are:
+        1.  Add the Рейсы () tab to the main .
+        2.  Implement the  for the Рейсы tab, which will display a list of created trips.
+        3.  Implement the UI for creating a new trip (likely a modal) that is triggered by the Создать рейс (Create Trip) button. This modal should allow selecting a driver.
+        4.  Connect the UI to the backend  endpoints to fetch, create, and manage trips.
+    -   **What will be achieved with this?**: A complete logistics workflow where orders can be organized into trips, assigned to drivers, and managed separately from the unassigned order pool, fulfilling a major user requirement.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Both.
+    -   **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **P0: Implement two-way amoCRM synchronization**: The UI for configuring API credentials and field IDs for status sync is complete. The next step is to implement the backend logic in  to actually call the amoCRM API and update the lead status when an order's delivery status changes in the app.
-    -   **P1: Refactor **: This large component (1300+ lines) is a known candidate for refactoring to improve maintainability and performance. It could be broken down into smaller, more manageable sub-components.
+    -   **P1: Refactor **: This large component (1300+ lines) is a known candidate for refactoring to improve maintainability and performance.
 -   **Future Tasks**:
     -   **P2: Finalize strategy for Sauna Lead Statistics**: A pending task from a previous session to track leads from a Telegram group where adding a bot is not allowed.
     -   **P3: Fix Minor Dropdown Positioning Glitch**: A low-priority visual bug in the Balia calculator noted in a previous handoff.
 
 **Completed work in this session**
--   **Logistics as a Separate Module**: Made Logistics a top-level section, removed it from the Admin Panel, and updated user access control to be an array, allowing role-based access to the new section. (, , , , ).
--   **Tabbed Logistics Interface**: Reworked  to have three distinct tabs for Greenhouses, Hot Tubs, and Saunas, each fetching its own set of orders.
--   **amoCRM Integration**: Created a complete webhook ingestion system.
-    -   Added a new backend route  to handle incoming data.
-    -   Added a new Integrations page () in the admin panel for configuring multiple amoCRM funnels and for future two-way sync settings.
--   **Advanced Logistics Features**:
-    -   Added delivery status with visual badges to order cards.
-    -   Implemented UI for managing a list of drivers.
-    -   Added fields for assigning a **Driver** and **Route Number** to each order.
-    -   Created a bulk-action UI to update status, driver, and route for multiple selected orders at once. ().
--   **Bug Fix & UI Tweak**:
-    -   Fixed a recurring bug where the address field disappeared by making  render a fallback input if the Google Maps API key is missing.
-    -   Moved the Specification management UI from a main admin tab into the Prices -> Saunas section. ().
+-   **amoCRM Integration Overhaul**:
+    -   Replaced the complex settings UI with three simple, dedicated webhook URLs (for Greenhouses, Tubs, Saunas) in  and .
+    -   Implemented a backend process to make a secondary API call to amoCRM to fetch full lead details (including custom fields) after receiving a webhook.
+    -   Created a comprehensive UI for mapping amoCRM custom field IDs to application fields, with support for combining a 3-part address.
+-   **Bug Fixes**:
+    -   **Permanently fixed the missing address field in the Balia calculator** by replacing the  with a hardcoded static form in .
+    -   **Fixed amoCRM orders not appearing in logistics** by removing a filter in  that was incorrectly hiding orders without an address ().
+    -   **Fixed amoCRM data parsing** by correctly handling URL-encoded form data and implementing the API call to fetch full lead details.
+    -   **Fixed orders not appearing due to Pydantic models** by removing the  from the  endpoint in , which was filtering out new fields from amoCRM.
+-   **UI/UX Improvements**:
+    -   Moved the Спецификация (Specification) section into a dedicated tab within the Sauna prices admin page (, ).
+    -   Added a delete button to every order card in .
+    -   Added a button in the Integrations UI to clear all amoCRM-sourced orders for testing purposes.
+-   **Map & Geocoding Enhancements**:
+    -   Implemented logic in  to geocode all orders on load.
+    -   Updated the map to display markers for all geocoded orders, not just selected ones.
+    -   Added a visual status icon (✓ на карте, нет адреса) on each order card.
+-   **Trips (Рейсы) Feature (Started)**:
+    -   Created backend API endpoints and database models in a new file .
+    -   Began frontend implementation in  by adding state and filtering logic.
+
+**Earlier issues found/mentioned but not fixed**
+-   **Issue 1: Deprecated Google Maps Autocomplete component.**
+    -   **Debug checklist**:
+        -   Re-attempt migration from  to  in .
+        -   Investigate and update testing scripts/selectors if they are the cause of the previous failure.
+        -   Consult Google Maps documentation for the correct way to programmatically interact with the new component.
+    -   **Why to solve this issue and what will be achieved with this?**: To remove technical debt and prevent future breakage when Google fully deprecates the legacy component.
+    -   **Should Test frontend/backend/both after fix**: Frontend.
+    -   **Is recurring issue?** Y (from previous session).
+
+**Known issue recurrence from previous fork**
+-   **Issue recurrence in previous fork**: The address field disappearing in the Balia (Hot Tubs) calculator. This was the most persistent issue in the session.
+-   **Recurrence count**: This issue was reported by the user at least 3 times during the session.
+-   **Status**: RESOLVED (by implementing a hardcoded form). The root cause (why the dynamic form fails on production) remains unknown but has been bypassed. The next agent should confirm the fix on the production environment.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Role-Based Access Control (RBAC)**: Migrated the user access model from a single string to an array of permissions () to allow for more granular control over application sections.
--   **Webhook Ingestion**: Built a secure endpoint to receive URL-encoded POST data from a third-party service (amoCRM), parse it, and create corresponding entities in the local database.
--   **Complex Frontend State Management**: The  now manages a complex state including multiple order lists, selected items for bulk actions, driver lists, and UI states for various dialogs and panels, all within React hooks ().
--   **Component Resiliency**: Improved the  component to provide a graceful fallback (a standard text input) when its primary dependency (Google Maps API) is unavailable, preventing the component from simply disappearing and breaking the user experience.
+-   **API-backed Webhook**: Implemented a pattern where a lightweight webhook from amoCRM triggers a more data-intensive API call back to the source system (amoCRM) to fetch full entity details. This is a robust way to handle webhooks that don't contain all necessary data.
+-   **Dynamic vs. Static Forms**: A recurring bug was resolved by replacing a dynamic, database-driven form () with a hardcoded static form (), highlighting the trade-offs between flexibility and reliability.
+-   **Stateful Geocoding**: On the frontend, orders are now geocoded upon loading, and their coordinate data is stored in the component's state, allowing for immediate map visualization and status indicators.
+-   **Frontend State-based Filtering**: The application now filters the main order list based on whether an order is part of a trip, managing visibility entirely on the client-side state after the initial data fetch.
+
+**key DB schema**
+-   : 
+-   , , : Now include additional fields from amoCRM: , , , , , , , etc.
+
+**changes in tech stack**
+-   None.
 
 **All files of reference**
--   
--   
--   
--   
--   
--   
--   
+-    (Core logistics UI, in-progress)
+-    (amoCRM settings UI)
+-    (amoCRM integration logic)
+-    (Balia calculator, bug fix location)
+-    (New trips/routes API)
+-    (Modified to fix order fetching)
+-    (UI Tweak)
+-    (UI Tweak)
+
+**Areas that need refactoring**:
+-    is becoming extremely large and complex (over 1500 lines). It manages state for orders, drivers, map, bulk actions, and now trips. It should be broken down into smaller, more focused components (e.g., , , ).
+-    remains a large component that would benefit from being broken down.
+
+**key api endpoints**
+-   : New simplified webhook endpoints.
+-   : For managing amoCRM integration settings, including field mapping.
+-   : New endpoints for creating and retrieving trips.
+-   : For updating trips.
+-   : For deleting trips.
+-   : Endpoint for fetching greenhouse orders (now returns all fields).
+-   : For deleting an individual order.
 
 **Critical Info for New Agent**
 -   You MUST respond to the user in **Russian**.
--   The user's last request for bulk actions, drivers, and route numbers has just been implemented. You should start by presenting this work and confirming it meets their needs before moving on to new tasks.
--   The next logical task is to implement the backend logic for the two-way amoCRM synchronization, as the frontend UI for its configuration is already in place.
--   The  migration is a known technical debt item. It should be addressed, but be aware that it might require a new testing approach to avoid the previous failure.
+-   The highest priority is to **complete the Рейсы (Trips) feature**. You need to build the UI for the Trips tab and the trip creation modal in .
+-   The amoCRM integration now relies on a secondary API call to fetch custom fields. This requires the user to provide their **amoCRM domain** and a **long-term API token** in the settings.
+-   The missing address field bug in the Balia calculator was bypassed by hardcoding the form. While this resolves the immediate problem, be aware that the underlying issue in the production environment was never identified. Confirm with the user that the fix works on their live site.
+
+**documents and test reports created in this job**
+-    (updated with completed work and new requirements).
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Add three sections to logistics (Greenhouses, Tubs, Saunas) and migrate Google Autocomplete. (COMPLETED/DEFERRED)
-2.  **User**: I need to integrate with amoCRM to get orders from a specific funnel stage into the app. (COMPLETED)
-3.  **User**: I have three funnels in amoCRM. I need to configure them for each logistics section. Also, add status sync back to amoCRM. And move the Specification tab. (COMPLETED)
-4.  **User**: The address field in the tubs calculator has disappeared again. Also, add a visual delivery status to the order cards. (COMPLETED)
-5.  **User**: Add the ability to bulk-change order status. Also, I need to assign a route number and a driver to each order. (COMPLETED)
+1.  **User**: I want to choose which fields to transfer from amoCRM. (COMPLETED - Field mapping UI was created).
+2.  **User**: I need to transfer these specific fields (name, phone, address, etc.) and combine a 3-part address. (COMPLETED - UI and backend updated for all fields).
+3.  **User**: The order is transferred but with no data. (IN PROGRESS - Agent identified this is because field IDs need to be set).
+4.  **User**: I have specified the field IDs, but it's still not working. (IN PROGRESS - Agent identified that webhooks don't include custom fields).
+5.  **User**: Let's use Option 1 (API call), but respect the 7 requests/sec limit. (COMPLETED - Backend logic updated to use API).
+6.  **User**: Here are my integration credentials (secret key, integration ID, long-term token), what do I use? (ANSWERED - Agent instructed to use the long-term token).
+7.  **User**: How can I delete previously transferred orders because they aren't updating? (COMPLETED - Agent added a Clear amoCRM orders button).
+8.  **User**: Add a delete button to the order cards in the logistics view. (COMPLETED).
+9.  **User**: Detailed requirements for map behavior: all orders should be on the map, with an indicator on the card. (COMPLETED).
+10. **User**: Detailed requirements for the Рейсы (Trips) feature: how orders move from the general list to a trip, and how drivers are assigned. (IN PROGRESS - Agent started implementation).
 
 **Project Health Check:**
--   **Working**: The application is in a very functional state. The new Logistics module is feature-rich, the amoCRM integration is operational for creating orders, and the UI has been significantly improved based on user feedback. The recurring address field bug appears to be resolved.
--   **Mocked**: The two-way amoCRM synchronization is only mocked on the frontend. The UI for settings exists, but no actual API calls are made from the backend to update amoCRM.</analysis>
+-   **Broken**: The Рейсы (Trips) feature is partially implemented and not functional.
+-   **Mocked**: None.
+
+**3rd Party Integrations**
+-   **Google Maps API**: Used for address autocomplete, geocoding, and map display. Requires a User API Key ().
+-   **amoCRM**: Used for creating orders from sales leads. Requires a User API Key (long-term token) and domain for full functionality.
+
+**Testing status**
+-   **Testing agent used after significant changes**: NO
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: None.
+-   **Known regressions**: None.
+
+**Credentials to test flow:**
+-   Login credentials can be found in the database or created via the application's registration flow if it exists. For amoCRM testing, the functionality is now dependent on user-provided credentials (domain and API token) in the production environment.
+
+**What agent forgot to execute**
+-   The agent did not address the technical debt of migrating the deprecated Google Maps Autocomplete component, which was noted in the initial handoff summary.</analysis>
