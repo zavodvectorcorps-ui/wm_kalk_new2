@@ -1254,7 +1254,10 @@ export const LogisticsPage = () => {
                           <Button
                             size="sm"
                             onClick={buildRoute}
-                            disabled={buildingRoute || sectionData[sectionKey].markers.length < 2}
+                            disabled={buildingRoute || sectionData[sectionKey].selectedOrders.filter(id => {
+                              const order = sectionData[sectionKey].orders.find(o => o.id === id);
+                              return order && order.lat && order.lng;
+                            }).length < 2}
                             className={`${currentSection.bgColor} ${currentSection.color} hover:opacity-90`}
                           >
                             {buildingRoute ? (
