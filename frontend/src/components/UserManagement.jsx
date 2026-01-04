@@ -499,34 +499,56 @@ export const UserManagement = () => {
             </div>
             <div className="space-y-2">
               <Label>{txt.access}</Label>
-              <Select
-                value={formData.access}
-                onValueChange={(value) => setFormData({ ...formData, access: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4" />
-                      {txt.accessAll}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="balia">
-                    <div className="flex items-center gap-2">
-                      <Waves className="w-4 h-4" />
-                      {txt.accessBalia}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="sauna">
-                    <div className="flex items-center gap-2">
-                      <Flame className="w-4 h-4" />
-                      {txt.accessSauna}
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-3 p-3 border rounded-md">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="add-access-balia"
+                    checked={formData.access.includes('balia')}
+                    onCheckedChange={(checked) => {
+                      const newAccess = checked 
+                        ? [...formData.access, 'balia']
+                        : formData.access.filter(a => a !== 'balia');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="add-access-balia" className="flex items-center gap-2 cursor-pointer">
+                    <Waves className="w-4 h-4 text-blue-500" />
+                    {txt.accessBalia}
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="add-access-sauna"
+                    checked={formData.access.includes('sauna')}
+                    onCheckedChange={(checked) => {
+                      const newAccess = checked 
+                        ? [...formData.access, 'sauna']
+                        : formData.access.filter(a => a !== 'sauna');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="add-access-sauna" className="flex items-center gap-2 cursor-pointer">
+                    <Flame className="w-4 h-4 text-orange-500" />
+                    {txt.accessSauna}
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="add-access-logistics"
+                    checked={formData.access.includes('logistics')}
+                    onCheckedChange={(checked) => {
+                      const newAccess = checked 
+                        ? [...formData.access, 'logistics']
+                        : formData.access.filter(a => a !== 'logistics');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="add-access-logistics" className="flex items-center gap-2 cursor-pointer">
+                    <Truck className="w-4 h-4 text-teal-500" />
+                    {txt.accessLogistics}
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -534,7 +556,7 @@ export const UserManagement = () => {
               <X className="w-4 h-4 mr-2" />
               {txt.cancel}
             </Button>
-            <Button onClick={handleAddUser} disabled={!formData.username || !formData.password}>
+            <Button onClick={handleAddUser} disabled={!formData.username || !formData.password || formData.access.length === 0}>
               <Save className="w-4 h-4 mr-2" />
               {txt.save}
             </Button>
