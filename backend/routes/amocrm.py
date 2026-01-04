@@ -117,11 +117,18 @@ def parse_amocrm_webhook(body: bytes) -> Dict[str, Any]:
         return {}
 
 
-def extract_lead_data(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract lead data from amoCRM webhook payload."""
-    lead_data = {}
+def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str] = None) -> Dict[str, Any]:
+    """Extract lead data from amoCRM webhook payload.
     
-    logger.info(f"Extracting lead data from: {data}")
+    Args:
+        data: Parsed webhook data
+        field_mapping: Optional dict mapping our fields to amoCRM field IDs
+                      e.g. {"fullName": "123456", "phoneNumber": "123457"}
+    """
+    lead_data = {}
+    field_mapping = field_mapping or {}
+    
+    logger.info(f"Extracting lead data with mapping: {field_mapping}")
     
     # Find lead in various possible locations
     leads = None
@@ -165,9 +172,15 @@ def extract_lead_data(data: Dict[str, Any]) -> Dict[str, Any]:
             # Convert dict to list
             fields_list = list(custom_fields.values())
         
+        # Build a map of field_id -> value for quick lookup
+        field_values_by_id = {}
+        field_values_by_name = {}
+        
         for field in fields_list:
             if not isinstance(field, dict):
                 continue
+            
+            field_id = str(field.get("id", ""))
             field_name = str(field.get("name", "")).lower()
             values = field.get("values", [])
             
@@ -179,10 +192,56 @@ def extract_lead_data(data: Dict[str, Any]) -> Dict[str, Any]:
                 first_val = values.get("0") or next(iter(values.values()), {})
                 value = first_val.get("value", "") if isinstance(first_val, dict) else str(first_val)
             
-            # Map to our fields
-            if "телефон" in field_name or "phone" in field_name:
-                lead_data["phoneNumber"] = value
-            elif "адрес" in field_name or "address" in field_name:
+            if field_id:
+                field_values_by_id[field_id] = value
+            if field_name:
+                field_values_by_name[field_name] = value
+        
+        # Map fields - priority: explicit ID > auto-detect by name
+        
+        # fullName
+        if field_mapping.get("fullName"):
+            lead_data["fullName"] = field_values_by_id.get(field_mapping["fullName"], "")
+        else:
+            # Auto-detect
+            for name, value in field_values_by_name.items():
+                if "имя" in name or "name" in name or "контакт" in name or "фио" in name:
+                    lead_data["fullName"] = value
+                    break
+        
+        # phoneNumber
+        if field_mapping.get("phoneNumber"):
+            lead_data["phoneNumber"] = field_values_by_id.get(field_mapping["phoneNumber"], "")
+        else:
+            for name, value in field_values_by_name.items():
+                if "телефон" in name or "phone" in name or "тел" in name:
+                    lead_data["phoneNumber"] = value
+                    break
+        
+        # fullAddress
+        if field_mapping.get("fullAddress"):
+            lead_data["fullAddress"] = field_values_by_id.get(field_mapping["fullAddress"], "")
+        else:
+            for name, value in field_values_by_name.items():
+                if "адрес" in name or "address" in name:
+                    lead_data["fullAddress"] = value
+                    break
+        
+        # notes
+        if field_mapping.get("notes"):
+            lead_data["notes"] = field_values_by_id.get(field_mapping["notes"], "")
+        else:
+            for name, value in field_values_by_name.items():
+                if "примечан" in name or "коммент" in name or "note" in name or "comment" in name:
+                    lead_data["notes"] = value
+                    break
+        
+        # Fallback to lead name if no contact name
+        if not lead_data.get("fullName"):
+            lead_data["fullName"] = lead_data.get("amocrm_name", "Без имени")
+    
+    logger.info(f"Final lead_data: {lead_data}")
+    return lead_data
                 lead_data["fullAddress"] = value
             elif "имя" in field_name or "name" in field_name or "контакт" in field_name:
                 lead_data["fullName"] = value
