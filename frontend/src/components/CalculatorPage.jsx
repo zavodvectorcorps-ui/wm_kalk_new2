@@ -681,7 +681,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-blue-700">
                 <User className="h-5 w-5" />
-                {t('balia.customerInfo')}
+                {lang === 'pl' ? 'Dane klienta' : 'Данные клиента'}
               </CardTitle>
             </CardHeader>
             <CardContent>
