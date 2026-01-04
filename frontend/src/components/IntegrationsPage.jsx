@@ -84,7 +84,18 @@ export const IntegrationsPage = () => {
       const res = await fetch(`${API_URL}/api/integrations/amocrm/settings`);
       if (res.ok) {
         const data = await res.json();
-        setSettings(prev => ({ ...prev, ...data }));
+        // Ensure field_mapping has proper structure for each section
+        const fieldMapping = data.field_mapping || {};
+        const normalizedMapping = {
+          greenhouse: { ...DEFAULT_FIELD_MAPPING, ...(fieldMapping.greenhouse || fieldMapping) },
+          balia: { ...DEFAULT_FIELD_MAPPING, ...(fieldMapping.balia || fieldMapping) },
+          sauna: { ...DEFAULT_FIELD_MAPPING, ...(fieldMapping.sauna || fieldMapping) }
+        };
+        setSettings(prev => ({ 
+          ...prev, 
+          ...data,
+          field_mapping: normalizedMapping
+        }));
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
