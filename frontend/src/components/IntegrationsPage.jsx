@@ -39,10 +39,19 @@ export const IntegrationsPage = () => {
     },
     // Field mapping - user specifies amoCRM field IDs
     field_mapping: {
-      fullName: '',      // ID поля для имени
-      phoneNumber: '',   // ID поля для телефона
-      fullAddress: '',   // ID поля для адреса
-      notes: ''          // ID поля для примечаний
+      fullName: '',           // Имя клиента
+      phoneNumber: '',        // Телефон клиента
+      orderNumber: '',        // Номер заказа в amoCRM
+      // Адрес - может быть одним полем или 3 отдельными
+      fullAddress: '',        // Полный адрес (одно поле)
+      addressIndex: '',       // Индекс (часть адреса)
+      addressCity: '',        // Город (часть адреса)
+      addressStreet: '',      // Улица (часть адреса)
+      // Дополнительные поля
+      orderContents: '',      // Состав заказа
+      orderComment: '',       // Комментарий к заказу
+      dealSum: '',            // Сумма сделки
+      debtSum: ''             // Сумма задолженности
     },
     // Two-way sync settings
     amocrm_domain: '',
