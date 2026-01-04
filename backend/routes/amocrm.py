@@ -208,23 +208,22 @@ async def get_settings(request: Request):
     """Get amoCRM integration settings."""
     settings = get_amocrm_settings()
     
-    # Generate webhook URL
+    # Generate webhook URLs for each section
     base_url = str(request.base_url).rstrip('/')
-    webhook_url = f"{base_url}/api/integrations/amocrm/webhook"
-    if settings.get("secret_key"):
-        webhook_url += f"?key={settings['secret_key']}"
     
     return {
         "enabled": settings.get("enabled", False),
-        "secret_key": settings.get("secret_key", ""),
-        "greenhouse": settings.get("greenhouse", {}),
-        "balia": settings.get("balia", {}),
-        "sauna": settings.get("sauna", {}),
+        # Webhook URLs for each section
+        "webhook_urls": {
+            "greenhouse": f"{base_url}/api/integrations/amocrm/webhook/greenhouse",
+            "balia": f"{base_url}/api/integrations/amocrm/webhook/balia",
+            "sauna": f"{base_url}/api/integrations/amocrm/webhook/sauna"
+        },
+        # Sync settings (for two-way sync)
         "amocrm_domain": settings.get("amocrm_domain", ""),
         "amocrm_token": settings.get("amocrm_token", ""),
         "status_field_id": settings.get("status_field_id", ""),
-        "comment_field_id": settings.get("comment_field_id", ""),
-        "webhook_url": webhook_url
+        "comment_field_id": settings.get("comment_field_id", "")
     }
 
 
