@@ -1208,6 +1208,13 @@ export const LogisticsPage = () => {
         <div className="flex gap-2 flex-wrap">
           <Button 
             variant="outline"
+            onClick={() => setShowSettingsModal(true)}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Настройки
+          </Button>
+          <Button 
+            variant="outline"
             onClick={() => setShowDriversModal(true)}
           >
             <Users className="h-4 w-4 mr-2" />
@@ -1229,6 +1236,64 @@ export const LogisticsPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <Card className="border-2 border-[#355c7d]/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Настройки логистики
+              </CardTitle>
+              <Button size="sm" variant="ghost" onClick={() => setShowSettingsModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Warehouse className="h-4 w-4 text-orange-600" />
+                Адрес склада (начальная и конечная точка маршрута)
+              </Label>
+              <Input
+                ref={warehouseInputRef}
+                value={warehouseAddress}
+                onChange={(e) => setWarehouseAddress(e.target.value)}
+                placeholder="Введите адрес склада..."
+                data-testid="warehouse-address-input"
+              />
+              {warehouseCoords && (
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" />
+                  Координаты: {warehouseCoords.lat.toFixed(5)}, {warehouseCoords.lng.toFixed(5)}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Склад будет отображаться на карте оранжевой точкой и использоваться как начальная/конечная точка при оптимизации маршрута
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowSettingsModal(false)}>
+                Отмена
+              </Button>
+              <Button 
+                onClick={saveWarehouseSettings}
+                disabled={savingSettings || !warehouseAddress.trim()}
+                className="bg-[#355c7d] hover:bg-[#2a4a63]"
+              >
+                {savingSettings ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                )}
+                Сохранить
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Drivers Modal */}
       {showDriversModal && (
