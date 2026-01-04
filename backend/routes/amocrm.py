@@ -44,16 +44,38 @@ class FieldMapping(BaseModel):
     debtSum: str = ""
 
 
+class SectionFieldMappings(BaseModel):
+    greenhouse: FieldMapping = FieldMapping()
+    balia: FieldMapping = FieldMapping()
+    sauna: FieldMapping = FieldMapping()
+
+
 class AmoCRMSettings(BaseModel):
     enabled: bool = False
-    # Field mapping - user-specified amoCRM field IDs
-    field_mapping: FieldMapping = FieldMapping()
+    # Field mapping - separate for each section
+    field_mapping: SectionFieldMappings = SectionFieldMappings()
     # amoCRM API credentials for syncing back
     amocrm_domain: str = ""  # e.g., "mycompany.amocrm.ru"
     amocrm_token: str = ""  # Long-lived token
     # Field IDs for status sync
     status_field_id: str = ""  # Custom field ID for delivery status
     comment_field_id: str = ""  # Custom field ID for comments/date
+
+
+# Default field mapping template
+DEFAULT_FIELD_MAPPING = {
+    "fullName": "",
+    "phoneNumber": "",
+    "orderNumber": "",
+    "fullAddress": "",
+    "addressIndex": "",
+    "addressCity": "",
+    "addressStreet": "",
+    "orderContents": "",
+    "orderComment": "",
+    "dealSum": "",
+    "debtSum": ""
+}
 
 
 def get_default_settings():
