@@ -1,141 +1,179 @@
 <analysis>**original_problem_statement:**
-The user initially requested a major refactoring of the frontend code, starting with , to improve performance and maintainability before their next deployment.
-
-Throughout the session, the user introduced a series of high-priority bug fixes and feature requests, which were addressed as they arose:
-1.  **Bug Fix**: The image for the selected hot tub model (based on the chosen stove type) was not appearing in the generated PDF.
-2.  **Bug Fix & Feature**: Specifications for hot tub models were not being fully displayed in the calculator. This evolved into a request to show all available spec fields.
-3.  **UI/UX Bug**: A bug was introduced during the spec implementation where 0 values were incorrectly rendered in the UI.
-4.  **Feature Request**: Save model specifications to the order object and include them in the generated PDF.
-5.  **UI/UX Improvement**: Replace text labels for specifications with icons, and then refine this by adding small, abbreviated text labels next to the icons for clarity.
-6.  **Bug Fix**: Hints in the public-facing iframe calculator were displaying in Russian instead of Polish.
-7.  **Feature Request**: Duplicate the existing Internet Orders page into a new tab within the main Admin Panel for easier access.
-8.  **Feature Request**: Implement Telegram notifications for all new orders (both from the web and created internally) for both the Balia (hot tub) and Sauna calculators.
-9.  **Feature Request**: Create a settings page within the admin area to configure and manage the Telegram bot integration.
-10. **Feature Request (Discovery)**: The user asked for a way to track lead statistics from a separate Telegram group for sauna inquiries, but with the constraint that a bot cannot be added to that group.
-11. **Critical Bug Fix**: The user reported a major CORS error preventing login on their production domain after deployment.
+The user's initial request was to secure the project by implementing a comprehensive and reliable backup system. This evolved into a series of feature developments and bug fixes:
+1.  **Backup System**: Verify and enhance the existing backup mechanism to be all-inclusive.
+2.  **Off-site Backups**: Implement automated, off-site backups to a secure location (Telegram).
+3.  **Order Notifications**: Attach a PDF of the order to the Telegram notifications for both Balia (hot tub) and Sauna calculators.
+4.  **PWA**: Convert the web application into a Progressive Web App (PWA) for an app-like experience on mobile devices.
+5.  **Logistics Feature**: Create a new logistics page in the admin panel, integrating Google Maps to visualize order locations and plan delivery routes.
+6.  **Address Autocomplete**: Improve user experience by adding Google Places address autocomplete to the calculator forms.
+7.  **Bug Fixes**: Address several bugs as they arose, including issues with Telegram settings, environment variables on deployment, and UI fields not appearing as expected.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is stable. The large refactoring of  is complete, significantly reducing its size and complexity. All user-reported bugs have been fixed. A major new feature for Telegram notifications has been fully implemented, including a backend service, integration into order creation flows for both calculators, and a frontend settings page in the admin panel to manage the bot token and chat ID. The production CORS login issue was successfully diagnosed and resolved.
+The application is a full-stack solution for managing hot tub and sauna orders. The backup system has been significantly overhauled to be complete, now including all database collections, user-uploaded images, and essential configurations. This system automatically sends backups to a user-configured Telegram chat. Order notifications also now include PDF attachments. The application has been converted into a PWA, making it installable on mobile devices. A new Logistics page exists with a Google Map to display order locations. The address autocomplete feature is implemented but facing issues.
 
 **Last working item**:
--   **Last item agent was working**: The agent was in a discussion phase with the user about how to implement a new feature: tracking lead statistics from a Telegram group where adding a bot is not permitted. The agent had proposed alternative solutions.
--   **Status**: NOT STARTED
--   **Agent Testing Done**: N/A (This is a planning/discussion task).
--   **Which testing method agent to use?**: N/A
--   **User Testing Done**: N/A
+-   **Last item agent was working**: The agent was addressing a multi-part request from the user:
+    1.  The newly added address field was not appearing in the Balia (hot tub) calculator.
+    2.  Adding a Create Order form to the new Logistics page.
+    3.  A console warning about the deprecation of .
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: Frontend testing agent to verify UI changes (address field in Balia calculator, new order form in Logistics). Also, manually check the console for Google Maps API errors after the fix.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   None. All issues reported during the session were resolved.
+-   **Issue 1 (P0)**: Address field is missing in the Balia (hot tub) calculator UI.
+-   **Issue 2 (P1)**: The Google Maps Autocomplete feature is using a deprecated component () which should be migrated to .
+-   **Issue 3 (P2)**: Google Maps is not loading correctly on the Logistics page, and address autocomplete is not working, likely due to the user's Google Cloud API key configuration.
+
+**Issues Detail**:
+-   **Issue 1: Address field missing in the Balia calculator.**
+    -   **Attempted fixes**: The agent verified that the backend API () correctly returns the  field. The component responsible for rendering the form () appears to have the correct logic. The agent suspected a frontend caching issue on the user's production environment but has not confirmed the root cause.
+    -   **Next debug checklist**:
+        -   Verify that  receives the  field in the  prop passed to .
+        -   Add console logs inside  to trace the  array and the rendering logic for the address field.
+        -   Ensure there are no hardcoded field lists overriding the dynamic one from the DB.
+    -   **Why fix this issue and what will be achieved with the fix?**: To ensure address data can be collected for Balia orders, which is critical for the new logistics feature.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?**: Frontend.
+    -   **Blocked on other issue**: None.
+
+-   **Issue 2: Deprecated Google Maps Autocomplete component.**
+    -   **Attempted fixes**: None. This was just identified from user-provided logs.
+    -   **Next debug checklist**:
+        -   Review the Google Maps migration guide for .
+        -   Update the  component to use the new .
+        -   This may require changes to how the component is initialized and how data is retrieved.
+    -   **Why fix this issue and what will be achieved with the fix?**: To remove technical debt and prevent the feature from breaking when Google eventually discontinues the old component.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?**: Frontend.
+    -   **Blocked on other issue**: None.
+
+-   **Issue 3: Google Maps API key errors.**
+    -   **Attempted fixes**: The agent fixed a malformed  file. The agent diagnosed the  as an issue with the user's Google Cloud project settings (billing, enabled APIs, referrer restrictions) and advised the user on how to fix it.
+    -   **Next debug checklist**:
+        -   Re-confirm with the user that **billing is enabled** on their Google Cloud project.
+        -   Guide the user to ensure these four APIs are enabled: **Maps JavaScript API, Places API, Directions API, Geocoding API**.
+        -   Guide the user on setting HTTP referrer restrictions correctly for their production domain ().
+    -   **Why fix this issue and what will be achieved with the fix?**: The entire Logistics feature and the address autocomplete feature depend on a correctly configured Google Maps API key.
+    -   **Status**: BLOCKED (User Action Required)
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend.
+    -   **Blocked on other issue**: None.
 
 **In progress Task List**:
 -   None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **P0: Finalize strategy for Sauna Lead Statistics:** Discuss and decide on an implementation for tracking leads from the sauna Telegram group. The user has rejected adding a bot to the group. The agent needs to follow up on the proposed alternatives:
-        1.  A silent bot that only reads messages (if Telegram permissions allow this).
-        2.  A manual data entry interface in the admin panel for the user to input the number of leads.
-        3.  Integrating directly with Tilda via a webhook to receive leads, bypassing the Telegram group for data collection.
+    -   **P0: Implement Create Order form in Logistics page**: Add a form on the Logistics page to manually create an order with fields: Name, Address, Order Composition, and Phone. This will require new UI elements and likely a new backend endpoint.
 -   **Future Tasks**:
-    -   **P1: Refactor **: This large component (1300+ lines) was identified for refactoring but was postponed to address the user's more urgent requests.
-    -   **P2: Fix Minor Dropdown Positioning Glitch in Balia calculator**: A low-priority visual issue noted in a previous handoff.
+    -   **P1: Finalize strategy for Sauna Lead Statistics**: This task from a previous session is still pending. The user wants to track leads from a Telegram group where adding a bot is not allowed.
+    -   **P2: Refactor **: This large component (1300+ lines) is a candidate for refactoring to improve maintainability.
+    -   **P3: Fix Minor Dropdown Positioning Glitch in Balia calculator**: A low-priority visual bug noted in a previous handoff.
 
 **Completed work in this session**
--   **Refactoring**:
-    -   Fully refactored , reducing its line count from ~2200 to ~1086 by extracting inline components (, , , , , ) into their own files and creating a new .
--   **Feature - Telegram Notifications**:
-    -   Created a backend service () to send notifications.
-    -   Integrated notifications for new Balia orders, Balia web orders, and Sauna orders.
-    -   Created an admin settings page () with API endpoints to configure, test, and save the bot token and chat ID.
--   **Feature - Admin Panel Internet Orders Tab**:
-    -   Duplicated the web orders functionality into a new Internet tab within the main  panel for centralized access.
--   **Bug Fixes & UI Improvements**:
-    -   **PDF Image Fix**: Modified  to correctly fetch the model image based on the selected heater type when generating a PDF.
-    -   **Calculator Specs**: Fixed the display of model specifications in  to correctly show all data from the database, including handling units and dimensions. Added icons and text labels for better UX.
-    -   **Spec Saving**: Ensured model specifications are saved with the order and included in generated PDFs.
-    -   **iFrame Hints**: Corrected  to display Polish hints () instead of Russian.
-    -   **Production CORS Fix**: Diagnosed a CORS error on the user's production domain, confirmed the backend configuration was correct, and guided the user toward resolving it (likely via cache clearing or backend service restart).
+-   **Backup System Overhaul**:
+    -   Fixed the backup logic to include all DB collections, uploaded images, and Telegram settings.
+    -   Implemented and automated off-site backups to a user-configured Telegram chat.
+    -   Added a full UI in the admin panel for managing Telegram backup settings.
+    -   Resolved a critical bug where auto-backups failed on production due to missing environment variables by moving configuration to the database.
+-   **Telegram Notifications with PDF**:
+    -   Modified order creation for both Balia and Sauna calculators to generate and attach a PDF of the order to the Telegram notification.
+-   **PWA Implementation**:
+    -   Successfully converted the application into an installable Progressive Web App with a manifest, service worker, and generated icons.
+-   **Logistics Feature (Phase 1)**:
+    -   Created a Logistics page in the admin panel with an integrated Google Map to display order locations and plan routes.
+-   **Address Autocomplete Feature**:
+    -   Created a reusable  component using Google Places API.
+    -   Added the  field to the database configuration and integrated the autocomplete component into the Sauna and Balia calculator forms.
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
 
 **Known issue recurrence from previous fork**
--   None. The heater missing in PDF issue was confirmed resolved by the user in the previous session and did not recur.
+-   None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Component Refactoring**: Breaking down a large, monolithic React component () into smaller, reusable, and more manageable child components.
--   **Third-Party API Integration**: Integrating with the Telegram Bot API via  to send notifications.
--   **Environment Variable Management**: Storing and retrieving sensitive credentials (bot token) and configuration (chat ID) using a  file on the backend.
--   **Dynamic PDF Generation**: Modifying backend logic to dynamically fetch the correct model image based on order parameters () if not explicitly provided in the request.
--   **Production Debugging**: Diagnosing a live production issue (CORS error) by verifying local configuration, checking live server headers, and correctly identifying the problem as a deployment/caching issue rather than a code issue.
+-   **Off-site Backup Strategy**: Using Telegram for durable, off-site storage of application backups.
+-   **PWA (Progressive Web App)**: Using a web manifest and service worker to make a web application installable.
+-   **Google Maps API Integration**: Using  for maps/markers and Google Places API for address autocompletion.
+-   **Database-driven Configuration**: Migrating critical settings (like API tokens) from environment variables to the database to solve deployment-related issues.
 
 **key DB schema**
--   No database schema changes were made in this session. The  object, which was already part of the  collection, is now being saved into the  collection documents.
-
-**changes in tech stack**
--   **Telegram Integration**: Added dependency on  for making requests to the Telegram API.
+-   **customer_fields**: Documents for 'balia' and 'sauna' were updated to include a  field definition.
+-   **settings**: This collection now holds multiple typed configuration documents: , , and .
 
 **All files of reference**
--    (Refactored)
--    (Specs UI/logic)
--    (PDF logic, Telegram API)
--    (New service)
--    (New component)
--    (Added new tab)
--    (Added tabs for settings)
--    (New credentials)
--   Files in 
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--   : Remains a large, monolithic component that would benefit from being broken down.
+-    is a large component that could be broken down.
+-   The  component needs to be updated to use the modern  from Google Maps API.
 
 **key api endpoints**
--   : Logic updated to dynamically find the correct model image.
--   : Logic updated to trigger Telegram notifications.
--   : Logic updated to trigger Telegram notifications.
--   : Logic updated to trigger Telegram notifications.
--   : (NEW) Gets current Telegram settings.
--   : (NEW) Saves new Telegram token/chat_id.
--   : (NEW) Sends a test message to the configured chat.
+-   : Creates a backup and now sends it to Telegram if configured.
+-   : Manually triggers sending the latest backup to Telegram.
+-   : Retrieves Telegram backup settings.
+-   : Saves Telegram backup settings.
+-    (for Balia & Sauna): Logic updated to generate and send a PDF to Telegram.
+-   : Logic updated to generate and send a PDF to Telegram.
+-   : (NEW) Diagnostic endpoint to check all Telegram-related configurations.
 
 **Critical Info for New Agent**
 -   You MUST respond to the user in **Russian**.
--   The most immediate task is to continue the conversation with the user about the **Sauna Lead Statistics** feature. You need to present the alternative solutions (silent bot, manual entry, Tilda webhook) and help the user decide on a path forward.
--   The major refactoring of  is complete and verified. The next large refactoring task is , which should be treated as a lower priority unless the user requests it.
+-   The immediate priority is the user's latest 3-part request: fix the missing address field in the Balia calculator, add a Create Order form in logistics, and plan the Google Autocomplete migration.
+-   The Google Maps errors (, ) are very likely due to the user's configuration in their Google Cloud Console. The user must enable billing and the correct APIs. Guide them through this again.
 
 **documents and test reports created in this job**
--    (Updated)
+-   None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: I can't log in on my production domain (CORS error). (RESOLVED)
-2.  **User**: Provides console logs for the CORS error. (ADDRESSED)
-3.  **User**: It's working now, I didn't change anything. Why did that happen? (ANSWERED)
-4.  **User**: Asks if it's possible to get statistics from another Telegram group for sauna leads. (PENDING)
-5.  **User**: Provides details for the sauna leads: message format, group link, and confirms they don't want a bot added. (PENDING)
-6.  **Agent**: Asks the user to choose an alternative method for sauna lead tracking (silent bot, manual entry, webhook). (PENDING USER RESPONSE)
+1.  **User**: Asks to add a logistics page with a Google Map to plot order addresses and create routes.
+2.  **User**: Provides Google Maps API key.
+3.  **User**: Asks to add address autocomplete to calculator forms.
+4.  **User**: Reports that the address field only appeared in the Sauna calculator, not the Balia one. Also reports Google Maps errors (, ).
+5.  **User**: Provides the Google Autocomplete deprecation warning from the console.
+6.  **User**: Asks to add a Create Order form in the Logistics page with fields for Name, Address, Order Composition, and Phone.
+7.  **Agent**: Acknowledged all three points (missing field, new form, deprecation warning) and was about to begin work. (PENDING AGENT ACTION)
 
 **Project Health Check:**
--   **Working**: The application is stable and all requested features and bug fixes from this session have been implemented and tested by the agent. A production login issue was also resolved.
--   **Mocked**: None.
+-   **Working**: Core application, enhanced backup system, Telegram notifications with PDFs, PWA functionality.
+-   **Broken**:
+    -   The Google Maps integration (both the map on the logistics page and the address autocomplete) is not functional on the user's end, showing API key errors.
+    -   The address field is missing from the Balia calculator's UI.
 
 **3rd Party Integrations**
--   **Telegram**: For sending order notifications. Uses a user-provided bot token.
+-   **Telegram**: Used for order notifications and off-site backups. Requires a user-provided bot token.
+-   **Google Maps Platform**: Used for the Logistics map and address autocomplete. Requires a user-provided API key with **Maps JavaScript API, Places API, Directions API, and Geocoding API** enabled, and **billing activated** on the Google Cloud project.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None. Testing was performed manually with  commands and frontend screenshots.
--   **Known regressions**: None.
+-   **Test files created**: None.
+-   **Known regressions**: The address field, which was added, is not appearing in one of the calculators.
 
 **Credentials to test flow:**
 -   **Super-Admin**:  / 
--   **Employee (Balia)**:  / 
--   **Telegram Bot Token**: Stored in 
+-   **Google Maps API Key**:  (Note: This key may have restrictions and require user action in Google Cloud Console to work).
 
 **What agent forgot to execute**
--   The agent did not forget any tasks. It correctly prioritized the user's incoming stream of requests over the initial, less urgent plan to refactor .</analysis>
+-   The agent did not act on the Google Places Autocomplete deprecation warning. This should be added to the plan as a technical debt task.
+-   The agent did not fully resolve why the address field wasn't appearing in the Balia calculator UI, though they did verify the backend was correct. This is the top priority bug to fix.</analysis>

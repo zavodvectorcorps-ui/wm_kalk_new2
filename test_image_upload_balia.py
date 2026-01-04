@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://hottub-admin.preview.emergentagent.com/api"
+BACKEND_URL = "https://pwa-delivery-app.preview.emergentagent.com/api"
 
 def test_upload_image():
     """Test POST /api/upload/image - Upload image file"""
