@@ -299,10 +299,13 @@ export const LogisticsPage = () => {
     }
   }, [fetchSectionOrders, geocodeOrdersInBackground]);
 
-  // Fetch trips
-  const fetchTrips = useCallback(async () => {
+  // Fetch trips for a specific section
+  const fetchTrips = useCallback(async (section = null) => {
     try {
-      const res = await fetch(`${API_URL}/api/trips`);
+      const url = section 
+        ? `${API_URL}/api/trips?section=${section}` 
+        : `${API_URL}/api/trips`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setTrips(data);
