@@ -36,11 +36,6 @@ class PipelineConfig(BaseModel):
 
 class AmoCRMSettings(BaseModel):
     enabled: bool = False
-    secret_key: str = ""
-    # Separate pipeline configs for each section
-    greenhouse: PipelineConfig = PipelineConfig()
-    balia: PipelineConfig = PipelineConfig()
-    sauna: PipelineConfig = PipelineConfig()
     # amoCRM API credentials for syncing back
     amocrm_domain: str = ""  # e.g., "mycompany.amocrm.ru"
     amocrm_token: str = ""  # Long-lived token
@@ -51,15 +46,11 @@ class AmoCRMSettings(BaseModel):
 
 class AmoCRMSettingsResponse(BaseModel):
     enabled: bool
-    secret_key: str
-    greenhouse: PipelineConfig
-    balia: PipelineConfig
-    sauna: PipelineConfig
+    webhook_urls: dict
     amocrm_domain: str
     amocrm_token: str
     status_field_id: str
     comment_field_id: str
-    webhook_url: str
 
 
 def get_default_settings():
