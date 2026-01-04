@@ -144,6 +144,10 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
             <WebOrdersPage />
           </TabsContent>
 
+          <TabsContent value="logistics">
+            <LogisticsPage />
+          </TabsContent>
+
           <TabsContent value="statistics">
             <TypeSelector value={statsType} onChange={setStatsType} />
             <StatisticsPage calculatorType={statsType} />
