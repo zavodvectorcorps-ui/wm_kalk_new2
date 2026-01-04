@@ -235,9 +235,9 @@ export const IntegrationsPage = () => {
     );
   }
 
-  // Webhook URL Card component
-  const WebhookUrlCard = ({ section, icon: Icon, title, color, bgColor }) => (
-    <Card className={`border-2 ${bgColor}/20`}>
+  // Render webhook URL card
+  const renderWebhookCard = (section, Icon, title, color, bgColor) => (
+    <Card key={section} className={`border-2 ${bgColor}/20`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Icon className={`h-5 w-5 ${color}`} />
