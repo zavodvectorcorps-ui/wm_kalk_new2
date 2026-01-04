@@ -1895,26 +1895,99 @@ export const LogisticsPage = () => {
                           </Select>
                         </div>
 
-                        {/* Orders in trip */}
+                        {/* Orders in trip with reordering */}
                         <div className="border-t pt-4">
-                          <p className="text-sm font-medium mb-2">Заказы в рейсе ({selectedTrip.orderIds?.length || 0}):</p>
-                          <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                            {selectedTrip.orderIds?.map(orderId => {
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-medium">Заказы в рейсе ({selectedTrip.orderIds?.length || 0}):</p>
+                            {selectedTrip.orderIds?.length >= 2 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={optimizeTripRoute}
+                                disabled={optimizingRoute}
+                                className="gap-1"
+                                data-testid="optimize-route-btn"
+                              >
+                                {optimizingRoute ? (
+                                  <RefreshCw className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Sparkles className="h-3 w-3" />
+                                )}
+                                Оптимизировать
+                              </Button>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Перетащите заказы для изменения порядка
+                          </p>
+                          <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                            {selectedTrip.orderIds?.map((orderId, index) => {
                               const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
                               return order ? (
-                                <div key={orderId} className="flex items-center justify-between p-2 bg-muted rounded">
+                                <div 
+                                  key={orderId} 
+                                  className={`flex items-center gap-2 p-2 bg-muted rounded cursor-grab active:cursor-grabbing transition-all ${
+                                    draggedOrderIndex === index ? 'opacity-50 scale-95' : ''
+                                  }`}
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(e, index)}
+                                  onDragOver={(e) => handleDragOver(e, index)}
+                                  onDrop={(e) => handleDrop(e, index)}
+                                  onDragEnd={handleDragEnd}
+                                >
+                                  {/* Drag handle and index */}
+                                  <div className="flex items-center gap-1 text-muted-foreground flex-shrink-0">
+                                    <GripVertical className="h-4 w-4" />
+                                    <span className="text-xs font-medium w-5 text-center">{index + 1}</span>
+                                  </div>
+                                  
+                                  {/* Order info */}
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate">{order.fullName || order.customerName}</p>
                                     <p className="text-xs text-muted-foreground truncate">{order.fullAddress || order.address}</p>
-                                    {order.phoneNumber && (
-                                      <p className="text-xs text-muted-foreground">{order.phoneNumber}</p>
-                                    )}
                                   </div>
+                                  
+                                  {/* Map status indicator */}
+                                  {order.lat && order.lng ? (
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 flex-shrink-0">
+                                      ✓
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 flex-shrink-0">
+                                      ?
+                                    </span>
+                                  )}
+                                  
+                                  {/* Move buttons */}
+                                  <div className="flex flex-col gap-0.5 flex-shrink-0">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0"
+                                      onClick={() => moveOrderUp(index)}
+                                      disabled={index === 0}
+                                      title="Переместить вверх"
+                                    >
+                                      <ArrowUp className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0"
+                                      onClick={() => moveOrderDown(index)}
+                                      disabled={index === selectedTrip.orderIds.length - 1}
+                                      title="Переместить вниз"
+                                    >
+                                      <ArrowDown className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  
+                                  {/* Remove button */}
                                   <Button
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)}
-                                    className="text-red-500 hover:text-red-700 flex-shrink-0"
+                                    className="text-red-500 hover:text-red-700 flex-shrink-0 h-6 w-6 p-0"
                                     title="Убрать из рейса"
                                   >
                                     <X className="h-4 w-4" />
