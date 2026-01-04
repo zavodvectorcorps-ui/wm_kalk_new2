@@ -117,6 +117,14 @@ export const LogisticsPage = () => {
   const [buildingRoute, setBuildingRoute] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
   
+  // Trips (рейсы) state
+  const [trips, setTrips] = useState([]);
+  const [showTripsTab, setShowTripsTab] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [showCreateTripModal, setShowCreateTripModal] = useState(false);
+  const [newTripName, setNewTripName] = useState('');
+  const [creatingTrip, setCreatingTrip] = useState(false);
+  
   // Drivers state
   const [drivers, setDrivers] = useState(DEFAULT_DRIVERS);
   const [showDriversModal, setShowDriversModal] = useState(false);
