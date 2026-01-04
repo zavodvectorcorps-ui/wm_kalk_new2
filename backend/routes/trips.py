@@ -33,7 +33,25 @@ class TripUpdate(BaseModel):
     orderIds: Optional[List[str]] = None
     driverId: Optional[str] = None
     driverName: Optional[str] = None
-    status: Optional[str] = None  # active, completed, cancelled
+    status: Optional[str] = None  # planned, in_transit, completed
+    # Order statuses within trip: {orderId: "delivering" | "delivered" | "cancelled"}
+    orderStatuses: Optional[dict] = None
+
+
+# Trip status constants
+TRIP_STATUSES = {
+    "planned": "Готов к отправке",
+    "in_transit": "В пути",
+    "completed": "Доставлен"
+}
+
+# Order delivery status within trip
+ORDER_DELIVERY_STATUSES = {
+    "pending": "Ожидает",
+    "delivering": "В доставке",
+    "delivered": "Доставлен",
+    "cancelled": "Отменён"
+}
 
 
 def get_section_collection(section: str):
