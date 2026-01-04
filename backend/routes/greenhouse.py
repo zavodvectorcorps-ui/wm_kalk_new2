@@ -44,7 +44,7 @@ async def get_greenhouse_orders():
     return orders
 
 
-@router.post("/orders", response_model=GreenhouseOrderResponse)
+@router.post("/orders")
 async def create_greenhouse_order(order: GreenhouseOrder):
     """Create a new greenhouse order."""
     now = datetime.now(timezone.utc).isoformat()
@@ -68,7 +68,7 @@ async def create_greenhouse_order(order: GreenhouseOrder):
     return order_data
 
 
-@router.get("/orders/{order_id}", response_model=GreenhouseOrderResponse)
+@router.get("/orders/{order_id}")
 async def get_greenhouse_order(order_id: str):
     """Get a specific greenhouse order."""
     order = greenhouse_orders.find_one({"id": order_id}, {"_id": 0})
@@ -77,7 +77,7 @@ async def get_greenhouse_order(order_id: str):
     return order
 
 
-@router.put("/orders/{order_id}", response_model=GreenhouseOrderResponse)
+@router.put("/orders/{order_id}")
 async def update_greenhouse_order(order_id: str, order: GreenhouseOrder):
     """Update a greenhouse order."""
     existing = greenhouse_orders.find_one({"id": order_id})
