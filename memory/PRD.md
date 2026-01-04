@@ -5,6 +5,23 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Logistics Page - Create Order Form (2026-01-04)
+- **Feature**: Added "Create Order" form directly in the Logistics page
+- **Fields**: Customer name*, Phone, Address* (with Google Places autocomplete), Order composition, Order type (Balia/Sauna)
+- **File**: `/app/frontend/src/components/LogisticsPage.jsx`
+- **Status**: ✅ Implemented and tested
+
+### Google Maps API Loader Fix (2026-01-04)
+- **Issue**: `AddressAutocomplete` component conflicted with `LogisticsPage` due to different library arrays
+- **Fix**: Unified Google Maps libraries to `['places', 'geometry']` in both components
+- **File**: `/app/frontend/src/components/AddressAutocomplete.jsx`
+- **Status**: ✅ Fixed
+
+### Address Field in Balia Calculator (2026-01-04)
+- **Verification**: Confirmed that `fullAddress` field with Google Places autocomplete is working in Balia calculator
+- **Database**: Field exists with `fieldType: "address"` and `active: true`
+- **Status**: ✅ Working
+
 ### BaliaPricingPage Refactoring Complete (2026-01-03)
 - **Refactored**: `BaliaPricingPage.jsx` reduced from **2200 lines to 1086 lines** (~51% reduction)
 - **New Components** in `/app/frontend/src/components/balia-pricing/`:
