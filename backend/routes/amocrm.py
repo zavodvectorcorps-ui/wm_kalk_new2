@@ -303,6 +303,20 @@ async def get_settings(request: Request):
     # Generate webhook URLs for each section
     base_url = str(request.base_url).rstrip('/')
     
+    default_mapping = {
+        "fullName": "",
+        "phoneNumber": "",
+        "orderNumber": "",
+        "fullAddress": "",
+        "addressIndex": "",
+        "addressCity": "",
+        "addressStreet": "",
+        "orderContents": "",
+        "orderComment": "",
+        "dealSum": "",
+        "debtSum": ""
+    }
+    
     return {
         "enabled": settings.get("enabled", False),
         # Webhook URLs for each section
@@ -312,12 +326,7 @@ async def get_settings(request: Request):
             "sauna": f"{base_url}/api/integrations/amocrm/webhook/sauna"
         },
         # Field mapping
-        "field_mapping": settings.get("field_mapping", {
-            "fullName": "",
-            "phoneNumber": "",
-            "fullAddress": "",
-            "notes": ""
-        }),
+        "field_mapping": {**default_mapping, **settings.get("field_mapping", {})},
         # Sync settings (for two-way sync)
         "amocrm_domain": settings.get("amocrm_domain", ""),
         "amocrm_token": settings.get("amocrm_token", ""),
