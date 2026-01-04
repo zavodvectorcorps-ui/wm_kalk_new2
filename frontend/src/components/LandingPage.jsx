@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Waves, Flame, ArrowRight, Lock, Shield } from 'lucide-react';
+import { Waves, Flame, ArrowRight, Lock, Shield, Truck } from 'lucide-react';
 
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
@@ -17,6 +17,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       baliaDesc: 'Калькулятор для конфигурации и расчёта стоимости купелей с джакузи',
       saunaTitle: 'Сауна (Sauna)',
       saunaDesc: 'Калькулятор для конфигурации и расчёта стоимости саун',
+      logisticsTitle: 'Логистика',
+      logisticsDesc: 'Планирование маршрутов доставки и управление заказами на карте',
       adminTitle: 'Админ панель',
       adminDesc: 'Управление всеми заказами, статистика и настройки цен',
       select: 'Выбрать',
@@ -30,6 +32,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       baliaDesc: 'Kalkulator do konfiguracji i wyceny bali z jacuzzi',
       saunaTitle: 'Sauna',
       saunaDesc: 'Kalkulator do konfiguracji i wyceny saun',
+      logisticsTitle: 'Logistyka',
+      logisticsDesc: 'Planowanie tras dostaw i zarządzanie zamówieniami na mapie',
       adminTitle: 'Panel administracyjny',
       adminDesc: 'Zarządzanie wszystkimi zamówieniami, statystyki i ustawienia cen',
       select: 'Wybierz',
@@ -43,6 +47,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
 
   const canAccessBalia = hasAccess ? hasAccess('balia') : true;
   const canAccessSauna = hasAccess ? hasAccess('sauna') : true;
+  const canAccessLogistics = hasAccess ? hasAccess('logistics') : false;
   const canAccessAdmin = isAdmin && isAdmin();
 
   return (
