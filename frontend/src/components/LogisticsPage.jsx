@@ -275,6 +275,61 @@ export const LogisticsPage = () => {
     window.open(url, '_blank');
   };
 
+  // Create new order
+  const handleCreateOrder = async () => {
+    if (!newOrderForm.fullName || !newOrderForm.fullAddress) {
+      toast.error('Заполните имя и адрес');
+      return;
+    }
+
+    setCreatingOrder(true);
+    try {
+      const orderId = `LOG-${Date.now()}`;
+      const orderData = {
+        id: orderId,
+        fullName: newOrderForm.fullName,
+        phoneNumber: newOrderForm.phoneNumber,
+        fullAddress: newOrderForm.fullAddress,
+        notes: newOrderForm.orderComposition,
+        orderDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        source: 'logistics',
+        status: 'new'
+      };
+
+      // Choose endpoint based on order type
+      const endpoint = newOrderForm.orderType === 'sauna' 
+        ? `${API_URL}/api/sauna/orders`
+        : `${API_URL}/api/orders`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      toast.success('Заказ создан успешно');
+      setShowOrderForm(false);
+      setNewOrderForm({
+        fullName: '',
+        phoneNumber: '',
+        fullAddress: '',
+        orderComposition: '',
+        orderType: 'balia'
+      });
+      fetchOrders();
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast.error('Ошибка создания заказа');
+    } finally {
+      setCreatingOrder(false);
+    }
+  };
+
   // Filter orders by type
   const getFilteredOrders = () => {
     if (orderType === 'all') return orders;
