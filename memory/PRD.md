@@ -5,6 +5,33 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Рейсы (Trips) Feature (2026-01-05)
+- **Feature**: Trip management for organizing deliveries - group orders into trips for batch delivery
+- **Structure**: Each category (Теплицы, Купели, Сауны) has nested tabs:
+  - **Заказы** - Orders without assigned trip
+  - **Рейсы** - List of trips with their orders
+- **Trip Creation**:
+  - Select orders from the list using checkboxes
+  - Click "Создать рейс" button
+  - Fill trip name and optionally assign driver
+  - Orders disappear from general list and appear in trip
+- **Trip Management**:
+  - View trip details: driver, status, list of orders
+  - Change driver assignment
+  - Change status (Активен, Доставлен, Отменён)
+  - Remove individual orders from trip (return to general list)
+  - Delete entire trip (all orders return to general list)
+- **Files**:
+  - `/app/frontend/src/components/LogisticsPage.jsx` - UI with nested tabs
+  - `/app/backend/routes/trips.py` - Trips API (CRUD operations)
+- **API Endpoints**:
+  - `GET /api/trips?section=balia` - Get trips by category
+  - `POST /api/trips` - Create new trip
+  - `PUT /api/trips/{trip_id}` - Update trip (driver, status)
+  - `DELETE /api/trips/{trip_id}` - Delete trip
+  - `POST /api/trips/{trip_id}/remove-orders` - Remove orders from trip
+- **Status**: ✅ Implemented and tested
+
 ### Simplified amoCRM Integration (2026-01-05)
 - **Feature**: Simplified webhook URLs — one per section, no complex configuration
 - **3 Separate URLs**:
