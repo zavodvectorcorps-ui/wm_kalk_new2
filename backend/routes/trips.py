@@ -150,6 +150,13 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
     # Handle order changes
     collection = get_section_collection(existing.get("section", ""))
     
+    # Handle orderStatuses update
+    if "orderStatuses" in update_data:
+        # Merge with existing statuses
+        existing_statuses = existing.get("orderStatuses", {})
+        existing_statuses.update(update_data["orderStatuses"])
+        update_data["orderStatuses"] = existing_statuses
+    
     if "orderIds" in update_data and collection is not None:
         old_order_ids = set(existing.get("orderIds", []))
         new_order_ids = set(update_data["orderIds"])
