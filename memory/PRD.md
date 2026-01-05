@@ -5,6 +5,31 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Backup System Fix (2026-01-05)
+- **Problem**: Backup was missing critical data:
+  - Drivers were stored in localStorage (not backed up)
+  - amoCRM settings in `integration_settings` collection not exported
+  - Trips collection not showing when empty (normal behavior)
+- **Solution**:
+  - Created new Drivers API (`/api/drivers`) for CRUD operations
+  - Drivers now stored in MongoDB (`drivers` collection)
+  - Updated `LogisticsPage.jsx` to use API instead of localStorage
+  - Updated backup export to include `integration_settings` collection
+  - Updated backup import to restore both `amocrm_settings` and `integration_settings`
+- **Files Modified**:
+  - `/app/backend/routes/drivers.py` (NEW) - Drivers API
+  - `/app/backend/routes/backup.py` - Added integration_settings export/import
+  - `/app/backend/server.py` - Added drivers router
+  - `/app/frontend/src/components/LogisticsPage.jsx` - Use API for drivers
+- **Backup now includes**:
+  - ✅ `drivers.json` - All drivers
+  - ✅ `amocrm_settings.json` - amoCRM settings from both collections
+  - ✅ `integration_settings.json` - All integration settings
+  - ✅ `trips.json` - All trips (when present)
+  - ✅ All orders (balia, sauna, greenhouse, web)
+  - ✅ Prices, customer fields, tech specs, users, uploads
+- **Status**: ✅ Fixed and verified
+
 ### Рейсы (Trips) Feature (2026-01-05)
 - **Feature**: Trip management for organizing deliveries - group orders into trips for batch delivery
 - **Structure**: Each category (Теплицы, Купели, Сауны) has nested tabs:
