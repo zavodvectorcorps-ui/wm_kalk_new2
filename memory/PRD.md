@@ -5,6 +5,23 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### amoCRM Calculator Integration (2026-01-05)
+- **Feature**: Open calculator from amoCRM lead card with pre-filled customer data
+- **Implementation**:
+  - URL parameter support: `?calc=balia&amocrm_id=123456` or `?calc=sauna&amocrm_id=123456`
+  - New API endpoint: `GET /api/integrations/amocrm/lead/{lead_id}` - fetches lead data for pre-filling
+  - New API endpoint: `POST /api/integrations/amocrm/mark-quote-created` - adds note to amoCRM when quote is created
+  - Both calculators (Balia & Sauna) updated to accept `amocrmPrefill` prop
+  - Orders linked to amoCRM leads with `amocrm_id`, `amocrm_link`, `amocrm_name` fields
+- **Files Modified**:
+  - `/app/backend/routes/amocrm.py` - New endpoints for lead data and quote marking
+  - `/app/frontend/src/App.js` - URL parameter handling and amoCRM data fetching
+  - `/app/frontend/src/components/CalculatorPage.jsx` - Balia calculator with amoCRM support
+  - `/app/frontend/src/components/SaunaCalculator.jsx` - Sauna calculator with amoCRM support
+  - `/app/frontend/src/components/sauna/useSaunaCalculator.js` - Hook updated for amoCRM
+- **Documentation**: `/app/memory/AMOCRM_INTEGRATION.md`
+- **Status**: ✅ Implemented - Ready for testing with real amoCRM credentials
+
 ### SaunaCalculator Refactoring (2026-01-05)
 - **Problem**: `SaunaCalculator.jsx` had grown to ~1351 lines
 - **Solution**: Extracted state management to custom hook and translations to constants
