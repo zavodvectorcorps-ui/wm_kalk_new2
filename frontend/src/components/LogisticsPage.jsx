@@ -171,6 +171,11 @@ export const LogisticsPage = () => {
   // Trip status filter
   const [tripStatusFilter, setTripStatusFilter] = useState('planned'); // 'planned', 'in_transit', 'completed'
   
+  // Address editing state
+  const [editingAddressOrderId, setEditingAddressOrderId] = useState(null);
+  const [editingAddressValue, setEditingAddressValue] = useState('');
+  const editAddressInputRef = useRef(null);
+  
   // New order form state
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [newOrderForm, setNewOrderForm] = useState({
