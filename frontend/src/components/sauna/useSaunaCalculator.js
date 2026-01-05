@@ -388,6 +388,13 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         adminDiscountApprovedAt: appliedDiscount > 10 && adminDiscountApproved ? new Date().toISOString() : '',
         requestedDiscount: !isAdminUser ? requestedDiscount : 0,
         requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
+        // amoCRM integration fields
+        ...(amocrmData && {
+          amocrm_id: amocrmData.amocrm_id,
+          amocrm_link: amocrmData.amocrm_link,
+          amocrm_name: amocrmData.amocrm_name,
+          source: 'amocrm',
+        }),
       };
 
       let finalOrderId;
@@ -400,6 +407,15 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         const orderResponse = await axios.post(`${API_URL}/api/sauna/orders`, orderData);
         finalOrderId = orderResponse.data?.id || '';
         toast.success(txt.orderSaved);
+        
+        // Mark quote as created in amoCRM
+        if (amocrmData?.amocrm_id && finalOrderId) {
+          try {
+            await axios.post(`${API_URL}/api/integrations/amocrm/mark-quote-created?amocrm_id=${amocrmData.amocrm_id}&order_id=${finalOrderId}&calculator_type=sauna`);
+          } catch (e) {
+            console.error('Failed to mark quote in amoCRM:', e);
+          }
+        }
       }
 
       // Generate PDF
