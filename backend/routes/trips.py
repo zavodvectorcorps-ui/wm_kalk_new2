@@ -389,20 +389,34 @@ async def add_orders_to_trip(trip_id: str, order_ids: List[str]):
                 detail=f"Order {order_id} is already in trip {order.get('tripId')}"
             )
     
-    # Update trip
+    # Update trip - add new orders and their statuses
     current_orders = existing.get("orderIds", [])
+    current_statuses = existing.get("orderStatuses", {})
+    
     new_orders = list(set(current_orders + order_ids))
+    # Add pending status for new orders
+    for oid in order_ids:
+        if oid not in current_statuses:
+            current_statuses[oid] = "pending"
     
     trips_collection.update_one(
         {"id": trip_id},
-        {"$set": {"orderIds": new_orders, "updatedAt": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {
+            "orderIds": new_orders, 
+            "orderStatuses": current_statuses,
+            "updatedAt": datetime.now(timezone.utc).isoformat()
+        }}
     )
     
-    # Update orders
-    collection.update_many(
-        {"id": {"$in": order_ids}},
-        {"$set": {"tripId": trip_id, "tripName": existing.get("name", "")}}
-    )
+    # Get updated trip and sync data to all orders
+    updated_trip = trips_collection.find_one({"id": trip_id}, {"_id": 0})
+    sync_trip_data_to_orders(updated_trip, collection)
+    
+    # Sync to amoCRM
+    try:
+        await sync_trip_orders_to_amocrm(updated_trip, collection)
+    except Exception as e:
+        logger.error(f"Failed to sync trip to amoCRM: {e}")
     
     return {"status": "ok", "added": order_ids}
 
