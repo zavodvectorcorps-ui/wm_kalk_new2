@@ -970,3 +970,134 @@ async def mark_quote_created(amocrm_id: str, order_id: str, calculator_type: str
     except Exception as e:
         logger.error(f"Error adding note to amoCRM: {e}")
         return {"status": "error", "message": str(e)}
+
+
+@router.post("/sync-trip")
+async def sync_trip_to_amocrm(
+    amocrm_id: str,
+    trip_name: str = "",
+    driver_name: str = "",
+    departure_date: str = "",
+    order_status: str = ""
+):
+    """Sync trip data back to amoCRM lead.
+    
+    Updates custom fields in amoCRM:
+    - Trip number/name
+    - Driver name
+    - Departure date
+    - Order status within trip
+    """
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    trip_number_field_id = settings.get("trip_number_field_id", "")
+    trip_driver_field_id = settings.get("trip_driver_field_id", "")
+    trip_departure_field_id = settings.get("trip_departure_field_id", "")
+    trip_order_status_field_id = settings.get("trip_order_status_field_id", "")
+    
+    # If credentials are not configured, skip silently
+    if not domain or not token:
+        logger.info(f"Skipping amoCRM trip sync for {amocrm_id}: credentials not configured")
+        return {"status": "skipped", "message": "amoCRM credentials not configured"}
+    
+    # Build update payload
+    custom_fields_values = []
+    
+    if trip_number_field_id and trip_name:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_number_field_id),
+                "values": [{"value": trip_name}]
+            })
+        except ValueError:
+            pass
+    
+    if trip_driver_field_id and driver_name:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_driver_field_id),
+                "values": [{"value": driver_name}]
+            })
+        except ValueError:
+            pass
+    
+    if trip_departure_field_id and departure_date:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_departure_field_id),
+                "values": [{"value": departure_date}]
+            })
+        except ValueError:
+            pass
+    
+    if trip_order_status_field_id and order_status:
+        try:
+            # Map internal status to display label
+            STATUS_LABELS = {
+                "pending": "Ожидает",
+                "delivering": "В пути",
+                "delivered": "Доставлен",
+                "cancelled": "Отменён"
+            }
+            status_label = STATUS_LABELS.get(order_status, order_status)
+            
+            custom_fields_values.append({
+                "field_id": int(trip_order_status_field_id),
+                "values": [{"value": status_label}]
+            })
+        except ValueError:
+            pass
+    
+    # If no fields configured, skip silently
+    if not custom_fields_values:
+        logger.info(f"Skipping amoCRM trip sync for {amocrm_id}: no trip field IDs configured")
+        return {"status": "skipped", "message": "No trip field IDs configured for sync"}
+    
+    # Log sync attempt
+    sync_log = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "type": "trip_sync",
+        "amocrm_id": amocrm_id,
+        "trip_name": trip_name,
+        "driver_name": driver_name,
+        "departure_date": departure_date,
+        "order_status": order_status
+    }
+    
+    # Make API request to amoCRM
+    url = f"https://{domain}/api/v4/leads/{amocrm_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "custom_fields_values": custom_fields_values
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(url, json=payload, headers=headers)
+            
+            if response.status_code == 200:
+                sync_log["result"] = "success"
+                webhook_logs.insert_one(sync_log)
+                logger.info(f"Successfully synced trip data to amoCRM lead {amocrm_id}")
+                return {"status": "ok", "message": "Trip data synced to amoCRM"}
+            else:
+                sync_log["result"] = "error"
+                sync_log["error"] = response.text
+                webhook_logs.insert_one(sync_log)
+                logger.error(f"amoCRM API error: {response.status_code} - {response.text}")
+                return {
+                    "status": "error", 
+                    "message": f"amoCRM API error: {response.status_code}",
+                    "detail": response.text
+                }
+    except httpx.RequestError as e:
+        sync_log["result"] = "error"
+        sync_log["error"] = str(e)
+        webhook_logs.insert_one(sync_log)
+        logger.error(f"amoCRM request error: {e}")
+        return {"status": "error", "message": f"Connection error: {str(e)}"}
