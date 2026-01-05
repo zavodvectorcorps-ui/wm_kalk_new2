@@ -271,19 +271,18 @@ async def create_trip(trip_data: TripCreate):
         "driverId": trip_data.driverId,
         "driverName": trip_data.driverName,
         "status": "planned",  # planned, in_transit, completed
+        "departureDate": None,  # Will be set later
         "createdAt": now,
         "updatedAt": now
     }
     
     trips_collection.insert_one(trip)
     
-    # Update orders to mark them as assigned to this trip
+    # Update orders to mark them as assigned to this trip and store trip data
     collection = get_section_collection(trip_data.section)
     if collection is not None and trip_data.orderIds:
-        collection.update_many(
-            {"id": {"$in": trip_data.orderIds}},
-            {"$set": {"tripId": trip_id, "tripName": trip_data.name}}
-        )
+        # Sync trip data to all orders
+        sync_trip_data_to_orders(trip, collection)
     
     trip.pop("_id", None)
     return trip
