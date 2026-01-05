@@ -71,6 +71,115 @@ def get_section_collection(section: str):
     return None
 
 
+async def sync_trip_orders_to_amocrm(trip: dict, collection):
+    """Sync trip data to amoCRM for all orders with amocrm_id.
+    
+    This is called when trip is updated (status change, driver assignment, etc.)
+    """
+    settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    if not settings:
+        return
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        return
+    
+    trip_number_field_id = settings.get("trip_number_field_id", "")
+    trip_driver_field_id = settings.get("trip_driver_field_id", "")
+    trip_departure_field_id = settings.get("trip_departure_field_id", "")
+    trip_order_status_field_id = settings.get("trip_order_status_field_id", "")
+    
+    # Check if any trip fields are configured
+    if not any([trip_number_field_id, trip_driver_field_id, trip_departure_field_id, trip_order_status_field_id]):
+        return
+    
+    # Status labels
+    STATUS_LABELS = {
+        "pending": "Ожидает",
+        "delivering": "В пути",
+        "delivered": "Доставлен",
+        "cancelled": "Отменён"
+    }
+    
+    # Get all orders in trip that have amocrm_id
+    order_ids = trip.get("orderIds", [])
+    order_statuses = trip.get("orderStatuses", {})
+    
+    if not order_ids or collection is None:
+        return
+    
+    orders = list(collection.find({"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}}, {"_id": 0}))
+    
+    for order in orders:
+        amocrm_id = order.get("amocrm_id")
+        if not amocrm_id:
+            continue
+        
+        # Build update payload
+        custom_fields_values = []
+        
+        if trip_number_field_id:
+            try:
+                custom_fields_values.append({
+                    "field_id": int(trip_number_field_id),
+                    "values": [{"value": trip.get("name", "")}]
+                })
+            except ValueError:
+                pass
+        
+        if trip_driver_field_id:
+            try:
+                custom_fields_values.append({
+                    "field_id": int(trip_driver_field_id),
+                    "values": [{"value": trip.get("driverName", "") or ""}]
+                })
+            except ValueError:
+                pass
+        
+        if trip_departure_field_id:
+            try:
+                custom_fields_values.append({
+                    "field_id": int(trip_departure_field_id),
+                    "values": [{"value": trip.get("departureDate", "") or ""}]
+                })
+            except ValueError:
+                pass
+        
+        if trip_order_status_field_id:
+            try:
+                order_status = order_statuses.get(order.get("id"), "pending")
+                status_label = STATUS_LABELS.get(order_status, order_status)
+                custom_fields_values.append({
+                    "field_id": int(trip_order_status_field_id),
+                    "values": [{"value": status_label}]
+                })
+            except ValueError:
+                pass
+        
+        if not custom_fields_values:
+            continue
+        
+        # Make API request
+        url = f"https://{domain}/api/v4/leads/{amocrm_id}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {"custom_fields_values": custom_fields_values}
+        
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as http_client:
+                response = await http_client.patch(url, json=payload, headers=headers)
+                if response.status_code == 200:
+                    logger.info(f"Synced trip data to amoCRM lead {amocrm_id}")
+                else:
+                    logger.warning(f"Failed to sync trip to amoCRM lead {amocrm_id}: {response.status_code}")
+        except Exception as e:
+            logger.error(f"Error syncing trip to amoCRM: {e}")
+
+
 @router.get("")
 async def get_all_trips(section: Optional[str] = None):
     """Get all trips, optionally filtered by section."""
