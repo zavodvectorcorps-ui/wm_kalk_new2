@@ -809,6 +809,41 @@ const OrderCard = ({
             {order.amocrm_id && <span className="text-purple-500">• amoCRM</span>}
           </div>
           
+          {/* Trip data display */}
+          {order.tripId && (
+            <div className="flex flex-wrap items-center gap-2 mt-2 p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+              <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
+                <Route className="h-3 w-3 mr-1" />
+                {order.tripName || 'Рейс'}
+              </Badge>
+              {order.tripDriverName && (
+                <Badge variant="outline" className="text-xs bg-gray-100 text-gray-700">
+                  <User className="h-3 w-3 mr-1" />
+                  {order.tripDriverName}
+                </Badge>
+              )}
+              {order.tripDepartureDate && (
+                <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  {order.tripDepartureDate}
+                </Badge>
+              )}
+              {order.tripOrderStatus && (
+                <Badge className={`text-xs ${
+                  order.tripOrderStatus === 'delivered' ? 'bg-green-100 text-green-700' :
+                  order.tripOrderStatus === 'delivering' ? 'bg-yellow-100 text-yellow-700' :
+                  order.tripOrderStatus === 'cancelled' ? 'bg-red-100 text-red-700' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  {order.tripOrderStatus === 'delivered' ? 'Доставлен' :
+                   order.tripOrderStatus === 'delivering' ? 'В пути' :
+                   order.tripOrderStatus === 'cancelled' ? 'Отменён' :
+                   'Ожидает'}
+                </Badge>
+              )}
+            </div>
+          )}
+          
           {/* Important checkbox */}
           <div className="flex items-center gap-2 mt-2">
             <Checkbox
