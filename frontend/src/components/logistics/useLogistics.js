@@ -1272,6 +1272,8 @@ export const useLogistics = () => {
     // Map
     mapFilter,
     setMapFilter,
+    mapFilterTripId,
+    setMapFilterTripId,
     warehouseAddress,
     setWarehouseAddress,
     warehouseCoords,
