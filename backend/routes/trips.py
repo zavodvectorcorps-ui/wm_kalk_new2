@@ -149,11 +149,36 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
     update_data = {k: v for k, v in trip_data.dict().items() if v is not None}
     update_data["updatedAt"] = datetime.now(timezone.utc).isoformat()
     
+    # Remove syncOrderStatuses from update_data (it's a flag, not a field to store)
+    sync_order_statuses = update_data.pop("syncOrderStatuses", False)
+    
     # Handle order changes
     collection = get_section_collection(existing.get("section", ""))
     
-    # Handle orderStatuses update
-    if "orderStatuses" in update_data:
+    # Map trip status to order status
+    TRIP_TO_ORDER_STATUS = {
+        "planned": "pending",      # Ready to ship -> pending
+        "in_transit": "delivering", # In transit -> delivering
+        "completed": "delivered"    # Completed -> delivered
+    }
+    
+    # Handle status change and sync order statuses
+    if "status" in update_data and sync_order_statuses:
+        new_trip_status = update_data["status"]
+        new_order_status = TRIP_TO_ORDER_STATUS.get(new_trip_status, "pending")
+        
+        # Update all order statuses (except cancelled ones)
+        existing_statuses = existing.get("orderStatuses", {})
+        for order_id in existing.get("orderIds", []):
+            current_status = existing_statuses.get(order_id, "pending")
+            # Don't change cancelled orders
+            if current_status != "cancelled":
+                existing_statuses[order_id] = new_order_status
+        
+        update_data["orderStatuses"] = existing_statuses
+    
+    # Handle orderStatuses update (manual per-order changes)
+    elif "orderStatuses" in update_data:
         # Merge with existing statuses
         existing_statuses = existing.get("orderStatuses", {})
         existing_statuses.update(update_data["orderStatuses"])
