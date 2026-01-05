@@ -2217,9 +2217,8 @@ export const LogisticsPage = () => {
                         fullscreenControl: true
                       }}
                     >
-                      {/* All orders with coordinates */}
-                      {sectionData[sectionKey].orders
-                        .filter(order => order.lat && order.lng)
+                      {/* All orders with coordinates (filtered by mapFilter) */}
+                      {getMapOrders(sectionData[sectionKey].orders)
                         .map((order) => {
                           const isSelected = sectionData[sectionKey].selectedOrders.includes(order.id);
                           const selectedIndex = isSelected 
@@ -2236,14 +2235,14 @@ export const LogisticsPage = () => {
                                 color: 'white',
                                 fontWeight: 'bold'
                               } : undefined}
-                              icon={{
+                              icon={isSelected ? {
                                 path: window.google.maps.SymbolPath.CIRCLE,
-                                scale: isSelected ? 14 : 8,
-                                fillColor: isSelected ? currentSection.markerColor : '#9ca3af',
-                                fillOpacity: isSelected ? 1 : 0.7,
-                                strokeColor: isSelected ? 'white' : '#6b7280',
-                                strokeWeight: isSelected ? 2 : 1
-                              }}
+                                scale: 14,
+                                fillColor: currentSection.markerColor,
+                                fillOpacity: 1,
+                                strokeColor: 'white',
+                                strokeWeight: 2
+                              } : getMarkerIcon(order)}
                               onClick={() => {
                                 // Toggle selection on click
                                 const currentSelected = sectionData[sectionKey].selectedOrders;
