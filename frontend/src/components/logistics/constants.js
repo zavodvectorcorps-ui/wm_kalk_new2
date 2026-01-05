@@ -50,31 +50,31 @@ export const DEFAULT_DRIVERS = [
 export const SECTIONS = {
   greenhouse: {
     id: 'greenhouse',
-    name: 'Теплицы',
-    namePl: 'Szklarnie',
+    name: { ru: 'Теплицы', pl: 'Szklarnie' },
     icon: Warehouse,
     color: 'text-green-600',
     bgColor: 'bg-green-100',
+    borderColor: 'border-green-500',
     endpoint: '/api/greenhouse/orders',
     markerColor: '#16a34a'
   },
   balia: {
     id: 'balia',
-    name: 'Купели',
-    namePl: 'Balie',
+    name: { ru: 'Купели', pl: 'Balie' },
     icon: Waves,
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
+    borderColor: 'border-blue-500',
     endpoint: '/api/orders',
     markerColor: '#2563eb'
   },
   sauna: {
     id: 'sauna',
-    name: 'Сауны',
-    namePl: 'Sauny',
+    name: { ru: 'Сауны', pl: 'Sauny' },
     icon: Flame,
     color: 'text-orange-600',
     bgColor: 'bg-orange-100',
+    borderColor: 'border-orange-500',
     endpoint: '/api/sauna/orders',
     markerColor: '#ea580c'
   }
