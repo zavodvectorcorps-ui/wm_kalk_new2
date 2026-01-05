@@ -711,6 +711,35 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         </div>
       )}
       
+      {/* amoCRM Banner */}
+      {amocrmData && (
+        <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">amo</span>
+            </div>
+            <div>
+              <span className="font-medium text-purple-800">
+                {lang === 'pl' ? 'Zamówienie z amoCRM' : 'Заказ из amoCRM'}
+              </span>
+              {amocrmData.amocrm_name && (
+                <span className="text-purple-600 ml-2">• {amocrmData.amocrm_name}</span>
+              )}
+            </div>
+          </div>
+          {amocrmData.amocrm_link && (
+            <a 
+              href={amocrmData.amocrm_link} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-purple-600 hover:text-purple-800 text-sm flex items-center gap-1"
+            >
+              {lang === 'pl' ? 'Otwórz w amoCRM →' : 'Открыть в amoCRM →'}
+            </a>
+          )}
+        </div>
+      )}
+      
       <h1 className="text-2xl font-bold text-blue-800 mb-6 flex items-center gap-2">
         <Droplets className="h-6 w-6" />
         {t('balia.title')}
