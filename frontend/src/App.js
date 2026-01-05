@@ -324,7 +324,7 @@ const AppContent = () => {
           </Suspense>
         ) : (
           <Suspense fallback={<PageLoader />}>
-            <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} />
+            <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} amocrmPrefill={amocrmPrefill} onAmocrmPrefillUsed={() => setAmocrmPrefill(null)} />
           </Suspense>
         )}
         
