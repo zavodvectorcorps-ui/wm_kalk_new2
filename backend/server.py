@@ -18,6 +18,7 @@ from routes.backup import router as backup_router, set_database as set_backup_db
 from routes.greenhouse import router as greenhouse_router
 from routes.amocrm import router as amocrm_router
 from routes.trips import router as trips_router
+from routes.drivers import router as drivers_router
 
 # Configure logging
 logging.basicConfig(
