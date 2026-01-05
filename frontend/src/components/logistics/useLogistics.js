@@ -1353,6 +1353,7 @@ export const useLogistics = () => {
     createTrip,
     updateTrip,
     updateTripStatus,
+    addOrdersToTrip,
     deleteTrip,
     updateOrderStatusInTrip,
     removeOrderFromTrip,
