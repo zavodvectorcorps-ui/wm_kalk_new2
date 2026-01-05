@@ -698,7 +698,7 @@ export const IntegrationsPage = () => {
 
               {/* Field IDs */}
               <div className="space-y-4 p-4 border rounded-lg">
-                <h4 className="font-medium">ID полей для синхронизации</h4>
+                <h4 className="font-medium">ID полей для синхронизации заказов</h4>
                 <p className="text-sm text-muted-foreground">
                   Создайте в amoCRM кастомные поля (тип: текст) для сделок и укажите их ID
                 </p>
@@ -723,6 +723,63 @@ export const IntegrationsPage = () => {
                     />
                     <p className="text-xs text-muted-foreground">
                       Сюда будет записываться дата доставки или комментарий
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Trip sync fields */}
+              <div className="space-y-4 p-4 border rounded-lg bg-purple-50/30">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Route className="h-4 w-4 text-purple-600" />
+                  ID полей для синхронизации рейсов
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Эти поля обновляются при изменении рейса — номер рейса, водитель, дата отправки, статус
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>ID поля: Номер рейса</Label>
+                    <Input
+                      value={settings.trip_number_field_id || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, trip_number_field_id: e.target.value }))}
+                      placeholder="Например: 123458"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Название/ID рейса в системе
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ID поля: Водитель</Label>
+                    <Input
+                      value={settings.trip_driver_field_id || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, trip_driver_field_id: e.target.value }))}
+                      placeholder="Например: 123459"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Имя назначенного водителя
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ID поля: Дата отправки</Label>
+                    <Input
+                      value={settings.trip_departure_field_id || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, trip_departure_field_id: e.target.value }))}
+                      placeholder="Например: 123460"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Дата отправления рейса
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ID поля: Статус заказа в рейсе</Label>
+                    <Input
+                      value={settings.trip_order_status_field_id || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, trip_order_status_field_id: e.target.value }))}
+                      placeholder="Например: 123461"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Статус конкретного заказа: Ожидает, В пути, Доставлен
                     </p>
                   </div>
                 </div>
