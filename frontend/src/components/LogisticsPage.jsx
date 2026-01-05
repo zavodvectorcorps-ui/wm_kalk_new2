@@ -44,6 +44,7 @@ import {
   DollarSign,
   MessageSquare,
   AlertTriangle,
+  AlertCircle,
   Filter,
   Eye,
   Star
