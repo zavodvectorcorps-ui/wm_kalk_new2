@@ -5,6 +5,21 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### SaunaCalculator Refactoring (2026-01-05)
+- **Problem**: `SaunaCalculator.jsx` had grown to ~1351 lines
+- **Solution**: Extracted state management to custom hook and translations to constants
+- **Changes**:
+  - Created `useSaunaCalculator.js` hook (~494 lines) with all state and business logic
+  - Created `constants.js` (~187 lines) with translations and helpers
+  - Reduced `SaunaCalculator.jsx` to ~618 lines (54% reduction)
+  - Split into reusable sub-components (CustomerInfoCard, ModelSelectionCard, CategoryCard, etc.)
+- **Files Created/Modified**:
+  - `/app/frontend/src/components/SaunaCalculator.jsx` - Main component (refactored)
+  - `/app/frontend/src/components/sauna/useSaunaCalculator.js` (NEW) - Custom hook
+  - `/app/frontend/src/components/sauna/constants.js` (NEW) - Constants and translations
+  - `/app/frontend/src/components/sauna/index.js` (NEW) - Exports
+- **Status**: ✅ Verified - Calculator working after refactor
+
 ### LogisticsPage Refactoring (2026-01-05)
 - **Problem**: `LogisticsPage.jsx` had grown to ~2956 lines, making it difficult to maintain
 - **Solution**: Extracted state management and business logic to a custom hook
