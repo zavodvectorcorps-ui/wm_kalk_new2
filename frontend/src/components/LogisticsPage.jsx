@@ -13,7 +13,8 @@ import {
   MapPin, Route, Truck, Clock, Navigation, RefreshCw, ChevronDown, ChevronUp,
   Package, Plus, User, Phone, FileText, X, Hash, CheckCircle, Send,
   Users, Trash2, Settings, GripVertical, Sparkles, ArrowUp, ArrowDown,
-  ExternalLink, DollarSign, MessageSquare, AlertCircle, Filter, Eye, Warehouse
+  ExternalLink, DollarSign, MessageSquare, AlertCircle, Filter, Eye, Warehouse,
+  Calendar
 } from 'lucide-react';
 import { 
   useLogistics, 
@@ -21,6 +22,7 @@ import {
   DELIVERY_STATUSES, 
   TRIP_STATUSES, 
   ORDER_TRIP_STATUSES,
+  TRIP_TO_ORDER_STATUS,
   mapContainerStyle,
   defaultCenter,
   formatDistance,
@@ -67,6 +69,8 @@ export const LogisticsPage = () => {
     setNewDriverName,
     mapFilter,
     setMapFilter,
+    mapFilterTripId,
+    setMapFilterTripId,
     warehouseAddress,
     setWarehouseAddress,
     warehouseCoords,
