@@ -337,25 +337,28 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
         old_order_ids = set(existing.get("orderIds", []))
         new_order_ids = set(update_data["orderIds"])
         
-        # Remove tripId from orders that were removed
+        # Remove trip data from orders that were removed
         removed = old_order_ids - new_order_ids
         if removed:
             collection.update_many(
                 {"id": {"$in": list(removed)}},
-                {"$unset": {"tripId": "", "tripName": ""}}
+                {"$unset": {
+                    "tripId": "", "tripName": "", "tripDriverId": "", 
+                    "tripDriverName": "", "tripDepartureDate": "", 
+                    "tripStatus": "", "tripOrderStatus": ""
+                }}
             )
         
-        # Add tripId to new orders
-        added = new_order_ids - old_order_ids
-        if added:
-            collection.update_many(
-                {"id": {"$in": list(added)}},
-                {"$set": {"tripId": trip_id, "tripName": existing.get("name", "")}}
-            )
+        # Add trip data to new orders (will be synced below)
+        # No need to do partial update here, sync_trip_data_to_orders will handle it
     
     trips_collection.update_one({"id": trip_id}, {"$set": update_data})
     
     updated = trips_collection.find_one({"id": trip_id}, {"_id": 0})
+    
+    # Sync trip data to all orders in this trip
+    if collection is not None:
+        sync_trip_data_to_orders(updated, collection)
     
     # Sync trip data to amoCRM for orders with amocrm_id
     try:
