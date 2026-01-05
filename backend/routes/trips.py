@@ -34,8 +34,10 @@ class TripUpdate(BaseModel):
     driverId: Optional[str] = None
     driverName: Optional[str] = None
     status: Optional[str] = None  # planned, in_transit, completed
+    departureDate: Optional[str] = None  # Date of departure
     # Order statuses within trip: {orderId: "delivering" | "delivered" | "cancelled"}
     orderStatuses: Optional[dict] = None
+    syncOrderStatuses: Optional[bool] = False  # Sync all order statuses with trip status
 
 
 # Trip status constants
