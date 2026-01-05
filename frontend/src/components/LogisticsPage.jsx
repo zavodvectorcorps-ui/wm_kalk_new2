@@ -94,6 +94,7 @@ export const LogisticsPage = () => {
     fetchAllOrders,
     createTrip,
     updateTrip,
+    updateTripStatus,
     deleteTrip,
     updateOrderStatusInTrip,
     removeOrderFromTrip,
