@@ -35,10 +35,9 @@ const DEFAULT_FIELD_MAPPING = {
   fullName: '',           // Имя клиента
   phoneNumber: '',        // Телефон клиента
   orderNumber: '',        // Номер заказа в amoCRM
-  fullAddress: '',        // Полный адрес (одно поле)
-  addressIndex: '',       // Индекс (часть адреса)
-  addressCity: '',        // Город (часть адреса)
-  addressStreet: '',      // Улица (часть адреса)
+  addressStreet: '',      // Улица (адрес)
+  addressCity: '',        // Город
+  addressIndex: '',       // Индекс
   orderContents: '',      // Состав заказа
   orderComment: '',       // Комментарий к заказу
   dealSum: '',            // Сумма сделки
