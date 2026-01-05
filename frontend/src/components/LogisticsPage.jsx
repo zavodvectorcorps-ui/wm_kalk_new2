@@ -2296,6 +2296,7 @@ export const LogisticsPage = () => {
                         />
                       )}
                     </GoogleMap>
+                    </>
                   )}
                 </CardContent>
               </Card>
