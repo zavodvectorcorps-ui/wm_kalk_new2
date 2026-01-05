@@ -31,6 +31,9 @@ export const useLogistics = () => {
   const [activeInnerTab, setActiveInnerTab] = useState('orders');
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showCreateTripModal, setShowCreateTripModal] = useState(false);
+  const [showAddToTripModal, setShowAddToTripModal] = useState(false);  // Modal for adding to existing trip
+  const [addToTripId, setAddToTripId] = useState('');  // Selected trip ID for adding orders
+  const [addingToTrip, setAddingToTrip] = useState(false);  // Loading state
   const [newTripName, setNewTripName] = useState('');
   const [newTripDriver, setNewTripDriver] = useState('');
   const [creatingTrip, setCreatingTrip] = useState(false);
