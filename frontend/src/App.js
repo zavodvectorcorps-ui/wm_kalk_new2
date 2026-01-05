@@ -40,6 +40,7 @@ const AppContent = () => {
   const [activeTab, setActiveTab] = useState('calculator');
   const [pricesUpdated, setPricesUpdated] = useState(0);
   const [editingOrder, setEditingOrder] = useState(null); // Order being edited in calculator
+  const [amocrmPrefill, setAmocrmPrefill] = useState(null); // Pre-fill data from amoCRM
 
   const texts = {
     ru: {
@@ -56,6 +57,43 @@ const AppContent = () => {
 
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = texts[lang];
+
+  // Check URL parameters for amoCRM integration
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const calc = params.get('calc'); // Calculator type: balia or sauna
+    const amocrmId = params.get('amocrm_id'); // amoCRM lead ID
+    
+    if (calc && (calc === 'balia' || calc === 'sauna')) {
+      // Set calculator type from URL
+      setCurrentCalculator(calc);
+      setActiveTab('calculator');
+      
+      if (amocrmId) {
+        // Fetch lead data from amoCRM
+        fetchAmocrmLeadData(amocrmId, calc);
+      }
+      
+      // Clean URL without reload
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const fetchAmocrmLeadData = async (leadId, section) => {
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+      const response = await fetch(`${API_URL}/api/integrations/amocrm/lead/${leadId}?section=${section}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'ok' && data.lead) {
+          setAmocrmPrefill(data.lead);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching amoCRM lead data:', error);
+    }
+  };
 
   // Check for embed URL - show public calculator without auth
   const isEmbed = window.location.pathname.startsWith('/embed');
