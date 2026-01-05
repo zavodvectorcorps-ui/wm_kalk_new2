@@ -1020,7 +1020,7 @@ const TripsView = ({
           <CardContent className="p-3">
             {filteredTrips.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-muted-foreground text-sm mb-3">Нет рейсов в категории "{TRIP_STATUSES[tripStatusFilter]?.label}"</p>
+                <p className="text-muted-foreground text-sm mb-3">Нет рейсов в категории &quot;{TRIP_STATUSES[tripStatusFilter]?.label}&quot;</p>
                 {tripStatusFilter === 'planned' && <Button size="sm" variant="outline" onClick={() => setActiveInnerTab('orders')}><Package className="h-3 w-3 mr-1" />Создать рейс</Button>}
               </div>
             ) : (
