@@ -405,6 +405,44 @@ export const useLogistics = () => {
     return await updateTrip(tripId, { status: newStatus }, true);
   };
 
+  // Add orders to existing trip
+  const addOrdersToTrip = async (tripId) => {
+    if (!tripId || currentData.selectedOrders.length === 0) {
+      toast.error('Выберите рейс и заказы');
+      return;
+    }
+    
+    setAddingToTrip(true);
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${tripId}/add-orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentData.selectedOrders)
+      });
+      
+      if (res.ok) {
+        const result = await res.json();
+        toast.success(`Добавлено ${result.added.length} заказов в рейс`);
+        setShowAddToTripModal(false);
+        setAddToTripId('');
+        fetchAllOrders();
+        fetchTrips(activeSection);
+        setSectionData(prev => ({
+          ...prev,
+          [activeSection]: { ...prev[activeSection], selectedOrders: [] }
+        }));
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка добавления заказов');
+      }
+    } catch (error) {
+      console.error('Error adding orders to trip:', error);
+      toast.error('Ошибка добавления заказов');
+    } finally {
+      setAddingToTrip(false);
+    }
+  };
+
   // Delete trip
   const deleteTrip = async (tripId) => {
     if (!window.confirm('Удалить рейс? Заказы вернутся в общий список.')) return;
