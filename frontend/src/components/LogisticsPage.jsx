@@ -944,15 +944,7 @@ export const LogisticsPage = () => {
         [activeSection]: { ...prev[activeSection], markers: newMarkers }
       }));
 
-      // Fit bounds to show all markers
-      if (newMarkers.length > 0 && mapRef.current) {
-        const bounds = new window.google.maps.LatLngBounds();
-        newMarkers.forEach(m => bounds.extend(m.position));
-        mapRef.current.fitBounds(bounds);
-        if (newMarkers.length === 1) {
-          mapRef.current.setZoom(14);
-        }
-      }
+      // Note: Removed auto-zoom to allow selecting multiple nearby points
     };
 
     updateMarkers();
