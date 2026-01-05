@@ -831,12 +831,41 @@ export const useLogistics = () => {
         throw new Error('Failed to update order');
       }
 
-      // Sync to amoCRM if needed
-      if (order?.amocrm_id && updates.deliveryStatus) {
+      // Sync to amoCRM if needed - send all order data including trip info
+      if (order?.amocrm_id) {
         try {
-          const statusLabel = DELIVERY_STATUSES[updates.deliveryStatus]?.label || updates.deliveryStatus;
+          const statusLabel = updates.deliveryStatus 
+            ? (DELIVERY_STATUSES[updates.deliveryStatus]?.label || updates.deliveryStatus) 
+            : null;
           const comment = updates.deliveryComment || order.deliveryComment || '';
-          await fetch(`${API_URL}/api/integrations/amocrm/sync-status?amocrm_id=${order.amocrm_id}&status=${encodeURIComponent(statusLabel)}&comment=${encodeURIComponent(comment)}`, {
+          
+          // Build query params for sync-order endpoint
+          const params = new URLSearchParams();
+          params.append('amocrm_id', order.amocrm_id);
+          
+          if (statusLabel) {
+            params.append('delivery_status', statusLabel);
+          }
+          if (comment) {
+            params.append('delivery_comment', comment);
+          }
+          
+          // Include trip data from order
+          const updatedOrderData = { ...order, ...updates };
+          if (updatedOrderData.tripName) {
+            params.append('trip_name', updatedOrderData.tripName);
+          }
+          if (updatedOrderData.tripDriverName) {
+            params.append('trip_driver_name', updatedOrderData.tripDriverName);
+          }
+          if (updatedOrderData.tripDepartureDate) {
+            params.append('trip_departure_date', updatedOrderData.tripDepartureDate);
+          }
+          if (updatedOrderData.tripOrderStatus) {
+            params.append('trip_order_status', updatedOrderData.tripOrderStatus);
+          }
+          
+          await fetch(`${API_URL}/api/integrations/amocrm/sync-order?${params.toString()}`, {
             method: 'POST'
           });
         } catch (syncError) {
