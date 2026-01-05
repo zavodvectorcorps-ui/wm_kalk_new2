@@ -423,6 +423,14 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "integration_settings", "count": len(integration_settings)})
                 logger.info(f"Exported {len(integration_settings)} integration settings")
             
+            # Export webhook logs (for audit/debugging)
+            webhook_logs = await db.webhook_logs.find({}).to_list(10000)
+            if webhook_logs:
+                webhook_logs = [serialize_for_json(w) for w in webhook_logs]
+                zip_file.writestr("webhook_logs.json", json.dumps(webhook_logs, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "webhook_logs", "count": len(webhook_logs)})
+                logger.info(f"Exported {len(webhook_logs)} webhook logs")
+            
             # Export Telegram configuration from .env
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
