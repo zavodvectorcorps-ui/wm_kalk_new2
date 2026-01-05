@@ -185,7 +185,7 @@ async def fetch_lead_from_amocrm(lead_id: str, domain: str, token: str) -> Optio
     Rate limit: max 7 requests/sec per integration.
     """
     if not domain or not token or not lead_id:
-        logger.warning(f"Missing amoCRM credentials or lead_id for API fetch")
+        logger.warning("Missing amoCRM credentials or lead_id for API fetch")
         return None
     
     url = f"https://{domain}/api/v4/leads/{lead_id}"
