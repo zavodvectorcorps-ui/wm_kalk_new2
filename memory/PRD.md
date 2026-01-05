@@ -9,26 +9,28 @@ A full-featured quoting and order management application for Saunas and Balias (
 - **Problem**: Backup was missing critical data:
   - Drivers were stored in localStorage (not backed up)
   - amoCRM settings in `integration_settings` collection not exported
+  - `webhook_logs` not exported
   - Trips collection not showing when empty (normal behavior)
 - **Solution**:
   - Created new Drivers API (`/api/drivers`) for CRUD operations
   - Drivers now stored in MongoDB (`drivers` collection)
   - Updated `LogisticsPage.jsx` to use API instead of localStorage
-  - Updated backup export to include `integration_settings` collection
-  - Updated backup import to restore both `amocrm_settings` and `integration_settings`
+  - Updated ALL backup functions (export, auto, telegram) to include:
+    - `integration_settings` - настройки интеграций
+    - `webhook_logs` - логи вебхуков amoCRM
+  - Updated import to restore both collections
 - **Files Modified**:
   - `/app/backend/routes/drivers.py` (NEW) - Drivers API
-  - `/app/backend/routes/backup.py` - Added integration_settings export/import
+  - `/app/backend/routes/backup.py` - Added missing collections to all export functions
   - `/app/backend/server.py` - Added drivers router
   - `/app/frontend/src/components/LogisticsPage.jsx` - Use API for drivers
-- **Backup now includes**:
-  - ✅ `drivers.json` - All drivers
-  - ✅ `amocrm_settings.json` - amoCRM settings from both collections
-  - ✅ `integration_settings.json` - All integration settings
-  - ✅ `trips.json` - All trips (when present)
-  - ✅ All orders (balia, sauna, greenhouse, web)
-  - ✅ Prices, customer fields, tech specs, users, uploads
-- **Status**: ✅ Fixed and verified
+- **Backup now includes 18 data types**:
+  - Заказы: `balia_orders`, `sauna_orders`, `greenhouse_orders`, `web_orders`
+  - Логистика: `trips`, `drivers`
+  - Цены: `balia_prices`, `sauna_prices`, `tech_spec_config`, `balia_tech_spec_config`, `customer_fields`
+  - Пользователи: `users`, `settings`, `integration_settings`, `amocrm_settings`
+  - Медиа/логи: `images_collection`, `uploaded_files`, `webhook_logs`, `telegram_config`
+- **Status**: ✅ Verified - ALL data backed up for full system restore
 
 ### Рейсы (Trips) Feature (2026-01-05)
 - **Feature**: Trip management for organizing deliveries - group orders into trips for batch delivery
