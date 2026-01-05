@@ -264,23 +264,41 @@ export const LogisticsPage = () => {
     }
   };
 
-  // Save drivers to localStorage
-  const saveDrivers = (newDrivers) => {
-    setDrivers(newDrivers);
-    localStorage.setItem('logistics_drivers', JSON.stringify(newDrivers));
-  };
-
-  // Add driver
-  const addDriver = () => {
+  // Add driver via API
+  const addDriver = async () => {
     if (!newDriverName.trim()) return;
-    const newDriver = { id: `driver_${Date.now()}`, name: newDriverName.trim() };
-    saveDrivers([...drivers, newDriver]);
-    setNewDriverName('');
+    try {
+      const res = await fetch(`${API_URL}/api/drivers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newDriverName.trim() })
+      });
+      if (res.ok) {
+        const newDriver = await res.json();
+        setDrivers(prev => [...prev, newDriver]);
+        setNewDriverName('');
+        toast.success('Водитель добавлен');
+      }
+    } catch (e) {
+      console.error('Failed to add driver:', e);
+      toast.error('Ошибка добавления водителя');
+    }
   };
 
-  // Remove driver
-  const removeDriver = (driverId) => {
-    saveDrivers(drivers.filter(d => d.id !== driverId));
+  // Remove driver via API
+  const removeDriver = async (driverId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/drivers/${driverId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setDrivers(prev => prev.filter(d => d.id !== driverId));
+        toast.success('Водитель удалён');
+      }
+    } catch (e) {
+      console.error('Failed to remove driver:', e);
+      toast.error('Ошибка удаления водителя');
+    }
   };
 
   // Fetch orders for a specific section (only amoCRM orders for logistics)
