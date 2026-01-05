@@ -32,12 +32,19 @@ export const TRIP_STATUSES = {
   completed: { label: 'Доставлен', color: 'bg-green-100 text-green-700', icon: CheckCircle }
 };
 
-// Order status within trip
+// Order status within trip - synced with trip statuses
 export const ORDER_TRIP_STATUSES = {
   pending: { label: 'Ожидает', color: 'bg-gray-100 text-gray-700' },
-  delivering: { label: 'В доставке', color: 'bg-blue-100 text-blue-700' },
+  delivering: { label: 'В пути', color: 'bg-blue-100 text-blue-700' },
   delivered: { label: 'Доставлен', color: 'bg-green-100 text-green-700' },
   cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-700' }
+};
+
+// Map trip status to order status for auto-sync
+export const TRIP_TO_ORDER_STATUS = {
+  planned: 'pending',
+  in_transit: 'delivering',
+  completed: 'delivered'
 };
 
 // Default drivers list
