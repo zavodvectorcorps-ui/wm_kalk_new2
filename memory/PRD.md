@@ -5,6 +5,21 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### LogisticsPage Refactoring (2026-01-05)
+- **Problem**: `LogisticsPage.jsx` had grown to ~2956 lines, making it difficult to maintain
+- **Solution**: Extracted state management and business logic to a custom hook
+- **Changes**:
+  - Created `useLogistics.js` hook (~1300 lines) containing all state and API logic
+  - Updated `constants.js` with shared constants and helper functions
+  - Reduced `LogisticsPage.jsx` to ~1165 lines (60% reduction)
+  - All existing sub-components in `/logistics/` folder now properly utilized
+- **Files Modified**:
+  - `/app/frontend/src/components/LogisticsPage.jsx` - Main component (refactored)
+  - `/app/frontend/src/components/logistics/useLogistics.js` (NEW) - Custom hook
+  - `/app/frontend/src/components/logistics/constants.js` - Updated constants
+  - `/app/frontend/src/components/logistics/index.js` - Updated exports
+- **Status**: ✅ Verified - All features working after refactor (tested with testing agent)
+
 ### Backup System Fix (2026-01-05)
 - **Problem**: Backup was missing critical data:
   - Drivers were stored in localStorage (not backed up)
