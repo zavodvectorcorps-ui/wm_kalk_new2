@@ -60,6 +60,11 @@ class AmoCRMSettings(BaseModel):
     # Field IDs for status sync
     status_field_id: str = ""  # Custom field ID for delivery status
     comment_field_id: str = ""  # Custom field ID for comments/date
+    # Field IDs for trip sync
+    trip_number_field_id: str = ""  # Custom field for trip number/name
+    trip_driver_field_id: str = ""  # Custom field for driver name
+    trip_departure_field_id: str = ""  # Custom field for departure date
+    trip_order_status_field_id: str = ""  # Custom field for order status in trip
 
 
 # Default field mapping template
