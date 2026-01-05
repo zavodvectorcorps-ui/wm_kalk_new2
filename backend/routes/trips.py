@@ -432,19 +432,32 @@ async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
     if collection is None:
         raise HTTPException(status_code=400, detail="Invalid section")
     
-    # Update trip
+    # Update trip - remove orders and their statuses
     current_orders = existing.get("orderIds", [])
+    current_statuses = existing.get("orderStatuses", {})
+    
     new_orders = [oid for oid in current_orders if oid not in order_ids]
+    # Remove statuses for removed orders
+    for oid in order_ids:
+        current_statuses.pop(oid, None)
     
     trips_collection.update_one(
         {"id": trip_id},
-        {"$set": {"orderIds": new_orders, "updatedAt": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {
+            "orderIds": new_orders, 
+            "orderStatuses": current_statuses,
+            "updatedAt": datetime.now(timezone.utc).isoformat()
+        }}
     )
     
-    # Remove tripId from orders
+    # Remove all trip data from orders
     collection.update_many(
         {"id": {"$in": order_ids}},
-        {"$unset": {"tripId": "", "tripName": ""}}
+        {"$unset": {
+            "tripId": "", "tripName": "", "tripDriverId": "", 
+            "tripDriverName": "", "tripDepartureDate": "", 
+            "tripStatus": "", "tripOrderStatus": ""
+        }}
     )
     
     return {"status": "ok", "removed": order_ids}
