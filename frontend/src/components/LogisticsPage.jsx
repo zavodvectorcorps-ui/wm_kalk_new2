@@ -523,6 +523,23 @@ export const LogisticsPage = () => {
           setShowCreateTripModal={setShowCreateTripModal}
         />
       )}
+
+      {/* Add to Existing Trip Modal */}
+      {showAddToTripModal && (
+        <AddToTripModal
+          currentSection={currentSection}
+          currentData={currentData}
+          trips={trips}
+          activeSection={activeSection}
+          drivers={drivers}
+          addToTripId={addToTripId}
+          setAddToTripId={setAddToTripId}
+          addingToTrip={addingToTrip}
+          addOrdersToTrip={addOrdersToTrip}
+          setShowAddToTripModal={setShowAddToTripModal}
+          TRIP_STATUSES={TRIP_STATUSES}
+        />
+      )}
     </div>
   );
 };
