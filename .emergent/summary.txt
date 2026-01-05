@@ -2,57 +2,34 @@
 The user's high-level goal is to build a comprehensive logistics management system integrated with their amoCRM sales pipeline.
 
 PRODUCT REQUIREMENTS (from this session):
-1.  **Рейсы (Trips) Inside Categories**: Instead of a single global Trips tab, create separate Trips sub-tabs within each product category (Greenhouses, Hot Tubs, Saunas).
-2.  **Route Optimization & Management**:
-    *   Add a button to automatically optimize the order of stops in a trip for the shortest route.
-    *   Allow manual reordering of stops within a trip via drag-and-drop and up/down buttons.
-3.  **Warehouse Integration**:
-    *   Add a settings modal to specify a warehouse address.
-    *   Use the warehouse as the mandatory start and end point for all route optimizations.
-    *   Display the warehouse as a distinct marker on all maps.
-4.  **Trips UI Layout**: Redesign the trips view to have a multi-column layout: a list of trips on the left, details of the selected trip in the middle, and a live map of the route on the right.
-5.  **Comprehensive Backup**: Update the existing backup/restore functionality to include all new data structures, specifically , , and .
-6.  **Data Segregation**:
-    *   The main Logistics page should *only* display orders originating from amoCRM.
-    *   The Orders page (for calculator-generated orders) should *exclude* orders originating from amoCRM.
-7.  **Granular amoCRM Mapping**: The Field Mapping settings for amoCRM must be separated, allowing for different field ID configurations for each product category (Greenhouses, Hot Tubs, Saunas).
-8.  **Enhanced Trip & Order Status**:
-    *   Add status categories for trips (e.g., Ready to Ship, In Transit, Delivered).
-    *   Allow each individual order within a trip to have its own status (e.g., In Transit, Delivered, Canceled).
-9.  **Improved Order Data Display**:
-    *   In the order card, display data fetched from amoCRM in a structured key-value format instead of as plain text.
-    *   Automatically use the amoCRM deal ID as the order number.
-    *   Fetch and display a direct clickable link to the deal in amoCRM.
-10. **Advanced Map Interactivity**:
-    *   On the main logistics map, add a filter to toggle between viewing All Orders and only Unassigned Orders.
-    *   Change marker colors to differentiate between unassigned, in-trip, and important orders.
-    *   When clicking a map marker, open a small popup window with an option to add that order to the currently selected trip.
-    *   Add an Important Order flag/toggle to each order, which should be visually represented on the map.
+1.  **Backup System Integrity**: Ensure the backup functionality (manual, automatic, and Telegram send) captures *all* application data, including trips, drivers, all order types, and all settings.
+2.  **Map Interaction UX**: When a user clicks an order marker on the map, the map should not automatically zoom in. It should only highlight the point, allowing the user to select other nearby points.
+3.  **Important Order Flag**: Add a checkbox to each order card in the logistics list to mark it as important. This should be reflected on the map (e.g., different marker color/icon).
+4.  **Trip Status Synchronization**: The trip status categories (e.g., Ready to Ship, In Transit) used for filtering tabs must match the status options available in the dropdown menu for an individual trip.
+5.  **Order Visibility on Map**: Orders that have been assigned to a trip should not appear on the main logistics map when the Unassigned filter is active.
+6.  **amoCRM Address Composition**:
+    *   The system should combine multiple address fields from amoCRM (e.g., Street, City, Index) into a single, complete address.
+    *   The UI for amoCRM field mapping should be simplified, removing the redundant Full Address field and relying solely on the component fields.
+7.  **In-line Address Editing**: Allow users to manually edit an order's address directly from the order card in the logistics view, with Google Places Autocomplete for suggestions.
+8.  **Code Refactoring**: Refactor the monolithic  component to improve maintainability.
+9.  **Lazy Loading**: Implement lazy loading for the logistics component to improve initial app load time.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application now features a highly advanced logistics module. The Рейсы (Trips) feature is fully implemented with a nested UI, where each product category has its own Orders and Trips tabs. The trips management UI has been redesigned into a three-column layout showing a list of trips, details of the selected trip, and a live map displaying the route with travel time/distance estimates.
+The application's backup system is now robust and comprehensive. Drivers are no longer stored in  but have their own MongoDB collection and dedicated API (), ensuring they are included in all backups. The manual, automatic, and Telegram backup functions have been updated to correctly export all critical collections, including , , and .
 
-Route planning is significantly enhanced: trips can be automatically optimized via the Google Maps API, using a configurable warehouse address as the start/end point. The stop order can also be adjusted manually with drag-and-drop. Trips are now categorized by status (e.g., Ready to Ship), and individual orders within a trip have their own delivery status (e.g., Delivered).
+The logistics UI/UX has been significantly enhanced based on user feedback. The map no longer auto-zooms on marker selection. An Important Order checkbox has been added to each order card, which toggles a visual state on the map marker. The trip status dropdown values are now synchronized with the tabbed categories (Ready to Ship, In Transit, Delivered), and orders assigned to a trip are correctly hidden from the main map's Unassigned view.
 
-Data handling has been refined. The logistics page now correctly isolates amoCRM-sourced orders, while the calculator's order history excludes them. The amoCRM integration is more powerful, with separate field mappings for each product category and automatic extraction of the amoCRM deal ID and a direct link to the deal. The backup system has been updated to include all new collections like .
+The amoCRM integration has been improved. The settings UI was simplified by removing the redundant Full Address field, and the backend now consistently composes the full address from the Street, City, and Index fields. Additionally, users can now edit an order's address in-line directly from the logistics page, with support from Google Places Autocomplete.
 
-Map interactivity has been upgraded with filters, color-coded markers for different order statuses (unassigned, in-trip, important), and a flag for marking orders as important.
+A refactoring of the large  component was attempted but failed due to an error and was reverted. The code is back to its previous stable, albeit monolithic, state.
 
 **Last working item**:
--   **Last item agent was working**: Implementing the final set of user requests for advanced map interactivity. This included:
-    1.  Adding a filter to the main map to show All vs. Unassigned orders.
-    2.  Implementing different colored map markers for unassigned, in-trip, and important orders.
-    3.  Adding a popup on marker click to add an order to a trip.
-    4.  Creating a backend and frontend mechanism to flag an order as important.
--   **Status**: IN PROGRESS (The code has been written and committed, but it was the very last action and has not been tested or verified by the user).
+-   **Last item agent was working**: The user requested to proceed with refactoring  and implementing lazy loading. The agent confirmed that lazy loading was already active in  and was about to restart the refactoring process for .
+-   **Status**: NOT STARTED
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: Frontend testing agent. The test should verify:
-    1.  Toggling the important flag on an order and confirming the map marker changes color/icon.
-    2.  Using the map filter and ensuring orders in trips are hidden when Unassigned is selected.
-    3.  Clicking on an unassigned order's marker and using the popup to add it to a trip.
-    4.  Verifying the order moves from the main list to the trip list and its marker color updates.
+-   **Which testing method agent to use?**: Frontend testing agent. After the refactoring is complete, the agent should run a comprehensive test to verify all logistics functionalities (map interactions, order management, trip creation, filters, etc.) to ensure no regressions were introduced.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
@@ -72,33 +49,36 @@ Map interactivity has been upgraded with filters, color-coded markers for differ
     -   **Blocked on other issue**: None.
 
 **In progress Task List**:
--   **Task 1: Verify Advanced Map Interactivity Features (P0)**
-    -   **Where to resume**: The code has been added to . The next step is to perform a thorough test of the newly added map features (filters, popups, color-coded markers, important flag).
-    -   **What will be achieved with this?**: Confirms that the latest user request is fully functional and completes the current feature set for the logistics map.
-    -   **Status**: USER VERIFICATION PENDING
+-   **Task 1: Refactor  (P0)**
+    -   **Where to resume**: The user has just approved this task. The agent should create a  directory and break the monolithic  into smaller, manageable components (e.g., , , , , , ). A previous attempt failed with a Lazy element type error, suggesting a problem with how the components were exported/imported, likely related to  and default/named exports. The next attempt should be more careful, possibly avoiding  for sub-components initially to isolate the problem.
+    -   **What will be achieved with this?**: Drastically improve the maintainability, readability, and scalability of the logistics feature by breaking down a 2800-line component into focused, reusable parts.
+    -   **Status**: NOT STARTED
     -   **Should Test frontend/backend/both after fix?**: Frontend.
     -   **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
     -   **P1: Refactor **: This large component (1300+ lines) is a known candidate for refactoring to improve maintainability.
-    -   **P1: Refactor **: This component has grown to over 2500 lines and manages state for orders, drivers, trips, maps, modals, and settings. It is a significant technical debt and should be broken down into smaller, focused components (e.g., , , , ).
 -   **Future Tasks**:
     -   **P2: Finalize strategy for Sauna Lead Statistics**: A pending task to track leads from a Telegram group.
     -   **P3: Fix Minor Dropdown Positioning Glitch**: A low-priority visual bug in the Balia calculator.
 
 **Completed work in this session**
--   **Рейсы (Trips) Feature Overhaul**: Implemented nested tabs for trips within each product category, fulfilling a core user request.
--   **Route Optimization & Management**: Added automatic route optimization (via Google Maps API) and manual drag-and-drop reordering for orders within a trip.
--   **Warehouse & Map-centric Layout**: Implemented a setting for a warehouse address and redesigned the trips UI to show trip details alongside a live route map.
--   **Advanced Statuses**: Added status categories for trips and individual delivery statuses for orders within a trip.
--   **amoCRM Integration Enhancements**:
-    -   Implemented separate field mappings for each product category.
-    -   Automated extraction of amoCRM deal ID (as order number) and a direct link to the deal.
-    -   Structured the display of amoCRM data within order cards.
--   **Data Segregation**: Correctly filtered logistics and calculator order lists to prevent data crossover.
--   **Comprehensive Backup**: Updated the backend backup-and-restore functions to include all new collections (, , etc.).
--   **Advanced Map Features (Coded)**: Added code for map filters, color-coded markers, an important order flag, and clickable marker popups.
+-   **Comprehensive Backup System Overhaul**:
+    -   Migrated drivers from  to a new  collection in MongoDB, with full CRUD API endpoints ().
+    -   Updated all backup functions (manual export, auto-backup, Telegram send) to correctly include , , and .
+    -   Verified that all 18 database collections are now successfully captured in backups.
+-   **Logistics UI/UX Improvements**:
+    -   Disabled auto-zoom on map marker clicks.
+    -   Added a functional Important Order checkbox to order cards.
+    -   Fixed the trip status dropdown to align with trip category tabs (, , ).
+    -   Corrected the map filter logic to hide orders-in-trips from the Unassigned view.
+    -   Implemented tab-based filtering for the trips list by status.
+-   **amoCRM Address Handling Refinement**:
+    -   Simplified the amoCRM settings UI by removing the redundant Full Address mapping field.
+    -   Updated the backend to always compose the address from Street, City, and Index fields.
+-   **In-line Order Address Editing**: Implemented functionality to edit an order's address directly in the  UI, complete with Google Places Autocomplete.
+-   **Data and State Cleanup**: Deleted all test trips and associated data from the database at the user's request, resetting the trip counter to zero.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Deprecated Google Maps Autocomplete component.**
@@ -110,73 +90,72 @@ Map interactivity has been upgraded with filters, color-coded markers for differ
     -   **Is recurring issue?** Y
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: The address field disappearing in the Balia (Hot Tubs) calculator.
--   **Recurrence count**: 3+
--   **Status**: RESOLVED (Bypassed by implementing a hardcoded form).
+-   **Issue recurrence in previous fork**: An attempt to refactor  failed and was reverted.
+-   **Recurrence count**: 1
+-   **Status**: NOT STARTED (The task is pending, but the faulty code was rolled back).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Client-Side Route Optimization**: Using Google Maps Directions API with  to calculate the most efficient delivery route, including a fixed start/end point (warehouse).
--   **Complex Single-Component State Management**:  now manages a huge amount of state for orders, trips, maps, modals, filters, and settings, highlighting a need for refactoring.
--   **Interactive Maps**: Implementation of dynamic, color-coded markers,  popups on marker clicks, and  for drawing routes in .
--   **Drag-and-Drop**: Implemented for manual reordering of orders within a trip.
--   **Data Segregation**: Filtering data at the source ( calls) to create distinct views for logistics (amoCRM only) and internal orders.
--   **Nested Data Models**: Backend models were updated to handle new nested data, such as a list of order objects (with their own status) within a trip document.
+-   **Backend Data Persistence**: Migrated a key data entity (drivers) from client-side  to a server-side MongoDB collection, making it persistent, secure, and available for backups.
+-   **API Refactoring**: Created a dedicated RESTful API endpoint () for managing drivers, separating concerns from the  API.
+-   **Comprehensive Backup Strategy**: Ensured data integrity by scripting the export/import of all collections in the database, including settings and logs.
+-   **Conditional Rendering & State Management**: The  component heavily uses state to manage UI modes like address editing (), filters (, ), and data display.
+-   **React  for Side Effects**: Used  to initialize the Google Places Autocomplete instance on an input field when a user enters address-editing mode.
 
 **key DB schema**
--   **trips**: Now includes  (, , ). The  field is now a list of objects: .
--   **amocrm_settings**: The  field is now a nested object: .
--   **All order collections** (, , ): Now include ,  (from amoCRM deal ID), and .
+-   **users**: Schema was debugged and fixed to include , , .
+-   **drivers**: (New collection) 
+-   **orders (all types)**: Now include  in addition to .  is added when assigned to a trip.
+-   **integration_settings**: Used for storing amoCRM field mappings.
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--    (Primary file for all new features)
--    (Backend logic for trips, statuses, optimization)
--    (Backend logic for amoCRM integration)
--    (UI for amoCRM settings)
--    (Backend for backup/restore)
--    (UI for calculator orders)
+-    (Core file for the backup system fixes)
+-    (New file for driver API)
+-    (To register the new driver routes)
+-    (Primary file for all UI/UX changes, and the main target for refactoring)
+-    (UI for amoCRM address mapping)
+-    (Backend logic for revised address composition)
 
 **Areas that need refactoring**:
--   ** is critically oversized (>2500 lines) and complex.** It must be broken down into smaller, specialized components (e.g., , , , , ) to be maintainable.
--    remains a large component that would benefit from being broken down.
+-   ** is critically oversized (~2800 lines) and must be broken down.** This is the user's highest priority technical task.
+-    remains a large component that would benefit from being broken down in the future.
 
 **key api endpoints**
--   : (New) Updates the status of a single order within a trip.
--   : (New) Toggles the important flag for an order.
--   , : (Modified) Handles new collections (, ).
--   : (Modified) Saves the new per-category field mapping structure.
--   : (Modified) Now uses section-specific field mappings and extracts deal ID/link.
--   , : (Modified) Updated to handle trip categories and nested order statuses.
+-   : (New) Fetches all drivers.
+-   : (New) Creates a new driver.
+-   : (New) Deletes a driver.
+-   : (Modified) Used to update the order's address and coordinates.
+-   , : (Modified) Now handles all collections including  and .
+-   : (Modified) Now uses the 3-part address composition logic.
 
 **Critical Info for New Agent**
 -   You MUST respond to the user in **Russian**.
--   The immediate priority is to **test and verify the new map features** (filters, popups, colored markers, important flag) in .
--   ** is extremely fragile due to its size.** Be very careful when making changes. A major refactor of this component is the most important piece of technical debt to address after verifying the current features.
--   The warehouse address is stored in , so it may need to be set again in the Settings modal in a new preview environment to test route optimization.
+-   The immediate priority (P0) is to **refactor **. Be aware that a previous attempt failed. Proceed cautiously, creating one component at a time and testing incrementally. Start by creating the  directory and moving constants out first. Then extract a simple display-only component before moving stateful logic. Avoid  on the new sub-components until the basic structure is working.
+-   After the refactor, a full regression test of the logistics page is mandatory.
+-   The user gave advice on project architecture, concluding that the project does **not** need to be split into microservices. The focus should be on internal code quality improvements like refactoring.
 
 **documents and test reports created in this job**
--   
 -    (Continuously updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: When editing a trip, I want to see the route map. Also, I need to set a warehouse address as the start/end point for routes. (COMPLETED)
-2.  **User**: Update the backup function to save all new information (trips, logistics, orders, etc.). (COMPLETED)
-3.  **User**: Only orders from amoCRM should be shown in logistics. (COMPLETED)
-4.  **User**: When importing from amoCRM, these orders should not appear in the calculator's order list. (COMPLETED)
-5.  **User**: The amoCRM field mapping needs to be different for greenhouses, tubs, and saunas. (COMPLETED)
-6.  **User**: I need to set a status for each order within a trip (in delivery, delivered, canceled) and also categorize trips (ready, in transit, delivered). (COMPLETED)
-7.  **User**: Structure the data from amoCRM in the order card, pull the order number (deal ID), and get a direct link to the amoCRM deal. (COMPLETED)
-8.  **User**: After moving an order to a trip, it still shows on the main map. Can you filter the map? (IN PROGRESS)
-9.  **User**: Can I click a map marker to open a small window and add it to a trip? Also, change marker colors for free vs. in-trip orders. (IN PROGRESS)
-10. **User**: Add a flag for important order that also changes the marker color or adds an icon. (IN PROGRESS)
+1.  **User**: Fix trip statuses to match categories (ready to ship/in transit/delivered). Also, the trip counter is wrong after I deleted trips. (COMPLETED)
+2.  **User**: When I select a map marker, don't zoom in. Just highlight it. Also, add an important order checkbox to each order. (COMPLETED)
+3.  **User**: My amoCRM has multiple address fields, but only one is transferring. Also, let me edit the address in the order card with Google suggestions. (COMPLETED)
+4.  **User**: In the amoCRM settings, the Full Address and Street fields have the same ID. Let's remove Full Address and always build it from the three fields (street, city, index). (COMPLETED)
+5.  **User**: Is my project getting too loaded? Should I split logistics into a separate project? (ANSWERED - Agent advised against splitting).
+6.  **User**: Okay. Then let's do the refactoring and lazy loading. (IN PROGRESS - Agent confirmed lazy loading exists and is starting refactoring).
+7.  **User**: Change trip statuses to match the categories. When I change a trip to 'active', it's not moving to the 'in transit' tab. (COMPLETED)
+8.  **User**: After you deploy, reset the trip counter. It shows trips even though I deleted them. (COMPLETED)
+9.  **User**: I can't see trips if I select the 'active' status. The trips view needs tabs for 'ready to ship'/'in transit'/'completed'. Also, markers for orders in a trip are not disappearing from the main map. (COMPLETED)
+10. **User**: Perfect! It's all working as needed. (User confirmation of fixes).
 
 **Project Health Check:**
--   **Broken**: The newly added map interactivity features (filters, popups, marker colors, important flag) have been coded but are untested and unverified.
+-   **Broken**: None. The failed refactoring was reverted to a stable state.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
@@ -184,14 +163,14 @@ Map interactivity has been upgraded with filters, color-coded markers for differ
 -   **amoCRM**: Used for creating orders from sales leads. Requires a User API Key (long-term token) and domain.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, but several major features were added *after* the last test run.
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
--   Login credentials can be found in the database ( collection) or created via the application's registration flow. Test amoCRM functionality requires user-provided credentials in the settings page.
+-   A test user was created to bypass login issues:  /  (role: admin).
 
 **What agent forgot to execute**
--   The agent did not fix a  linting warning in , classifying it as non-critical.
+-   The refactoring of  was attempted but failed and had to be reverted. It is the main pending task.
 -   The technical debt of migrating the deprecated Google Maps Autocomplete component remains unaddressed.</analysis>
