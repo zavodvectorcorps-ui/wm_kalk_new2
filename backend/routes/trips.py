@@ -320,6 +320,13 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
     trips_collection.update_one({"id": trip_id}, {"$set": update_data})
     
     updated = trips_collection.find_one({"id": trip_id}, {"_id": 0})
+    
+    # Sync trip data to amoCRM for orders with amocrm_id
+    try:
+        await sync_trip_orders_to_amocrm(updated, collection)
+    except Exception as e:
+        logger.error(f"Failed to sync trip to amoCRM: {e}")
+    
     return updated
 
 
