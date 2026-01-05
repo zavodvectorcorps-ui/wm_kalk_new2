@@ -1,33 +1,139 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
+import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
 import { 
-  MapPin, Route, RefreshCw, Package, Plus, User, Settings, Warehouse
+  MapPin, 
+  Route, 
+  Truck, 
+  Clock, 
+  Navigation,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Package,
+  Plus,
+  User,
+  Phone,
+  FileText,
+  X,
+  Waves,
+  Flame,
+  Warehouse,
+  CheckCircle,
+  Circle,
+  Send,
+  Calendar,
+  Users,
+  Hash,
+  Trash2,
+  Settings,
+  GripVertical,
+  Sparkles,
+  ArrowUp,
+  ArrowDown,
+  ExternalLink,
+  DollarSign,
+  MessageSquare,
+  AlertTriangle,
+  AlertCircle,
+  Filter,
+  Eye,
+  Star
 } from 'lucide-react';
 
-// Import refactored components
-import {
-  API_URL, GOOGLE_MAPS_API_KEY, libraries, SECTIONS, TRIP_STATUSES,
-  DEFAULT_DRIVERS, getUnassignedOrders, formatDate
-} from './logistics/constants';
-import OrdersMap from './logistics/OrdersMap';
-import OrdersList from './logistics/OrdersList';
-import TripsList from './logistics/TripsList';
-import TripDetails, { TripMap } from './logistics/TripDetails';
-import { 
-  CreateTripModal, DriversModal, SettingsModal, CreateOrderModal 
-} from './logistics/LogisticsModals';
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
-const LogisticsPage = () => {
-  // Section state
+const mapContainerStyle = {
+  width: '100%',
+  height: '500px',
+  borderRadius: '8px'
+};
+
+const defaultCenter = {
+  lat: 52.2297,
+  lng: 21.0122
+};
+
+const libraries = ['places', 'geometry'];
+
+// Delivery status options for individual orders
+const DELIVERY_STATUSES = {
+  pending: { label: 'Ожидает', labelPl: 'Oczekuje', color: 'bg-gray-100 text-gray-700', icon: Circle },
+  preparing: { label: 'Готовится', labelPl: 'W przygotowaniu', color: 'bg-yellow-100 text-yellow-700', icon: Package },
+  in_transit: { label: 'В пути', labelPl: 'W drodze', color: 'bg-blue-100 text-blue-700', icon: Truck },
+  delivered: { label: 'Доставлено', labelPl: 'Dostarczone', color: 'bg-green-100 text-green-700', icon: CheckCircle }
+};
+
+// Trip status categories
+const TRIP_STATUSES = {
+  planned: { label: 'Готов к отправке', color: 'bg-yellow-100 text-yellow-700', icon: Package },
+  in_transit: { label: 'В пути', color: 'bg-blue-100 text-blue-700', icon: Truck },
+  completed: { label: 'Доставлен', color: 'bg-green-100 text-green-700', icon: CheckCircle }
+};
+
+// Order status within trip
+const ORDER_TRIP_STATUSES = {
+  pending: { label: 'Ожидает', color: 'bg-gray-100 text-gray-700' },
+  delivering: { label: 'В доставке', color: 'bg-blue-100 text-blue-700' },
+  delivered: { label: 'Доставлен', color: 'bg-green-100 text-green-700' },
+  cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-700' }
+};
+
+// Default drivers (can be edited in settings)
+const DEFAULT_DRIVERS = [
+  { id: 'driver1', name: 'Водитель 1' },
+  { id: 'driver2', name: 'Водитель 2' },
+  { id: 'driver3', name: 'Водитель 3' }
+];
+
+// Section configurations
+const SECTIONS = {
+  greenhouse: {
+    id: 'greenhouse',
+    name: { ru: 'Теплицы', pl: 'Szklarnie' },
+    icon: Warehouse,
+    color: 'text-green-600',
+    bgColor: 'bg-green-100',
+    borderColor: 'border-green-500',
+    endpoint: '/api/greenhouse/orders',
+    markerColor: '#16a34a'
+  },
+  balia: {
+    id: 'balia',
+    name: { ru: 'Купели', pl: 'Balie' },
+    icon: Waves,
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+    borderColor: 'border-blue-500',
+    endpoint: '/api/orders',
+    markerColor: '#2563eb'
+  },
+  sauna: {
+    id: 'sauna',
+    name: { ru: 'Сауны', pl: 'Sauny' },
+    icon: Flame,
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-100',
+    borderColor: 'border-orange-500',
+    endpoint: '/api/sauna/orders',
+    markerColor: '#ea580c'
+  }
+};
+
+export const LogisticsPage = () => {
   const [activeSection, setActiveSection] = useState('balia');
-  const [activeInnerTab, setActiveInnerTab] = useState('orders');
   
-  // Data state per section
+  // State for each section
   const [sectionData, setSectionData] = useState({
     greenhouse: { orders: [], selectedOrders: [], markers: [], directions: null, routeInfo: null },
     balia: { orders: [], selectedOrders: [], markers: [], directions: null, routeInfo: null },
@@ -38,8 +144,9 @@ const LogisticsPage = () => {
   const [buildingRoute, setBuildingRoute] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
   
-  // Trips state
+  // Trips (рейсы) state
   const [trips, setTrips] = useState([]);
+  const [activeInnerTab, setActiveInnerTab] = useState('orders'); // 'orders' or 'trips'
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showCreateTripModal, setShowCreateTripModal] = useState(false);
   const [newTripName, setNewTripName] = useState('');
@@ -53,18 +160,28 @@ const LogisticsPage = () => {
   const [showDriversModal, setShowDriversModal] = useState(false);
   const [newDriverName, setNewDriverName] = useState('');
   
-  // Map state
-  const [mapFilter, setMapFilter] = useState('free');
-  const [tripStatusFilter, setTripStatusFilter] = useState('planned');
+  // Bulk actions state
+  const [showBulkActions, setShowBulkActions] = useState(false);
   
-  // Order form state
+  // Map filter and popup state
+  const [mapFilter, setMapFilter] = useState('free'); // 'all' or 'free' (not in trip)
+  const [selectedMapOrder, setSelectedMapOrder] = useState(null); // Order clicked on map
+  const [mapPopupPosition, setMapPopupPosition] = useState(null); // Position for popup
+  
+  // Trip status filter
+  const [tripStatusFilter, setTripStatusFilter] = useState('planned'); // 'planned', 'in_transit', 'completed'
+  
+  // New order form state
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [newOrderForm, setNewOrderForm] = useState({
-    fullName: '', phoneNumber: '', fullAddress: '', orderComposition: ''
+    fullName: '',
+    phoneNumber: '',
+    fullAddress: '',
+    orderComposition: ''
   });
   const [creatingOrder, setCreatingOrder] = useState(false);
   
-  // Settings state
+  // Settings state (warehouse)
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [warehouseAddress, setWarehouseAddress] = useState('');
   const [warehouseCoords, setWarehouseCoords] = useState(null);
@@ -75,18 +192,19 @@ const LogisticsPage = () => {
   const [tripRouteInfo, setTripRouteInfo] = useState(null);
   const [buildingTripRoute, setBuildingTripRoute] = useState(false);
   
-  // Refs
   const mapRef = useRef(null);
   const tripMapRef = useRef(null);
   const geocoderRef = useRef(null);
+  const autocompleteRef = useRef(null);
   const addressInputRef = useRef(null);
   const warehouseInputRef = useRef(null);
-  
-  const { isLoaded } = useJsApiLoader({
+
+  const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries
   });
-  
+
+  // Get current section data
   const currentData = sectionData[activeSection];
   const currentSection = SECTIONS[activeSection];
 
@@ -103,18 +221,23 @@ const LogisticsPage = () => {
     }
   }, []);
 
-  // Load warehouse settings
   useEffect(() => {
-    const saved = localStorage.getItem('warehouse_address');
-    const savedCoords = localStorage.getItem('warehouse_coords');
-    if (saved) setWarehouseAddress(saved);
-    if (savedCoords) {
-      try {
-        setWarehouseCoords(JSON.parse(savedCoords));
-      } catch (e) {}
-    }
     fetchDrivers();
   }, [fetchDrivers]);
+
+  // Load warehouse settings from localStorage
+  useEffect(() => {
+    const savedWarehouse = localStorage.getItem('logistics_warehouse');
+    if (savedWarehouse) {
+      try {
+        const data = JSON.parse(savedWarehouse);
+        setWarehouseAddress(data.address || '');
+        setWarehouseCoords(data.coords || null);
+      } catch (e) {
+        console.error('Failed to load warehouse settings:', e);
+      }
+    }
+  }, []);
 
   // Save warehouse settings
   const saveWarehouseSettings = async () => {
@@ -125,32 +248,27 @@ const LogisticsPage = () => {
     
     setSavingSettings(true);
     try {
-      if (geocoderRef.current) {
-        geocoderRef.current.geocode({ address: warehouseAddress }, (results, status) => {
-          if (status === 'OK' && results[0]) {
-            const coords = {
-              lat: results[0].geometry.location.lat(),
-              lng: results[0].geometry.location.lng()
-            };
-            setWarehouseCoords(coords);
-            localStorage.setItem('warehouse_address', warehouseAddress);
-            localStorage.setItem('warehouse_coords', JSON.stringify(coords));
-            toast.success('Адрес склада сохранён');
-            setShowSettingsModal(false);
-          } else {
-            toast.error('Не удалось определить координаты адреса');
-          }
-          setSavingSettings(false);
-        });
-      }
+      // Geocode warehouse address
+      const coords = await geocodeAddress(warehouseAddress);
+      setWarehouseCoords(coords);
+      
+      // Save to localStorage
+      localStorage.setItem('logistics_warehouse', JSON.stringify({
+        address: warehouseAddress,
+        coords
+      }));
+      
+      toast.success('Настройки сохранены');
+      setShowSettingsModal(false);
     } catch (error) {
-      console.error('Error saving warehouse:', error);
-      toast.error('Ошибка сохранения');
+      console.error('Failed to geocode warehouse:', error);
+      toast.error('Не удалось определить координаты склада. Проверьте адрес.');
+    } finally {
       setSavingSettings(false);
     }
   };
 
-  // Driver management
+  // Add driver via API
   const addDriver = async () => {
     if (!newDriverName.trim()) return;
     try {
@@ -171,9 +289,12 @@ const LogisticsPage = () => {
     }
   };
 
+  // Remove driver via API
   const removeDriver = async (driverId) => {
     try {
-      const res = await fetch(`${API_URL}/api/drivers/${driverId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/drivers/${driverId}`, {
+        method: 'DELETE'
+      });
       if (res.ok) {
         setDrivers(prev => prev.filter(d => d.id !== driverId));
         toast.success('Водитель удалён');
@@ -184,13 +305,14 @@ const LogisticsPage = () => {
     }
   };
 
-  // Fetch orders for section
+  // Fetch orders for a specific section (only amoCRM orders for logistics)
   const fetchSectionOrders = useCallback(async (sectionId) => {
     const section = SECTIONS[sectionId];
     try {
       const res = await fetch(`${API_URL}${section.endpoint}`);
       if (res.ok) {
         const allOrders = await res.json();
+        // Filter only amoCRM orders for logistics
         const orders = allOrders
           .filter(o => o.amocrm_id || o.source === 'amocrm')
           .map(o => ({ ...o, orderType: sectionId }))
@@ -201,6 +323,65 @@ const LogisticsPage = () => {
     } catch (error) {
       console.error(`Error fetching ${sectionId} orders:`, error);
       return [];
+    }
+  }, []);
+
+  // Geocode orders that have addresses but no coordinates
+  const geocodeOrdersInBackground = useCallback(async (orders, sectionId) => {
+    if (!geocoderRef.current) return;
+    
+    const section = SECTIONS[sectionId];
+    const ordersToGeocode = orders.filter(o => 
+      (o.fullAddress || o.address) && !o.lat && !o.lng
+    );
+    
+    // Geocode in batches of 5 to avoid rate limits
+    for (let i = 0; i < ordersToGeocode.length; i += 5) {
+      const batch = ordersToGeocode.slice(i, i + 5);
+      
+      await Promise.all(batch.map(async (order) => {
+        try {
+          const address = order.fullAddress || order.address;
+          const coords = await new Promise((resolve, reject) => {
+            geocoderRef.current.geocode({ address }, (results, status) => {
+              if (status === 'OK' && results[0]) {
+                resolve({
+                  lat: results[0].geometry.location.lat(),
+                  lng: results[0].geometry.location.lng()
+                });
+              } else {
+                reject(new Error(status));
+              }
+            });
+          });
+          
+          // Update order with coordinates in state
+          setSectionData(prev => ({
+            ...prev,
+            [sectionId]: {
+              ...prev[sectionId],
+              orders: prev[sectionId].orders.map(o => 
+                o.id === order.id ? { ...o, lat: coords.lat, lng: coords.lng } : o
+              )
+            }
+          }));
+          
+          // Also save to database
+          fetch(`${API_URL}${section.endpoint}/${order.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...order, lat: coords.lat, lng: coords.lng })
+          }).catch(console.error);
+          
+        } catch (error) {
+          console.log(`Could not geocode order ${order.id}: ${error.message}`);
+        }
+      }));
+      
+      // Wait between batches to respect rate limits
+      if (i + 5 < ordersToGeocode.length) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
     }
   }, []);
 
@@ -219,18 +400,31 @@ const LogisticsPage = () => {
         balia: { ...prev.balia, orders: balia },
         sauna: { ...prev.sauna, orders: sauna }
       }));
+      
+      // Geocode orders in background after loading
+      setTimeout(() => {
+        if (geocoderRef.current) {
+          geocodeOrdersInBackground(greenhouse, 'greenhouse');
+          geocodeOrdersInBackground(balia, 'balia');
+          geocodeOrdersInBackground(sauna, 'sauna');
+        }
+      }, 1000);
+      
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Ошибка загрузки заказов');
     } finally {
       setLoading(false);
     }
-  }, [fetchSectionOrders]);
+  }, [fetchSectionOrders, geocodeOrdersInBackground]);
 
-  // Fetch trips
-  const fetchTrips = useCallback(async () => {
+  // Fetch trips for a specific section
+  const fetchTrips = useCallback(async (section = null) => {
     try {
-      const res = await fetch(`${API_URL}/api/trips`);
+      const url = section 
+        ? `${API_URL}/api/trips?section=${section}` 
+        : `${API_URL}/api/trips`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setTrips(data);
@@ -240,20 +434,7 @@ const LogisticsPage = () => {
     }
   }, []);
 
-  // Initial load
-  useEffect(() => {
-    fetchAllOrders();
-    fetchTrips();
-  }, [fetchAllOrders, fetchTrips]);
-
-  // Initialize geocoder
-  useEffect(() => {
-    if (isLoaded && !geocoderRef.current) {
-      geocoderRef.current = new window.google.maps.Geocoder();
-    }
-  }, [isLoaded]);
-
-  // Create trip
+  // Create new trip from selected orders
   const createTrip = async () => {
     if (!newTripName.trim() || currentData.selectedOrders.length === 0) {
       toast.error('Введите название рейса и выберите заказы');
@@ -281,12 +462,18 @@ const LogisticsPage = () => {
         setShowCreateTripModal(false);
         setNewTripName('');
         setNewTripDriver('');
+        
+        // Refresh data
         fetchAllOrders();
-        fetchTrips();
+        fetchTrips(activeSection);
+        
+        // Clear selection
         setSectionData(prev => ({
           ...prev,
           [activeSection]: { ...prev[activeSection], selectedOrders: [] }
         }));
+        
+        // Switch to trips tab
         setActiveInnerTab('trips');
       } else {
         throw new Error('Failed to create trip');
@@ -299,7 +486,7 @@ const LogisticsPage = () => {
     }
   };
 
-  // Update trip
+  // Update trip (assign driver, change status)
   const updateTrip = async (tripId, updates) => {
     try {
       const res = await fetch(`${API_URL}/api/trips/${tripId}`, {
@@ -307,52 +494,57 @@ const LogisticsPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
+      
       if (res.ok) {
-        const updated = await res.json();
-        setTrips(prev => prev.map(t => t.id === tripId ? updated : t));
-        if (selectedTrip?.id === tripId) {
-          setSelectedTrip(updated);
-        }
+        fetchTrips(activeSection);
         toast.success('Рейс обновлён');
       }
     } catch (error) {
       console.error('Error updating trip:', error);
-      toast.error('Ошибка обновления рейса');
+      toast.error('Ошибка обновления');
     }
   };
 
-  // Delete trip
+  // Delete trip (return orders to general list)
   const deleteTrip = async (tripId) => {
-    if (!window.confirm('Удалить рейс?')) return;
+    if (!window.confirm('Удалить рейс? Заказы вернутся в общий список.')) return;
     
     try {
-      const res = await fetch(`${API_URL}/api/trips/${tripId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/trips/${tripId}`, {
+        method: 'DELETE'
+      });
+      
       if (res.ok) {
-        setTrips(prev => prev.filter(t => t.id !== tripId));
+        toast.success('Рейс удалён');
+        fetchTrips(activeSection);
+        fetchAllOrders();
         if (selectedTrip?.id === tripId) {
           setSelectedTrip(null);
         }
-        fetchAllOrders();
-        toast.success('Рейс удалён');
       }
     } catch (error) {
       console.error('Error deleting trip:', error);
-      toast.error('Ошибка удаления рейса');
+      toast.error('Ошибка удаления');
     }
   };
 
-  // Update order status in trip
+  // Update order status within trip
   const updateOrderStatusInTrip = async (tripId, orderId, newStatus) => {
     try {
       const res = await fetch(`${API_URL}/api/trips/${tripId}/order-status/${orderId}?status=${newStatus}`, {
         method: 'PUT'
       });
+      
       if (res.ok) {
-        const updated = await res.json();
-        setTrips(prev => prev.map(t => t.id === tripId ? updated : t));
+        // Update local state
         if (selectedTrip?.id === tripId) {
-          setSelectedTrip(updated);
+          setSelectedTrip(prev => ({
+            ...prev,
+            orderStatuses: { ...prev.orderStatuses, [orderId]: newStatus }
+          }));
         }
+        fetchTrips(activeSection);
+        toast.success('Статус обновлён');
       }
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -366,225 +558,160 @@ const LogisticsPage = () => {
       const res = await fetch(`${API_URL}/api/trips/${tripId}/remove-orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderIds: [orderId] })
+        body: JSON.stringify([orderId])
       });
+      
       if (res.ok) {
-        const updated = await res.json();
-        setTrips(prev => prev.map(t => t.id === tripId ? updated : t));
+        // Update selected trip locally
         if (selectedTrip?.id === tripId) {
-          setSelectedTrip(updated);
+          setSelectedTrip(prev => ({
+            ...prev,
+            orderIds: prev.orderIds.filter(id => id !== orderId)
+          }));
         }
+        fetchTrips(activeSection);
         fetchAllOrders();
         toast.success('Заказ убран из рейса');
       }
     } catch (error) {
       console.error('Error removing order:', error);
-      toast.error('Ошибка');
+      toast.error('Ошибка удаления заказа из рейса');
     }
   };
 
-  // Toggle order selection
-  const toggleOrderSelection = (orderId) => {
-    setSectionData(prev => {
-      const isSelected = prev[activeSection].selectedOrders.includes(orderId);
-      return {
-        ...prev,
-        [activeSection]: {
-          ...prev[activeSection],
-          selectedOrders: isSelected 
-            ? prev[activeSection].selectedOrders.filter(id => id !== orderId)
-            : [...prev[activeSection].selectedOrders, orderId]
-        }
-      };
-    });
-  };
-
-  // Toggle important flag
-  const toggleOrderImportant = async (orderId) => {
-    const order = currentData.orders.find(o => o.id === orderId);
-    if (!order) return;
-    
-    const newImportant = !order.isImportant;
-    const section = order.orderType || activeSection;
-    
-    try {
-      const res = await fetch(`${API_URL}/api/orders/${section}/${orderId}/toggle_important`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_important: newImportant })
-      });
-      
-      if (res.ok) {
-        setSectionData(prev => ({
-          ...prev,
-          [section]: {
-            ...prev[section],
-            orders: prev[section].orders.map(o => 
-              o.id === orderId ? { ...o, isImportant: newImportant } : o
-            )
-          }
-        }));
-        toast.success(newImportant ? 'Заказ отмечен как важный' : 'Отметка важности снята');
-      }
-    } catch (error) {
-      console.error('Error toggling important:', error);
-      toast.error('Ошибка');
-    }
-  };
-
-  // Update delivery status
-  const updateDeliveryStatus = async (orderId, status, comment = null) => {
-    const order = currentData.orders.find(o => o.id === orderId);
-    if (!order) return;
-    
-    const section = order.orderType || activeSection;
-    const sectionConfig = SECTIONS[section];
-    
-    try {
-      const res = await fetch(`${API_URL}${sectionConfig.endpoint}/${orderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          deliveryStatus: status,
-          ...(comment !== null && { deliveryComment: comment })
-        })
-      });
-      
-      if (res.ok) {
-        setSectionData(prev => ({
-          ...prev,
-          [section]: {
-            ...prev[section],
-            orders: prev[section].orders.map(o => 
-              o.id === orderId ? { 
-                ...o, 
-                deliveryStatus: status,
-                ...(comment !== null && { deliveryComment: comment })
-              } : o
-            )
-          }
-        }));
-        toast.success('Статус обновлён');
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Ошибка');
-    }
-  };
-
-  // Update order field
-  const updateOrderField = async (orderId, updates) => {
-    const order = currentData.orders.find(o => o.id === orderId);
-    if (!order) return;
-    
-    const section = order.orderType || activeSection;
-    const sectionConfig = SECTIONS[section];
-    
-    try {
-      const res = await fetch(`${API_URL}${sectionConfig.endpoint}/${orderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      
-      if (res.ok) {
-        setSectionData(prev => ({
-          ...prev,
-          [section]: {
-            ...prev[section],
-            orders: prev[section].orders.map(o => 
-              o.id === orderId ? { ...o, ...updates } : o
-            )
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('Error updating order:', error);
-    }
-  };
-
-  // Build route
-  const buildRoute = async () => {
-    if (currentData.selectedOrders.length < 2) {
-      toast.error('Выберите минимум 2 заказа для построения маршрута');
-      return;
-    }
-
-    setBuildingRoute(true);
-    try {
-      const ordersWithCoords = currentData.selectedOrders
-        .map(id => currentData.orders.find(o => o.id === id))
-        .filter(o => o && o.lat && o.lng);
-
-      if (ordersWithCoords.length < 2) {
-        toast.error('Недостаточно заказов с координатами');
-        setBuildingRoute(false);
-        return;
-      }
-
-      const directionsService = new window.google.maps.DirectionsService();
-      const origin = { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
-      const destination = { lat: ordersWithCoords[ordersWithCoords.length - 1].lat, lng: ordersWithCoords[ordersWithCoords.length - 1].lng };
-      const waypoints = ordersWithCoords.slice(1, -1).map(o => ({
-        location: { lat: o.lat, lng: o.lng },
-        stopover: true
-      }));
-
-      const result = await directionsService.route({
-        origin,
-        destination,
-        waypoints,
-        travelMode: window.google.maps.TravelMode.DRIVING
-      });
-
-      const route = result.routes[0];
-      let totalDistance = 0;
-      let totalDuration = 0;
-      route.legs.forEach(leg => {
-        totalDistance += leg.distance.value;
-        totalDuration += leg.duration.value;
-      });
-
-      setSectionData(prev => ({
-        ...prev,
-        [activeSection]: {
-          ...prev[activeSection],
-          directions: result,
-          routeInfo: { distance: totalDistance, duration: totalDuration }
-        }
-      }));
-    } catch (error) {
-      console.error('Error building route:', error);
-      toast.error('Ошибка построения маршрута');
-    } finally {
-      setBuildingRoute(false);
-    }
-  };
-
-  // Optimize trip route
+  // Optimize trip route using Google Maps Directions API
   const optimizeTripRoute = async () => {
     if (!selectedTrip || !selectedTrip.orderIds || selectedTrip.orderIds.length < 1) {
       toast.error('Добавьте заказы в рейс');
       return;
     }
 
+    // Get orders with coordinates
     const ordersWithCoords = selectedTrip.orderIds
       .map(id => sectionData[selectedTrip.section]?.orders.find(o => o.id === id))
       .filter(o => o && o.lat && o.lng);
 
     if (ordersWithCoords.length < 1) {
-      toast.error('Нужен минимум 1 заказ с координатами');
+      toast.error('Нужен минимум 1 заказ с координатами на карте');
+      return;
+    }
+
+    // Use warehouse as origin/destination if available
+    const useWarehouse = warehouseCoords && warehouseCoords.lat && warehouseCoords.lng;
+    
+    if (!useWarehouse && ordersWithCoords.length < 2) {
+      toast.error('Укажите адрес склада в настройках или добавьте минимум 2 заказа');
+      return;
+    }
+
+    setOptimizingRoute(true);
+    try {
+      const directionsService = new window.google.maps.DirectionsService();
+      
+      // Origin and destination - warehouse or first/last order
+      const origin = useWarehouse 
+        ? { lat: warehouseCoords.lat, lng: warehouseCoords.lng }
+        : { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
+      const destination = useWarehouse 
+        ? { lat: warehouseCoords.lat, lng: warehouseCoords.lng }
+        : { lat: ordersWithCoords[ordersWithCoords.length - 1].lat, lng: ordersWithCoords[ordersWithCoords.length - 1].lng };
+      
+      // All orders as waypoints when using warehouse
+      let waypoints;
+      if (useWarehouse) {
+        waypoints = ordersWithCoords.map(o => ({
+          location: { lat: o.lat, lng: o.lng },
+          stopover: true
+        }));
+      } else {
+        // Middle orders as waypoints
+        waypoints = ordersWithCoords.slice(1, -1).map(o => ({
+          location: { lat: o.lat, lng: o.lng },
+          stopover: true
+        }));
+      }
+
+      const result = await directionsService.route({
+        origin,
+        destination,
+        waypoints,
+        optimizeWaypoints: true, // Google will reorder waypoints for optimal route
+        travelMode: window.google.maps.TravelMode.DRIVING
+      });
+
+      // Get optimized order from waypoint_order
+      const waypointOrder = result.routes[0].waypoint_order;
+      
+      // Build new order IDs array based on optimization
+      let newOrderIds;
+      if (useWarehouse) {
+        // All orders were waypoints, reorder them all
+        newOrderIds = waypointOrder.map(i => ordersWithCoords[i].id);
+      } else {
+        const middleOrders = ordersWithCoords.slice(1, -1);
+        const optimizedMiddle = waypointOrder.map(i => middleOrders[i]);
+        const optimizedOrders = [
+          ordersWithCoords[0],
+          ...optimizedMiddle,
+          ordersWithCoords[ordersWithCoords.length - 1]
+        ];
+        newOrderIds = optimizedOrders.map(o => o.id);
+      }
+      
+      // Add any orders without coordinates at the end
+      const ordersWithoutCoords = selectedTrip.orderIds.filter(id => {
+        const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === id);
+        return !order || !order.lat || !order.lng;
+      });
+      newOrderIds.push(...ordersWithoutCoords);
+
+      // Update trip with new order
+      await updateTripOrderIds(selectedTrip.id, newOrderIds);
+      
+      // Save route for display
+      setTripDirections(result);
+      setTripRouteInfo({
+        distance: result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0),
+        duration: result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0)
+      });
+      
+      toast.success(`Маршрут оптимизирован! ${formatDistance(result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0))}, ${formatDuration(result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0))}`);
+    } catch (error) {
+      console.error('Error optimizing route:', error);
+      toast.error('Ошибка оптимизации маршрута');
+    } finally {
+      setOptimizingRoute(false);
+    }
+  };
+
+  // Build trip route for display (without optimization)
+  const buildTripRoute = async () => {
+    if (!selectedTrip || !selectedTrip.orderIds || selectedTrip.orderIds.length < 1) {
+      setTripDirections(null);
+      setTripRouteInfo(null);
+      return;
+    }
+
+    // Get orders with coordinates in current order
+    const ordersWithCoords = selectedTrip.orderIds
+      .map(id => sectionData[selectedTrip.section]?.orders.find(o => o.id === id))
+      .filter(o => o && o.lat && o.lng);
+
+    if (ordersWithCoords.length < 1) {
+      setTripDirections(null);
+      setTripRouteInfo(null);
       return;
     }
 
     const useWarehouse = warehouseCoords && warehouseCoords.lat && warehouseCoords.lng;
     
     if (!useWarehouse && ordersWithCoords.length < 2) {
-      toast.error('Укажите адрес склада или добавьте минимум 2 заказа');
+      setTripDirections(null);
+      setTripRouteInfo(null);
       return;
     }
 
-    setOptimizingRoute(true);
+    setBuildingTripRoute(true);
     try {
       const directionsService = new window.google.maps.DirectionsService();
       
@@ -612,147 +739,447 @@ const LogisticsPage = () => {
         origin,
         destination,
         waypoints,
-        optimizeWaypoints: true,
+        optimizeWaypoints: false, // Keep current order
         travelMode: window.google.maps.TravelMode.DRIVING
       });
 
-      const waypointOrder = result.routes[0].waypoint_order;
-      
-      let newOrderIds;
-      if (useWarehouse) {
-        newOrderIds = waypointOrder.map(i => ordersWithCoords[i].id);
-      } else {
-        const middleOrders = ordersWithCoords.slice(1, -1);
-        const optimizedMiddle = waypointOrder.map(i => middleOrders[i]);
-        newOrderIds = [
-          ordersWithCoords[0].id,
-          ...optimizedMiddle.map(o => o.id),
-          ordersWithCoords[ordersWithCoords.length - 1].id
-        ];
-      }
-
-      // Update trip
-      await updateTrip(selectedTrip.id, { orderIds: newOrderIds });
-      
-      // Calculate route info
-      const route = result.routes[0];
-      let totalDistance = 0;
-      let totalDuration = 0;
-      route.legs.forEach(leg => {
-        totalDistance += leg.distance.value;
-        totalDuration += leg.duration.value;
-      });
-
       setTripDirections(result);
-      setTripRouteInfo({ distance: totalDistance, duration: totalDuration });
-      
-      toast.success('Маршрут оптимизирован');
-    } catch (error) {
-      console.error('Error optimizing route:', error);
-      toast.error('Ошибка оптимизации маршрута');
-    } finally {
-      setOptimizingRoute(false);
-    }
-  };
-
-  // Build trip route
-  const buildTripRoute = async () => {
-    if (!selectedTrip) return;
-
-    const ordersWithCoords = selectedTrip.orderIds
-      ?.map(id => sectionData[selectedTrip.section]?.orders.find(o => o.id === id))
-      .filter(o => o && o.lat && o.lng) || [];
-
-    if (ordersWithCoords.length < 1) {
-      toast.error('Нет заказов с координатами');
-      return;
-    }
-
-    setBuildingTripRoute(true);
-    try {
-      const directionsService = new window.google.maps.DirectionsService();
-      const useWarehouse = warehouseCoords?.lat && warehouseCoords?.lng;
-      
-      const origin = useWarehouse ? warehouseCoords : { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
-      const destination = useWarehouse ? warehouseCoords : { lat: ordersWithCoords[ordersWithCoords.length - 1].lat, lng: ordersWithCoords[ordersWithCoords.length - 1].lng };
-      
-      const waypoints = useWarehouse 
-        ? ordersWithCoords.map(o => ({ location: { lat: o.lat, lng: o.lng }, stopover: true }))
-        : ordersWithCoords.slice(1, -1).map(o => ({ location: { lat: o.lat, lng: o.lng }, stopover: true }));
-
-      const result = await directionsService.route({
-        origin,
-        destination,
-        waypoints,
-        travelMode: window.google.maps.TravelMode.DRIVING
+      setTripRouteInfo({
+        distance: result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0),
+        duration: result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0)
       });
-
-      const route = result.routes[0];
-      let totalDistance = 0;
-      let totalDuration = 0;
-      route.legs.forEach(leg => {
-        totalDistance += leg.distance.value;
-        totalDuration += leg.duration.value;
-      });
-
-      setTripDirections(result);
-      setTripRouteInfo({ distance: totalDistance, duration: totalDuration });
     } catch (error) {
       console.error('Error building trip route:', error);
-      toast.error('Ошибка построения маршрута');
+      setTripDirections(null);
+      setTripRouteInfo(null);
     } finally {
       setBuildingTripRoute(false);
     }
   };
 
-  // Move order in trip
-  const moveOrderInTrip = (direction, index) => {
-    if (!selectedTrip) return;
-    
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= selectedTrip.orderIds.length) return;
-    
-    const newOrderIds = [...selectedTrip.orderIds];
-    [newOrderIds[index], newOrderIds[newIndex]] = [newOrderIds[newIndex], newOrderIds[index]];
-    
-    updateTrip(selectedTrip.id, { orderIds: newOrderIds });
+  // Build trip route when selected trip changes
+  useEffect(() => {
+    if (selectedTrip && isLoaded && activeInnerTab === 'trips') {
+      buildTripRoute();
+    } else {
+      setTripDirections(null);
+      setTripRouteInfo(null);
+    }
+  }, [selectedTrip, selectedTrip?.orderIds, isLoaded, activeInnerTab, warehouseCoords]);
+
+  // Update trip order IDs (for reordering)
+  const updateTripOrderIds = async (tripId, newOrderIds) => {
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${tripId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderIds: newOrderIds })
+      });
+      
+      if (res.ok) {
+        // Update local state
+        setSelectedTrip(prev => prev ? { ...prev, orderIds: newOrderIds } : null);
+        fetchTrips(activeSection);
+      }
+    } catch (error) {
+      console.error('Error updating trip order:', error);
+    }
   };
 
-  // Drag handlers
-  const handleDragStart = (index) => setDraggedOrderIndex(index);
-  const handleDragEnd = () => setDraggedOrderIndex(null);
-  const handleDragOver = (e) => e.preventDefault();
-  
-  const handleDrop = (e, targetIndex) => {
-    e.preventDefault();
-    if (draggedOrderIndex === null || !selectedTrip) return;
+  // Move order up in trip
+  const moveOrderUp = async (index) => {
+    if (!selectedTrip || index <= 0) return;
     
     const newOrderIds = [...selectedTrip.orderIds];
-    const [removed] = newOrderIds.splice(draggedOrderIndex, 1);
-    newOrderIds.splice(targetIndex, 0, removed);
+    [newOrderIds[index - 1], newOrderIds[index]] = [newOrderIds[index], newOrderIds[index - 1]];
     
-    updateTrip(selectedTrip.id, { orderIds: newOrderIds });
+    await updateTripOrderIds(selectedTrip.id, newOrderIds);
+    toast.success('Порядок изменён');
+  };
+
+  // Move order down in trip
+  const moveOrderDown = async (index) => {
+    if (!selectedTrip || index >= selectedTrip.orderIds.length - 1) return;
+    
+    const newOrderIds = [...selectedTrip.orderIds];
+    [newOrderIds[index], newOrderIds[index + 1]] = [newOrderIds[index + 1], newOrderIds[index]];
+    
+    await updateTripOrderIds(selectedTrip.id, newOrderIds);
+    toast.success('Порядок изменён');
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, index) => {
+    setDraggedOrderIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e, dropIndex) => {
+    e.preventDefault();
+    if (draggedOrderIndex === null || draggedOrderIndex === dropIndex) {
+      setDraggedOrderIndex(null);
+      return;
+    }
+    
+    const newOrderIds = [...selectedTrip.orderIds];
+    const [draggedItem] = newOrderIds.splice(draggedOrderIndex, 1);
+    newOrderIds.splice(dropIndex, 0, draggedItem);
+    
+    await updateTripOrderIds(selectedTrip.id, newOrderIds);
+    setDraggedOrderIndex(null);
+    toast.success('Порядок изменён');
+  };
+
+  const handleDragEnd = () => {
     setDraggedOrderIndex(null);
   };
 
-  // Map load handlers
-  const onMapLoad = useCallback((map) => {
-    mapRef.current = map;
-    if (!geocoderRef.current) {
-      geocoderRef.current = new window.google.maps.Geocoder();
-    }
-  }, []);
-
-  const onTripMapLoad = useCallback((map) => {
-    tripMapRef.current = map;
-  }, []);
-
-  // Handle marker click on map
-  const handleMarkerClick = (order) => {
-    toggleOrderSelection(order.id);
+  // Get orders without trip (for general list)
+  const getUnassignedOrders = (orders) => {
+    return orders.filter(o => !o.tripId);
   };
 
-  // Create order
+  useEffect(() => {
+    fetchAllOrders();
+    fetchTrips();
+  }, [fetchAllOrders, fetchTrips]);
+  
+  // Reload trips when section changes
+  useEffect(() => {
+    fetchTrips(activeSection);
+    setActiveInnerTab('orders');
+    setSelectedTrip(null);
+  }, [activeSection, fetchTrips]);
+
+  // Initialize geocoder and autocomplete when map is loaded
+  const onMapLoad = useCallback((map) => {
+    mapRef.current = map;
+    geocoderRef.current = new window.google.maps.Geocoder();
+  }, []);
+
+  // Initialize autocomplete when form opens
+  useEffect(() => {
+    if (!isLoaded || !showOrderForm || !addressInputRef.current) return;
+    if (autocompleteRef.current) return; // Already initialized
+    
+    // Use legacy Autocomplete (still supported, works reliably)
+    try {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: ['pl', 'de', 'cz', 'sk', 'lt', 'lv', 'ee', 'ua', 'by'] },
+        fields: ['formatted_address', 'geometry']
+      });
+      
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace();
+        if (place?.formatted_address) {
+          setNewOrderForm(prev => ({ ...prev, fullAddress: place.formatted_address }));
+        }
+      });
+    } catch (e) {
+      console.error('Failed to initialize autocomplete:', e);
+    }
+    
+    return () => {
+      if (autocompleteRef.current && window.google?.maps?.event) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [isLoaded, showOrderForm]);
+
+  // Geocode address to coordinates
+  const geocodeAddress = useCallback((address) => {
+    return new Promise((resolve, reject) => {
+      if (!geocoderRef.current) {
+        reject(new Error('Geocoder not initialized'));
+        return;
+      }
+      
+      geocoderRef.current.geocode({ address }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          resolve({
+            lat: results[0].geometry.location.lat(),
+            lng: results[0].geometry.location.lng()
+          });
+        } else {
+          reject(new Error(`Geocoding failed: ${status}`));
+        }
+      });
+    });
+  }, []);
+
+  // Update markers when selection changes
+  useEffect(() => {
+    const updateMarkers = async () => {
+      if (!isLoaded || currentData.selectedOrders.length === 0) {
+        setSectionData(prev => ({
+          ...prev,
+          [activeSection]: { ...prev[activeSection], markers: [] }
+        }));
+        return;
+      }
+
+      const newMarkers = [];
+      for (const orderId of currentData.selectedOrders) {
+        const order = currentData.orders.find(o => o.id === orderId);
+        if (order) {
+          const address = order.fullAddress || order.address;
+          try {
+            const coords = await geocodeAddress(address);
+            newMarkers.push({
+              id: order.id,
+              position: coords,
+              title: order.fullName || order.customerName,
+              address
+            });
+          } catch (error) {
+            console.error(`Failed to geocode: ${address}`, error);
+          }
+        }
+      }
+      
+      setSectionData(prev => ({
+        ...prev,
+        [activeSection]: { ...prev[activeSection], markers: newMarkers }
+      }));
+
+      // Note: Removed auto-zoom to allow selecting multiple nearby points
+    };
+
+    updateMarkers();
+  }, [currentData.selectedOrders, currentData.orders, isLoaded, geocodeAddress, activeSection]);
+
+  // Toggle order selection
+  const toggleOrderSelection = (orderId) => {
+    setSectionData(prev => {
+      const current = prev[activeSection];
+      const newSelected = current.selectedOrders.includes(orderId)
+        ? current.selectedOrders.filter(id => id !== orderId)
+        : [...current.selectedOrders, orderId];
+      return {
+        ...prev,
+        [activeSection]: { ...current, selectedOrders: newSelected, directions: null, routeInfo: null }
+      };
+    });
+  };
+
+  // Build route
+  const buildRoute = async () => {
+    if (currentData.markers.length < 2) {
+      toast.error('Выберите минимум 2 заказа для построения маршрута');
+      return;
+    }
+
+    // Get selected orders with coordinates
+    const ordersWithCoords = currentData.selectedOrders
+      .map(id => currentData.orders.find(o => o.id === id))
+      .filter(o => o && o.lat && o.lng);
+
+    if (ordersWithCoords.length < 2) {
+      toast.error('Нужно минимум 2 заказа с координатами на карте');
+      return;
+    }
+
+    setBuildingRoute(true);
+    try {
+      const directionsService = new window.google.maps.DirectionsService();
+      
+      const origin = { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
+      const destination = { 
+        lat: ordersWithCoords[ordersWithCoords.length - 1].lat, 
+        lng: ordersWithCoords[ordersWithCoords.length - 1].lng 
+      };
+      const waypoints = ordersWithCoords.slice(1, -1).map(o => ({
+        location: { lat: o.lat, lng: o.lng },
+        stopover: true
+      }));
+
+      const result = await directionsService.route({
+        origin,
+        destination,
+        waypoints,
+        optimizeWaypoints: true,
+        travelMode: window.google.maps.TravelMode.DRIVING
+      });
+
+      setSectionData(prev => ({
+        ...prev,
+        [activeSection]: {
+          ...prev[activeSection],
+          directions: result,
+          routeInfo: {
+            distance: result.routes[0].legs.reduce((sum, leg) => sum + leg.distance.value, 0),
+            duration: result.routes[0].legs.reduce((sum, leg) => sum + leg.duration.value, 0)
+          }
+        }
+      }));
+    } catch (error) {
+      console.error('Error building route:', error);
+      toast.error('Ошибка построения маршрута');
+    } finally {
+      setBuildingRoute(false);
+    }
+  };
+
+  // Clear route
+  const clearRoute = () => {
+    setSectionData(prev => ({
+      ...prev,
+      [activeSection]: {
+        ...prev[activeSection],
+        selectedOrders: [],
+        directions: null,
+        routeInfo: null
+      }
+    }));
+  };
+
+  // Get selected orders with coordinates
+  const getSelectedOrdersWithCoords = () => {
+    return currentData.selectedOrders
+      .map(id => currentData.orders.find(o => o.id === id))
+      .filter(o => o && o.lat && o.lng);
+  };
+
+  // Open route in Google Maps
+  const openInGoogleMaps = () => {
+    const ordersWithCoords = getSelectedOrdersWithCoords();
+    if (ordersWithCoords.length < 2) return;
+
+    const origin = ordersWithCoords[0];
+    const destination = ordersWithCoords[ordersWithCoords.length - 1];
+    const waypoints = ordersWithCoords.slice(1, -1).map(o => `${o.lat},${o.lng}`).join('|');
+
+    let url = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}`;
+    if (waypoints) {
+      url += `&waypoints=${waypoints}`;
+    }
+    url += '&travelmode=driving';
+
+    window.open(url, '_blank');
+  };
+
+  // Toggle important flag for order
+  const toggleOrderImportant = async (orderId) => {
+    try {
+      const order = currentData.orders.find(o => o.id === orderId);
+      if (!order) return;
+      
+      const newImportant = !order.isImportant;
+      
+      // Update in backend
+      const endpoint = activeSection === 'greenhouse' ? 'greenhouse' : activeSection === 'sauna' ? 'sauna' : 'balia';
+      await fetch(`${API_URL}/api/${endpoint}/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isImportant: newImportant })
+      });
+      
+      // Update local state
+      setSectionData(prev => ({
+        ...prev,
+        [activeSection]: {
+          ...prev[activeSection],
+          orders: prev[activeSection].orders.map(o => 
+            o.id === orderId ? { ...o, isImportant: newImportant } : o
+          )
+        }
+      }));
+      
+      toast.success(newImportant ? 'Заказ отмечен как важный' : 'Отметка снята');
+    } catch (error) {
+      console.error('Error toggling important:', error);
+      toast.error('Ошибка');
+    }
+  };
+
+  // Add single order to selected (for map popup)
+  const addOrderToSelection = (orderId) => {
+    setSectionData(prev => {
+      const isSelected = prev[activeSection].selectedOrders.includes(orderId);
+      return {
+        ...prev,
+        [activeSection]: {
+          ...prev[activeSection],
+          selectedOrders: isSelected 
+            ? prev[activeSection].selectedOrders.filter(id => id !== orderId)
+            : [...prev[activeSection].selectedOrders, orderId]
+        }
+      };
+    });
+  };
+
+  // Get marker color based on order state
+  const getMarkerColor = (order) => {
+    if (order.isImportant) return '#ef4444'; // Red for important
+    if (order.tripId) return '#9ca3af'; // Gray for in trip
+    return '#22c55e'; // Green for free
+  };
+
+  // Get marker icon for order
+  const getMarkerIcon = (order) => {
+    const color = getMarkerColor(order);
+    const isImportant = order.isImportant;
+    
+    if (isImportant) {
+      // Exclamation mark icon for important
+      return {
+        path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: 'white',
+        strokeWeight: 2,
+        scale: 1.2,
+        anchor: new window.google.maps.Point(12, 12)
+      };
+    }
+    
+    return {
+      path: window.google.maps.SymbolPath.CIRCLE,
+      scale: 10,
+      fillColor: color,
+      fillOpacity: 1,
+      strokeColor: 'white',
+      strokeWeight: 2
+    };
+  };
+
+  // Handle marker click on map
+  const handleMarkerClick = (order, event) => {
+    setSelectedMapOrder(order);
+    // Get pixel position from map
+    if (mapRef.current && event) {
+      const bounds = mapRef.current.getBounds();
+      const projection = mapRef.current.getProjection();
+      if (bounds && projection) {
+        setMapPopupPosition({
+          lat: order.lat,
+          lng: order.lng
+        });
+      }
+    }
+  };
+
+  // Close map popup
+  const closeMapPopup = () => {
+    setSelectedMapOrder(null);
+    setMapPopupPosition(null);
+  };
+
+  // Get orders for map based on filter
+  const getMapOrders = (orders) => {
+    if (mapFilter === 'free') {
+      return orders.filter(o => !o.tripId && o.lat && o.lng);
+    }
+    return orders.filter(o => o.lat && o.lng);
+  };
+
+  // Create new order
   const handleCreateOrder = async () => {
     if (!newOrderForm.fullName || !newOrderForm.fullAddress) {
       toast.error('Заполните имя и адрес');
@@ -769,93 +1196,438 @@ const LogisticsPage = () => {
         fullAddress: newOrderForm.fullAddress,
         notes: newOrderForm.orderComposition,
         orderDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         source: 'logistics',
-        amocrm_id: null
+        status: 'new'
       };
 
-      // Geocode address
-      if (geocoderRef.current) {
-        geocoderRef.current.geocode({ address: newOrderForm.fullAddress }, async (results, status) => {
-          if (status === 'OK' && results[0]) {
-            orderData.lat = results[0].geometry.location.lat();
-            orderData.lng = results[0].geometry.location.lng();
-          }
+      const response = await fetch(`${API_URL}${currentSection.endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
 
-          const sectionConfig = SECTIONS[activeSection];
-          const res = await fetch(`${API_URL}${sectionConfig.endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderData)
-          });
-
-          if (res.ok) {
-            toast.success('Заказ создан');
-            setShowOrderForm(false);
-            setNewOrderForm({ fullName: '', phoneNumber: '', fullAddress: '', orderComposition: '' });
-            fetchAllOrders();
-          } else {
-            throw new Error('Failed to create order');
-          }
-          setCreatingOrder(false);
-        });
+      if (!response.ok) {
+        throw new Error('Failed to create order');
       }
+
+      toast.success('Заказ создан успешно');
+      setShowOrderForm(false);
+      setNewOrderForm({
+        fullName: '',
+        phoneNumber: '',
+        fullAddress: '',
+        orderComposition: ''
+      });
+      autocompleteRef.current = null;
+      fetchAllOrders();
     } catch (error) {
       console.error('Error creating order:', error);
       toast.error('Ошибка создания заказа');
+    } finally {
       setCreatingOrder(false);
     }
   };
 
-  // Clear trip route when trip changes
-  useEffect(() => {
-    setTripDirections(null);
-    setTripRouteInfo(null);
-  }, [selectedTrip?.id]);
+  // Delete order
+  const deleteOrder = async (orderId) => {
+    if (!window.confirm('Удалить этот заказ?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_URL}${currentSection.endpoint}/${orderId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Remove from local state
+        setSectionData(prev => ({
+          ...prev,
+          [activeSection]: {
+            ...prev[activeSection],
+            orders: prev[activeSection].orders.filter(o => o.id !== orderId),
+            selectedOrders: prev[activeSection].selectedOrders.filter(id => id !== orderId)
+          }
+        }));
+        toast.success('Заказ удалён');
+      } else {
+        throw new Error('Failed to delete');
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Ошибка удаления');
+    }
+  };
+
+  // Update order fields (status, driver, route, comment)
+  const updateOrderField = async (orderId, updates) => {
+    try {
+      const order = currentData.orders.find(o => o.id === orderId);
+      if (!order) return;
+      
+      const updatedOrder = { ...order, ...updates };
+      
+      // Update in local state first for immediate feedback
+      setSectionData(prev => ({
+        ...prev,
+        [activeSection]: {
+          ...prev[activeSection],
+          orders: prev[activeSection].orders.map(o => 
+            o.id === orderId ? updatedOrder : o
+          )
+        }
+      }));
+
+      // Update in database
+      const response = await fetch(`${API_URL}${currentSection.endpoint}/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedOrder)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update order');
+      }
+
+      // Sync to amoCRM if order has amocrm_id and status changed
+      if (order?.amocrm_id && updates.deliveryStatus) {
+        try {
+          const statusLabel = DELIVERY_STATUSES[updates.deliveryStatus]?.label || updates.deliveryStatus;
+          const comment = updates.deliveryComment || order.deliveryComment || '';
+          const syncResponse = await fetch(`${API_URL}/api/integrations/amocrm/sync-status?amocrm_id=${order.amocrm_id}&status=${encodeURIComponent(statusLabel)}&comment=${encodeURIComponent(comment)}`, {
+            method: 'POST'
+          });
+          const syncResult = await syncResponse.json();
+          if (syncResult.status === 'ok') {
+            console.log('Status synced to amoCRM');
+          } else if (syncResult.status === 'skipped') {
+            console.log('amoCRM sync skipped:', syncResult.message);
+          } else {
+            console.warn('amoCRM sync error:', syncResult.message);
+          }
+        } catch (syncError) {
+          console.error('Failed to sync to amoCRM:', syncError);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating order:', error);
+      return false;
+    }
+  };
+
+  // Legacy function for backward compatibility
+  const updateDeliveryStatus = async (orderId, newStatus, deliveryComment = '') => {
+    const success = await updateOrderField(orderId, { deliveryStatus: newStatus, deliveryComment });
+    if (success) {
+      toast.success('Статус обновлён');
+    } else {
+      toast.error('Ошибка обновления статуса');
+      fetchAllOrders();
+    }
+  };
+
+  // Bulk update selected orders
+  const bulkUpdateOrders = async (updates) => {
+    const selectedIds = currentData.selectedOrders;
+    if (selectedIds.length === 0) {
+      toast.error('Выберите заказы');
+      return;
+    }
+
+    let successCount = 0;
+    for (const orderId of selectedIds) {
+      const success = await updateOrderField(orderId, updates);
+      if (success) successCount++;
+    }
+
+    if (successCount > 0) {
+      toast.success(`Обновлено ${successCount} из ${selectedIds.length} заказов`);
+    } else {
+      toast.error('Ошибка обновления');
+      fetchAllOrders();
+    }
+  };
+
+  // Format date
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('pl-PL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Format duration
+  const formatDuration = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return hours > 0 ? `${hours}ч ${minutes}мин` : `${minutes}мин`;
+  };
+
+  // Format distance
+  const formatDistance = (meters) => {
+    return (meters / 1000).toFixed(1) + ' км';
+  };
+
+  if (loadError) {
+    return (
+      <Card className="m-6">
+        <CardContent className="p-6">
+          <p className="text-red-500">Ошибка загрузки Google Maps. Проверьте API ключ.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const SectionIcon = currentSection.icon;
 
   return (
-    <div className="p-4 lg:p-6 space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <MapPin className="h-6 w-6" />
-            Логистика
-          </h1>
-          <p className="text-muted-foreground">
-            Управление доставками и маршрутами
-          </p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <Truck className="h-8 w-8 text-[#355c7d]" />
+          <h1 className="text-2xl font-bold text-gray-900">Логистика</h1>
         </div>
-        
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowDriversModal(true)}>
-            <User className="h-4 w-4 mr-1" />
-            Водители
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowSettingsModal(true)}>
-            <Settings className="h-4 w-4 mr-1" />
+        <div className="flex gap-2 flex-wrap">
+          <Button 
+            variant="outline"
+            onClick={() => setShowSettingsModal(true)}
+          >
+            <Settings className="h-4 w-4 mr-2" />
             Настройки
           </Button>
-          <Button size="sm" onClick={() => setShowOrderForm(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Новый заказ
+          <Button 
+            variant="outline"
+            onClick={() => setShowDriversModal(true)}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Водители
+          </Button>
+          <Button 
+            onClick={() => {
+              setShowOrderForm(!showOrderForm);
+              autocompleteRef.current = null;
+            }}
+            className="bg-[#355c7d] hover:bg-[#2a4a63]"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Создать заказ
+          </Button>
+          <Button variant="outline" onClick={fetchAllOrders} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Обновить
           </Button>
         </div>
       </div>
 
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <Card className="border-2 border-[#355c7d]/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Настройки логистики
+              </CardTitle>
+              <Button size="sm" variant="ghost" onClick={() => setShowSettingsModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Warehouse className="h-4 w-4 text-orange-600" />
+                Адрес склада (начальная и конечная точка маршрута)
+              </Label>
+              <Input
+                ref={warehouseInputRef}
+                value={warehouseAddress}
+                onChange={(e) => setWarehouseAddress(e.target.value)}
+                placeholder="Введите адрес склада..."
+                data-testid="warehouse-address-input"
+              />
+              {warehouseCoords && (
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" />
+                  Координаты: {warehouseCoords.lat.toFixed(5)}, {warehouseCoords.lng.toFixed(5)}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Склад будет отображаться на карте оранжевой точкой и использоваться как начальная/конечная точка при оптимизации маршрута
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowSettingsModal(false)}>
+                Отмена
+              </Button>
+              <Button 
+                onClick={saveWarehouseSettings}
+                disabled={savingSettings || !warehouseAddress.trim()}
+                className="bg-[#355c7d] hover:bg-[#2a4a63]"
+              >
+                {savingSettings ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                )}
+                Сохранить
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Drivers Modal */}
+      {showDriversModal && (
+        <Card className="border-2 border-[#355c7d]/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Управление водителями
+              </CardTitle>
+              <Button size="sm" variant="ghost" onClick={() => setShowDriversModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                value={newDriverName}
+                onChange={(e) => setNewDriverName(e.target.value)}
+                placeholder="Имя водителя"
+                onKeyPress={(e) => e.key === 'Enter' && addDriver()}
+              />
+              <Button onClick={addDriver}>
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {drivers.map(driver => (
+                <div key={driver.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                  <span className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    {driver.name}
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => removeDriver(driver.id)}>
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              ))}
+              {drivers.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">Нет водителей</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bulk Actions Bar - show when orders are selected */}
+      {currentData.selectedOrders.length > 0 && (
+        <Card className="border-2 border-amber-500/50 bg-amber-50">
+          <CardContent className="py-3">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                  Выбрано: {currentData.selectedOrders.length}
+                </Badge>
+                <span className="text-sm text-muted-foreground">заказов</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Bulk Status */}
+                <Select onValueChange={(status) => bulkUpdateOrders({ deliveryStatus: status })}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="Статус" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(DELIVERY_STATUSES).map(([key, val]) => {
+                      const Icon = val.icon;
+                      return (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-3 w-3" />
+                            {val.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {/* Bulk Driver */}
+                <Select onValueChange={(driverId) => {
+                  const driver = drivers.find(d => d.id === driverId);
+                  if (driver) bulkUpdateOrders({ driverId, driverName: driver.name });
+                }}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="Водитель" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      <span className="text-muted-foreground">Не назначен</span>
+                    </SelectItem>
+                    {drivers.map(driver => (
+                      <SelectItem key={driver.id} value={driver.id}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-3 w-3" />
+                          {driver.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Bulk Route Number */}
+                <Input
+                  className="w-[120px] h-9"
+                  placeholder="№ рейса"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      bulkUpdateOrders({ routeNumber: e.target.value });
+                      e.target.value = '';
+                    }
+                  }}
+                />
+
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={clearRoute}
+                >
+                  Сбросить выбор
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Section Tabs */}
-      <Tabs value={activeSection} onValueChange={setActiveSection}>
-        <TabsList className="grid grid-cols-3 w-full max-w-md">
+      <Tabs value={activeSection} onValueChange={(v) => { setActiveSection(v); }} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           {Object.entries(SECTIONS).map(([key, section]) => {
             const Icon = section.icon;
+            const unassignedCount = getUnassignedOrders(sectionData[key].orders).length;
             const sectionTripsCount = trips.filter(t => t.section === key).length;
             return (
-              <TabsTrigger key={key} value={key} className="flex items-center gap-1">
+              <TabsTrigger 
+                key={key} 
+                value={key}
+                className={`gap-2 data-[state=active]:${section.bgColor}`}
+              >
                 <Icon className={`h-4 w-4 ${section.color}`} />
-                <span className="hidden sm:inline">{section.name}</span>
+                <span>{section.name.ru}</span>
+                <Badge variant="secondary" className="ml-1">{unassignedCount}</Badge>
                 {sectionTripsCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1 text-xs">
-                    {sectionTripsCount}
-                  </Badge>
+                  <Badge variant="outline" className="ml-1 bg-purple-100 text-purple-700">{sectionTripsCount} рейс.</Badge>
                 )}
               </TabsTrigger>
             );
@@ -863,128 +1635,1081 @@ const LogisticsPage = () => {
         </TabsList>
 
         {Object.keys(SECTIONS).map(sectionKey => (
-          <TabsContent key={sectionKey} value={sectionKey} className="mt-4">
-            {/* Inner tabs: Orders / Trips */}
-            <div className="flex gap-2 mb-4">
-              <Button
-                variant={activeInnerTab === 'orders' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setActiveInnerTab('orders')}
-              >
-                <Package className="h-4 w-4 mr-1" />
-                Заказы
-                <Badge variant="secondary" className="ml-2">
-                  {getUnassignedOrders(sectionData[sectionKey].orders).length}
-                </Badge>
-              </Button>
-              <Button
-                variant={activeInnerTab === 'trips' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setActiveInnerTab('trips')}
-              >
-                <Route className="h-4 w-4 mr-1" />
-                Рейсы
-                <Badge variant="secondary" className="ml-2">
-                  {trips.filter(t => t.section === sectionKey).length}
-                </Badge>
-              </Button>
+          <TabsContent key={sectionKey} value={sectionKey} className="mt-0">
+            {/* Inner Tabs: Orders / Trips */}
+            <div className="mb-4">
+              <div className="flex gap-2 border-b">
+                <button
+                  onClick={() => setActiveInnerTab('orders')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeInnerTab === 'orders' 
+                      ? `border-[#355c7d] text-[#355c7d]` 
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Package className="h-4 w-4 inline mr-2" />
+                  Заказы
+                  <Badge variant="secondary" className="ml-2">{getUnassignedOrders(sectionData[sectionKey].orders).length}</Badge>
+                </button>
+                <button
+                  onClick={() => setActiveInnerTab('trips')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeInnerTab === 'trips' 
+                      ? 'border-purple-600 text-purple-600' 
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Route className="h-4 w-4 inline mr-2" />
+                  Рейсы
+                  <Badge variant="secondary" className="ml-2 bg-purple-100 text-purple-700">
+                    {trips.filter(t => t.section === sectionKey).length}
+                  </Badge>
+                </button>
+              </div>
             </div>
 
-            {activeInnerTab === 'orders' ? (
-              /* Orders Tab */
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  {/* Create trip button */}
-                  {sectionData[sectionKey].selectedOrders.length > 0 && (
-                    <Button onClick={() => setShowCreateTripModal(true)} className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Создать рейс ({sectionData[sectionKey].selectedOrders.length} заказов)
+            {/* Orders View */}
+            {activeInnerTab === 'orders' && (
+              <>
+            {/* Create Order Form */}
+            {showOrderForm && activeSection === sectionKey && (
+              <Card className={`border-2 ${currentSection.borderColor}/30 ${currentSection.bgColor}/10 mb-6`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <SectionIcon className={`h-5 w-5 ${currentSection.color}`} />
+                      Новый заказ - {currentSection.name.ru}
+                    </CardTitle>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => {
+                        setShowOrderForm(false);
+                        autocompleteRef.current = null;
+                      }}
+                    >
+                      <X className="h-4 w-4" />
                     </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName" className="text-sm font-medium flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        Имя клиента *
+                      </Label>
+                      <Input
+                        id="fullName"
+                        value={newOrderForm.fullName}
+                        onChange={(e) => setNewOrderForm(prev => ({ ...prev, fullName: e.target.value }))}
+                        placeholder="Введите имя"
+                        data-testid="order-form-name"
+                      />
+                    </div>
+
+                    {/* Phone */}
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber" className="text-sm font-medium flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        Телефон
+                      </Label>
+                      <Input
+                        id="phoneNumber"
+                        type="tel"
+                        value={newOrderForm.phoneNumber}
+                        onChange={(e) => setNewOrderForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        placeholder="+48 123 456 789"
+                        data-testid="order-form-phone"
+                      />
+                    </div>
+
+                    {/* Address */}
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="fullAddress" className="text-sm font-medium flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        Адрес доставки *
+                      </Label>
+                      <Input
+                        ref={addressInputRef}
+                        id="fullAddress"
+                        value={newOrderForm.fullAddress}
+                        onChange={(e) => setNewOrderForm(prev => ({ ...prev, fullAddress: e.target.value }))}
+                        placeholder="Введите адрес..."
+                        data-testid="order-form-address"
+                      />
+                    </div>
+
+                    {/* Order Composition */}
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="orderComposition" className="text-sm font-medium flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        Состав заказа
+                      </Label>
+                      <Textarea
+                        id="orderComposition"
+                        value={newOrderForm.orderComposition}
+                        onChange={(e) => setNewOrderForm(prev => ({ ...prev, orderComposition: e.target.value }))}
+                        placeholder="Опишите состав заказа..."
+                        rows={3}
+                        data-testid="order-form-composition"
+                      />
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="md:col-span-2 flex justify-end">
+                      <Button
+                        onClick={handleCreateOrder}
+                        disabled={creatingOrder || !newOrderForm.fullName || !newOrderForm.fullAddress}
+                        className="bg-[#355c7d] hover:bg-[#2a4a63]"
+                        data-testid="order-form-submit"
+                      >
+                        {creatingOrder ? (
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4 mr-2" />
+                        )}
+                        Создать заказ
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Orders List */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <SectionIcon className={`h-5 w-5 ${currentSection.color}`} />
+                      {currentSection.name.ru} (без рейса)
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      {currentData.selectedOrders.length > 0 && (
+                        <Button
+                          size="sm"
+                          onClick={() => setShowCreateTripModal(true)}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Создать рейс ({currentData.selectedOrders.length})
+                        </Button>
+                      )}
+                      <Badge variant="secondary" className={currentSection.bgColor}>
+                        {getUnassignedOrders(sectionData[sectionKey].orders).length} заказов
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : getUnassignedOrders(sectionData[sectionKey].orders).length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      Нет заказов без рейса
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      {getUnassignedOrders(sectionData[sectionKey].orders).map((order) => (
+                        <div
+                          key={order.id}
+                          className={`p-3 border rounded-lg transition-colors ${
+                            sectionData[sectionKey].selectedOrders.includes(order.id)
+                              ? `${currentSection.bgColor} ${currentSection.borderColor}`
+                              : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              checked={sectionData[sectionKey].selectedOrders.includes(order.id)}
+                              onCheckedChange={() => toggleOrderSelection(order.id)}
+                              className="mt-1"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-medium truncate">
+                                  {order.fullName || order.customerName}
+                                </p>
+                                <div className="flex items-center gap-1">
+                                  {/* Delivery Status Badge */}
+                                  {(() => {
+                                    const status = DELIVERY_STATUSES[order.deliveryStatus] || DELIVERY_STATUSES.pending;
+                                    const StatusIcon = status.icon;
+                                    return (
+                                      <Badge className={`${status.color} text-xs gap-1`}>
+                                        <StatusIcon className="h-3 w-3" />
+                                        {status.label}
+                                      </Badge>
+                                    );
+                                  })()}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                                  >
+                                    {expandedOrder === order.id ? (
+                                      <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteOrder(order.id)}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                <span className="truncate">{order.fullAddress || order.address || 'Нет адреса'}</span>
+                                {/* Map indicator */}
+                                {(order.lat && order.lng) ? (
+                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 whitespace-nowrap">
+                                    ✓ на карте
+                                  </span>
+                                ) : (order.fullAddress || order.address) ? (
+                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 whitespace-nowrap">
+                                    ⏳ геокодинг
+                                  </span>
+                                ) : (
+                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 whitespace-nowrap">
+                                    нет адреса
+                                  </span>
+                                )}
+                              </p>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                <span>{formatDate(order.orderDate || order.createdAt)}</span>
+                                {order.routeNumber && (
+                                  <Badge variant="outline" className="text-xs py-0 px-1">
+                                    <Hash className="h-2 w-2 mr-1" />
+                                    Рейс {order.routeNumber}
+                                  </Badge>
+                                )}
+                                {order.driverName && (
+                                  <Badge variant="outline" className="text-xs py-0 px-1">
+                                    <User className="h-2 w-2 mr-1" />
+                                    {order.driverName}
+                                  </Badge>
+                                )}
+                                {order.amocrm_id && <span className="text-purple-500">• amoCRM</span>}
+                              </div>
+                              
+                              {/* Important order checkbox */}
+                              <div className="flex items-center gap-2 mt-2">
+                                <Checkbox
+                                  id={`important-${order.id}`}
+                                  checked={order.isImportant || false}
+                                  onCheckedChange={() => toggleOrderImportant(order.id)}
+                                  className="data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                                />
+                                <label 
+                                  htmlFor={`important-${order.id}`}
+                                  className={`text-xs cursor-pointer flex items-center gap-1 ${order.isImportant ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}
+                                >
+                                  <AlertCircle className={`h-3 w-3 ${order.isImportant ? 'text-red-500' : ''}`} />
+                                  Важный заказ
+                                </label>
+                              </div>
+                              
+                              {expandedOrder === order.id && (
+                                <div className="mt-3 pt-3 border-t space-y-3 text-sm">
+                                  {/* Structured amoCRM data */}
+                                  {order.amocrm_id && (
+                                    <div className="bg-purple-50 rounded-lg p-3 space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-medium text-purple-700">Данные из amoCRM</span>
+                                        {order.amocrm_link && (
+                                          <a
+                                            href={order.amocrm_link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                                          >
+                                            <ExternalLink className="h-3 w-3" />
+                                            Открыть в amoCRM
+                                          </a>
+                                        )}
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        {order.orderNumber && (
+                                          <div>
+                                            <span className="text-muted-foreground">№ заказа:</span>
+                                            <span className="ml-1 font-medium">{order.orderNumber}</span>
+                                          </div>
+                                        )}
+                                        {order.dealSum && (
+                                          <div className="flex items-center gap-1">
+                                            <DollarSign className="h-3 w-3 text-green-600" />
+                                            <span className="text-muted-foreground">Сумма:</span>
+                                            <span className="ml-1 font-medium">{order.dealSum}</span>
+                                          </div>
+                                        )}
+                                        {order.debtSum && (
+                                          <div className="text-red-600">
+                                            <span className="text-muted-foreground">Долг:</span>
+                                            <span className="ml-1 font-medium">{order.debtSum}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                      {order.orderContents && (
+                                        <div className="text-xs">
+                                          <span className="text-muted-foreground">Состав:</span>
+                                          <p className="mt-1 p-2 bg-white rounded border text-xs whitespace-pre-wrap">{order.orderContents}</p>
+                                        </div>
+                                      )}
+                                      {order.orderComment && (
+                                        <div className="text-xs">
+                                          <span className="text-muted-foreground flex items-center gap-1">
+                                            <MessageSquare className="h-3 w-3" />
+                                            Комментарий:
+                                          </span>
+                                          <p className="mt-1 p-2 bg-white rounded border text-xs">{order.orderComment}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {order.phoneNumber && (
+                                    <p className="flex items-center gap-2">
+                                      <Phone className="h-3 w-3" />
+                                      <a href={`tel:${order.phoneNumber}`} className="text-blue-600 hover:underline">
+                                        {order.phoneNumber}
+                                      </a>
+                                    </p>
+                                  )}
+                                  {order.notes && !order.amocrm_id && (
+                                    <p className="flex items-start gap-2">
+                                      <FileText className="h-3 w-3 mt-0.5" />
+                                      <span className="break-words">{order.notes}</span>
+                                    </p>
+                                  )}
+                                  
+                                  {/* Route & Driver */}
+                                  <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                                    <div className="space-y-1">
+                                      <Label className="text-xs text-muted-foreground">№ рейса</Label>
+                                      <Input
+                                        placeholder="Номер"
+                                        defaultValue={order.routeNumber || ''}
+                                        className="h-8 text-xs"
+                                        onBlur={(e) => {
+                                          if (e.target.value !== (order.routeNumber || '')) {
+                                            updateOrderField(order.id, { routeNumber: e.target.value });
+                                            toast.success('Рейс обновлён');
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs text-muted-foreground">Водитель</Label>
+                                      <Select
+                                        value={order.driverId || 'none'}
+                                        onValueChange={(value) => {
+                                          const driver = drivers.find(d => d.id === value);
+                                          updateOrderField(order.id, { 
+                                            driverId: value === 'none' ? '' : value, 
+                                            driverName: driver?.name || '' 
+                                          });
+                                          toast.success('Водитель назначен');
+                                        }}
+                                      >
+                                        <SelectTrigger className="h-8 text-xs">
+                                          <SelectValue placeholder="Выбрать" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">Не назначен</SelectItem>
+                                          {drivers.map(driver => (
+                                            <SelectItem key={driver.id} value={driver.id}>
+                                              {driver.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Status Change */}
+                                  <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">Статус доставки</Label>
+                                    <Select
+                                      value={order.deliveryStatus || 'pending'}
+                                      onValueChange={(value) => updateDeliveryStatus(order.id, value, order.deliveryComment || '')}
+                                    >
+                                      <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Object.entries(DELIVERY_STATUSES).map(([key, val]) => {
+                                          const Icon = val.icon;
+                                          return (
+                                            <SelectItem key={key} value={key}>
+                                              <div className="flex items-center gap-2">
+                                                <Icon className="h-3 w-3" />
+                                                {val.label}
+                                              </div>
+                                            </SelectItem>
+                                          );
+                                        })}
+                                      </SelectContent>
+                                    </Select>
+                                    
+                                    {/* Delivery Comment */}
+                                    <Input
+                                      placeholder="Дата/комментарий доставки"
+                                      defaultValue={order.deliveryComment || ''}
+                                      className="h-8 text-xs"
+                                      onBlur={(e) => {
+                                        if (e.target.value !== (order.deliveryComment || '')) {
+                                          updateDeliveryStatus(order.id, order.deliveryStatus || 'pending', e.target.value);
+                                        }
+                                      }}
+                                    />
+                                    
+                                    {order.amocrm_id && (
+                                      <p className="text-xs text-purple-500 flex items-center gap-1">
+                                        <Send className="h-3 w-3" />
+                                        Синхр. с amoCRM при изменении
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Map */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Карта
+                    </CardTitle>
+                    <div className="flex gap-2 items-center">
+                      {/* Map filter */}
+                      <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                        <Button
+                          size="sm"
+                          variant={mapFilter === 'free' ? 'default' : 'ghost'}
+                          onClick={() => setMapFilter('free')}
+                          className="h-7 text-xs"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Свободные
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={mapFilter === 'all' ? 'default' : 'ghost'}
+                          onClick={() => setMapFilter('all')}
+                          className="h-7 text-xs"
+                        >
+                          <Filter className="h-3 w-3 mr-1" />
+                          Все
+                        </Button>
+                      </div>
+                      
+                      {sectionData[sectionKey].selectedOrders.length > 0 && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={clearRoute}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Сбросить
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={buildRoute}
+                            disabled={buildingRoute || sectionData[sectionKey].selectedOrders.filter(id => {
+                              const order = sectionData[sectionKey].orders.find(o => o.id === id);
+                              return order && order.lat && order.lng;
+                            }).length < 2}
+                            className={`${currentSection.bgColor} ${currentSection.color} hover:opacity-90`}
+                          >
+                            {buildingRoute ? (
+                              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Route className="h-4 w-4 mr-1" />
+                            )}
+                            Построить маршрут
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                   
-                  <OrdersList
-                    orders={sectionData[sectionKey].orders}
-                    selectedOrders={sectionData[sectionKey].selectedOrders}
-                    expandedOrder={expandedOrder}
-                    onSelectOrder={toggleOrderSelection}
-                    onToggleExpand={setExpandedOrder}
-                    onToggleImportant={toggleOrderImportant}
-                    onUpdateDeliveryStatus={updateDeliveryStatus}
-                    onUpdateOrderField={updateOrderField}
-                    loading={loading}
-                  />
-                </div>
-                
-                <OrdersMap
-                  isLoaded={isLoaded}
-                  sectionData={sectionData}
-                  sectionKey={sectionKey}
-                  currentSection={SECTIONS[sectionKey]}
-                  mapFilter={mapFilter}
-                  setMapFilter={setMapFilter}
-                  onMapLoad={onMapLoad}
-                  warehouseCoords={warehouseCoords}
-                  buildingRoute={buildingRoute}
-                  onBuildRoute={buildRoute}
-                  onMarkerClick={handleMarkerClick}
-                />
-              </div>
-            ) : (
-              /* Trips Tab */
-              <div className="grid grid-cols-1 lg:grid-cols-10 gap-4">
-                {/* Trip List */}
+                  {/* Legend */}
+                  <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span>Свободные</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                      <span>В рейсе</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span>Важные</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                      <span>Склад</span>
+                    </div>
+                  </div>
+                  
+                  {/* Route Info */}
+                  {sectionData[sectionKey].routeInfo && (
+                    <div className={`flex gap-4 mt-3 p-3 ${currentSection.bgColor}/50 rounded-lg`}>
+                      <div className="flex items-center gap-2">
+                        <Navigation className={`h-4 w-4 ${currentSection.color}`} />
+                        <span className="text-sm font-medium">
+                          {formatDistance(sectionData[sectionKey].routeInfo.distance)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className={`h-4 w-4 ${currentSection.color}`} />
+                        <span className="text-sm font-medium">
+                          {formatDuration(sectionData[sectionKey].routeInfo.duration)}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={openInGoogleMaps}
+                        className="ml-auto"
+                      >
+                        <Navigation className="h-4 w-4 mr-1" />
+                        Открыть в Google Maps
+                      </Button>
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent className="relative">
+                  {!isLoaded ? (
+                    <div className="flex items-center justify-center h-[500px] bg-muted rounded-lg">
+                      <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <>
+                    <GoogleMap
+                      mapContainerStyle={mapContainerStyle}
+                      center={defaultCenter}
+                      zoom={6}
+                      onLoad={onMapLoad}
+                      onClick={() => closeMapPopup()}
+                      options={{
+                        streetViewControl: false,
+                        mapTypeControl: false,
+                        fullscreenControl: true
+                      }}
+                    >
+                      {/* All orders with coordinates (filtered by mapFilter) */}
+                      {getMapOrders(sectionData[sectionKey].orders)
+                        .map((order) => {
+                          const isSelected = sectionData[sectionKey].selectedOrders.includes(order.id);
+                          const selectedIndex = isSelected 
+                            ? sectionData[sectionKey].selectedOrders.indexOf(order.id) + 1 
+                            : null;
+                          
+                          return (
+                            <Marker
+                              key={order.id}
+                              position={{ lat: order.lat, lng: order.lng }}
+                              title={`${order.fullName || order.customerName}\n${order.fullAddress || order.address}`}
+                              label={isSelected ? {
+                                text: String(selectedIndex),
+                                color: 'white',
+                                fontWeight: 'bold'
+                              } : undefined}
+                              icon={isSelected ? {
+                                path: window.google.maps.SymbolPath.CIRCLE,
+                                scale: 14,
+                                fillColor: currentSection.markerColor,
+                                fillOpacity: 1,
+                                strokeColor: 'white',
+                                strokeWeight: 2
+                              } : getMarkerIcon(order)}
+                              onClick={() => {
+                                // Toggle selection on click
+                                const currentSelected = sectionData[sectionKey].selectedOrders;
+                                if (isSelected) {
+                                  setSectionData(prev => ({
+                                    ...prev,
+                                    [sectionKey]: {
+                                      ...prev[sectionKey],
+                                      selectedOrders: currentSelected.filter(id => id !== order.id)
+                                    }
+                                  }));
+                                } else {
+                                  setSectionData(prev => ({
+                                    ...prev,
+                                    [sectionKey]: {
+                                      ...prev[sectionKey],
+                                      selectedOrders: [...currentSelected, order.id]
+                                    }
+                                  }));
+                                }
+                              }}
+                            />
+                          );
+                        })}
+                      
+                      {/* Warehouse marker */}
+                      {warehouseCoords && warehouseCoords.lat && warehouseCoords.lng && (
+                        <Marker
+                          key="warehouse"
+                          position={{ lat: warehouseCoords.lat, lng: warehouseCoords.lng }}
+                          title={`Склад: ${warehouseAddress}`}
+                          icon={{
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: 12,
+                            fillColor: '#f97316',
+                            fillOpacity: 1,
+                            strokeColor: 'white',
+                            strokeWeight: 3
+                          }}
+                          label={{
+                            text: 'С',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '11px'
+                          }}
+                        />
+                      )}
+                      
+                      {sectionData[sectionKey].directions && (
+                        <DirectionsRenderer
+                          directions={sectionData[sectionKey].directions}
+                          options={{
+                            suppressMarkers: true,
+                            polylineOptions: {
+                              strokeColor: currentSection.markerColor,
+                              strokeWeight: 4,
+                              strokeOpacity: 0.8
+                            }
+                          }}
+                        />
+                      )}
+                    </GoogleMap>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+              </>
+            )}
+
+            {/* Trips View */}
+            {activeInnerTab === 'trips' && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                {/* Trips List - Left Column */}
                 <div className="lg:col-span-3">
-                  <TripsList
-                    trips={trips}
-                    sectionKey={sectionKey}
-                    tripStatusFilter={tripStatusFilter}
-                    setTripStatusFilter={setTripStatusFilter}
-                    selectedTrip={selectedTrip}
-                    setSelectedTrip={setSelectedTrip}
-                    setActiveInnerTab={setActiveInnerTab}
-                  />
+                  <Card className="h-full">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Route className="h-4 w-4 text-purple-600" />
+                          Рейсы
+                        </CardTitle>
+                        <Badge variant="secondary" className="bg-purple-100 text-xs">
+                          {trips.filter(t => t.section === sectionKey).length}
+                        </Badge>
+                      </div>
+                      {/* Trip status tabs */}
+                      <div className="flex gap-1 mt-2 flex-wrap">
+                        {Object.entries(TRIP_STATUSES).map(([statusKey, statusInfo]) => {
+                          const count = trips.filter(t => t.section === sectionKey && (t.status || 'planned') === statusKey).length;
+                          const StatusIcon = statusInfo.icon;
+                          return (
+                            <Button
+                              key={statusKey}
+                              size="sm"
+                              variant={tripStatusFilter === statusKey ? 'default' : 'outline'}
+                              onClick={() => setTripStatusFilter(statusKey)}
+                              className={`h-7 text-xs ${tripStatusFilter === statusKey ? '' : statusInfo.color}`}
+                            >
+                              <StatusIcon className="h-3 w-3 mr-1" />
+                              {statusInfo.label}
+                              <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                                {count}
+                              </Badge>
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      {trips.filter(t => t.section === sectionKey && (t.status || 'planned') === tripStatusFilter).length === 0 ? (
+                        <div className="text-center py-6">
+                          <p className="text-muted-foreground text-sm mb-3">
+                            Нет рейсов в категории "{TRIP_STATUSES[tripStatusFilter]?.label}"
+                          </p>
+                          {tripStatusFilter === 'planned' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setActiveInnerTab('orders')}
+                            >
+                              <Package className="h-3 w-3 mr-1" />
+                              Создать рейс
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                          {trips
+                            .filter(t => t.section === sectionKey && (t.status || 'planned') === tripStatusFilter)
+                            .map((trip) => (
+                              <div
+                                key={trip.id}
+                                className={`p-2 border rounded-lg cursor-pointer transition-colors ${
+                                  selectedTrip?.id === trip.id ? 'bg-purple-50 border-purple-300' : 'hover:bg-muted/50'
+                                }`}
+                                onClick={() => setSelectedTrip(trip)}
+                                data-testid={`trip-card-${trip.id}`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium text-sm truncate">{trip.name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {trip.orderIds?.length || 0} заказов
+                                    </p>
+                                    {trip.driverName && (
+                                      <p className="text-xs text-blue-600 flex items-center gap-1 mt-0.5">
+                                        <User className="h-3 w-3" />
+                                        {trip.driverName}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
 
-                {/* Trip Details */}
+                {/* Trip Details - Middle Column */}
                 <div className="lg:col-span-4">
-                  <TripDetails
-                    selectedTrip={selectedTrip}
-                    orders={sectionData[sectionKey].orders}
-                    drivers={drivers}
-                    isLoaded={isLoaded}
-                    warehouseCoords={warehouseCoords}
-                    tripDirections={tripDirections}
-                    tripRouteInfo={tripRouteInfo}
-                    buildingTripRoute={buildingTripRoute}
-                    optimizingRoute={optimizingRoute}
-                    draggedOrderIndex={draggedOrderIndex}
-                    onTripMapLoad={onTripMapLoad}
-                    onUpdateTrip={updateTrip}
-                    onDeleteTrip={() => deleteTrip(selectedTrip?.id)}
-                    onOptimizeRoute={optimizeTripRoute}
-                    onBuildTripRoute={buildTripRoute}
-                    onUpdateOrderStatus={updateOrderStatusInTrip}
-                    onRemoveOrderFromTrip={removeOrderFromTrip}
-                    onMoveOrderInTrip={moveOrderInTrip}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                  />
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">
+                        {selectedTrip ? selectedTrip.name : 'Выберите рейс'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      {selectedTrip && selectedTrip.section === sectionKey ? (
+                        <div className="space-y-3">
+                          {/* Driver assignment */}
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium">Водитель:</Label>
+                            <Select
+                              value={selectedTrip.driverId || 'none'}
+                              onValueChange={(value) => {
+                                const driver = drivers.find(d => d.id === value);
+                                updateTrip(selectedTrip.id, {
+                                  driverId: value === 'none' ? null : value,
+                                  driverName: driver?.name || null
+                                });
+                                setSelectedTrip(prev => ({
+                                  ...prev,
+                                  driverId: value === 'none' ? null : value,
+                                  driverName: driver?.name || null
+                                }));
+                              }}
+                            >
+                              <SelectTrigger className="h-8 text-sm" data-testid="trip-driver-select">
+                                <SelectValue placeholder="Выберите водителя" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Не назначен</SelectItem>
+                                {drivers.map(d => (
+                                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Status */}
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium">Статус:</Label>
+                            <Select
+                              value={selectedTrip.status || 'active'}
+                              onValueChange={(value) => {
+                                updateTrip(selectedTrip.id, { status: value });
+                                setSelectedTrip(prev => ({ ...prev, status: value }));
+                              }}
+                            >
+                              <SelectTrigger className="h-8 text-sm" data-testid="trip-status-select">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Активен</SelectItem>
+                                <SelectItem value="completed">Доставлен</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Route info */}
+                          {tripRouteInfo && (
+                            <div className="flex gap-3 p-2 bg-purple-50 rounded-lg text-sm">
+                              <div className="flex items-center gap-1">
+                                <Navigation className="h-3 w-3 text-purple-600" />
+                                <span className="font-medium">{formatDistance(tripRouteInfo.distance)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-purple-600" />
+                                <span className="font-medium">{formatDuration(tripRouteInfo.duration)}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Orders in trip with reordering and individual statuses */}
+                          <div className="border-t pt-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-medium">Заказы ({selectedTrip.orderIds?.length || 0}):</p>
+                              {selectedTrip.orderIds?.length >= 1 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={optimizeTripRoute}
+                                  disabled={optimizingRoute}
+                                  className="gap-1 h-7 text-xs"
+                                  data-testid="optimize-route-btn"
+                                >
+                                  {optimizingRoute ? (
+                                    <RefreshCw className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Sparkles className="h-3 w-3" />
+                                  )}
+                                  Оптимизировать
+                                </Button>
+                              )}
+                            </div>
+                            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                              {selectedTrip.orderIds?.map((orderId, index) => {
+                                const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
+                                const orderStatus = selectedTrip.orderStatuses?.[orderId] || 'pending';
+                                const statusInfo = ORDER_TRIP_STATUSES[orderStatus] || ORDER_TRIP_STATUSES.pending;
+                                return order ? (
+                                  <div 
+                                    key={orderId} 
+                                    className={`p-2 bg-muted rounded transition-all text-xs ${
+                                      draggedOrderIndex === index ? 'opacity-50 scale-95' : ''
+                                    }`}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDrop={(e) => handleDrop(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                  >
+                                    <div className="flex items-center gap-1 cursor-grab active:cursor-grabbing">
+                                      <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                      <span className="font-bold w-5 text-center text-purple-600">{index + 1}</span>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <p className="font-medium truncate">{order.fullName || order.customerName}</p>
+                                          {order.amocrm_link && (
+                                            <a href={order.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700">
+                                              <ExternalLink className="h-3 w-3" />
+                                            </a>
+                                          )}
+                                        </div>
+                                        <p className="text-muted-foreground truncate">{order.fullAddress || order.address}</p>
+                                        {order.phoneNumber && (
+                                          <p className="text-muted-foreground">{order.phoneNumber}</p>
+                                        )}
+                                      </div>
+                                      {order.lat && order.lng ? (
+                                        <span className="px-1 rounded bg-green-100 text-green-700 flex-shrink-0">✓</span>
+                                      ) : (
+                                        <span className="px-1 rounded bg-gray-100 text-gray-500 flex-shrink-0">?</span>
+                                      )}
+                                      <div className="flex flex-col flex-shrink-0">
+                                        <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderUp(index)} disabled={index === 0}>
+                                          <ArrowUp className="h-2.5 w-2.5" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderDown(index)} disabled={index === selectedTrip.orderIds.length - 1}>
+                                          <ArrowDown className="h-2.5 w-2.5" />
+                                        </Button>
+                                      </div>
+                                      <Button size="sm" variant="ghost" onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)} className="text-red-500 h-5 w-5 p-0 flex-shrink-0">
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                    {/* Individual order status */}
+                                    <div className="flex items-center gap-2 mt-2 pl-6">
+                                      <span className="text-muted-foreground">Статус:</span>
+                                      <Select
+                                        value={orderStatus}
+                                        onValueChange={(value) => updateOrderStatusInTrip(selectedTrip.id, orderId, value)}
+                                      >
+                                        <SelectTrigger className={`h-6 text-xs w-auto min-w-[120px] ${statusInfo.color}`}>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {Object.entries(ORDER_TRIP_STATUSES).map(([key, info]) => (
+                                            <SelectItem key={key} value={key}>
+                                              <span className={`px-2 py-0.5 rounded ${info.color}`}>{info.label}</span>
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div key={orderId} className="p-1.5 bg-muted rounded text-xs text-muted-foreground">
+                                    Заказ {orderId} не найден
+                                  </div>
+                                );
+                              })}
+                              {(!selectedTrip.orderIds || selectedTrip.orderIds.length === 0) && (
+                                <p className="text-center text-muted-foreground py-3 text-xs">
+                                  Нет заказов
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Delete Trip Button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-red-600 border-red-200 hover:bg-red-50 mt-2"
+                            onClick={() => deleteTrip(selectedTrip.id)}
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Удалить рейс
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-center text-muted-foreground py-8 text-sm">
+                          Выберите рейс слева
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
 
-                {/* Trip Map */}
-                <div className="lg:col-span-3">
-                  <TripMap
-                    isLoaded={isLoaded}
-                    selectedTrip={selectedTrip}
-                    orders={sectionData[sectionKey].orders}
-                    warehouseCoords={warehouseCoords}
-                    tripDirections={tripDirections}
-                    currentSection={SECTIONS[sectionKey]}
-                    onTripMapLoad={onTripMapLoad}
-                    onBuildTripRoute={buildTripRoute}
-                  />
+                {/* Trip Map - Right Column */}
+                <div className="lg:col-span-5">
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Карта маршрута
+                        {buildingTripRoute && <RefreshCw className="h-3 w-3 animate-spin ml-2" />}
+                      </CardTitle>
+                      {!warehouseCoords && (
+                        <p className="text-xs text-orange-600 flex items-center gap-1 mt-1">
+                          <Warehouse className="h-3 w-3" />
+                          Укажите адрес склада в настройках для построения полного маршрута
+                        </p>
+                      )}
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      {!isLoaded ? (
+                        <div className="flex items-center justify-center h-[400px] bg-muted rounded-lg">
+                          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : (
+                        <GoogleMap
+                          mapContainerStyle={{ width: '100%', height: '400px', borderRadius: '8px' }}
+                          center={defaultCenter}
+                          zoom={6}
+                          onLoad={(map) => { tripMapRef.current = map; }}
+                          options={{
+                            streetViewControl: false,
+                            mapTypeControl: false,
+                            fullscreenControl: true
+                          }}
+                        >
+                          {/* Warehouse marker */}
+                          {warehouseCoords && warehouseCoords.lat && warehouseCoords.lng && (
+                            <Marker
+                              key="warehouse-trip"
+                              position={{ lat: warehouseCoords.lat, lng: warehouseCoords.lng }}
+                              title={`Склад: ${warehouseAddress}`}
+                              icon={{
+                                path: window.google.maps.SymbolPath.CIRCLE,
+                                scale: 14,
+                                fillColor: '#f97316',
+                                fillOpacity: 1,
+                                strokeColor: 'white',
+                                strokeWeight: 3
+                              }}
+                              label={{
+                                text: 'С',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                fontSize: '12px'
+                              }}
+                            />
+                          )}
+                          
+                          {/* Order markers for selected trip */}
+                          {selectedTrip && selectedTrip.orderIds?.map((orderId, index) => {
+                            const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
+                            if (!order || !order.lat || !order.lng) return null;
+                            return (
+                              <Marker
+                                key={`trip-order-${orderId}`}
+                                position={{ lat: order.lat, lng: order.lng }}
+                                title={`${index + 1}. ${order.fullName || order.customerName}\n${order.fullAddress || order.address}`}
+                                label={{
+                                  text: String(index + 1),
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  fontSize: '11px'
+                                }}
+                                icon={{
+                                  path: window.google.maps.SymbolPath.CIRCLE,
+                                  scale: 14,
+                                  fillColor: '#9333ea',
+                                  fillOpacity: 1,
+                                  strokeColor: 'white',
+                                  strokeWeight: 2
+                                }}
+                              />
+                            );
+                          })}
+                          
+                          {/* Route */}
+                          {tripDirections && (
+                            <DirectionsRenderer
+                              directions={tripDirections}
+                              options={{
+                                suppressMarkers: true,
+                                polylineOptions: {
+                                  strokeColor: '#9333ea',
+                                  strokeWeight: 4,
+                                  strokeOpacity: 0.8
+                                }
+                              }}
+                            />
+                          )}
+                        </GoogleMap>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             )}
@@ -992,51 +2717,80 @@ const LogisticsPage = () => {
         ))}
       </Tabs>
 
-      {/* Modals */}
-      <CreateTripModal
-        show={showCreateTripModal}
-        onClose={() => setShowCreateTripModal(false)}
-        tripName={newTripName}
-        setTripName={setNewTripName}
-        tripDriver={newTripDriver}
-        setTripDriver={setNewTripDriver}
-        drivers={drivers}
-        selectedOrdersCount={currentData.selectedOrders.length}
-        creating={creatingTrip}
-        onCreate={createTrip}
-      />
-      
-      <DriversModal
-        show={showDriversModal}
-        onClose={() => setShowDriversModal(false)}
-        drivers={drivers}
-        newDriverName={newDriverName}
-        setNewDriverName={setNewDriverName}
-        onAddDriver={addDriver}
-        onRemoveDriver={removeDriver}
-      />
-      
-      <SettingsModal
-        show={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        warehouseAddress={warehouseAddress}
-        setWarehouseAddress={setWarehouseAddress}
-        warehouseInputRef={warehouseInputRef}
-        saving={savingSettings}
-        onSave={saveWarehouseSettings}
-      />
-      
-      <CreateOrderModal
-        show={showOrderForm}
-        onClose={() => setShowOrderForm(false)}
-        form={newOrderForm}
-        setForm={setNewOrderForm}
-        addressInputRef={addressInputRef}
-        creating={creatingOrder}
-        onCreate={handleCreateOrder}
-      />
+      {/* Create Trip Modal */}
+      {showCreateTripModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Route className="h-5 w-5 text-purple-600" />
+                Создать рейс — {currentSection.name.ru}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Название рейса *</Label>
+                <Input
+                  value={newTripName}
+                  onChange={(e) => setNewTripName(e.target.value)}
+                  placeholder="Например: Рейс 15 января"
+                  data-testid="trip-name-input"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Водитель</Label>
+                <Select
+                  value={newTripDriver}
+                  onValueChange={setNewTripDriver}
+                >
+                  <SelectTrigger data-testid="trip-driver-input">
+                    <SelectValue placeholder="Выберите водителя (опционально)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {drivers.map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">Выбранные заказы: {currentData.selectedOrders.length}</p>
+                <div className="max-h-[150px] overflow-y-auto space-y-1">
+                  {currentData.selectedOrders.map(orderId => {
+                    const order = currentData.orders.find(o => o.id === orderId);
+                    return order ? (
+                      <p key={orderId} className="text-xs text-muted-foreground truncate">
+                        • {order.fullName || order.customerName} — {order.fullAddress || order.address || 'без адреса'}
+                      </p>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+              
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" onClick={() => {
+                  setShowCreateTripModal(false);
+                  setNewTripName('');
+                  setNewTripDriver('');
+                }}>
+                  Отмена
+                </Button>
+                <Button 
+                  onClick={createTrip}
+                  disabled={creatingTrip || !newTripName.trim()}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  data-testid="create-trip-submit"
+                >
+                  {creatingTrip ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Создать рейс
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
-
-export default LogisticsPage;
