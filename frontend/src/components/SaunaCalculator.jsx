@@ -14,18 +14,19 @@ import {
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
 
-export const SaunaCalculator = ({ editingOrder = null, onEditComplete }) => {
+export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPrefill = null, onAmocrmPrefillUsed = null }) => {
   const {
     loading, initialLoading, prices, formData, appliedDiscount,
     isEditMode, editOrderId, adminGifts, adminDiscountApproved,
     requestedDiscount, requestedDiscountNote, isAdminUser, lang, txt,
     model, optionsTotal, foundationPrice, subtotal, discountAmount, total,
+    amocrmData,
     setFormData, setAdminDiscountApproved, setRequestedDiscount, setRequestedDiscountNote,
     handleInputChange, handleDiscountChange, handleModelChange,
     handleApplyStandardDiscount, handleRadioChange, handleCheckboxChange,
     handleQuantityChange, handleSaveAndGeneratePDF, handleClearForm,
     handleCancelEdit, getCategoryName
-  } = useSaunaCalculator(editingOrder, onEditComplete);
+  } = useSaunaCalculator(editingOrder, onEditComplete, amocrmPrefill, onAmocrmPrefillUsed);
 
   if (initialLoading) {
     return (
