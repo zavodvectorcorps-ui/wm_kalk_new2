@@ -447,42 +447,20 @@ export const IntegrationsPage = () => {
                 <div className="border rounded-lg p-4 space-y-4">
                   <Label className="text-base font-semibold">Адрес клиента</Label>
                   <p className="text-sm text-muted-foreground">
-                    Укажите одно поле с полным адресом ИЛИ три отдельных поля (индекс, город, улица)
+                    Укажите ID полей для сборки полного адреса. Адрес формируется: Улица, Город, Индекс
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm">Полный адрес (одно поле)</Label>
-                      <Input
-                        value={settings.field_mapping?.[activeMappingSection]?.fullAddress || ''}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          field_mapping: { 
-                            ...prev.field_mapping, 
-                            [activeMappingSection]: {
-                              ...prev.field_mapping[activeMappingSection],
-                              fullAddress: e.target.value 
-                            }
-                          }
-                        }))}
-                        placeholder="ID поля"
-                      />
-                    </div>
-                    <div className="text-sm text-muted-foreground flex items-center justify-center">
-                      — или —
-                    </div>
-                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-sm">Индекс</Label>
+                      <Label className="text-sm">Улица / Адрес</Label>
                       <Input
-                        value={settings.field_mapping?.[activeMappingSection]?.addressIndex || ''}
+                        value={settings.field_mapping?.[activeMappingSection]?.addressStreet || ''}
                         onChange={(e) => setSettings(prev => ({
                           ...prev,
                           field_mapping: { 
                             ...prev.field_mapping, 
                             [activeMappingSection]: {
                               ...prev.field_mapping[activeMappingSection],
-                              addressIndex: e.target.value 
+                              addressStreet: e.target.value 
                             }
                           }
                         }))}
@@ -507,16 +485,16 @@ export const IntegrationsPage = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm">Улица</Label>
+                      <Label className="text-sm">Индекс</Label>
                       <Input
-                        value={settings.field_mapping?.[activeMappingSection]?.addressStreet || ''}
+                        value={settings.field_mapping?.[activeMappingSection]?.addressIndex || ''}
                         onChange={(e) => setSettings(prev => ({
                           ...prev,
                           field_mapping: { 
                             ...prev.field_mapping, 
                             [activeMappingSection]: {
                               ...prev.field_mapping[activeMappingSection],
-                              addressStreet: e.target.value 
+                              addressIndex: e.target.value 
                             }
                           }
                         }))}
