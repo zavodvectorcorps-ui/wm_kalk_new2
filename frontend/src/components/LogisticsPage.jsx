@@ -1103,6 +1103,74 @@ export const LogisticsPage = () => {
     }
   };
 
+  // Save edited address with geocoding
+  const saveEditedAddress = async (orderId) => {
+    if (!editingAddressValue.trim()) {
+      toast.error('Введите адрес');
+      return;
+    }
+
+    const order = currentData.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    try {
+      // Geocode the new address
+      let lat = null;
+      let lng = null;
+      
+      if (geocoderRef.current) {
+        await new Promise((resolve) => {
+          geocoderRef.current.geocode({ address: editingAddressValue }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+              lat = results[0].geometry.location.lat();
+              lng = results[0].geometry.location.lng();
+            }
+            resolve();
+          });
+        });
+      }
+
+      // Update in backend
+      const section = order.orderType || activeSection;
+      const endpoint = section === 'greenhouse' ? 'greenhouse' : section === 'sauna' ? 'sauna' : 'balia';
+      
+      const updateData = {
+        fullAddress: editingAddressValue,
+        ...(lat && lng && { lat, lng })
+      };
+      
+      await fetch(`${API_URL}/api/${endpoint}/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+
+      // Update local state
+      setSectionData(prev => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          orders: prev[section].orders.map(o => 
+            o.id === orderId ? { ...o, ...updateData } : o
+          )
+        }
+      }));
+
+      setEditingAddressOrderId(null);
+      setEditingAddressValue('');
+      toast.success(lat ? 'Адрес сохранён и геокодирован' : 'Адрес сохранён');
+    } catch (error) {
+      console.error('Error saving address:', error);
+      toast.error('Ошибка сохранения адреса');
+    }
+  };
+
+  // Start editing address
+  const startEditingAddress = (orderId, currentAddress) => {
+    setEditingAddressOrderId(orderId);
+    setEditingAddressValue(currentAddress || '');
+  };
+
   // Add single order to selected (for map popup)
   const addOrderToSelection = (orderId) => {
     setSectionData(prev => {
