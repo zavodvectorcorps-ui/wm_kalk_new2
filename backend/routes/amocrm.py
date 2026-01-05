@@ -96,7 +96,11 @@ def get_default_settings():
         "amocrm_domain": "",
         "amocrm_token": "",
         "status_field_id": "",
-        "comment_field_id": ""
+        "comment_field_id": "",
+        "trip_number_field_id": "",
+        "trip_driver_field_id": "",
+        "trip_departure_field_id": "",
+        "trip_order_status_field_id": ""
     }
 
 
