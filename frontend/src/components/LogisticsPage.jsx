@@ -204,17 +204,22 @@ export const LogisticsPage = () => {
   const currentData = sectionData[activeSection];
   const currentSection = SECTIONS[activeSection];
 
-  // Load drivers from localStorage
-  useEffect(() => {
-    const savedDrivers = localStorage.getItem('logistics_drivers');
-    if (savedDrivers) {
-      try {
-        setDrivers(JSON.parse(savedDrivers));
-      } catch (e) {
-        console.error('Failed to load drivers:', e);
+  // Load drivers from API
+  const fetchDrivers = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/drivers`);
+      if (res.ok) {
+        const data = await res.json();
+        setDrivers(data);
       }
+    } catch (e) {
+      console.error('Failed to load drivers:', e);
     }
   }, []);
+
+  useEffect(() => {
+    fetchDrivers();
+  }, [fetchDrivers]);
 
   // Load warehouse settings from localStorage
   useEffect(() => {
