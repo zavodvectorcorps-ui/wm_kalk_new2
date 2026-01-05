@@ -112,6 +112,7 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
     """Sync trip data to amoCRM for all orders with amocrm_id.
     
     This is called when trip is updated (status change, driver assignment, etc.)
+    Now uses trip data stored in each order (tripName, tripDriverName, etc.)
     """
     settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
     if not settings:
@@ -142,11 +143,11 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
     
     # Get all orders in trip that have amocrm_id
     order_ids = trip.get("orderIds", [])
-    order_statuses = trip.get("orderStatuses", {})
     
     if not order_ids or collection is None:
         return
     
+    # Get orders with their trip data (stored in each order)
     orders = list(collection.find({"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}}, {"_id": 0}))
     
     for order in orders:
@@ -154,14 +155,14 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
         if not amocrm_id:
             continue
         
-        # Build update payload
+        # Build update payload - use trip data stored in order
         custom_fields_values = []
         
         if trip_number_field_id:
             try:
                 custom_fields_values.append({
                     "field_id": int(trip_number_field_id),
-                    "values": [{"value": trip.get("name", "")}]
+                    "values": [{"value": order.get("tripName", "") or trip.get("name", "")}]
                 })
             except ValueError:
                 pass
@@ -170,7 +171,7 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
             try:
                 custom_fields_values.append({
                     "field_id": int(trip_driver_field_id),
-                    "values": [{"value": trip.get("driverName", "") or ""}]
+                    "values": [{"value": order.get("tripDriverName", "") or trip.get("driverName", "") or ""}]
                 })
             except ValueError:
                 pass
@@ -179,14 +180,14 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
             try:
                 custom_fields_values.append({
                     "field_id": int(trip_departure_field_id),
-                    "values": [{"value": trip.get("departureDate", "") or ""}]
+                    "values": [{"value": order.get("tripDepartureDate", "") or trip.get("departureDate", "") or ""}]
                 })
             except ValueError:
                 pass
         
         if trip_order_status_field_id:
             try:
-                order_status = order_statuses.get(order.get("id"), "pending")
+                order_status = order.get("tripOrderStatus", "pending")
                 status_label = STATUS_LABELS.get(order_status, order_status)
                 custom_fields_values.append({
                     "field_id": int(trip_order_status_field_id),
