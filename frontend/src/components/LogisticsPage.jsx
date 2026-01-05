@@ -886,9 +886,13 @@ const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDelivery
 
 const OrdersMapCard = ({
   sectionKey, currentSection, sectionData, setSectionData, isLoaded, mapFilter, setMapFilter,
+  mapFilterTripId, setMapFilterTripId, trips,
   warehouseCoords, warehouseAddress, buildingRoute, buildRoute, clearRoute, openInGoogleMaps, 
   onMapLoad, getMapOrders, getMarkerIcon, formatDistance, formatDuration
-}) => (
+}) => {
+  const sectionTrips = trips?.filter(t => t.section === sectionKey) || [];
+  
+  return (
   <Card>
     <CardHeader className="pb-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -896,15 +900,43 @@ const OrdersMapCard = ({
           <MapPin className="h-5 w-5" />
           Карта
         </CardTitle>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            <Button size="sm" variant={mapFilter === 'free' ? 'default' : 'ghost'} onClick={() => setMapFilter('free')} className="h-7 text-xs">
+            <Button size="sm" variant={mapFilter === 'free' ? 'default' : 'ghost'} onClick={() => { setMapFilter('free'); setMapFilterTripId(null); }} className="h-7 text-xs">
               <Eye className="h-3 w-3 mr-1" />Свободные
             </Button>
-            <Button size="sm" variant={mapFilter === 'all' ? 'default' : 'ghost'} onClick={() => setMapFilter('all')} className="h-7 text-xs">
+            <Button size="sm" variant={mapFilter === 'all' ? 'default' : 'ghost'} onClick={() => { setMapFilter('all'); setMapFilterTripId(null); }} className="h-7 text-xs">
               <Filter className="h-3 w-3 mr-1" />Все
             </Button>
           </div>
+          {/* Trip filter dropdown */}
+          {sectionTrips.length > 0 && (
+            <Select 
+              value={mapFilter === 'free_plus_trip' ? mapFilterTripId || '' : ''} 
+              onValueChange={(tripId) => {
+                if (tripId) {
+                  setMapFilter('free_plus_trip');
+                  setMapFilterTripId(tripId);
+                } else {
+                  setMapFilter('free');
+                  setMapFilterTripId(null);
+                }
+              }}
+            >
+              <SelectTrigger className="h-7 w-[180px] text-xs" data-testid="map-trip-filter">
+                <Route className="h-3 w-3 mr-1" />
+                <SelectValue placeholder="+ Рейс на карте" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Без рейса</SelectItem>
+                {sectionTrips.map(trip => (
+                  <SelectItem key={trip.id} value={trip.id}>
+                    {trip.name} ({trip.orderIds?.length || 0})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {sectionData[sectionKey].selectedOrders.length > 0 && (
             <>
               <Button size="sm" variant="outline" onClick={clearRoute}><X className="h-4 w-4 mr-1" />Сбросить</Button>
@@ -924,11 +956,14 @@ const OrdersMapCard = ({
           )}
         </div>
       </div>
-      <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+      <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-500"></div><span>Свободные</span></div>
         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-gray-400"></div><span>В рейсе</span></div>
         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div><span>Важные</span></div>
         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500"></div><span>Склад</span></div>
+        {mapFilter === 'free_plus_trip' && mapFilterTripId && (
+          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-purple-500"></div><span>Выбранный рейс</span></div>
+        )}
       </div>
       {sectionData[sectionKey].routeInfo && (
         <div className={`flex gap-4 mt-3 p-3 ${currentSection.bgColor}/50 rounded-lg`}>
@@ -952,13 +987,14 @@ const OrdersMapCard = ({
           {getMapOrders(sectionData[sectionKey].orders).map((order) => {
             const isSelected = sectionData[sectionKey].selectedOrders.includes(order.id);
             const selectedIndex = isSelected ? sectionData[sectionKey].selectedOrders.indexOf(order.id) + 1 : null;
+            const isInSelectedTrip = mapFilterTripId && order.tripId === mapFilterTripId;
             return (
               <Marker
                 key={order.id}
                 position={{ lat: order.lat, lng: order.lng }}
                 title={`${order.fullName || order.customerName}\n${order.fullAddress || order.address}`}
                 label={isSelected ? { text: String(selectedIndex), color: 'white', fontWeight: 'bold' } : undefined}
-                icon={isSelected ? { path: window.google.maps.SymbolPath.CIRCLE, scale: 14, fillColor: currentSection.markerColor, fillOpacity: 1, strokeColor: 'white', strokeWeight: 2 } : getMarkerIcon(order)}
+                icon={isSelected ? { path: window.google.maps.SymbolPath.CIRCLE, scale: 14, fillColor: currentSection.markerColor, fillOpacity: 1, strokeColor: 'white', strokeWeight: 2 } : isInSelectedTrip ? { path: window.google.maps.SymbolPath.CIRCLE, scale: 12, fillColor: '#9333ea', fillOpacity: 1, strokeColor: 'white', strokeWeight: 2 } : getMarkerIcon(order)}
                 onClick={() => {
                   const currentSelected = sectionData[sectionKey].selectedOrders;
                   if (isSelected) {
@@ -990,6 +1026,7 @@ const OrdersMapCard = ({
     </CardContent>
   </Card>
 );
+};
 
 const TripsView = ({
   sectionKey, currentSection, trips, selectedTrip, setSelectedTrip, tripStatusFilter, setTripStatusFilter,
