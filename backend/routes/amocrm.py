@@ -423,44 +423,31 @@ def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str] = None
     lead_data["orderNumber"] = get_field_value("orderNumber", ["номер заказа", "order number", "№ заказа"])
     
     # Адрес - может быть одним полем или 3 отдельными
-    full_address = get_field_value("fullAddress", ["адрес", "address"])
+    # Всегда собираем адрес из 3 полей (улица, город, индекс)
+    # Индекс
+    index_val = get_field_value("addressIndex", ["индекс", "postal", "zip", "kod"])
     
-    # Если полный адрес пустой, пробуем собрать из 3 полей
-    if not full_address:
-        address_parts = []
-        
-        # Индекс
-        index_val = get_field_value("addressIndex", ["индекс", "postal", "zip"])
-        if index_val:
-            address_parts.append(index_val)
-        
-        # Город
-        city_val = get_field_value("addressCity", ["город", "city", "населенный пункт"])
-        if city_val:
-            address_parts.append(city_val)
-        
-        # Улица
-        street_val = get_field_value("addressStreet", ["улица", "street", "ул."])
-        if street_val:
-            address_parts.append(street_val)
-        
-        # Store individual parts
-        lead_data["addressIndex"] = index_val if index_val else ""
-        lead_data["addressCity"] = city_val if city_val else ""
-        lead_data["addressStreet"] = street_val if street_val else ""
-        
-        # Build full address - put street first, then city, then index
-        address_parts_ordered = []
-        if street_val:
-            address_parts_ordered.append(street_val)
-        if city_val:
-            address_parts_ordered.append(city_val)
-        if index_val:
-            address_parts_ordered.append(index_val)
-        
-        if address_parts_ordered:
-            full_address = ", ".join(address_parts_ordered)
+    # Город
+    city_val = get_field_value("addressCity", ["город", "city", "населенный пункт", "miasto"])
     
+    # Улица
+    street_val = get_field_value("addressStreet", ["улица", "street", "ул.", "adres", "адрес"])
+    
+    # Store individual parts
+    lead_data["addressIndex"] = index_val if index_val else ""
+    lead_data["addressCity"] = city_val if city_val else ""
+    lead_data["addressStreet"] = street_val if street_val else ""
+    
+    # Build full address - put street first, then city, then index
+    address_parts = []
+    if street_val:
+        address_parts.append(street_val)
+    if city_val:
+        address_parts.append(city_val)
+    if index_val:
+        address_parts.append(index_val)
+    
+    full_address = ", ".join(address_parts) if address_parts else ""
     lead_data["fullAddress"] = full_address
     
     # Состав заказа
