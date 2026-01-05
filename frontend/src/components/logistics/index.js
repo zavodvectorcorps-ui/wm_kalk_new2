@@ -5,3 +5,4 @@ export { default as OrdersMap } from './OrdersMap';
 export { default as TripsList } from './TripsList';
 export { TripDetails, TripMap } from './TripDetails';
 export * from './Modals';
+export { useLogistics } from './useLogistics';
