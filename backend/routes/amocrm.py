@@ -449,8 +449,22 @@ def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str] = None
         if street_val:
             address_parts.append(street_val)
         
-        if address_parts:
-            full_address = ", ".join(address_parts)
+        # Store individual parts
+        lead_data["addressIndex"] = index_val if index_val else ""
+        lead_data["addressCity"] = city_val if city_val else ""
+        lead_data["addressStreet"] = street_val if street_val else ""
+        
+        # Build full address - put street first, then city, then index
+        address_parts_ordered = []
+        if street_val:
+            address_parts_ordered.append(street_val)
+        if city_val:
+            address_parts_ordered.append(city_val)
+        if index_val:
+            address_parts_ordered.append(index_val)
+        
+        if address_parts_ordered:
+            full_address = ", ".join(address_parts_ordered)
     
     lead_data["fullAddress"] = full_address
     
