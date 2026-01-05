@@ -370,21 +370,35 @@ export const useLogistics = () => {
   };
 
   // Update trip
-  const updateTrip = async (tripId, updates) => {
+  const updateTrip = async (tripId, updates, syncOrderStatuses = false) => {
     try {
       const res = await fetch(`${API_URL}/api/trips/${tripId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
+        body: JSON.stringify({ ...updates, syncOrderStatuses })
       });
       if (res.ok) {
+        const updatedTrip = await res.json();
         fetchTrips(activeSection);
+        
+        // Update selectedTrip if it's the one being updated
+        if (selectedTrip?.id === tripId) {
+          setSelectedTrip(updatedTrip);
+        }
+        
         toast.success('Рейс обновлён');
+        return updatedTrip;
       }
     } catch (error) {
       console.error('Error updating trip:', error);
       toast.error('Ошибка обновления');
     }
+    return null;
+  };
+
+  // Update trip status and sync all order statuses
+  const updateTripStatus = async (tripId, newStatus) => {
+    return await updateTrip(tripId, { status: newStatus }, true);
   };
 
   // Delete trip
