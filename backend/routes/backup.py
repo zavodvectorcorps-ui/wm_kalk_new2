@@ -1448,6 +1448,20 @@ async def send_backup_to_telegram():
                 zip_file.writestr("amocrm_settings.json", json.dumps(amocrm_settings, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "amocrm_settings", "count": len(amocrm_settings)})
             
+            # Integration settings (includes amoCRM from integration_settings collection)
+            integration_settings = await db.integration_settings.find({}).to_list(100)
+            if integration_settings:
+                integration_settings = [serialize_for_json(s) for s in integration_settings]
+                zip_file.writestr("integration_settings.json", json.dumps(integration_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "integration_settings", "count": len(integration_settings)})
+            
+            # Webhook logs (for debugging and audit)
+            webhook_logs = await db.webhook_logs.find({}).to_list(10000)
+            if webhook_logs:
+                webhook_logs = [serialize_for_json(w) for w in webhook_logs]
+                zip_file.writestr("webhook_logs.json", json.dumps(webhook_logs, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "webhook_logs", "count": len(webhook_logs)})
+            
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
                 "chat_id": os.environ.get('TELEGRAM_CHAT_ID', ''),
