@@ -204,6 +204,9 @@ class TestAddOrdersToTrip:
         order_id = self.create_test_order("-conflict")
         trip1 = self.create_test_trip([order_id], "-trip1")
         
+        # Wait to ensure different trip ID (timestamp-based)
+        time.sleep(1.5)
+        
         # Create second trip
         order2_id = self.create_test_order("-trip2init")
         trip2 = self.create_test_trip([order2_id], "-trip2")
@@ -408,21 +411,28 @@ class TestTripsWithPlannedAndInTransitStatus:
         """Test GET /api/trips returns trips with all statuses"""
         # Create trips with different statuses
         order1_id = self.create_test_order("-planned")
-        order2_id = self.create_test_order("-transit")
-        order3_id = self.create_test_order("-completed")
         
         # Create planned trip
         trip1_data = {"name": "Planned Trip", "section": "greenhouse", "orderIds": [order1_id]}
         trip1 = self.session.post(f"{BASE_URL}/api/trips", json=trip1_data).json()
         self.created_trip_ids.append(trip1["id"])
         
+        # Wait to ensure different trip ID
+        time.sleep(1.5)
+        
         # Create in_transit trip
+        order2_id = self.create_test_order("-transit")
         trip2_data = {"name": "In Transit Trip", "section": "greenhouse", "orderIds": [order2_id]}
         trip2 = self.session.post(f"{BASE_URL}/api/trips", json=trip2_data).json()
         self.created_trip_ids.append(trip2["id"])
-        self.session.put(f"{BASE_URL}/api/trips/{trip2['id']}", json={"status": "in_transit"})
+        update_resp = self.session.put(f"{BASE_URL}/api/trips/{trip2['id']}", json={"status": "in_transit"})
+        assert update_resp.status_code == 200, f"Failed to update trip status: {update_resp.text}"
+        
+        # Wait to ensure different trip ID
+        time.sleep(1.5)
         
         # Create completed trip
+        order3_id = self.create_test_order("-completed")
         trip3_data = {"name": "Completed Trip", "section": "greenhouse", "orderIds": [order3_id]}
         trip3 = self.session.post(f"{BASE_URL}/api/trips", json=trip3_data).json()
         self.created_trip_ids.append(trip3["id"])
