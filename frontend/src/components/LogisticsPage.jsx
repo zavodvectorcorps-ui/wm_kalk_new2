@@ -1962,22 +1962,81 @@ export const LogisticsPage = () => {
                                   </Button>
                                 </div>
                               </div>
-                              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                <span className="truncate">{order.fullAddress || order.address || 'Нет адреса'}</span>
-                                {/* Map indicator */}
-                                {(order.lat && order.lng) ? (
-                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 whitespace-nowrap">
-                                    ✓ на карте
+                              
+                              {/* Address display/edit */}
+                              {editingAddressOrderId === order.id ? (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                  <Input
+                                    ref={editAddressInputRef}
+                                    value={editingAddressValue}
+                                    onChange={(e) => setEditingAddressValue(e.target.value)}
+                                    placeholder="Введите адрес..."
+                                    className="h-7 text-sm flex-1"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        saveEditedAddress(order.id);
+                                      } else if (e.key === 'Escape') {
+                                        setEditingAddressOrderId(null);
+                                        setEditingAddressValue('');
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2"
+                                    onClick={() => saveEditedAddress(order.id)}
+                                  >
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2"
+                                    onClick={() => {
+                                      setEditingAddressOrderId(null);
+                                      setEditingAddressValue('');
+                                    }}
+                                  >
+                                    <X className="h-4 w-4 text-red-600" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 mt-1 group">
+                                  <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                  <span 
+                                    className="text-sm text-muted-foreground truncate cursor-pointer hover:text-foreground"
+                                    onClick={() => startEditingAddress(order.id, order.fullAddress || order.address)}
+                                    title="Нажмите, чтобы изменить адрес"
+                                  >
+                                    {order.fullAddress || order.address || 'Нет адреса — нажмите для добавления'}
                                   </span>
-                                ) : (order.fullAddress || order.address) ? (
-                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 whitespace-nowrap">
-                                    ⏳ геокодинг
-                                  </span>
-                                ) : (
-                                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 whitespace-nowrap">
-                                    нет адреса
-                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-5 px-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => startEditingAddress(order.id, order.fullAddress || order.address)}
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                  </Button>
+                                  {/* Map indicator */}
+                                  {(order.lat && order.lng) ? (
+                                    <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 whitespace-nowrap">
+                                      ✓ на карте
+                                    </span>
+                                  ) : (order.fullAddress || order.address) ? (
+                                    <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 whitespace-nowrap">
+                                      ⏳ геокодинг
+                                    </span>
+                                  ) : (
+                                    <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 whitespace-nowrap">
+                                      нет адреса
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                                 )}
                               </p>
                               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
