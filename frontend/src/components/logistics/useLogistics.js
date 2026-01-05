@@ -1081,20 +1081,32 @@ export const useLogistics = () => {
 
   // Get map orders based on filter
   const getMapOrders = (orders) => {
-    if (mapFilter === 'free') {
-      return orders.filter(o => !o.tripId && o.lat && o.lng);
-    }
-    return orders.filter(o => o.lat && o.lng);
+    if (!orders) return [];
+    
+    return orders.filter(o => {
+      if (!o.lat || !o.lng) return false;
+      
+      if (mapFilter === 'free') {
+        return !o.tripId;
+      } else if (mapFilter === 'all') {
+        return true;
+      } else if (mapFilter === 'free_plus_trip' && mapFilterTripId) {
+        return !o.tripId || o.tripId === mapFilterTripId;
+      }
+      return true;
+    });
   };
 
   // Get marker icon for order
   const getMarkerIcon = (order) => {
     const isImportant = order.isImportant;
     const inTrip = !!order.tripId;
+    const isInSelectedTrip = mapFilterTripId && order.tripId === mapFilterTripId;
     
-    let color = '#22c55e';
-    if (isImportant) color = '#ef4444';
-    else if (inTrip) color = '#9ca3af';
+    let color = '#22c55e'; // Green - free
+    if (isImportant) color = '#ef4444'; // Red - important
+    else if (isInSelectedTrip) color = '#9ca3af'; // Light gray - in selected trip
+    else if (inTrip) color = '#6b7280'; // Dark gray - in other trip
     
     if (isImportant) {
       return {
