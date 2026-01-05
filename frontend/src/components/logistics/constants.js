@@ -147,14 +147,35 @@ export const getMarkerIcon = (order, google) => {
 };
 
 // Filter orders for map display
-export const getMapOrders = (orders, mapFilter) => {
+// mapFilter can be: 'free', 'all', or trip id (e.g., 'BAL-123456')
+export const getMapOrders = (orders, mapFilter, tripId = null) => {
   if (!orders) return [];
   
   return orders.filter(o => {
     // Must have coordinates
     if (!o.lat || !o.lng) return false;
-    // Filter by trip status
-    if (mapFilter === 'free') return !o.tripId;
+    
+    // Filter modes
+    if (mapFilter === 'free') {
+      return !o.tripId;
+    } else if (mapFilter === 'all') {
+      return true;
+    } else if (mapFilter === 'free_plus_trip' && tripId) {
+      // Show free orders OR orders from selected trip
+      return !o.tripId || o.tripId === tripId;
+    }
     return true;
   });
+};
+
+// Get marker color based on order state and filter context
+export const getMarkerColor = (order, selectedTripId = null) => {
+  const isImportant = order.isImportant;
+  const inTrip = !!order.tripId;
+  const isInSelectedTrip = selectedTripId && order.tripId === selectedTripId;
+  
+  if (isImportant) return '#ef4444'; // Red - important
+  if (isInSelectedTrip) return '#9ca3af'; // Gray - in selected trip
+  if (inTrip) return '#6b7280'; // Dark gray - in other trip
+  return '#22c55e'; // Green - free
 };
