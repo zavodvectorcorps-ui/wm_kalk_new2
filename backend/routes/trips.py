@@ -4,9 +4,12 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone
 import os
+import httpx
+import logging
 from pymongo import MongoClient
 
 router = APIRouter(prefix="/api/trips", tags=["trips"])
+logger = logging.getLogger(__name__)
 
 # MongoDB connection
 MONGO_URL = os.environ.get("MONGO_URL")
@@ -18,6 +21,7 @@ trips_collection = db["trips"]
 greenhouse_orders = db["greenhouse_orders"]
 balia_orders = db["orders"]  # Balia orders are stored in 'orders' collection
 sauna_orders = db["sauna_orders"]
+integration_settings = db["integration_settings"]
 
 
 class TripCreate(BaseModel):
