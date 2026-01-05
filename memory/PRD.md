@@ -5,6 +5,35 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Logistics Module Enhancements (2026-01-06)
+- **Feature**: Enhanced trip management and amoCRM synchronization
+- **New Trip Features**:
+  - **Departure Date Field**: New date picker in TripDetailsCard to set trip departure date (`departureDate`)
+  - **Trip-Order Status Sync**: When trip status changes, all orders in trip are automatically synced:
+    - `planned` → `pending`
+    - `in_transit` → `delivering`
+    - `completed` → `delivered`
+  - Status change text: "При изменении статуса рейса обновятся статусы всех заказов"
+- **New Map Filter**: "Свободные + Рейс" mode showing unassigned orders + selected trip's orders
+  - Green markers: Unassigned orders
+  - Purple markers: Orders from selected trip
+  - Dropdown to select trip in Orders tab
+- **New amoCRM Trip Sync Fields** (Integrations → Синхронизация tab):
+  - ID поля: Номер рейса (`trip_number_field_id`)
+  - ID поля: Водитель (`trip_driver_field_id`)
+  - ID поля: Дата отправки (`trip_departure_field_id`)
+  - ID поля: Статус заказа в рейсе (`trip_order_status_field_id`)
+- **New Backend Endpoint**: `POST /api/integrations/amocrm/sync-trip`
+  - Syncs trip data to amoCRM leads (called automatically on trip update)
+- **Files Modified**:
+  - `/app/frontend/src/components/LogisticsPage.jsx` - TripDetailsCard, OrdersMapCard with new features
+  - `/app/frontend/src/components/logistics/useLogistics.js` - updateTripStatus function
+  - `/app/frontend/src/components/IntegrationsPage.jsx` - New trip sync fields in Sync tab
+  - `/app/backend/routes/trips.py` - departureDate, syncOrderStatuses, amoCRM sync
+  - `/app/backend/routes/amocrm.py` - sync-trip endpoint, trip field settings
+- **Test File**: `/app/tests/test_logistics_enhancements.py` (13 tests, all passing)
+- **Status**: ✅ Implemented and tested
+
 ### amoCRM Calculator Integration (2026-01-05)
 - **Feature**: Open calculator from amoCRM lead card with pre-filled customer data
 - **Implementation**:
