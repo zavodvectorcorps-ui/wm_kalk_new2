@@ -20,6 +20,19 @@ A full-featured quoting and order management application for Saunas and Balias (
   - `/app/frontend/src/components/logistics/index.js` - Updated exports
 - **Status**: ✅ Verified - All features working after refactor (tested with testing agent)
 
+### Google Maps Autocomplete Improvements (2026-01-05)
+- **Problem**: Legacy `google.maps.places.Autocomplete` API deprecated for new customers (March 2025)
+- **Solution**: 
+  - Created shared `initAutocomplete` helper function in `useLogistics.js`
+  - Extended country restrictions to include 9 countries (PL, DE, CZ, SK, LT, LV, EE, UA, BY)
+  - Improved error handling and cleanup
+  - Updated `AddressAutocomplete.jsx` with better loading states
+- **Note**: Full migration to `PlaceAutocompleteElement` web component deferred - requires significant UI architecture changes. Current legacy API continues to work for existing customers.
+- **Files Modified**:
+  - `/app/frontend/src/components/logistics/useLogistics.js` - Added `initAutocomplete` helper
+  - `/app/frontend/src/components/AddressAutocomplete.jsx` - Improved component
+- **Status**: ✅ Partially complete - Autocomplete working with improved code quality
+
 ### Backup System Fix (2026-01-05)
 - **Problem**: Backup was missing critical data:
   - Drivers were stored in localStorage (not backed up)
