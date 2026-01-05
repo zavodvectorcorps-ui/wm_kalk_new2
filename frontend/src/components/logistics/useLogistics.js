@@ -1163,29 +1163,18 @@ export const useLogistics = () => {
     if (!isLoaded || !showOrderForm || !addressInputRef.current) return;
     if (autocompleteRef.current) return;
     
-    try {
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
-        types: ['address'],
-        componentRestrictions: { country: ['pl', 'de', 'cz', 'sk', 'lt', 'lv', 'ee', 'ua', 'by'] },
-        fields: ['formatted_address', 'geometry']
-      });
-      
-      autocompleteRef.current.addListener('place_changed', () => {
-        const place = autocompleteRef.current.getPlace();
-        if (place?.formatted_address) {
-          setNewOrderForm(prev => ({ ...prev, fullAddress: place.formatted_address }));
-        }
-      });
-    } catch (e) {
-      console.error('Failed to initialize autocomplete:', e);
-    }
+    autocompleteRef.current = initAutocomplete(
+      addressInputRef.current,
+      (place) => setNewOrderForm(prev => ({ ...prev, fullAddress: place.address }))
+    );
     
     return () => {
       if (autocompleteRef.current && window.google?.maps?.event) {
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        autocompleteRef.current = null;
       }
     };
-  }, [isLoaded, showOrderForm]);
+  }, [isLoaded, showOrderForm, initAutocomplete]);
 
   // Initial data load
   useEffect(() => {
