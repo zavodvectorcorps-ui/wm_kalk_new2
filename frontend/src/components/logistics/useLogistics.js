@@ -42,8 +42,9 @@ export const useLogistics = () => {
   const [showDriversModal, setShowDriversModal] = useState(false);
   const [newDriverName, setNewDriverName] = useState('');
   
-  // Map filter
+  // Map filter: 'free', 'all', 'free_plus_trip'
   const [mapFilter, setMapFilter] = useState('free');
+  const [mapFilterTripId, setMapFilterTripId] = useState(null); // Trip ID for 'free_plus_trip' mode
   const [tripStatusFilter, setTripStatusFilter] = useState('planned');
   
   // Address editing state
