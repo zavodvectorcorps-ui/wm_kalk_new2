@@ -32,7 +32,7 @@ const getImageUrl = (url) => {
   return url;
 };
 
-export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
+export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPrefill = null, onAmocrmPrefillUsed = null }) => {
   const { t, i18n } = useTranslation();
   const { user, isAdmin } = useAuth();
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
@@ -49,6 +49,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   // Manager requested discount (visible to admin)
   const [requestedDiscount, setRequestedDiscount] = useState(0);
   const [requestedDiscountNote, setRequestedDiscountNote] = useState('');
+  // amoCRM integration
+  const [amocrmData, setAmocrmData] = useState(null);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -63,6 +65,31 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete }) => {
   });
 
   const isAdminUser = isAdmin && isAdmin();
+
+  // Handle amoCRM prefill data
+  useEffect(() => {
+    if (amocrmPrefill && !editingOrder) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: amocrmPrefill.fullName || prev.fullName,
+        phoneNumber: amocrmPrefill.phoneNumber || prev.phoneNumber,
+        fullAddress: amocrmPrefill.fullAddress || prev.fullAddress,
+        email: amocrmPrefill.email || prev.email,
+      }));
+      
+      setAmocrmData({
+        amocrm_id: amocrmPrefill.amocrm_id,
+        amocrm_link: amocrmPrefill.amocrm_link,
+        amocrm_name: amocrmPrefill.amocrm_name,
+      });
+      
+      toast.success(`Dane załadowane z amoCRM: ${amocrmPrefill.fullName || amocrmPrefill.amocrm_name}`);
+      
+      if (onAmocrmPrefillUsed) {
+        onAmocrmPrefillUsed();
+      }
+    }
+  }, [amocrmPrefill, editingOrder, onAmocrmPrefillUsed]);
 
   useEffect(() => {
     fetchPrices();
