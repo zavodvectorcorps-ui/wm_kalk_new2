@@ -168,6 +168,9 @@ export const LogisticsPage = () => {
   const [selectedMapOrder, setSelectedMapOrder] = useState(null); // Order clicked on map
   const [mapPopupPosition, setMapPopupPosition] = useState(null); // Position for popup
   
+  // Trip status filter
+  const [tripStatusFilter, setTripStatusFilter] = useState('planned'); // 'planned', 'in_transit', 'completed'
+  
   // New order form state
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [newOrderForm, setNewOrderForm] = useState({
