@@ -780,12 +780,39 @@ async def import_backup(file: UploadFile = File(...)):
                     await db.amocrm_settings.delete_many({})
                     for setting in data:
                         setting.pop('_id', None)
-                        await db.amocrm_settings.insert_one(setting)
+                        # Also save to integration_settings if it has type='amocrm'
+                        if setting.get('type') == 'amocrm':
+                            await db.integration_settings.update_one(
+                                {"type": "amocrm"},
+                                {"$set": setting},
+                                upsert=True
+                            )
+                        else:
+                            await db.amocrm_settings.insert_one(setting)
                     import_stats["imported"]["amocrm_settings"] = len(data)
                     logger.info(f"Imported {len(data)} amoCRM settings")
                 except Exception as e:
                     logger.error(f"Error importing amocrm_settings: {e}")
                     import_stats["errors"].append(f"amocrm_settings: {str(e)}")
+            
+            # Import integration_settings
+            if "integration_settings.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("integration_settings.json").decode('utf-8'))
+                    for setting in data:
+                        setting_type = setting.get('type')
+                        setting.pop('_id', None)
+                        if setting_type:
+                            await db.integration_settings.update_one(
+                                {"type": setting_type},
+                                {"$set": setting},
+                                upsert=True
+                            )
+                    import_stats["imported"]["integration_settings"] = len(data)
+                    logger.info(f"Imported {len(data)} integration settings")
+                except Exception as e:
+                    logger.error(f"Error importing integration_settings: {e}")
+                    import_stats["errors"].append(f"integration_settings: {str(e)}")
             
             # Import uploaded files
             uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
