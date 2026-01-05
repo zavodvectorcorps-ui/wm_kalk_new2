@@ -1029,6 +1029,18 @@ async def create_auto_backup():
         if amocrm_settings:
             backup_manifest["collections"].append({"name": "amocrm_settings", "count": len(amocrm_settings)})
         
+        # Integration settings (includes amoCRM settings from integration_settings collection)
+        integration_settings = await db.integration_settings.find({}).to_list(100)
+        backup_data["collections"]["integration_settings"] = [serialize_for_json(s) for s in integration_settings]
+        if integration_settings:
+            backup_manifest["collections"].append({"name": "integration_settings", "count": len(integration_settings)})
+        
+        # Webhook logs (for debugging and audit)
+        webhook_logs = await db.webhook_logs.find({}).to_list(10000)
+        backup_data["collections"]["webhook_logs"] = [serialize_for_json(w) for w in webhook_logs]
+        if webhook_logs:
+            backup_manifest["collections"].append({"name": "webhook_logs", "count": len(webhook_logs)})
+        
         # Calculate size
         backup_json = json.dumps(backup_data)
         backup_data["size"] = len(backup_json)
