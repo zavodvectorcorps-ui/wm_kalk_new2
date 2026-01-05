@@ -808,6 +808,147 @@ export const IntegrationsPage = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Calculator Integration Tab */}
+        <TabsContent value="calculator" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ExternalLink className="h-5 w-5" />
+                Открытие калькулятора из amoCRM
+              </CardTitle>
+              <CardDescription>
+                Откройте калькулятор прямо из карточки сделки с автозаполнением данных клиента
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* How it works */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+                <h4 className="font-medium text-blue-800 flex items-center gap-2">
+                  <Info className="h-4 w-4" />
+                  Как это работает
+                </h4>
+                <ol className="text-sm text-blue-700 space-y-2 list-decimal list-inside">
+                  <li>Добавьте ссылку с ID сделки в amoCRM (через Salesbot или Digital Pipeline)</li>
+                  <li>При переходе по ссылке калькулятор откроется с данными клиента</li>
+                  <li>После создания заказа в amoCRM добавится примечание "КП создано"</li>
+                  <li>Заказ будет связан со сделкой — ссылка на amoCRM сохранится</li>
+                </ol>
+              </div>
+
+              {/* URLs for each calculator */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Ссылки для калькуляторов</h4>
+                
+                {/* Balia */}
+                <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Waves className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-blue-800">Калькулятор Balia (Купели)</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={`${window.location.origin}/?calc=balia&amocrm_id={{lead.id}}`}
+                      readOnly
+                      className="font-mono text-xs bg-white"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/?calc=balia&amocrm_id={{lead.id}}`);
+                        toast.success('Ссылка скопирована');
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Замените <code className="bg-muted px-1 rounded">{`{{lead.id}}`}</code> на переменную ID сделки в amoCRM
+                  </p>
+                </div>
+
+                {/* Sauna */}
+                <div className="p-4 bg-orange-50/50 border border-orange-200 rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-5 w-5 text-orange-600" />
+                    <span className="font-medium text-orange-800">Калькулятор Sauna (Сауны)</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={`${window.location.origin}/?calc=sauna&amocrm_id={{lead.id}}`}
+                      readOnly
+                      className="font-mono text-xs bg-white"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/?calc=sauna&amocrm_id={{lead.id}}`);
+                        toast.success('Ссылка скопирована');
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Замените <code className="bg-muted px-1 rounded">{`{{lead.id}}`}</code> на переменную ID сделки в amoCRM
+                  </p>
+                </div>
+              </div>
+
+              {/* Setup instructions */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Как настроить в amoCRM</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Option 1: Salesbot */}
+                  <div className="p-4 border rounded-lg space-y-2">
+                    <h5 className="font-medium flex items-center gap-2">
+                      <span className="w-6 h-6 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                      Через Salesbot
+                    </h5>
+                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-6">
+                      <li>Откройте Настройки → Salesbot</li>
+                      <li>Создайте нового бота</li>
+                      <li>Добавьте действие "Отправить сообщение"</li>
+                      <li>Вставьте ссылку с переменной ID</li>
+                      <li>Привяжите бота к нужному этапу воронки</li>
+                    </ol>
+                  </div>
+
+                  {/* Option 2: Digital Pipeline */}
+                  <div className="p-4 border rounded-lg space-y-2">
+                    <h5 className="font-medium flex items-center gap-2">
+                      <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                      Через Digital Pipeline
+                    </h5>
+                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-6">
+                      <li>Откройте настройки воронки</li>
+                      <li>Выберите этап для создания КП</li>
+                      <li>Добавьте действие "Webhook"</li>
+                      <li>Вставьте ссылку с ID сделки</li>
+                      <li>Менеджер получит уведомление с кнопкой</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              {/* Important notes */}
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+                <h4 className="font-medium text-amber-800 flex items-center gap-2">
+                  <Info className="h-4 w-4" />
+                  Важно
+                </h4>
+                <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
+                  <li>Для работы интеграции нужно настроить API-токен amoCRM во вкладке "Синхронизация"</li>
+                  <li>Настройте маппинг полей для корректного переноса данных клиента</li>
+                  <li>Пользователь должен быть авторизован в приложении</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
