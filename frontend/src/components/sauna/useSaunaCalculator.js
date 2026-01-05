@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { API_URL, getTranslation, getImageUrl, getInitialFormData } from './constants';
 
-export const useSaunaCalculator = (editingOrder = null, onEditComplete) => {
+export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPrefill = null, onAmocrmPrefillUsed = null) => {
   const { t, i18n } = useTranslation();
   const { user, isAdmin } = useAuth();
   
@@ -20,6 +20,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete) => {
   const [adminGifts, setAdminGifts] = useState([]);
   const [adminDiscountApproved, setAdminDiscountApproved] = useState(false);
   
+  // amoCRM integration
+  const [amocrmData, setAmocrmData] = useState(null);
+  
   // Manager requested discount
   const [requestedDiscount, setRequestedDiscount] = useState(0);
   const [requestedDiscountNote, setRequestedDiscountNote] = useState('');
@@ -29,6 +32,32 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete) => {
   const txt = getTranslation(lang);
   
   const [formData, setFormData] = useState(getInitialFormData());
+
+  // Handle amoCRM prefill data
+  useEffect(() => {
+    if (amocrmPrefill && !editingOrder) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: amocrmPrefill.fullName || prev.fullName,
+        phoneNumber: amocrmPrefill.phoneNumber || prev.phoneNumber,
+        fullAddress: amocrmPrefill.fullAddress || prev.fullAddress,
+        email: amocrmPrefill.email || prev.email,
+      }));
+      
+      setAmocrmData({
+        amocrm_id: amocrmPrefill.amocrm_id,
+        amocrm_link: amocrmPrefill.amocrm_link,
+        amocrm_name: amocrmPrefill.amocrm_name,
+      });
+      
+      toast.success(`Данные загружены из amoCRM: ${amocrmPrefill.fullName || amocrmPrefill.amocrm_name}`);
+      
+      // Notify parent that prefill was used
+      if (onAmocrmPrefillUsed) {
+        onAmocrmPrefillUsed();
+      }
+    }
+  }, [amocrmPrefill, editingOrder, onAmocrmPrefillUsed]);
 
   // Fetch prices
   const fetchPrices = useCallback(async () => {
