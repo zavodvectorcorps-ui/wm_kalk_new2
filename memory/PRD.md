@@ -14,6 +14,15 @@ A full-featured quoting and order management application for Saunas and Balias (
     - `in_transit` → `delivering`
     - `completed` → `delivered`
   - Status change text: "При изменении статуса рейса обновятся статусы всех заказов"
+- **Add Orders to Existing Trips**:
+  - **"В рейс" button**: Appears when orders selected AND active trips exist (planned/in_transit)
+  - **AddToTripModal**: Shows list of available trips with status badges and order counts
+  - Filters: Only shows trips with `planned` or `in_transit` status from current section
+  - **Backend endpoint**: `POST /api/trips/{trip_id}/add-orders` - adds orders with trip data sync
+- **Trip Data Stored in Orders** (for amoCRM sync):
+  - Each order now stores: `tripId`, `tripName`, `tripDriverId`, `tripDriverName`, `tripDepartureDate`, `tripStatus`, `tripOrderStatus`
+  - When trip is updated, all orders get updated data
+  - amoCRM sync reads data directly from order, not trip
 - **New Map Filter**: "Свободные + Рейс" mode showing unassigned orders + selected trip's orders
   - Green markers: Unassigned orders
   - Purple markers: Orders from selected trip
@@ -23,15 +32,15 @@ A full-featured quoting and order management application for Saunas and Balias (
   - ID поля: Водитель (`trip_driver_field_id`)
   - ID поля: Дата отправки (`trip_departure_field_id`)
   - ID поля: Статус заказа в рейсе (`trip_order_status_field_id`)
-- **New Backend Endpoint**: `POST /api/integrations/amocrm/sync-trip`
-  - Syncs trip data to amoCRM leads (called automatically on trip update)
 - **Files Modified**:
-  - `/app/frontend/src/components/LogisticsPage.jsx` - TripDetailsCard, OrdersMapCard with new features
-  - `/app/frontend/src/components/logistics/useLogistics.js` - updateTripStatus function
+  - `/app/frontend/src/components/LogisticsPage.jsx` - TripDetailsCard, OrdersMapCard, AddToTripModal
+  - `/app/frontend/src/components/logistics/useLogistics.js` - updateTripStatus, addOrdersToTrip functions
   - `/app/frontend/src/components/IntegrationsPage.jsx` - New trip sync fields in Sync tab
-  - `/app/backend/routes/trips.py` - departureDate, syncOrderStatuses, amoCRM sync
+  - `/app/backend/routes/trips.py` - sync_trip_data_to_orders, add_orders_to_trip, amoCRM sync
   - `/app/backend/routes/amocrm.py` - sync-trip endpoint, trip field settings
-- **Test File**: `/app/tests/test_logistics_enhancements.py` (13 tests, all passing)
+- **Test Files**: 
+  - `/app/tests/test_logistics_enhancements.py` (13 tests)
+  - `/app/tests/test_add_orders_to_trip.py` (12 tests)
 - **Status**: ✅ Implemented and tested
 
 ### amoCRM Calculator Integration (2026-01-05)
