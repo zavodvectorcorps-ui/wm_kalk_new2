@@ -836,6 +836,174 @@ async def sync_status_to_amocrm(
         return {"status": "error", "message": f"Connection error: {str(e)}"}
 
 
+@router.post("/sync-order")
+async def sync_order_to_amocrm(
+    amocrm_id: str,
+    # Delivery status fields
+    delivery_status: Optional[str] = None,
+    delivery_comment: Optional[str] = None,
+    # Trip fields (from order)
+    trip_name: Optional[str] = None,
+    trip_driver_name: Optional[str] = None,
+    trip_departure_date: Optional[str] = None,
+    trip_order_status: Optional[str] = None
+):
+    """Sync order data (including trip info) to amoCRM.
+    
+    This endpoint sends all order-related fields to amoCRM:
+    - Delivery status and comment
+    - Trip name, driver, departure date, order status in trip
+    
+    Fields are read from the order document which contains trip data
+    synced from the trip when order was added to trip.
+    """
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    # Field IDs from settings
+    status_field_id = settings.get("status_field_id", "")
+    comment_field_id = settings.get("comment_field_id", "")
+    trip_number_field_id = settings.get("trip_number_field_id", "")
+    trip_driver_field_id = settings.get("trip_driver_field_id", "")
+    trip_departure_field_id = settings.get("trip_departure_field_id", "")
+    trip_order_status_field_id = settings.get("trip_order_status_field_id", "")
+    
+    # If credentials are not configured, skip silently
+    if not domain or not token:
+        logger.info(f"Skipping amoCRM sync for {amocrm_id}: credentials not configured")
+        return {"status": "skipped", "message": "amoCRM credentials not configured"}
+    
+    # Status labels for trip order status
+    STATUS_LABELS = {
+        "pending": "Ожидает",
+        "delivering": "В пути",
+        "delivered": "Доставлен",
+        "cancelled": "Отменён"
+    }
+    
+    # Build update payload
+    custom_fields_values = []
+    
+    # Delivery status
+    if status_field_id and delivery_status:
+        try:
+            custom_fields_values.append({
+                "field_id": int(status_field_id),
+                "values": [{"value": delivery_status}]
+            })
+        except ValueError:
+            pass
+    
+    # Delivery comment
+    if comment_field_id and delivery_comment:
+        try:
+            custom_fields_values.append({
+                "field_id": int(comment_field_id),
+                "values": [{"value": delivery_comment}]
+            })
+        except ValueError:
+            pass
+    
+    # Trip name
+    if trip_number_field_id and trip_name:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_number_field_id),
+                "values": [{"value": trip_name}]
+            })
+        except ValueError:
+            pass
+    
+    # Trip driver
+    if trip_driver_field_id and trip_driver_name:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_driver_field_id),
+                "values": [{"value": trip_driver_name}]
+            })
+        except ValueError:
+            pass
+    
+    # Trip departure date
+    if trip_departure_field_id and trip_departure_date:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_departure_field_id),
+                "values": [{"value": trip_departure_date}]
+            })
+        except ValueError:
+            pass
+    
+    # Trip order status
+    if trip_order_status_field_id and trip_order_status:
+        try:
+            status_label = STATUS_LABELS.get(trip_order_status, trip_order_status)
+            custom_fields_values.append({
+                "field_id": int(trip_order_status_field_id),
+                "values": [{"value": status_label}]
+            })
+        except ValueError:
+            pass
+    
+    # If no fields to update, skip
+    if not custom_fields_values:
+        logger.info(f"Skipping amoCRM sync for {amocrm_id}: no fields to update")
+        return {"status": "skipped", "message": "No fields configured for sync"}
+    
+    # Log sync attempt
+    sync_log = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "type": "order_sync",
+        "amocrm_id": amocrm_id,
+        "delivery_status": delivery_status,
+        "trip_name": trip_name,
+        "trip_driver_name": trip_driver_name,
+        "trip_departure_date": trip_departure_date,
+        "trip_order_status": trip_order_status
+    }
+    
+    # Make API request to amoCRM
+    url = f"https://{domain}/api/v4/leads/{amocrm_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    payload = {"custom_fields_values": custom_fields_values}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(url, json=payload, headers=headers)
+            
+            if response.status_code == 200:
+                sync_log["result"] = "success"
+                sync_log["fields_sent"] = len(custom_fields_values)
+                webhook_logs.insert_one(sync_log)
+                logger.info(f"Successfully synced order data to amoCRM lead {amocrm_id}, {len(custom_fields_values)} fields")
+                return {
+                    "status": "ok", 
+                    "message": "Order data synced to amoCRM",
+                    "fields_synced": len(custom_fields_values)
+                }
+            else:
+                sync_log["result"] = "error"
+                sync_log["error"] = response.text
+                webhook_logs.insert_one(sync_log)
+                logger.error(f"amoCRM API error: {response.status_code} - {response.text}")
+                return {
+                    "status": "error", 
+                    "message": f"amoCRM API error: {response.status_code}",
+                    "detail": response.text
+                }
+    except httpx.RequestError as e:
+        sync_log["result"] = "error"
+        sync_log["error"] = str(e)
+        webhook_logs.insert_one(sync_log)
+        logger.error(f"amoCRM request error: {e}")
+        return {"status": "error", "message": f"Connection error: {str(e)}"}
+
+
 @router.get("/logs")
 async def get_webhook_logs(limit: int = 50):
     """Get recent webhook logs."""
