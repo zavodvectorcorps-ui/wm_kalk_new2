@@ -405,13 +405,23 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "settings", "count": len(all_settings)})
                 logger.info(f"Exported {len(all_settings)} settings")
             
-            # Export amoCRM integration settings
+            # Export amoCRM integration settings from both collections
             amocrm_settings = await db.amocrm_settings.find({}).to_list(100)
-            if amocrm_settings:
-                amocrm_settings = [serialize_for_json(s) for s in amocrm_settings]
-                zip_file.writestr("amocrm_settings.json", json.dumps(amocrm_settings, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "amocrm_settings", "count": len(amocrm_settings)})
-                logger.info(f"Exported {len(amocrm_settings)} amoCRM settings")
+            # Also check integration_settings for amoCRM
+            integration_settings = await db.integration_settings.find({}).to_list(100)
+            combined_amocrm = amocrm_settings + [s for s in integration_settings if s.get('type') == 'amocrm']
+            if combined_amocrm:
+                combined_amocrm = [serialize_for_json(s) for s in combined_amocrm]
+                zip_file.writestr("amocrm_settings.json", json.dumps(combined_amocrm, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "amocrm_settings", "count": len(combined_amocrm)})
+                logger.info(f"Exported {len(combined_amocrm)} amoCRM settings")
+            
+            # Export all integration settings
+            if integration_settings:
+                integration_settings = [serialize_for_json(s) for s in integration_settings]
+                zip_file.writestr("integration_settings.json", json.dumps(integration_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "integration_settings", "count": len(integration_settings)})
+                logger.info(f"Exported {len(integration_settings)} integration settings")
             
             # Export Telegram configuration from .env
             telegram_config = {
