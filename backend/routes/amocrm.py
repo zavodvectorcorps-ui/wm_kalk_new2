@@ -859,3 +859,106 @@ async def test_webhook(section: str):
     order_data.pop("_id", None)
     
     return {"status": "ok", "message": f"Test order created in {section}", "order": order_data}
+
+
+@router.get("/lead/{lead_id}")
+async def get_lead_data(lead_id: str, section: str = "balia"):
+    """Get lead data from amoCRM by ID for pre-filling calculator.
+    
+    Used when opening calculator from amoCRM card.
+    Returns: fullName, phoneNumber, fullAddress, amocrm_id, amocrm_link
+    """
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        raise HTTPException(
+            status_code=400, 
+            detail="amoCRM API credentials not configured. Please set domain and token in integration settings."
+        )
+    
+    # Fetch lead from amoCRM
+    api_data = await fetch_lead_from_amocrm(lead_id, domain, token)
+    
+    if not api_data:
+        raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found in amoCRM")
+    
+    # Get field mapping for section
+    all_mappings = settings.get("field_mapping", {})
+    if section in all_mappings:
+        field_mapping = all_mappings[section]
+    else:
+        field_mapping = all_mappings
+    
+    # Extract data using mapping
+    lead_data = extract_lead_data_from_api(api_data, field_mapping)
+    
+    # Build full amoCRM link
+    if domain:
+        lead_data["amocrm_link"] = f"https://{domain}/leads/detail/{lead_id}"
+    
+    return {
+        "status": "ok",
+        "lead": {
+            "amocrm_id": lead_data.get("amocrm_id", lead_id),
+            "fullName": lead_data.get("fullName", ""),
+            "phoneNumber": lead_data.get("phoneNumber", ""),
+            "fullAddress": lead_data.get("fullAddress", ""),
+            "email": lead_data.get("email", ""),
+            "amocrm_link": lead_data.get("amocrm_link", ""),
+            "amocrm_name": lead_data.get("amocrm_name", ""),
+            "dealSum": lead_data.get("dealSum", ""),
+            "orderContents": lead_data.get("orderContents", ""),
+            "orderComment": lead_data.get("orderComment", ""),
+        }
+    }
+
+
+@router.post("/mark-quote-created")
+async def mark_quote_created(amocrm_id: str, order_id: str, calculator_type: str = "balia"):
+    """Mark in amoCRM that commercial quote (КП) was created.
+    
+    Updates a note or custom field in amoCRM lead.
+    """
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        return {"status": "error", "message": "amoCRM credentials not configured"}
+    
+    # Add a note to the lead
+    note_text = f"✅ Коммерческое предложение создано\n📋 Заказ: {order_id}\n🧮 Калькулятор: {calculator_type.upper()}\n📅 {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
+    
+    url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    note_data = [{
+        "note_type": "common",
+        "params": {
+            "text": note_text
+        }
+    }]
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(url, headers=headers, json=note_data)
+            
+            if response.status_code in [200, 201]:
+                logger.info(f"Successfully added quote note to lead {amocrm_id}")
+                return {"status": "ok", "message": "Note added to amoCRM lead"}
+            else:
+                logger.error(f"Failed to add note: {response.status_code} - {response.text}")
+                return {
+                    "status": "error", 
+                    "message": f"Failed to add note: {response.status_code}"
+                }
+    except Exception as e:
+        logger.error(f"Error adding note to amoCRM: {e}")
+        return {"status": "error", "message": str(e)}
