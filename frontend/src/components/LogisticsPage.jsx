@@ -439,6 +439,9 @@ export const LogisticsPage = () => {
                     isLoaded={isLoaded}
                     mapFilter={mapFilter}
                     setMapFilter={setMapFilter}
+                    mapFilterTripId={mapFilterTripId}
+                    setMapFilterTripId={setMapFilterTripId}
+                    trips={trips}
                     warehouseCoords={warehouseCoords}
                     warehouseAddress={warehouseAddress}
                     buildingRoute={buildingRoute}
