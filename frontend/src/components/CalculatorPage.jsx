@@ -524,6 +524,13 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         // Manager requested discount
         requestedDiscount: !isAdminUser ? requestedDiscount : 0,
         requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
+        // amoCRM integration fields
+        ...(amocrmData && {
+          amocrm_id: amocrmData.amocrm_id,
+          amocrm_link: amocrmData.amocrm_link,
+          amocrm_name: amocrmData.amocrm_name,
+          source: 'amocrm',
+        }),
       };
 
       // Save order - PUT for edit, POST for new
@@ -533,6 +540,15 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
       } else {
         await axios.post(`${API_URL}/api/orders`, order);
         toast.success(t('balia.saved'));
+        
+        // Mark quote as created in amoCRM
+        if (amocrmData?.amocrm_id && orderId) {
+          try {
+            await axios.post(`${API_URL}/api/integrations/amocrm/mark-quote-created?amocrm_id=${amocrmData.amocrm_id}&order_id=${orderId}&calculator_type=balia`);
+          } catch (e) {
+            console.error('Failed to mark quote in amoCRM:', e);
+          }
+        }
       }
 
       // Generate PDF
