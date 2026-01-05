@@ -503,6 +503,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     isAdminUser,
     lang,
     txt,
+    amocrmData,
     
     // Computed
     model,
