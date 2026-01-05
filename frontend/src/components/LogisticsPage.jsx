@@ -477,6 +477,7 @@ export const LogisticsPage = () => {
                 draggedOrderIndex={draggedOrderIndex}
                 tripMapRef={tripMapRef}
                 updateTrip={updateTrip}
+                updateTripStatus={updateTripStatus}
                 deleteTrip={deleteTrip}
                 optimizeTripRoute={optimizeTripRoute}
                 updateOrderStatusInTrip={updateOrderStatusInTrip}
@@ -990,7 +991,7 @@ const OrdersMapCard = ({
 const TripsView = ({
   sectionKey, currentSection, trips, selectedTrip, setSelectedTrip, tripStatusFilter, setTripStatusFilter,
   sectionData, drivers, isLoaded, warehouseCoords, warehouseAddress, tripDirections, tripRouteInfo,
-  buildingTripRoute, optimizingRoute, draggedOrderIndex, tripMapRef, updateTrip, deleteTrip,
+  buildingTripRoute, optimizingRoute, draggedOrderIndex, tripMapRef, updateTrip, updateTripStatus, deleteTrip,
   optimizeTripRoute, updateOrderStatusInTrip, removeOrderFromTrip, moveOrderUp, moveOrderDown,
   handleDragStart, handleDragOver, handleDrop, handleDragEnd, setActiveInnerTab,
   formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES
@@ -1059,6 +1060,7 @@ const TripsView = ({
           optimizingRoute={optimizingRoute}
           draggedOrderIndex={draggedOrderIndex}
           updateTrip={updateTrip}
+          updateTripStatus={updateTripStatus}
           deleteTrip={deleteTrip}
           optimizeTripRoute={optimizeTripRoute}
           updateOrderStatusInTrip={updateOrderStatusInTrip}
