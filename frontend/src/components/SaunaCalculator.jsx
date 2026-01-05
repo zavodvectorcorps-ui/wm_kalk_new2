@@ -54,6 +54,35 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
         </div>
       )}
       
+      {/* amoCRM Banner */}
+      {amocrmData && (
+        <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">amo</span>
+            </div>
+            <div>
+              <span className="font-medium text-purple-800">
+                Заказ из amoCRM
+              </span>
+              {amocrmData.amocrm_name && (
+                <span className="text-purple-600 ml-2">• {amocrmData.amocrm_name}</span>
+              )}
+            </div>
+          </div>
+          {amocrmData.amocrm_link && (
+            <a 
+              href={amocrmData.amocrm_link} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-purple-600 hover:text-purple-800 text-sm flex items-center gap-1"
+            >
+              Открыть в amoCRM →
+            </a>
+          )}
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Form */}
         <div className="lg:col-span-2 space-y-6">
