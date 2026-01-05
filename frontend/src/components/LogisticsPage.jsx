@@ -2037,8 +2037,6 @@ export const LogisticsPage = () => {
                                   )}
                                 </div>
                               )}
-                                )}
-                              </p>
                               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                                 <span>{formatDate(order.orderDate || order.createdAt)}</span>
                                 {order.routeNumber && (
