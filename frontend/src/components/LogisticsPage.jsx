@@ -1221,7 +1221,10 @@ const TripDetailsCard = ({
   draggedOrderIndex, updateTrip, updateTripStatus, deleteTrip, optimizeTripRoute, updateOrderStatusInTrip,
   removeOrderFromTrip, moveOrderUp, moveOrderDown, handleDragStart, handleDragOver, handleDrop,
   handleDragEnd, formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES
-}) => (
+}) => {
+  const [expandedTripOrder, setExpandedTripOrder] = React.useState(null);
+  
+  return (
   <Card className="h-full">
     <CardHeader className="pb-3">
       <CardTitle className="text-base">{selectedTrip ? selectedTrip.name : 'Выберите рейс'}</CardTitle>
@@ -1297,11 +1300,13 @@ const TripDetailsCard = ({
                 </Button>
               )}
             </div>
-            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+            <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
               {selectedTrip.orderIds?.map((orderId, index) => {
                 const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
                 const orderStatus = selectedTrip.orderStatuses?.[orderId] || 'pending';
                 const statusInfo = ORDER_TRIP_STATUSES[orderStatus] || ORDER_TRIP_STATUSES.pending;
+                const isExpanded = expandedTripOrder === orderId;
+                
                 return order ? (
                   <div key={orderId} className={`p-2 bg-muted rounded transition-all text-xs ${draggedOrderIndex === index ? 'opacity-50 scale-95' : ''}`} draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => handleDragOver(e, index)} onDrop={(e) => handleDrop(e, index)} onDragEnd={handleDragEnd}>
                     <div className="flex items-center gap-1 cursor-grab active:cursor-grabbing">
@@ -1310,18 +1315,22 @@ const TripDetailsCard = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-medium truncate">{order.fullName || order.customerName}</p>
-                          {order.amocrm_link && <a href={order.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700"><ExternalLink className="h-3 w-3" /></a>}
+                          {order.amocrm_link && <a href={order.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-3 w-3" /></a>}
                         </div>
                         <p className="text-muted-foreground truncate">{order.fullAddress || order.address}</p>
-                        {order.phoneNumber && <p className="text-muted-foreground">{order.phoneNumber}</p>}
                       </div>
                       {order.lat && order.lng ? <span className="px-1 rounded bg-green-100 text-green-700 flex-shrink-0">✓</span> : <span className="px-1 rounded bg-gray-100 text-gray-500 flex-shrink-0">?</span>}
+                      <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => setExpandedTripOrder(isExpanded ? null : orderId)}>
+                        {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </Button>
                       <div className="flex flex-col flex-shrink-0">
                         <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderUp(index)} disabled={index === 0}><ArrowUp className="h-2.5 w-2.5" /></Button>
                         <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderDown(index)} disabled={index === selectedTrip.orderIds.length - 1}><ArrowDown className="h-2.5 w-2.5" /></Button>
                       </div>
                       <Button size="sm" variant="ghost" onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)} className="text-red-500 h-5 w-5 p-0 flex-shrink-0"><X className="h-3 w-3" /></Button>
                     </div>
+                    
+                    {/* Status row - always visible */}
                     <div className="flex items-center gap-2 mt-2 pl-6">
                       <span className="text-muted-foreground">Статус:</span>
                       <Select value={orderStatus} onValueChange={(value) => updateOrderStatusInTrip(selectedTrip.id, orderId, value)}>
@@ -1331,6 +1340,63 @@ const TripDetailsCard = ({
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    {/* Expanded details */}
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 space-y-2 pl-6">
+                        {order.phoneNumber && (
+                          <p className="flex items-center gap-2">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <a href={`tel:${order.phoneNumber}`} className="text-blue-600 hover:underline">{order.phoneNumber}</a>
+                          </p>
+                        )}
+                        
+                        {order.amocrm_id && (
+                          <div className="bg-purple-50 rounded p-2 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-purple-700">Данные из amoCRM</span>
+                              {order.amocrm_link && (
+                                <a href={order.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1">
+                                  <ExternalLink className="h-3 w-3" />
+                                  Открыть
+                                </a>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 text-xs">
+                              {order.orderNumber && <div><span className="text-muted-foreground">№:</span> {order.orderNumber}</div>}
+                              {order.dealSum && <div className="flex items-center gap-1"><DollarSign className="h-3 w-3 text-green-600" />{order.dealSum}</div>}
+                              {order.debtSum && <div className="text-red-600">Долг: {order.debtSum}</div>}
+                            </div>
+                            {order.orderContents && (
+                              <div className="text-xs">
+                                <span className="text-muted-foreground">Состав:</span>
+                                <p className="mt-1 p-1.5 bg-white rounded border text-xs whitespace-pre-wrap max-h-[100px] overflow-y-auto">{order.orderContents}</p>
+                              </div>
+                            )}
+                            {order.orderComment && (
+                              <div className="text-xs">
+                                <span className="text-muted-foreground flex items-center gap-1"><MessageSquare className="h-3 w-3" />Комментарий:</span>
+                                <p className="mt-1 p-1.5 bg-white rounded border text-xs">{order.orderComment}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {order.notes && !order.amocrm_id && (
+                          <p className="flex items-start gap-2 text-xs">
+                            <FileText className="h-3 w-3 mt-0.5 text-muted-foreground" />
+                            <span className="break-words">{order.notes}</span>
+                          </p>
+                        )}
+                        
+                        {order.orderComposition && (
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">Состав заказа:</span>
+                            <p className="mt-1 p-1.5 bg-white rounded border whitespace-pre-wrap max-h-[100px] overflow-y-auto">{order.orderComposition}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : <div key={orderId} className="p-1.5 bg-muted rounded text-xs text-muted-foreground">Заказ {orderId} не найден</div>;
               })}
@@ -1345,6 +1411,7 @@ const TripDetailsCard = ({
     </CardContent>
   </Card>
 );
+};
 
 const TripMapCard = ({ selectedTrip, sectionData, isLoaded, warehouseCoords, warehouseAddress, tripDirections, buildingTripRoute, tripMapRef }) => (
   <Card className="h-full">
