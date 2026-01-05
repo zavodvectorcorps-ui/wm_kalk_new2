@@ -1095,7 +1095,7 @@ const TripsView = ({
 
 const TripDetailsCard = ({
   selectedTrip, setSelectedTrip, sectionKey, sectionData, drivers, tripRouteInfo, optimizingRoute,
-  draggedOrderIndex, updateTrip, deleteTrip, optimizeTripRoute, updateOrderStatusInTrip,
+  draggedOrderIndex, updateTrip, updateTripStatus, deleteTrip, optimizeTripRoute, updateOrderStatusInTrip,
   removeOrderFromTrip, moveOrderUp, moveOrderDown, handleDragStart, handleDragOver, handleDrop,
   handleDragEnd, formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES
 }) => (
@@ -1106,12 +1106,12 @@ const TripDetailsCard = ({
     <CardContent className="p-3">
       {selectedTrip && selectedTrip.section === sectionKey ? (
         <div className="space-y-3">
+          {/* Driver */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">Водитель:</Label>
             <Select value={selectedTrip.driverId || 'none'} onValueChange={(value) => {
               const driver = drivers.find(d => d.id === value);
               updateTrip(selectedTrip.id, { driverId: value === 'none' ? null : value, driverName: driver?.name || null });
-              setSelectedTrip(prev => ({ ...prev, driverId: value === 'none' ? null : value, driverName: driver?.name || null }));
             }}>
               <SelectTrigger className="h-8 text-sm" data-testid="trip-driver-select"><SelectValue placeholder="Выберите водителя" /></SelectTrigger>
               <SelectContent>
@@ -1120,11 +1120,30 @@ const TripDetailsCard = ({
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Departure Date */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Статус:</Label>
+            <Label className="text-xs font-medium flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              Дата отправки:
+            </Label>
+            <Input
+              type="date"
+              value={selectedTrip.departureDate || ''}
+              onChange={(e) => {
+                updateTrip(selectedTrip.id, { departureDate: e.target.value });
+              }}
+              className="h-8 text-sm"
+              data-testid="trip-departure-date"
+            />
+          </div>
+          
+          {/* Status with sync checkbox */}
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Статус рейса:</Label>
             <Select value={selectedTrip.status || 'planned'} onValueChange={(value) => {
-              updateTrip(selectedTrip.id, { status: value });
-              setSelectedTrip(prev => ({ ...prev, status: value }));
+              // Use updateTripStatus which syncs all order statuses
+              updateTripStatus(selectedTrip.id, value);
             }}>
               <SelectTrigger className="h-8 text-sm" data-testid="trip-status-select"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -1134,7 +1153,11 @@ const TripDetailsCard = ({
                 })}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              При изменении статуса рейса обновятся статусы всех заказов
+            </p>
           </div>
+          
           {tripRouteInfo && (
             <div className="flex gap-3 p-2 bg-purple-50 rounded-lg text-sm">
               <div className="flex items-center gap-1"><Navigation className="h-3 w-3 text-purple-600" /><span className="font-medium">{formatDistance(tripRouteInfo.distance)}</span></div>
