@@ -934,6 +934,156 @@ export const IntegrationsPage = () => {
                 </div>
               </div>
 
+              {/* Field Mapping for Calculator */}
+              <Card className="border-purple-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ArrowLeftRight className="h-5 w-5 text-purple-600" />
+                    Маппинг полей для калькулятора
+                  </CardTitle>
+                  <CardDescription>
+                    Укажите ID пользовательских полей из amoCRM для автозаполнения данных клиента
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <p className="text-sm text-purple-700">
+                      <strong>Где найти ID полей:</strong> В amoCRM откройте карточку сделки → нажмите на поле → 
+                      в адресной строке появится ID (например: <code className="bg-purple-100 px-1 rounded">cf_123456</code>)
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        Имя клиента (обязательное)
+                      </Label>
+                      <Input
+                        placeholder="ID поля, например: cf_123456"
+                        value={settings.field_mapping?.calculator?.fullName || settings.field_mapping?.balia?.fullName || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: {
+                            ...prev.field_mapping,
+                            calculator: {
+                              ...(prev.field_mapping?.calculator || {}),
+                              fullName: e.target.value
+                            }
+                          }
+                        }))}
+                      />
+                      <p className="text-xs text-muted-foreground">Поле с именем и фамилией клиента</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        Телефон (обязательное)
+                      </Label>
+                      <Input
+                        placeholder="ID поля, например: cf_234567"
+                        value={settings.field_mapping?.calculator?.phoneNumber || settings.field_mapping?.balia?.phoneNumber || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: {
+                            ...prev.field_mapping,
+                            calculator: {
+                              ...(prev.field_mapping?.calculator || {}),
+                              phoneNumber: e.target.value
+                            }
+                          }
+                        }))}
+                      />
+                      <p className="text-xs text-muted-foreground">Поле с номером телефона</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input
+                        placeholder="ID поля, например: cf_345678"
+                        value={settings.field_mapping?.calculator?.email || settings.field_mapping?.balia?.email || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: {
+                            ...prev.field_mapping,
+                            calculator: {
+                              ...(prev.field_mapping?.calculator || {}),
+                              email: e.target.value
+                            }
+                          }
+                        }))}
+                      />
+                      <p className="text-xs text-muted-foreground">Поле с email клиента</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Адрес (улица)</Label>
+                      <Input
+                        placeholder="ID поля, например: cf_456789"
+                        value={settings.field_mapping?.calculator?.addressStreet || settings.field_mapping?.balia?.addressStreet || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: {
+                            ...prev.field_mapping,
+                            calculator: {
+                              ...(prev.field_mapping?.calculator || {}),
+                              addressStreet: e.target.value
+                            }
+                          }
+                        }))}
+                      />
+                      <p className="text-xs text-muted-foreground">Улица и номер дома</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Город</Label>
+                      <Input
+                        placeholder="ID поля, например: cf_567890"
+                        value={settings.field_mapping?.calculator?.addressCity || settings.field_mapping?.balia?.addressCity || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: {
+                            ...prev.field_mapping,
+                            calculator: {
+                              ...(prev.field_mapping?.calculator || {}),
+                              addressCity: e.target.value
+                            }
+                          }
+                        }))}
+                      />
+                      <p className="text-xs text-muted-foreground">Город доставки</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Индекс</Label>
+                      <Input
+                        placeholder="ID поля, например: cf_678901"
+                        value={settings.field_mapping?.calculator?.addressIndex || settings.field_mapping?.balia?.addressIndex || ''}
+                        onChange={(e) => setSettings(prev => ({
+                          ...prev,
+                          field_mapping: {
+                            ...prev.field_mapping,
+                            calculator: {
+                              ...(prev.field_mapping?.calculator || {}),
+                              addressIndex: e.target.value
+                            }
+                          }
+                        }))}
+                      />
+                      <p className="text-xs text-muted-foreground">Почтовый индекс</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end pt-2">
+                    <Button onClick={saveSettings} disabled={saving} className="bg-purple-600 hover:bg-purple-700">
+                      {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                      Сохранить маппинг
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Important notes */}
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
                 <h4 className="font-medium text-amber-800 flex items-center gap-2">
@@ -942,7 +1092,7 @@ export const IntegrationsPage = () => {
                 </h4>
                 <ul className="text-sm text-amber-700 space-y-1 list-disc list-inside">
                   <li>Для работы интеграции нужно настроить API-токен amoCRM во вкладке "Синхронизация"</li>
-                  <li>Настройте маппинг полей для корректного переноса данных клиента</li>
+                  <li>Настройте маппинг полей выше для корректного переноса данных клиента</li>
                   <li>Пользователь должен быть авторизован в приложении</li>
                 </ul>
               </div>
