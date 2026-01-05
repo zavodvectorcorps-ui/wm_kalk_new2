@@ -2452,7 +2452,7 @@ export const LogisticsPage = () => {
                           <div className="space-y-1">
                             <Label className="text-xs font-medium">Статус:</Label>
                             <Select
-                              value={selectedTrip.status || 'active'}
+                              value={selectedTrip.status || 'planned'}
                               onValueChange={(value) => {
                                 updateTrip(selectedTrip.id, { status: value });
                                 setSelectedTrip(prev => ({ ...prev, status: value }));
@@ -2462,8 +2462,17 @@ export const LogisticsPage = () => {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="active">Активен</SelectItem>
-                                <SelectItem value="completed">Доставлен</SelectItem>
+                                {Object.entries(TRIP_STATUSES).map(([key, val]) => {
+                                  const StatusIcon = val.icon;
+                                  return (
+                                    <SelectItem key={key} value={key}>
+                                      <div className="flex items-center gap-2">
+                                        <StatusIcon className="h-3 w-3" />
+                                        {val.label}
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
                               </SelectContent>
                             </Select>
                           </div>
