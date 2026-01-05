@@ -432,6 +432,8 @@ export const LogisticsPage = () => {
                     deleteOrder={deleteOrder}
                     getUnassignedOrders={getUnassignedOrders}
                     setShowCreateTripModal={setShowCreateTripModal}
+                    setShowAddToTripModal={setShowAddToTripModal}
+                    trips={trips}
                     formatDate={formatDate}
                     DELIVERY_STATUSES={DELIVERY_STATUSES}
                   />
