@@ -897,6 +897,27 @@ export const LogisticsPage = () => {
     };
   }, [isLoaded, showOrderForm]);
 
+  // Initialize Google Places autocomplete for address editing
+  useEffect(() => {
+    if (isLoaded && editingAddressOrderId && editAddressInputRef.current) {
+      try {
+        const autocomplete = new window.google.maps.places.Autocomplete(
+          editAddressInputRef.current,
+          { types: ['address'], componentRestrictions: { country: 'pl' } }
+        );
+        
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place.formatted_address) {
+            setEditingAddressValue(place.formatted_address);
+          }
+        });
+      } catch (e) {
+        console.error('Error initializing address autocomplete:', e);
+      }
+    }
+  }, [isLoaded, editingAddressOrderId]);
+
   // Geocode address to coordinates
   const geocodeAddress = useCallback((address) => {
     return new Promise((resolve, reject) => {
