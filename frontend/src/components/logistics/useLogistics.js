@@ -1306,6 +1306,7 @@ export const useLogistics = () => {
     fetchTrips,
     createTrip,
     updateTrip,
+    updateTripStatus,
     deleteTrip,
     updateOrderStatusInTrip,
     removeOrderFromTrip,
