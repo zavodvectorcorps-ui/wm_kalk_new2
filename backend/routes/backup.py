@@ -814,6 +814,20 @@ async def import_backup(file: UploadFile = File(...)):
                     logger.error(f"Error importing integration_settings: {e}")
                     import_stats["errors"].append(f"integration_settings: {str(e)}")
             
+            # Import webhook_logs
+            if "webhook_logs.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("webhook_logs.json").decode('utf-8'))
+                    await db.webhook_logs.delete_many({})
+                    for log in data:
+                        log.pop('_id', None)
+                        await db.webhook_logs.insert_one(log)
+                    import_stats["imported"]["webhook_logs"] = len(data)
+                    logger.info(f"Imported {len(data)} webhook logs")
+                except Exception as e:
+                    logger.error(f"Error importing webhook_logs: {e}")
+                    import_stats["errors"].append(f"webhook_logs: {str(e)}")
+            
             # Import uploaded files
             uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
             os.makedirs(uploads_dir, exist_ok=True)
