@@ -1376,3 +1376,116 @@ const CreateTripModal = ({ currentSection, currentData, drivers, newTripName, se
     </Card>
   </div>
 );
+
+const AddToTripModal = ({ currentSection, currentData, trips, activeSection, drivers, addToTripId, setAddToTripId, addingToTrip, addOrdersToTrip, setShowAddToTripModal, TRIP_STATUSES }) => {
+  // Filter trips: only from current section, only planned or in_transit status
+  const availableTrips = trips.filter(t => 
+    t.section === activeSection && 
+    (t.status === 'planned' || t.status === 'in_transit')
+  );
+  
+  const selectedTrip = availableTrips.find(t => t.id === addToTripId);
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5 text-blue-600" />
+            Добавить в рейс — {currentSection.name.ru}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Trip selection */}
+          <div className="space-y-2">
+            <Label>Выберите рейс *</Label>
+            {availableTrips.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+                Нет активных рейсов для добавления. Создайте новый рейс.
+              </p>
+            ) : (
+              <Select value={addToTripId} onValueChange={setAddToTripId}>
+                <SelectTrigger data-testid="add-to-trip-select">
+                  <SelectValue placeholder="Выберите рейс" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTrips.map(trip => (
+                    <SelectItem key={trip.id} value={trip.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{trip.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {TRIP_STATUSES[trip.status]?.label || trip.status}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          ({trip.orderIds?.length || 0} заказов)
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          
+          {/* Selected trip info */}
+          {selectedTrip && (
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-blue-900">{selectedTrip.name}</span>
+                <Badge className={TRIP_STATUSES[selectedTrip.status]?.color || 'bg-gray-100'}>
+                  {TRIP_STATUSES[selectedTrip.status]?.label || selectedTrip.status}
+                </Badge>
+              </div>
+              {selectedTrip.driverName && (
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <User className="h-3 w-3" />
+                  <span>Водитель: {selectedTrip.driverName}</span>
+                </div>
+              )}
+              {selectedTrip.departureDate && (
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <Calendar className="h-3 w-3" />
+                  <span>Отправка: {selectedTrip.departureDate}</span>
+                </div>
+              )}
+              <p className="text-xs text-blue-600">
+                Уже в рейсе: {selectedTrip.orderIds?.length || 0} заказов
+              </p>
+            </div>
+          )}
+          
+          {/* Selected orders */}
+          <div className="p-3 bg-muted rounded-lg">
+            <p className="text-sm font-medium mb-1">Добавляемые заказы: {currentData.selectedOrders.length}</p>
+            <div className="max-h-[150px] overflow-y-auto space-y-1">
+              {currentData.selectedOrders.map(orderId => {
+                const order = currentData.orders.find(o => o.id === orderId);
+                return order ? (
+                  <p key={orderId} className="text-xs text-muted-foreground truncate">
+                    • {order.fullName || order.customerName} — {order.fullAddress || order.address || 'без адреса'}
+                  </p>
+                ) : null;
+              })}
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" onClick={() => { setShowAddToTripModal(false); setAddToTripId(''); }}>
+              Отмена
+            </Button>
+            <Button 
+              onClick={() => addOrdersToTrip(addToTripId)} 
+              disabled={addingToTrip || !addToTripId || availableTrips.length === 0} 
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="add-to-trip-submit"
+            >
+              {addingToTrip ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+              Добавить в рейс
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
