@@ -300,6 +300,10 @@ export const IntegrationsPage = () => {
             <List className="h-4 w-4" />
             Логи
           </TabsTrigger>
+          <TabsTrigger value="calculator" className="gap-2">
+            <ExternalLink className="h-4 w-4" />
+            Калькулятор
+          </TabsTrigger>
         </TabsList>
 
         {/* Settings Tab */}
