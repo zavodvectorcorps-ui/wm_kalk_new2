@@ -1899,6 +1899,23 @@ export const LogisticsPage = () => {
                                 {order.amocrm_id && <span className="text-purple-500">• amoCRM</span>}
                               </div>
                               
+                              {/* Important order checkbox */}
+                              <div className="flex items-center gap-2 mt-2">
+                                <Checkbox
+                                  id={`important-${order.id}`}
+                                  checked={order.isImportant || false}
+                                  onCheckedChange={() => toggleOrderImportant(order.id)}
+                                  className="data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                                />
+                                <label 
+                                  htmlFor={`important-${order.id}`}
+                                  className={`text-xs cursor-pointer flex items-center gap-1 ${order.isImportant ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}
+                                >
+                                  <AlertCircle className={`h-3 w-3 ${order.isImportant ? 'text-red-500' : ''}`} />
+                                  Важный заказ
+                                </label>
+                              </div>
+                              
                               {expandedOrder === order.id && (
                                 <div className="mt-3 pt-3 border-t space-y-3 text-sm">
                                   {/* Structured amoCRM data */}
