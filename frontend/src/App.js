@@ -260,7 +260,7 @@ const AppContent = () => {
         
         <main>
           <Suspense fallback={<PageLoader />}>
-            {activeTab === 'calculator' && <CalculatorPage key={pricesUpdated} editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} />}
+            {activeTab === 'calculator' && <CalculatorPage key={pricesUpdated} editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} amocrmPrefill={amocrmPrefill} onAmocrmPrefillUsed={() => setAmocrmPrefill(null)} />}
             {activeTab === 'orders' && <OrdersPage onEditInCalculator={(order) => handleEditOrderInCalculator(order, 'balia')} />}
             {activeTab === 'weborders' && <WebOrdersPage />}
             {activeTab === 'statistics' && <StatisticsPage calculatorType="balia" />}
