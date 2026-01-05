@@ -885,9 +885,15 @@ async def get_lead_data(lead_id: str, section: str = "balia"):
     if not api_data:
         raise HTTPException(status_code=404, detail=f"Lead {lead_id} not found in amoCRM")
     
-    # Get field mapping - try 'calculator' first, then section-specific, then root
+    # Get field mapping - try calculator-specific first, then section-specific, then root
     all_mappings = settings.get("field_mapping", {})
-    if "calculator" in all_mappings and all_mappings["calculator"]:
+    
+    # Priority: calculatorBalia/calculatorSauna -> calculator -> section -> root
+    if section == "balia" and "calculatorBalia" in all_mappings and all_mappings["calculatorBalia"]:
+        field_mapping = all_mappings["calculatorBalia"]
+    elif section == "sauna" and "calculatorSauna" in all_mappings and all_mappings["calculatorSauna"]:
+        field_mapping = all_mappings["calculatorSauna"]
+    elif "calculator" in all_mappings and all_mappings["calculator"]:
         field_mapping = all_mappings["calculator"]
     elif section in all_mappings:
         field_mapping = all_mappings[section]
