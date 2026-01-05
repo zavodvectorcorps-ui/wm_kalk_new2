@@ -492,13 +492,24 @@ async def update_order_status_in_trip(trip_id: str, order_id: str, status: str):
         }}
     )
     
-    # Also update the order's deliveryStatus in its collection
+    # Update the order's tripOrderStatus and deliveryStatus in its collection
     collection = get_section_collection(existing.get("section", ""))
     if collection is not None:
         collection.update_one(
             {"id": order_id},
-            {"$set": {"deliveryStatus": status}}
+            {"$set": {
+                "deliveryStatus": status,
+                "tripOrderStatus": status  # Also update trip-related status
+            }}
         )
+        
+        # Sync to amoCRM if order has amocrm_id
+        order = collection.find_one({"id": order_id}, {"_id": 0})
+        if order and order.get("amocrm_id"):
+            try:
+                await sync_single_order_to_amocrm(order)
+            except Exception as e:
+                logger.error(f"Failed to sync order {order_id} to amoCRM: {e}")
     
     return {"status": "ok", "order_id": order_id, "new_status": status}
 
