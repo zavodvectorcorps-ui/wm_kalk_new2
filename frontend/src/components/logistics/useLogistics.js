@@ -1109,25 +1109,54 @@ export const useLogistics = () => {
     geocoderRef.current = new window.google.maps.Geocoder();
   }, []);
 
+  // Shared autocomplete configuration
+  const AUTOCOMPLETE_COUNTRIES = ['pl', 'de', 'cz', 'sk', 'lt', 'lv', 'ee', 'ua', 'by'];
+  
+  // Helper to initialize autocomplete on an input element
+  const initAutocomplete = useCallback((inputElement, onPlaceSelect, options = {}) => {
+    if (!inputElement || !window.google?.maps?.places?.Autocomplete) return null;
+    
+    try {
+      const autocomplete = new window.google.maps.places.Autocomplete(inputElement, {
+        types: options.types || ['address'],
+        componentRestrictions: { country: options.countries || AUTOCOMPLETE_COUNTRIES },
+        fields: options.fields || ['formatted_address', 'geometry', 'address_components']
+      });
+      
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place?.formatted_address) {
+          onPlaceSelect({
+            address: place.formatted_address,
+            lat: place.geometry?.location?.lat(),
+            lng: place.geometry?.location?.lng(),
+            components: place.address_components
+          });
+        }
+      });
+      
+      return autocomplete;
+    } catch (e) {
+      console.error('Failed to initialize autocomplete:', e);
+      return null;
+    }
+  }, []);
+
   // Initialize autocomplete for address editing
   useEffect(() => {
     if (isLoaded && editingAddressOrderId && editAddressInputRef.current) {
-      try {
-        const autocomplete = new window.google.maps.places.Autocomplete(
-          editAddressInputRef.current,
-          { types: ['address'], componentRestrictions: { country: 'pl' } }
-        );
-        autocomplete.addListener('place_changed', () => {
-          const place = autocomplete.getPlace();
-          if (place.formatted_address) {
-            setEditingAddressValue(place.formatted_address);
-          }
-        });
-      } catch (e) {
-        console.error('Error initializing address autocomplete:', e);
-      }
+      const autocomplete = initAutocomplete(
+        editAddressInputRef.current,
+        (place) => setEditingAddressValue(place.address)
+      );
+      
+      return () => {
+        if (autocomplete && window.google?.maps?.event) {
+          window.google.maps.event.clearInstanceListeners(autocomplete);
+        }
+      };
     }
-  }, [isLoaded, editingAddressOrderId]);
+  }, [isLoaded, editingAddressOrderId, initAutocomplete]);
 
   // Initialize form autocomplete
   useEffect(() => {
