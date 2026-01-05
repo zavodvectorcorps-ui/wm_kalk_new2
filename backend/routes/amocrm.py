@@ -528,7 +528,12 @@ async def get_settings(request: Request):
         "amocrm_domain": settings.get("amocrm_domain", ""),
         "amocrm_token": settings.get("amocrm_token", ""),
         "status_field_id": settings.get("status_field_id", ""),
-        "comment_field_id": settings.get("comment_field_id", "")
+        "comment_field_id": settings.get("comment_field_id", ""),
+        # Trip sync fields
+        "trip_number_field_id": settings.get("trip_number_field_id", ""),
+        "trip_driver_field_id": settings.get("trip_driver_field_id", ""),
+        "trip_departure_field_id": settings.get("trip_departure_field_id", ""),
+        "trip_order_status_field_id": settings.get("trip_order_status_field_id", "")
     }
 
 
