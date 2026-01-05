@@ -284,15 +284,22 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
         city_val = get_value("addressCity")
         street_val = get_value("addressStreet")
         
-        if index_val:
-            address_parts.append(index_val)
-        if city_val:
-            address_parts.append(city_val)
-        if street_val:
-            address_parts.append(street_val)
+        # Store individual parts for reference
+        lead_data["addressIndex"] = index_val or ""
+        lead_data["addressCity"] = city_val or ""
+        lead_data["addressStreet"] = street_val or ""
         
-        if address_parts:
-            full_address = ", ".join(address_parts)
+        # Build full address - put street first (most important), then city, then index
+        address_parts_ordered = []
+        if street_val:
+            address_parts_ordered.append(street_val)
+        if city_val:
+            address_parts_ordered.append(city_val)
+        if index_val:
+            address_parts_ordered.append(index_val)
+        
+        if address_parts_ordered:
+            full_address = ", ".join(address_parts_ordered)
     
     lead_data["fullAddress"] = full_address
     
