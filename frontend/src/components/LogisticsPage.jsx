@@ -636,8 +636,15 @@ const OrdersListCard = ({
   expandedOrder, setExpandedOrder, editingAddressOrderId, editingAddressValue, setEditingAddressValue,
   editAddressInputRef, drivers, toggleOrderSelection, toggleOrderImportant, startEditingAddress,
   saveEditedAddress, cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder,
-  getUnassignedOrders, setShowCreateTripModal, formatDate, DELIVERY_STATUSES
-}) => (
+  getUnassignedOrders, setShowCreateTripModal, setShowAddToTripModal, trips, formatDate, DELIVERY_STATUSES
+}) => {
+  // Check if there are active trips available
+  const hasActiveTrips = trips.some(t => 
+    t.section === sectionKey && 
+    (t.status === 'planned' || t.status === 'in_transit')
+  );
+  
+  return (
   <Card>
     <CardHeader className="pb-3">
       <div className="flex items-center justify-between">
@@ -647,10 +654,23 @@ const OrdersListCard = ({
         </CardTitle>
         <div className="flex items-center gap-2">
           {currentData.selectedOrders.length > 0 && (
-            <Button size="sm" onClick={() => setShowCreateTripModal(true)} className="bg-purple-600 hover:bg-purple-700">
-              <Plus className="h-4 w-4 mr-1" />
-              Создать рейс ({currentData.selectedOrders.length})
-            </Button>
+            <>
+              {hasActiveTrips && (
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowAddToTripModal(true)} 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  data-testid="add-to-trip-btn"
+                >
+                  <Truck className="h-4 w-4 mr-1" />
+                  В рейс ({currentData.selectedOrders.length})
+                </Button>
+              )}
+              <Button size="sm" onClick={() => setShowCreateTripModal(true)} className="bg-purple-600 hover:bg-purple-700">
+                <Plus className="h-4 w-4 mr-1" />
+                Создать рейс ({currentData.selectedOrders.length})
+              </Button>
+            </>
           )}
           <Badge variant="secondary" className={currentSection.bgColor}>
             {getUnassignedOrders(sectionData[sectionKey].orders).length} заказов
@@ -698,6 +718,7 @@ const OrdersListCard = ({
     </CardContent>
   </Card>
 );
+};
 
 const OrderCard = ({
   order, sectionKey, currentSection, sectionData, expandedOrder, setExpandedOrder,
