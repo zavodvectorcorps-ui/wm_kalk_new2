@@ -1318,15 +1318,14 @@ export const useLogistics = () => {
   // Initial data load
   useEffect(() => {
     fetchAllOrders();
-    fetchTrips();
+    fetchTrips(); // Load ALL trips for counters
   }, [fetchAllOrders, fetchTrips]);
   
-  // Reload trips when section changes
+  // Reset inner tab when section changes
   useEffect(() => {
-    fetchTrips(activeSection);
     setActiveInnerTab('orders');
     setSelectedTrip(null);
-  }, [activeSection, fetchTrips]);
+  }, [activeSection]);
 
   // Format helpers
   const formatDate = (dateStr) => {
