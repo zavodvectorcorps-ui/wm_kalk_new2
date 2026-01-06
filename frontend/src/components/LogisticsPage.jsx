@@ -1351,6 +1351,39 @@ const TripDetailsCard = ({
                           </p>
                         )}
                         
+                        {/* Trip data being sent to amoCRM */}
+                        {order.amocrm_id && (
+                          <div className="bg-green-50 rounded p-2 space-y-1 border border-green-100">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-green-700 flex items-center gap-1">
+                                <RefreshCw className="h-3 w-3" />
+                                Данные для синхронизации с amoCRM
+                              </span>
+                              <span className="text-xs text-green-600">ID: {order.amocrm_id}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
+                              <div className="flex items-center gap-1">
+                                <span className="text-muted-foreground">Рейс:</span>
+                                <span className="font-medium">{order.tripName || selectedTrip?.name || '-'}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-muted-foreground">Водитель:</span>
+                                <span className="font-medium">{order.tripDriverName || selectedTrip?.driverName || '-'}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-muted-foreground">Дата отправки:</span>
+                                <span className="font-medium">{order.tripDepartureDate || selectedTrip?.departureDate || '-'}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-muted-foreground">Статус:</span>
+                                <span className={`font-medium px-1.5 py-0.5 rounded ${statusInfo.color}`}>
+                                  {statusInfo.label}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
                         {order.amocrm_id && (
                           <div className="bg-purple-50 rounded p-2 space-y-1">
                             <div className="flex items-center justify-between">
