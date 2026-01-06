@@ -1477,6 +1477,20 @@ const TripDetailsCard = ({
             </>
           )}
           
+          {/* Print orders list button */}
+          {selectedTrip.orderIds?.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 mt-2"
+              onClick={() => printTripOrders(selectedTrip, sectionData)}
+              data-testid="print-orders-btn"
+            >
+              <Printer className="h-3 w-3 mr-1" />
+              Распечатать список ({selectedTrip.orderIds.length})
+            </Button>
+          )}
+          
           <Button variant="outline" size="sm" className="w-full text-red-600 border-red-200 hover:bg-red-50 mt-2" onClick={() => deleteTrip(selectedTrip.id)}>
             <Trash2 className="h-3 w-3 mr-1" />Удалить рейс
           </Button>
