@@ -65,13 +65,19 @@ async def get_users(admin: dict = Depends(get_admin_user)):
 
 @router.post("/users", response_model=UserResponse)
 async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_user)):
-    """Create a new employee, observer or admin (admin only)"""
+    """Create a new employee, observer, driver or admin (admin only)"""
     existing = await db.users.find_one({"username": user_data.username})
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
     
-    if user_data.access not in ["balia", "sauna", "all"]:
-        raise HTTPException(status_code=400, detail="Access must be 'balia', 'sauna', or 'all'")
+    # Validate access - can be string or array
+    valid_access_values = ["balia", "sauna", "logistics", "driver", "all"]
+    if isinstance(user_data.access, list):
+        for acc in user_data.access:
+            if acc not in valid_access_values:
+                raise HTTPException(status_code=400, detail=f"Invalid access value: {acc}. Must be one of: {valid_access_values}")
+    elif user_data.access not in valid_access_values:
+        raise HTTPException(status_code=400, detail=f"Access must be one of: {valid_access_values}")
     
     if user_data.role not in ["admin", "employee", "observer", "driver"]:
         raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee', 'observer' or 'driver'")
