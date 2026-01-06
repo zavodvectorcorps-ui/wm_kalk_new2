@@ -536,7 +536,9 @@ async def get_settings(request: Request):
         "trip_number_field_id": settings.get("trip_number_field_id", ""),
         "trip_driver_field_id": settings.get("trip_driver_field_id", ""),
         "trip_departure_field_id": settings.get("trip_departure_field_id", ""),
-        "trip_order_status_field_id": settings.get("trip_order_status_field_id", "")
+        "trip_order_status_field_id": settings.get("trip_order_status_field_id", ""),
+        # Important order field
+        "important_order_field_id": settings.get("important_order_field_id", "")
     }
 
 
