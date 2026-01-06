@@ -827,88 +827,133 @@ export const IntegrationsPage = () => {
 
         {/* Widget Tab */}
         <TabsContent value="widget" className="space-y-6">
+          {/* External Integration - Recommended */}
+          <Card className="border-2 border-blue-200">
+            <CardHeader className="bg-blue-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ExternalLink className="h-5 w-5 text-blue-600" />
+                    Внешняя интеграция (рекомендуется)
+                  </CardTitle>
+                  <CardDescription>
+                    Без загрузки архива — просто укажите URL в настройках amoCRM
+                  </CardDescription>
+                </div>
+                <Badge className="bg-blue-600">Рекомендуется</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                <h3 className="font-semibold">URL для iframe виджета:</h3>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 p-3 bg-white rounded border text-sm break-all">
+                    {API_URL}/api/widget/embed/&#123;lead.id&#125;
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${API_URL}/api/widget/embed/{lead.id}`);
+                      toast.success('URL скопирован');
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="font-semibold">📋 Настройка в amoCRM:</h3>
+                <ol className="list-decimal list-inside space-y-2 text-sm">
+                  <li>Откройте <strong>amoCRM → Настройки → Интеграции</strong></li>
+                  <li>Нажмите <strong>"Создать интеграцию"</strong></li>
+                  <li>Выберите тип <strong>"Внешняя интеграция"</strong></li>
+                  <li>В настройках виджета для карточки сделки укажите URL выше</li>
+                  <li>Используйте переменную <code className="bg-gray-100 px-1 rounded">&#123;lead.id&#125;</code> для передачи ID сделки</li>
+                  <li>Сохраните и активируйте</li>
+                </ol>
+              </div>
+
+              <div className="p-3 bg-green-50 rounded-lg text-sm">
+                <strong className="text-green-700">✓ Преимущества:</strong>
+                <ul className="mt-2 space-y-1 text-green-700">
+                  <li>• Не нужно загружать архив</li>
+                  <li>• Обновления применяются мгновенно</li>
+                  <li>• Работает во всех аккаунтах amoCRM</li>
+                </ul>
+              </div>
+
+              {/* Preview link */}
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(`${API_URL}/api/widget/embed/12345?theme=light`, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Посмотреть пример виджета
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ZIP Widget - Alternative */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-purple-600" />
-                Виджет amoCRM
+                ZIP-архив виджета (альтернатива)
               </CardTitle>
               <CardDescription>
-                Установите виджет в amoCRM для отображения статуса доставки и быстрого доступа к калькуляторам
+                Классический способ — загрузите архив с JS-кодом виджета
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Download */}
               <div className="p-4 bg-purple-50 rounded-lg space-y-4">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Download className="h-5 w-5" />
-                  Скачать виджет
-                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Скачайте архив виджета и установите его в настройках amoCRM
+                  Скачайте архив виджета и установите его в настройках amoCRM → Свои интеграции
                 </p>
                 <Button 
                   onClick={() => window.open(`${API_URL}/api/widget/download`, '_blank')}
-                  className="bg-purple-600 hover:bg-purple-700"
+                  variant="outline"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Скачать amocrm-widget.zip
                 </Button>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Installation instructions */}
-              <div className="space-y-4">
-                <h3 className="font-semibold">📋 Инструкция по установке</h3>
-                <ol className="list-decimal list-inside space-y-3 text-sm">
-                  <li>
-                    <strong>Скачайте архив</strong> виджета нажав кнопку выше
-                  </li>
-                  <li>
-                    <strong>Откройте amoCRM</strong> → Настройки → Интеграции → Свои интеграции
-                  </li>
-                  <li>
-                    <strong>Нажмите "Загрузить интеграцию"</strong> и выберите скачанный ZIP файл
-                  </li>
-                  <li>
-                    <strong>После загрузки</strong> виджет появится в списке доступных
-                  </li>
-                  <li>
-                    <strong>Активируйте виджет</strong> и настройте URL вашего приложения в настройках виджета:
-                    <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono break-all">
-                      {API_URL?.replace('/api', '') || window.location.origin}
-                    </div>
-                  </li>
-                </ol>
-              </div>
-
-              {/* Features */}
-              <div className="space-y-4">
-                <h3 className="font-semibold">✨ Возможности виджета</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium mb-1">📦 Статус доставки</div>
-                    <p className="text-sm text-muted-foreground">
-                      Отображается в карточке сделки: статус заказа, номер рейса, водитель, дата
-                    </p>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium mb-1">🧮 Быстрый калькулятор</div>
-                    <p className="text-sm text-muted-foreground">
-                      Открывает нужный калькулятор в один клик с данными клиента
-                    </p>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium mb-1">📷 Фото доставки</div>
-                    <p className="text-sm text-muted-foreground">
-                      Просмотр фото акта доставки прямо в amoCRM
-                    </p>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium mb-1">💰 Сумма оплаты</div>
-                    <p className="text-sm text-muted-foreground">
-                      Информация о полученной сумме при доставке
-                    </p>
-                  </div>
+          {/* Features */}
+          <Card>
+            <CardHeader>
+              <CardTitle>✨ Возможности виджета</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-3 border rounded-lg">
+                  <div className="font-medium mb-1">📦 Статус доставки</div>
+                  <p className="text-sm text-muted-foreground">
+                    Отображается в карточке сделки: статус заказа, номер рейса, водитель, дата
+                  </p>
+                </div>
+                <div className="p-3 border rounded-lg">
+                  <div className="font-medium mb-1">🧮 Быстрый калькулятор</div>
+                  <p className="text-sm text-muted-foreground">
+                    Кнопки для открытия калькуляторов Купель и Сауна с данными клиента
+                  </p>
+                </div>
+                <div className="p-3 border rounded-lg">
+                  <div className="font-medium mb-1">📷 Фото доставки</div>
+                  <p className="text-sm text-muted-foreground">
+                    Индикатор загруженного фото акта доставки
+                  </p>
+                </div>
+                <div className="p-3 border rounded-lg">
+                  <div className="font-medium mb-1">🎨 Темы оформления</div>
+                  <p className="text-sm text-muted-foreground">
+                    Светлая и тёмная тема (добавьте ?theme=dark к URL)
+                  </p>
                 </div>
               </div>
             </CardContent>
