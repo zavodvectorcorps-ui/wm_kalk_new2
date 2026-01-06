@@ -442,3 +442,60 @@ async def send_test_notification(
         "telegram": "sent" if telegram_sent else "not_linked",
         "push": "queued"
     }
+
+
+
+class CustomNotificationRequest(BaseModel):
+    driverId: str
+    message: str
+
+
+@router.post("/send-custom")
+async def send_custom_notification(
+    request: CustomNotificationRequest,
+    admin: dict = Depends(get_admin_user)
+):
+    """Send a custom notification message to a driver."""
+    driver = drivers_collection.find_one({"id": request.driverId}, {"_id": 0})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Водитель не найден")
+    
+    telegram_sent = False
+    method_used = ""
+    
+    # Try Telegram first
+    telegram_chat_id = driver.get("telegramChatId")
+    if telegram_chat_id:
+        settings = notification_settings.find_one({"type": "telegram"}, {"_id": 0})
+        if settings and settings.get("enabled") and settings.get("botToken"):
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.post(
+                        f"https://api.telegram.org/bot{settings['botToken']}/sendMessage",
+                        json={
+                            "chat_id": telegram_chat_id,
+                            "text": f"📢 {request.message}",
+                            "parse_mode": "HTML"
+                        }
+                    )
+                    if response.status_code == 200:
+                        telegram_sent = True
+                        method_used = "Telegram"
+                        logger.info(f"Custom notification sent to driver {driver.get('name')} via Telegram")
+            except Exception as e:
+                logger.error(f"Failed to send Telegram message: {e}")
+    
+    if not telegram_sent:
+        method_used = "Push (в очереди)"
+        # Queue push notification
+        await send_push_notification(
+            request.driverId,
+            "Сообщение",
+            request.message
+        )
+    
+    return {
+        "status": "sent" if telegram_sent else "queued",
+        "method": method_used,
+        "message": f"Отправлено водителю {driver.get('name')}"
+    }
