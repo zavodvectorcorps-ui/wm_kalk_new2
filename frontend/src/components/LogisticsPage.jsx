@@ -107,6 +107,7 @@ export const LogisticsPage = () => {
     updateOrderStatusInTrip,
     removeOrderFromTrip,
     optimizeTripRoute,
+    printTripOrders,
     moveOrderUp,
     moveOrderDown,
     handleDragStart,
