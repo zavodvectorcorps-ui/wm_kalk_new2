@@ -1596,6 +1596,76 @@ const TripDetailsCard = ({
             </p>
           </div>
           
+          {/* amoCRM Pipeline and Stage selection */}
+          {amocrmPipelines && amocrmPipelines.length > 0 && (
+            <div className="p-3 bg-blue-50 rounded-lg space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-blue-700">
+                <ExternalLink className="h-3 w-3" />
+                Перенести в amoCRM
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Select 
+                  value={selectedTrip.amocrmPipelineId || ''} 
+                  onValueChange={(val) => updateTrip(selectedTrip.id, { amocrmPipelineId: val, amocrmStatusId: '' })}
+                >
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Воронка" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Не переносить</SelectItem>
+                    {amocrmPipelines.map(p => (
+                      <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedTrip.amocrmPipelineId && (() => {
+                  const pipeline = amocrmPipelines.find(p => String(p.id) === String(selectedTrip.amocrmPipelineId));
+                  const statuses = pipeline?._embedded?.statuses?.filter(s => s.id !== 142 && s.id !== 143).sort((a, b) => a.sort - b.sort) || [];
+                  return (
+                    <Select 
+                      value={selectedTrip.amocrmStatusId || ''} 
+                      onValueChange={(val) => updateTrip(selectedTrip.id, { amocrmStatusId: val })}
+                    >
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Этап" /></SelectTrigger>
+                      <SelectContent>
+                        {statuses.map(s => (
+                          <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
+              </div>
+              {selectedTrip.amocrmPipelineId && selectedTrip.amocrmStatusId && (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full h-7 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700"
+                  onClick={() => {
+                    // Trigger move to amoCRM stage
+                    const pipelineId = selectedTrip.amocrmPipelineId;
+                    const statusId = selectedTrip.amocrmStatusId;
+                    if (pipelineId && statusId) {
+                      fetch(`${API_URL}/api/trips/${selectedTrip.id}/move-to-amocrm`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pipelineId: parseInt(pipelineId), statusId: parseInt(statusId) })
+                      }).then(res => res.json()).then(data => {
+                        if (data.moved > 0) {
+                          toast.success(`Перемещено ${data.moved} заказов в amoCRM`);
+                        } else {
+                          toast.warning(data.message || 'Не удалось переместить заказы');
+                        }
+                      }).catch(() => toast.error('Ошибка перемещения'));
+                    }
+                  }}
+                  data-testid="move-to-amocrm-btn"
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Переместить сейчас
+                </Button>
+              )}
+            </div>
+          )}
+          
           {tripRouteInfo && (
             <div className="flex gap-3 p-2 bg-purple-50 rounded-lg text-sm">
               <div className="flex items-center gap-1"><Navigation className="h-3 w-3 text-purple-600" /><span className="font-medium">{formatDistance(tripRouteInfo.distance)}</span></div>
