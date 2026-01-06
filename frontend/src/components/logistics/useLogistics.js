@@ -426,6 +426,13 @@ export const useLogistics = () => {
         } else {
           toast.info(`${result.message}${result.errors ? '\nОшибки: ' + result.errors.join(', ') : ''}`);
         }
+        
+        // Update selectedTrip with new lastSyncedAt
+        if (selectedTrip?.id === tripId && result.lastSyncedAt) {
+          setSelectedTrip(prev => ({ ...prev, lastSyncedAt: result.lastSyncedAt }));
+        }
+        
+        fetchTrips(activeSection); // Refresh trips to get updated lastSyncedAt
         fetchAllOrders(); // Refresh to show updated data
       } else {
         const error = await res.json();
