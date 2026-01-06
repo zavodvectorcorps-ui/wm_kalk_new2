@@ -172,8 +172,23 @@ const AppContent = () => {
     setActiveTab('calculator');
   };
 
-  // Landing Page - show calculator selection
+  // If user is a driver (role === 'driver'), automatically redirect to driver panel
+  const isDriverOnly = user?.role === 'driver';
+  
+  // Landing Page - show calculator selection (or driver panel for drivers)
   if (!currentCalculator) {
+    // Drivers automatically see driver panel without landing page
+    if (isDriverOnly) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+          <Suspense fallback={<PageLoader />}>
+            <DriverPanel onLogout={handleLogout} />
+          </Suspense>
+          <Toaster position="top-right" richColors />
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
         <Header 
