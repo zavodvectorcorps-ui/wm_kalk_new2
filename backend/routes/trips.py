@@ -616,6 +616,17 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
     except Exception as e:
         logger.error(f"Failed to sync trip to amoCRM: {e}")
     
+    # Send notification to driver if driver was assigned or changed
+    old_driver_id = existing.get("driverId")
+    new_driver_id = updated.get("driverId")
+    if new_driver_id and new_driver_id != old_driver_id:
+        try:
+            from routes.notifications import notify_driver_new_trip
+            await notify_driver_new_trip(trip_id, new_driver_id)
+            logger.info(f"Notification sent to driver {new_driver_id} for trip {trip_id}")
+        except Exception as e:
+            logger.error(f"Failed to send notification to driver: {e}")
+    
     logger.info(f"=== UPDATE_TRIP END: {trip_id} ===")
     return updated
 
