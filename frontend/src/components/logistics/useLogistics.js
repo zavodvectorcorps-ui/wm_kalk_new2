@@ -1479,7 +1479,8 @@ export const useLogistics = () => {
               <th>Телефон</th>
               <th class="address">Адрес</th>
               <th class="contents">Состав заказа</th>
-              <th>Сумма</th>
+              <th>Сумма заказа</th>
+              <th>Задолженность</th>
               <th>Комментарий</th>
             </tr>
           </thead>
@@ -1492,6 +1493,7 @@ export const useLogistics = () => {
                 <td class="address">${order.fullAddress || order.address || '-'}</td>
                 <td class="contents">${order.orderContents || order.orderDetails || '-'}</td>
                 <td>${order.dealSum || order.orderSum || '-'}</td>
+                <td style="color: ${order.debtSum ? '#dc2626' : 'inherit'}; font-weight: ${order.debtSum ? 'bold' : 'normal'};">${order.debtSum || '-'}</td>
                 <td>${order.orderComment || order.notes || '-'}</td>
               </tr>
             `).join('')}
