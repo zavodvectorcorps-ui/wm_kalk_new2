@@ -468,3 +468,65 @@ async def start_trip(trip_id: str, current_user: dict = Depends(get_current_user
         "orders_updated": len([s for s in order_statuses.values() if s == "delivering"]),
         "amocrm_synced": amocrm_synced_count
     }
+
+
+
+@router.get("/debug/trip/{trip_id}")
+async def debug_trip_data(trip_id: str, current_user: dict = Depends(get_current_user)):
+    """Debug endpoint to view trip and orders data including coordinates."""
+    trip = trips_collection.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        return {"error": "Trip not found"}
+    
+    section = trip.get("section", "")
+    collection = get_section_collection(section)
+    
+    orders_data = []
+    if collection is not None:
+        order_ids = trip.get("orderIds", [])
+        for order in collection.find({"id": {"$in": order_ids}}, {"_id": 0}):
+            orders_data.append({
+                "id": order.get("id"),
+                "fullName": order.get("fullName"),
+                "fullAddress": order.get("fullAddress"),
+                "lat": order.get("lat"),
+                "lng": order.get("lng"),
+                "phoneNumber": order.get("phoneNumber"),
+                "debtSum": order.get("debtSum"),
+                "has_coordinates": bool(order.get("lat") and order.get("lng"))
+            })
+    
+    return {
+        "trip_id": trip_id,
+        "trip_name": trip.get("name"),
+        "section": section,
+        "total_orders": len(trip.get("orderIds", [])),
+        "orders_with_coords": len([o for o in orders_data if o["has_coordinates"]]),
+        "orders": orders_data
+    }
+
+
+@router.get("/debug/logs")
+async def get_debug_logs(current_user: dict = Depends(get_current_user)):
+    """Get recent logs for debugging."""
+    # Get recent sync logs
+    sync_logs = list(db["sync_logs"].find({}, {"_id": 0}).sort("timestamp", -1).limit(20))
+    
+    # Get driver panel specific logs
+    driver_logs = []
+    try:
+        import os
+        log_path = "/var/log/supervisor/backend.err.log"
+        if os.path.exists(log_path):
+            with open(log_path, "r") as f:
+                lines = f.readlines()
+                # Filter for driver panel related logs
+                driver_lines = [l.strip() for l in lines[-200:] if "driver" in l.lower() or "trip" in l.lower() or "order" in l.lower()]
+                driver_logs = driver_lines[-50:]
+    except:
+        pass
+    
+    return {
+        "sync_logs": sync_logs,
+        "recent_backend_logs": driver_logs
+    }
