@@ -381,108 +381,35 @@ export const DriverPanel = ({ onLogout }) => {
           </Card>
         </div>
       ) : selectedTrip && (
-        <>
-          {/* Map with route - ALWAYS VISIBLE */}
-          <div className="p-4">
+        <div className="flex flex-col h-[calc(100vh-140px)]">
+          {/* Trip info header */}
+          <div className="px-4 pt-4 pb-2">
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <MapIcon className="h-4 w-4" />
-                  Маршрут
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-2">
-                {isLoaded ? (
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={
-                      selectedTrip.orders?.[0]?.lat 
-                        ? { lat: selectedTrip.orders[0].lat, lng: selectedTrip.orders[0].lng }
-                        : defaultCenter
-                    }
-                    zoom={10}
-                  >
-                    {/* Order markers with numbers */}
-                    {selectedTrip.orders?.map((order, index) => (
-                      order.lat && order.lng && (
-                        <Marker
-                          key={order.id}
-                          position={{ lat: order.lat, lng: order.lng }}
-                          label={{
-                            text: String(index + 1),
-                            color: 'white',
-                            fontWeight: 'bold'
-                          }}
-                          icon={{
-                            path: window.google.maps.SymbolPath.CIRCLE,
-                            scale: 15,
-                            fillColor: order.isImportant ? '#ef4444' : 
-                              (selectedTrip.orderStatuses?.[order.id] === 'delivered' ? '#22c55e' : 
-                               selectedTrip.orderStatuses?.[order.id] === 'delivering' ? '#3b82f6' : '#8b5cf6'),
-                            fillOpacity: 1,
-                            strokeColor: 'white',
-                            strokeWeight: 2
-                          }}
-                          onClick={() => setExpandedOrder(order.id)}
-                        />
-                      )
-                    ))}
-
-                    {/* Route line */}
-                    {directions && (
-                      <DirectionsRenderer
-                        directions={directions}
-                        options={{
-                          suppressMarkers: true,
-                          polylineOptions: {
-                            strokeColor: '#8b5cf6',
-                            strokeWeight: 4,
-                            strokeOpacity: 0.8
-                          }
-                        }}
-                      />
-                    )}
-                  </GoogleMap>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center bg-gray-100 rounded">
-                    <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Trip info card with buttons */}
-          <div className="px-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{selectedTrip.name}</CardTitle>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold">{selectedTrip.name}</div>
                   <Badge className={TRIP_STATUSES[selectedTrip.status]?.color || 'bg-gray-100'}>
                     {TRIP_STATUSES[selectedTrip.status]?.label || selectedTrip.status}
                   </Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {selectedTrip.departureDate && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>Дата: {new Date(selectedTrip.departureDate).toLocaleDateString('ru-RU')}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Package className="h-4 w-4" />
-                  <span>Заказов: {selectedTrip.orders?.length || 0}</span>
-                  {selectedTrip.orders && (
-                    <span className="text-green-600">
-                      (доставлено: {Object.values(selectedTrip.orderStatuses || {}).filter(s => s === 'delivered').length})
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  {selectedTrip.departureDate && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {new Date(selectedTrip.departureDate).toLocaleDateString('ru-RU')}
                     </span>
                   )}
+                  <span className="flex items-center gap-1">
+                    <Package className="h-3.5 w-3.5" />
+                    {selectedTrip.orders?.length || 0} заказов
+                  </span>
+                  <span className="text-green-600">
+                    ✓ {Object.values(selectedTrip.orderStatuses || {}).filter(s => s === 'delivered').length}
+                  </span>
                 </div>
                 
                 {/* Action buttons */}
-                <div className="flex gap-2 pt-2">
-                  {/* Start trip button - only if trip is planned */}
+                <div className="flex gap-2 mt-3">
                   {selectedTrip.status === 'planned' && (
                     <Button 
                       className="flex-1 bg-blue-600 hover:bg-blue-700"
@@ -498,47 +425,117 @@ export const DriverPanel = ({ onLogout }) => {
                       В путь
                     </Button>
                   )}
-                  
                   <Button 
                     className={`${selectedTrip.status === 'planned' ? '' : 'flex-1'} bg-green-600 hover:bg-green-700`}
                     onClick={openFullRouteInNavigator}
                     data-testid="open-route-btn"
                   >
                     <Navigation className="h-4 w-4 mr-2" />
-                    Открыть маршрут
+                    Навигатор
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Orders list */}
-          <div className="p-4 space-y-3">
-            <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
-              <List className="h-4 w-4" />
-              Заказы ({selectedTrip.orders?.length || 0})
-            </h3>
-            
-            {selectedTrip.orders?.map((order, index) => {
-              const orderStatus = selectedTrip.orderStatuses?.[order.id] || 'pending';
-              const statusInfo = ORDER_STATUSES[orderStatus] || ORDER_STATUSES.pending;
-              const isExpanded = expandedOrder === order.id;
-              const isConfirming = confirmingDelivery === order.id;
-              const isDelivered = orderStatus === 'delivered';
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <div className="px-4">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="route" className="gap-2">
+                  <Route className="h-4 w-4" />
+                  Маршрут
+                </TabsTrigger>
+                <TabsTrigger value="orders" className="gap-2">
+                  <List className="h-4 w-4" />
+                  Заказы
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-              return (
-                <Card 
-                  key={order.id} 
-                  className={`transition-all ${order.isImportant ? 'border-orange-300 bg-orange-50' : ''} ${isDelivered ? 'opacity-70' : ''}`}
-                  data-testid={`order-card-${order.id}`}
-                >
-                  <CardContent className="p-3">
-                    {/* Order header */}
-                    <div 
-                      className="flex items-start gap-3 cursor-pointer"
-                      onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
+            {/* Route Tab */}
+            <TabsContent value="route" className="flex-1 p-4 pt-2 m-0">
+              <Card className="h-full">
+                <CardContent className="p-2 h-full">
+                  {isLoaded ? (
+                    <GoogleMap
+                      mapContainerStyle={{ width: '100%', height: '100%', minHeight: '400px', borderRadius: '8px' }}
+                      center={
+                        selectedTrip.orders?.[0]?.lat 
+                          ? { lat: selectedTrip.orders[0].lat, lng: selectedTrip.orders[0].lng }
+                          : defaultCenter
+                      }
+                      zoom={11}
                     >
-                      <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm flex-shrink-0 ${
+                      {/* Order markers with numbers */}
+                      {selectedTrip.orders?.map((order, index) => (
+                        order.lat && order.lng && (
+                          <Marker
+                            key={order.id}
+                            position={{ lat: order.lat, lng: order.lng }}
+                            label={{
+                              text: String(index + 1),
+                              color: 'white',
+                              fontWeight: 'bold'
+                            }}
+                            icon={{
+                              path: window.google.maps.SymbolPath.CIRCLE,
+                              scale: 15,
+                              fillColor: order.isImportant ? '#ef4444' : 
+                                (selectedTrip.orderStatuses?.[order.id] === 'delivered' ? '#22c55e' : 
+                                 selectedTrip.orderStatuses?.[order.id] === 'delivering' ? '#3b82f6' : '#8b5cf6'),
+                              fillOpacity: 1,
+                              strokeColor: 'white',
+                              strokeWeight: 2
+                            }}
+                            onClick={() => {
+                              setExpandedOrder(order.id);
+                              setActiveTab('orders');
+                            }}
+                          />
+                        )
+                      ))}
+
+                      {/* Route line */}
+                      {directions && (
+                        <DirectionsRenderer
+                          directions={directions}
+                          options={{
+                            suppressMarkers: true,
+                            polylineOptions: {
+                              strokeColor: '#8b5cf6',
+                              strokeWeight: 4,
+                              strokeOpacity: 0.8
+                            }
+                          }}
+                        />
+                      )}
+                    </GoogleMap>
+                  ) : (
+                    <div className="h-full min-h-[400px] flex items-center justify-center bg-gray-100 rounded">
+                      <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Brief order list under map */}
+              <div className="mt-3 space-y-2">
+                {selectedTrip.orders?.map((order, index) => {
+                  const orderStatus = selectedTrip.orderStatuses?.[order.id] || 'pending';
+                  const isDelivered = orderStatus === 'delivered';
+                  return (
+                    <div 
+                      key={order.id}
+                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                        order.isImportant ? 'bg-orange-50 border border-orange-200' : 'bg-white border'
+                      } ${isDelivered ? 'opacity-60' : 'hover:bg-gray-50'}`}
+                      onClick={() => {
+                        setExpandedOrder(order.id);
+                        setActiveTab('orders');
+                      }}
+                    >
+                      <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0 ${
                         isDelivered ? 'bg-green-100 text-green-700' : 
                         orderStatus === 'delivering' ? 'bg-blue-100 text-blue-700' : 
                         'bg-purple-100 text-purple-700'
@@ -546,166 +543,207 @@ export const DriverPanel = ({ onLogout }) => {
                         {isDelivered ? '✓' : index + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium truncate">{order.fullName || 'Без имени'}</span>
-                          {order.isImportant && <span className="text-orange-600">⚠️</span>}
-                          <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">{order.fullAddress}</p>
+                        <div className="text-sm font-medium truncate">{order.fullName}</div>
+                        <div className="text-xs text-muted-foreground truncate">{order.fullAddress}</div>
                       </div>
-                      {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+                      {order.isImportant && <span className="text-orange-500 text-sm">⚠️</span>}
+                      <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
 
-                    {/* Expanded details */}
-                    {isExpanded && (
-                      <div className="mt-4 pt-4 border-t space-y-3">
-                        {order.phoneNumber && (
-                          <a 
-                            href={`tel:${order.phoneNumber}`}
-                            className="flex items-center gap-2 text-blue-600 hover:underline"
-                          >
-                            <Phone className="h-4 w-4" />
-                            {order.phoneNumber}
-                          </a>
-                        )}
-                        
-                        <div className="flex items-start gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <span>{order.fullAddress}</span>
+            {/* Orders Tab */}
+            <TabsContent value="orders" className="flex-1 overflow-auto p-4 pt-2 m-0 space-y-3">
+              {selectedTrip.orders?.map((order, index) => {
+                const orderStatus = selectedTrip.orderStatuses?.[order.id] || 'pending';
+                const statusInfo = ORDER_STATUSES[orderStatus] || ORDER_STATUSES.pending;
+                const isExpanded = expandedOrder === order.id;
+                const isConfirming = confirmingDelivery === order.id;
+                const isDelivered = orderStatus === 'delivered';
+
+                return (
+                  <Card 
+                    key={order.id} 
+                    className={`transition-all ${order.isImportant ? 'border-orange-300 bg-orange-50' : ''} ${isDelivered ? 'opacity-70' : ''}`}
+                    data-testid={`order-card-${order.id}`}
+                  >
+                    <CardContent className="p-3">
+                      {/* Order header */}
+                      <div 
+                        className="flex items-start gap-3 cursor-pointer"
+                        onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
+                      >
+                        <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm flex-shrink-0 ${
+                          isDelivered ? 'bg-green-100 text-green-700' : 
+                          orderStatus === 'delivering' ? 'bg-blue-100 text-blue-700' : 
+                          'bg-purple-100 text-purple-700'
+                        }`}>
+                          {isDelivered ? '✓' : index + 1}
                         </div>
-                        
-                        {order.orderContents && (
-                          <div className="flex items-start gap-2">
-                            <Package className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <span className="text-sm">{order.orderContents}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium truncate">{order.fullName || 'Без имени'}</span>
+                            {order.isImportant && <span className="text-orange-600">⚠️</span>}
+                            <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
                           </div>
-                        )}
+                          <p className="text-sm text-muted-foreground truncate">{order.fullAddress}</p>
+                        </div>
+                        {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+                      </div>
 
-                        {order.orderComment && (
-                          <div className="flex items-start gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <span className="text-sm text-muted-foreground">{order.orderComment}</span>
-                          </div>
-                        )}
-
-                        {order.debtSum && (
-                          <div className="flex items-center gap-2 bg-yellow-50 p-2 rounded">
-                            <DollarSign className="h-4 w-4 text-yellow-600" />
-                            <span className="text-sm font-medium">К оплате: {order.debtSum}</span>
-                          </div>
-                        )}
-
-                        {/* Action buttons */}
-                        <div className="flex gap-2 pt-2">
-                          {order.lat && order.lng && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openOrderInNavigator(order);
-                              }}
-                              data-testid={`navigate-to-order-${order.id}`}
+                      {/* Expanded details */}
+                      {isExpanded && (
+                        <div className="mt-4 pt-4 border-t space-y-3">
+                          {order.phoneNumber && (
+                            <a 
+                              href={`tel:${order.phoneNumber}`}
+                              className="flex items-center gap-2 text-blue-600 hover:underline"
                             >
-                              <Navigation className="h-4 w-4 mr-1" />
-                              Навигация
-                            </Button>
+                              <Phone className="h-4 w-4" />
+                              {order.phoneNumber}
+                            </a>
                           )}
                           
-                          {!isDelivered && (
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setConfirmingDelivery(order.id);
-                                setDeliveryForm({
-                                  receivedAmount: order.debtSum || '',
-                                  notes: '',
-                                  photo: null
-                                });
-                              }}
-                              data-testid={`confirm-delivery-${order.id}`}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Доставлено
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* Delivery confirmation form */}
-                        {isConfirming && (
-                          <div className="mt-4 p-3 bg-gray-50 rounded-lg space-y-3">
-                            <h4 className="font-medium">Подтверждение доставки</h4>
-                            
-                            <div className="space-y-2">
-                              <Label>Полученная сумма</Label>
-                              <Input
-                                type="text"
-                                placeholder={order.debtSum ? `Ожидается: ${order.debtSum}` : 'Введите сумму'}
-                                value={deliveryForm.receivedAmount}
-                                onChange={(e) => setDeliveryForm(prev => ({ ...prev, receivedAmount: e.target.value }))}
-                              />
+                          <div className="flex items-start gap-2 text-sm">
+                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <span>{order.fullAddress}</span>
+                          </div>
+                          
+                          {order.orderContents && (
+                            <div className="flex items-start gap-2">
+                              <Package className="h-4 w-4 text-muted-foreground mt-0.5" />
+                              <span className="text-sm">{order.orderContents}</span>
                             </div>
+                          )}
 
-                            <div className="space-y-2">
-                              <Label>Фото акта</Label>
-                              <div className="flex items-center gap-2">
+                          {order.orderComment && (
+                            <div className="flex items-start gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                              <span className="text-sm text-muted-foreground">{order.orderComment}</span>
+                            </div>
+                          )}
+
+                          {order.debtSum && (
+                            <div className="flex items-center gap-2 bg-yellow-50 p-2 rounded">
+                              <DollarSign className="h-4 w-4 text-yellow-600" />
+                              <span className="text-sm font-medium">К оплате: {order.debtSum}</span>
+                            </div>
+                          )}
+
+                          {/* Action buttons */}
+                          <div className="flex gap-2 pt-2">
+                            {order.lat && order.lng && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openOrderInNavigator(order);
+                                }}
+                                data-testid={`navigate-to-order-${order.id}`}
+                              >
+                                <Navigation className="h-4 w-4 mr-1" />
+                                Навигация
+                              </Button>
+                            )}
+                            
+                            {!isDelivered && (
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmingDelivery(order.id);
+                                  setDeliveryForm({
+                                    receivedAmount: order.debtSum || '',
+                                    notes: '',
+                                    photo: null
+                                  });
+                                }}
+                                data-testid={`confirm-delivery-${order.id}`}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Доставлено
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Delivery confirmation form */}
+                          {isConfirming && (
+                            <div className="mt-4 p-3 bg-gray-50 rounded-lg space-y-3">
+                              <h4 className="font-medium">Подтверждение доставки</h4>
+                              
+                              <div className="space-y-2">
+                                <Label>Полученная сумма</Label>
                                 <Input
-                                  type="file"
-                                  accept="image/*"
-                                  capture="environment"
-                                  onChange={handlePhotoChange}
-                                  className="flex-1"
+                                  type="text"
+                                  placeholder={order.debtSum ? `Ожидается: ${order.debtSum}` : 'Введите сумму'}
+                                  value={deliveryForm.receivedAmount}
+                                  onChange={(e) => setDeliveryForm(prev => ({ ...prev, receivedAmount: e.target.value }))}
                                 />
-                                {deliveryForm.photo && (
-                                  <Badge variant="secondary">
-                                    <Camera className="h-3 w-3 mr-1" />
-                                    Выбрано
-                                  </Badge>
-                                )}
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Фото акта</Label>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={handlePhotoChange}
+                                    className="flex-1"
+                                  />
+                                  {deliveryForm.photo && (
+                                    <Badge variant="secondary">
+                                      <Camera className="h-3 w-3 mr-1" />
+                                      Выбрано
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2">
+                                <Button
+                                  className="flex-1 bg-green-600 hover:bg-green-700"
+                                  disabled={uploading}
+                                  onClick={() => handleConfirmDelivery(order.id)}
+                                >
+                                  {uploading ? (
+                                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                  ) : (
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                  )}
+                                  Подтвердить
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setConfirmingDelivery(null)}
+                                >
+                                  Отмена
+                                </Button>
                               </div>
                             </div>
+                          )}
 
-                            <div className="flex gap-2">
-                              <Button
-                                className="flex-1 bg-green-600 hover:bg-green-700"
-                                disabled={uploading}
-                                onClick={() => handleConfirmDelivery(order.id)}
-                              >
-                                {uploading ? (
-                                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                                ) : (
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                )}
-                                Подтвердить
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => setConfirmingDelivery(null)}
-                              >
-                                Отмена
-                              </Button>
+                          {/* Already delivered info */}
+                          {isDelivered && order.deliveryConfirmedAt && (
+                            <div className="mt-2 p-2 bg-green-50 rounded text-sm text-green-700">
+                              <CheckCircle className="h-4 w-4 inline mr-1" />
+                              Доставлено {new Date(order.deliveryConfirmedAt).toLocaleString('ru-RU')}
+                              {order.receivedAmount && ` • Получено: ${order.receivedAmount}`}
                             </div>
-                          </div>
-                        )}
-
-                        {/* Already delivered info */}
-                        {isDelivered && order.deliveryConfirmedAt && (
-                          <div className="mt-2 p-2 bg-green-50 rounded text-sm text-green-700">
-                            <CheckCircle className="h-4 w-4 inline mr-1" />
-                            Доставлено {new Date(order.deliveryConfirmedAt).toLocaleString('ru-RU')}
-                            {order.receivedAmount && ` • Получено: ${order.receivedAmount}`}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </TabsContent>
+          </Tabs>
+        </div>
       )}
     </div>
   );
