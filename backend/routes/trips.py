@@ -299,6 +299,13 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     
     if not domain or not token:
         logger.warning(f"amoCRM domain or token not set. Domain: '{domain}', Token: {'SET' if token else 'NOT SET'}")
+        log_sync_operation("clear_trip_data", {
+            "amocrm_id": amocrm_id,
+            "status": "skipped",
+            "reason": "credentials_missing",
+            "domain_set": bool(domain),
+            "token_set": bool(token)
+        })
         return
     
     # Get field IDs for trip data (try both naming conventions)
