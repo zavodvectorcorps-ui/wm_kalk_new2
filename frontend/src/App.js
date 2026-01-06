@@ -25,6 +25,7 @@ const WebOrdersPage = lazy(() => import('./components/WebOrdersPage').then(m => 
 const EmbedBaliaCalculator = lazy(() => import('./components/EmbedBaliaCalculator').then(m => ({ default: m.EmbedBaliaCalculator })));
 const EmbedCodePage = lazy(() => import('./components/EmbedCodePage').then(m => ({ default: m.EmbedCodePage })));
 const LogisticsPage = lazy(() => import('./components/LogisticsPage').then(m => ({ default: m.LogisticsPage })));
+const DriverPanel = lazy(() => import('./components/DriverPanel').then(m => ({ default: m.DriverPanel })));
 
 // Loading fallback component
 const PageLoader = () => (
