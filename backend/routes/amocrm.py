@@ -676,6 +676,26 @@ async def receive_webhook_section(
         domain_clean = domain.replace("https://", "").replace("http://", "").rstrip("/")
         amocrm_link = f"https://{domain_clean}/leads/detail/{lead_data.get('amocrm_id')}"
     
+    # Check if order is important based on amoCRM flag field
+    is_important = False
+    important_field_id = settings.get("important_order_field_id", "")
+    if important_field_id and api_data:
+        custom_fields = api_data.get("custom_fields_values", [])
+        for field in custom_fields:
+            if str(field.get("field_id", "")) == important_field_id:
+                values = field.get("values", [])
+                if values:
+                    # Checkbox fields in amoCRM return value as boolean or "1"/"true"
+                    first_val = values[0] if isinstance(values, list) else values
+                    if isinstance(first_val, dict):
+                        val = first_val.get("value", False)
+                    else:
+                        val = first_val
+                    # Check for truthy values
+                    is_important = val in [True, "true", "1", 1, "да", "yes"]
+                break
+        logger.info(f"Important field check: field_id={important_field_id}, is_important={is_important}")
+    
     order_data = {
         "id": f"AMO-{section_prefix.get(section, 'X')}-{lead_data.get('amocrm_id', int(datetime.now().timestamp()))}",
         "fullName": lead_data.get("fullName", "") or "Без имени",
@@ -693,6 +713,7 @@ async def receive_webhook_section(
         "status": "new",
         "deliveryStatus": "pending",  # pending, delivering, delivered, cancelled
         "deliveryComment": "",
+        "isImportant": is_important,  # Flag from amoCRM
         "amocrm_id": lead_data.get("amocrm_id"),
         "amocrm_link": amocrm_link,
         "amocrm_data": lead_data
