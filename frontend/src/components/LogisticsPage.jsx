@@ -462,6 +462,82 @@ export const LogisticsPage = () => {
                 )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* amoCRM Sync Stats - показываем если есть pipelines */}
+                  {amocrmPipelines.length > 0 && (
+                    <div className="lg:col-span-2">
+                      <Card className="border-purple-200 bg-purple-50/50">
+                        <CardContent className="py-3 px-4">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-sm font-medium text-purple-700">Сравнить с amoCRM:</span>
+                            <Select 
+                              value={selectedPipeline?.toString() || ''} 
+                              onValueChange={(val) => {
+                                setSelectedPipeline(val);
+                                setSelectedStatus(null);
+                              }}
+                            >
+                              <SelectTrigger className="w-[180px] h-8 text-xs bg-white">
+                                <SelectValue placeholder="Воронка" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {amocrmPipelines.map(p => (
+                                  <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {selectedPipeline && (
+                              <Select 
+                                value={selectedStatus?.toString() || ''} 
+                                onValueChange={(val) => {
+                                  setSelectedStatus(val);
+                                  fetchAmocrmStats(selectedPipeline, val);
+                                }}
+                              >
+                                <SelectTrigger className="w-[180px] h-8 text-xs bg-white">
+                                  <SelectValue placeholder="Этап" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {amocrmPipelines.find(p => p.id.toString() === selectedPipeline)?.statuses.map(s => (
+                                    <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                            {loadingAmocrmStats && <RefreshCw className="h-4 w-4 animate-spin text-purple-600" />}
+                            {amocrmStats && !loadingAmocrmStats && (
+                              <>
+                                <Badge variant="outline" className="bg-white">
+                                  amoCRM: {amocrmStats.count} ({amocrmStats.sum?.toLocaleString()} zł)
+                                </Badge>
+                                {(() => {
+                                  const comparison = getAmocrmComparison();
+                                  if (!comparison) return null;
+                                  return (
+                                    <>
+                                      <Badge variant="outline" className="bg-white">
+                                        Локально: {comparison.localCount}
+                                      </Badge>
+                                      {comparison.missingInLocal.length > 0 ? (
+                                        <Badge variant="destructive">
+                                          Не перенесено: {comparison.missingInLocal.length}
+                                        </Badge>
+                                      ) : (
+                                        <Badge className="bg-green-600">
+                                          <CheckCircle className="h-3 w-3 mr-1" />
+                                          Синхронизировано
+                                        </Badge>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                  
                   {/* Orders List */}
                   <OrdersListCard
                     sectionKey={sectionKey}
