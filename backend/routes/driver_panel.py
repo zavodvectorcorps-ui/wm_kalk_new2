@@ -93,7 +93,7 @@ async def get_my_trips(current_user: dict = Depends(get_current_user)):
     for trip in trips:
         section = trip.get("section", "")
         collection = get_section_collection(section)
-        if collection:
+        if collection is not None:
             order_ids = trip.get("orderIds", [])
             orders = list(collection.find({"id": {"$in": order_ids}}, {"_id": 0}))
             # Sort orders by their position in orderIds
