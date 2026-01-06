@@ -1204,6 +1204,7 @@ const TripsView = ({
           formatDuration={formatDuration}
           TRIP_STATUSES={TRIP_STATUSES}
           ORDER_TRIP_STATUSES={ORDER_TRIP_STATUSES}
+          printTripOrders={printTripOrders}
         />
       </div>
 
