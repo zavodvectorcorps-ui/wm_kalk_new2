@@ -78,6 +78,13 @@ export const useLogistics = () => {
   const [tripRouteInfo, setTripRouteInfo] = useState(null);
   const [buildingTripRoute, setBuildingTripRoute] = useState(false);
   
+  // amoCRM sync stats
+  const [amocrmStats, setAmocrmStats] = useState(null);
+  const [loadingAmocrmStats, setLoadingAmocrmStats] = useState(false);
+  const [amocrmPipelines, setAmocrmPipelines] = useState([]);
+  const [selectedPipeline, setSelectedPipeline] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState(null);
+  
   // Refs
   const mapRef = useRef(null);
   const tripMapRef = useRef(null);
