@@ -384,6 +384,7 @@ export const useLogistics = () => {
       if (res.ok) {
         const updatedTrip = await res.json();
         fetchTrips(activeSection);
+        fetchAllOrders(); // Reload orders to get updated trip data (driver, date, status)
         
         // Update selectedTrip if it's the one being updated
         if (selectedTrip?.id === tripId) {
