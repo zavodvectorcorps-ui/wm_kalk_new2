@@ -521,7 +521,17 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
 @router.get("/embed-info")
 async def get_embed_info():
     """Get information about embedding the widget in amoCRM."""
-    base_url = os.environ.get("REACT_APP_BACKEND_URL", "")
+    # Read base URL from frontend .env
+    base_url = os.environ.get("APP_BASE_URL", "")
+    if not base_url:
+        try:
+            with open("/app/frontend/.env", "r") as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        base_url = line.strip().split("=", 1)[1]
+                        break
+        except:
+            base_url = "https://your-domain.com"
     
     return {
         "embed_url_template": f"{base_url}/api/widget/embed/{{lead_id}}",
