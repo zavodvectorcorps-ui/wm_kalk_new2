@@ -797,3 +797,98 @@ async def delete_trip(trip_id: str):
     trips_collection.delete_one({"id": trip_id})
     
     return {"status": "ok", "message": "Trip deleted"}
+
+
+
+def log_sync_operation(operation: str, details: dict):
+    """Log sync operation to database for debugging."""
+    try:
+        sync_logs.insert_one({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "operation": operation,
+            **details
+        })
+        # Keep only last 100 logs
+        count = sync_logs.count_documents({})
+        if count > 100:
+            oldest = list(sync_logs.find({}).sort("timestamp", 1).limit(count - 100))
+            if oldest:
+                sync_logs.delete_many({"_id": {"$in": [o["_id"] for o in oldest]}})
+    except Exception as e:
+        logger.error(f"Failed to log sync operation: {e}")
+
+
+@router.get("/debug/sync-status")
+async def get_sync_debug_status():
+    """Get debug information about amoCRM sync configuration and recent operations."""
+    # Get amoCRM settings
+    settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    
+    settings_status = {
+        "configured": bool(settings),
+        "domain": settings.get("amocrm_domain", "") if settings else "",
+        "token_present": bool(settings.get("amocrm_token")) if settings else False,
+        "trip_number_field_id": settings.get("trip_number_field_id", "") if settings else "",
+        "trip_driver_field_id": settings.get("trip_driver_field_id", "") if settings else "",
+        "trip_departure_field_id": settings.get("trip_departure_field_id", "") if settings else "",
+        "trip_order_status_field_id": settings.get("trip_order_status_field_id", "") if settings else "",
+    }
+    
+    # Check if field IDs are configured
+    has_trip_fields = any([
+        settings_status["trip_number_field_id"],
+        settings_status["trip_driver_field_id"],
+        settings_status["trip_departure_field_id"],
+        settings_status["trip_order_status_field_id"]
+    ])
+    
+    # Get trips with orders that have amocrm_id
+    trips = list(trips_collection.find({}, {"_id": 0}))
+    trips_info = []
+    
+    for trip in trips:
+        collection = get_section_collection(trip.get("section", ""))
+        if collection:
+            order_ids = trip.get("orderIds", [])
+            orders_with_amocrm = list(collection.find(
+                {"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}},
+                {"_id": 0, "id": 1, "amocrm_id": 1, "tripName": 1, "tripOrderStatus": 1}
+            ))
+            trips_info.append({
+                "trip_id": trip.get("id"),
+                "trip_name": trip.get("name"),
+                "section": trip.get("section"),
+                "total_orders": len(order_ids),
+                "orders_with_amocrm_id": len(orders_with_amocrm),
+                "orders_details": orders_with_amocrm[:5],  # First 5 for debug
+                "last_synced": trip.get("lastSyncedAt")
+            })
+    
+    # Get recent sync logs
+    recent_logs = list(sync_logs.find({}, {"_id": 0}).sort("timestamp", -1).limit(20))
+    
+    # Diagnostic messages
+    issues = []
+    if not settings_status["configured"]:
+        issues.append("❌ Настройки amoCRM не найдены")
+    elif not settings_status["domain"]:
+        issues.append("❌ Не указан домен amoCRM")
+    elif not settings_status["token_present"]:
+        issues.append("❌ Не указан токен amoCRM")
+    elif not has_trip_fields:
+        issues.append("❌ Не настроены ID полей для рейсов (trip_number_field_id, etc.)")
+    
+    total_orders_with_amocrm = sum(t["orders_with_amocrm_id"] for t in trips_info)
+    if total_orders_with_amocrm == 0:
+        issues.append("⚠️ Нет заказов с amocrm_id в рейсах")
+    
+    if not issues:
+        issues.append("✅ Конфигурация выглядит корректно")
+    
+    return {
+        "settings": settings_status,
+        "has_trip_fields_configured": has_trip_fields,
+        "trips": trips_info,
+        "recent_sync_logs": recent_logs,
+        "diagnostic": issues
+    }
