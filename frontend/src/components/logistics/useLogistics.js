@@ -108,9 +108,23 @@ export const useLogistics = () => {
     }
   }, []);
 
+  // Load users with driver role
+  const fetchDriverUsers = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/drivers/users`);
+      if (res.ok) {
+        const data = await res.json();
+        setDriverUsers(data);
+      }
+    } catch (e) {
+      console.error('Failed to load driver users:', e);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDrivers();
-  }, [fetchDrivers]);
+    fetchDriverUsers();
+  }, [fetchDrivers, fetchDriverUsers]);
 
   // Load warehouse settings
   useEffect(() => {
