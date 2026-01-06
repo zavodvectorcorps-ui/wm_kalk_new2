@@ -657,6 +657,222 @@ export const IntegrationsPage = () => {
             </CardContent>
           </Card>
 
+          {/* Stage Sync Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Route className="h-5 w-5" />
+                Этапы для сравнения с логистикой
+              </CardTitle>
+              <CardDescription>
+                Укажите из какого этапа какой воронки брать заказы для сравнения с локальной базой
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingPipelines ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Загрузка воронок из amoCRM...
+                </div>
+              ) : pipelines.length === 0 ? (
+                <div className="p-4 bg-yellow-50 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    Для загрузки воронок необходимо сначала указать домен и токен amoCRM в настройках синхронизации ниже.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={fetchPipelines}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Обновить воронки
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Greenhouse */}
+                  <div className="p-4 bg-green-50 rounded-lg space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Warehouse className="h-5 w-5 text-green-600" />
+                      <span className="font-medium text-green-800">Теплицы</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Воронка</Label>
+                        <Select
+                          value={settings.stage_sync?.greenhouse?.pipeline_id || ''}
+                          onValueChange={(val) => setSettings(prev => ({
+                            ...prev,
+                            stage_sync: {
+                              ...prev.stage_sync,
+                              greenhouse: { ...prev.stage_sync?.greenhouse, pipeline_id: val, status_id: '' }
+                            }
+                          }))}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Выберите воронку" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {pipelines.map(p => (
+                              <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Этап</Label>
+                        <Select
+                          value={settings.stage_sync?.greenhouse?.status_id || ''}
+                          onValueChange={(val) => setSettings(prev => ({
+                            ...prev,
+                            stage_sync: {
+                              ...prev.stage_sync,
+                              greenhouse: { ...prev.stage_sync?.greenhouse, status_id: val }
+                            }
+                          }))}
+                          disabled={!settings.stage_sync?.greenhouse?.pipeline_id}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Выберите этап" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {pipelines
+                              .find(p => p.id.toString() === settings.stage_sync?.greenhouse?.pipeline_id)
+                              ?.statuses?.map(s => (
+                                <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Balia */}
+                  <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Waves className="h-5 w-5 text-blue-600" />
+                      <span className="font-medium text-blue-800">Купели</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Воронка</Label>
+                        <Select
+                          value={settings.stage_sync?.balia?.pipeline_id || ''}
+                          onValueChange={(val) => setSettings(prev => ({
+                            ...prev,
+                            stage_sync: {
+                              ...prev.stage_sync,
+                              balia: { ...prev.stage_sync?.balia, pipeline_id: val, status_id: '' }
+                            }
+                          }))}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Выберите воронку" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {pipelines.map(p => (
+                              <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Этап</Label>
+                        <Select
+                          value={settings.stage_sync?.balia?.status_id || ''}
+                          onValueChange={(val) => setSettings(prev => ({
+                            ...prev,
+                            stage_sync: {
+                              ...prev.stage_sync,
+                              balia: { ...prev.stage_sync?.balia, status_id: val }
+                            }
+                          }))}
+                          disabled={!settings.stage_sync?.balia?.pipeline_id}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Выберите этап" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {pipelines
+                              .find(p => p.id.toString() === settings.stage_sync?.balia?.pipeline_id)
+                              ?.statuses?.map(s => (
+                                <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sauna */}
+                  <div className="p-4 bg-orange-50 rounded-lg space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Flame className="h-5 w-5 text-orange-600" />
+                      <span className="font-medium text-orange-800">Сауны</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Воронка</Label>
+                        <Select
+                          value={settings.stage_sync?.sauna?.pipeline_id || ''}
+                          onValueChange={(val) => setSettings(prev => ({
+                            ...prev,
+                            stage_sync: {
+                              ...prev.stage_sync,
+                              sauna: { ...prev.stage_sync?.sauna, pipeline_id: val, status_id: '' }
+                            }
+                          }))}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Выберите воронку" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {pipelines.map(p => (
+                              <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Этап</Label>
+                        <Select
+                          value={settings.stage_sync?.sauna?.status_id || ''}
+                          onValueChange={(val) => setSettings(prev => ({
+                            ...prev,
+                            stage_sync: {
+                              ...prev.stage_sync,
+                              sauna: { ...prev.stage_sync?.sauna, status_id: val }
+                            }
+                          }))}
+                          disabled={!settings.stage_sync?.sauna?.pipeline_id}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Выберите этап" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {pipelines
+                              .find(p => p.id.toString() === settings.stage_sync?.sauna?.pipeline_id)
+                              ?.statuses?.map(s => (
+                                <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm">
+                      После настройки этапов в <strong>Логистике</strong> появится блок сравнения, 
+                      показывающий сколько заказов на выбранном этапе в amoCRM и сколько перенесено в систему.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Save Button and Delete */}
           <div className="flex justify-between items-center">
             <div className="flex gap-2">
