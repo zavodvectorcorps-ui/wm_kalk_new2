@@ -5,6 +5,28 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Driver Panel & Notifications System (2026-01-06)
+- **Driver Panel (P1)**: Complete mobile-friendly UI for drivers
+  - View assigned trips with route map
+  - Order list with delivery status
+  - Confirm delivery with photo upload
+  - Enter received payment amount
+  - One-click navigation to Google Maps
+  - Admin can view all trips from this panel
+- **Notification System**: New backend `/api/notifications`
+  - Telegram bot integration for driver notifications
+  - Push notifications (Service Worker) for browser
+  - Driver linking via unique codes
+  - Test notification sending
+  - Files: `backend/routes/notifications.py`, `frontend/src/components/NotificationSettings.jsx`, `frontend/public/sw.js`
+- **amoCRM Delivery Photo Sync**: 
+  - When driver confirms delivery, note is added to amoCRM lead
+  - Endpoint: `/api/integrations/amocrm/upload-delivery-photo`
+- **Bug Fixes**: 
+  - Fixed user creation for "driver" role (auth.py validation)
+  - Changed PWA name to "WM-Group"
+  - Added icons to amoCRM widget package
+
 ### Bug Fixes & Enhancements (2026-01-06)
 - **P0 Fix**: Fixed user creation bug for "driver" role
   - Issue: Backend validation in `update_user` function rejected new access types
