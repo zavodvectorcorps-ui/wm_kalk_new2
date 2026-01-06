@@ -145,6 +145,45 @@ export const NotificationSettings = ({ drivers = [], onUpdate }) => {
     }
   };
 
+  // Send custom test notification
+  const sendCustomTestNotification = async () => {
+    if (!selectedDriverForTest) {
+      toast.error('Выберите водителя');
+      return;
+    }
+    setSendingTest(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/notifications/send-custom`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          driverId: selectedDriverForTest,
+          message: testMessage || 'Тестовое уведомление!'
+        })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'sent') {
+          toast.success(`Уведомление отправлено: ${data.method}`);
+        } else {
+          toast.warning(data.message || 'Не удалось отправить');
+        }
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка отправки');
+      }
+    } catch (e) {
+      toast.error('Ошибка отправки');
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center p-8">
