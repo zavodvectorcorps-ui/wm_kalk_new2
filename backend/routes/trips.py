@@ -263,6 +263,92 @@ async def sync_single_order_to_amocrm(order: dict):
     logger.info(f"=== sync_single_order_to_amocrm END ===")
 
 
+async def move_trip_orders_to_amocrm_stage(trip: dict, collection, pipeline_id: int, status_id: int):
+    """Move all orders in a trip to a specific amoCRM pipeline stage.
+    
+    This is called when creating/updating a trip with amoCRM stage selection.
+    """
+    logger.info(f"=== move_trip_orders_to_amocrm_stage START ===")
+    logger.info(f"Trip: {trip.get('id')}, Pipeline: {pipeline_id}, Status: {status_id}")
+    
+    # Load settings
+    settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    if not settings:
+        logger.warning("amoCRM settings not found")
+        return {"moved": 0, "errors": 0, "message": "Настройки amoCRM не найдены"}
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        logger.warning(f"amoCRM credentials not set. Domain: '{domain}', Token: {'SET' if token else 'NOT SET'}")
+        return {"moved": 0, "errors": 0, "message": "Домен или токен amoCRM не настроены"}
+    
+    # Get orders with amocrm_id
+    order_ids = trip.get("orderIds", [])
+    if not order_ids:
+        return {"moved": 0, "errors": 0, "message": "Нет заказов в рейсе"}
+    
+    orders = list(collection.find(
+        {"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}},
+        {"_id": 0, "id": 1, "amocrm_id": 1}
+    ))
+    
+    logger.info(f"Found {len(orders)} orders with amocrm_id")
+    
+    moved_count = 0
+    error_count = 0
+    
+    # API URL
+    api_url = f"https://{domain}/api/v4/leads"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    for order in orders:
+        amocrm_id = order.get("amocrm_id")
+        if not amocrm_id:
+            continue
+        
+        try:
+            # Update lead in amoCRM - move to specified pipeline/status
+            update_url = f"{api_url}/{amocrm_id}"
+            payload = {
+                "pipeline_id": pipeline_id,
+                "status_id": status_id
+            }
+            
+            response = requests.patch(update_url, json=payload, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                logger.info(f"✅ Moved lead {amocrm_id} to pipeline {pipeline_id}, status {status_id}")
+                moved_count += 1
+                
+                # Update order in local DB to track the amoCRM stage
+                collection.update_one(
+                    {"id": order.get("id")},
+                    {"$set": {
+                        "amocrmPipelineId": pipeline_id,
+                        "amocrmStatusId": status_id
+                    }}
+                )
+            else:
+                logger.warning(f"❌ Failed to move lead {amocrm_id}: {response.status_code} - {response.text}")
+                error_count += 1
+        except Exception as e:
+            logger.error(f"❌ Error moving lead {amocrm_id}: {e}")
+            error_count += 1
+    
+    logger.info(f"=== move_trip_orders_to_amocrm_stage END: moved={moved_count}, errors={error_count} ===")
+    
+    return {
+        "moved": moved_count,
+        "errors": error_count,
+        "message": f"Перемещено {moved_count} заказов в amoCRM" if moved_count > 0 else "Не удалось переместить заказы"
+    }
+
+
 async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     """Clear trip-related fields in amoCRM when order is removed from trip.
     
