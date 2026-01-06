@@ -11,8 +11,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
 
   const texts = {
     ru: {
-      title: 'Выберите калькулятор',
-      subtitle: 'Выберите тип продукта для расчёта стоимости',
+      title: 'Выберите сервис',
+      subtitle: 'Выберите нужный раздел для работы',
       baliaTitle: 'Купель (Balia)',
       baliaDesc: 'Калькулятор для конфигурации и расчёта стоимости купелей с джакузи',
       saunaTitle: 'Сауна (Sauna)',
@@ -28,8 +28,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       noAccess: 'Нет доступа',
     },
     pl: {
-      title: 'Wybierz kalkulator',
-      subtitle: 'Wybierz typ produktu do obliczenia ceny',
+      title: 'Wybierz serwis',
+      subtitle: 'Wybierz odpowiednią sekcję do pracy',
       baliaTitle: 'Balia',
       baliaDesc: 'Kalkulator do konfiguracji i wyceny bali z jacuzzi',
       saunaTitle: 'Sauna',
