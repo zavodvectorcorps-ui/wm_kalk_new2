@@ -1050,7 +1050,7 @@ async def upload_delivery_photo_to_amocrm(
 ):
     """Upload delivery photo to amoCRM and add a note.
     
-    Fetches the photo from local storage and uploads it to amoCRM.
+    Adds a note with delivery info and uploads the photo as a file to amoCRM.
     """
     settings = get_amocrm_settings()
     
@@ -1067,7 +1067,7 @@ async def upload_delivery_photo_to_amocrm(
     if not photo_record or not photo_record.get("photoUrl"):
         return {"status": "error", "message": "Photo not found"}
     
-    # Add note with delivery info (photo as base64 is too large for amoCRM file upload via API)
+    # Add note with delivery info
     note_text = f"""✅ Доставка подтверждена
 
 📦 Заказ: {order_id}
@@ -1075,9 +1075,51 @@ async def upload_delivery_photo_to_amocrm(
 💰 Получено: {received_amount or 'Не указано'}
 📅 {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}
 
-📷 Фото акта доставки загружено в систему логистики."""
+📷 Фото акта доставки загружено."""
     
     note_added = await add_note_to_amocrm(amocrm_id, note_text, domain, token)
+    
+    # Try to upload photo to amoCRM files
+    photo_uploaded = False
+    try:
+        photo_url = photo_record.get("photoUrl", "")
+        if photo_url.startswith("data:"):
+            # Extract base64 data
+            import base64
+            header, data = photo_url.split(",", 1)
+            content_type = header.split(":")[1].split(";")[0]
+            file_bytes = base64.b64decode(data)
+            
+            # Upload file to amoCRM
+            # amoCRM API v4 uses /api/v4/leads/{id}/files endpoint
+            upload_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+            
+            # Determine file extension
+            ext = "jpg"
+            if "png" in content_type:
+                ext = "png"
+            elif "gif" in content_type:
+                ext = "gif"
+            
+            filename = f"delivery_{order_id}.{ext}"
+            
+            # amoCRM expects multipart form data
+            import httpx
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                files = {
+                    "file": (filename, file_bytes, content_type)
+                }
+                headers = {"Authorization": f"Bearer {token}"}
+                
+                response = await client.post(upload_url, files=files, headers=headers)
+                
+                if response.status_code in [200, 201]:
+                    photo_uploaded = True
+                    logger.info(f"✅ Photo uploaded to amoCRM for lead {amocrm_id}")
+                else:
+                    logger.warning(f"Failed to upload photo to amoCRM: {response.status_code} - {response.text[:200]}")
+    except Exception as e:
+        logger.error(f"Error uploading photo to amoCRM: {e}")
     
     if note_added:
         # Log sync
@@ -1087,9 +1129,10 @@ async def upload_delivery_photo_to_amocrm(
             "amocrm_id": amocrm_id,
             "order_id": order_id,
             "driver_name": driver_name,
+            "photo_uploaded": photo_uploaded,
             "result": "success"
         })
-        return {"status": "ok", "message": "Delivery note added to amoCRM"}
+        return {"status": "ok", "message": "Delivery note added to amoCRM", "photo_uploaded": photo_uploaded}
     else:
         return {"status": "error", "message": "Failed to add note to amoCRM"}
 
