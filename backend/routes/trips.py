@@ -408,12 +408,12 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     
     custom_fields_values = []
     
-    # Clear trip name/number field - use space instead of empty string (amoCRM doesn't accept empty)
+    # Clear trip name/number field - use "0" to clear
     if trip_name_field_id:
         try:
             custom_fields_values.append({
                 "field_id": int(trip_name_field_id),
-                "values": [{"value": "-"}]  # Use dash as "cleared" marker
+                "values": [{"value": "0"}]
             })
         except ValueError:
             pass
@@ -423,21 +423,17 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
         try:
             custom_fields_values.append({
                 "field_id": int(trip_driver_field_id),
-                "values": [{"value": "-"}]
+                "values": [{"value": "0"}]
             })
         except ValueError:
             pass
-    
-    # Clear trip departure date field - use a far future date or null
-    # Note: amoCRM date fields can't be cleared easily, we'll set to null by omitting
-    # Instead of trying to clear date, we'll skip it
     
     # Clear trip order status field
     if trip_order_status_field_id:
         try:
             custom_fields_values.append({
                 "field_id": int(trip_order_status_field_id),
-                "values": [{"value": "Убран из рейса"}]  # Set status to "Removed from trip"
+                "values": [{"value": "0"}]
             })
         except ValueError:
             pass
