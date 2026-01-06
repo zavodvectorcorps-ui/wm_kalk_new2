@@ -259,6 +259,117 @@ async def sync_single_order_to_amocrm(order: dict):
     logger.info(f"=== sync_single_order_to_amocrm END ===")
 
 
+async def clear_order_trip_data_in_amocrm(amocrm_id: str):
+    """Clear trip-related fields in amoCRM when order is removed from trip.
+    
+    Sets trip name, driver, departure date, and status fields to empty values.
+    """
+    logger.info(f"=== clear_order_trip_data_in_amocrm START for lead {amocrm_id} ===")
+    
+    if not amocrm_id:
+        logger.warning("No amocrm_id provided")
+        return
+    
+    settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    if not settings:
+        logger.warning("amoCRM settings not found - skipping clear")
+        return
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        logger.warning("amoCRM domain or token not set")
+        return
+    
+    # Get field IDs for trip data
+    trip_name_field_id = settings.get("trip_name_field_id")
+    trip_driver_field_id = settings.get("trip_driver_field_id")
+    trip_departure_field_id = settings.get("trip_departure_field_id")
+    trip_order_status_field_id = settings.get("trip_order_status_field_id")
+    
+    custom_fields_values = []
+    
+    # Clear trip name field
+    if trip_name_field_id:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_name_field_id),
+                "values": [{"value": ""}]
+            })
+        except ValueError:
+            pass
+    
+    # Clear trip driver field
+    if trip_driver_field_id:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_driver_field_id),
+                "values": [{"value": ""}]
+            })
+        except ValueError:
+            pass
+    
+    # Clear trip departure date field - send null to clear date
+    if trip_departure_field_id:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_departure_field_id),
+                "values": []  # Empty array clears the field
+            })
+        except ValueError:
+            pass
+    
+    # Clear trip order status field
+    if trip_order_status_field_id:
+        try:
+            custom_fields_values.append({
+                "field_id": int(trip_order_status_field_id),
+                "values": [{"value": ""}]
+            })
+        except ValueError:
+            pass
+    
+    if not custom_fields_values:
+        logger.info("No trip fields configured to clear")
+        return
+    
+    url = f"https://{domain}/api/v4/leads/{amocrm_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    payload = {"custom_fields_values": custom_fields_values}
+    
+    logger.info(f"Clearing trip data in amoCRM. URL: {url}, Payload: {payload}")
+    
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as http_client:
+            response = await http_client.patch(url, json=payload, headers=headers)
+            logger.info(f"Clear response: status={response.status_code}")
+            
+            log_sync_operation("clear_trip_data", {
+                "amocrm_id": amocrm_id,
+                "status": "success" if response.status_code == 200 else "error",
+                "response_code": response.status_code
+            })
+            
+            if response.status_code == 200:
+                logger.info(f"✅ Successfully cleared trip data for lead {amocrm_id}")
+            else:
+                logger.error(f"❌ Failed to clear trip data: {response.status_code} - {response.text}")
+                
+    except Exception as e:
+        logger.error(f"❌ Error clearing trip data in amoCRM: {e}")
+        log_sync_operation("clear_trip_data", {
+            "amocrm_id": amocrm_id,
+            "status": "exception",
+            "error": str(e)
+        })
+    
+    logger.info(f"=== clear_order_trip_data_in_amocrm END ===")
+
+
 def get_section_collection(section: str):
     """Get MongoDB collection for section."""
     if section == "greenhouse":
