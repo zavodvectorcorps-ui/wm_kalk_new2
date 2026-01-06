@@ -215,6 +215,58 @@ export const NotificationSettings = ({ drivers = [], onUpdate }) => {
         </CardContent>
       </Card>
 
+      {/* Test Push Notification */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-orange-500" />
+            Тестирование уведомлений
+          </CardTitle>
+          <CardDescription>
+            Отправьте тестовое уведомление выбранному водителю
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Выберите водителя</Label>
+              <select 
+                className="w-full p-2 border rounded-md"
+                value={selectedDriverForTest || ''}
+                onChange={(e) => setSelectedDriverForTest(e.target.value)}
+              >
+                <option value="">-- Выберите --</option>
+                {drivers.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} {d.telegramChatId ? '(Telegram ✓)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Сообщение</Label>
+              <Input
+                placeholder="Текст тестового сообщения"
+                value={testMessage}
+                onChange={(e) => setTestMessage(e.target.value)}
+              />
+            </div>
+          </div>
+          <Button 
+            onClick={sendCustomTestNotification}
+            disabled={!selectedDriverForTest || sendingTest}
+            className="w-full md:w-auto"
+          >
+            {sendingTest ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4 mr-2" />
+            )}
+            Отправить тестовое уведомление
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Push Notifications Info */}
       <Card>
         <CardHeader>
