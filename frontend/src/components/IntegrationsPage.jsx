@@ -79,12 +79,26 @@ export const IntegrationsPage = () => {
   const [activeTab, setActiveTab] = useState('settings');
   const [activeMappingSection, setActiveMappingSection] = useState('greenhouse');
   const [drivers, setDrivers] = useState([]);
+  const [widgetInfo, setWidgetInfo] = useState(null);
 
   useEffect(() => {
     fetchSettings();
     fetchLogs();
     fetchDrivers();
+    fetchWidgetInfo();
   }, []);
+
+  const fetchWidgetInfo = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/widget/embed-info`);
+      if (res.ok) {
+        const data = await res.json();
+        setWidgetInfo(data);
+      }
+    } catch (e) {
+      console.error('Failed to load widget info:', e);
+    }
+  };
 
   const fetchDrivers = async () => {
     try {
