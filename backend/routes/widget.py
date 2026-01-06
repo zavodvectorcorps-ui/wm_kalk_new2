@@ -525,21 +525,31 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
 @router.get("/embed-info")
 async def get_embed_info():
     """Get information about embedding the widget in amoCRM."""
-    # Read base URL from frontend .env
-    base_url = os.environ.get("APP_BASE_URL", "")
-    if not base_url:
-        try:
-            with open("/app/frontend/.env", "r") as f:
-                for line in f:
-                    if line.startswith("REACT_APP_BACKEND_URL="):
-                        base_url = line.strip().split("=", 1)[1]
-                        break
-        except:
-            base_url = "https://your-domain.com"
+    # Use APP_DOMAIN or APP_BASE_URL
+    app_domain = os.environ.get("APP_DOMAIN", "")
+    if app_domain:
+        base_url = f"https://{app_domain}"
+    else:
+        base_url = os.environ.get("APP_BASE_URL", "")
+        if not base_url:
+            try:
+                with open("/app/frontend/.env", "r") as f:
+                    for line in f:
+                        if line.startswith("REACT_APP_BACKEND_URL="):
+                            base_url = line.strip().split("=", 1)[1]
+                            break
+            except:
+                base_url = "https://your-domain.com"
     
     return {
+        "base_url": base_url,
         "embed_url_template": f"{base_url}/api/widget/embed/{{lead_id}}",
         "embed_url_example": f"{base_url}/api/widget/embed/12345678",
+        "webhook_urls": {
+            "greenhouse": f"{base_url}/api/integrations/amocrm/webhook/greenhouse",
+            "balia": f"{base_url}/api/integrations/amocrm/webhook/balia",
+            "sauna": f"{base_url}/api/integrations/amocrm/webhook/sauna"
+        },
         "supported_params": {
             "lead_id": "ID сделки amoCRM (обязательный)",
             "theme": "Тема оформления: light (по умолчанию) или dark"
