@@ -1502,6 +1502,7 @@ const TripsView = ({
           TRIP_STATUSES={TRIP_STATUSES}
           ORDER_TRIP_STATUSES={ORDER_TRIP_STATUSES}
           printTripOrders={printTripOrders}
+          amocrmPipelines={amocrmPipelines}
         />
       </div>
 
