@@ -694,6 +694,12 @@ async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
     if collection is None:
         raise HTTPException(status_code=400, detail="Invalid section")
     
+    # Get orders that have amocrm_id before removing trip data
+    orders_to_clear_in_amocrm = list(collection.find(
+        {"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}},
+        {"_id": 0, "id": 1, "amocrm_id": 1}
+    ))
+    
     # Update trip - remove orders and their statuses
     current_orders = existing.get("orderIds", [])
     current_statuses = existing.get("orderStatuses", {})
@@ -722,7 +728,16 @@ async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
         }}
     )
     
-    return {"status": "ok", "removed": order_ids}
+    # Clear trip data in amoCRM for orders that have amocrm_id
+    if orders_to_clear_in_amocrm:
+        logger.info(f"Clearing trip data in amoCRM for {len(orders_to_clear_in_amocrm)} orders")
+        for order in orders_to_clear_in_amocrm:
+            try:
+                await clear_order_trip_data_in_amocrm(order.get("amocrm_id"))
+            except Exception as e:
+                logger.error(f"Failed to clear amoCRM data for order {order.get('id')}: {e}")
+    
+    return {"status": "ok", "removed": order_ids, "amocrm_cleared": len(orders_to_clear_in_amocrm)}
 
 
 @router.post("/{trip_id}/sync-amocrm")
