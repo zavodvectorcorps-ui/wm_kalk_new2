@@ -491,6 +491,8 @@ export const LogisticsPage = () => {
                 tripMapRef={tripMapRef}
                 updateTrip={updateTrip}
                 updateTripStatus={updateTripStatus}
+                syncTripToAmocrm={syncTripToAmocrm}
+                syncingToAmocrm={syncingToAmocrm}
                 deleteTrip={deleteTrip}
                 optimizeTripRoute={optimizeTripRoute}
                 updateOrderStatusInTrip={updateOrderStatusInTrip}
