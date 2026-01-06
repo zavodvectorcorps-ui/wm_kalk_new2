@@ -578,6 +578,23 @@ export const DriverPanel = ({ onLogout }) => {
                             <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground truncate">{order.fullAddress}</p>
+                          {/* Phone and amount in collapsed view */}
+                          {!isExpanded && (
+                            <div className="flex items-center gap-3 mt-1 text-xs">
+                              {order.phoneNumber && (
+                                <a href={`tel:${order.phoneNumber}`} className="text-blue-600 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                  <Phone className="h-3 w-3" />
+                                  {order.phoneNumber}
+                                </a>
+                              )}
+                              {order.debtSum && (
+                                <span className="text-yellow-600 font-medium flex items-center gap-1">
+                                  <DollarSign className="h-3 w-3" />
+                                  {order.debtSum}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
                       </div>
