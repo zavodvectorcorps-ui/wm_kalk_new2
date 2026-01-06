@@ -1,5 +1,6 @@
 """amoCRM Widget API - endpoints for widget integration."""
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import HTMLResponse, FileResponse
 from typing import Optional
 import os
 import logging
