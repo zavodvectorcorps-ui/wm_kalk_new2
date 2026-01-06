@@ -173,12 +173,18 @@ async def confirm_delivery(
     """Confirm delivery of an order."""
     user_id = current_user.get("sub")
     
+    # Check if user is admin
+    user = db.users.find_one({"id": user_id}, {"_id": 0})
+    is_admin = user and user.get("role") == "admin"
+    
     # Find driver
     driver = drivers_collection.find_one({"userId": user_id}, {"_id": 0})
-    if not driver:
-        user = db.users.find_one({"id": user_id}, {"_id": 0})
-        if user:
-            driver = drivers_collection.find_one({"name": user.get("username")}, {"_id": 0})
+    if not driver and user:
+        driver = drivers_collection.find_one({"name": user.get("username")}, {"_id": 0})
+    
+    # For admins, create virtual driver if not linked
+    if is_admin and not driver:
+        driver = {"id": "admin", "name": user.get("username", "Admin"), "isAdmin": True}
     
     if not driver:
         raise HTTPException(status_code=403, detail="Водитель не найден")
