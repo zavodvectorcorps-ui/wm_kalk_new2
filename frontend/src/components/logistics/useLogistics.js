@@ -211,8 +211,8 @@ export const useLogistics = () => {
       const res = await fetch(`${API_URL}${section.endpoint}`);
       if (res.ok) {
         const allOrders = await res.json();
+        // Show ALL orders, not just amoCRM ones
         const orders = allOrders
-          .filter(o => o.amocrm_id || o.source === 'amocrm')
           .map(o => ({ ...o, orderType: sectionId }))
           .sort((a, b) => new Date(b.orderDate || b.createdAt) - new Date(a.orderDate || a.createdAt));
         return orders;
