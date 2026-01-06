@@ -478,6 +478,7 @@ export const useLogistics = () => {
           }));
         }
         fetchTrips(activeSection);
+        fetchAllOrders(); // Reload orders to get updated trip data
         toast.success('Статус обновлён');
       }
     } catch (error) {
