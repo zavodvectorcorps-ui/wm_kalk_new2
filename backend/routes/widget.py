@@ -176,21 +176,33 @@ async def download_widget():
     """Download amoCRM widget as ZIP file."""
     from fastapi.responses import FileResponse
     import os
+    import subprocess
     
+    widget_dir = "/app/amocrm-widget"
     widget_path = "/app/amocrm-widget.zip"
     
-    if not os.path.exists(widget_path):
-        # Try to create it if not exists
-        import subprocess
+    # Always rebuild ZIP to include latest changes
+    if os.path.exists(widget_dir):
         try:
+            # Remove old ZIP if exists
+            if os.path.exists(widget_path):
+                os.remove(widget_path)
+            
+            # Create fresh ZIP
             subprocess.run(
-                ["zip", "-r", "/app/amocrm-widget.zip", "."],
-                cwd="/app/amocrm-widget",
-                check=True
+                ["zip", "-r", widget_path, "."],
+                cwd=widget_dir,
+                check=True,
+                capture_output=True
             )
+            logger.info("Widget ZIP rebuilt successfully")
         except Exception as e:
             logger.error(f"Failed to create widget zip: {e}")
-            raise HTTPException(status_code=404, detail="Widget package not found")
+            if not os.path.exists(widget_path):
+                raise HTTPException(status_code=404, detail="Widget package not found")
+    
+    if not os.path.exists(widget_path):
+        raise HTTPException(status_code=404, detail="Widget package not found")
     
     return FileResponse(
         path=widget_path,
