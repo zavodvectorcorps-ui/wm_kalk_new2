@@ -96,6 +96,10 @@ export const AuthProvider = ({ children }) => {
     if (!user) return false;
     if (user.role === 'admin') return true;
     if (user.role === 'observer') return true;
+    
+    // Driver role automatically has access to driver panel
+    if (calculator === 'driver' && user.role === 'driver') return true;
+    
     if (user.access === 'all') return true;
     // Support both string and array access
     if (Array.isArray(user.access)) {
@@ -103,6 +107,8 @@ export const AuthProvider = ({ children }) => {
     }
     return user.access === calculator;
   };
+  
+  const isDriver = () => user?.role === 'driver';
 
   const value = {
     user,
@@ -113,6 +119,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin,
     isSuperAdmin,
     isObserver,
+    isDriver,
     canEdit,
     canViewPricing,
     hasAccess,
