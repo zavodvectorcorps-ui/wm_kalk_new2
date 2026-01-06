@@ -655,25 +655,40 @@ async def sync_trip_to_amocrm(trip_id: str):
     This endpoint manually triggers sync of trip data to amoCRM
     for all orders that have amocrm_id.
     """
+    logger.info(f"=== FORCE SYNC AMOCRM START: {trip_id} ===")
+    
     existing = trips_collection.find_one({"id": trip_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Trip not found")
+    
+    logger.info(f"Trip found: name='{existing.get('name')}', section='{existing.get('section')}', orderIds={existing.get('orderIds', [])}")
     
     collection = get_section_collection(existing.get("section", ""))
     if collection is None:
         raise HTTPException(status_code=400, detail="Invalid section")
     
     # First, make sure trip data is synced to orders
+    logger.info("Step 1: Syncing trip data to orders...")
     sync_trip_data_to_orders(existing, collection)
+    
+    # Re-fetch trip to get any updates
+    existing = trips_collection.find_one({"id": trip_id}, {"_id": 0})
     
     # Get orders with amocrm_id
     order_ids = existing.get("orderIds", [])
+    logger.info(f"Step 2: Looking for orders with amocrm_id in order_ids: {order_ids}")
+    
     orders_with_amocrm = list(collection.find(
         {"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}},
         {"_id": 0}
     ))
     
+    logger.info(f"Found {len(orders_with_amocrm)} orders with amocrm_id")
+    for order in orders_with_amocrm:
+        logger.info(f"  Order {order.get('id')}: amocrm_id={order.get('amocrm_id')}, tripName={order.get('tripName')}, tripOrderStatus={order.get('tripOrderStatus')}")
+    
     if not orders_with_amocrm:
+        logger.warning("No orders with amocrm_id found")
         return {
             "status": "warning",
             "message": "Нет заказов с amocrm_id для синхронизации",
@@ -685,6 +700,7 @@ async def sync_trip_to_amocrm(trip_id: str):
     synced_count = 0
     errors = []
     
+    logger.info("Step 3: Syncing each order to amoCRM...")
     for order in orders_with_amocrm:
         try:
             await sync_single_order_to_amocrm(order)
@@ -699,6 +715,8 @@ async def sync_trip_to_amocrm(trip_id: str):
         {"id": trip_id},
         {"$set": {"lastSyncedAt": last_synced_at}}
     )
+    
+    logger.info(f"=== FORCE SYNC AMOCRM END: synced={synced_count}, total={len(orders_with_amocrm)}, errors={len(errors)} ===")
     
     return {
         "status": "ok" if not errors else "partial",
