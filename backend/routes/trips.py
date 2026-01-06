@@ -906,7 +906,7 @@ async def get_sync_debug_status():
     
     for trip in trips:
         collection = get_section_collection(trip.get("section", ""))
-        if collection:
+        if collection is not None:
             order_ids = trip.get("orderIds", [])
             orders_with_amocrm = list(collection.find(
                 {"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}},
