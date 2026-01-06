@@ -862,19 +862,23 @@ export const IntegrationsPage = () => {
                 <h3 className="font-semibold">URL для iframe виджета:</h3>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 p-3 bg-white rounded border text-sm break-all">
-                    {API_URL}/api/widget/embed/&#123;lead.id&#125;
+                    {widgetInfo?.base_url || 'https://wm-kalkulator.pl'}/api/widget/embed/&#123;lead.id&#125;
                   </code>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      navigator.clipboard.writeText(`${API_URL}/api/widget/embed/{lead.id}`);
+                      const url = `${widgetInfo?.base_url || 'https://wm-kalkulator.pl'}/api/widget/embed/{lead.id}`;
+                      navigator.clipboard.writeText(url);
                       toast.success('URL скопирован');
                     }}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Домен: <strong>{widgetInfo?.base_url || 'https://wm-kalkulator.pl'}</strong>
+                </p>
               </div>
 
               <div className="space-y-3">
