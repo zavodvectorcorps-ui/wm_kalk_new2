@@ -357,7 +357,7 @@ export const useLogistics = () => {
         setNewTripName('');
         setNewTripDriver('');
         fetchAllOrders();
-        fetchTrips(activeSection);
+        fetchTrips();
         setSectionData(prev => ({
           ...prev,
           [activeSection]: { ...prev[activeSection], selectedOrders: [] }
@@ -384,7 +384,7 @@ export const useLogistics = () => {
       });
       if (res.ok) {
         const updatedTrip = await res.json();
-        fetchTrips(activeSection);
+        fetchTrips();
         fetchAllOrders(); // Reload orders to get updated trip data (driver, date, status)
         
         // Update selectedTrip if it's the one being updated
@@ -432,7 +432,7 @@ export const useLogistics = () => {
           setSelectedTrip(prev => ({ ...prev, lastSyncedAt: result.lastSyncedAt }));
         }
         
-        fetchTrips(activeSection); // Refresh trips to get updated lastSyncedAt
+        fetchTrips(); // Refresh trips to get updated lastSyncedAt
         fetchAllOrders(); // Refresh to show updated data
       } else {
         const error = await res.json();
@@ -467,7 +467,7 @@ export const useLogistics = () => {
         setShowAddToTripModal(false);
         setAddToTripId('');
         fetchAllOrders();
-        fetchTrips(activeSection);
+        fetchTrips();
         setSectionData(prev => ({
           ...prev,
           [activeSection]: { ...prev[activeSection], selectedOrders: [] }
@@ -493,7 +493,7 @@ export const useLogistics = () => {
       });
       if (res.ok) {
         toast.success('Рейс удалён');
-        fetchTrips(activeSection);
+        fetchTrips();
         fetchAllOrders();
         if (selectedTrip?.id === tripId) {
           setSelectedTrip(null);
@@ -518,7 +518,7 @@ export const useLogistics = () => {
             orderStatuses: { ...prev.orderStatuses, [orderId]: newStatus }
           }));
         }
-        fetchTrips(activeSection);
+        fetchTrips();
         fetchAllOrders(); // Reload orders to get updated trip data
         toast.success('Статус обновлён');
       }
@@ -543,7 +543,7 @@ export const useLogistics = () => {
             orderIds: prev.orderIds.filter(id => id !== orderId)
           }));
         }
-        fetchTrips(activeSection);
+        fetchTrips();
         fetchAllOrders();
         toast.success('Заказ убран из рейса');
       }
@@ -563,7 +563,7 @@ export const useLogistics = () => {
       });
       if (res.ok) {
         setSelectedTrip(prev => prev ? { ...prev, orderIds: newOrderIds } : null);
-        fetchTrips(activeSection);
+        fetchTrips();
       }
     } catch (error) {
       console.error('Error updating trip order:', error);
