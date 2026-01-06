@@ -1,16 +1,21 @@
 {
   "widget": {
-    "name": "WM Kalkulator",
-    "description": "Интеграция с системой логистики WM Kalkulator. Отображение статуса доставки и быстрый доступ к калькуляторам.",
+    "name": "WM-Group",
+    "description": "Интеграция с системой логистики WM-Group. Отображение статуса доставки и быстрый доступ к калькуляторам.",
     "short_description": "Логистика и калькуляторы WM",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "init_once": false,
     "locale": ["ru"],
     "interface_name": {
-      "ru": "WM Kalkulator"
+      "ru": "WM-Group"
     },
     "short_description_text": {
       "ru": "Отображение статуса доставки и калькуляторы"
+    },
+    "images": {
+      "logo": "/images/logo.png",
+      "logo_dp": "/images/logo_dp.png",
+      "logo_main": "/images/logo_main.png"
     }
   },
   "locations": [
