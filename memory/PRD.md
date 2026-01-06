@@ -5,6 +5,33 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### amoCRM Trip Data Clearing Fix (2026-01-07)
+- **Problem**: При удалении заказа из рейса, данные рейса (номер, водитель, дата отправки) не очищались в amoCRM
+- **Root Cause**: Настройки amoCRM (домен, токен, ID полей) были пустыми в базе данных
+- **Fix**:
+  - Улучшено логирование в `clear_order_trip_data_in_amocrm()` для диагностики
+  - API `POST /api/trips/{trip_id}/remove-orders` теперь возвращает детальный статус:
+    - `amocrm_settings.configured` - найдены ли настройки
+    - `amocrm_settings.domain_set` - заполнен ли домен
+    - `amocrm_settings.token_set` - заполнен ли токен
+    - `amocrm_settings.trip_fields_configured` - заполнены ли ID полей рейса
+  - Frontend показывает информативные предупреждения:
+    - "Настройки amoCRM не найдены"
+    - "Укажите домен и токен amoCRM для очистки данных в CRM"
+    - "Укажите ID полей рейса в настройках amoCRM"
+- **Files Modified**:
+  - `/app/backend/routes/trips.py` - улучшено логирование и возврат статуса
+  - `/app/frontend/src/components/logistics/useLogistics.js` - показ предупреждений
+- **Требуемые настройки** (Интеграции → Синхронизация):
+  - Домен amoCRM (например: `mycompany.amocrm.ru`)
+  - API Token (Long-lived)
+  - ID поля: Номер рейса (`trip_number_field_id`)
+  - ID поля: Водитель (`trip_driver_field_id`)
+  - ID поля: Дата отправки (`trip_departure_field_id`)
+  - ID поля: Статус заказа (`trip_order_status_field_id`)
+- **Debug endpoint**: `GET /api/trips/debug/sync-status` - показывает текущее состояние настроек и логов
+- **Status**: ✅ Код работает корректно. Требуется заполнить настройки amoCRM в UI.
+
 ### Driver Panel & Notifications System (2026-01-06)
 - **Driver Panel (P1)**: Complete mobile-friendly UI for drivers
   - View assigned trips with route map
