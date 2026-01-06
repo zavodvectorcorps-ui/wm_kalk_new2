@@ -216,6 +216,82 @@ async def fetch_lead_from_amocrm(lead_id: str, domain: str, token: str) -> Optio
         return None
 
 
+async def upload_file_to_amocrm(lead_id: str, file_content: bytes, filename: str, domain: str, token: str) -> Optional[str]:
+    """Upload a file to amoCRM and attach it to a lead.
+    
+    Returns the file ID if successful.
+    """
+    if not domain or not token or not lead_id:
+        logger.warning("Missing amoCRM credentials for file upload")
+        return None
+    
+    try:
+        # Step 1: Get upload URL
+        upload_url = f"https://{domain}/api/v4/files"
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Upload file as multipart form data
+            files = {
+                "file": (filename, file_content, "image/jpeg")
+            }
+            data = {
+                "entity_type": "leads",
+                "entity_id": str(lead_id)
+            }
+            
+            response = await client.post(upload_url, headers=headers, files=files, data=data)
+            
+            if response.status_code in [200, 201]:
+                result = response.json()
+                file_id = result.get("_embedded", {}).get("files", [{}])[0].get("id")
+                logger.info(f"File uploaded to amoCRM lead {lead_id}: {file_id}")
+                return file_id
+            else:
+                logger.error(f"amoCRM file upload error {response.status_code}: {response.text}")
+                return None
+                
+    except Exception as e:
+        logger.error(f"Failed to upload file to amoCRM: {e}")
+        return None
+
+
+async def add_note_to_amocrm(lead_id: str, note_text: str, domain: str, token: str) -> bool:
+    """Add a note to amoCRM lead."""
+    if not domain or not token or not lead_id:
+        return False
+    
+    try:
+        url = f"https://{domain}/api/v4/leads/{lead_id}/notes"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        
+        data = [{
+            "note_type": "common",
+            "params": {
+                "text": note_text
+            }
+        }]
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(url, headers=headers, json=data)
+            
+            if response.status_code in [200, 201]:
+                logger.info(f"Note added to amoCRM lead {lead_id}")
+                return True
+            else:
+                logger.error(f"amoCRM note error {response.status_code}: {response.text}")
+                return False
+                
+    except Exception as e:
+        logger.error(f"Failed to add note to amoCRM: {e}")
+        return False
+
+
 def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str, str] = None) -> Dict[str, Any]:
     """Extract lead data from amoCRM API response (full data with custom_fields_values).
     
