@@ -1467,6 +1467,11 @@ const TripDetailsCard = ({
               )}
               Синхронизировать с amoCRM ({ordersWithAmoCRM})
             </Button>
+            {selectedTrip.lastSyncedAt && (
+              <p className="text-xs text-center text-muted-foreground mt-1">
+                Последняя синхронизация: {new Date(selectedTrip.lastSyncedAt).toLocaleString('ru-RU')}
+              </p>
+            )}
           )}
           
           <Button variant="outline" size="sm" className="w-full text-red-600 border-red-200 hover:bg-red-50 mt-2" onClick={() => deleteTrip(selectedTrip.id)}>
