@@ -376,6 +376,9 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
         
         if trip_departure_field_id:
             departure_value = order.get("tripDepartureDate", "") or trip.get("departureDate", "") or ""
+            # Convert date to ISO 8601 format with time for amoCRM
+            if departure_value and "T" not in departure_value:
+                departure_value = f"{departure_value}T00:00:00+00:00"
             logger.info(f"  Adding departure field: field_id={trip_departure_field_id}, value='{departure_value}'")
             try:
                 custom_fields_values.append({
