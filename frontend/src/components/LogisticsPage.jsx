@@ -821,13 +821,20 @@ const OrdersListCard = ({
   expandedOrder, setExpandedOrder, editingAddressOrderId, editingAddressValue, setEditingAddressValue,
   editAddressInputRef, drivers, toggleOrderSelection, toggleOrderImportant, startEditingAddress,
   saveEditedAddress, cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder,
-  getUnassignedOrders, setShowCreateTripModal, setShowAddToTripModal, trips, formatDate, DELIVERY_STATUSES
+  getUnassignedOrders, getFilteredOrders, searchQuery, setShowCreateTripModal, setShowAddToTripModal, trips, formatDate, DELIVERY_STATUSES
 }) => {
   // Check if there are active trips available
   const hasActiveTrips = trips.some(t => 
     t.section === sectionKey && 
     (t.status === 'planned' || t.status === 'in_transit')
   );
+  
+  // Get orders with search filter applied
+  const unassignedOrders = getUnassignedOrders(sectionData[sectionKey].orders);
+  const filteredUnassignedOrders = getFilteredOrders ? getFilteredOrders(unassignedOrders) : unassignedOrders;
+  const totalUnassigned = unassignedOrders.length;
+  const filteredCount = filteredUnassignedOrders.length;
+  const isFiltered = searchQuery && searchQuery.trim().length > 0;
   
   return (
   <Card>
@@ -858,7 +865,7 @@ const OrdersListCard = ({
             </>
           )}
           <Badge variant="secondary" className={currentSection.bgColor}>
-            {getUnassignedOrders(sectionData[sectionKey].orders).length} заказов
+            {isFiltered ? `${filteredCount} из ${totalUnassigned}` : `${totalUnassigned}`} заказов
           </Badge>
         </div>
       </div>
@@ -868,11 +875,13 @@ const OrdersListCard = ({
         <div className="flex items-center justify-center py-8">
           <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : getUnassignedOrders(sectionData[sectionKey].orders).length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">Нет заказов без рейса</p>
+      ) : filteredUnassignedOrders.length === 0 ? (
+        <p className="text-center text-muted-foreground py-8">
+          {isFiltered ? 'Ничего не найдено' : 'Нет заказов без рейса'}
+        </p>
       ) : (
         <div className="space-y-2 max-h-[400px] overflow-y-auto">
-          {getUnassignedOrders(sectionData[sectionKey].orders).map((order) => (
+          {filteredUnassignedOrders.map((order) => (
             <OrderCard
               key={order.id}
               order={order}
