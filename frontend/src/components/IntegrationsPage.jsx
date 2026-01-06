@@ -698,38 +698,6 @@ export const IntegrationsPage = () => {
                 </div>
               </div>
 
-              {/* Field IDs */}
-              <div className="space-y-4 p-4 border rounded-lg">
-                <h4 className="font-medium">ID полей для синхронизации заказов</h4>
-                <p className="text-sm text-muted-foreground">
-                  Создайте в amoCRM кастомные поля (тип: текст) для сделок и укажите их ID
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>ID поля для статуса доставки</Label>
-                    <Input
-                      value={settings.status_field_id}
-                      onChange={(e) => setSettings(prev => ({ ...prev, status_field_id: e.target.value }))}
-                      placeholder="Например: 123456"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Сюда будет записываться статус: Ожидает, В пути, Доставлено
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ID поля для комментария/даты</Label>
-                    <Input
-                      value={settings.comment_field_id}
-                      onChange={(e) => setSettings(prev => ({ ...prev, comment_field_id: e.target.value }))}
-                      placeholder="Например: 123457"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Сюда будет записываться дата доставки или комментарий
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {/* Trip sync fields */}
               <div className="space-y-4 p-4 border rounded-lg bg-purple-50/30">
                 <h4 className="font-medium flex items-center gap-2">
