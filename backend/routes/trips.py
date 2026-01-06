@@ -825,6 +825,8 @@ async def add_orders_to_trip(trip_id: str, order_ids: List[str]):
 @router.post("/{trip_id}/remove-orders")
 async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
     """Remove orders from a trip (return them to general list)."""
+    logger.info(f"=== REMOVE ORDERS FROM TRIP START: {trip_id}, orders: {order_ids} ===")
+    
     existing = trips_collection.find_one({"id": trip_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Trip not found")
@@ -838,6 +840,8 @@ async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
         {"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}},
         {"_id": 0, "id": 1, "amocrm_id": 1}
     ))
+    
+    logger.info(f"Found {len(orders_to_clear_in_amocrm)} orders with amocrm_id to clear")
     
     # Update trip - remove orders and their statuses
     current_orders = existing.get("orderIds", [])
@@ -867,16 +871,58 @@ async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
         }}
     )
     
+    # Check amoCRM settings before attempting to clear
+    amocrm_clear_results = []
+    amocrm_settings_check = {
+        "configured": False,
+        "domain_set": False,
+        "token_set": False,
+        "trip_fields_configured": False
+    }
+    
+    settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    if settings:
+        amocrm_settings_check["configured"] = True
+        amocrm_settings_check["domain_set"] = bool(settings.get("amocrm_domain"))
+        amocrm_settings_check["token_set"] = bool(settings.get("amocrm_token"))
+        amocrm_settings_check["trip_fields_configured"] = any([
+            settings.get("trip_number_field_id"),
+            settings.get("trip_driver_field_id"),
+            settings.get("trip_departure_field_id"),
+            settings.get("trip_order_status_field_id")
+        ])
+    
+    logger.info(f"amoCRM settings check: {amocrm_settings_check}")
+    
     # Clear trip data in amoCRM for orders that have amocrm_id
     if orders_to_clear_in_amocrm:
         logger.info(f"Clearing trip data in amoCRM for {len(orders_to_clear_in_amocrm)} orders")
         for order in orders_to_clear_in_amocrm:
             try:
                 await clear_order_trip_data_in_amocrm(order.get("amocrm_id"))
+                amocrm_clear_results.append({
+                    "order_id": order.get("id"),
+                    "amocrm_id": order.get("amocrm_id"),
+                    "status": "attempted"
+                })
             except Exception as e:
                 logger.error(f"Failed to clear amoCRM data for order {order.get('id')}: {e}")
+                amocrm_clear_results.append({
+                    "order_id": order.get("id"),
+                    "amocrm_id": order.get("amocrm_id"),
+                    "status": "error",
+                    "error": str(e)
+                })
     
-    return {"status": "ok", "removed": order_ids, "amocrm_cleared": len(orders_to_clear_in_amocrm)}
+    logger.info(f"=== REMOVE ORDERS FROM TRIP END ===")
+    
+    return {
+        "status": "ok", 
+        "removed": order_ids, 
+        "amocrm_orders_count": len(orders_to_clear_in_amocrm),
+        "amocrm_settings": amocrm_settings_check,
+        "amocrm_clear_results": amocrm_clear_results
+    }
 
 
 @router.post("/{trip_id}/sync-amocrm")
