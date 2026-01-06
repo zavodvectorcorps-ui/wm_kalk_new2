@@ -147,6 +147,28 @@ export const LoginPage = () => {
               )}
             </Button>
           </form>
+          
+          {/* Install as app instructions */}
+          <div className="mt-6 pt-4 border-t">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+              <Smartphone className="h-4 w-4" />
+              <span className="font-medium">{txt.installApp}</span>
+            </div>
+            <div className="space-y-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+              <p className="flex items-center gap-1 flex-wrap">
+                <span>{txt.installInstructions.ios}</span>
+                <Share className="h-3 w-3 inline" />
+                <span>{txt.installInstructions.iosShare}</span>
+                <span>{txt.installInstructions.iosThen}</span>
+              </p>
+              <p className="flex items-center gap-1 flex-wrap">
+                <span>{txt.installInstructions.android}</span>
+                <MoreVertical className="h-3 w-3 inline" />
+                <span>{txt.installInstructions.androidMenu}</span>
+                <span>{txt.installInstructions.androidThen}</span>
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
