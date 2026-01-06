@@ -31,6 +31,8 @@ class TripCreate(BaseModel):
     orderIds: List[str] = []
     driverId: Optional[str] = None
     driverName: Optional[str] = None
+    amocrmPipelineId: Optional[str] = None  # amoCRM pipeline to move orders to
+    amocrmStatusId: Optional[str] = None  # amoCRM status/stage to move orders to
 
 
 class TripUpdate(BaseModel):
@@ -43,6 +45,8 @@ class TripUpdate(BaseModel):
     # Order statuses within trip: {orderId: "delivering" | "delivered" | "cancelled"}
     orderStatuses: Optional[dict] = None
     syncOrderStatuses: Optional[bool] = False  # Sync all order statuses with trip status
+    amocrmPipelineId: Optional[str] = None  # amoCRM pipeline to move orders to
+    amocrmStatusId: Optional[str] = None  # amoCRM status/stage to move orders to
 
 
 # Trip status constants
