@@ -1,7 +1,6 @@
 define(['jquery'], function($) {
   var CustomWidget = function() {
     var self = this;
-    var settings = {};
     
     // Widget settings
     this.getApiUrl = function() {
@@ -14,21 +13,31 @@ define(['jquery'], function($) {
 
     // Render delivery status in lead card
     this.renderDeliveryStatus = function(leadId) {
-      var $container = $('[data-id="wm_delivery_status"]');
-      if (!$container.length) return;
+      var $container = $('#wm_delivery_status');
+      if (!$container.length) {
+        // Create container in card widgets area
+        var $widgetsArea = $('.card-widgets');
+        if ($widgetsArea.length) {
+          $widgetsArea.prepend('<div id="wm_delivery_status" class="wm-widget-container"></div>');
+          $container = $('#wm_delivery_status');
+        } else {
+          return;
+        }
+      }
       
-      $container.html('<div class="wm-loading">Загрузка...</div>');
+      $container.html('<div class="wm-loading">Загрузка статуса доставки...</div>');
       
       $.ajax({
         url: self.getApiUrl() + '/widget/delivery-status/' + leadId,
         method: 'GET',
         success: function(data) {
           if (!data.found) {
-            $container.html('<div class="wm-not-found">Заказ не найден в логистике</div>');
+            $container.html('<div class="wm-delivery-widget"><div class="wm-not-found">Заказ не найден в логистике</div></div>');
             return;
           }
           
           var html = '<div class="wm-delivery-widget">';
+          html += '<div class="wm-widget-title">🚛 Статус доставки</div>';
           
           // Status badge
           html += '<div class="wm-status" style="background-color: ' + data.status.color + '20; color: ' + data.status.color + '; border: 1px solid ' + data.status.color + '">';
@@ -46,6 +55,10 @@ define(['jquery'], function($) {
               html += '<div class="wm-trip-row"><span class="wm-label">Дата:</span> ' + date.toLocaleDateString('ru-RU') + '</div>';
             }
             html += '</div>';
+          } else {
+            html += '<div class="wm-trip-info">';
+            html += '<div class="wm-trip-row wm-no-trip">Не добавлен в рейс</div>';
+            html += '</div>';
           }
           
           // Delivery confirmation
@@ -55,6 +68,8 @@ define(['jquery'], function($) {
             if (data.delivery.receivedAmount) {
               html += '<div class="wm-trip-row"><span class="wm-label">Получено:</span> ' + data.delivery.receivedAmount + '</div>';
             }
+            var confirmDate = new Date(data.delivery.confirmedAt);
+            html += '<div class="wm-trip-row"><span class="wm-label">Время:</span> ' + confirmDate.toLocaleString('ru-RU') + '</div>';
             if (data.delivery.photo && data.delivery.photo.hasPhoto) {
               html += '<a href="#" class="wm-view-photo" data-lead="' + leadId + '">📷 Посмотреть фото акта</a>';
             }
@@ -72,7 +87,7 @@ define(['jquery'], function($) {
           });
         },
         error: function() {
-          $container.html('<div class="wm-error">Ошибка загрузки данных</div>');
+          $container.html('<div class="wm-delivery-widget"><div class="wm-error">Ошибка загрузки данных</div></div>');
         }
       });
     };
@@ -105,13 +120,12 @@ define(['jquery'], function($) {
       });
     };
     
-    // Render calculator selector in sidebar
+    // Render calculator selector in right sidebar
     this.renderCalculatorSelector = function(leadId) {
-      var $container = $('[data-id="wm_calculator_selector"]');
+      var $container = $('#wm_calculator_selector');
       if (!$container.length) return;
       
       var html = '<div class="wm-calc-widget">';
-      html += '<div class="wm-calc-title">Открыть калькулятор</div>';
       html += '<div class="wm-calc-buttons">';
       html += '<button class="wm-calc-btn wm-calc-balia" data-calc="balia" data-lead="' + leadId + '">';
       html += '<span class="wm-calc-icon">🛁</span> Купель';
@@ -155,10 +169,32 @@ define(['jquery'], function($) {
     // Widget callbacks
     this.callbacks = {
       render: function() {
+        // Render in right sidebar (ccard location)
+        var leadId = null;
+        
+        if (AMOCRM.data.current_card && AMOCRM.data.current_card.id) {
+          leadId = AMOCRM.data.current_card.id;
+        }
+        
+        if (leadId) {
+          setTimeout(function() {
+            self.renderCalculatorSelector(leadId);
+          }, 300);
+        }
+        
         return true;
       },
       
       init: function() {
+        // Check if on lead card page
+        if (self.system().area === 'lcard') {
+          var leadId = AMOCRM.data.current_card.id;
+          
+          setTimeout(function() {
+            self.renderDeliveryStatus(leadId);
+          }, 500);
+        }
+        
         return true;
       },
       
@@ -167,34 +203,22 @@ define(['jquery'], function($) {
       },
       
       settings: function() {
-        return true;
+        var $settings = $('<div class="wm-settings">' +
+          '<p>Для работы виджета укажите URL вашего приложения WM Kalkulator.</p>' +
+          '<p>По умолчанию: https://wm-kalkulator.pl</p>' +
+          '</div>');
+        
+        return $settings;
       },
       
       onSave: function() {
         return true;
       },
       
-      // Lead card render
-      leads: {
-        selected: function() {
-          var leadId = AMOCRM.data.current_card.id;
-          
-          // Wait for DOM and render widgets
-          setTimeout(function() {
-            // Check if our container exists, if not create it
-            if (!$('[data-id="wm_delivery_status"]').length) {
-              var $widget = $('<div class="wm-widget-container" data-id="wm_delivery_status"></div>');
-              $('.card-widgets__widget-item:first').after($widget);
-            }
-            
-            self.renderDeliveryStatus(leadId);
-          }, 500);
-          
-          return true;
-        }
+      destroy: function() {
+        // Cleanup
       },
       
-      // Advanced settings
       advancedSettings: function() {
         return true;
       }
