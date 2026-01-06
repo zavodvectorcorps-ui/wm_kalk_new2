@@ -100,6 +100,8 @@ export const LogisticsPage = () => {
     createTrip,
     updateTrip,
     updateTripStatus,
+    syncTripToAmocrm,
+    syncingToAmocrm,
     addOrdersToTrip,
     deleteTrip,
     updateOrderStatusInTrip,
