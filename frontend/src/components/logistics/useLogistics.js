@@ -224,6 +224,109 @@ export const useLogistics = () => {
     };
   }, [amocrmStats, currentData?.orders]);
 
+  // Search function - filters orders by query
+  const searchOrders = useCallback((query) => {
+    setSearchQuery(query);
+  }, []);
+
+  // Get filtered orders based on search query
+  const getFilteredOrders = useCallback((orders) => {
+    if (!searchQuery || !searchQuery.trim()) return orders;
+    
+    const q = searchQuery.toLowerCase().trim();
+    return orders.filter(order => {
+      // Search in multiple fields
+      const searchFields = [
+        order.clientName,
+        order.fullName,
+        order.phone,
+        order.phoneNumber,
+        order.fullAddress,
+        order.addressStreet,
+        order.addressCity,
+        order.orderNumber,
+        order.orderContents,
+        order.notes,
+        order.id,
+        order.amocrm_id,
+        order.deliveryComment
+      ];
+      
+      return searchFields.some(field => 
+        field && String(field).toLowerCase().includes(q)
+      );
+    });
+  }, [searchQuery]);
+
+  // Get filtered trips based on search query
+  const getFilteredTrips = useCallback((tripsToFilter) => {
+    if (!searchQuery || !searchQuery.trim()) return tripsToFilter;
+    
+    const q = searchQuery.toLowerCase().trim();
+    return tripsToFilter.filter(trip => {
+      // Search in trip name and driver
+      if (trip.name?.toLowerCase().includes(q)) return true;
+      if (trip.driverName?.toLowerCase().includes(q)) return true;
+      
+      // Search in trip orders
+      const tripOrders = trip.orders || [];
+      return tripOrders.some(order => {
+        const searchFields = [
+          order.clientName,
+          order.fullName,
+          order.phone,
+          order.phoneNumber,
+          order.fullAddress,
+          order.addressStreet,
+          order.addressCity,
+          order.orderNumber,
+          order.orderContents,
+          order.notes,
+          order.id,
+          order.amocrm_id
+        ];
+        return searchFields.some(field => 
+          field && String(field).toLowerCase().includes(q)
+        );
+      });
+    });
+  }, [searchQuery]);
+
+  // Get search results summary
+  const getSearchResults = useCallback(() => {
+    if (!searchQuery || !searchQuery.trim()) return null;
+    
+    const allOrders = currentData?.orders || [];
+    const filteredOrders = getFilteredOrders(allOrders);
+    const unassignedFiltered = filteredOrders.filter(o => !o.tripId);
+    
+    const filteredTrips = getFilteredTrips(trips);
+    const tripsWithMatchingOrders = filteredTrips.length;
+    
+    // Count orders in trips that match
+    let ordersInTripsCount = 0;
+    filteredTrips.forEach(trip => {
+      const tripOrders = trip.orders || [];
+      tripOrders.forEach(order => {
+        const q = searchQuery.toLowerCase().trim();
+        const searchFields = [
+          order.clientName, order.fullName, order.phone, order.phoneNumber,
+          order.fullAddress, order.orderNumber, order.id
+        ];
+        if (searchFields.some(f => f && String(f).toLowerCase().includes(q))) {
+          ordersInTripsCount++;
+        }
+      });
+    });
+    
+    return {
+      total: unassignedFiltered.length + ordersInTripsCount,
+      unassigned: unassignedFiltered.length,
+      inTrips: ordersInTripsCount,
+      tripsCount: tripsWithMatchingOrders
+    };
+  }, [searchQuery, currentData?.orders, trips, getFilteredOrders, getFilteredTrips]);
+
   // Load warehouse settings
   useEffect(() => {
     const savedWarehouse = localStorage.getItem('logistics_warehouse');
