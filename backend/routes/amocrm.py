@@ -964,8 +964,6 @@ async def upload_delivery_photo_to_amocrm(
     if not photo_record or not photo_record.get("photoUrl"):
         return {"status": "error", "message": "Photo not found"}
     
-    photo_url = photo_record["photoUrl"]
-    
     # Add note with delivery info (photo as base64 is too large for amoCRM file upload via API)
     note_text = f"""✅ Доставка подтверждена
 
