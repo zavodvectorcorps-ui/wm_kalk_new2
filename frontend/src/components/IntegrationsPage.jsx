@@ -906,7 +906,7 @@ export const IntegrationsPage = () => {
               <div className="pt-2">
                 <Button
                   variant="outline"
-                  onClick={() => window.open(`${API_URL}/api/widget/embed/12345?theme=light`, '_blank')}
+                  onClick={() => window.open(`${widgetInfo?.base_url || API_URL}/api/widget/embed/12345?theme=light`, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Посмотреть пример виджета
@@ -932,7 +932,7 @@ export const IntegrationsPage = () => {
                   Скачайте архив виджета и установите его в настройках amoCRM → Свои интеграции
                 </p>
                 <Button 
-                  onClick={() => window.open(`${API_URL}/api/widget/download`, '_blank')}
+                  onClick={() => window.open(`${widgetInfo?.base_url || API_URL}/api/widget/download`, '_blank')}
                   variant="outline"
                 >
                   <Download className="h-4 w-4 mr-2" />
