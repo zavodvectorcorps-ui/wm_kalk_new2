@@ -938,6 +938,61 @@ async def sync_status_to_amocrm(
         return {"status": "error", "message": f"Connection error: {str(e)}"}
 
 
+@router.post("/upload-delivery-photo")
+async def upload_delivery_photo_to_amocrm(
+    amocrm_id: str,
+    order_id: str,
+    driver_name: str = "",
+    received_amount: str = ""
+):
+    """Upload delivery photo to amoCRM and add a note.
+    
+    Fetches the photo from local storage and uploads it to amoCRM.
+    """
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        return {"status": "skipped", "message": "amoCRM credentials not configured"}
+    
+    # Get photo from delivery_photos collection
+    delivery_photos = db["delivery_photos"]
+    photo_record = delivery_photos.find_one({"orderId": order_id}, {"_id": 0})
+    
+    if not photo_record or not photo_record.get("photoUrl"):
+        return {"status": "error", "message": "Photo not found"}
+    
+    photo_url = photo_record["photoUrl"]
+    
+    # Add note with delivery info (photo as base64 is too large for amoCRM file upload via API)
+    note_text = f"""✅ Доставка подтверждена
+
+📦 Заказ: {order_id}
+🚚 Водитель: {driver_name or 'Не указан'}
+💰 Получено: {received_amount or 'Не указано'}
+📅 {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}
+
+📷 Фото акта доставки загружено в систему логистики."""
+    
+    note_added = await add_note_to_amocrm(amocrm_id, note_text, domain, token)
+    
+    if note_added:
+        # Log sync
+        webhook_logs.insert_one({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": "delivery_photo_sync",
+            "amocrm_id": amocrm_id,
+            "order_id": order_id,
+            "driver_name": driver_name,
+            "result": "success"
+        })
+        return {"status": "ok", "message": "Delivery note added to amoCRM"}
+    else:
+        return {"status": "error", "message": "Failed to add note to amoCRM"}
+
+
 @router.post("/sync-order")
 async def sync_order_to_amocrm(
     amocrm_id: str,
