@@ -1,0 +1,217 @@
+/* WM Kalkulator Widget Styles */
+
+/* Loading state */
+.wm-loading {
+  color: #999;
+  font-size: 12px;
+  padding: 10px;
+  text-align: center;
+}
+
+/* Error states */
+.wm-not-found,
+.wm-error {
+  color: #999;
+  font-size: 12px;
+  padding: 10px;
+  text-align: center;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+/* Delivery Widget */
+.wm-delivery-widget {
+  padding: 12px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Status badge */
+.wm-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.wm-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Trip info */
+.wm-trip-info {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.wm-trip-row {
+  font-size: 12px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.wm-label {
+  color: #888;
+  margin-right: 4px;
+}
+
+/* Delivery confirmed */
+.wm-delivery-confirmed {
+  margin-top: 10px;
+  padding: 8px;
+  background: #e8f5e9;
+  border-radius: 4px;
+}
+
+.wm-confirmed-badge {
+  color: #2e7d32;
+  font-weight: 500;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.wm-view-photo {
+  color: #1976d2;
+  font-size: 11px;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 6px;
+}
+
+.wm-view-photo:hover {
+  text-decoration: underline;
+}
+
+/* Photo Modal */
+.wm-photo-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wm-photo-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+}
+
+.wm-photo-content {
+  position: relative;
+  background: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90%;
+}
+
+.wm-photo-content img {
+  max-width: 100%;
+  max-height: 70vh;
+  display: block;
+}
+
+.wm-photo-info {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.wm-photo-close {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wm-photo-close:hover {
+  background: #f5f5f5;
+}
+
+/* Calculator Widget */
+.wm-calc-widget {
+  padding: 12px;
+}
+
+.wm-calc-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.wm-calc-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wm-calc-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wm-calc-btn:hover {
+  border-color: #1976d2;
+  background: #e3f2fd;
+}
+
+.wm-calc-icon {
+  font-size: 16px;
+}
+
+.wm-calc-balia:hover {
+  border-color: #0288d1;
+  background: #e1f5fe;
+}
+
+.wm-calc-sauna:hover {
+  border-color: #f57c00;
+  background: #fff3e0;
+}
+
+.wm-calc-greenhouse:hover {
+  border-color: #388e3c;
+  background: #e8f5e9;
+}
+
+/* Widget container */
+.wm-widget-container {
+  margin: 10px 0;
+  padding: 0;
+}
