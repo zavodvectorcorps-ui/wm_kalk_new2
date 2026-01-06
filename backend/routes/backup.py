@@ -884,6 +884,90 @@ async def import_backup(file: UploadFile = File(...)):
                     logger.error(f"Error importing webhook_logs: {e}")
                     import_stats["errors"].append(f"webhook_logs: {str(e)}")
             
+            # Import notification subscriptions
+            if "notification_subscriptions.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("notification_subscriptions.json").decode('utf-8'))
+                    await db.notification_subscriptions.delete_many({})
+                    for sub in data:
+                        sub.pop('_id', None)
+                        await db.notification_subscriptions.insert_one(sub)
+                    import_stats["imported"]["notification_subscriptions"] = len(data)
+                    logger.info(f"Imported {len(data)} notification subscriptions")
+                except Exception as e:
+                    logger.error(f"Error importing notification_subscriptions: {e}")
+                    import_stats["errors"].append(f"notification_subscriptions: {str(e)}")
+            
+            # Import notification settings
+            if "notification_settings.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("notification_settings.json").decode('utf-8'))
+                    await db.notification_settings.delete_many({})
+                    for setting in data:
+                        setting.pop('_id', None)
+                        await db.notification_settings.insert_one(setting)
+                    import_stats["imported"]["notification_settings"] = len(data)
+                    logger.info(f"Imported {len(data)} notification settings")
+                except Exception as e:
+                    logger.error(f"Error importing notification_settings: {e}")
+                    import_stats["errors"].append(f"notification_settings: {str(e)}")
+            
+            # Import telegram link codes
+            if "telegram_link_codes.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("telegram_link_codes.json").decode('utf-8'))
+                    await db.telegram_link_codes.delete_many({})
+                    for code in data:
+                        code.pop('_id', None)
+                        await db.telegram_link_codes.insert_one(code)
+                    import_stats["imported"]["telegram_link_codes"] = len(data)
+                    logger.info(f"Imported {len(data)} telegram link codes")
+                except Exception as e:
+                    logger.error(f"Error importing telegram_link_codes: {e}")
+                    import_stats["errors"].append(f"telegram_link_codes: {str(e)}")
+            
+            # Import delivery photos
+            if "delivery_photos.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("delivery_photos.json").decode('utf-8'))
+                    await db.delivery_photos.delete_many({})
+                    for photo in data:
+                        photo.pop('_id', None)
+                        await db.delivery_photos.insert_one(photo)
+                    import_stats["imported"]["delivery_photos"] = len(data)
+                    logger.info(f"Imported {len(data)} delivery photos")
+                except Exception as e:
+                    logger.error(f"Error importing delivery_photos: {e}")
+                    import_stats["errors"].append(f"delivery_photos: {str(e)}")
+            
+            # Import amoCRM sync logs
+            if "amocrm_sync_logs.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("amocrm_sync_logs.json").decode('utf-8'))
+                    await db.amocrm_sync_logs.delete_many({})
+                    for log in data:
+                        log.pop('_id', None)
+                        await db.amocrm_sync_logs.insert_one(log)
+                    import_stats["imported"]["amocrm_sync_logs"] = len(data)
+                    logger.info(f"Imported {len(data)} amoCRM sync logs")
+                except Exception as e:
+                    logger.error(f"Error importing amocrm_sync_logs: {e}")
+                    import_stats["errors"].append(f"amocrm_sync_logs: {str(e)}")
+            
+            # Import pending notifications
+            if "pending_notifications.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("pending_notifications.json").decode('utf-8'))
+                    await db.pending_notifications.delete_many({})
+                    for notif in data:
+                        notif.pop('_id', None)
+                        await db.pending_notifications.insert_one(notif)
+                    import_stats["imported"]["pending_notifications"] = len(data)
+                    logger.info(f"Imported {len(data)} pending notifications")
+                except Exception as e:
+                    logger.error(f"Error importing pending_notifications: {e}")
+                    import_stats["errors"].append(f"pending_notifications: {str(e)}")
+            
             # Import uploaded files
             uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
             os.makedirs(uploads_dir, exist_ok=True)
