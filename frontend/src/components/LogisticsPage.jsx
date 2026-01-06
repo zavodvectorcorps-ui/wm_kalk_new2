@@ -1225,11 +1225,17 @@ const TripsView = ({
 
 const TripDetailsCard = ({
   selectedTrip, setSelectedTrip, sectionKey, sectionData, drivers, tripRouteInfo, optimizingRoute,
-  draggedOrderIndex, updateTrip, updateTripStatus, deleteTrip, optimizeTripRoute, updateOrderStatusInTrip,
+  draggedOrderIndex, updateTrip, updateTripStatus, syncTripToAmocrm, syncingToAmocrm, deleteTrip, optimizeTripRoute, updateOrderStatusInTrip,
   removeOrderFromTrip, moveOrderUp, moveOrderDown, handleDragStart, handleDragOver, handleDrop,
   handleDragEnd, formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES
 }) => {
   const [expandedTripOrder, setExpandedTripOrder] = React.useState(null);
+  
+  // Count orders with amocrm_id
+  const ordersWithAmoCRM = selectedTrip?.orderIds?.filter(orderId => {
+    const order = sectionData[selectedTrip.section]?.orders.find(o => o.id === orderId);
+    return order?.amocrm_id;
+  }).length || 0;
   
   return (
   <Card className="h-full">
