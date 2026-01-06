@@ -179,11 +179,15 @@ async def sync_single_order_to_amocrm(order: dict):
             logger.error(f"  ValueError: {e}")
     
     if trip_departure_field_id and order.get("tripDepartureDate"):
-        logger.info(f"  Adding tripDepartureDate: '{order.get('tripDepartureDate')}'")
+        # Convert date to ISO 8601 format with time for amoCRM
+        departure_date = order.get("tripDepartureDate", "")
+        if departure_date and "T" not in departure_date:
+            departure_date = f"{departure_date}T00:00:00+00:00"
+        logger.info(f"  Adding tripDepartureDate: '{departure_date}'")
         try:
             custom_fields_values.append({
                 "field_id": int(trip_departure_field_id),
-                "values": [{"value": order.get("tripDepartureDate", "")}]
+                "values": [{"value": departure_date}]
             })
         except ValueError as e:
             logger.error(f"  ValueError: {e}")
