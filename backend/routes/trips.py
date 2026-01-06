@@ -22,6 +22,7 @@ greenhouse_orders = db["greenhouse_orders"]
 balia_orders = db["orders"]  # Balia orders are stored in 'orders' collection
 sauna_orders = db["sauna_orders"]
 integration_settings = db["integration_settings"]
+sync_logs = db["sync_logs"]  # Logs for amoCRM sync operations
 
 
 class TripCreate(BaseModel):
