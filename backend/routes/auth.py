@@ -73,8 +73,8 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
     if user_data.access not in ["balia", "sauna", "all"]:
         raise HTTPException(status_code=400, detail="Access must be 'balia', 'sauna', or 'all'")
     
-    if user_data.role not in ["admin", "employee", "observer"]:
-        raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee' or 'observer'")
+    if user_data.role not in ["admin", "employee", "observer", "driver"]:
+        raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee', 'observer' or 'driver'")
     
     # Only super-admin (username: 'admin') can create users with 'admin' role
     if user_data.role == "admin" and admin.get("username") != "admin":
