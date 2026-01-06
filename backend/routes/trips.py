@@ -400,12 +400,30 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
             async with httpx.AsyncClient(timeout=5.0) as http_client:
                 response = await http_client.patch(url, json=payload, headers=headers)
                 logger.info(f"  API Response: status={response.status_code}, body={response.text[:500] if response.text else 'empty'}")
+                
+                log_sync_operation("sync_trip_order", {
+                    "trip_id": trip.get("id"),
+                    "order_id": order.get("id"),
+                    "amocrm_id": amocrm_id,
+                    "status": "success" if response.status_code == 200 else "error",
+                    "http_status": response.status_code,
+                    "response": response.text[:300] if response.text else "",
+                    "payload": payload
+                })
+                
                 if response.status_code == 200:
                     logger.info(f"  ✅ Successfully synced trip data to amoCRM lead {amocrm_id}")
                 else:
                     logger.warning(f"  ❌ Failed to sync trip to amoCRM lead {amocrm_id}: {response.status_code} - {response.text}")
         except Exception as e:
             logger.error(f"  ❌ Error syncing trip to amoCRM: {e}")
+            log_sync_operation("sync_trip_order", {
+                "trip_id": trip.get("id"),
+                "order_id": order.get("id"),
+                "amocrm_id": amocrm_id,
+                "status": "exception",
+                "error": str(e)
+            })
     
     logger.info(f"=== sync_trip_orders_to_amocrm END ===")
 
