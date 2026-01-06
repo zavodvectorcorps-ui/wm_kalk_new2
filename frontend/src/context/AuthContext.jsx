@@ -94,11 +94,18 @@ export const AuthProvider = ({ children }) => {
 
   const hasAccess = (calculator) => {
     if (!user) return false;
+    
+    // Admins have access to everything including driver panel
     if (user.role === 'admin') return true;
     if (user.role === 'observer') return true;
     
     // Driver role automatically has access to driver panel
     if (calculator === 'driver' && user.role === 'driver') return true;
+    
+    // Drivers only have access to driver panel
+    if (user.role === 'driver') {
+      return calculator === 'driver';
+    }
     
     if (user.access === 'all') return true;
     // Support both string and array access
