@@ -1,0 +1,35 @@
+{
+  "widget": {
+    "name": "WM Kalkulator",
+    "description": "Интеграция с системой логистики WM Kalkulator. Отображение статуса доставки и быстрый доступ к калькуляторам.",
+    "short_description": "Логистика и калькуляторы WM",
+    "version": "1.0.0",
+    "init_once": false,
+    "locale": ["ru"],
+    "interface_name": {
+      "ru": "WM Kalkulator"
+    },
+    "short_description_text": {
+      "ru": "Отображение статуса доставки и калькуляторы"
+    }
+  },
+  "locations": [
+    "lcard-0",
+    "ccard-0", 
+    "advanced_settings"
+  ],
+  "dp": {
+    "settings": {
+      "api_url": {
+        "name": "URL API",
+        "default": "https://wm-kalkulator.pl/api",
+        "type": "text"
+      },
+      "app_url": {
+        "name": "URL приложения", 
+        "default": "https://wm-kalkulator.pl",
+        "type": "text"
+      }
+    }
+  }
+}
