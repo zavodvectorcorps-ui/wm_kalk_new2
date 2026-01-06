@@ -5,11 +5,12 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { toast } from 'sonner';
 import {
   Truck, MapPin, Phone, User, Package, CheckCircle, Camera, Navigation,
   RefreshCw, ChevronDown, ChevronUp, DollarSign, FileText, AlertCircle,
-  List, Map as MapIcon, Clock, Play, LogOut
+  List, Map as MapIcon, Clock, Play, LogOut, Route
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -19,7 +20,7 @@ const libraries = ['places', 'geometry'];
 
 const mapContainerStyle = {
   width: '100%',
-  height: '300px',
+  height: '400px',
   borderRadius: '8px'
 };
 
@@ -47,6 +48,7 @@ export const DriverPanel = ({ onLogout }) => {
   const [driver, setDriver] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [confirmingDelivery, setConfirmingDelivery] = useState(null);
+  const [activeTab, setActiveTab] = useState('route');
   const [deliveryForm, setDeliveryForm] = useState({
     receivedAmount: '',
     notes: '',
