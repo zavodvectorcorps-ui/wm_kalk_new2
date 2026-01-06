@@ -191,17 +191,39 @@ export const useLogistics = () => {
       const res = await fetch(`${API_URL}/api/drivers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newDriverName.trim() })
+        body: JSON.stringify({ 
+          name: newDriverName.trim(),
+          userId: newDriverUserId || null
+        })
       });
       if (res.ok) {
         const newDriver = await res.json();
         setDrivers(prev => [...prev, newDriver]);
         setNewDriverName('');
+        setNewDriverUserId('');
         toast.success('Водитель добавлен');
       }
     } catch (e) {
       console.error('Failed to add driver:', e);
       toast.error('Ошибка добавления водителя');
+    }
+  };
+
+  const updateDriver = async (driverId, updates) => {
+    try {
+      const res = await fetch(`${API_URL}/api/drivers/${driverId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setDrivers(prev => prev.map(d => d.id === driverId ? updated : d));
+        toast.success('Водитель обновлён');
+      }
+    } catch (e) {
+      console.error('Failed to update driver:', e);
+      toast.error('Ошибка обновления водителя');
     }
   };
 
