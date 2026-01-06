@@ -825,6 +825,101 @@ export const IntegrationsPage = () => {
           </Card>
         </TabsContent>
 
+        {/* Widget Tab */}
+        <TabsContent value="widget" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-purple-600" />
+                Виджет amoCRM
+              </CardTitle>
+              <CardDescription>
+                Установите виджет в amoCRM для отображения статуса доставки и быстрого доступа к калькуляторам
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Download */}
+              <div className="p-4 bg-purple-50 rounded-lg space-y-4">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Скачать виджет
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Скачайте архив виджета и установите его в настройках amoCRM
+                </p>
+                <Button 
+                  onClick={() => window.open(`${API_URL}/api/widget/download`, '_blank')}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Скачать amocrm-widget.zip
+                </Button>
+              </div>
+
+              {/* Installation instructions */}
+              <div className="space-y-4">
+                <h3 className="font-semibold">📋 Инструкция по установке</h3>
+                <ol className="list-decimal list-inside space-y-3 text-sm">
+                  <li>
+                    <strong>Скачайте архив</strong> виджета нажав кнопку выше
+                  </li>
+                  <li>
+                    <strong>Откройте amoCRM</strong> → Настройки → Интеграции → Свои интеграции
+                  </li>
+                  <li>
+                    <strong>Нажмите "Загрузить интеграцию"</strong> и выберите скачанный ZIP файл
+                  </li>
+                  <li>
+                    <strong>После загрузки</strong> виджет появится в списке доступных
+                  </li>
+                  <li>
+                    <strong>Активируйте виджет</strong> и настройте URL вашего приложения в настройках виджета:
+                    <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono break-all">
+                      {API_URL?.replace('/api', '') || window.location.origin}
+                    </div>
+                  </li>
+                </ol>
+              </div>
+
+              {/* Features */}
+              <div className="space-y-4">
+                <h3 className="font-semibold">✨ Возможности виджета</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium mb-1">📦 Статус доставки</div>
+                    <p className="text-sm text-muted-foreground">
+                      Отображается в карточке сделки: статус заказа, номер рейса, водитель, дата
+                    </p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium mb-1">🧮 Быстрый калькулятор</div>
+                    <p className="text-sm text-muted-foreground">
+                      Открывает нужный калькулятор в один клик с данными клиента
+                    </p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium mb-1">📷 Фото доставки</div>
+                    <p className="text-sm text-muted-foreground">
+                      Просмотр фото акта доставки прямо в amoCRM
+                    </p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <div className="font-medium mb-1">💰 Сумма оплаты</div>
+                    <p className="text-sm text-muted-foreground">
+                      Информация о полученной сумме при доставке
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-6">
+          <NotificationSettings drivers={drivers} onUpdate={fetchDrivers} />
+        </TabsContent>
+
         {/* Logs Tab */}
         <TabsContent value="logs" className="space-y-6">
           <Card>
