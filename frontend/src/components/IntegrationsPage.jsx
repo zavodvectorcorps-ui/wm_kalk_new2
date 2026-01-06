@@ -307,7 +307,7 @@ export const IntegrationsPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="settings" className="gap-2">
             <Settings className="h-4 w-4" />
             Webhook URLs
@@ -315,6 +315,14 @@ export const IntegrationsPage = () => {
           <TabsTrigger value="sync" className="gap-2">
             <ArrowLeftRight className="h-4 w-4" />
             Синхронизация
+          </TabsTrigger>
+          <TabsTrigger value="widget" className="gap-2">
+            <Package className="h-4 w-4" />
+            Виджет
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" />
+            Уведомления
           </TabsTrigger>
           <TabsTrigger value="logs" className="gap-2">
             <List className="h-4 w-4" />
