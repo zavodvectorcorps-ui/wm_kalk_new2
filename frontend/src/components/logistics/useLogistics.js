@@ -407,6 +407,38 @@ export const useLogistics = () => {
     return await updateTrip(tripId, { status: newStatus }, true);
   };
 
+  // Force sync trip to amoCRM
+  const [syncingToAmocrm, setSyncingToAmocrm] = useState(false);
+  
+  const syncTripToAmocrm = async (tripId) => {
+    setSyncingToAmocrm(true);
+    try {
+      const res = await fetch(`${API_URL}/api/trips/${tripId}/sync-amocrm`, {
+        method: 'POST'
+      });
+      
+      if (res.ok) {
+        const result = await res.json();
+        if (result.status === 'ok') {
+          toast.success(result.message);
+        } else if (result.status === 'warning') {
+          toast.warning(result.message);
+        } else {
+          toast.info(`${result.message}${result.errors ? '\nОшибки: ' + result.errors.join(', ') : ''}`);
+        }
+        fetchAllOrders(); // Refresh to show updated data
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка синхронизации');
+      }
+    } catch (error) {
+      console.error('Error syncing to amoCRM:', error);
+      toast.error('Ошибка синхронизации с amoCRM');
+    } finally {
+      setSyncingToAmocrm(false);
+    }
+  };
+
   // Add orders to existing trip
   const addOrdersToTrip = async (tripId) => {
     if (!tripId || currentData.selectedOrders.length === 0) {
