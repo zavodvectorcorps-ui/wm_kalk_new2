@@ -138,7 +138,17 @@ export const LogisticsPage = () => {
     getMapOrders,
     getMarkerIcon,
     onMapLoad,
-    formatDate
+    formatDate,
+    // amoCRM sync
+    amocrmStats,
+    loadingAmocrmStats,
+    amocrmPipelines,
+    selectedPipeline,
+    setSelectedPipeline,
+    selectedStatus,
+    setSelectedStatus,
+    fetchAmocrmStats,
+    getAmocrmComparison
   } = useLogistics();
 
   if (loadError) {
