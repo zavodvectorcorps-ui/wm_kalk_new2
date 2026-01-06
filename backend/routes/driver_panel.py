@@ -233,7 +233,26 @@ async def confirm_delivery(
     
     logger.info(f"Driver {driver.get('name')} confirmed delivery of order {confirmation.orderId}")
     
-    return {"status": "ok", "message": "Доставка подтверждена"}
+    # Sync to amoCRM if order has amocrm_id
+    amocrm_synced = False
+    if order.get("amocrm_id") and confirmation.isDelivered:
+        try:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"{os.environ.get('APP_BASE_URL', 'http://localhost:8001')}/api/integrations/amocrm/upload-delivery-photo",
+                    params={
+                        "amocrm_id": order["amocrm_id"],
+                        "order_id": confirmation.orderId,
+                        "driver_name": driver.get("name", ""),
+                        "received_amount": confirmation.receivedAmount or ""
+                    }
+                )
+                amocrm_synced = True
+        except Exception as e:
+            logger.error(f"Failed to sync delivery to amoCRM: {e}")
+    
+    return {"status": "ok", "message": "Доставка подтверждена", "amocrm_synced": amocrm_synced}
 
 
 @router.post("/upload-photo")
