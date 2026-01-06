@@ -361,3 +361,110 @@ async def get_delivery_photo(trip_id: str, order_id: str):
     if not photo:
         raise HTTPException(status_code=404, detail="Фото не найдено")
     return photo
+
+
+
+@router.post("/start-trip/{trip_id}")
+async def start_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
+    """Start a trip - change trip status to 'in_transit' and all orders to 'delivering'.
+    
+    This syncs with logistics and amoCRM.
+    """
+    user_id = current_user.get("sub")
+    
+    # Check if user is admin
+    user = db.users.find_one({"id": user_id}, {"_id": 0})
+    is_admin = user and user.get("role") == "admin"
+    
+    # Find driver
+    driver = drivers_collection.find_one({"userId": user_id}, {"_id": 0})
+    if not driver and user:
+        driver = drivers_collection.find_one({"name": user.get("username")}, {"_id": 0})
+    
+    # For admins, create virtual driver if not linked
+    if is_admin and not driver:
+        driver = {"id": "admin", "name": user.get("username", "Admin"), "isAdmin": True}
+    
+    if not driver:
+        raise HTTPException(status_code=403, detail="Водитель не найден")
+    
+    # Get trip
+    trip = trips_collection.find_one({"id": trip_id})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Рейс не найден")
+    
+    # Verify access (driver can only start their own trips, admins can start any)
+    if not is_admin:
+        driver_id = driver.get("id")
+        driver_name = driver.get("name")
+        if trip.get("driverId") != driver_id and trip.get("driverName") != driver_name:
+            raise HTTPException(status_code=403, detail="Этот рейс не назначен вам")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    section = trip.get("section", "")
+    collection = get_section_collection(section)
+    
+    # Update all order statuses to 'delivering'
+    order_ids = trip.get("orderIds", [])
+    order_statuses = trip.get("orderStatuses", {})
+    
+    for order_id in order_ids:
+        # Only update if not already delivered
+        current_status = order_statuses.get(order_id, "pending")
+        if current_status != "delivered":
+            order_statuses[order_id] = "delivering"
+    
+    # Update trip status to in_transit
+    trips_collection.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "status": "in_transit",
+            "orderStatuses": order_statuses,
+            "startedAt": now,
+            "startedBy": driver.get("name"),
+            "updatedAt": now
+        }}
+    )
+    
+    # Update all orders in the collection
+    if collection is not None:
+        for order_id in order_ids:
+            if order_statuses.get(order_id) == "delivering":
+                collection.update_one(
+                    {"id": order_id},
+                    {"$set": {
+                        "tripOrderStatus": "delivering",
+                        "deliveryStatus": "delivering",
+                        "tripStatus": "in_transit"
+                    }}
+                )
+    
+    logger.info(f"Driver {driver.get('name')} started trip {trip_id}")
+    
+    # Sync to amoCRM for all orders with amocrm_id
+    amocrm_synced_count = 0
+    if collection is not None:
+        orders_with_amocrm = list(collection.find(
+            {"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}},
+            {"_id": 0}
+        ))
+        
+        # Import sync function from trips module
+        try:
+            from routes.trips import sync_single_order_to_amocrm
+            for order in orders_with_amocrm:
+                try:
+                    await sync_single_order_to_amocrm(order)
+                    amocrm_synced_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to sync order {order.get('id')} to amoCRM: {e}")
+        except ImportError:
+            logger.warning("Could not import sync function from trips module")
+    
+    return {
+        "status": "ok",
+        "message": "Рейс начат! Статусы всех заказов изменены на 'В пути'",
+        "trip_status": "in_transit",
+        "orders_updated": len([s for s in order_statuses.values() if s == "delivering"]),
+        "amocrm_synced": amocrm_synced_count
+    }
