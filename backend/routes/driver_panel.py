@@ -49,31 +49,45 @@ class DeliveryConfirmation(BaseModel):
 
 @router.get("/my-trips")
 async def get_my_trips(current_user: dict = Depends(get_current_user)):
-    """Get all trips assigned to current driver."""
+    """Get all trips assigned to current driver, or all trips for admins."""
     user_id = current_user.get("sub")
+    user_role = current_user.get("role", "")
+    
+    # Check if user is admin
+    user = db.users.find_one({"id": user_id}, {"_id": 0})
+    is_admin = user and user.get("role") == "admin"
     
     # Find driver profile linked to this user
     driver = drivers_collection.find_one({"userId": user_id}, {"_id": 0})
-    if not driver:
+    if not driver and user:
         # Also try to find by username match (for backward compatibility)
-        user = db.users.find_one({"id": user_id}, {"_id": 0})
-        if user:
-            driver = drivers_collection.find_one({"name": user.get("username")}, {"_id": 0})
+        driver = drivers_collection.find_one({"name": user.get("username")}, {"_id": 0})
     
-    if not driver:
-        return {"trips": [], "driver": None, "message": "Водитель не найден. Обратитесь к администратору."}
-    
-    driver_id = driver.get("id")
-    driver_name = driver.get("name")
-    
-    # Get trips assigned to this driver (active: planned or in_transit)
-    trips = list(trips_collection.find({
-        "$or": [
-            {"driverId": driver_id},
-            {"driverName": driver_name}
-        ],
-        "status": {"$in": ["planned", "in_transit"]}
-    }, {"_id": 0}))
+    # For admins without driver profile, show all active trips
+    if is_admin:
+        if not driver:
+            # Create a virtual "admin" driver for display purposes
+            driver = {"id": "admin", "name": user.get("username", "Admin"), "isAdmin": True}
+        
+        # Get all active trips for admin
+        trips = list(trips_collection.find({
+            "status": {"$in": ["planned", "in_transit"]}
+        }, {"_id": 0}))
+    else:
+        if not driver:
+            return {"trips": [], "driver": None, "message": "Водитель не найден. Обратитесь к администратору."}
+        
+        driver_id = driver.get("id")
+        driver_name = driver.get("name")
+        
+        # Get trips assigned to this driver (active: planned or in_transit)
+        trips = list(trips_collection.find({
+            "$or": [
+                {"driverId": driver_id},
+                {"driverName": driver_name}
+            ],
+            "status": {"$in": ["planned", "in_transit"]}
+        }, {"_id": 0}))
     
     # Enrich trips with order data
     for trip in trips:
