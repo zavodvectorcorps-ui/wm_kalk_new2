@@ -169,3 +169,31 @@ async def get_calculator_url(
         "url": url,
         "calculator": section
     }
+
+
+@router.get("/download")
+async def download_widget():
+    """Download amoCRM widget as ZIP file."""
+    from fastapi.responses import FileResponse
+    import os
+    
+    widget_path = "/app/amocrm-widget.zip"
+    
+    if not os.path.exists(widget_path):
+        # Try to create it if not exists
+        import subprocess
+        try:
+            subprocess.run(
+                ["zip", "-r", "/app/amocrm-widget.zip", "."],
+                cwd="/app/amocrm-widget",
+                check=True
+            )
+        except Exception as e:
+            logger.error(f"Failed to create widget zip: {e}")
+            raise HTTPException(status_code=404, detail="Widget package not found")
+    
+    return FileResponse(
+        path=widget_path,
+        filename="amocrm-widget.zip",
+        media_type="application/zip"
+    )
