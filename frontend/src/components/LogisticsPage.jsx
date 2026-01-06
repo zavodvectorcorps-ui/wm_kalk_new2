@@ -148,8 +148,17 @@ export const LogisticsPage = () => {
     selectedStatus,
     setSelectedStatus,
     fetchAmocrmStats,
-    getAmocrmComparison
+    getAmocrmComparison,
+    // Search
+    searchQuery,
+    setSearchQuery,
+    getFilteredOrders,
+    getFilteredTrips,
+    getSearchResults
   } = useLogistics();
+
+  // Get search results for display
+  const searchResults = getSearchResults();
 
   if (loadError) {
     return (
