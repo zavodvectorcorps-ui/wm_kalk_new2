@@ -20,10 +20,12 @@ drivers_collection = db["drivers"]
 
 class DriverCreate(BaseModel):
     name: str
+    userId: Optional[str] = None  # Link to user account
 
 
 class DriverUpdate(BaseModel):
     name: Optional[str] = None
+    userId: Optional[str] = None  # Link to user account
 
 
 @router.get("")
@@ -39,6 +41,7 @@ async def create_driver(driver_data: DriverCreate):
     driver = {
         "id": f"driver-{uuid.uuid4().hex[:8]}",
         "name": driver_data.name,
+        "userId": driver_data.userId,  # Link to user account
         "createdAt": datetime.now(timezone.utc).isoformat()
     }
     
@@ -58,6 +61,8 @@ async def update_driver(driver_id: str, driver_data: DriverUpdate):
     update_data = {}
     if driver_data.name is not None:
         update_data["name"] = driver_data.name
+    if driver_data.userId is not None:
+        update_data["userId"] = driver_data.userId
     
     if update_data:
         drivers_collection.update_one({"id": driver_id}, {"$set": update_data})
