@@ -65,6 +65,8 @@ class AmoCRMSettings(BaseModel):
     trip_driver_field_id: str = ""  # Custom field for driver name
     trip_departure_field_id: str = ""  # Custom field for departure date
     trip_order_status_field_id: str = ""  # Custom field for order status in trip
+    # Important order flag
+    important_order_field_id: str = ""  # Custom field (checkbox/flag) for important orders
 
 
 # Default field mapping template
