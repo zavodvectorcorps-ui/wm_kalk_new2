@@ -938,6 +938,109 @@ async def sync_status_to_amocrm(
         return {"status": "error", "message": f"Connection error: {str(e)}"}
 
 
+@router.get("/stage-stats/{pipeline_id}/{status_id}")
+async def get_stage_statistics(pipeline_id: int, status_id: int):
+    """Get statistics for a specific pipeline stage from amoCRM.
+    
+    Returns count and sum of leads on the specified stage.
+    """
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        return {"error": "amoCRM не настроен", "count": 0, "sum": 0}
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Fetch leads from specific pipeline and status
+        url = f"https://{domain}/api/v4/leads"
+        params = {
+            "filter[statuses][0][pipeline_id]": pipeline_id,
+            "filter[statuses][0][status_id]": status_id,
+            "limit": 250  # Max allowed
+        }
+        
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url, headers=headers, params=params)
+            
+            if response.status_code == 200:
+                data = response.json()
+                leads = data.get("_embedded", {}).get("leads", [])
+                
+                total_count = len(leads)
+                total_sum = sum(lead.get("price", 0) or 0 for lead in leads)
+                
+                # Get lead IDs for comparison
+                lead_ids = [str(lead.get("id")) for lead in leads]
+                
+                return {
+                    "count": total_count,
+                    "sum": total_sum,
+                    "lead_ids": lead_ids,
+                    "pipeline_id": pipeline_id,
+                    "status_id": status_id
+                }
+            elif response.status_code == 204:
+                return {"count": 0, "sum": 0, "lead_ids": []}
+            else:
+                logger.error(f"amoCRM stage stats error: {response.status_code} - {response.text}")
+                return {"error": f"Ошибка API: {response.status_code}", "count": 0, "sum": 0}
+                
+    except Exception as e:
+        logger.error(f"Failed to get stage stats: {e}")
+        return {"error": str(e), "count": 0, "sum": 0}
+
+
+@router.get("/pipelines")
+async def get_pipelines():
+    """Get all pipelines and their stages from amoCRM."""
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        return {"error": "amoCRM не настроен", "pipelines": []}
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        url = f"https://{domain}/api/v4/leads/pipelines"
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                pipelines = data.get("_embedded", {}).get("pipelines", [])
+                
+                result = []
+                for pipeline in pipelines:
+                    statuses = pipeline.get("_embedded", {}).get("statuses", [])
+                    result.append({
+                        "id": pipeline.get("id"),
+                        "name": pipeline.get("name"),
+                        "statuses": [
+                            {
+                                "id": s.get("id"),
+                                "name": s.get("name"),
+                                "color": s.get("color")
+                            }
+                            for s in statuses
+                        ]
+                    })
+                
+                return {"pipelines": result}
+            else:
+                return {"error": f"Ошибка API: {response.status_code}", "pipelines": []}
+                
+    except Exception as e:
+        logger.error(f"Failed to get pipelines: {e}")
+        return {"error": str(e), "pipelines": []}
+
+
 @router.post("/upload-delivery-photo")
 async def upload_delivery_photo_to_amocrm(
     amocrm_id: str,
