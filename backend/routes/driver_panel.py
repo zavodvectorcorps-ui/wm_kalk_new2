@@ -53,9 +53,9 @@ async def get_my_trips(current_user: dict = Depends(get_current_user)):
     user_id = current_user.get("sub")
     user_role = current_user.get("role", "")
     
-    # Check if user is admin
+    # Check if user is admin or super-admin
     user = db.users.find_one({"id": user_id}, {"_id": 0})
-    is_admin = user and user.get("role") == "admin"
+    is_admin = user and user.get("role") in ["admin", "super-admin"]
     
     # Find driver profile linked to this user
     driver = drivers_collection.find_one({"userId": user_id}, {"_id": 0})
