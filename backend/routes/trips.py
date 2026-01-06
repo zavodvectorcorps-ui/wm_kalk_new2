@@ -201,6 +201,18 @@ async def sync_single_order_to_amocrm(order: dict):
     
     if not custom_fields_values:
         logger.warning(f"No custom_fields_values built - order may be missing trip data")
+        log_sync_operation("sync_single_order", {
+            "order_id": order.get("id"),
+            "amocrm_id": amocrm_id,
+            "status": "skipped",
+            "reason": "no_fields_to_send",
+            "order_data": {
+                "tripName": order.get("tripName"),
+                "tripDriverName": order.get("tripDriverName"),
+                "tripDepartureDate": order.get("tripDepartureDate"),
+                "tripOrderStatus": order.get("tripOrderStatus")
+            }
+        })
         return
     
     url = f"https://{domain}/api/v4/leads/{amocrm_id}"
@@ -217,12 +229,28 @@ async def sync_single_order_to_amocrm(order: dict):
         async with httpx.AsyncClient(timeout=5.0) as http_client:
             response = await http_client.patch(url, json=payload, headers=headers)
             logger.info(f"API Response: status={response.status_code}, body={response.text[:500] if response.text else 'empty'}")
+            
+            log_sync_operation("sync_single_order", {
+                "order_id": order.get("id"),
+                "amocrm_id": amocrm_id,
+                "status": "success" if response.status_code == 200 else "error",
+                "http_status": response.status_code,
+                "response": response.text[:500] if response.text else "",
+                "payload": payload
+            })
+            
             if response.status_code == 200:
                 logger.info(f"✅ Synced order {order.get('id')} trip data to amoCRM lead {amocrm_id}")
             else:
                 logger.warning(f"❌ Failed to sync order to amoCRM: {response.status_code} - {response.text}")
     except Exception as e:
         logger.error(f"❌ Error syncing order to amoCRM: {e}")
+        log_sync_operation("sync_single_order", {
+            "order_id": order.get("id"),
+            "amocrm_id": amocrm_id,
+            "status": "exception",
+            "error": str(e)
+        })
     
     logger.info(f"=== sync_single_order_to_amocrm END ===")
 
