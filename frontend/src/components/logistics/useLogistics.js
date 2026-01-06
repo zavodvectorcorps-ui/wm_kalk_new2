@@ -1565,6 +1565,10 @@ export const useLogistics = () => {
     setShowDriversModal,
     newDriverName,
     setNewDriverName,
+    newDriverUserId,
+    setNewDriverUserId,
+    driverUsers,
+    updateDriver,
     
     // Map
     mapFilter,
