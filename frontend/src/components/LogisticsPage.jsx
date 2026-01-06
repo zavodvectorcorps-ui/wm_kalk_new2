@@ -1452,26 +1452,28 @@ const TripDetailsCard = ({
           
           {/* Sync to amoCRM button */}
           {ordersWithAmoCRM > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full text-purple-600 border-purple-200 hover:bg-purple-50 mt-2"
-              onClick={() => syncTripToAmocrm(selectedTrip.id)}
-              disabled={syncingToAmocrm}
-              data-testid="sync-amocrm-btn"
-            >
-              {syncingToAmocrm ? (
-                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3 w-3 mr-1" />
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-purple-600 border-purple-200 hover:bg-purple-50 mt-2"
+                onClick={() => syncTripToAmocrm(selectedTrip.id)}
+                disabled={syncingToAmocrm}
+                data-testid="sync-amocrm-btn"
+              >
+                {syncingToAmocrm ? (
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                )}
+                Синхронизировать с amoCRM ({ordersWithAmoCRM})
+              </Button>
+              {selectedTrip.lastSyncedAt && (
+                <p className="text-xs text-center text-muted-foreground mt-1">
+                  Последняя синхронизация: {new Date(selectedTrip.lastSyncedAt).toLocaleString('ru-RU')}
+                </p>
               )}
-              Синхронизировать с amoCRM ({ordersWithAmoCRM})
-            </Button>
-            {selectedTrip.lastSyncedAt && (
-              <p className="text-xs text-center text-muted-foreground mt-1">
-                Последняя синхронизация: {new Date(selectedTrip.lastSyncedAt).toLocaleString('ru-RU')}
-              </p>
-            )}
+            </>
           )}
           
           <Button variant="outline" size="sm" className="w-full text-red-600 border-red-200 hover:bg-red-50 mt-2" onClick={() => deleteTrip(selectedTrip.id)}>
