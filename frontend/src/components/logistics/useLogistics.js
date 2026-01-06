@@ -587,7 +587,9 @@ export const useLogistics = () => {
           section: activeSection,
           orderIds: currentData.selectedOrders,
           driverId: newTripDriver || null,
-          driverName: driver?.name || null
+          driverName: driver?.name || null,
+          amocrmPipelineId: newTripPipelineId || null,
+          amocrmStatusId: newTripStatusId || null
         })
       });
       
@@ -597,6 +599,8 @@ export const useLogistics = () => {
         setShowCreateTripModal(false);
         setNewTripName('');
         setNewTripDriver('');
+        setNewTripPipelineId('');
+        setNewTripStatusId('');
         fetchAllOrders();
         fetchTrips();
         setSectionData(prev => ({
