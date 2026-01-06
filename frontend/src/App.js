@@ -370,6 +370,19 @@ const AppContent = () => {
     );
   }
 
+  // Driver Panel
+  if (currentCalculator === 'driver') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <Suspense fallback={<PageLoader />}>
+          <DriverPanel />
+        </Suspense>
+        
+        <Toaster position="top-right" richColors />
+      </div>
+    );
+  }
+
   // Admin Panel
   if (currentCalculator === 'admin' && isAdmin()) {
     return (
