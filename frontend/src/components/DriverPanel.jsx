@@ -5,13 +5,11 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Checkbox } from './ui/checkbox';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 import {
   Truck, MapPin, Phone, User, Package, CheckCircle, Camera, Navigation,
   RefreshCw, ChevronDown, ChevronUp, DollarSign, FileText, AlertCircle,
-  List, Map as MapIcon, Clock
+  List, Map as MapIcon, Clock, Play, LogOut
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -21,7 +19,7 @@ const libraries = ['places', 'geometry'];
 
 const mapContainerStyle = {
   width: '100%',
-  height: '400px',
+  height: '300px',
   borderRadius: '8px'
 };
 
@@ -36,12 +34,17 @@ const ORDER_STATUSES = {
   delivered: { label: 'Доставлен', color: 'bg-green-100 text-green-700' }
 };
 
-export const DriverPanel = () => {
+const TRIP_STATUSES = {
+  planned: { label: 'Готов к отправке', color: 'bg-yellow-100 text-yellow-700' },
+  in_transit: { label: 'В пути', color: 'bg-blue-100 text-blue-700' },
+  completed: { label: 'Завершён', color: 'bg-green-100 text-green-700' }
+};
+
+export const DriverPanel = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState([]);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [driver, setDriver] = useState(null);
-  const [activeView, setActiveView] = useState('list'); // 'list', 'map'
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [confirmingDelivery, setConfirmingDelivery] = useState(null);
   const [deliveryForm, setDeliveryForm] = useState({
@@ -52,6 +55,7 @@ export const DriverPanel = () => {
   const [uploading, setUploading] = useState(false);
   const [directions, setDirections] = useState(null);
   const [buildingRoute, setBuildingRoute] = useState(false);
+  const [startingTrip, setStartingTrip] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -71,6 +75,10 @@ export const DriverPanel = () => {
         setTrips(data.trips);
         if (data.trips.length > 0 && !selectedTrip) {
           setSelectedTrip(data.trips[0]);
+        } else if (selectedTrip) {
+          // Update selected trip data
+          const updated = data.trips.find(t => t.id === selectedTrip.id);
+          if (updated) setSelectedTrip(updated);
         }
       }
       if (data.driver) {
@@ -133,8 +141,8 @@ export const DriverPanel = () => {
     }
   }, [selectedTrip, isLoaded, buildRoute]);
 
-  // Open in Google Maps navigator
-  const openInNavigator = () => {
+  // Open entire route in Google Maps navigator
+  const openFullRouteInNavigator = () => {
     if (!selectedTrip || !selectedTrip.orders) return;
     
     const ordersWithCoords = selectedTrip.orders.filter(o => o.lat && o.lng);
@@ -143,13 +151,9 @@ export const DriverPanel = () => {
       return;
     }
 
-    // Build Google Maps URL with waypoints
     let url = 'https://www.google.com/maps/dir/?api=1';
-    
-    // Origin
     url += `&origin=${ordersWithCoords[0].lat},${ordersWithCoords[0].lng}`;
     
-    // Destination (last point)
     if (ordersWithCoords.length > 1) {
       const last = ordersWithCoords[ordersWithCoords.length - 1];
       url += `&destination=${last.lat},${last.lng}`;
@@ -157,7 +161,6 @@ export const DriverPanel = () => {
       url += `&destination=${ordersWithCoords[0].lat},${ordersWithCoords[0].lng}`;
     }
     
-    // Waypoints (middle points)
     if (ordersWithCoords.length > 2) {
       const waypoints = ordersWithCoords.slice(1, -1)
         .map(o => `${o.lat},${o.lng}`)
@@ -166,8 +169,45 @@ export const DriverPanel = () => {
     }
     
     url += '&travelmode=driving';
-    
     window.open(url, '_blank');
+  };
+
+  // Open single order in navigator
+  const openOrderInNavigator = (order) => {
+    if (!order.lat || !order.lng) {
+      toast.error('У заказа нет координат');
+      return;
+    }
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lng}&travelmode=driving`;
+    window.open(url, '_blank');
+  };
+
+  // Start trip - change all statuses to "delivering"
+  const handleStartTrip = async () => {
+    if (!selectedTrip) return;
+    
+    setStartingTrip(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_URL}/api/driver-panel/start-trip/${selectedTrip.id}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success(data.message || 'Рейс начат!');
+        fetchTrips(); // Refresh data
+      } else {
+        toast.error(data.detail || 'Ошибка');
+      }
+    } catch (error) {
+      console.error('Error starting trip:', error);
+      toast.error('Ошибка запуска рейса');
+    } finally {
+      setStartingTrip(false);
+    }
   };
 
   // Handle delivery confirmation
@@ -178,7 +218,6 @@ export const DriverPanel = () => {
     try {
       const token = localStorage.getItem('authToken');
       
-      // If there's a photo, upload it
       if (deliveryForm.photo) {
         const formData = new FormData();
         formData.append('tripId', selectedTrip.id);
@@ -196,7 +235,6 @@ export const DriverPanel = () => {
           throw new Error('Ошибка загрузки фото');
         }
       } else {
-        // Just confirm delivery without photo
         const response = await fetch(`${API_URL}/api/driver-panel/confirm-delivery`, {
           method: 'POST',
           headers: {
@@ -229,16 +267,21 @@ export const DriverPanel = () => {
     }
   };
 
-  // Handle photo selection
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Compress image if needed
       if (file.size > 5 * 1024 * 1024) {
         toast.warning('Фото будет сжато');
       }
       setDeliveryForm(prev => ({ ...prev, photo: file }));
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('authUser');
+    if (onLogout) onLogout();
+    window.location.reload();
   };
 
   if (loading) {
@@ -256,10 +299,14 @@ export const DriverPanel = () => {
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">Водитель не найден</h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Ваша учётная запись не связана с профилем водителя. 
               Обратитесь к администратору.
             </p>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Выйти
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -267,7 +314,7 @@ export const DriverPanel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-20" data-testid="driver-panel">
       {/* Header */}
       <div className="bg-purple-600 text-white p-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
@@ -278,14 +325,24 @@ export const DriverPanel = () => {
               <p className="text-sm text-purple-200">{driver.name}</p>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-white hover:bg-purple-500"
-            onClick={fetchTrips}
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-white hover:bg-purple-500"
+              onClick={fetchTrips}
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-white hover:bg-purple-500"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -323,335 +380,328 @@ export const DriverPanel = () => {
         </div>
       ) : selectedTrip && (
         <>
-          {/* Trip info */}
-          <div className="p-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{selectedTrip.name}</CardTitle>
-                  <Badge className={selectedTrip.status === 'in_transit' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}>
-                    {selectedTrip.status === 'in_transit' ? 'В пути' : 'Готов к отправке'}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {selectedTrip.departureDate && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>Дата: {new Date(selectedTrip.departureDate).toLocaleDateString('ru-RU')}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Package className="h-4 w-4" />
-                  <span>Заказов: {selectedTrip.orders?.length || 0}</span>
-                </div>
-                <Button 
-                  className="w-full mt-3 bg-green-600 hover:bg-green-700"
-                  onClick={openInNavigator}
-                >
-                  <Navigation className="h-4 w-4 mr-2" />
-                  Открыть в навигаторе
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* View tabs */}
-          <div className="px-4">
-            <Tabs value={activeView} onValueChange={setActiveView}>
-              <TabsList className="w-full grid grid-cols-2">
-                <TabsTrigger value="list" className="gap-2">
-                  <List className="h-4 w-4" />
-                  Список
-                </TabsTrigger>
-                <TabsTrigger value="map" className="gap-2">
-                  <MapIcon className="h-4 w-4" />
-                  Карта
-                </TabsTrigger>
-              </TabsList>
-
-              {/* List view */}
-              <TabsContent value="list" className="mt-4 space-y-3">
-                {selectedTrip.orders?.map((order, index) => {
-                  const orderStatus = selectedTrip.orderStatuses?.[order.id] || 'pending';
-                  const statusInfo = ORDER_STATUSES[orderStatus] || ORDER_STATUSES.pending;
-                  const isExpanded = expandedOrder === order.id;
-                  const isConfirming = confirmingDelivery === order.id;
-                  const isDelivered = orderStatus === 'delivered';
-
-                  return (
-                    <Card 
-                      key={order.id} 
-                      className={`transition-all ${order.isImportant ? 'border-orange-300 bg-orange-50' : ''} ${isDelivered ? 'opacity-60' : ''}`}
-                    >
-                      <CardContent className="p-3">
-                        {/* Order header */}
-                        <div 
-                          className="flex items-start gap-3 cursor-pointer"
-                          onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
-                        >
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm flex-shrink-0">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium truncate">{order.fullName || 'Без имени'}</span>
-                              {order.isImportant && <span className="text-orange-600">⚠️</span>}
-                              <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground truncate">{order.fullAddress}</p>
-                          </div>
-                          {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
-                        </div>
-
-                        {/* Expanded details */}
-                        {isExpanded && (
-                          <div className="mt-4 pt-4 border-t space-y-3">
-                            {order.phoneNumber && (
-                              <a 
-                                href={`tel:${order.phoneNumber}`}
-                                className="flex items-center gap-2 text-blue-600 hover:underline"
-                              >
-                                <Phone className="h-4 w-4" />
-                                {order.phoneNumber}
-                              </a>
-                            )}
-                            
-                            {order.orderContents && (
-                              <div className="flex items-start gap-2">
-                                <Package className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                <span className="text-sm">{order.orderContents}</span>
-                              </div>
-                            )}
-
-                            {order.orderComment && (
-                              <div className="flex items-start gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                <span className="text-sm text-muted-foreground">{order.orderComment}</span>
-                              </div>
-                            )}
-
-                            {order.debtSum && (
-                              <div className="flex items-center gap-2 bg-yellow-50 p-2 rounded">
-                                <DollarSign className="h-4 w-4 text-yellow-600" />
-                                <span className="text-sm font-medium">К оплате: {order.debtSum}</span>
-                              </div>
-                            )}
-
-                            {/* Action buttons */}
-                            <div className="flex gap-2 pt-2">
-                              {order.lat && order.lng && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lng}&travelmode=driving`, '_blank');
-                                  }}
-                                >
-                                  <Navigation className="h-4 w-4 mr-1" />
-                                  Навигация
-                                </Button>
-                              )}
-                              
-                              {!isDelivered && (
-                                <Button
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setConfirmingDelivery(order.id);
-                                    setDeliveryForm({
-                                      receivedAmount: order.debtSum || '',
-                                      notes: '',
-                                      photo: null
-                                    });
-                                  }}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Доставлен
-                                </Button>
-                              )}
-                            </div>
-
-                            {/* Delivery confirmation form */}
-                            {isConfirming && (
-                              <div className="mt-4 p-3 bg-gray-50 rounded-lg space-y-3">
-                                <h4 className="font-medium">Подтверждение доставки</h4>
-                                
-                                <div className="space-y-2">
-                                  <Label>Полученная сумма</Label>
-                                  <Input
-                                    type="text"
-                                    placeholder={order.debtSum ? `Ожидается: ${order.debtSum}` : 'Введите сумму'}
-                                    value={deliveryForm.receivedAmount}
-                                    onChange={(e) => setDeliveryForm(prev => ({ ...prev, receivedAmount: e.target.value }))}
-                                  />
-                                </div>
-
-                                <div className="space-y-2">
-                                  <Label>Фото акта</Label>
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      type="file"
-                                      accept="image/*"
-                                      capture="environment"
-                                      onChange={handlePhotoChange}
-                                      className="flex-1"
-                                    />
-                                    {deliveryForm.photo && (
-                                      <Badge variant="secondary">
-                                        <Camera className="h-3 w-3 mr-1" />
-                                        Выбрано
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="flex gap-2">
-                                  <Button
-                                    className="flex-1 bg-green-600 hover:bg-green-700"
-                                    disabled={uploading}
-                                    onClick={() => handleConfirmDelivery(order.id)}
-                                  >
-                                    {uploading ? (
-                                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                                    ) : (
-                                      <CheckCircle className="h-4 w-4 mr-1" />
-                                    )}
-                                    Подтвердить
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => setConfirmingDelivery(null)}
-                                  >
-                                    Отмена
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Already delivered info */}
-                            {isDelivered && order.deliveryConfirmedAt && (
-                              <div className="mt-2 p-2 bg-green-50 rounded text-sm text-green-700">
-                                <CheckCircle className="h-4 w-4 inline mr-1" />
-                                Доставлено {new Date(order.deliveryConfirmedAt).toLocaleString('ru-RU')}
-                                {order.receivedAmount && ` • Получено: ${order.receivedAmount}`}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </TabsContent>
-
-              {/* Map view */}
-              <TabsContent value="map" className="mt-4">
-                <Card>
-                  <CardContent className="p-2">
-                    {isLoaded ? (
-                      <GoogleMap
-                        mapContainerStyle={mapContainerStyle}
-                        center={
-                          selectedTrip.orders?.[0]?.lat 
-                            ? { lat: selectedTrip.orders[0].lat, lng: selectedTrip.orders[0].lng }
-                            : defaultCenter
-                        }
-                        zoom={10}
-                      >
-                        {/* Order markers */}
-                        {selectedTrip.orders?.map((order, index) => (
-                          order.lat && order.lng && (
-                            <Marker
-                              key={order.id}
-                              position={{ lat: order.lat, lng: order.lng }}
-                              label={{
-                                text: String(index + 1),
-                                color: 'white',
-                                fontWeight: 'bold'
-                              }}
-                              icon={{
-                                path: window.google.maps.SymbolPath.CIRCLE,
-                                scale: 15,
-                                fillColor: order.isImportant ? '#ef4444' : 
-                                  (selectedTrip.orderStatuses?.[order.id] === 'delivered' ? '#22c55e' : '#8b5cf6'),
-                                fillOpacity: 1,
-                                strokeColor: 'white',
-                                strokeWeight: 2
-                              }}
-                              onClick={() => setExpandedOrder(order.id)}
-                            />
-                          )
-                        ))}
-
-                        {/* Route */}
-                        {directions && (
-                          <DirectionsRenderer
-                            directions={directions}
-                            options={{
-                              suppressMarkers: true,
-                              polylineOptions: {
-                                strokeColor: '#8b5cf6',
-                                strokeWeight: 4,
-                                strokeOpacity: 0.8
-                              }
-                            }}
-                          />
-                        )}
-                      </GoogleMap>
-                    ) : (
-                      <div className="h-[400px] flex items-center justify-center bg-gray-100 rounded">
-                        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Button 
-                  className="w-full mt-4 bg-green-600 hover:bg-green-700"
-                  onClick={openInNavigator}
-                >
-                  <Navigation className="h-4 w-4 mr-2" />
-                  Открыть маршрут в навигаторе
-                </Button>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Compact list view (like print) */}
+          {/* Map with route - ALWAYS VISIBLE */}
           <div className="p-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Краткий список
+                  <MapIcon className="h-4 w-4" />
+                  Маршрут
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y text-xs">
-                  {selectedTrip.orders?.map((order, index) => {
-                    const isDelivered = selectedTrip.orderStatuses?.[order.id] === 'delivered';
-                    return (
-                      <div 
-                        key={order.id} 
-                        className={`p-2 flex gap-2 ${isDelivered ? 'bg-green-50' : ''} ${order.isImportant ? 'bg-orange-50' : ''}`}
-                      >
-                        <span className="font-bold text-purple-600 w-5">{index + 1}.</span>
-                        <div className="flex-1 min-w-0">
-                          <span className="font-medium">{order.fullName}</span>
-                          {order.isImportant && <span className="ml-1">⚠️</span>}
-                          <span className="text-muted-foreground"> • {order.phoneNumber}</span>
-                          <p className="text-muted-foreground truncate">{order.fullAddress}</p>
-                        </div>
-                        {isDelivered && <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />}
-                      </div>
-                    );
-                  })}
+              <CardContent className="p-2">
+                {isLoaded ? (
+                  <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    center={
+                      selectedTrip.orders?.[0]?.lat 
+                        ? { lat: selectedTrip.orders[0].lat, lng: selectedTrip.orders[0].lng }
+                        : defaultCenter
+                    }
+                    zoom={10}
+                  >
+                    {/* Order markers with numbers */}
+                    {selectedTrip.orders?.map((order, index) => (
+                      order.lat && order.lng && (
+                        <Marker
+                          key={order.id}
+                          position={{ lat: order.lat, lng: order.lng }}
+                          label={{
+                            text: String(index + 1),
+                            color: 'white',
+                            fontWeight: 'bold'
+                          }}
+                          icon={{
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: 15,
+                            fillColor: order.isImportant ? '#ef4444' : 
+                              (selectedTrip.orderStatuses?.[order.id] === 'delivered' ? '#22c55e' : 
+                               selectedTrip.orderStatuses?.[order.id] === 'delivering' ? '#3b82f6' : '#8b5cf6'),
+                            fillOpacity: 1,
+                            strokeColor: 'white',
+                            strokeWeight: 2
+                          }}
+                          onClick={() => setExpandedOrder(order.id)}
+                        />
+                      )
+                    ))}
+
+                    {/* Route line */}
+                    {directions && (
+                      <DirectionsRenderer
+                        directions={directions}
+                        options={{
+                          suppressMarkers: true,
+                          polylineOptions: {
+                            strokeColor: '#8b5cf6',
+                            strokeWeight: 4,
+                            strokeOpacity: 0.8
+                          }
+                        }}
+                      />
+                    )}
+                  </GoogleMap>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center bg-gray-100 rounded">
+                    <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Trip info card with buttons */}
+          <div className="px-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">{selectedTrip.name}</CardTitle>
+                  <Badge className={TRIP_STATUSES[selectedTrip.status]?.color || 'bg-gray-100'}>
+                    {TRIP_STATUSES[selectedTrip.status]?.label || selectedTrip.status}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {selectedTrip.departureDate && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>Дата: {new Date(selectedTrip.departureDate).toLocaleDateString('ru-RU')}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Package className="h-4 w-4" />
+                  <span>Заказов: {selectedTrip.orders?.length || 0}</span>
+                  {selectedTrip.orders && (
+                    <span className="text-green-600">
+                      (доставлено: {Object.values(selectedTrip.orderStatuses || {}).filter(s => s === 'delivered').length})
+                    </span>
+                  )}
+                </div>
+                
+                {/* Action buttons */}
+                <div className="flex gap-2 pt-2">
+                  {/* Start trip button - only if trip is planned */}
+                  {selectedTrip.status === 'planned' && (
+                    <Button 
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      onClick={handleStartTrip}
+                      disabled={startingTrip}
+                      data-testid="start-trip-btn"
+                    >
+                      {startingTrip ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Play className="h-4 w-4 mr-2" />
+                      )}
+                      В путь
+                    </Button>
+                  )}
+                  
+                  <Button 
+                    className={`${selectedTrip.status === 'planned' ? '' : 'flex-1'} bg-green-600 hover:bg-green-700`}
+                    onClick={openFullRouteInNavigator}
+                    data-testid="open-route-btn"
+                  >
+                    <Navigation className="h-4 w-4 mr-2" />
+                    Открыть маршрут
+                  </Button>
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Orders list */}
+          <div className="p-4 space-y-3">
+            <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
+              <List className="h-4 w-4" />
+              Заказы ({selectedTrip.orders?.length || 0})
+            </h3>
+            
+            {selectedTrip.orders?.map((order, index) => {
+              const orderStatus = selectedTrip.orderStatuses?.[order.id] || 'pending';
+              const statusInfo = ORDER_STATUSES[orderStatus] || ORDER_STATUSES.pending;
+              const isExpanded = expandedOrder === order.id;
+              const isConfirming = confirmingDelivery === order.id;
+              const isDelivered = orderStatus === 'delivered';
+
+              return (
+                <Card 
+                  key={order.id} 
+                  className={`transition-all ${order.isImportant ? 'border-orange-300 bg-orange-50' : ''} ${isDelivered ? 'opacity-70' : ''}`}
+                  data-testid={`order-card-${order.id}`}
+                >
+                  <CardContent className="p-3">
+                    {/* Order header */}
+                    <div 
+                      className="flex items-start gap-3 cursor-pointer"
+                      onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
+                    >
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm flex-shrink-0 ${
+                        isDelivered ? 'bg-green-100 text-green-700' : 
+                        orderStatus === 'delivering' ? 'bg-blue-100 text-blue-700' : 
+                        'bg-purple-100 text-purple-700'
+                      }`}>
+                        {isDelivered ? '✓' : index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium truncate">{order.fullName || 'Без имени'}</span>
+                          {order.isImportant && <span className="text-orange-600">⚠️</span>}
+                          <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{order.fullAddress}</p>
+                      </div>
+                      {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+                    </div>
+
+                    {/* Expanded details */}
+                    {isExpanded && (
+                      <div className="mt-4 pt-4 border-t space-y-3">
+                        {order.phoneNumber && (
+                          <a 
+                            href={`tel:${order.phoneNumber}`}
+                            className="flex items-center gap-2 text-blue-600 hover:underline"
+                          >
+                            <Phone className="h-4 w-4" />
+                            {order.phoneNumber}
+                          </a>
+                        )}
+                        
+                        <div className="flex items-start gap-2 text-sm">
+                          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <span>{order.fullAddress}</span>
+                        </div>
+                        
+                        {order.orderContents && (
+                          <div className="flex items-start gap-2">
+                            <Package className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <span className="text-sm">{order.orderContents}</span>
+                          </div>
+                        )}
+
+                        {order.orderComment && (
+                          <div className="flex items-start gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <span className="text-sm text-muted-foreground">{order.orderComment}</span>
+                          </div>
+                        )}
+
+                        {order.debtSum && (
+                          <div className="flex items-center gap-2 bg-yellow-50 p-2 rounded">
+                            <DollarSign className="h-4 w-4 text-yellow-600" />
+                            <span className="text-sm font-medium">К оплате: {order.debtSum}</span>
+                          </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2 pt-2">
+                          {order.lat && order.lng && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openOrderInNavigator(order);
+                              }}
+                              data-testid={`navigate-to-order-${order.id}`}
+                            >
+                              <Navigation className="h-4 w-4 mr-1" />
+                              Навигация
+                            </Button>
+                          )}
+                          
+                          {!isDelivered && (
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmingDelivery(order.id);
+                                setDeliveryForm({
+                                  receivedAmount: order.debtSum || '',
+                                  notes: '',
+                                  photo: null
+                                });
+                              }}
+                              data-testid={`confirm-delivery-${order.id}`}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Доставлено
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Delivery confirmation form */}
+                        {isConfirming && (
+                          <div className="mt-4 p-3 bg-gray-50 rounded-lg space-y-3">
+                            <h4 className="font-medium">Подтверждение доставки</h4>
+                            
+                            <div className="space-y-2">
+                              <Label>Полученная сумма</Label>
+                              <Input
+                                type="text"
+                                placeholder={order.debtSum ? `Ожидается: ${order.debtSum}` : 'Введите сумму'}
+                                value={deliveryForm.receivedAmount}
+                                onChange={(e) => setDeliveryForm(prev => ({ ...prev, receivedAmount: e.target.value }))}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Фото акта</Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  onChange={handlePhotoChange}
+                                  className="flex-1"
+                                />
+                                {deliveryForm.photo && (
+                                  <Badge variant="secondary">
+                                    <Camera className="h-3 w-3 mr-1" />
+                                    Выбрано
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <Button
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                disabled={uploading}
+                                onClick={() => handleConfirmDelivery(order.id)}
+                              >
+                                {uploading ? (
+                                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                )}
+                                Подтвердить
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => setConfirmingDelivery(null)}
+                              >
+                                Отмена
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Already delivered info */}
+                        {isDelivered && order.deliveryConfirmedAt && (
+                          <div className="mt-2 p-2 bg-green-50 rounded text-sm text-green-700">
+                            <CheckCircle className="h-4 w-4 inline mr-1" />
+                            Доставлено {new Date(order.deliveryConfirmedAt).toLocaleString('ru-RU')}
+                            {order.receivedAmount && ` • Получено: ${order.receivedAmount}`}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </>
       )}
