@@ -158,7 +158,8 @@ export const LogisticsPage = () => {
     setSearchQuery,
     getFilteredOrders,
     getFilteredTrips,
-    getSearchResults
+    getSearchResults,
+    API_URL
   } = useLogistics();
 
   // Get search results for display
