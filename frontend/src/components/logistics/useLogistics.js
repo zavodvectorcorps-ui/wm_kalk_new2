@@ -1762,6 +1762,14 @@ export const useLogistics = () => {
     tripStatusFilter,
     setTripStatusFilter,
     
+    // Search
+    searchQuery,
+    setSearchQuery,
+    searchOrders,
+    getFilteredOrders,
+    getFilteredTrips,
+    getSearchResults,
+    
     // Drivers
     drivers,
     showDriversModal,
