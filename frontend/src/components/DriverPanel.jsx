@@ -176,7 +176,7 @@ export const DriverPanel = () => {
 
     setUploading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       
       // If there's a photo, upload it
       if (deliveryForm.photo) {
