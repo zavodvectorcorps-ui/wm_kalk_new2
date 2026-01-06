@@ -279,18 +279,20 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     token = settings.get("amocrm_token", "")
     
     if not domain or not token:
-        logger.warning("amoCRM domain or token not set")
+        logger.warning(f"amoCRM domain or token not set. Domain: '{domain}', Token: {'SET' if token else 'NOT SET'}")
         return
     
-    # Get field IDs for trip data
-    trip_name_field_id = settings.get("trip_name_field_id")
+    # Get field IDs for trip data (try both naming conventions)
+    trip_name_field_id = settings.get("trip_number_field_id") or settings.get("trip_name_field_id")
     trip_driver_field_id = settings.get("trip_driver_field_id")
     trip_departure_field_id = settings.get("trip_departure_field_id")
     trip_order_status_field_id = settings.get("trip_order_status_field_id")
     
+    logger.info(f"Trip field IDs - name: {trip_name_field_id}, driver: {trip_driver_field_id}, departure: {trip_departure_field_id}, status: {trip_order_status_field_id}")
+    
     custom_fields_values = []
     
-    # Clear trip name field
+    # Clear trip name/number field
     if trip_name_field_id:
         try:
             custom_fields_values.append({
