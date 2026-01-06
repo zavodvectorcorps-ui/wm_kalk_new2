@@ -35,7 +35,11 @@ export const OrderCard = ({
   return (
     <div
       className={`p-3 border rounded-lg transition-colors ${
-        isSelected ? 'bg-blue-50 border-blue-300' : 'hover:bg-muted/50'
+        order.isImportant 
+          ? 'bg-orange-50 border-orange-300' 
+          : isSelected 
+            ? 'bg-blue-50 border-blue-300' 
+            : 'hover:bg-muted/50'
       }`}
       data-testid={`order-card-${order.id}`}
     >
