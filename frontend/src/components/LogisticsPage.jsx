@@ -1321,13 +1321,14 @@ const TripDetailsCard = ({
                 const isExpanded = expandedTripOrder === orderId;
                 
                 return order ? (
-                  <div key={orderId} className={`p-2 bg-muted rounded transition-all text-xs ${draggedOrderIndex === index ? 'opacity-50 scale-95' : ''}`} draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => handleDragOver(e, index)} onDrop={(e) => handleDrop(e, index)} onDragEnd={handleDragEnd}>
+                  <div key={orderId} className={`p-2 rounded transition-all text-xs ${draggedOrderIndex === index ? 'opacity-50 scale-95' : ''} ${order.isImportant ? 'bg-orange-100 border border-orange-300' : 'bg-muted'}`} draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => handleDragOver(e, index)} onDrop={(e) => handleDrop(e, index)} onDragEnd={handleDragEnd}>
                     <div className="flex items-center gap-1 cursor-grab active:cursor-grabbing">
                       <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                       <span className="font-bold w-5 text-center text-purple-600">{index + 1}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-medium truncate">{order.fullName || order.customerName}</p>
+                          {order.isImportant && <span className="text-orange-600 font-bold text-[10px]">⚠️</span>}
                           {order.amocrm_link && <a href={order.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-3 w-3" /></a>}
                         </div>
                         <p className="text-muted-foreground truncate">{order.fullAddress || order.address}</p>
