@@ -273,18 +273,22 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
         status_color = cfg["color"]
         status_bg = cfg["bg"]
     
-    # Base URL for calculators - read from frontend .env or use default
-    base_url = os.environ.get("APP_BASE_URL", "")
-    if not base_url:
-        # Try to read from frontend .env
-        try:
-            with open("/app/frontend/.env", "r") as f:
-                for line in f:
-                    if line.startswith("REACT_APP_BACKEND_URL="):
-                        base_url = line.strip().split("=", 1)[1]
-                        break
-        except:
-            pass
+    # Base URL for calculators - use APP_DOMAIN or APP_BASE_URL
+    app_domain = os.environ.get("APP_DOMAIN", "")
+    if app_domain:
+        base_url = f"https://{app_domain}"
+    else:
+        base_url = os.environ.get("APP_BASE_URL", "")
+        if not base_url:
+            # Fallback: try to read from frontend .env
+            try:
+                with open("/app/frontend/.env", "r") as f:
+                    for line in f:
+                        if line.startswith("REACT_APP_BACKEND_URL="):
+                            base_url = line.strip().split("=", 1)[1]
+                            break
+            except:
+                pass
     
     # Theme colors
     is_dark = theme == "dark"
