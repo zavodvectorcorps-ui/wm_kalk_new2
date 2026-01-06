@@ -251,30 +251,69 @@ export const LogisticsPage = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                value={newDriverName}
-                onChange={(e) => setNewDriverName(e.target.value)}
-                placeholder="Имя водителя"
-                onKeyPress={(e) => e.key === 'Enter' && addDriver()}
-              />
-              <Button onClick={addDriver}>
-                <Plus className="h-4 w-4 mr-2" />
-                Добавить
-              </Button>
+            <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+              <h4 className="font-medium text-sm">Добавить водителя</h4>
+              <div className="flex gap-2">
+                <Input
+                  value={newDriverName}
+                  onChange={(e) => setNewDriverName(e.target.value)}
+                  placeholder="Имя водителя"
+                  onKeyPress={(e) => e.key === 'Enter' && addDriver()}
+                />
+              </div>
+              <div className="flex gap-2">
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
+                  value={newDriverUserId}
+                  onChange={(e) => setNewDriverUserId(e.target.value)}
+                >
+                  <option value="">-- Связать с учёткой (опционально) --</option>
+                  {driverUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.username}</option>
+                  ))}
+                </select>
+                <Button onClick={addDriver}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить
+                </Button>
+              </div>
+              {driverUsers.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Нет пользователей с ролью "водитель". Создайте пользователя с ролью driver.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              {drivers.map(driver => (
-                <div key={driver.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                  <span className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    {driver.name}
-                  </span>
-                  <Button size="sm" variant="ghost" onClick={() => removeDriver(driver.id)}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              ))}
+              {drivers.map(driver => {
+                const linkedUser = driverUsers.find(u => u.id === driver.userId);
+                return (
+                  <div key={driver.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                    <div className="flex-1">
+                      <span className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        {driver.name}
+                      </span>
+                      {linkedUser ? (
+                        <span className="text-xs text-green-600 ml-6">✓ Связан: {linkedUser.username}</span>
+                      ) : (
+                        <select
+                          className="text-xs ml-6 mt-1 border rounded px-1 py-0.5"
+                          value={driver.userId || ''}
+                          onChange={(e) => updateDriver(driver.id, { userId: e.target.value || null })}
+                        >
+                          <option value="">Не связан</option>
+                          {driverUsers.map(u => (
+                            <option key={u.id} value={u.id}>{u.username}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => removeDriver(driver.id)}>
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                );
+              })}
               {drivers.length === 0 && (
                 <p className="text-center text-muted-foreground py-4">Нет водителей</p>
               )}
