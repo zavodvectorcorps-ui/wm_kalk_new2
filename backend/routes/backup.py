@@ -431,6 +431,54 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "webhook_logs", "count": len(webhook_logs)})
                 logger.info(f"Exported {len(webhook_logs)} webhook logs")
             
+            # Export notification subscriptions (push notifications)
+            notification_subscriptions = await db.notification_subscriptions.find({}).to_list(10000)
+            if notification_subscriptions:
+                notification_subscriptions = [serialize_for_json(n) for n in notification_subscriptions]
+                zip_file.writestr("notification_subscriptions.json", json.dumps(notification_subscriptions, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "notification_subscriptions", "count": len(notification_subscriptions)})
+                logger.info(f"Exported {len(notification_subscriptions)} notification subscriptions")
+            
+            # Export notification settings (Telegram bot, etc.)
+            notification_settings = await db.notification_settings.find({}).to_list(100)
+            if notification_settings:
+                notification_settings = [serialize_for_json(n) for n in notification_settings]
+                zip_file.writestr("notification_settings.json", json.dumps(notification_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "notification_settings", "count": len(notification_settings)})
+                logger.info(f"Exported {len(notification_settings)} notification settings")
+            
+            # Export telegram link codes (for driver Telegram linking)
+            telegram_link_codes = await db.telegram_link_codes.find({}).to_list(1000)
+            if telegram_link_codes:
+                telegram_link_codes = [serialize_for_json(t) for t in telegram_link_codes]
+                zip_file.writestr("telegram_link_codes.json", json.dumps(telegram_link_codes, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "telegram_link_codes", "count": len(telegram_link_codes)})
+                logger.info(f"Exported {len(telegram_link_codes)} telegram link codes")
+            
+            # Export delivery photos
+            delivery_photos = await db.delivery_photos.find({}).to_list(10000)
+            if delivery_photos:
+                delivery_photos = [serialize_for_json(p) for p in delivery_photos]
+                zip_file.writestr("delivery_photos.json", json.dumps(delivery_photos, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "delivery_photos", "count": len(delivery_photos)})
+                logger.info(f"Exported {len(delivery_photos)} delivery photos")
+            
+            # Export amoCRM sync logs (for debugging)
+            amocrm_sync_logs = await db.amocrm_sync_logs.find({}).to_list(10000)
+            if amocrm_sync_logs:
+                amocrm_sync_logs = [serialize_for_json(l) for l in amocrm_sync_logs]
+                zip_file.writestr("amocrm_sync_logs.json", json.dumps(amocrm_sync_logs, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "amocrm_sync_logs", "count": len(amocrm_sync_logs)})
+                logger.info(f"Exported {len(amocrm_sync_logs)} amoCRM sync logs")
+            
+            # Export pending notifications
+            pending_notifications = await db.pending_notifications.find({}).to_list(10000)
+            if pending_notifications:
+                pending_notifications = [serialize_for_json(n) for n in pending_notifications]
+                zip_file.writestr("pending_notifications.json", json.dumps(pending_notifications, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "pending_notifications", "count": len(pending_notifications)})
+                logger.info(f"Exported {len(pending_notifications)} pending notifications")
+            
             # Export Telegram configuration from .env
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
