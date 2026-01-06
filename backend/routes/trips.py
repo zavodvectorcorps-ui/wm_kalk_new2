@@ -288,6 +288,13 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
     
     if not domain or not token:
         logger.warning(f"amoCRM credentials not configured - domain: '{domain}', token: {'present' if token else 'missing'}")
+        log_sync_operation("sync_trip_orders", {
+            "trip_id": trip.get("id"),
+            "status": "skipped",
+            "reason": "credentials_missing",
+            "domain": domain,
+            "token_present": bool(token)
+        })
         return
     
     trip_number_field_id = settings.get("trip_number_field_id", "")
@@ -300,6 +307,11 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
     # Check if any trip fields are configured
     if not any([trip_number_field_id, trip_driver_field_id, trip_departure_field_id, trip_order_status_field_id]):
         logger.warning("No trip field IDs configured in amoCRM settings - skipping sync")
+        log_sync_operation("sync_trip_orders", {
+            "trip_id": trip.get("id"),
+            "status": "skipped",
+            "reason": "no_field_ids_configured"
+        })
         return
     
     # Status labels
