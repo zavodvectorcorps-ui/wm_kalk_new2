@@ -1337,6 +1337,149 @@ export const useLogistics = () => {
     });
   };
 
+  // Print trip orders
+  const printTripOrders = (trip, sectionData) => {
+    if (!trip || !trip.orderIds || trip.orderIds.length === 0) {
+      toast.error('Нет заказов для печати');
+      return;
+    }
+
+    const orders = trip.orderIds
+      .map(orderId => sectionData[trip.section]?.orders.find(o => o.id === orderId))
+      .filter(Boolean);
+
+    if (orders.length === 0) {
+      toast.error('Заказы не найдены');
+      return;
+    }
+
+    // Create print window content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Рейс: ${trip.name || 'Без названия'}</title>
+        <style>
+          * { box-sizing: border-box; }
+          body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            max-width: 100%;
+            font-size: 12px;
+          }
+          h1 { 
+            font-size: 18px; 
+            margin-bottom: 10px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+          }
+          .trip-info {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+          }
+          .trip-info p {
+            margin: 3px 0;
+          }
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 15px;
+          }
+          th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left;
+            vertical-align: top;
+          }
+          th { 
+            background-color: #f0f0f0; 
+            font-weight: bold;
+          }
+          tr:nth-child(even) { background-color: #fafafa; }
+          .order-num { 
+            font-weight: bold; 
+            text-align: center;
+            width: 30px;
+          }
+          .important { 
+            background-color: #fff3cd !important;
+            font-weight: bold;
+          }
+          .important td:first-child::before {
+            content: "⚠️ ";
+          }
+          .phone { white-space: nowrap; }
+          .contents { 
+            font-size: 11px;
+            max-width: 200px;
+          }
+          .address {
+            max-width: 250px;
+          }
+          @media print {
+            body { padding: 10px; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>🚛 Рейс: ${trip.name || 'Без названия'}</h1>
+        <div class="trip-info">
+          <p><strong>Водитель:</strong> ${trip.driverName || 'Не назначен'}</p>
+          <p><strong>Дата отправки:</strong> ${trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('ru-RU') : 'Не указана'}</p>
+          <p><strong>Всего заказов:</strong> ${orders.length}</p>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th class="order-num">№</th>
+              <th>Клиент</th>
+              <th>Телефон</th>
+              <th class="address">Адрес</th>
+              <th class="contents">Состав заказа</th>
+              <th>Сумма</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orders.map((order, index) => `
+              <tr class="${order.isImportant ? 'important' : ''}">
+                <td class="order-num">${index + 1}</td>
+                <td>${order.fullName || order.customerName || '-'}</td>
+                <td class="phone">${order.phoneNumber || order.phone || '-'}</td>
+                <td class="address">${order.fullAddress || order.address || '-'}</td>
+                <td class="contents">${order.orderContents || order.orderDetails || '-'}</td>
+                <td>${order.dealSum || order.orderSum || '-'}</td>
+                <td>${order.orderComment || order.notes || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <p style="margin-top: 20px; font-size: 10px; color: #666;">
+          Распечатано: ${new Date().toLocaleString('ru-RU')}
+        </p>
+        
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+    } else {
+      toast.error('Не удалось открыть окно печати. Проверьте блокировщик всплывающих окон.');
+    }
+  };
+
   return {
     // State
     isLoaded,
