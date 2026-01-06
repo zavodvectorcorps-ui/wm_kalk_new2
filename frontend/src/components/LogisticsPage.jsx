@@ -1121,7 +1121,7 @@ const TripsView = ({
   syncTripToAmocrm, syncingToAmocrm, deleteTrip,
   optimizeTripRoute, updateOrderStatusInTrip, removeOrderFromTrip, moveOrderUp, moveOrderDown,
   handleDragStart, handleDragOver, handleDrop, handleDragEnd, setActiveInnerTab,
-  formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES
+  formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders
 }) => {
   const filteredTrips = trips.filter(t => t.section === sectionKey && (t.status || 'planned') === tripStatusFilter);
 
