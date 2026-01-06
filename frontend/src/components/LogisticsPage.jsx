@@ -695,6 +695,8 @@ export const LogisticsPage = () => {
                 printTripOrders={printTripOrders}
                 getFilteredTrips={getFilteredTrips}
                 searchQuery={searchQuery}
+                amocrmPipelines={amocrmPipelines}
+                API_URL={API_URL}
               />
             )}
           </TabsContent>
