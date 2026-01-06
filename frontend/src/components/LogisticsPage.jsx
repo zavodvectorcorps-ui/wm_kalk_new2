@@ -1397,9 +1397,14 @@ const TripsView = ({
   syncTripToAmocrm, syncingToAmocrm, deleteTrip,
   optimizeTripRoute, updateOrderStatusInTrip, removeOrderFromTrip, moveOrderUp, moveOrderDown,
   handleDragStart, handleDragOver, handleDrop, handleDragEnd, setActiveInnerTab,
-  formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders
+  formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders,
+  getFilteredTrips, searchQuery
 }) => {
-  const filteredTrips = trips.filter(t => t.section === sectionKey && (t.status || 'planned') === tripStatusFilter);
+  // Apply status filter first
+  const statusFilteredTrips = trips.filter(t => t.section === sectionKey && (t.status || 'planned') === tripStatusFilter);
+  // Then apply search filter if provided
+  const filteredTrips = getFilteredTrips ? getFilteredTrips(statusFilteredTrips) : statusFilteredTrips;
+  const isSearching = searchQuery && searchQuery.trim().length > 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -1412,7 +1417,9 @@ const TripsView = ({
                 <Route className="h-4 w-4 text-purple-600" />
                 Рейсы
               </CardTitle>
-              <Badge variant="secondary" className="bg-purple-100 text-xs">{trips.filter(t => t.section === sectionKey).length}</Badge>
+              <Badge variant="secondary" className="bg-purple-100 text-xs">
+                {isSearching ? `${filteredTrips.length} из ` : ''}{trips.filter(t => t.section === sectionKey).length}
+              </Badge>
             </div>
             <div className="flex gap-1 mt-2 flex-wrap">
               {Object.entries(TRIP_STATUSES).map(([statusKey, statusInfo]) => {
@@ -1429,8 +1436,13 @@ const TripsView = ({
           <CardContent className="p-3">
             {filteredTrips.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-muted-foreground text-sm mb-3">Нет рейсов в категории &quot;{TRIP_STATUSES[tripStatusFilter]?.label}&quot;</p>
-                {tripStatusFilter === 'planned' && <Button size="sm" variant="outline" onClick={() => setActiveInnerTab('orders')}><Package className="h-3 w-3 mr-1" />Создать рейс</Button>}
+                <p className="text-muted-foreground text-sm mb-3">
+                  {isSearching 
+                    ? 'Ничего не найдено' 
+                    : `Нет рейсов в категории "${TRIP_STATUSES[tripStatusFilter]?.label}"`
+                  }
+                </p>
+                {tripStatusFilter === 'planned' && !isSearching && <Button size="sm" variant="outline" onClick={() => setActiveInnerTab('orders')}><Package className="h-3 w-3 mr-1" />Создать рейс</Button>}
               </div>
             ) : (
               <div className="space-y-2 max-h-[500px] overflow-y-auto">
