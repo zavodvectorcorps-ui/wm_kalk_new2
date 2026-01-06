@@ -28,6 +28,15 @@ export const LoginPage = () => {
       loading: 'Вход...',
       error: 'Неверное имя пользователя или пароль',
       success: 'Вход выполнен успешно!',
+      installApp: 'Установить как приложение',
+      installInstructions: {
+        ios: 'iPhone/iPad: нажмите',
+        iosShare: '(Поделиться)',
+        iosThen: '→ «На экран Домой»',
+        android: 'Android: нажмите',
+        androidMenu: '(меню)',
+        androidThen: '→ «Добавить на главный экран»'
+      }
     },
     pl: {
       title: 'Logowanie',
@@ -40,6 +49,15 @@ export const LoginPage = () => {
       loading: 'Logowanie...',
       error: 'Nieprawidłowa nazwa użytkownika lub hasło',
       success: 'Zalogowano pomyślnie!',
+      installApp: 'Zainstaluj jako aplikację',
+      installInstructions: {
+        ios: 'iPhone/iPad: naciśnij',
+        iosShare: '(Udostępnij)',
+        iosThen: '→ «Dodaj do ekranu początkowego»',
+        android: 'Android: naciśnij',
+        androidMenu: '(menu)',
+        androidThen: '→ «Dodaj do ekranu głównego»'
+      }
     },
   };
 
