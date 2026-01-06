@@ -1116,7 +1116,8 @@ const OrdersMapCard = ({
 const TripsView = ({
   sectionKey, currentSection, trips, selectedTrip, setSelectedTrip, tripStatusFilter, setTripStatusFilter,
   sectionData, drivers, isLoaded, warehouseCoords, warehouseAddress, tripDirections, tripRouteInfo,
-  buildingTripRoute, optimizingRoute, draggedOrderIndex, tripMapRef, updateTrip, updateTripStatus, deleteTrip,
+  buildingTripRoute, optimizingRoute, draggedOrderIndex, tripMapRef, updateTrip, updateTripStatus, 
+  syncTripToAmocrm, syncingToAmocrm, deleteTrip,
   optimizeTripRoute, updateOrderStatusInTrip, removeOrderFromTrip, moveOrderUp, moveOrderDown,
   handleDragStart, handleDragOver, handleDrop, handleDragEnd, setActiveInnerTab,
   formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES
