@@ -184,6 +184,104 @@ export const OrderCard = ({
           {/* Expanded details */}
           {isExpanded && (
             <div className="mt-3 pt-3 border-t space-y-3 text-sm">
+              {/* Editable fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Client name */}
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    Имя клиента
+                  </label>
+                  <Input
+                    defaultValue={order.clientName || order.fullName || ''}
+                    placeholder="Введите имя клиента"
+                    className="h-8 text-sm"
+                    onBlur={(e) => {
+                      const newValue = e.target.value;
+                      if (newValue !== (order.clientName || order.fullName || '')) {
+                        onUpdateOrderField(order.id, { clientName: newValue, fullName: newValue });
+                      }
+                    }}
+                  />
+                </div>
+                
+                {/* Phone */}
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
+                    Телефон
+                  </label>
+                  <Input
+                    defaultValue={order.phoneNumber || order.phone || ''}
+                    placeholder="Введите телефон"
+                    className="h-8 text-sm"
+                    onBlur={(e) => {
+                      const newValue = e.target.value;
+                      if (newValue !== (order.phoneNumber || order.phone || '')) {
+                        onUpdateOrderField(order.id, { phoneNumber: newValue, phone: newValue });
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* Order contents - full width */}
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Package className="h-3 w-3" />
+                  Состав заказа
+                </label>
+                <textarea
+                  defaultValue={order.orderContents || order.notes || ''}
+                  placeholder="Введите состав заказа"
+                  className="w-full min-h-[60px] px-3 py-2 text-sm border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onBlur={(e) => {
+                    const newValue = e.target.value;
+                    if (newValue !== (order.orderContents || order.notes || '')) {
+                      onUpdateOrderField(order.id, { orderContents: newValue, notes: newValue });
+                    }
+                  }}
+                />
+              </div>
+              
+              {/* Financial fields */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="h-3 w-3" />
+                    Сумма заказа
+                  </label>
+                  <Input
+                    defaultValue={order.dealSum || order.totalPrice || ''}
+                    placeholder="0"
+                    className="h-8 text-sm"
+                    onBlur={(e) => {
+                      const newValue = e.target.value;
+                      if (newValue !== (order.dealSum || order.totalPrice || '')) {
+                        onUpdateOrderField(order.id, { dealSum: newValue, totalPrice: newValue });
+                      }
+                    }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground flex items-center gap-1 text-red-600">
+                    <DollarSign className="h-3 w-3" />
+                    Задолженность
+                  </label>
+                  <Input
+                    defaultValue={order.debtSum || order.amountDue || ''}
+                    placeholder="0"
+                    className="h-8 text-sm border-red-200 focus:ring-red-500"
+                    onBlur={(e) => {
+                      const newValue = e.target.value;
+                      if (newValue !== (order.debtSum || order.amountDue || '')) {
+                        onUpdateOrderField(order.id, { debtSum: newValue, amountDue: newValue });
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
               {/* amoCRM data */}
               {order.amocrm_id && (
                 <div className="bg-purple-50 rounded-lg p-3 space-y-2">
@@ -218,24 +316,6 @@ export const OrderCard = ({
                 </div>
               )}
               
-              {/* Phone */}
-              {order.phoneNumber && (
-                <p className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <a href={`tel:${order.phoneNumber}`} className="text-blue-600 hover:underline">
-                    {order.phoneNumber}
-                  </a>
-                </p>
-              )}
-              
-              {/* Notes */}
-              {order.notes && (
-                <p className="flex items-start gap-2">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <span className="whitespace-pre-wrap">{order.notes}</span>
-                </p>
-              )}
-              
               {/* Delivery status controls */}
               <div className="pt-2 border-t space-y-2">
                 <div className="flex items-center gap-2">
@@ -265,7 +345,7 @@ export const OrderCard = ({
                 </Select>
                 
                 <Input
-                  placeholder="Дата/комментарий доставки"
+                  placeholder="Комментарий к доставке"
                   defaultValue={order.deliveryComment || ''}
                   className="h-8 text-xs"
                   onBlur={(e) => {
