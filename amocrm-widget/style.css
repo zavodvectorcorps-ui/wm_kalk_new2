@@ -55,6 +55,11 @@
   border-radius: 50%;
 }
 
+.wm-trip-row .wm-no-trip {
+  color: #999;
+  font-style: italic;
+}
+
 /* Trip info */
 .wm-trip-info {
   margin-top: 10px;
