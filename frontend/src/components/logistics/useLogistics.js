@@ -36,6 +36,8 @@ export const useLogistics = () => {
   const [addingToTrip, setAddingToTrip] = useState(false);  // Loading state
   const [newTripName, setNewTripName] = useState('');
   const [newTripDriver, setNewTripDriver] = useState('');
+  const [newTripPipelineId, setNewTripPipelineId] = useState('');  // amoCRM pipeline for trip
+  const [newTripStatusId, setNewTripStatusId] = useState('');  // amoCRM stage/status for trip
   const [creatingTrip, setCreatingTrip] = useState(false);
   const [optimizingRoute, setOptimizingRoute] = useState(false);
   const [draggedOrderIndex, setDraggedOrderIndex] = useState(null);
