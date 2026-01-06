@@ -1894,7 +1894,8 @@ export const useLogistics = () => {
     selectedStatus,
     setSelectedStatus,
     fetchAmocrmStats,
-    getAmocrmComparison
+    getAmocrmComparison,
+    API_URL
   };
 };
 
