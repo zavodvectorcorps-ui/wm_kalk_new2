@@ -78,11 +78,25 @@ export const IntegrationsPage = () => {
   const [copiedUrl, setCopiedUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('settings');
   const [activeMappingSection, setActiveMappingSection] = useState('greenhouse');
+  const [drivers, setDrivers] = useState([]);
 
   useEffect(() => {
     fetchSettings();
     fetchLogs();
+    fetchDrivers();
   }, []);
+
+  const fetchDrivers = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/drivers`);
+      if (res.ok) {
+        const data = await res.json();
+        setDrivers(data);
+      }
+    } catch (e) {
+      console.error('Failed to load drivers:', e);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
