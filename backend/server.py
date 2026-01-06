@@ -19,6 +19,7 @@ from routes.greenhouse import router as greenhouse_router
 from routes.amocrm import router as amocrm_router
 from routes.trips import router as trips_router
 from routes.drivers import router as drivers_router
+from routes.driver_panel import router as driver_panel_router
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +50,7 @@ app.include_router(greenhouse_router)
 app.include_router(amocrm_router)
 app.include_router(trips_router)
 app.include_router(drivers_router)
+app.include_router(driver_panel_router)
 
 # Initialize backup database reference
 from database import db
