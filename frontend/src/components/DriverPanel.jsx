@@ -527,57 +527,23 @@ export const DriverPanel = ({ onLogout }) => {
                 </div>
               )}
               
-              {!buildingRoute && !directions && selectedTrip.orders?.some(o => o.lat && o.lng) && (
+              {!buildingRoute && !directions && selectedTrip.orders?.length > 0 && (
                 <div className="mt-2 text-center text-sm text-yellow-600">
-                  Маршрут не построен. Проверьте координаты адресов.
+                  {selectedTrip.orders?.some(o => o.lat && o.lng) 
+                    ? 'Маршрут не построен. Проверьте координаты адресов.'
+                    : `Нет координат. У ${selectedTrip.orders?.length} заказов нет lat/lng.`
+                  }
                 </div>
               )}
-            </TabsContent>
-
-            {/* List Tab - Brief list only */}
-            <TabsContent value="list" className="flex-1 overflow-auto p-4 pt-2 m-0">
-              <div className="space-y-2">
-                {selectedTrip.orders?.map((order, index) => {
-                  const orderStatus = selectedTrip.orderStatuses?.[order.id] || 'pending';
-                  const isDelivered = orderStatus === 'delivered';
-                  return (
-                    <div 
-                      key={order.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                        order.isImportant ? 'bg-orange-50 border border-orange-200' : 'bg-white border'
-                      } ${isDelivered ? 'opacity-60' : 'hover:bg-gray-50'}`}
-                      onClick={() => {
-                        setExpandedOrder(order.id);
-                        setActiveTab('orders');
-                      }}
-                    >
-                      <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold flex-shrink-0 ${
-                        isDelivered ? 'bg-green-100 text-green-700' : 
-                        orderStatus === 'delivering' ? 'bg-blue-100 text-blue-700' : 
-                        'bg-purple-100 text-purple-700'
-                      }`}>
-                        {isDelivered ? '✓' : index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium truncate">{order.fullName}</span>
-                          {order.isImportant && <span className="text-orange-500">⚠️</span>}
-                        </div>
-                        <div className="text-sm text-muted-foreground truncate">{order.fullAddress}</div>
-                        {order.debtSum && (
-                          <div className="text-xs text-yellow-600 font-medium mt-1">К оплате: {order.debtSum}</div>
-                        )}
-                      </div>
-                      <Badge className={`text-xs flex-shrink-0 ${ORDER_STATUSES[orderStatus]?.color || 'bg-gray-100'}`}>
-                        {ORDER_STATUSES[orderStatus]?.label || orderStatus}
-                      </Badge>
-                    </div>
-                  );
-                })}
+              
+              {/* Debug info */}
+              <div className="mt-2 text-center text-xs text-muted-foreground">
+                Заказов: {selectedTrip.orders?.length || 0}, 
+                С координатами: {selectedTrip.orders?.filter(o => o.lat && o.lng).length || 0}
               </div>
             </TabsContent>
 
-            {/* Orders Tab */}
+            {/* Orders Tab - with phone and amount in collapsed view */}
             <TabsContent value="orders" className="flex-1 overflow-auto p-4 pt-2 m-0 space-y-3">
               {selectedTrip.orders?.map((order, index) => {
                 const orderStatus = selectedTrip.orderStatuses?.[order.id] || 'pending';
@@ -593,7 +559,7 @@ export const DriverPanel = ({ onLogout }) => {
                     data-testid={`order-card-${order.id}`}
                   >
                     <CardContent className="p-3">
-                      {/* Order header */}
+                      {/* Order header - shows phone and amount when collapsed */}
                       <div 
                         className="flex items-start gap-3 cursor-pointer"
                         onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
