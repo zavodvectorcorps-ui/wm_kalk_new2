@@ -110,12 +110,18 @@ async def get_trip_details(trip_id: str, current_user: dict = Depends(get_curren
     """Get detailed trip information including orders."""
     user_id = current_user.get("sub")
     
+    # Check if user is admin
+    user = db.users.find_one({"id": user_id}, {"_id": 0})
+    is_admin = user and user.get("role") == "admin"
+    
     # Find driver profile
     driver = drivers_collection.find_one({"userId": user_id}, {"_id": 0})
-    if not driver:
-        user = db.users.find_one({"id": user_id}, {"_id": 0})
-        if user:
-            driver = drivers_collection.find_one({"name": user.get("username")}, {"_id": 0})
+    if not driver and user:
+        driver = drivers_collection.find_one({"name": user.get("username")}, {"_id": 0})
+    
+    # For admins, create virtual driver if not linked
+    if is_admin and not driver:
+        driver = {"id": "admin", "name": user.get("username", "Admin"), "isAdmin": True}
     
     if not driver:
         raise HTTPException(status_code=403, detail="Водитель не найден")
@@ -125,11 +131,12 @@ async def get_trip_details(trip_id: str, current_user: dict = Depends(get_curren
     if not trip:
         raise HTTPException(status_code=404, detail="Рейс не найден")
     
-    # Verify this trip is assigned to this driver
-    driver_id = driver.get("id")
-    driver_name = driver.get("name")
-    if trip.get("driverId") != driver_id and trip.get("driverName") != driver_name:
-        raise HTTPException(status_code=403, detail="Этот рейс не назначен вам")
+    # Verify this trip is assigned to this driver (skip for admins)
+    if not is_admin:
+        driver_id = driver.get("id")
+        driver_name = driver.get("name")
+        if trip.get("driverId") != driver_id and trip.get("driverName") != driver_name:
+            raise HTTPException(status_code=403, detail="Этот рейс не назначен вам")
     
     # Get orders
     section = trip.get("section", "")
