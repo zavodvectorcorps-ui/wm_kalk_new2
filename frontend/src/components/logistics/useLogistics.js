@@ -78,6 +78,9 @@ export const useLogistics = () => {
   const [tripRouteInfo, setTripRouteInfo] = useState(null);
   const [buildingTripRoute, setBuildingTripRoute] = useState(false);
   
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  
   // amoCRM sync stats
   const [amocrmStats, setAmocrmStats] = useState(null);
   const [loadingAmocrmStats, setLoadingAmocrmStats] = useState(false);
