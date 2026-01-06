@@ -914,6 +914,39 @@ async def add_orders_to_trip(trip_id: str, order_ids: List[str]):
     return {"status": "ok", "added": order_ids}
 
 
+class MoveToAmoCRMRequest(BaseModel):
+    pipelineId: int
+    statusId: int
+
+
+@router.post("/{trip_id}/move-to-amocrm")
+async def move_trip_orders_to_amocrm(trip_id: str, request: MoveToAmoCRMRequest):
+    """Move all orders in a trip to a specific amoCRM pipeline stage."""
+    trip = trips_collection.find_one({"id": trip_id})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Рейс не найден")
+    
+    collection = get_section_collection(trip.get("section", ""))
+    if collection is None:
+        raise HTTPException(status_code=400, detail="Неверная секция")
+    
+    result = await move_trip_orders_to_amocrm_stage(trip, collection, request.pipelineId, request.statusId)
+    
+    # Update trip with amoCRM settings
+    trips_collection.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "amocrmPipelineId": str(request.pipelineId),
+            "amocrmStatusId": str(request.statusId),
+            "updatedAt": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return result
+
+
+
+
 @router.post("/{trip_id}/remove-orders")
 async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
     """Remove orders from a trip (return them to general list)."""
