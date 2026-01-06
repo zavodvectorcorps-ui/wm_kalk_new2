@@ -441,14 +441,10 @@ export const DriverPanel = ({ onLogout }) => {
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="px-4">
-              <TabsList className="w-full grid grid-cols-3">
+              <TabsList className="w-full grid grid-cols-2">
                 <TabsTrigger value="route" className="gap-1 text-xs sm:text-sm">
                   <Route className="h-4 w-4" />
                   Маршрут
-                </TabsTrigger>
-                <TabsTrigger value="list" className="gap-1 text-xs sm:text-sm">
-                  <List className="h-4 w-4" />
-                  Список
                 </TabsTrigger>
                 <TabsTrigger value="orders" className="gap-1 text-xs sm:text-sm">
                   <Package className="h-4 w-4" />
