@@ -507,6 +507,12 @@ export const UserManagement = () => {
                       {txt.roleObserver}
                     </div>
                   </SelectItem>
+                  <SelectItem value="driver">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-green-600" />
+                      {txt.roleDriver}
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -631,6 +637,12 @@ export const UserManagement = () => {
                     <div className="flex items-center gap-2">
                       <Eye className="w-4 h-4" />
                       {txt.roleObserver}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="driver">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-green-600" />
+                      {txt.roleDriver}
                     </div>
                   </SelectItem>
                 </SelectContent>
