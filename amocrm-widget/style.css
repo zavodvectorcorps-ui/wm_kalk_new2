@@ -1,5 +1,15 @@
 /* WM Kalkulator Widget Styles */
 
+/* Widget title */
+.wm-widget-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
 /* Loading state */
 .wm-loading {
   color: #999;
