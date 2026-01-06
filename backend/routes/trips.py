@@ -645,6 +645,8 @@ async def create_trip(trip_data: TripCreate):
         "driverName": trip_data.driverName,
         "status": "planned",  # planned, in_transit, completed
         "departureDate": None,  # Will be set later
+        "amocrmPipelineId": trip_data.amocrmPipelineId,
+        "amocrmStatusId": trip_data.amocrmStatusId,
         "createdAt": now,
         "updatedAt": now
     }
@@ -656,6 +658,15 @@ async def create_trip(trip_data: TripCreate):
     if collection is not None and trip_data.orderIds:
         # Sync trip data to all orders
         sync_trip_data_to_orders(trip, collection)
+        
+        # If amoCRM pipeline/status is specified, move orders in amoCRM
+        if trip_data.amocrmPipelineId and trip_data.amocrmStatusId:
+            await move_trip_orders_to_amocrm_stage(
+                trip, 
+                collection, 
+                int(trip_data.amocrmPipelineId), 
+                int(trip_data.amocrmStatusId)
+            )
     
     trip.pop("_id", None)
     return trip
