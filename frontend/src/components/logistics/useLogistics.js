@@ -1713,7 +1713,18 @@ export const useLogistics = () => {
     onMapLoad,
     formatDate,
     formatDistance,
-    formatDuration
+    formatDuration,
+    
+    // amoCRM sync stats
+    amocrmStats,
+    loadingAmocrmStats,
+    amocrmPipelines,
+    selectedPipeline,
+    setSelectedPipeline,
+    selectedStatus,
+    setSelectedStatus,
+    fetchAmocrmStats,
+    getAmocrmComparison
   };
 };
 
