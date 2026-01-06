@@ -718,6 +718,23 @@ export const UserManagement = () => {
                     {txt.accessLogistics}
                   </label>
                 </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="edit-access-driver"
+                    checked={Array.isArray(formData.access) && formData.access.includes('driver')}
+                    onCheckedChange={(checked) => {
+                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
+                      const newAccess = checked 
+                        ? [...currentAccess.filter(a => a !== 'all'), 'driver']
+                        : currentAccess.filter(a => a !== 'driver');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="edit-access-driver" className="flex items-center gap-2 cursor-pointer">
+                    <Truck className="w-4 h-4 text-green-500" />
+                    {txt.accessDriver}
+                  </label>
+                </div>
               </div>
             </div>
           </div>
