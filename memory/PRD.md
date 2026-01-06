@@ -5,6 +5,17 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Bug Fixes & Enhancements (2026-01-06)
+- **P0 Fix**: Fixed user creation bug for "driver" role
+  - Issue: Backend validation in `update_user` function rejected new access types
+  - Fix: Updated `/app/backend/routes/auth.py` to accept 'driver' and 'logistics' in both create and update
+- **PWA Name Change**: Changed from "WM Kalkulator" to "WM-Group"
+  - Updated `/app/frontend/public/manifest.json`
+- **amoCRM Widget Icons**: Added icons to widget package
+  - Copied existing app icons to `/app/amocrm-widget/images/`
+  - Updated widget manifest with icon references
+  - Rebuilt `amocrm-widget.zip`
+
 ### Logistics Module Enhancements (2026-01-06)
 - **Feature**: Enhanced trip management and amoCRM synchronization
 - **New Trip Features**:
