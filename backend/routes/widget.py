@@ -209,3 +209,326 @@ async def download_widget():
         filename="amocrm-widget.zip",
         media_type="application/zip"
     )
+
+
+# ============= External Integration (iframe widget) =============
+
+@router.get("/embed/{lead_id}")
+async def get_embed_widget(lead_id: str, theme: str = "light"):
+    """
+    Embeddable HTML widget for amoCRM external integration.
+    
+    This endpoint returns an HTML page that can be embedded in an iframe
+    within amoCRM. It shows delivery status and calculator buttons.
+    
+    Usage in amoCRM:
+    1. Create external integration
+    2. Add widget with iframe URL: {APP_URL}/api/widget/embed/{lead_id}
+    """
+    from fastapi.responses import HTMLResponse
+    
+    # Get order status
+    order, section = get_all_orders_by_amocrm_id(lead_id)
+    
+    # Get trip info
+    trip_info = None
+    photo_info = None
+    if order and order.get("tripId"):
+        trip = trips_collection.find_one({"id": order.get("tripId")}, {"_id": 0})
+        if trip:
+            trip_info = {
+                "name": trip.get("name", ""),
+                "driverName": trip.get("driverName", ""),
+                "departureDate": trip.get("departureDate", ""),
+                "status": trip.get("status", "")
+            }
+        
+        photo = delivery_photos.find_one({
+            "tripId": order.get("tripId"),
+            "orderId": order.get("id")
+        }, {"_id": 0})
+        if photo:
+            photo_info = {"hasPhoto": True}
+    
+    # Status config
+    status_config = {
+        "pending": {"label": "Ожидает", "color": "#6b7280", "bg": "#f3f4f6"},
+        "planned": {"label": "Запланирован", "color": "#3b82f6", "bg": "#eff6ff"},
+        "in_transit": {"label": "В пути", "color": "#f59e0b", "bg": "#fffbeb"},
+        "delivering": {"label": "Доставляется", "color": "#f59e0b", "bg": "#fffbeb"},
+        "delivered": {"label": "Доставлен", "color": "#22c55e", "bg": "#f0fdf4"},
+        "cancelled": {"label": "Отменён", "color": "#ef4444", "bg": "#fef2f2"}
+    }
+    
+    order_status = "not_found"
+    status_label = "Не найден"
+    status_color = "#6b7280"
+    status_bg = "#f3f4f6"
+    
+    if order:
+        order_status = order.get("tripOrderStatus") or order.get("deliveryStatus") or "pending"
+        cfg = status_config.get(order_status, status_config["pending"])
+        status_label = cfg["label"]
+        status_color = cfg["color"]
+        status_bg = cfg["bg"]
+    
+    # Base URL for calculators
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "").replace("/api", "")
+    if not base_url:
+        base_url = os.environ.get("APP_BASE_URL", "")
+    
+    # Theme colors
+    is_dark = theme == "dark"
+    bg_color = "#1f2937" if is_dark else "#ffffff"
+    text_color = "#f9fafb" if is_dark else "#1f2937"
+    border_color = "#374151" if is_dark else "#e5e7eb"
+    muted_color = "#9ca3af" if is_dark else "#6b7280"
+    
+    # Build HTML
+    html = f"""
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WM-Group Widget</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: {bg_color};
+            color: {text_color};
+            padding: 12px;
+            font-size: 13px;
+        }}
+        .widget {{
+            max-width: 320px;
+        }}
+        .section {{
+            margin-bottom: 16px;
+        }}
+        .section-title {{
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: {muted_color};
+            margin-bottom: 8px;
+        }}
+        .status-badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 13px;
+        }}
+        .status-dot {{
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }}
+        .info-row {{
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid {border_color};
+        }}
+        .info-row:last-child {{
+            border-bottom: none;
+        }}
+        .info-label {{
+            color: {muted_color};
+        }}
+        .info-value {{
+            font-weight: 500;
+        }}
+        .btn-group {{
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }}
+        .btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid {border_color};
+            background: {bg_color};
+            color: {text_color};
+            cursor: pointer;
+            transition: all 0.15s;
+        }}
+        .btn:hover {{
+            background: {'#374151' if is_dark else '#f3f4f6'};
+        }}
+        .btn-primary {{
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }}
+        .btn-primary:hover {{
+            background: #2563eb;
+        }}
+        .btn svg {{
+            width: 14px;
+            height: 14px;
+        }}
+        .not-found {{
+            text-align: center;
+            padding: 20px;
+            color: {muted_color};
+        }}
+        .photo-badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #22c55e;
+            font-size: 12px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="widget">
+"""
+
+    if order:
+        html += f"""
+        <!-- Status Section -->
+        <div class="section">
+            <div class="section-title">Статус доставки</div>
+            <div class="status-badge" style="background: {status_bg}; color: {status_color};">
+                <span class="status-dot" style="background: {status_color};"></span>
+                {status_label}
+            </div>
+            {f'<span class="photo-badge" style="margin-left: 8px;">📷 Фото загружено</span>' if photo_info else ''}
+        </div>
+"""
+        
+        if trip_info:
+            departure_date = trip_info.get('departureDate', '')
+            if departure_date:
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(departure_date.replace('Z', '+00:00'))
+                    departure_date = dt.strftime('%d.%m.%Y')
+                except:
+                    pass
+            
+            html += f"""
+        <!-- Trip Info -->
+        <div class="section">
+            <div class="section-title">Информация о рейсе</div>
+            <div class="info-row">
+                <span class="info-label">Рейс</span>
+                <span class="info-value">{trip_info.get('name', '-')}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Водитель</span>
+                <span class="info-value">{trip_info.get('driverName', '-')}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Дата</span>
+                <span class="info-value">{departure_date or '-'}</span>
+            </div>
+        </div>
+"""
+
+        html += f"""
+        <!-- Order Info -->
+        <div class="section">
+            <div class="section-title">Заказ</div>
+            <div class="info-row">
+                <span class="info-label">ID</span>
+                <span class="info-value">{order.get('id', '-')}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Раздел</span>
+                <span class="info-value">{section.capitalize() if section else '-'}</span>
+            </div>
+        </div>
+"""
+    else:
+        html += f"""
+        <div class="not-found">
+            <div style="font-size: 24px; margin-bottom: 8px;">📦</div>
+            <div>Заказ не найден в системе</div>
+            <div style="font-size: 11px; margin-top: 4px;">Создайте заказ через калькулятор</div>
+        </div>
+"""
+
+    html += f"""
+        <!-- Calculator Buttons -->
+        <div class="section">
+            <div class="section-title">Калькуляторы</div>
+            <div class="btn-group">
+                <a href="{base_url}/?amocrm_lead={lead_id}&section=balia&source=amocrm" target="_blank" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                    </svg>
+                    Купель
+                </a>
+                <a href="{base_url}/?amocrm_lead={lead_id}&section=sauna&source=amocrm" target="_blank" class="btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13 3.23 12.17 3.75 11.46 4.32C8.87 6.4 7.85 10.07 9.07 13.22C9.11 13.32 9.15 13.42 9.15 13.55C9.15 13.77 9 13.97 8.8 14.05C8.57 14.15 8.33 14.09 8.14 13.93C8.08 13.88 8.04 13.83 8 13.76C6.87 12.33 6.69 10.28 7.45 8.64C5.78 10 4.87 12.3 5 14.47C5.06 14.97 5.12 15.47 5.29 15.97C5.43 16.57 5.7 17.17 6 17.7C7.08 19.43 8.95 20.67 10.96 20.92C13.1 21.19 15.39 20.8 17.03 19.32C18.86 17.66 19.5 15 18.56 12.72L18.43 12.46C18.22 12 17.66 11.2 17.66 11.2Z"/>
+                    </svg>
+                    Сауна
+                </a>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 12px;">
+            <a href="{base_url}/logistics" target="_blank" style="color: {muted_color}; font-size: 11px; text-decoration: none;">
+                Открыть логистику →
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        // Send height to parent for auto-resize iframe
+        function sendHeight() {{
+            const height = document.body.scrollHeight;
+            window.parent.postMessage({{ type: 'resize', height: height }}, '*');
+        }}
+        window.addEventListener('load', sendHeight);
+        window.addEventListener('resize', sendHeight);
+    </script>
+</body>
+</html>
+"""
+
+    return HTMLResponse(content=html)
+
+
+@router.get("/embed-info")
+async def get_embed_info():
+    """Get information about embedding the widget in amoCRM."""
+    base_url = os.environ.get("REACT_APP_BACKEND_URL", "")
+    
+    return {
+        "embed_url_template": f"{base_url}/api/widget/embed/{{lead_id}}",
+        "embed_url_example": f"{base_url}/api/widget/embed/12345678",
+        "supported_params": {
+            "lead_id": "ID сделки amoCRM (обязательный)",
+            "theme": "Тема оформления: light (по умолчанию) или dark"
+        },
+        "setup_instructions": {
+            "ru": [
+                "1. Откройте amoCRM → Настройки → Интеграции",
+                "2. Нажмите 'Создать интеграцию'",
+                "3. Выберите тип 'Внешняя интеграция'",
+                "4. В настройках виджета укажите URL iframe:",
+                f"   {base_url}/api/widget/embed/{{lead.id}}",
+                "5. Сохраните и активируйте интеграцию"
+            ]
+        }
+    }
