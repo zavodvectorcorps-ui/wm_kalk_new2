@@ -1011,6 +1011,105 @@ const OrderCard = ({
 
 const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDeliveryStatus, DELIVERY_STATUSES }) => (
   <div className="mt-3 pt-3 border-t space-y-3 text-sm">
+    {/* Editable fields */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Client name */}
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+          <User className="h-3 w-3" />
+          Имя клиента
+        </Label>
+        <Input
+          defaultValue={order.clientName || order.fullName || ''}
+          placeholder="Введите имя клиента"
+          className="h-8 text-sm"
+          onBlur={(e) => {
+            const newValue = e.target.value;
+            if (newValue !== (order.clientName || order.fullName || '')) {
+              updateOrderField(order.id, { clientName: newValue, fullName: newValue });
+            }
+          }}
+        />
+      </div>
+      
+      {/* Phone */}
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+          <Phone className="h-3 w-3" />
+          Телефон
+        </Label>
+        <Input
+          defaultValue={order.phoneNumber || order.phone || ''}
+          placeholder="Введите телефон"
+          className="h-8 text-sm"
+          onBlur={(e) => {
+            const newValue = e.target.value;
+            if (newValue !== (order.phoneNumber || order.phone || '')) {
+              updateOrderField(order.id, { phoneNumber: newValue, phone: newValue });
+            }
+          }}
+        />
+      </div>
+    </div>
+    
+    {/* Order contents - full width */}
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+        <Package className="h-3 w-3" />
+        Состав заказа
+      </Label>
+      <Textarea
+        defaultValue={order.orderContents || order.notes || ''}
+        placeholder="Введите состав заказа"
+        className="min-h-[60px] text-sm resize-y"
+        onBlur={(e) => {
+          const newValue = e.target.value;
+          if (newValue !== (order.orderContents || order.notes || '')) {
+            updateOrderField(order.id, { orderContents: newValue, notes: newValue });
+          }
+        }}
+      />
+    </div>
+    
+    {/* Financial fields */}
+    <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+          <DollarSign className="h-3 w-3 text-green-600" />
+          Сумма заказа
+        </Label>
+        <Input
+          defaultValue={order.dealSum || order.totalPrice || ''}
+          placeholder="0"
+          className="h-8 text-sm"
+          onBlur={(e) => {
+            const newValue = e.target.value;
+            if (newValue !== (order.dealSum || order.totalPrice || '')) {
+              updateOrderField(order.id, { dealSum: newValue, totalPrice: newValue });
+            }
+          }}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground flex items-center gap-1 text-red-600">
+          <DollarSign className="h-3 w-3" />
+          Задолженность
+        </Label>
+        <Input
+          defaultValue={order.debtSum || order.amountDue || ''}
+          placeholder="0"
+          className="h-8 text-sm border-red-200"
+          onBlur={(e) => {
+            const newValue = e.target.value;
+            if (newValue !== (order.debtSum || order.amountDue || '')) {
+              updateOrderField(order.id, { debtSum: newValue, amountDue: newValue });
+            }
+          }}
+        />
+      </div>
+    </div>
+
+    {/* amoCRM data */}
     {order.amocrm_id && (
       <div className="bg-purple-50 rounded-lg p-3 space-y-2">
         <div className="flex items-center justify-between">
@@ -1024,22 +1123,10 @@ const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDelivery
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
           {order.orderNumber && <div><span className="text-muted-foreground">№ заказа:</span><span className="ml-1 font-medium">{order.orderNumber}</span></div>}
-          {order.dealSum && <div className="flex items-center gap-1"><DollarSign className="h-3 w-3 text-green-600" /><span className="text-muted-foreground">Сумма:</span><span className="ml-1 font-medium">{order.dealSum}</span></div>}
-          {order.debtSum && <div className="text-red-600"><span className="text-muted-foreground">Долг:</span><span className="ml-1 font-medium">{order.debtSum}</span></div>}
+          {order.budget && <div><span className="text-muted-foreground">Бюджет:</span><span className="ml-1 font-medium">{order.budget} PLN</span></div>}
         </div>
-        {order.orderContents && <div className="text-xs"><span className="text-muted-foreground">Состав:</span><p className="mt-1 p-2 bg-white rounded border text-xs whitespace-pre-wrap">{order.orderContents}</p></div>}
-        {order.orderComment && <div className="text-xs"><span className="text-muted-foreground flex items-center gap-1"><MessageSquare className="h-3 w-3" />Комментарий:</span><p className="mt-1 p-2 bg-white rounded border text-xs">{order.orderComment}</p></div>}
+        {order.orderComment && <div className="text-xs"><span className="text-muted-foreground flex items-center gap-1"><MessageSquare className="h-3 w-3" />Комментарий из amoCRM:</span><p className="mt-1 p-2 bg-white rounded border text-xs">{order.orderComment}</p></div>}
       </div>
-    )}
-
-    {order.phoneNumber && (
-      <p className="flex items-center gap-2">
-        <Phone className="h-3 w-3" />
-        <a href={`tel:${order.phoneNumber}`} className="text-blue-600 hover:underline">{order.phoneNumber}</a>
-      </p>
-    )}
-    {order.notes && !order.amocrm_id && (
-      <p className="flex items-start gap-2"><FileText className="h-3 w-3 mt-0.5" /><span className="break-words">{order.notes}</span></p>
     )}
     
     <div className="grid grid-cols-2 gap-2 pt-2 border-t">
