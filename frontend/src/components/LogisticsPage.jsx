@@ -14,7 +14,7 @@ import {
   Package, Plus, User, Phone, FileText, X, Hash, CheckCircle, Send,
   Users, Trash2, Settings, GripVertical, Sparkles, ArrowUp, ArrowDown,
   ExternalLink, DollarSign, MessageSquare, AlertCircle, Filter, Eye, Warehouse,
-  Calendar, Printer
+  Calendar, Printer, Search
 } from 'lucide-react';
 import { 
   useLogistics, 
