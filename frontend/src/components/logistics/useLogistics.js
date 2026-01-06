@@ -776,6 +776,8 @@ export const useLogistics = () => {
         body: JSON.stringify([orderId])
       });
       if (res.ok) {
+        const data = await res.json();
+        
         if (selectedTrip?.id === tripId) {
           setSelectedTrip(prev => ({
             ...prev,
@@ -784,7 +786,22 @@ export const useLogistics = () => {
         }
         fetchTrips();
         fetchAllOrders();
-        toast.success('Заказ убран из рейса');
+        
+        // Show detailed message about amoCRM sync
+        if (data.amocrm_orders_count > 0) {
+          const settings = data.amocrm_settings || {};
+          if (!settings.configured) {
+            toast.warning('Заказ убран из рейса. Настройки amoCRM не найдены.');
+          } else if (!settings.domain_set || !settings.token_set) {
+            toast.warning('Заказ убран из рейса. Укажите домен и токен amoCRM для очистки данных в CRM.');
+          } else if (!settings.trip_fields_configured) {
+            toast.warning('Заказ убран из рейса. Укажите ID полей рейса в настройках amoCRM.');
+          } else {
+            toast.success('Заказ убран из рейса, данные в amoCRM очищены');
+          }
+        } else {
+          toast.success('Заказ убран из рейса');
+        }
       }
     } catch (error) {
       console.error('Error removing order:', error);
