@@ -131,13 +131,19 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
         update_data["password"] = hash_password(user_data.password)
     
     if user_data.access:
-        if user_data.access not in ["balia", "sauna", "all"]:
-            raise HTTPException(status_code=400, detail="Access must be 'balia', 'sauna', or 'all'")
+        # Validate access - can be string or array
+        valid_access_values = ["balia", "sauna", "logistics", "driver", "all"]
+        if isinstance(user_data.access, list):
+            for acc in user_data.access:
+                if acc not in valid_access_values:
+                    raise HTTPException(status_code=400, detail=f"Invalid access value: {acc}. Must be one of: {valid_access_values}")
+        elif user_data.access not in valid_access_values:
+            raise HTTPException(status_code=400, detail=f"Access must be one of: {valid_access_values}")
         update_data["access"] = user_data.access
     
     if user_data.role:
-        if user_data.role not in ["admin", "employee", "observer"]:
-            raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee' or 'observer'")
+        if user_data.role not in ["admin", "employee", "observer", "driver"]:
+            raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee', 'observer' or 'driver'")
         # Only super-admin can assign admin role
         if user_data.role == "admin" and admin.get("username") != "admin":
             raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")

@@ -1,6 +1,6 @@
 {
-  "name": "WM Kalkulator",
-  "short_name": "WM Kalkulator",
+  "name": "WM-Group",
+  "short_name": "WM-Group",
   "description": "Kalkulator cen dla bali i saun - W.M. Group",
   "start_url": "/",
   "display": "standalone",
