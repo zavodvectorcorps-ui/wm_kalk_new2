@@ -581,41 +581,6 @@ export const DriverPanel = ({ onLogout }) => {
               </div>
             </TabsContent>
 
-              {/* Brief order list under map */}
-              <div className="mt-3 space-y-2">
-                {selectedTrip.orders?.map((order, index) => {
-                  const orderStatus = selectedTrip.orderStatuses?.[order.id] || 'pending';
-                  const isDelivered = orderStatus === 'delivered';
-                  return (
-                    <div 
-                      key={order.id}
-                      className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                        order.isImportant ? 'bg-orange-50 border border-orange-200' : 'bg-white border'
-                      } ${isDelivered ? 'opacity-60' : 'hover:bg-gray-50'}`}
-                      onClick={() => {
-                        setExpandedOrder(order.id);
-                        setActiveTab('orders');
-                      }}
-                    >
-                      <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0 ${
-                        isDelivered ? 'bg-green-100 text-green-700' : 
-                        orderStatus === 'delivering' ? 'bg-blue-100 text-blue-700' : 
-                        'bg-purple-100 text-purple-700'
-                      }`}>
-                        {isDelivered ? '✓' : index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{order.fullName}</div>
-                        <div className="text-xs text-muted-foreground truncate">{order.fullAddress}</div>
-                      </div>
-                      {order.isImportant && <span className="text-orange-500 text-sm">⚠️</span>}
-                      <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    </div>
-                  );
-                })}
-              </div>
-            </TabsContent>
-
             {/* Orders Tab */}
             <TabsContent value="orders" className="flex-1 overflow-auto p-4 pt-2 m-0 space-y-3">
               {selectedTrip.orders?.map((order, index) => {
