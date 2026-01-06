@@ -206,6 +206,43 @@ export const LogisticsPage = () => {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Поиск по имени, телефону, адресу, номеру заказа..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-10"
+          />
+          {searchQuery && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+              onClick={() => setSearchQuery('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        {searchResults && (
+          <div className="mt-2 flex items-center gap-3 text-sm">
+            <Badge variant="secondary" className="gap-1">
+              <Search className="h-3 w-3" />
+              Найдено: {searchResults.total}
+            </Badge>
+            {searchResults.unassigned > 0 && (
+              <Badge variant="outline">Свободных: {searchResults.unassigned}</Badge>
+            )}
+            {searchResults.inTrips > 0 && (
+              <Badge variant="outline">В рейсах: {searchResults.inTrips} ({searchResults.tripsCount} рейсов)</Badge>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Settings Modal */}
       {showSettingsModal && (
         <Card className="border-2 border-[#355c7d]/30">
