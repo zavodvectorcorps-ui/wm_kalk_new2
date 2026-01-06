@@ -360,13 +360,20 @@ export const UserManagement = () => {
             {txt.observer}
           </Badge>
         );
+      case 'driver':
+        return (
+          <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700">
+            <Truck className="w-3 h-3" />
+            {txt.driver}
+          </Badge>
+        );
       default:
         return null;
     }
   };
 
-  // Show employees, observers and admins (except the main 'admin' account)
-  const employees = users.filter(u => u.role === 'employee' || u.role === 'observer' || (u.role === 'admin' && u.username !== 'admin'));
+  // Show employees, observers, drivers and admins (except the main 'admin' account)
+  const employees = users.filter(u => u.role === 'employee' || u.role === 'observer' || u.role === 'driver' || (u.role === 'admin' && u.username !== 'admin'));
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl">
