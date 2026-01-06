@@ -100,8 +100,6 @@ def sync_trip_data_to_orders(trip: dict, collection):
             }}
         )
         logger.info(f"Updated order {order_id}: matched={result.matched_count}, modified={result.modified_count}")
-            }}
-        )
 
 
 async def sync_single_order_to_amocrm(order: dict):
