@@ -20,6 +20,7 @@ from routes.amocrm import router as amocrm_router
 from routes.trips import router as trips_router
 from routes.drivers import router as drivers_router
 from routes.driver_panel import router as driver_panel_router
+from routes.widget import router as widget_router
 
 # Configure logging
 logging.basicConfig(
