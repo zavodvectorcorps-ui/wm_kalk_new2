@@ -16,6 +16,7 @@ client = MongoClient(MONGO_URL)
 db = client[DB_NAME]
 
 drivers_collection = db["drivers"]
+users_collection = db["users"]
 
 
 class DriverCreate(BaseModel):
@@ -33,6 +34,13 @@ async def get_all_drivers():
     """Get all drivers."""
     drivers = list(drivers_collection.find({}, {"_id": 0}))
     return drivers
+
+
+@router.get("/users")
+async def get_driver_users():
+    """Get all users with role 'driver' for linking to driver profiles."""
+    users = list(users_collection.find({"role": "driver"}, {"_id": 0, "password": 0}))
+    return users
 
 
 @router.post("")
