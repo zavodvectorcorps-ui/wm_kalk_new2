@@ -609,11 +609,19 @@ async def sync_trip_to_amocrm(trip_id: str):
             errors.append(f"{order.get('id')}: {str(e)}")
             logger.error(f"Failed to sync order {order.get('id')} to amoCRM: {e}")
     
+    # Update last sync time in trip
+    last_synced_at = datetime.now(timezone.utc).isoformat()
+    trips_collection.update_one(
+        {"id": trip_id},
+        {"$set": {"lastSyncedAt": last_synced_at}}
+    )
+    
     return {
         "status": "ok" if not errors else "partial",
         "message": f"Синхронизировано {synced_count} из {len(orders_with_amocrm)} заказов",
         "synced": synced_count,
         "total": len(orders_with_amocrm),
+        "lastSyncedAt": last_synced_at,
         "errors": errors if errors else None
     }
 
