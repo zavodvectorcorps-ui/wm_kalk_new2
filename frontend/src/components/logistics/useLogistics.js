@@ -1417,6 +1417,8 @@ export const useLogistics = () => {
     createTrip,
     updateTrip,
     updateTripStatus,
+    syncTripToAmocrm,
+    syncingToAmocrm,
     addOrdersToTrip,
     deleteTrip,
     updateOrderStatusInTrip,
