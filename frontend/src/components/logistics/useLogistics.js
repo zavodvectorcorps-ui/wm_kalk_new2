@@ -1574,6 +1574,7 @@ export const useLogistics = () => {
     removeOrderFromTrip,
     optimizeTripRoute,
     buildTripRoute,
+    printTripOrders,
     moveOrderUp,
     moveOrderDown,
     handleDragStart,
