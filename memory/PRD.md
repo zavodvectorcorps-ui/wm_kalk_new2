@@ -13,12 +13,16 @@ A full-featured quoting and order management application for Saunas and Balias (
   - Enter received payment amount
   - One-click navigation to Google Maps
   - Admin can view all trips from this panel
-- **Notification System**: New backend `/api/notifications`
+- **Notification System**: Added to Integrations page (tab "Уведомления")
   - Telegram bot integration for driver notifications
   - Push notifications (Service Worker) for browser
   - Driver linking via unique codes
   - Test notification sending
   - Files: `backend/routes/notifications.py`, `frontend/src/components/NotificationSettings.jsx`, `frontend/public/sw.js`
+- **amoCRM Widget**: Added to Integrations page (tab "Виджет")
+  - Download widget ZIP package
+  - Installation instructions
+  - API endpoint: `/api/widget/download`
 - **amoCRM Delivery Photo Sync**: 
   - When driver confirms delivery, note is added to amoCRM lead
   - Endpoint: `/api/integrations/amocrm/upload-delivery-photo`
