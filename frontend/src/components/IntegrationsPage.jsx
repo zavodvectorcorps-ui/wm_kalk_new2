@@ -27,8 +27,12 @@ import {
   Key,
   Trash2,
   Route,
-  AlertCircle
+  AlertCircle,
+  Bell,
+  Download,
+  Package
 } from 'lucide-react';
+import NotificationSettings from './NotificationSettings';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
