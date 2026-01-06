@@ -785,6 +785,28 @@ export const IntegrationsPage = () => {
                   </div>
                 </div>
               </div>
+              
+              {/* Important order flag field */}
+              <div className="space-y-4 p-4 border rounded-lg bg-orange-50/30">
+                <h4 className="font-medium flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-orange-600" />
+                  Флаг "Важный заказ"
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Если в amoCRM включен этот флаг, заказ автоматически отмечается как важный в логистике
+                </p>
+                <div className="space-y-2">
+                  <Label>ID поля-флага в amoCRM</Label>
+                  <Input
+                    value={settings.important_order_field_id || ''}
+                    onChange={(e) => setSettings(prev => ({ ...prev, important_order_field_id: e.target.value }))}
+                    placeholder="Например: 123462"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Тип поля в amoCRM: Флаг (checkbox). Если включен — заказ будет важным.
+                  </p>
+                </div>
+              </div>
 
               {/* How to get field IDs */}
               <div className="p-4 bg-blue-50 rounded-lg text-sm">
