@@ -68,7 +68,13 @@ export const IntegrationsPage = () => {
     amocrm_domain: '',
     amocrm_token: '',
     status_field_id: '',
-    comment_field_id: ''
+    comment_field_id: '',
+    // Stage sync settings - which stages to pull orders from
+    stage_sync: {
+      greenhouse: { pipeline_id: '', status_id: '' },
+      balia: { pipeline_id: '', status_id: '' },
+      sauna: { pipeline_id: '', status_id: '' }
+    }
   });
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,13 +86,33 @@ export const IntegrationsPage = () => {
   const [activeMappingSection, setActiveMappingSection] = useState('greenhouse');
   const [drivers, setDrivers] = useState([]);
   const [widgetInfo, setWidgetInfo] = useState(null);
+  const [pipelines, setPipelines] = useState([]);
+  const [loadingPipelines, setLoadingPipelines] = useState(false);
 
   useEffect(() => {
     fetchSettings();
     fetchLogs();
     fetchDrivers();
     fetchWidgetInfo();
+    fetchPipelines();
   }, []);
+
+  const fetchPipelines = async () => {
+    setLoadingPipelines(true);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/amocrm/pipelines`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.pipelines) {
+          setPipelines(data.pipelines);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load pipelines:', e);
+    } finally {
+      setLoadingPipelines(false);
+    }
+  };
 
   const fetchWidgetInfo = async () => {
     try {
