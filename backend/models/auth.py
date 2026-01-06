@@ -11,22 +11,22 @@ class UserLogin(BaseModel):
 class UserCreate(BaseModel):
     username: str
     password: str
-    access: Union[str, List[str]]  # 'balia', 'sauna', 'logistics', 'all' or list like ['balia', 'logistics']
-    role: str = "employee"  # 'admin', 'employee' or 'observer'
+    access: Union[str, List[str]]  # 'balia', 'sauna', 'logistics', 'driver', 'all' or list like ['balia', 'logistics']
+    role: str = "employee"  # 'admin', 'employee', 'observer' or 'driver'
 
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     access: Optional[Union[str, List[str]]] = None
-    role: Optional[str] = None  # 'admin', 'employee' or 'observer'
+    role: Optional[str] = None  # 'admin', 'employee', 'observer' or 'driver'
 
 
 class UserResponse(BaseModel):
     id: str
     username: str
-    role: str  # 'admin', 'employee', or 'observer'
-    access: Union[str, List[str]]  # 'balia', 'sauna', 'logistics', 'all' or list
+    role: str  # 'admin', 'employee', 'observer' or 'driver'
+    access: Union[str, List[str]]  # 'balia', 'sauna', 'logistics', 'driver', 'all' or list
     createdAt: str
 
 
