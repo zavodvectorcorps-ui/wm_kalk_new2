@@ -687,6 +687,8 @@ export const LogisticsPage = () => {
                 TRIP_STATUSES={TRIP_STATUSES}
                 ORDER_TRIP_STATUSES={ORDER_TRIP_STATUSES}
                 printTripOrders={printTripOrders}
+                getFilteredTrips={getFilteredTrips}
+                searchQuery={searchQuery}
               />
             )}
           </TabsContent>
