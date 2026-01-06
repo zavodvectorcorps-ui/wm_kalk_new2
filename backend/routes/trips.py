@@ -115,19 +115,26 @@ async def sync_single_order_to_amocrm(order: dict):
     
     Called when order status is updated in trip.
     """
+    logger.info(f"=== sync_single_order_to_amocrm START for order {order.get('id')} ===")
+    
     settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
     if not settings:
+        logger.warning("amoCRM settings not found")
         return
     
     domain = settings.get("amocrm_domain", "")
     token = settings.get("amocrm_token", "")
     
     if not domain or not token:
+        logger.warning(f"amoCRM credentials not configured - domain: '{domain}', token: {'present' if token else 'missing'}")
         return
     
     amocrm_id = order.get("amocrm_id")
     if not amocrm_id:
+        logger.warning(f"Order {order.get('id')} has no amocrm_id")
         return
+    
+    logger.info(f"Order {order.get('id')} has amocrm_id: {amocrm_id}")
     
     # Field IDs
     trip_number_field_id = settings.get("trip_number_field_id", "")
@@ -135,7 +142,10 @@ async def sync_single_order_to_amocrm(order: dict):
     trip_departure_field_id = settings.get("trip_departure_field_id", "")
     trip_order_status_field_id = settings.get("trip_order_status_field_id", "")
     
+    logger.info(f"Field IDs - trip_number: '{trip_number_field_id}', driver: '{trip_driver_field_id}', departure: '{trip_departure_field_id}', order_status: '{trip_order_status_field_id}'")
+    
     if not any([trip_number_field_id, trip_driver_field_id, trip_departure_field_id, trip_order_status_field_id]):
+        logger.warning("No trip field IDs configured")
         return
     
     STATUS_LABELS = {
@@ -148,43 +158,48 @@ async def sync_single_order_to_amocrm(order: dict):
     custom_fields_values = []
     
     if trip_number_field_id and order.get("tripName"):
+        logger.info(f"  Adding tripName: '{order.get('tripName')}'")
         try:
             custom_fields_values.append({
                 "field_id": int(trip_number_field_id),
                 "values": [{"value": order.get("tripName", "")}]
             })
-        except ValueError:
-            pass
+        except ValueError as e:
+            logger.error(f"  ValueError: {e}")
     
     if trip_driver_field_id and order.get("tripDriverName"):
+        logger.info(f"  Adding tripDriverName: '{order.get('tripDriverName')}'")
         try:
             custom_fields_values.append({
                 "field_id": int(trip_driver_field_id),
                 "values": [{"value": order.get("tripDriverName", "")}]
             })
-        except ValueError:
-            pass
+        except ValueError as e:
+            logger.error(f"  ValueError: {e}")
     
     if trip_departure_field_id and order.get("tripDepartureDate"):
+        logger.info(f"  Adding tripDepartureDate: '{order.get('tripDepartureDate')}'")
         try:
             custom_fields_values.append({
                 "field_id": int(trip_departure_field_id),
                 "values": [{"value": order.get("tripDepartureDate", "")}]
             })
-        except ValueError:
-            pass
+        except ValueError as e:
+            logger.error(f"  ValueError: {e}")
     
     if trip_order_status_field_id and order.get("tripOrderStatus"):
+        status_label = STATUS_LABELS.get(order.get("tripOrderStatus"), order.get("tripOrderStatus"))
+        logger.info(f"  Adding tripOrderStatus: raw='{order.get('tripOrderStatus')}', label='{status_label}'")
         try:
-            status_label = STATUS_LABELS.get(order.get("tripOrderStatus"), order.get("tripOrderStatus"))
             custom_fields_values.append({
                 "field_id": int(trip_order_status_field_id),
                 "values": [{"value": status_label}]
             })
-        except ValueError:
-            pass
+        except ValueError as e:
+            logger.error(f"  ValueError: {e}")
     
     if not custom_fields_values:
+        logger.warning(f"No custom_fields_values built - order may be missing trip data")
         return
     
     url = f"https://{domain}/api/v4/leads/{amocrm_id}"
@@ -194,15 +209,21 @@ async def sync_single_order_to_amocrm(order: dict):
     }
     payload = {"custom_fields_values": custom_fields_values}
     
+    logger.info(f"API Request URL: {url}")
+    logger.info(f"API Request Payload: {payload}")
+    
     try:
         async with httpx.AsyncClient(timeout=5.0) as http_client:
             response = await http_client.patch(url, json=payload, headers=headers)
+            logger.info(f"API Response: status={response.status_code}, body={response.text[:500] if response.text else 'empty'}")
             if response.status_code == 200:
-                logger.info(f"Synced order {order.get('id')} trip data to amoCRM lead {amocrm_id}")
+                logger.info(f"✅ Synced order {order.get('id')} trip data to amoCRM lead {amocrm_id}")
             else:
-                logger.warning(f"Failed to sync order to amoCRM: {response.status_code}")
+                logger.warning(f"❌ Failed to sync order to amoCRM: {response.status_code} - {response.text}")
     except Exception as e:
-        logger.error(f"Error syncing order to amoCRM: {e}")
+        logger.error(f"❌ Error syncing order to amoCRM: {e}")
+    
+    logger.info(f"=== sync_single_order_to_amocrm END ===")
 
 
 def get_section_collection(section: str):
