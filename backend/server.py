@@ -52,6 +52,7 @@ app.include_router(amocrm_router)
 app.include_router(trips_router)
 app.include_router(drivers_router)
 app.include_router(driver_panel_router)
+app.include_router(widget_router)
 
 # Initialize backup database reference
 from database import db
