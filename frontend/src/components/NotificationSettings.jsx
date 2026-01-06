@@ -26,6 +26,9 @@ export const NotificationSettings = ({ drivers = [], onUpdate }) => {
   const [linkCodes, setLinkCodes] = useState({});
   const [generatingCode, setGeneratingCode] = useState(null);
   const [testingDriver, setTestingDriver] = useState(null);
+  const [selectedDriverForTest, setSelectedDriverForTest] = useState('');
+  const [testMessage, setTestMessage] = useState('Тестовое уведомление!');
+  const [sendingTest, setSendingTest] = useState(false);
 
   // Fetch current settings
   const fetchSettings = useCallback(async () => {
