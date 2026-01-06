@@ -441,25 +441,29 @@ export const DriverPanel = ({ onLogout }) => {
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="px-4">
-              <TabsList className="w-full grid grid-cols-2">
-                <TabsTrigger value="route" className="gap-2">
+              <TabsList className="w-full grid grid-cols-3">
+                <TabsTrigger value="route" className="gap-1 text-xs sm:text-sm">
                   <Route className="h-4 w-4" />
                   Маршрут
                 </TabsTrigger>
-                <TabsTrigger value="orders" className="gap-2">
+                <TabsTrigger value="list" className="gap-1 text-xs sm:text-sm">
                   <List className="h-4 w-4" />
+                  Список
+                </TabsTrigger>
+                <TabsTrigger value="orders" className="gap-1 text-xs sm:text-sm">
+                  <Package className="h-4 w-4" />
                   Заказы
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            {/* Route Tab */}
+            {/* Route Tab - Map only */}
             <TabsContent value="route" className="flex-1 p-4 pt-2 m-0">
               <Card className="h-full">
                 <CardContent className="p-2 h-full">
                   {isLoaded ? (
                     <GoogleMap
-                      mapContainerStyle={{ width: '100%', height: '100%', minHeight: '400px', borderRadius: '8px' }}
+                      mapContainerStyle={{ width: '100%', height: '100%', minHeight: '450px', borderRadius: '8px' }}
                       center={
                         selectedTrip.orders?.[0]?.lat 
                           ? { lat: selectedTrip.orders[0].lat, lng: selectedTrip.orders[0].lng }
@@ -512,12 +516,70 @@ export const DriverPanel = ({ onLogout }) => {
                       )}
                     </GoogleMap>
                   ) : (
-                    <div className="h-full min-h-[400px] flex items-center justify-center bg-gray-100 rounded">
+                    <div className="h-full min-h-[450px] flex items-center justify-center bg-gray-100 rounded">
                       <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
                     </div>
                   )}
                 </CardContent>
               </Card>
+              
+              {/* Route loading indicator */}
+              {buildingRoute && (
+                <div className="mt-2 text-center text-sm text-muted-foreground">
+                  <RefreshCw className="h-4 w-4 inline animate-spin mr-1" />
+                  Построение маршрута...
+                </div>
+              )}
+              
+              {!buildingRoute && !directions && selectedTrip.orders?.some(o => o.lat && o.lng) && (
+                <div className="mt-2 text-center text-sm text-yellow-600">
+                  Маршрут не построен. Проверьте координаты адресов.
+                </div>
+              )}
+            </TabsContent>
+
+            {/* List Tab - Brief list only */}
+            <TabsContent value="list" className="flex-1 overflow-auto p-4 pt-2 m-0">
+              <div className="space-y-2">
+                {selectedTrip.orders?.map((order, index) => {
+                  const orderStatus = selectedTrip.orderStatuses?.[order.id] || 'pending';
+                  const isDelivered = orderStatus === 'delivered';
+                  return (
+                    <div 
+                      key={order.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                        order.isImportant ? 'bg-orange-50 border border-orange-200' : 'bg-white border'
+                      } ${isDelivered ? 'opacity-60' : 'hover:bg-gray-50'}`}
+                      onClick={() => {
+                        setExpandedOrder(order.id);
+                        setActiveTab('orders');
+                      }}
+                    >
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold flex-shrink-0 ${
+                        isDelivered ? 'bg-green-100 text-green-700' : 
+                        orderStatus === 'delivering' ? 'bg-blue-100 text-blue-700' : 
+                        'bg-purple-100 text-purple-700'
+                      }`}>
+                        {isDelivered ? '✓' : index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium truncate">{order.fullName}</span>
+                          {order.isImportant && <span className="text-orange-500">⚠️</span>}
+                        </div>
+                        <div className="text-sm text-muted-foreground truncate">{order.fullAddress}</div>
+                        {order.debtSum && (
+                          <div className="text-xs text-yellow-600 font-medium mt-1">К оплате: {order.debtSum}</div>
+                        )}
+                      </div>
+                      <Badge className={`text-xs flex-shrink-0 ${ORDER_STATUSES[orderStatus]?.color || 'bg-gray-100'}`}>
+                        {ORDER_STATUSES[orderStatus]?.label || orderStatus}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
 
               {/* Brief order list under map */}
               <div className="mt-3 space-y-2">
