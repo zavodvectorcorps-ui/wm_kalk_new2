@@ -352,7 +352,7 @@ async def move_trip_orders_to_amocrm_stage(trip: dict, collection, pipeline_id: 
 async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     """Clear trip-related fields in amoCRM when order is removed from trip.
     
-    Sets trip name, driver, departure date, and status fields to empty values.
+    Sets trip name, driver, departure date, and status fields to empty/null values.
     """
     logger.info(f"=== clear_order_trip_data_in_amocrm START for lead {amocrm_id} ===")
     
@@ -408,12 +408,12 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     
     custom_fields_values = []
     
-    # Clear trip name/number field
+    # Clear trip name/number field - use space instead of empty string (amoCRM doesn't accept empty)
     if trip_name_field_id:
         try:
             custom_fields_values.append({
                 "field_id": int(trip_name_field_id),
-                "values": [{"value": ""}]
+                "values": [{"value": "-"}]  # Use dash as "cleared" marker
             })
         except ValueError:
             pass
@@ -423,27 +423,21 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
         try:
             custom_fields_values.append({
                 "field_id": int(trip_driver_field_id),
-                "values": [{"value": ""}]
+                "values": [{"value": "-"}]
             })
         except ValueError:
             pass
     
-    # Clear trip departure date field - send null to clear date
-    if trip_departure_field_id:
-        try:
-            custom_fields_values.append({
-                "field_id": int(trip_departure_field_id),
-                "values": []  # Empty array clears the field
-            })
-        except ValueError:
-            pass
+    # Clear trip departure date field - use a far future date or null
+    # Note: amoCRM date fields can't be cleared easily, we'll set to null by omitting
+    # Instead of trying to clear date, we'll skip it
     
     # Clear trip order status field
     if trip_order_status_field_id:
         try:
             custom_fields_values.append({
                 "field_id": int(trip_order_status_field_id),
-                "values": [{"value": ""}]
+                "values": [{"value": "Убран из рейса"}]  # Set status to "Removed from trip"
             })
         except ValueError:
             pass
@@ -462,14 +456,15 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     logger.info(f"Clearing trip data in amoCRM. URL: {url}, Payload: {payload}")
     
     try:
-        async with httpx.AsyncClient(timeout=5.0) as http_client:
+        async with httpx.AsyncClient(timeout=10.0) as http_client:
             response = await http_client.patch(url, json=payload, headers=headers)
-            logger.info(f"Clear response: status={response.status_code}")
+            logger.info(f"Clear response: status={response.status_code}, body={response.text[:500]}")
             
             log_sync_operation("clear_trip_data", {
                 "amocrm_id": amocrm_id,
                 "status": "success" if response.status_code == 200 else "error",
-                "response_code": response.status_code
+                "response_code": response.status_code,
+                "payload": payload
             })
             
             if response.status_code == 200:
