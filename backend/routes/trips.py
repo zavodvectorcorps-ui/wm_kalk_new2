@@ -564,6 +564,60 @@ async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
     return {"status": "ok", "removed": order_ids}
 
 
+@router.post("/{trip_id}/sync-amocrm")
+async def sync_trip_to_amocrm(trip_id: str):
+    """Force sync all orders in trip to amoCRM.
+    
+    This endpoint manually triggers sync of trip data to amoCRM
+    for all orders that have amocrm_id.
+    """
+    existing = trips_collection.find_one({"id": trip_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    collection = get_section_collection(existing.get("section", ""))
+    if collection is None:
+        raise HTTPException(status_code=400, detail="Invalid section")
+    
+    # First, make sure trip data is synced to orders
+    sync_trip_data_to_orders(existing, collection)
+    
+    # Get orders with amocrm_id
+    order_ids = existing.get("orderIds", [])
+    orders_with_amocrm = list(collection.find(
+        {"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}},
+        {"_id": 0}
+    ))
+    
+    if not orders_with_amocrm:
+        return {
+            "status": "warning",
+            "message": "Нет заказов с amocrm_id для синхронизации",
+            "synced": 0,
+            "total": len(order_ids)
+        }
+    
+    # Sync each order to amoCRM
+    synced_count = 0
+    errors = []
+    
+    for order in orders_with_amocrm:
+        try:
+            await sync_single_order_to_amocrm(order)
+            synced_count += 1
+        except Exception as e:
+            errors.append(f"{order.get('id')}: {str(e)}")
+            logger.error(f"Failed to sync order {order.get('id')} to amoCRM: {e}")
+    
+    return {
+        "status": "ok" if not errors else "partial",
+        "message": f"Синхронизировано {synced_count} из {len(orders_with_amocrm)} заказов",
+        "synced": synced_count,
+        "total": len(orders_with_amocrm),
+        "errors": errors if errors else None
+    }
+
+
 @router.put("/{trip_id}/order-status/{order_id}")
 async def update_order_status_in_trip(trip_id: str, order_id: str, status: str):
     """Update the delivery status of a single order within a trip."""
