@@ -426,12 +426,19 @@ async def create_trip(trip_data: TripCreate):
 @router.put("/{trip_id}")
 async def update_trip(trip_id: str, trip_data: TripUpdate):
     """Update a trip."""
+    logger.info(f"=== UPDATE_TRIP START: {trip_id} ===")
+    logger.info(f"Received trip_data: {trip_data.dict()}")
+    
     existing = trips_collection.find_one({"id": trip_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Trip not found")
     
+    logger.info(f"Existing trip found: name='{existing.get('name')}', section='{existing.get('section')}', orderIds={existing.get('orderIds', [])}")
+    
     update_data = {k: v for k, v in trip_data.dict().items() if v is not None}
     update_data["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    
+    logger.info(f"Update data (after filtering None): {update_data}")
     
     # Remove syncOrderStatuses from update_data (it's a flag, not a field to store)
     sync_order_statuses = update_data.pop("syncOrderStatuses", False)
@@ -487,20 +494,34 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
         # Add trip data to new orders (will be synced below)
         # No need to do partial update here, sync_trip_data_to_orders will handle it
     
+    logger.info(f"Updating trip in DB with: {update_data}")
     trips_collection.update_one({"id": trip_id}, {"$set": update_data})
     
     updated = trips_collection.find_one({"id": trip_id}, {"_id": 0})
+    logger.info(f"Trip after DB update: name='{updated.get('name')}', status='{updated.get('status')}', orderStatuses={updated.get('orderStatuses', {})}")
     
     # Sync trip data to all orders in this trip
     if collection is not None:
+        logger.info(f"Calling sync_trip_data_to_orders...")
         sync_trip_data_to_orders(updated, collection)
+        
+        # Re-fetch to verify sync completed
+        sample_order_id = updated.get("orderIds", [])[0] if updated.get("orderIds") else None
+        if sample_order_id:
+            sample_order = collection.find_one({"id": sample_order_id}, {"_id": 0})
+            if sample_order:
+                logger.info(f"Sample order {sample_order_id} after sync_trip_data_to_orders: tripName='{sample_order.get('tripName')}', tripOrderStatus='{sample_order.get('tripOrderStatus')}'")
+    else:
+        logger.warning("Collection is None - cannot sync trip data to orders")
     
     # Sync trip data to amoCRM for orders with amocrm_id
     try:
+        logger.info(f"Calling sync_trip_orders_to_amocrm...")
         await sync_trip_orders_to_amocrm(updated, collection)
     except Exception as e:
         logger.error(f"Failed to sync trip to amoCRM: {e}")
     
+    logger.info(f"=== UPDATE_TRIP END: {trip_id} ===")
     return updated
 
 
