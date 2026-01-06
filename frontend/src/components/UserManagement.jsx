@@ -300,6 +300,12 @@ export const UserManagement = () => {
               Logistics
             </Badge>
           )}
+          {access.includes('driver') && (
+            <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700">
+              <Truck className="w-3 h-3" />
+              Driver
+            </Badge>
+          )}
         </div>
       );
     }
