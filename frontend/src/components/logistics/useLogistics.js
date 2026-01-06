@@ -132,7 +132,36 @@ export const useLogistics = () => {
     fetchDrivers();
     fetchDriverUsers();
     fetchAmocrmPipelines();
+    fetchIntegrationSettings();
   }, [fetchDrivers, fetchDriverUsers]);
+
+  // Fetch integration settings (including stage sync)
+  const fetchIntegrationSettings = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/amocrm/settings`);
+      if (res.ok) {
+        const data = await res.json();
+        // Auto-set selected pipeline/status based on current section
+        if (data.stage_sync) {
+          const sectionKey = currentSection;
+          const stageConfig = data.stage_sync[sectionKey];
+          if (stageConfig?.pipeline_id && stageConfig?.status_id) {
+            setSelectedPipeline(stageConfig.pipeline_id);
+            setSelectedStatus(stageConfig.status_id);
+            // Auto-fetch stats
+            fetchAmocrmStats(stageConfig.pipeline_id, stageConfig.status_id);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load integration settings:', e);
+    }
+  }, [currentSection]);
+
+  // Re-fetch stats when section changes
+  useEffect(() => {
+    fetchIntegrationSettings();
+  }, [currentSection, fetchIntegrationSettings]);
 
   // Fetch amoCRM pipelines
   const fetchAmocrmPipelines = useCallback(async () => {
