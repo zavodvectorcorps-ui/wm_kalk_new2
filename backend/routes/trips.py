@@ -268,15 +268,34 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     
     if not amocrm_id:
         logger.warning("No amocrm_id provided")
+        log_sync_operation("clear_trip_data", {
+            "amocrm_id": amocrm_id,
+            "status": "skipped",
+            "reason": "no_amocrm_id"
+        })
         return
     
+    # Load settings from integration_settings collection with type: "amocrm"
     settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    
+    # Log what we found for debugging
+    logger.info(f"Settings found: {bool(settings)}")
+    if settings:
+        logger.info(f"Settings keys: {list(settings.keys())}")
+    
     if not settings:
-        logger.warning("amoCRM settings not found - skipping clear")
+        logger.warning("amoCRM settings not found in integration_settings collection (type='amocrm') - skipping clear")
+        log_sync_operation("clear_trip_data", {
+            "amocrm_id": amocrm_id,
+            "status": "skipped",
+            "reason": "settings_not_found"
+        })
         return
     
     domain = settings.get("amocrm_domain", "")
     token = settings.get("amocrm_token", "")
+    
+    logger.info(f"Loaded credentials - domain: '{domain}', token present: {bool(token)}")
     
     if not domain or not token:
         logger.warning(f"amoCRM domain or token not set. Domain: '{domain}', Token: {'SET' if token else 'NOT SET'}")
