@@ -67,10 +67,12 @@ def sync_trip_data_to_orders(trip: dict, collection):
     so that when syncing to amoCRM, each order has its own data to send.
     """
     if collection is None:
+        logger.warning("sync_trip_data_to_orders: collection is None")
         return
     
     order_ids = trip.get("orderIds", [])
     if not order_ids:
+        logger.info("sync_trip_data_to_orders: no order IDs in trip")
         return
     
     order_statuses = trip.get("orderStatuses", {})
@@ -85,14 +87,19 @@ def sync_trip_data_to_orders(trip: dict, collection):
         "tripStatus": trip.get("status", "planned")
     }
     
+    logger.info(f"Syncing trip data to {len(order_ids)} orders: {trip_data_for_orders}")
+    
     # Update each order with its specific status
     for order_id in order_ids:
         order_status = order_statuses.get(order_id, "pending")
-        collection.update_one(
+        result = collection.update_one(
             {"id": order_id},
             {"$set": {
                 **trip_data_for_orders,
                 "tripOrderStatus": order_status
+            }}
+        )
+        logger.info(f"Updated order {order_id}: matched={result.matched_count}, modified={result.modified_count}")
             }}
         )
 
