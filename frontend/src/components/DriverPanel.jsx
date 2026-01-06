@@ -61,7 +61,7 @@ export const DriverPanel = () => {
   const fetchTrips = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/api/driver-panel/my-trips`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
