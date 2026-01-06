@@ -44,6 +44,8 @@ export const useLogistics = () => {
   const [drivers, setDrivers] = useState(DEFAULT_DRIVERS);
   const [showDriversModal, setShowDriversModal] = useState(false);
   const [newDriverName, setNewDriverName] = useState('');
+  const [newDriverUserId, setNewDriverUserId] = useState('');
+  const [driverUsers, setDriverUsers] = useState([]);
   
   // Map filter: 'free', 'all', 'free_plus_trip'
   const [mapFilter, setMapFilter] = useState('free');
