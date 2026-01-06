@@ -390,7 +390,7 @@ const AppContent = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
         <Suspense fallback={<PageLoader />}>
-          <DriverPanel />
+          <DriverPanel onLogout={handleLogout} />
         </Suspense>
         
         <Toaster position="top-right" richColors />
