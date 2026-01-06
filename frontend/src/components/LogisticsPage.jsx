@@ -709,6 +709,11 @@ export const LogisticsPage = () => {
           setNewTripName={setNewTripName}
           newTripDriver={newTripDriver}
           setNewTripDriver={setNewTripDriver}
+          newTripPipelineId={newTripPipelineId}
+          setNewTripPipelineId={setNewTripPipelineId}
+          newTripStatusId={newTripStatusId}
+          setNewTripStatusId={setNewTripStatusId}
+          amocrmPipelines={amocrmPipelines}
           creatingTrip={creatingTrip}
           createTrip={createTrip}
           setShowCreateTripModal={setShowCreateTripModal}
