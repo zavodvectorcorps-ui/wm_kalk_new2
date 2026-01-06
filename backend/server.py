@@ -21,6 +21,7 @@ from routes.trips import router as trips_router
 from routes.drivers import router as drivers_router
 from routes.driver_panel import router as driver_panel_router
 from routes.widget import router as widget_router
+from routes.notifications import router as notifications_router
 
 # Configure logging
 logging.basicConfig(
@@ -53,6 +54,7 @@ app.include_router(trips_router)
 app.include_router(drivers_router)
 app.include_router(driver_panel_router)
 app.include_router(widget_router)
+app.include_router(notifications_router)
 
 # Initialize backup database reference
 from database import db
