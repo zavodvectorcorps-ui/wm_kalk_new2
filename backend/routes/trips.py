@@ -1051,8 +1051,13 @@ def log_sync_operation(operation: str, details: dict):
 @router.get("/debug/sync-status")
 async def get_sync_debug_status():
     """Get debug information about amoCRM sync configuration and recent operations."""
-    # Get amoCRM settings
+    # Get amoCRM settings - same query as used in clear_order_trip_data_in_amocrm
     settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    
+    # Log for debugging
+    logger.info(f"Debug sync-status: settings found = {bool(settings)}")
+    if settings:
+        logger.info(f"Debug sync-status: domain = '{settings.get('amocrm_domain', '')}', token_present = {bool(settings.get('amocrm_token'))}")
     
     settings_status = {
         "configured": bool(settings),
