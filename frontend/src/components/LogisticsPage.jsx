@@ -1504,6 +1504,7 @@ const TripsView = ({
           ORDER_TRIP_STATUSES={ORDER_TRIP_STATUSES}
           printTripOrders={printTripOrders}
           amocrmPipelines={amocrmPipelines}
+          API_URL={API_URL}
         />
       </div>
 
