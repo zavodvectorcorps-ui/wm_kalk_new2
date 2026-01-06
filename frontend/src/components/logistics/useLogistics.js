@@ -131,7 +131,66 @@ export const useLogistics = () => {
   useEffect(() => {
     fetchDrivers();
     fetchDriverUsers();
+    fetchAmocrmPipelines();
   }, [fetchDrivers, fetchDriverUsers]);
+
+  // Fetch amoCRM pipelines
+  const fetchAmocrmPipelines = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/amocrm/pipelines`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.pipelines && data.pipelines.length > 0) {
+          setAmocrmPipelines(data.pipelines);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load amoCRM pipelines:', e);
+    }
+  }, []);
+
+  // Fetch amoCRM stage stats
+  const fetchAmocrmStats = useCallback(async (pipelineId, statusId) => {
+    if (!pipelineId || !statusId) return;
+    
+    setLoadingAmocrmStats(true);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/amocrm/stage-stats/${pipelineId}/${statusId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAmocrmStats(data);
+      }
+    } catch (e) {
+      console.error('Failed to load amoCRM stats:', e);
+    } finally {
+      setLoadingAmocrmStats(false);
+    }
+  }, []);
+
+  // Compare amoCRM leads with local orders
+  const getAmocrmComparison = useCallback(() => {
+    if (!amocrmStats || !amocrmStats.lead_ids) return null;
+    
+    const localOrders = currentData?.orders || [];
+    const localAmocrmIds = localOrders
+      .filter(o => o.amocrm_id)
+      .map(o => String(o.amocrm_id));
+    
+    const amocrmIds = amocrmStats.lead_ids;
+    
+    // Find which IDs are in amoCRM but not in local
+    const missingInLocal = amocrmIds.filter(id => !localAmocrmIds.includes(id));
+    // Find which IDs are in local but not in amoCRM (already processed)
+    const extraInLocal = localAmocrmIds.filter(id => !amocrmIds.includes(id));
+    
+    return {
+      amocrmCount: amocrmIds.length,
+      localCount: localAmocrmIds.length,
+      missingInLocal,
+      extraInLocal,
+      synced: missingInLocal.length === 0
+    };
+  }, [amocrmStats, currentData?.orders]);
 
   // Load warehouse settings
   useEffect(() => {
