@@ -567,6 +567,22 @@ export const UserManagement = () => {
                     {txt.accessLogistics}
                   </label>
                 </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="add-access-driver"
+                    checked={formData.access.includes('driver')}
+                    onCheckedChange={(checked) => {
+                      const newAccess = checked 
+                        ? [...formData.access, 'driver']
+                        : formData.access.filter(a => a !== 'driver');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="add-access-driver" className="flex items-center gap-2 cursor-pointer">
+                    <Truck className="w-4 h-4 text-green-500" />
+                    {txt.accessDriver}
+                  </label>
+                </div>
               </div>
             </div>
           </div>
