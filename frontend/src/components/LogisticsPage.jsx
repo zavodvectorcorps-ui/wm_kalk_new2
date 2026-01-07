@@ -702,12 +702,15 @@ export const LogisticsPage = () => {
 const OrderForm = ({ 
   currentSection, SectionIcon, newOrderForm, setNewOrderForm, 
   addressInputRef, creatingOrder, handleCreateOrder, setShowOrderForm, autocompleteRef 
-}) => (
-  <Card className={`border-2 ${currentSection.borderColor}/30 ${currentSection.bgColor}/10 mb-6`}>
-    <CardHeader className="pb-3">
-      <div className="flex items-center justify-between">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <SectionIcon className={`h-5 w-5 ${currentSection.color}`} />
+}) => {
+  if (!currentSection) return null;
+  
+  return (
+    <Card className={`border-2 ${currentSection.borderColor}/30 ${currentSection.bgColor}/10 mb-6`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <SectionIcon className={`h-5 w-5 ${currentSection.color}`} />
           Новый заказ - {currentSection.name.ru}
         </CardTitle>
         <Button size="sm" variant="ghost" onClick={() => { setShowOrderForm(false); autocompleteRef.current = null; }}>
