@@ -575,6 +575,7 @@ async def debug_order_info(order_id: str, current_user: dict = Depends(get_curre
                 result["order_data"] = order
     
     # Check for photo - try all ID variations
+    # First, check if photo exists (without fetching large photoUrl)
     photo = None
     for sid in search_ids:
         photo = delivery_photos.find_one({"orderId": sid}, {"_id": 0, "photoUrl": 0})
@@ -588,6 +589,13 @@ async def debug_order_info(order_id: str, current_user: dict = Depends(get_curre
             result["photo_found_by_id"] = result["internal_id"]
     
     if photo:
+        # Check if photoUrl exists separately (don't load it, just check existence)
+        photo_with_url = delivery_photos.find_one(
+            {"orderId": photo.get("orderId")}, 
+            {"_id": 0, "photoUrl": 1}
+        )
+        has_photo_url = bool(photo_with_url and photo_with_url.get("photoUrl"))
+        
         result["photo"] = {
             "id": photo.get("id"),
             "tripId": photo.get("tripId"),
@@ -595,11 +603,104 @@ async def debug_order_info(order_id: str, current_user: dict = Depends(get_curre
             "uploadedBy": photo.get("uploadedBy"),
             "confirmedAt": photo.get("confirmedAt"),
             "receivedAmount": photo.get("receivedAmount"),
-            "has_photoUrl": bool(photo.get("photoUrl"))
+            "has_photoUrl": has_photo_url
         }
+        
+        # Check if order has the photo link
+        if result.get("order_data"):
+            result["order_has_deliveryPhotoUrl"] = bool(result["order_data"].get("deliveryPhotoUrl"))
     
     # Show what IDs were searched
     result["searched_ids"] = search_ids
+    
+    return result
+
+
+@router.post("/repair-photo-link/{order_id}")
+async def repair_photo_link(order_id: str, current_user: dict = Depends(get_current_user)):
+    """Repair the link between a photo in delivery_photos and the order record.
+    
+    This is useful when photo was uploaded but the order record wasn't updated.
+    """
+    result = {
+        "success": False,
+        "message": "",
+        "order_id": order_id
+    }
+    
+    # Build possible ID variations
+    search_ids = [order_id]
+    if order_id.isdigit():
+        search_ids.extend([f"AMO-GH-{order_id}", f"AMO-BA-{order_id}", f"AMO-SA-{order_id}"])
+    if order_id.startswith("AMO-"):
+        plain_id = order_id.split("-")[-1]
+        search_ids.append(plain_id)
+    
+    # Find photo
+    photo = None
+    for sid in search_ids:
+        photo = delivery_photos.find_one({"orderId": sid})
+        if photo:
+            break
+    
+    if not photo:
+        result["message"] = "Фото не найдено в базе"
+        return result
+    
+    photo_order_id = photo.get("orderId")
+    photo_url = photo.get("photoUrl")
+    trip_id = photo.get("tripId")
+    
+    if not photo_url:
+        result["message"] = "Фото найдено, но photoUrl пустой"
+        return result
+    
+    # Find order in collections
+    order = None
+    order_collection = None
+    for section_name, collection in [
+        ("balia", balia_orders),
+        ("greenhouse", greenhouse_orders),
+        ("sauna", sauna_orders)
+    ]:
+        if collection is not None:
+            for sid in search_ids:
+                order = collection.find_one({"id": sid})
+                if order:
+                    order_collection = collection
+                    result["found_in"] = section_name
+                    break
+                order = collection.find_one({"amocrm_id": sid})
+                if order:
+                    order_collection = collection
+                    result["found_in"] = section_name
+                    break
+            if order:
+                break
+    
+    if not order:
+        result["message"] = "Заказ не найден в коллекциях"
+        return result
+    
+    # Update order with photo data
+    update_data = {
+        "deliveryPhotoUrl": photo_url,
+        "tripId": trip_id
+    }
+    
+    # Copy additional fields from photo if they exist
+    if photo.get("confirmedAt"):
+        update_data["deliveryConfirmedAt"] = photo.get("confirmedAt")
+    if photo.get("uploadedBy"):
+        update_data["deliveryConfirmedBy"] = photo.get("uploadedBy")
+    if photo.get("receivedAmount"):
+        update_data["receivedAmount"] = photo.get("receivedAmount")
+    
+    order_collection.update_one({"id": order.get("id")}, {"$set": update_data})
+    
+    result["success"] = True
+    result["message"] = f"Связь восстановлена для заказа {order.get('id')}"
+    result["updated_fields"] = list(update_data.keys())
     
     return result
 
