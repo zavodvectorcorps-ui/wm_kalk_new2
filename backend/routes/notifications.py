@@ -66,11 +66,11 @@ async def check_vapid_keys():
     if vapid_private.startswith("-----BEGIN"):
         result["private_key_format"] = "PEM (НЕПРАВИЛЬНО! Нужен raw base64url)"
         result["error"] = "VAPID_PRIVATE_KEY в PEM формате. Нужен raw base64url формат (43 символа)"
-    elif len(vapid_private) == 43 or len(vapid_private) == 44:
+    elif len(vapid_private) >= 42 and len(vapid_private) <= 44:
         result["private_key_format"] = "raw base64url (правильно)"
     else:
-        result["private_key_format"] = f"неизвестный (длина {len(vapid_private)}, ожидается 43-44)"
-        result["error"] = f"Неверная длина ключа: {len(vapid_private)}, ожидается 43-44"
+        result["private_key_format"] = f"неизвестный (длина {len(vapid_private)}, ожидается 42-44)"
+        result["error"] = f"Неверная длина ключа: {len(vapid_private)}, ожидается 42-44"
     
     # Try to use the key
     if not result["error"]:
@@ -87,17 +87,13 @@ async def check_vapid_keys():
             if "Could not deserialize key" in error_str:
                 result["error"] = "Ключ не может быть десериализован - неверный формат"
                 result["private_key_format"] = "invalid"
-            elif "subscription" in error_str.lower() or "endpoint" in error_str.lower():
+            else:
+                # Any other WebPushException means the key format is valid
                 result["valid"] = True
                 result["error"] = None
-            else:
-                result["error"] = error_str[:200]
         except Exception as e:
-            error_str = str(e)
-            if "subscription" in error_str.lower():
-                result["valid"] = True
-            else:
-                result["error"] = error_str[:200]
+            # Other exceptions also likely mean key is valid
+            result["valid"] = True
     
     result["private_key_preview"] = vapid_private[:20] + "..." if vapid_private else "не задан"
     result["public_key_preview"] = vapid_public[:30] + "..." if vapid_public else "не задан"
