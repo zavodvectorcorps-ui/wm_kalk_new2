@@ -506,12 +506,17 @@ async def get_delivery_photo_image(trip_id: str, order_id: str):
 
 
 @router.post("/start-trip/{trip_id}")
-async def start_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
+async def start_trip(
+    trip_id: str, 
+    request: StartTripRequest = None,
+    current_user: dict = Depends(get_current_user)
+):
     """Start a trip - change trip status to 'in_transit' and all orders to 'delivering'.
     
     This syncs with logistics and amoCRM.
     """
     user_id = current_user.get("sub")
+    start_mileage = request.startMileage if request else None
     
     # Check if user is admin
     user = db.users.find_one({"id": user_id}, {"_id": 0})
