@@ -1625,13 +1625,15 @@ const TripDetailsCard = ({
                 {selectedTrip.amocrmPipelineId && (() => {
                   const pipeline = amocrmPipelines.find(p => String(p.id) === String(selectedTrip.amocrmPipelineId));
                   const statuses = pipeline?._embedded?.statuses?.filter(s => s.id !== 142 && s.id !== 143).sort((a, b) => a.sort - b.sort) || [];
+                  if (statuses.length === 0) return null;
                   return (
                     <Select 
-                      value={selectedTrip.amocrmStatusId || ''} 
-                      onValueChange={(val) => updateTrip(selectedTrip.id, { amocrmStatusId: val })}
+                      value={selectedTrip.amocrmStatusId || 'none'} 
+                      onValueChange={(val) => updateTrip(selectedTrip.id, { amocrmStatusId: val === 'none' ? '' : val })}
                     >
                       <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Этап" /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">Выберите этап</SelectItem>
                         {statuses.map(s => (
                           <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
                         ))}
