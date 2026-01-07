@@ -319,7 +319,8 @@ async def move_trip_orders_to_amocrm_stage(trip: dict, collection, pipeline_id: 
                 "status_id": status_id
             }
             
-            response = requests.patch(update_url, json=payload, headers=headers, timeout=10)
+            async with httpx.AsyncClient(timeout=10.0) as http_client:
+                response = await http_client.patch(update_url, json=payload, headers=headers)
             
             if response.status_code == 200:
                 logger.info(f"✅ Moved lead {amocrm_id} to pipeline {pipeline_id}, status {status_id}")
