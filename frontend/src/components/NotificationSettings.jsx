@@ -153,7 +153,7 @@ export const NotificationSettings = ({ drivers = [], onUpdate }) => {
     }
     setSendingTest(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       const res = await fetch(`${API_URL}/api/notifications/send-custom`, {
         method: 'POST',
         headers: { 
