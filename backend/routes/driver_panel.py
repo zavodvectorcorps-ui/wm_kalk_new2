@@ -197,7 +197,7 @@ async def confirm_delivery(
     # Get section collection
     section = trip.get("section", "")
     collection = get_section_collection(section)
-    if not collection:
+    if collection is None:
         raise HTTPException(status_code=400, detail="Неверный раздел")
     
     # Update order status
@@ -549,7 +549,7 @@ async def geocode_order_address(
     This is useful when orders are created from amoCRM without coordinates.
     """
     collection = get_section_collection(request.section)
-    if not collection:
+    if collection is None:
         raise HTTPException(status_code=400, detail="Неверный раздел")
     
     order = collection.find_one({"id": request.orderId})
@@ -630,7 +630,7 @@ async def geocode_trip_orders(
     
     section = trip.get("section", "")
     collection = get_section_collection(section)
-    if not collection:
+    if collection is None:
         raise HTTPException(status_code=400, detail="Неверный раздел")
     
     # Get Google Maps API key
