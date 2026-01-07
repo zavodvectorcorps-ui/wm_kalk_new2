@@ -104,6 +104,7 @@ async def send_push_notification(user_id: str = None, driver_id: str = None, tit
         elif user_id:
             query["userId"] = user_id
         else:
+            logger.warning("No user_id or driver_id provided for push notification")
             return False
         
         subscriptions = list(notification_subscriptions.find(query, {"_id": 0}))
@@ -111,6 +112,8 @@ async def send_push_notification(user_id: str = None, driver_id: str = None, tit
         if not subscriptions:
             logger.info(f"No push subscriptions found for driver={driver_id}, user={user_id}")
             return False
+        
+        logger.info(f"Found {len(subscriptions)} subscriptions for driver={driver_id}, user={user_id}")
         
         # Get VAPID keys from environment
         vapid_private_key = os.environ.get("VAPID_PRIVATE_KEY", "")
@@ -133,12 +136,15 @@ async def send_push_notification(user_id: str = None, driver_id: str = None, tit
         })
         
         sent_count = 0
+        errors = []
         for sub in subscriptions:
             try:
                 subscription_info = {
                     "endpoint": sub.get("endpoint"),
                     "keys": sub.get("keys", {})
                 }
+                
+                logger.info(f"Sending push to endpoint: {sub.get('endpoint', '')[:60]}...")
                 
                 webpush(
                     subscription_info=subscription_info,
@@ -147,21 +153,29 @@ async def send_push_notification(user_id: str = None, driver_id: str = None, tit
                     vapid_claims={"sub": vapid_claims_email}
                 )
                 sent_count += 1
-                logger.info(f"Push sent to endpoint: {sub.get('endpoint')[:50]}...")
+                logger.info(f"Push sent successfully to endpoint: {sub.get('endpoint', '')[:50]}...")
             except WebPushException as e:
-                logger.error(f"Push failed: {e}")
-                # Remove invalid subscriptions
+                error_msg = str(e)
+                logger.error(f"WebPush failed: {error_msg}")
+                errors.append(error_msg)
+                # Remove invalid subscriptions (expired or unsubscribed)
                 if e.response and e.response.status_code in [404, 410]:
                     notification_subscriptions.delete_one({"endpoint": sub.get("endpoint")})
-                    logger.info(f"Removed expired subscription: {sub.get('endpoint')[:50]}...")
+                    logger.info(f"Removed expired subscription: {sub.get('endpoint', '')[:50]}...")
             except Exception as e:
-                logger.error(f"Push error: {e}")
+                error_msg = str(e)
+                logger.error(f"Push error: {error_msg}")
+                errors.append(error_msg)
         
-        logger.info(f"Push notifications sent: {sent_count}/{len(subscriptions)}")
+        logger.info(f"Push notifications sent: {sent_count}/{len(subscriptions)}, errors: {len(errors)}")
+        if errors and sent_count == 0:
+            logger.error(f"All push notifications failed. Errors: {errors[:3]}")  # Log first 3 errors
+        
         return sent_count > 0
         
     except Exception as e:
-        logger.error(f"Error sending push notification: {e}")
+        logger.error(f"Error in send_push_notification: {e}")
+        return False
 
 
 # ============= Telegram Notifications =============
