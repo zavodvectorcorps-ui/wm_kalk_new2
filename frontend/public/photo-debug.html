@@ -254,7 +254,45 @@
                 });
                 const data = await res.json();
                 result.textContent = JSON.stringify(data, null, 2);
+                
+                // Check if repair is needed
+                if (data.photo && data.photo.has_photoUrl && data.order_data && !data.order_has_deliveryPhotoUrl) {
+                    result.textContent += '\n\n⚠️ ПРОБЛЕМА: Фото есть, но не связано с заказом!\nНажмите "Восстановить связь" ниже.';
+                }
+                
                 log('Информация о заказе получена', 'success');
+            } catch (e) {
+                result.textContent = `Ошибка: ${e.message}`;
+                log(`Ошибка: ${e.message}`, 'error');
+            }
+        }
+        
+        async function repairPhotoLink() {
+            const orderId = document.getElementById('amocrm-order-id').value;
+            const token = getToken();
+            const result = document.getElementById('amocrm-result');
+            
+            if (!orderId || !token) {
+                result.textContent = 'Введите Order ID и токен';
+                return;
+            }
+            
+            result.textContent = 'Восстановление связи...';
+            log(`Восстановление связи фото для заказа ${orderId}`);
+            
+            try {
+                const res = await fetch(`${API_URL}/api/driver-panel/repair-photo-link/${orderId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.success) {
+                    log(`✅ Связь восстановлена: ${data.message}`, 'success');
+                } else {
+                    log(`❌ Ошибка: ${data.message}`, 'error');
+                }
             } catch (e) {
                 result.textContent = `Ошибка: ${e.message}`;
                 log(`Ошибка: ${e.message}`, 'error');
