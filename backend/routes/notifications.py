@@ -24,6 +24,8 @@ db = client[DB_NAME]
 # Collections
 notification_subscriptions = db["notification_subscriptions"]
 notification_settings = db["notification_settings"]
+notification_history = db["notification_history"]  # History of sent notifications
+drivers_collection = db["drivers"]
 
 
 def convert_pem_to_raw_vapid(pem_key: str) -> str:
