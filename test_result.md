@@ -945,3 +945,41 @@ curl -s "API_URL/api/notifications/debug/driver/{driver_id}" -H "Authorization: 
 
 **Files modified:**
 - `/app/backend/routes/driver_panel.py`
+
+## amoCRM Photo Upload Fix - January 2026 (Current Session)
+
+### Issue Description:
+Photo delivery to amoCRM is not working. The system creates a text note but fails to attach the photo file. Previous attempts used incorrect API endpoints (404/405 errors).
+
+### Root Cause:
+The previous implementation used wrong amoCRM API endpoints:
+- `/api/v4/files` with multipart/form-data (incorrect)
+- `/api/v4/leads/{id}/files` with multipart (incorrect)
+
+### Correct amoCRM API v4 Process:
+1. **Create upload session**: POST `/api/v4/files` with `file_name` and `file_size` (JSON body)
+2. **Upload file**: PUT to returned `upload_url` with binary content
+3. **Get UUID**: From upload response
+4. **Create note with file**: POST `/api/v4/leads/{id}/notes` with `_embedded.files[{uuid: "..."}]`
+
+### Fix Applied:
+- Completely rewrote `send_photo_to_amocrm` function in `/app/backend/routes/trips.py`
+- Updated `resend_photo_to_amocrm` debug endpoint in `/app/backend/routes/driver_panel.py`
+- Enhanced `/photo-debug.html` with step-by-step progress display
+
+### Files Modified:
+- `/app/backend/routes/trips.py` - New send_photo_to_amocrm with correct API flow
+- `/app/backend/routes/driver_panel.py` - New resend_photo_to_amocrm with detailed debug output
+- `/app/frontend/public/photo-debug.html` - Better UI for debugging process
+
+### Testing Required:
+User needs to test with real amoCRM credentials:
+1. Go to `/photo-debug.html`
+2. Enter Order ID with existing photo and amocrm_id
+3. Click "Отправить фото в amoCRM"
+4. Check debug output for step-by-step status
+5. Verify in amoCRM that file is attached to note
+
+### Agent Communication:
+- agent: "main"
+  message: "amoCRM photo upload fix implemented using correct API v4 process: 1) Create session, 2) Upload file, 3) Create note with UUID. Ready for user testing with real credentials."
