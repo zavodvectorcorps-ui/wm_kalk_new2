@@ -301,6 +301,38 @@
             }
         }
         
+        async function resendToAmocrm() {
+            const orderId = document.getElementById('amocrm-order-id').value;
+            const token = getToken();
+            const result = document.getElementById('amocrm-result');
+            
+            if (!orderId || !token) {
+                result.textContent = 'Введите Order ID и токен';
+                return;
+            }
+            
+            result.textContent = 'Отправка фото в amoCRM...';
+            log(`Отправка фото в amoCRM для заказа ${orderId}`);
+            
+            try {
+                const res = await fetch(`${API_URL}/api/driver-panel/resend-photo-to-amocrm/${orderId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.success) {
+                    log(`✅ Фото отправлено: ${data.message}`, 'success');
+                } else {
+                    log(`❌ Ошибка: ${data.message}`, 'error');
+                }
+            } catch (e) {
+                result.textContent = `Ошибка: ${e.message}`;
+                log(`Ошибка: ${e.message}`, 'error');
+            }
+        }
+        
         function showPhoto(url) {
             document.getElementById('modal-image').src = url;
             document.getElementById('photo-modal').style.display = 'flex';
