@@ -456,7 +456,7 @@ export const useLogistics = () => {
     
     setSendingNotification(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token) {
         toast.error('Сессия истекла. Пожалуйста, войдите заново.');
         return false;
@@ -477,7 +477,7 @@ export const useLogistics = () => {
         return false;
       }
       
-      // Clone response before reading to avoid "body stream already read" error
+      // Use text() then parse to avoid "body stream already read" error
       const responseText = await res.text();
       let data;
       try {
@@ -515,7 +515,7 @@ export const useLogistics = () => {
   // Get driver notification status
   const getDriverNotificationStatus = async (driverId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token) return null;
       
       const res = await fetch(`${API_URL}/api/notifications/debug/driver/${driverId}`, {
