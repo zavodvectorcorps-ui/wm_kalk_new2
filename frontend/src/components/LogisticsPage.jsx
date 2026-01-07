@@ -1612,11 +1612,11 @@ const TripDetailsCard = ({
               <div className="grid grid-cols-2 gap-2">
                 <Select 
                   value={selectedTrip.amocrmPipelineId || ''} 
-                  onValueChange={(val) => updateTrip(selectedTrip.id, { amocrmPipelineId: val, amocrmStatusId: '' })}
+                  onValueChange={(val) => updateTrip(selectedTrip.id, { amocrmPipelineId: val === 'none' ? '' : val, amocrmStatusId: '' })}
                 >
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Воронка" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Не переносить</SelectItem>
+                    <SelectItem value="none">Не переносить</SelectItem>
                     {amocrmPipelines.map(p => (
                       <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                     ))}
@@ -1958,10 +1958,10 @@ const CreateTripModal = ({ currentSection, currentData, drivers, newTripName, se
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">Воронка</Label>
-                <Select value={newTripPipelineId} onValueChange={(val) => { setNewTripPipelineId(val); setNewTripStatusId(''); }}>
+                <Select value={newTripPipelineId || 'none'} onValueChange={(val) => { setNewTripPipelineId(val === 'none' ? '' : val); setNewTripStatusId(''); }}>
                   <SelectTrigger><SelectValue placeholder="Выберите воронку" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Не переносить</SelectItem>
+                    <SelectItem value="none">Не переносить</SelectItem>
                     {amocrmPipelines.map(p => (
                       <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                     ))}
