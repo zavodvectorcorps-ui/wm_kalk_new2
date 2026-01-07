@@ -1601,7 +1601,7 @@ def test_amocrm_photo_upload_fix():
     try:
         order_id = "test-order-photo-001"
         
-        response = requests.get(f"{BACKEND_URL}/driver-panel/debug/order/{order_id}")
+        response = requests.get(f"{BACKEND_URL}/driver-panel/debug/order/{order_id}", headers=headers)
         print(f"Status Code: {response.status_code}")
         
         if response.status_code == 200:
@@ -1629,7 +1629,7 @@ def test_amocrm_photo_upload_fix():
     # Test 3: Photo Debug List Test
     print("\n📝 Test 3: Photo Debug List - GET /api/driver-panel/photos/list...")
     try:
-        response = requests.get(f"{BACKEND_URL}/driver-panel/photos/list")
+        response = requests.get(f"{BACKEND_URL}/driver-panel/photos/list", headers=headers)
         print(f"Status Code: {response.status_code}")
         
         if response.status_code == 200:
