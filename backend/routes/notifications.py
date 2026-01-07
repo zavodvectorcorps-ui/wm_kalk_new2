@@ -821,9 +821,65 @@ async def get_my_notification_history(
         {"_id": 0}
     ).sort("sentAt", -1).limit(limit))
     
+    # Count unread notifications
+    unread_count = notification_history.count_documents({
+        "$or": [{"driverId": driver_id}, {"driverUserId": user_id}],
+        "read": {"$ne": True}
+    })
+    
     return {
         "count": len(notifications),
+        "unreadCount": unread_count,
         "driverId": driver_id,
         "driverName": driver.get("name"),
         "notifications": notifications
     }
+
+
+@router.post("/history/mark-read")
+async def mark_notifications_as_read(
+    current_user: dict = Depends(get_current_user)
+):
+    """Mark all notifications as read for the current driver."""
+    user_id = current_user.get("sub")
+    
+    # Find driver by userId
+    driver = drivers_collection.find_one({"userId": user_id}, {"_id": 0})
+    if not driver:
+        return {"success": False, "message": "Водитель не найден"}
+    
+    driver_id = driver.get("id")
+    
+    # Mark all as read
+    result = notification_history.update_many(
+        {"$or": [{"driverId": driver_id}, {"driverUserId": user_id}]},
+        {"$set": {"read": True, "readAt": datetime.now(timezone.utc)}}
+    )
+    
+    return {
+        "success": True,
+        "marked": result.modified_count
+    }
+
+
+@router.get("/history/unread-count")
+async def get_unread_notification_count(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get count of unread notifications for the current driver."""
+    user_id = current_user.get("sub")
+    
+    # Find driver by userId
+    driver = drivers_collection.find_one({"userId": user_id}, {"_id": 0})
+    if not driver:
+        return {"count": 0}
+    
+    driver_id = driver.get("id")
+    
+    # Count unread
+    count = notification_history.count_documents({
+        "$or": [{"driverId": driver_id}, {"driverUserId": user_id}],
+        "read": {"$ne": True}
+    })
+    
+    return {"count": count}
