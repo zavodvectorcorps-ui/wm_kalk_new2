@@ -1060,6 +1060,85 @@ export const IntegrationsPage = () => {
                 </div>
               </div>
 
+              {/* Field types for clearing */}
+              <div className="space-y-4 p-4 border rounded-lg bg-yellow-50/30">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-yellow-600" />
+                  Типы полей для очистки
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Укажите типы полей amoCRM для корректной очистки данных рейса при удалении заказа
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Тип поля: Номер рейса</Label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border bg-background"
+                      value={settings.trip_number_field_type || 'text'}
+                      onChange={(e) => setSettings(prev => ({ ...prev, trip_number_field_type: e.target.value }))}
+                    >
+                      <option value="text">Текст</option>
+                      <option value="numeric">Число</option>
+                      <option value="select">Список</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Тип поля: Водитель</Label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border bg-background"
+                      value={settings.trip_driver_field_type || 'text'}
+                      onChange={(e) => setSettings(prev => ({ ...prev, trip_driver_field_type: e.target.value }))}
+                    >
+                      <option value="text">Текст</option>
+                      <option value="numeric">Число</option>
+                      <option value="select">Список</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Тип поля: Статус</Label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border bg-background"
+                      value={settings.trip_order_status_field_type || 'text'}
+                      onChange={(e) => setSettings(prev => ({ ...prev, trip_order_status_field_type: e.target.value }))}
+                    >
+                      <option value="text">Текст</option>
+                      <option value="numeric">Число</option>
+                      <option value="select">Список</option>
+                    </select>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Числовые поля очищаются через пустой массив values, текстовые — через пустую строку
+                </p>
+              </div>
+
+              {/* Warehouse settings for route planning */}
+              <div className="space-y-4 p-4 border rounded-lg bg-green-50/30">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Warehouse className="h-4 w-4 text-green-600" />
+                  Адрес склада (начальная точка маршрута)
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Маршрут в кабинете водителя будет строиться от этого адреса
+                </p>
+                <div className="space-y-2">
+                  <Label>Адрес склада</Label>
+                  <Input
+                    value={settings.warehouse_address || ''}
+                    onChange={(e) => setSettings(prev => ({ ...prev, warehouse_address: e.target.value }))}
+                    placeholder="ул. Промышленная 15, Варшава"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Координаты определятся автоматически при сохранении
+                  </p>
+                </div>
+                {settings.warehouse_lat && settings.warehouse_lng && (
+                  <div className="text-xs text-green-600">
+                    ✓ Координаты: {settings.warehouse_lat.toFixed(6)}, {settings.warehouse_lng.toFixed(6)}
+                  </div>
+                )}
+              </div>
+
               {/* How to get field IDs */}
               <div className="p-4 bg-blue-50 rounded-lg text-sm">
                 <h4 className="font-medium text-blue-800 mb-2">Как получить ID полей?</h4>
