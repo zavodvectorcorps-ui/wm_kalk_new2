@@ -480,6 +480,60 @@ class CustomNotificationRequest(BaseModel):
     message: str
 
 
+@router.get("/debug/driver/{driver_id}")
+async def debug_driver_notifications(
+    driver_id: str,
+    admin: dict = Depends(get_admin_user)
+):
+    """Debug endpoint to check driver notification setup."""
+    # Get driver info
+    driver = drivers_collection.find_one({"id": driver_id}, {"_id": 0})
+    if not driver:
+        return {"error": "Водитель не найден", "driver_id": driver_id}
+    
+    driver_user_id = driver.get("userId")
+    
+    # Find all subscriptions for this driver
+    query = {"active": True}
+    if driver_user_id:
+        query["$or"] = [{"userId": driver_user_id}, {"driverId": driver_id}]
+    else:
+        query["driverId"] = driver_id
+    
+    subscriptions = list(notification_subscriptions.find(query, {"_id": 0}))
+    
+    # Get VAPID key status
+    vapid_configured = bool(os.environ.get("VAPID_PRIVATE_KEY", ""))
+    
+    # Get telegram status
+    telegram_settings = notification_settings.find_one({"type": "telegram"}, {"_id": 0})
+    telegram_enabled = telegram_settings and telegram_settings.get("enabled") and telegram_settings.get("botToken")
+    
+    return {
+        "driver": {
+            "id": driver_id,
+            "name": driver.get("name"),
+            "userId": driver_user_id,
+            "telegramChatId": driver.get("telegramChatId")
+        },
+        "push_notifications": {
+            "vapid_configured": vapid_configured,
+            "subscriptions_count": len(subscriptions),
+            "subscriptions": [{
+                "userId": s.get("userId"),
+                "driverId": s.get("driverId"),
+                "endpoint_prefix": s.get("endpoint", "")[:50] + "...",
+                "created": s.get("createdAt")
+            } for s in subscriptions]
+        },
+        "telegram": {
+            "enabled": telegram_enabled,
+            "driver_linked": bool(driver.get("telegramChatId"))
+        },
+        "can_receive_notifications": len(subscriptions) > 0 or bool(driver.get("telegramChatId"))
+    }
+
+
 @router.post("/send-custom")
 async def send_custom_notification(
     request: CustomNotificationRequest,
