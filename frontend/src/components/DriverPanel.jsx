@@ -293,6 +293,40 @@ export const DriverPanel = ({ onLogout }) => {
     }
   };
 
+  // Geocode all orders in trip that don't have coordinates
+  const handleGeocodeTrip = async () => {
+    if (!selectedTrip) return;
+    
+    setGeocoding(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_URL}/api/driver-panel/geocode-trip/${selectedTrip.id}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        if (data.geocoded > 0) {
+          toast.success(`Геокодировано ${data.geocoded} адресов`);
+          fetchTrips(); // Refresh data
+        } else if (data.failed > 0) {
+          toast.warning(`Не удалось определить ${data.failed} адресов`);
+        } else {
+          toast.info(data.message || 'Все адреса уже имеют координаты');
+        }
+      } else {
+        toast.error(data.detail || 'Ошибка геокодирования');
+      }
+    } catch (error) {
+      console.error('Error geocoding trip:', error);
+      toast.error('Ошибка определения координат');
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');
