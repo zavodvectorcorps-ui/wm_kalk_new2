@@ -415,7 +415,37 @@ async def upload_delivery_photo(
             if receivedAmount:
                 update_data["receivedAmount"] = receivedAmount
             
-            collection.update_one({"id": orderId}, {"$set": update_data})
+            # Try to find and update order by different ID formats
+            order_updated = False
+            
+            # First try exact ID match
+            result = collection.update_one({"id": orderId}, {"$set": update_data})
+            if result.modified_count > 0:
+                order_updated = True
+                logger.info(f"Updated order {orderId} by exact id match")
+            
+            # If not found, try by amocrm_id (for cases like "22413323" -> "AMO-GH-22413323")
+            if not order_updated:
+                # Extract numeric ID if present
+                numeric_id = orderId.split("-")[-1] if "-" in orderId else orderId
+                if numeric_id.isdigit():
+                    result = collection.update_one({"amocrm_id": numeric_id}, {"$set": update_data})
+                    if result.modified_count > 0:
+                        order_updated = True
+                        logger.info(f"Updated order by amocrm_id {numeric_id}")
+            
+            # Also try the reverse - if orderId is numeric, search for AMO-XX- prefixed version
+            if not order_updated and orderId.isdigit():
+                prefixes = ["AMO-GH-", "AMO-BA-", "AMO-SA-"]
+                for prefix in prefixes:
+                    result = collection.update_one({"id": f"{prefix}{orderId}"}, {"$set": update_data})
+                    if result.modified_count > 0:
+                        order_updated = True
+                        logger.info(f"Updated order by prefixed id {prefix}{orderId}")
+                        break
+            
+            if not order_updated:
+                logger.warning(f"Could not find order {orderId} to update with photo")
             
             # Update trip order status
             order_statuses = trip.get("orderStatuses", {})
@@ -425,8 +455,19 @@ async def upload_delivery_photo(
                 {"$set": {"orderStatuses": order_statuses, "updatedAt": now}}
             )
             
-            # Sync to amoCRM if order has amocrm_id
+            # Find the actual order for amoCRM sync (using same search logic)
             order = collection.find_one({"id": orderId}, {"_id": 0})
+            if not order:
+                numeric_id = orderId.split("-")[-1] if "-" in orderId else orderId
+                if numeric_id.isdigit():
+                    order = collection.find_one({"amocrm_id": numeric_id}, {"_id": 0})
+            if not order and orderId.isdigit():
+                for prefix in ["AMO-GH-", "AMO-BA-", "AMO-SA-"]:
+                    order = collection.find_one({"id": f"{prefix}{orderId}"}, {"_id": 0})
+                    if order:
+                        break
+            
+            # Sync to amoCRM if order has amocrm_id
             if order and order.get("amocrm_id"):
                 try:
                     from routes.trips import sync_single_order_to_amocrm, send_photo_to_amocrm
