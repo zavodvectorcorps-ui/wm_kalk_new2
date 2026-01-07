@@ -7,18 +7,53 @@ import {
   HelpCircle, Settings, Link2, AlertTriangle, Book, ChevronRight,
   ExternalLink, Bell, Camera, Database, Key, Map, MessageSquare,
   Shield, Zap, CheckCircle, Copy, Bug, FileText, Server, RefreshCw,
-  Smartphone, Globe, Mail
+  Smartphone, Globe, Mail, Trash2, Wrench
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
 const AdminHelpPage = () => {
   const [copiedText, setCopiedText] = useState('');
+  const [deletingLegacy, setDeletingLegacy] = useState(false);
+  const [legacyResult, setLegacyResult] = useState(null);
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopiedText(text);
     toast.success('Скопировано в буфер обмена');
     setTimeout(() => setCopiedText(''), 2000);
+  };
+
+  const deleteLegacyTrips = async () => {
+    if (!window.confirm('Удалить все рейсы с устаревшими статусами (active, pending, cancelled)? Это действие необратимо.')) {
+      return;
+    }
+    
+    setDeletingLegacy(true);
+    setLegacyResult(null);
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_URL}/api/trips/cleanup/legacy-status`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await response.json();
+      setLegacyResult(data);
+      
+      if (data.deleted > 0) {
+        toast.success(`Удалено ${data.deleted} рейсов`);
+      } else {
+        toast.info('Нет рейсов с устаревшими статусами');
+      }
+    } catch (error) {
+      toast.error('Ошибка при удалении');
+      setLegacyResult({ error: error.message });
+    } finally {
+      setDeletingLegacy(false);
+    }
   };
 
   const debugPages = [
