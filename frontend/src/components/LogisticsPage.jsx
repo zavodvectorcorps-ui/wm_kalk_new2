@@ -324,7 +324,7 @@ export const LogisticsPage = () => {
       )}
 
       {/* Bulk Actions Bar */}
-      {currentData.selectedOrders.length > 0 && (
+      {currentData?.selectedOrders?.length > 0 && (
         <Card className="border-2 border-amber-500/50 bg-amber-50">
           <CardContent className="py-3">
             <div className="flex items-center justify-between flex-wrap gap-4">
