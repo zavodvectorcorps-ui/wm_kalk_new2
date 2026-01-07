@@ -1973,9 +1973,10 @@ const CreateTripModal = ({ currentSection, currentData, drivers, newTripName, se
               {newTripPipelineId && selectedPipeline?._embedded?.statuses && (
                 <div className="space-y-2">
                   <Label className="text-sm">Этап</Label>
-                  <Select value={newTripStatusId} onValueChange={setNewTripStatusId}>
+                  <Select value={newTripStatusId || 'none'} onValueChange={(val) => setNewTripStatusId(val === 'none' ? '' : val)}>
                     <SelectTrigger><SelectValue placeholder="Выберите этап" /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Выберите этап</SelectItem>
                       {selectedPipeline._embedded.statuses
                         .filter(s => s.id !== 142 && s.id !== 143) // Exclude system statuses
                         .sort((a, b) => a.sort - b.sort)
