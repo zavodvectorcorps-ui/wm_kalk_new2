@@ -70,3 +70,4 @@ urllib3==2.6.2
 uvicorn==0.25.0
 watchfiles==1.1.1
 httpx
+pywebpush==2.2.0
