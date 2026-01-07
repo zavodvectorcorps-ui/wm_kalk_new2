@@ -785,7 +785,8 @@ const OrderForm = ({
       </div>
     </CardContent>
   </Card>
-);
+  );
+};
 
 const OrdersListCard = ({
   sectionKey, currentSection, SectionIcon, sectionData, setSectionData, currentData, loading,
