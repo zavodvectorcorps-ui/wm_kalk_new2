@@ -1624,7 +1624,10 @@ const TripDetailsCard = ({
                 </Select>
                 {selectedTrip.amocrmPipelineId && (() => {
                   const pipeline = amocrmPipelines.find(p => String(p.id) === String(selectedTrip.amocrmPipelineId));
-                  const statuses = pipeline?._embedded?.statuses?.filter(s => s.id !== 142 && s.id !== 143).sort((a, b) => a.sort - b.sort) || [];
+                  // statuses may be directly on pipeline or in _embedded
+                  const statuses = (pipeline?.statuses || pipeline?._embedded?.statuses || [])
+                    .filter(s => s.id !== 142 && s.id !== 143)
+                    .sort((a, b) => (a.sort || 0) - (b.sort || 0));
                   if (statuses.length === 0) return null;
                   return (
                     <Select 
