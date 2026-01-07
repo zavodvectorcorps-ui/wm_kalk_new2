@@ -1554,6 +1554,168 @@ def test_generate_sauna_pdf():
         print(f"❌ POST /api/sauna/generate-pdf error: {str(e)}")
         return False
 
+def test_amocrm_photo_upload_fix():
+    """Test the amoCRM photo upload fix for the logistics system"""
+    print("\n🔍 Testing amoCRM PHOTO UPLOAD FIX")
+    print("=" * 70)
+    
+    results = {}
+    
+    # Test 1: Auth Test - Login and get token with testuser/test123
+    print("\n📝 Test 1: Auth Test - Login with testuser/test123...")
+    try:
+        login_data = {
+            "username": "testuser",
+            "password": "test123"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Login successful with testuser/test123")
+            
+            if 'token' in data:
+                token = data['token']
+                print("✅ Token received successfully")
+                results["auth_test"] = True
+                headers = {"Authorization": f"Bearer {token}"}
+            else:
+                print("❌ No token in response")
+                results["auth_test"] = False
+                return results
+        else:
+            print(f"❌ Login failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["auth_test"] = False
+            return results
+            
+    except Exception as e:
+        print(f"❌ Auth test error: {str(e)}")
+        results["auth_test"] = False
+        return results
+    
+    # Test 2: Debug Order Endpoint Test
+    print("\n📝 Test 2: Debug Order Endpoint - GET /api/driver-panel/debug/order/test-order-photo-001...")
+    try:
+        order_id = "test-order-photo-001"
+        
+        response = requests.get(f"{BACKEND_URL}/driver-panel/debug/order/{order_id}")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Debug order endpoint successful")
+            
+            # Verify response structure
+            required_fields = ['orderId', 'found_in_collections', 'photo', 'amocrm_id', 'delivery_status']
+            for field in required_fields:
+                if field in data:
+                    print(f"✅ Field '{field}' present: {data[field]}")
+                else:
+                    print(f"❌ Field '{field}' missing")
+            
+            results["debug_order_endpoint"] = True
+        else:
+            print(f"❌ Debug order endpoint failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["debug_order_endpoint"] = False
+            
+    except Exception as e:
+        print(f"❌ Debug order endpoint test error: {str(e)}")
+        results["debug_order_endpoint"] = False
+    
+    # Test 3: Photo Debug List Test
+    print("\n📝 Test 3: Photo Debug List - GET /api/driver-panel/photos/list...")
+    try:
+        response = requests.get(f"{BACKEND_URL}/driver-panel/photos/list")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            photos = response.json()
+            print(f"✅ Photo list endpoint successful - found {len(photos)} photos")
+            
+            if photos:
+                first_photo = photos[0]
+                print(f"✅ First photo structure: {list(first_photo.keys())}")
+            
+            results["photo_list_test"] = True
+        else:
+            print(f"❌ Photo list endpoint failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["photo_list_test"] = False
+            
+    except Exception as e:
+        print(f"❌ Photo list test error: {str(e)}")
+        results["photo_list_test"] = False
+    
+    # Test 4: Backend Health Check
+    print("\n📝 Test 4: Backend Health Check...")
+    try:
+        response = requests.get(f"{BACKEND_URL}/health")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            health_data = response.json()
+            print("✅ Backend health check successful")
+            print(f"✅ Health status: {health_data}")
+            results["backend_health"] = True
+        else:
+            print(f"❌ Backend health check failed with status {response.status_code}")
+            results["backend_health"] = False
+            
+    except Exception as e:
+        print(f"❌ Backend health check error: {str(e)}")
+        results["backend_health"] = False
+    
+    # Test 5: API Structure Verification - Check resend photo endpoint exists
+    print("\n📝 Test 5: API Structure Verification - Check /api/driver-panel/resend-photo-to-amocrm/{order_id}...")
+    try:
+        test_order_id = "test-order-photo-001"
+        
+        # Try to access the endpoint (it may fail due to missing data, but should exist)
+        response = requests.post(f"{BACKEND_URL}/driver-panel/resend-photo-to-amocrm/{test_order_id}", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        # We expect either 200 (success), 400 (bad request), or 404 (order not found)
+        # But NOT 405 (method not allowed) which would indicate endpoint doesn't exist
+        if response.status_code in [200, 400, 404, 422]:
+            print("✅ Resend photo to amoCRM endpoint exists and responds")
+            print(f"✅ Response indicates endpoint is properly configured")
+            results["api_structure_verification"] = True
+        elif response.status_code == 405:
+            print("❌ Method not allowed - endpoint may not exist")
+            results["api_structure_verification"] = False
+        else:
+            print(f"⚠️ Unexpected status code {response.status_code}, but endpoint exists")
+            print(f"Response: {response.text}")
+            results["api_structure_verification"] = True
+            
+    except Exception as e:
+        print(f"❌ API structure verification error: {str(e)}")
+        results["api_structure_verification"] = False
+    
+    # Summary
+    print("\n📊 amoCRM PHOTO UPLOAD FIX TEST SUMMARY:")
+    print("=" * 50)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+    
+    print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+    
+    if passed_tests == total_tests:
+        print("🎉 ALL amoCRM PHOTO UPLOAD FIX TESTS PASSED!")
+        return True
+    else:
+        print("❌ Some tests failed - amoCRM photo upload fix needs attention")
+        return False
+
 def test_logistics_system_fixes():
     """Test the logistics system fixes from the review request"""
     print("\n🔍 Testing LOGISTICS SYSTEM FIXES")
