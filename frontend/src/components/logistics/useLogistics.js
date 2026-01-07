@@ -457,6 +457,11 @@ export const useLogistics = () => {
     setSendingNotification(true);
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Сессия истекла. Пожалуйста, войдите заново.');
+        return false;
+      }
+      
       const res = await fetch(`${API_URL}/api/notifications/send-custom`, {
         method: 'POST',
         headers: {
@@ -466,7 +471,20 @@ export const useLogistics = () => {
         body: JSON.stringify({ driverId, message })
       });
       
-      const data = await res.json();
+      // Handle 401 separately before trying to parse JSON
+      if (res.status === 401) {
+        toast.error('Сессия истекла. Пожалуйста, войдите заново.');
+        return false;
+      }
+      
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        toast.error('Ошибка сервера');
+        return false;
+      }
       
       if (res.ok) {
         if (data.status === 'sent') {
@@ -497,6 +515,8 @@ export const useLogistics = () => {
   const getDriverNotificationStatus = async (driverId) => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) return null;
+      
       const res = await fetch(`${API_URL}/api/notifications/debug/driver/${driverId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
