@@ -1388,6 +1388,40 @@ async def delete_trip(trip_id: str):
     return {"status": "ok", "message": "Trip deleted"}
 
 
+@router.delete("/cleanup/legacy-status")
+async def delete_legacy_status_trips():
+    """Delete trips with legacy/obsolete statuses like 'active'.
+    
+    This is a cleanup endpoint for removing old test trips that have
+    statuses no longer used by the system.
+    """
+    legacy_statuses = ["active", "pending", "cancelled", "unknown"]
+    
+    # Find trips with legacy statuses
+    trips_to_delete = list(trips_collection.find(
+        {"status": {"$in": legacy_statuses}},
+        {"_id": 0, "id": 1, "name": 1, "status": 1}
+    ))
+    
+    if not trips_to_delete:
+        return {
+            "status": "ok",
+            "message": "Нет рейсов с устаревшими статусами",
+            "deleted": 0,
+            "trips": []
+        }
+    
+    # Delete them
+    result = trips_collection.delete_many({"status": {"$in": legacy_statuses}})
+    
+    return {
+        "status": "ok",
+        "message": f"Удалено {result.deleted_count} рейсов с устаревшими статусами",
+        "deleted": result.deleted_count,
+        "trips": trips_to_delete
+    }
+
+
 
 def log_sync_operation(operation: str, details: dict):
     """Log sync operation to database for debugging."""
