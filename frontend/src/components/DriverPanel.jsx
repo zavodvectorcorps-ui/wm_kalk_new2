@@ -189,12 +189,16 @@ export const DriverPanel = ({ onLogout }) => {
 
     // Start from warehouse if available
     const tripWarehouse = selectedTrip.warehouse || warehouse;
+    // Check both naming conventions
+    const whLat = tripWarehouse?.lat || tripWarehouse?.warehouse_lat;
+    const whLng = tripWarehouse?.lng || tripWarehouse?.warehouse_lng;
+    const whAddr = tripWarehouse?.address || tripWarehouse?.warehouse_address;
+    
     let url = 'https://www.google.com/maps/dir/?api=1';
     
-    if (tripWarehouse && tripWarehouse.warehouse_lat && tripWarehouse.warehouse_lng) {
+    if (tripWarehouse && whLat && whLng) {
       // Use warehouse address if available
-      const warehouseAddr = tripWarehouse.warehouse_address || tripWarehouse.address;
-      url += `&origin=${warehouseAddr ? encodeURIComponent(warehouseAddr) : `${tripWarehouse.warehouse_lat},${tripWarehouse.warehouse_lng}`}`;
+      url += `&origin=${whAddr ? encodeURIComponent(whAddr) : `${whLat},${whLng}`}`;
     } else {
       const firstOrder = ordersWithCoords[0];
       const firstAddr = firstOrder.fullAddress || firstOrder.address;
@@ -209,7 +213,7 @@ export const DriverPanel = ({ onLogout }) => {
     // Add waypoints - all orders except the last (which is destination)
     // If warehouse is origin, all orders except last are waypoints
     let waypointOrders;
-    if (tripWarehouse && tripWarehouse.warehouse_lat) {
+    if (tripWarehouse && whLat) {
       waypointOrders = ordersWithCoords.slice(0, -1);
     } else {
       waypointOrders = ordersWithCoords.slice(1, -1);
