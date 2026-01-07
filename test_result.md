@@ -860,3 +860,61 @@ curl -s "API_URL/api/notifications/debug/driver/{driver_id}" -H "Authorization: 
   message: "LOGISTICS SYSTEM FIXES TESTING COMPLETED (Jan 7, 2025): ✅ ALL TESTS PASSED (4/4). Test 1: Photo Delivery Endpoint - GET /api/driver-panel/photo-image/{trip_id}/{order_id} returns HTTP 200 with 70 bytes PNG image data, content-type verified. Test 2: Debug Notifications Endpoint - GET /api/notifications/debug/driver/{driver_id} returns comprehensive driver status with push_notifications and telegram info. Test 3: Send Custom Notification - POST /api/notifications/send-custom working correctly with proper driver validation and debug info. Test 4: Drivers API - GET /api/drivers returns 3 drivers with userId field where applicable. All logistics system fixes verified and working correctly."
 - agent: "testing"
   message: "REVIEW REQUEST LOGISTICS FIXES TESTING COMPLETED (Jan 7, 2025): ✅ MAJOR FUNCTIONALITY WORKING (4/5 tests passed). Test 1: Trips 'delivered' status visibility - GET /api/trips returns 2 trips with 1 'delivered' status trip, API working correctly. Test 2: Debug order endpoint - GET /api/driver-panel/debug/order/{id} returns valid JSON with expected structure (orderId, found_in_collections, photo, amocrm_id, delivery_status). Test 3: Photo list endpoint - GET /api/driver-panel/photos/list returns HTTP 200 with 2 photos but test validation failed (minor issue). Test 4: Driver panel trips - Driver login (drivertest/test123) and GET /api/driver-panel/my-trips working correctly with expected response structure. Test 5: Authentication - POST /api/auth/login with testuser/test123 working correctly, token generation and protected endpoint access verified. ⚠️ MISSING: Trip mileage information not included in delivered trips data."
+
+## New Features - Jan 7, 2026 (Session 2)
+
+### 1. ✅ Trips History Tab in Logistics
+**File:** `/app/frontend/src/components/logistics/TripsHistory.jsx`
+
+**Features implemented:**
+- New "История" tab in Logistics panel (4th main tab)
+- Shows all trips from all sections (Теплицы, Купели, Сауны)
+- Statistics: total trips, delivered, total orders, total mileage
+- Filters: by section, status, date range
+- Sorting: by date, orders count, mileage
+- Export to CSV with all trip data
+- Expandable rows with detailed info
+
+**Data displayed per trip:**
+- Trip ID
+- Name
+- Section (with colored badge)
+- Status
+- Driver name
+- Date
+- Orders count
+- Mileage (start, end, total)
+
+### 2. ✅ Admin Help Page
+**File:** `/app/frontend/src/components/AdminHelpPage.jsx`
+
+**Features implemented:**
+- New "Pomoc/Справка" tab in Admin Panel
+- Four sub-tabs: Диагностика, Интеграции, API эндпоинты, FAQ
+
+**Debug pages section:**
+- Photo Debug (/photo-debug.html) - photo upload and amoCRM sync
+- Push Debug (/push-debug.html) - push notifications and VAPID keys
+
+**Integration guides:**
+- amoCRM setup instructions
+- Google Maps API requirements
+- VAPID keys for push notifications
+- Telegram bot setup
+
+**API endpoints:**
+- Health check, logs, driver status, VAPID check, photos list, order debug
+
+**FAQ section:**
+- Common issues and solutions
+
+### Files Modified:
+- `/app/frontend/src/components/LogisticsPage.jsx` - Added history tab, protected components from undefined currentSection
+- `/app/frontend/src/components/logistics/useLogistics.js` - Added fallback for currentData and currentSection
+- `/app/frontend/src/components/AdminPanel.jsx` - Added help tab
+
+### Testing:
+- ✅ History tab shows 2 trips with correct data
+- ✅ Help page displays with all sections
+- ✅ CSV export works
+- ✅ Filters work correctly
