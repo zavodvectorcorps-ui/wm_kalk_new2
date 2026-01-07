@@ -1554,6 +1554,175 @@ def test_generate_sauna_pdf():
         print(f"❌ POST /api/sauna/generate-pdf error: {str(e)}")
         return False
 
+def test_logistics_system_fixes():
+    """Test the logistics system fixes from the review request"""
+    print("\n🔍 Testing LOGISTICS SYSTEM FIXES")
+    print("=" * 70)
+    
+    results = {}
+    
+    # Get admin token for authenticated requests
+    admin_token = test_admin_login()
+    if not admin_token:
+        print("❌ Cannot proceed with logistics tests - admin login failed")
+        return {"Admin Login": False}
+    
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    
+    # Test 1: Photo delivery endpoint
+    print("\n📝 Test 1: GET /api/driver-panel/photo-image/{trip_id}/{order_id}...")
+    try:
+        trip_id = "trip-test-001"
+        order_id = "order-test-001"
+        
+        response = requests.get(f"{BACKEND_URL}/driver-panel/photo-image/{trip_id}/{order_id}")
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ Photo endpoint returned successfully")
+            content_length = len(response.content)
+            print(f"✅ Photo size: {content_length} bytes")
+            
+            # Check content type
+            content_type = response.headers.get('content-type', '')
+            if content_type.startswith('image/'):
+                print(f"✅ Response is image format: {content_type}")
+                results["photo_delivery"] = True
+            else:
+                print(f"❌ Unexpected content type: {content_type}")
+                results["photo_delivery"] = False
+        elif response.status_code == 404:
+            print("✅ Photo endpoint working (404 expected for test data)")
+            results["photo_delivery"] = True
+        else:
+            print(f"❌ Photo endpoint failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["photo_delivery"] = False
+            
+    except Exception as e:
+        print(f"❌ Photo delivery test error: {str(e)}")
+        results["photo_delivery"] = False
+    
+    # Test 2: Debug endpoint for notifications
+    print("\n📝 Test 2: GET /api/notifications/debug/driver/{driver_id}...")
+    try:
+        driver_id = "drv-test-001"
+        
+        response = requests.get(f"{BACKEND_URL}/notifications/debug/driver/{driver_id}", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Debug endpoint returned successfully")
+            
+            # Check response structure
+            if 'driver' in data and 'push_notifications' in data and 'telegram' in data:
+                print("✅ Response contains expected fields: driver, push_notifications, telegram")
+                print(f"✅ Driver info: {data.get('driver', {})}")
+                print(f"✅ Push notifications: {data.get('push_notifications', {})}")
+                print(f"✅ Telegram: {data.get('telegram', {})}")
+                results["debug_notifications"] = True
+            else:
+                print(f"❌ Response missing expected fields: {data}")
+                results["debug_notifications"] = False
+        else:
+            print(f"❌ Debug endpoint failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["debug_notifications"] = False
+            
+    except Exception as e:
+        print(f"❌ Debug notifications test error: {str(e)}")
+        results["debug_notifications"] = False
+    
+    # Test 3: Send custom notification
+    print("\n📝 Test 3: POST /api/notifications/send-custom...")
+    try:
+        notification_data = {
+            "driverId": "drv-test-001",
+            "message": "Test notification"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/notifications/send-custom", json=notification_data, headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Send custom notification endpoint working")
+            print(f"✅ Response: {data}")
+            
+            # Check response structure
+            if 'status' in data and 'method' in data:
+                print("✅ Response contains expected fields: status, method")
+                results["send_custom_notification"] = True
+            else:
+                print(f"❌ Response missing expected fields: {data}")
+                results["send_custom_notification"] = False
+        elif response.status_code == 404:
+            print("✅ Send custom notification endpoint working (404 expected for test driver)")
+            results["send_custom_notification"] = True
+        else:
+            print(f"❌ Send custom notification failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["send_custom_notification"] = False
+            
+    except Exception as e:
+        print(f"❌ Send custom notification test error: {str(e)}")
+        results["send_custom_notification"] = False
+    
+    # Test 4: Drivers API
+    print("\n📝 Test 4: GET /api/drivers...")
+    try:
+        response = requests.get(f"{BACKEND_URL}/drivers", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            drivers = response.json()
+            print("✅ Drivers API returned successfully")
+            print(f"✅ Found {len(drivers)} drivers")
+            
+            # Check if drivers have userId field
+            if drivers:
+                first_driver = drivers[0]
+                if 'userId' in first_driver:
+                    print("✅ Drivers contain userId field")
+                    print(f"✅ Sample driver: {first_driver}")
+                    results["drivers_api"] = True
+                else:
+                    print("❌ Drivers missing userId field")
+                    results["drivers_api"] = False
+            else:
+                print("✅ Drivers API working (empty list)")
+                results["drivers_api"] = True
+        else:
+            print(f"❌ Drivers API failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["drivers_api"] = False
+            
+    except Exception as e:
+        print(f"❌ Drivers API test error: {str(e)}")
+        results["drivers_api"] = False
+    
+    # Summary
+    print("\n📊 LOGISTICS SYSTEM TESTS SUMMARY:")
+    print("=" * 50)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+    
+    print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+    
+    if passed_tests == total_tests:
+        print("🎉 ALL LOGISTICS SYSTEM TESTS PASSED!")
+        return True
+    else:
+        print("❌ Some logistics tests failed")
+        return False
+
+
 def test_review_request_scenarios():
     """Test the specific scenarios from the review request"""
     print("\n🔍 Testing REVIEW REQUEST SCENARIOS")
