@@ -85,54 +85,50 @@ class DriverTelegramLink(BaseModel):
 @router.get("/vapid-check")
 async def check_vapid_keys():
     """Check if VAPID keys are properly configured."""
-    vapid_private = os.environ.get("VAPID_PRIVATE_KEY", "")
+    vapid_private_raw = os.environ.get("VAPID_PRIVATE_KEY", "")
+    vapid_private_converted = get_vapid_private_key()  # Auto-converted
     vapid_public = os.environ.get("VAPID_PUBLIC_KEY", "")
     vapid_email = os.environ.get("VAPID_CLAIMS_EMAIL", "")
     
+    is_pem = vapid_private_raw.startswith("-----BEGIN")
+    
     result = {
-        "private_key_length": len(vapid_private),
-        "private_key_format": "unknown",
+        "original_key_length": len(vapid_private_raw),
+        "original_key_format": "PEM" if is_pem else "raw base64url",
+        "converted_key_length": len(vapid_private_converted),
+        "auto_converted": is_pem,
         "public_key_length": len(vapid_public),
         "claims_email": vapid_email,
         "valid": False,
         "error": None
     }
     
-    # Check format
-    if vapid_private.startswith("-----BEGIN"):
-        result["private_key_format"] = "PEM (НЕПРАВИЛЬНО! Нужен raw base64url)"
-        result["error"] = "VAPID_PRIVATE_KEY в PEM формате. Нужен raw base64url формат (43 символа)"
-    elif len(vapid_private) >= 42 and len(vapid_private) <= 44:
-        result["private_key_format"] = "raw base64url (правильно)"
-    else:
-        result["private_key_format"] = f"неизвестный (длина {len(vapid_private)}, ожидается 42-44)"
-        result["error"] = f"Неверная длина ключа: {len(vapid_private)}, ожидается 42-44"
-    
-    # Try to use the key
-    if not result["error"]:
-        try:
-            from pywebpush import webpush, WebPushException
-            webpush(
-                subscription_info={"endpoint": "https://test.invalid", "keys": {"p256dh": "test", "auth": "test"}},
-                data="test",
-                vapid_private_key=vapid_private,
-                vapid_claims={"sub": vapid_email or "mailto:test@test.com"}
-            )
-        except WebPushException as e:
-            error_str = str(e)
-            if "Could not deserialize key" in error_str:
-                result["error"] = "Ключ не может быть десериализован - неверный формат"
-                result["private_key_format"] = "invalid"
-            else:
-                # Any other WebPushException means the key format is valid
-                result["valid"] = True
-                result["error"] = None
-        except Exception as e:
-            # Other exceptions also likely mean key is valid
+    # Try to use the converted key
+    try:
+        from pywebpush import webpush, WebPushException
+        webpush(
+            subscription_info={"endpoint": "https://test.invalid", "keys": {"p256dh": "test", "auth": "test"}},
+            data="test",
+            vapid_private_key=vapid_private_converted,
+            vapid_claims={"sub": vapid_email or "mailto:test@test.com"}
+        )
+    except WebPushException as e:
+        error_str = str(e)
+        if "Could not deserialize key" in error_str:
+            result["error"] = "Ключ не может быть десериализован даже после конвертации"
+        else:
+            # Any other WebPushException means the key format is valid
             result["valid"] = True
+    except Exception as e:
+        # Other exceptions also likely mean key is valid
+        result["valid"] = True
     
-    result["private_key_preview"] = vapid_private[:20] + "..." if vapid_private else "не задан"
+    result["original_key_preview"] = vapid_private_raw[:25] + "..." if vapid_private_raw else "не задан"
+    result["converted_key_preview"] = vapid_private_converted[:25] + "..." if vapid_private_converted else "не задан"
     result["public_key_preview"] = vapid_public[:30] + "..." if vapid_public else "не задан"
+    
+    if is_pem and result["valid"]:
+        result["message"] = "PEM ключ автоматически конвертирован в raw формат ✅"
     
     return result
 
