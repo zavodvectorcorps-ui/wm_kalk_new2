@@ -505,7 +505,10 @@ async def start_trip(trip_id: str, current_user: dict = Depends(get_current_user
                     {"$set": {
                         "tripOrderStatus": "delivering",
                         "deliveryStatus": "delivering",
-                        "tripStatus": "in_transit"
+                        "tripStatus": "in_transit",
+                        "tripName": trip.get("name", ""),
+                        "tripDriverName": trip.get("driverName", driver.get("name", "")),
+                        "tripDepartureDate": trip.get("departureDate", "")
                     }}
                 )
     
@@ -524,7 +527,15 @@ async def start_trip(trip_id: str, current_user: dict = Depends(get_current_user
             from routes.trips import sync_single_order_to_amocrm
             for order in orders_with_amocrm:
                 try:
-                    await sync_single_order_to_amocrm(order)
+                    # Add trip data to order for sync
+                    order_for_sync = {
+                        **order,
+                        "tripOrderStatus": "delivering",
+                        "tripName": trip.get("name", ""),
+                        "tripDriverName": trip.get("driverName", driver.get("name", "")),
+                        "tripDepartureDate": trip.get("departureDate", "")
+                    }
+                    await sync_single_order_to_amocrm(order_for_sync)
                     amocrm_synced_count += 1
                 except Exception as e:
                     logger.error(f"Failed to sync order {order.get('id')} to amoCRM: {e}")
