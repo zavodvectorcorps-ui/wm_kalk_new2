@@ -3185,15 +3185,248 @@ def test_sauna_order_edit_functionality():
             else:
                 print("❌ Some sauna order edit functionality tests failed")
                 return False
+def test_review_request_logistics_fixes():
+    """Test the specific logistics fixes from the review request"""
+    print("\n🔍 Testing REVIEW REQUEST LOGISTICS FIXES")
+    print("=" * 70)
+    
+    results = {}
+    
+    # Test 1: Trips "delivered" status visibility test
+    print("\n📝 Test 1: GET /api/trips to verify trips with status 'delivered' exist...")
+    try:
+        # Get admin token for authenticated requests
+        admin_login_data = {
+            "username": "testuser",
+            "password": "test123"
+        }
+        
+        auth_response = requests.post(f"{BACKEND_URL}/auth/login", json=admin_login_data)
+        if auth_response.status_code != 200:
+            print(f"❌ Admin login failed: {auth_response.status_code}")
+            results["trips_delivered_status"] = False
+        else:
+            admin_token = auth_response.json().get('token')
+            headers = {"Authorization": f"Bearer {admin_token}"}
+            
+            response = requests.get(f"{BACKEND_URL}/trips", headers=headers)
+            print(f"Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                trips = response.json()
+                print(f"✅ GET /api/trips successful - found {len(trips)} trips")
+                
+                # Look for trips with "delivered" status
+                delivered_trips = [trip for trip in trips if trip.get('status') == 'delivered']
+                print(f"✅ Found {len(delivered_trips)} trips with 'delivered' status")
+                
+                if delivered_trips:
+                    # Check if trip data includes mileage info
+                    first_delivered = delivered_trips[0]
+                    mileage_fields = ['startMileage', 'endMileage', 'totalMileage']
+                    mileage_found = any(field in first_delivered for field in mileage_fields)
+                    
+                    if mileage_found:
+                        print("✅ Trip data includes mileage information")
+                        for field in mileage_fields:
+                            if field in first_delivered:
+                                print(f"  - {field}: {first_delivered.get(field)}")
+                    else:
+                        print("⚠️ Trip data does not include mileage information")
+                    
+                    results["trips_delivered_status"] = True
+                else:
+                    print("⚠️ No trips with 'delivered' status found")
+                    results["trips_delivered_status"] = True  # API works, just no delivered trips
+            else:
+                print(f"❌ GET /api/trips failed with status {response.status_code}")
+                print(f"Response: {response.text}")
+                results["trips_delivered_status"] = False
+                
+    except Exception as e:
+        print(f"❌ Trips delivered status test error: {str(e)}")
+        results["trips_delivered_status"] = False
+    
+    # Test 2: Debug order endpoint test
+    print("\n📝 Test 2: GET /api/driver-panel/debug/order/{any_order_id}...")
+    try:
+        # Use a test order ID
+        test_order_id = "order-test-001"
+        
+        response = requests.get(f"{BACKEND_URL}/driver-panel/debug/order/{test_order_id}", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            try:
+                debug_data = response.json()
+                print("✅ Debug endpoint returned valid JSON")
+                
+                # Check expected structure
+                expected_fields = ['orderId', 'found_in_collections', 'photo', 'amocrm_id', 'delivery_status']
+                for field in expected_fields:
+                    if field in debug_data:
+                        print(f"✅ Field '{field}' present: {debug_data.get(field)}")
+                    else:
+                        print(f"⚠️ Field '{field}' missing from response")
+                
+                results["debug_order_endpoint"] = True
+            except json.JSONDecodeError:
+                print("❌ Response is not valid JSON")
+                print(f"Response content: {response.text[:200]}...")
+                results["debug_order_endpoint"] = False
+        else:
+            print(f"❌ Debug order endpoint failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["debug_order_endpoint"] = False
+            
+    except Exception as e:
+        print(f"❌ Debug order endpoint test error: {str(e)}")
+        results["debug_order_endpoint"] = False
+    
+    # Test 3: Photo list endpoint test
+    print("\n📝 Test 3: GET /api/driver-panel/photos/list...")
+    try:
+        response = requests.get(f"{BACKEND_URL}/driver-panel/photos/list", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            photos = response.json()
+            print(f"✅ GET /api/driver-panel/photos/list successful")
+            print(f"✅ Found {len(photos)} delivery photos")
+            
+            if photos:
+                # Check structure of first photo
+                first_photo = photos[0]
+                print(f"✅ Photo structure: {list(first_photo.keys())}")
+            
+            results["photo_list_endpoint"] = True
+        else:
+            print(f"❌ Photo list endpoint failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["photo_list_endpoint"] = False
+            
+    except Exception as e:
+        print(f"❌ Photo list endpoint test error: {str(e)}")
+        results["photo_list_endpoint"] = False
+    
+    # Test 4: Driver panel trips test
+    print("\n📝 Test 4: Driver panel trips test with driver credentials...")
+    try:
+        # First login as driver
+        driver_login_data = {
+            "username": "drivertest",
+            "password": "test123"
+        }
+        
+        driver_response = requests.post(f"{BACKEND_URL}/auth/login", json=driver_login_data)
+        print(f"Driver login status: {driver_response.status_code}")
+        
+        if driver_response.status_code == 200:
+            driver_data = driver_response.json()
+            driver_token = driver_data.get('token')
+            driver_headers = {"Authorization": f"Bearer {driver_token}"}
+            
+            print("✅ Driver login successful")
+            
+            # Test driver panel trips endpoint
+            trips_response = requests.get(f"{BACKEND_URL}/driver-panel/my-trips", headers=driver_headers)
+            print(f"My trips status: {trips_response.status_code}")
+            
+            if trips_response.status_code == 200:
+                trips_data = trips_response.json()
+                print("✅ GET /api/driver-panel/my-trips successful")
+                
+                # Check response structure
+                expected_fields = ['trips', 'driver', 'warehouse']
+                for field in expected_fields:
+                    if field in trips_data:
+                        print(f"✅ Field '{field}' present in response")
+                    else:
+                        print(f"⚠️ Field '{field}' missing from response")
+                
+                results["driver_panel_trips"] = True
+            else:
+                print(f"❌ Driver panel trips failed with status {trips_response.status_code}")
+                print(f"Response: {trips_response.text}")
+                results["driver_panel_trips"] = False
+        else:
+            print(f"❌ Driver login failed with status {driver_response.status_code}")
+            print(f"Response: {driver_response.text}")
+            results["driver_panel_trips"] = False
+            
+    except Exception as e:
+        print(f"❌ Driver panel trips test error: {str(e)}")
+        results["driver_panel_trips"] = False
+    
+    # Test 5: Authentication test with testuser/test123
+    print("\n📝 Test 5: Authentication test with testuser/test123...")
+    try:
+        auth_login_data = {
+            "username": "testuser",
+            "password": "test123"
+        }
+        
+        auth_response = requests.post(f"{BACKEND_URL}/auth/login", json=auth_login_data)
+        print(f"Status Code: {auth_response.status_code}")
+        
+        if auth_response.status_code == 200:
+            auth_data = auth_response.json()
+            token = auth_data.get('token')
+            
+            if token:
+                print("✅ Authentication successful - token returned")
+                
+                # Test using token to access protected endpoint
+                protected_headers = {"Authorization": f"Bearer {token}"}
+                protected_response = requests.get(f"{BACKEND_URL}/trips", headers=protected_headers)
+                
+                if protected_response.status_code == 200:
+                    print("✅ Token works for accessing protected endpoint")
+                    results["authentication_test"] = True
+                else:
+                    print(f"❌ Token failed for protected endpoint: {protected_response.status_code}")
+                    results["authentication_test"] = False
+            else:
+                print("❌ No token returned in authentication response")
+                results["authentication_test"] = False
+        else:
+            print(f"❌ Authentication failed with status {auth_response.status_code}")
+            print(f"Response: {auth_response.text}")
+            results["authentication_test"] = False
+            
+    except Exception as e:
+        print(f"❌ Authentication test error: {str(e)}")
+        results["authentication_test"] = False
+    
+    # Summary
+    print("\n📊 REVIEW REQUEST LOGISTICS TESTS SUMMARY:")
+    print("=" * 50)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+    
+    print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+    
+    if passed_tests == total_tests:
+        print("🎉 ALL REVIEW REQUEST LOGISTICS TESTS PASSED!")
+        return True
+    else:
+        print("❌ Some logistics tests failed")
+        return False
+
 if __name__ == "__main__":
     print("🚀 BACKEND API TESTING STARTED")
     print("=" * 50)
     print(f"Backend URL: {BACKEND_URL}")
     print("=" * 50)
     
-    # Run logistics system tests (from review request)
+    # Run review request logistics tests
     results = {
-        "Logistics System Fixes": test_logistics_system_fixes()
+        "Review Request Logistics Fixes": test_review_request_logistics_fixes()
     }
     
     # Print summary
