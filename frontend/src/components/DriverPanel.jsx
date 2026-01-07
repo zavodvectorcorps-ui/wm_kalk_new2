@@ -233,6 +233,34 @@ export const DriverPanel = ({ onLogout }) => {
     }
   };
 
+  // Load notification history
+  const loadNotificationHistory = async () => {
+    setLoadingNotifications(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_URL}/api/notifications/history/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNotificationHistory(data.notifications || []);
+      }
+    } catch (error) {
+      console.error('Failed to load notification history:', error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  // Toggle notification panel and load history
+  const toggleNotificationPanel = () => {
+    if (!showNotifications) {
+      loadNotificationHistory();
+    }
+    setShowNotifications(!showNotifications);
+  };
+
   useEffect(() => {
     fetchTrips();
     checkPushStatus();
