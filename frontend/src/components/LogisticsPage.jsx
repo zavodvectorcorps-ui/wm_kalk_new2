@@ -2079,3 +2079,219 @@ const AddToTripModal = ({ currentSection, currentData, trips, activeSection, dri
     </div>
   );
 };
+
+// Drivers Modal Component with Push Notifications
+const DriversModal = ({
+  drivers, driverUsers, newDriverName, setNewDriverName, newDriverUserId, setNewDriverUserId,
+  addDriver, updateDriver, removeDriver, sendDriverNotification, sendingNotification,
+  getDriverNotificationStatus, onClose
+}) => {
+  const [notificationDriverId, setNotificationDriverId] = React.useState('');
+  const [notificationMessage, setNotificationMessage] = React.useState('');
+  const [driverStatuses, setDriverStatuses] = React.useState({});
+  const [loadingStatus, setLoadingStatus] = React.useState(null);
+  
+  // Check driver notification status
+  const checkDriverStatus = async (driverId) => {
+    setLoadingStatus(driverId);
+    const status = await getDriverNotificationStatus(driverId);
+    if (status) {
+      setDriverStatuses(prev => ({ ...prev, [driverId]: status }));
+    }
+    setLoadingStatus(null);
+  };
+  
+  // Handle send notification
+  const handleSendNotification = async () => {
+    if (!notificationDriverId || !notificationMessage.trim()) return;
+    const success = await sendDriverNotification(notificationDriverId, notificationMessage);
+    if (success) {
+      setNotificationMessage('');
+    }
+  };
+  
+  return (
+    <Card className="border-2 border-[#355c7d]/30">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Управление водителями
+          </CardTitle>
+          <Button size="sm" variant="ghost" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Add driver section */}
+        <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+          <h4 className="font-medium text-sm">Добавить водителя</h4>
+          <div className="flex gap-2">
+            <Input
+              value={newDriverName}
+              onChange={(e) => setNewDriverName(e.target.value)}
+              placeholder="Имя водителя"
+              onKeyPress={(e) => e.key === 'Enter' && addDriver()}
+            />
+          </div>
+          <div className="flex gap-2">
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
+              value={newDriverUserId}
+              onChange={(e) => setNewDriverUserId(e.target.value)}
+            >
+              <option value="">-- Связать с учёткой (опционально) --</option>
+              {driverUsers.map(u => (
+                <option key={u.id} value={u.id}>{u.username}</option>
+              ))}
+            </select>
+            <Button onClick={addDriver}>
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить
+            </Button>
+          </div>
+          {driverUsers.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Нет пользователей с ролью "водитель". Создайте пользователя с ролью driver.
+            </p>
+          )}
+        </div>
+        
+        {/* Push Notifications Section */}
+        <div className="space-y-3 p-3 border rounded-lg bg-blue-50/50 border-blue-200">
+          <h4 className="font-medium text-sm flex items-center gap-2">
+            <Bell className="h-4 w-4 text-blue-600" />
+            Отправить уведомление водителю
+          </h4>
+          <div className="flex gap-2">
+            <select
+              className="flex h-9 w-full rounded-md border border-blue-200 bg-white px-3 py-1 text-sm shadow-sm"
+              value={notificationDriverId}
+              onChange={(e) => setNotificationDriverId(e.target.value)}
+            >
+              <option value="">-- Выберите водителя --</option>
+              {drivers.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={notificationMessage}
+              onChange={(e) => setNotificationMessage(e.target.value)}
+              placeholder="Текст сообщения..."
+              onKeyPress={(e) => e.key === 'Enter' && handleSendNotification()}
+              className="border-blue-200"
+            />
+            <Button 
+              onClick={handleSendNotification}
+              disabled={sendingNotification || !notificationDriverId || !notificationMessage.trim()}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {sendingNotification ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            💡 Водитель должен подписаться на уведомления через 🔔 в Панели водителя
+          </p>
+        </div>
+        
+        {/* Drivers list */}
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm">Список водителей</h4>
+          {drivers.map(driver => {
+            const linkedUser = driverUsers.find(u => u.id === driver.userId);
+            const status = driverStatuses[driver.id];
+            
+            return (
+              <div key={driver.id} className="p-3 bg-muted rounded-lg space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <span className="flex items-center gap-2 font-medium">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      {driver.name}
+                    </span>
+                    {linkedUser ? (
+                      <span className="text-xs text-green-600 ml-6 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        Связан: {linkedUser.username}
+                      </span>
+                    ) : (
+                      <select
+                        className="text-xs ml-6 mt-1 border rounded px-1 py-0.5"
+                        value={driver.userId || ''}
+                        onChange={(e) => updateDriver(driver.id, { userId: e.target.value || null })}
+                      >
+                        <option value="">Не связан с учёткой</option>
+                        {driverUsers.map(u => (
+                          <option key={u.id} value={u.id}>{u.username}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => checkDriverStatus(driver.id)}
+                      disabled={loadingStatus === driver.id}
+                      title="Проверить статус уведомлений"
+                    >
+                      {loadingStatus === driver.id ? (
+                        <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+                      ) : (
+                        <Bell className="h-4 w-4 text-blue-500" />
+                      )}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => removeDriver(driver.id)}>
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Driver notification status */}
+                {status && (
+                  <div className="ml-6 p-2 bg-white rounded border text-xs space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Push-подписки:</span>
+                      {status.push_notifications?.subscriptions_count > 0 ? (
+                        <Badge className="bg-green-100 text-green-700 text-xs">
+                          {status.push_notifications.subscriptions_count} активных
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-orange-600 text-xs">
+                          Нет подписок
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Telegram:</span>
+                      {status.telegram?.driver_linked ? (
+                        <Badge className="bg-blue-100 text-blue-700 text-xs">Подключен</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-gray-500 text-xs">Не подключен</Badge>
+                      )}
+                    </div>
+                    {!status.can_receive_notifications && (
+                      <p className="text-orange-600">
+                        ⚠️ Водитель не может получать уведомления. Нужно подписаться через 🔔 в Панели водителя.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {drivers.length === 0 && (
+            <p className="text-center text-muted-foreground py-4">Нет водителей</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
