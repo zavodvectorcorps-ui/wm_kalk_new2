@@ -456,9 +456,17 @@ async def get_delivery_photo_image(trip_id: str, order_id: str):
     """Get delivery photo as image file."""
     from fastapi.responses import Response
     
+    logger.info(f"Looking for photo: tripId={trip_id}, orderId={order_id}")
+    
     photo = delivery_photos.find_one({"tripId": trip_id, "orderId": order_id}, {"_id": 0})
     if not photo:
+        logger.warning(f"Photo not found for tripId={trip_id}, orderId={order_id}")
+        # Debug: list all photos
+        all_photos = list(delivery_photos.find({}, {"_id": 0, "tripId": 1, "orderId": 1}))
+        logger.info(f"Total photos in DB: {len(all_photos)}")
         raise HTTPException(status_code=404, detail="Фото не найдено")
+    
+    logger.info(f"Photo found: id={photo.get('id')}")
     
     # Photo is stored as data URL (data:image/jpeg;base64,xxx) in photoUrl field
     photo_url = photo.get("photoUrl", "")
@@ -480,6 +488,7 @@ async def get_delivery_photo_image(trip_id: str, order_id: str):
             content_type = "image/jpeg"
         
         image_bytes = base64.b64decode(base64_data)
+        logger.info(f"Returning photo: {len(image_bytes)} bytes, type={content_type}")
         return Response(content=image_bytes, media_type=content_type)
     except Exception as e:
         logger.error(f"Photo decode error: {e}")
