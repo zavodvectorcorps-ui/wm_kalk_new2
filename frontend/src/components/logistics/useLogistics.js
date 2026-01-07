@@ -471,17 +471,19 @@ export const useLogistics = () => {
         body: JSON.stringify({ driverId, message })
       });
       
-      // Handle 401 separately before trying to parse JSON
-      if (res.status === 401) {
+      // Handle auth errors
+      if (res.status === 401 || res.status === 403) {
         toast.error('Сессия истекла. Пожалуйста, войдите заново.');
         return false;
       }
       
+      // Clone response before reading to avoid "body stream already read" error
+      const responseText = await res.text();
       let data;
       try {
-        data = await res.json();
-      } catch (parseError) {
-        console.error('Failed to parse response:', parseError);
+        data = JSON.parse(responseText);
+      } catch {
+        console.error('Failed to parse response:', responseText);
         toast.error('Ошибка сервера');
         return false;
       }
@@ -491,7 +493,6 @@ export const useLogistics = () => {
           toast.success(`✅ Уведомление отправлено: ${data.method}`);
           return true;
         } else if (data.status === 'not_delivered') {
-          // Not delivered - show warning with explanation
           toast.warning(`⚠️ ${data.message}: ${data.method}`, { duration: 5000 });
           return false;
         } else {
@@ -504,7 +505,7 @@ export const useLogistics = () => {
       }
     } catch (e) {
       console.error('Failed to send notification:', e);
-      toast.error('Ошибка отправки уведомления');
+      toast.error('Ошибка сети');
       return false;
     } finally {
       setSendingNotification(false);
