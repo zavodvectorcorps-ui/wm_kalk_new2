@@ -7,6 +7,7 @@ import os
 import logging
 import json
 import httpx
+import base64
 
 from pymongo import MongoClient
 from services.auth_service import get_current_user, get_admin_user
@@ -23,6 +24,41 @@ db = client[DB_NAME]
 # Collections
 notification_subscriptions = db["notification_subscriptions"]
 notification_settings = db["notification_settings"]
+
+
+def convert_pem_to_raw_vapid(pem_key: str) -> str:
+    """Convert PEM format VAPID private key to raw base64url format."""
+    if not pem_key.startswith("-----BEGIN"):
+        return pem_key  # Already in raw format
+    
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.backends import default_backend
+        
+        # Load the PEM key
+        private_key = serialization.load_pem_private_key(
+            pem_key.encode(),
+            password=None,
+            backend=default_backend()
+        )
+        
+        # Extract raw private value (32 bytes for P-256)
+        private_numbers = private_key.private_numbers()
+        raw_private = private_numbers.private_value.to_bytes(32, 'big')
+        
+        # Convert to base64url (no padding)
+        raw_base64url = base64.urlsafe_b64encode(raw_private).rstrip(b'=').decode('ascii')
+        logger.info(f"Converted PEM VAPID key to raw format: {raw_base64url[:20]}...")
+        return raw_base64url
+    except Exception as e:
+        logger.error(f"Failed to convert PEM to raw VAPID: {e}")
+        return pem_key  # Return original on error
+
+
+def get_vapid_private_key() -> str:
+    """Get VAPID private key in correct raw base64url format."""
+    key = os.environ.get("VAPID_PRIVATE_KEY", "")
+    return convert_pem_to_raw_vapid(key)
 drivers_collection = db["drivers"]
 trips_collection = db["trips"]
 
