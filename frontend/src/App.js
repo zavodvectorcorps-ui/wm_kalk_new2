@@ -26,7 +26,6 @@ const EmbedBaliaCalculator = lazy(() => import('./components/EmbedBaliaCalculato
 const EmbedCodePage = lazy(() => import('./components/EmbedCodePage').then(m => ({ default: m.EmbedCodePage })));
 const LogisticsPage = lazy(() => import('./components/LogisticsPage').then(m => ({ default: m.LogisticsPage })));
 const DriverPanel = lazy(() => import('./components/DriverPanel').then(m => ({ default: m.DriverPanel })));
-const AdminHelpPage = lazy(() => import('./components/AdminHelpPage').then(m => ({ default: m.default })));
 
 // Loading fallback component
 const PageLoader = () => (
