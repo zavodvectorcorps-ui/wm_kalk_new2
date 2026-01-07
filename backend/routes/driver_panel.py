@@ -414,6 +414,23 @@ async def upload_delivery_photo(
                 {"id": tripId},
                 {"$set": {"orderStatuses": order_statuses, "updatedAt": now}}
             )
+            
+            # Sync to amoCRM if order has amocrm_id
+            order = collection.find_one({"id": orderId}, {"_id": 0})
+            if order and order.get("amocrm_id"):
+                try:
+                    from routes.trips import sync_single_order_to_amocrm
+                    order_for_sync = {
+                        **order,
+                        "tripOrderStatus": "delivered",
+                        "tripName": trip.get("name", ""),
+                        "tripDriverName": trip.get("driverName", driver.get("name", "")),
+                        "tripDepartureDate": trip.get("departureDate", "")
+                    }
+                    await sync_single_order_to_amocrm(order_for_sync)
+                    logger.info(f"Synced delivery with photo to amoCRM for order {orderId}")
+                except Exception as e:
+                    logger.error(f"Failed to sync delivery to amoCRM: {e}")
     
     logger.info(f"Driver {driver.get('name')} uploaded photo for order {orderId}")
     
