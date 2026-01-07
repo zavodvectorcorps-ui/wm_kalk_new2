@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Debug - WM Kalkulator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .info { color: #3b82f6; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #2563eb; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        input, select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin: 5px; }
+        .log-entry { padding: 5px 0; border-bottom: 1px solid #333; }
+        .timestamp { color: #888; font-size: 11px; }
+    </style>
+</head>
+<body>
+    <h1>🔔 Push Notifications Debug</h1>
+    
+    <div class="card">
+        <h2>1. Проверка VAPID ключей на сервере</h2>
+        <button onclick="checkVapidKeys()">Проверить VAPID</button>
+        <pre id="vapid-result">Нажмите кнопку для проверки...</pre>
+    </div>
+    
+    <div class="card">
+        <h2>2. Отправка тестового push водителю</h2>
+        <div>
+            <input type="text" id="driver-id" placeholder="ID водителя (напр. drv-xxx)" style="width: 200px;">
+            <input type="text" id="message" placeholder="Сообщение" value="Тестовое уведомление" style="width: 200px;">
+        </div>
+        <div style="margin-top: 10px;">
+            <input type="text" id="auth-token" placeholder="Auth Token (из localStorage)" style="width: 420px;">
+        </div>
+        <button onclick="sendTestPush()">Отправить Push</button>
+        <button onclick="getTokenFromStorage()">Получить токен из localStorage</button>
+        <pre id="push-result">Результат появится здесь...</pre>
+    </div>
+    
+    <div class="card">
+        <h2>3. Проверка статуса водителя</h2>
+        <input type="text" id="check-driver-id" placeholder="ID водителя" style="width: 200px;">
+        <button onclick="checkDriverStatus()">Проверить статус</button>
+        <pre id="driver-status">Результат появится здесь...</pre>
+    </div>
+    
+    <div class="card">
+        <h2>4. Список всех подписок</h2>
+        <button onclick="listSubscriptions()">Загрузить подписки</button>
+        <pre id="subscriptions-list">Нажмите для загрузки...</pre>
+    </div>
+    
+    <div class="card">
+        <h2>5. Логи (последние операции)</h2>
+        <pre id="logs"></pre>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8001'
+            : window.location.origin;
+        
+        const logs = [];
+        
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const entry = { time, message, type };
+            logs.unshift(entry);
+            if (logs.length > 50) logs.pop();
+            
+            const logsEl = document.getElementById('logs');
+            logsEl.innerHTML = logs.map(l => 
+                `<div class="log-entry"><span class="timestamp">[${l.time}]</span> <span class="${l.type}">${l.message}</span></div>`
+            ).join('');
+        }
+        
+        function getToken() {
+            return document.getElementById('auth-token').value || localStorage.getItem('authToken');
+        }
+        
+        function getTokenFromStorage() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                document.getElementById('auth-token').value = token;
+                log('Токен получен из localStorage', 'success');
+            } else {
+                log('Токен не найден в localStorage. Войдите в систему.', 'error');
+            }
+        }
+        
+        async function checkVapidKeys() {
+            const result = document.getElementById('vapid-result');
+            result.textContent = 'Загрузка...';
+            log('Проверка VAPID ключей...');
+            
+            try {
+                const res = await fetch(`${API_URL}/api/notifications/vapid-check`);
+                const data = await res.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.valid) {
+                    log('VAPID ключи валидны ✅', 'success');
+                } else {
+                    log(`VAPID ошибка: ${data.error}`, 'error');
+                }
+            } catch (e) {
+                result.textContent = `Ошибка: ${e.message}`;
+                log(`Ошибка проверки VAPID: ${e.message}`, 'error');
+            }
+        }
+        
+        async function sendTestPush() {
+            const driverId = document.getElementById('driver-id').value;
+            const message = document.getElementById('message').value;
+            const token = getToken();
+            const result = document.getElementById('push-result');
+            
+            if (!driverId) {
+                result.textContent = 'Введите ID водителя';
+                return;
+            }
+            if (!token) {
+                result.textContent = 'Введите токен авторизации или нажмите "Получить токен из localStorage"';
+                return;
+            }
+            
+            result.textContent = 'Отправка...';
+            log(`Отправка push водителю ${driverId}...`);
+            
+            try {
+                const res = await fetch(`${API_URL}/api/notifications/send-custom`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ driverId, message })
+                });
+                
+                const data = await res.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.status === 'sent') {
+                    log(`Push отправлен успешно: ${data.method}`, 'success');
+                } else {
+                    log(`Push не доставлен: ${data.method}`, 'warning');
+                }
+                
+                if (data.debug) {
+                    log(`Debug: sent=${data.debug.push_result?.sent}/${data.debug.push_result?.total}, errors=${JSON.stringify(data.debug.push_result?.errors)}`, 'info');
+                }
+            } catch (e) {
+                result.textContent = `Ошибка: ${e.message}`;
+                log(`Ошибка отправки: ${e.message}`, 'error');
+            }
+        }
+        
+        async function checkDriverStatus() {
+            const driverId = document.getElementById('check-driver-id').value;
+            const token = getToken();
+            const result = document.getElementById('driver-status');
+            
+            if (!driverId || !token) {
+                result.textContent = 'Введите ID водителя и токен';
+                return;
+            }
+            
+            result.textContent = 'Загрузка...';
+            log(`Проверка статуса водителя ${driverId}...`);
+            
+            try {
+                const res = await fetch(`${API_URL}/api/notifications/debug/driver/${driverId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.can_receive_notifications) {
+                    log(`Водитель ${driverId} может получать уведомления ✅`, 'success');
+                } else {
+                    log(`Водитель ${driverId} НЕ может получать уведомления`, 'warning');
+                }
+            } catch (e) {
+                result.textContent = `Ошибка: ${e.message}`;
+                log(`Ошибка: ${e.message}`, 'error');
+            }
+        }
+        
+        async function listSubscriptions() {
+            const token = getToken();
+            const result = document.getElementById('subscriptions-list');
+            
+            if (!token) {
+                result.textContent = 'Введите токен авторизации';
+                return;
+            }
+            
+            result.textContent = 'Загрузка...';
+            log('Загрузка списка подписок...');
+            
+            try {
+                const res = await fetch(`${API_URL}/api/notifications/subscriptions`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                log(`Загружено подписок: ${data.count || 0}`, 'info');
+            } catch (e) {
+                result.textContent = `Ошибка: ${e.message}`;
+                log(`Ошибка: ${e.message}`, 'error');
+            }
+        }
+        
+        // Auto-load token on page load
+        window.onload = () => {
+            getTokenFromStorage();
+            log('Страница загружена. Используйте кнопки для диагностики.', 'info');
+        };
+    </script>
+</body>
+</html>
