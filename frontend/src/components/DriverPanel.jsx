@@ -722,9 +722,9 @@ export const DriverPanel = ({ onLogout }) => {
               title="История уведомлений"
             >
               <List className="h-4 w-4" />
-              {notificationHistory.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {notificationHistory.length > 9 ? '9+' : notificationHistory.length}
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
+                  {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                 </span>
               )}
             </Button>
