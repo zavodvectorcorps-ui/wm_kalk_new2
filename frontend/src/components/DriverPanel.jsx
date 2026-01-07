@@ -75,6 +75,8 @@ export const DriverPanel = ({ onLogout }) => {
   const [startingTrip, setStartingTrip] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [warehouse, setWarehouse] = useState(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
