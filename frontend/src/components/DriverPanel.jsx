@@ -85,6 +85,7 @@ export const DriverPanel = ({ onLogout }) => {
   const [directions, setDirections] = useState(null);
   const [buildingRoute, setBuildingRoute] = useState(false);
   const [startingTrip, setStartingTrip] = useState(false);
+  const [finishingTrip, setFinishingTrip] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [warehouse, setWarehouse] = useState(null);
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -92,6 +93,10 @@ export const DriverPanel = ({ onLogout }) => {
   const [notificationHistory, setNotificationHistory] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  
+  // Mileage modal states
+  const [showMileageModal, setShowMileageModal] = useState(null); // 'start' | 'finish' | null
+  const [mileageInput, setMileageInput] = useState('');
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
