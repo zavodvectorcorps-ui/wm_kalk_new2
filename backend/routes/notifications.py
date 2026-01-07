@@ -110,25 +110,52 @@ async def send_push_notification(user_id: str = None, driver_id: str = None, tit
             logger.info(f"No push subscriptions found for driver={driver_id}, user={user_id}")
             return
         
-        # Get VAPID keys from settings
-        settings = notification_settings.find_one({"type": "vapid"}, {"_id": 0})
-        if not settings:
-            logger.warning("VAPID keys not configured")
+        # Get VAPID keys from environment
+        vapid_private_key = os.environ.get("VAPID_PRIVATE_KEY", "")
+        vapid_claims_email = os.environ.get("VAPID_CLAIMS_EMAIL", "mailto:admin@wm-kalkulator.pl")
+        
+        if not vapid_private_key:
+            logger.warning("VAPID private key not configured in environment")
             return
         
-        # Note: Actual push sending requires pywebpush library
-        # For now, we'll store notifications for polling
-        for sub in subscriptions:
-            db.pending_notifications.insert_one({
-                "subscription": sub,
-                "title": title,
-                "body": body,
-                "data": data or {},
-                "createdAt": datetime.now(timezone.utc).isoformat(),
-                "sent": False
-            })
+        # Send push notifications using pywebpush
+        from pywebpush import webpush, WebPushException
+        import json
         
-        logger.info(f"Push notification queued for {len(subscriptions)} subscribers")
+        payload = json.dumps({
+            "title": title,
+            "body": body,
+            "data": data or {},
+            "icon": "/logo192.png",
+            "badge": "/logo192.png"
+        })
+        
+        sent_count = 0
+        for sub in subscriptions:
+            try:
+                subscription_info = {
+                    "endpoint": sub.get("endpoint"),
+                    "keys": sub.get("keys", {})
+                }
+                
+                webpush(
+                    subscription_info=subscription_info,
+                    data=payload,
+                    vapid_private_key=vapid_private_key,
+                    vapid_claims={"sub": vapid_claims_email}
+                )
+                sent_count += 1
+                logger.info(f"Push sent to endpoint: {sub.get('endpoint')[:50]}...")
+            except WebPushException as e:
+                logger.error(f"Push failed: {e}")
+                # Remove invalid subscriptions
+                if e.response and e.response.status_code in [404, 410]:
+                    notification_subscriptions.delete_one({"endpoint": sub.get("endpoint")})
+                    logger.info(f"Removed expired subscription: {sub.get('endpoint')[:50]}...")
+            except Exception as e:
+                logger.error(f"Push error: {e}")
+        
+        logger.info(f"Push notifications sent: {sent_count}/{len(subscriptions)}")
         
     except Exception as e:
         logger.error(f"Error sending push notification: {e}")
