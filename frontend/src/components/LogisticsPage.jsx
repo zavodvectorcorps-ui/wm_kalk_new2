@@ -1033,8 +1033,11 @@ const OrderCard = ({
             />
             <label htmlFor={`important-${order.id}`} className={`text-xs cursor-pointer flex items-center gap-1 ${order.isImportant ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
               <AlertCircle className={`h-3 w-3 ${order.isImportant ? 'text-red-500' : ''}`} />
-              
-          {/* Delivery photo link - ALWAYS VISIBLE if exists */}
+              Важный заказ
+            </label>
+          </div>
+          
+          {/* Delivery photo link - PROMINENT LOCATION */}
           {order.deliveryPhotoUrl && (
             <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
               <a 
@@ -1048,9 +1051,6 @@ const OrderCard = ({
               </a>
             </div>
           )}
-              Важный заказ
-            </label>
-          </div>
           
           {/* Expanded details */}
           {expandedOrder === order.id && (
