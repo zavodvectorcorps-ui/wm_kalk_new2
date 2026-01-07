@@ -180,7 +180,7 @@ export const LogisticsPage = () => {
     );
   }
 
-  const SectionIcon = currentSection.icon;
+  const SectionIcon = currentSection?.icon || History;
 
   return (
     <div className="p-6 space-y-6">
