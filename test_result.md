@@ -546,3 +546,49 @@ setRequestedDiscountNote(editingOrder.requestedDiscountNote || '');
 - agent: "testing"
   message: "PDF IMAGE OPTIMIZATION AND ORDER SORTING TESTING COMPLETED (Jan 2, 2025): ✅ SAUNA PDF IMAGE OPTIMIZATION VERIFIED (3/4 tests passed). Test 1: Sauna PDF with Image Optimization - POST /api/sauna/generate-pdf successful (HTTP 200), PDF generated (952,076 bytes), backend logs show 'Optimized image: 399.1KB -> 67.7KB' and 'Optimized image: 209.3KB -> 9.2KB' messages confirming optimization working. Test 2: Basic API verification - GET /api/sauna/orders and POST /api/sauna/generate-pdf working correctly. ❌ CRITICAL ISSUE: Order Sorting by Creation Time FAILED - Orders with WMS-DD-MM-YYYY-HHMMSS format found but NOT sorted correctly by timestamp within same date. Expected newer timestamps first but found incorrect order (e.g., '011217' before '200219' for same date). This affects user experience as newer orders should appear first."
 
+
+## Push Notifications and Photo Delivery Fix - January 7, 2025
+
+### Issues Addressed:
+
+#### 1. ✅ Delivery Photo Not Visible in Logistics Panel - FIXED
+**Root Cause**: The `/api/driver-panel/photo-image/{trip_id}/{order_id}` endpoint was looking for `photoData` field, but photos were saved with `photoUrl` field (data URL format).
+
+**Fix Applied**: Updated the endpoint to:
+- Read from `photoUrl` field instead of `photoData`
+- Parse the data URL format (`data:image/jpeg;base64,...`)
+- Extract content type and base64 data correctly
+
+**Verification**:
+- ✅ Test photo retrieval: HTTP 200, 70 bytes returned
+- ✅ Backend logs show: "Photo found: id=..." and "Returning photo: X bytes, type=image/png"
+
+#### 2. 🔍 Push Notifications Not Being Received - DIAGNOSED
+**Root Cause**: No push subscriptions exist for drivers in the database. The push notification system is working correctly, but:
+- Drivers must subscribe by clicking the 🔔 bell icon in Driver Panel
+- The driver must be logged in with their user account
+- The driver's profile must be linked to a userId
+
+**Debug Features Added**:
+- New endpoint: `GET /api/notifications/debug/driver/{driver_id}` - Shows driver's notification status, subscriptions, and telegram link
+- Enhanced logging in `/send-custom` endpoint to show all subscriptions and lookup attempts
+
+**Testing the Push System**:
+1. Driver logs into the system
+2. Opens Driver Panel (Кабинет водителя)
+3. Clicks 🔔 bell icon to subscribe to push notifications
+4. Admin sends test notification from Logistics page
+5. Check `/api/notifications/debug/driver/{driver_id}` for subscription status
+
+### Files Modified:
+- `/app/backend/routes/driver_panel.py` - Fixed photo-image endpoint
+- `/app/backend/routes/notifications.py` - Added debug endpoint and improved logging
+
+### Test Commands:
+```bash
+# Test photo endpoint
+curl -s "API_URL/api/driver-panel/photo-image/{trip_id}/{order_id}"
+
+# Debug driver notifications
+curl -s "API_URL/api/notifications/debug/driver/{driver_id}" -H "Authorization: Bearer TOKEN"
+```
