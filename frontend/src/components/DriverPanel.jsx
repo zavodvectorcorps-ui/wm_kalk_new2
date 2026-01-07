@@ -122,8 +122,12 @@ export const DriverPanel = ({ onLogout }) => {
       // Use warehouse as origin if available, otherwise first order
       let origin;
       const tripWarehouse = selectedTrip.warehouse || warehouse;
-      if (tripWarehouse && tripWarehouse.warehouse_lat && tripWarehouse.warehouse_lng) {
-        origin = { lat: tripWarehouse.warehouse_lat, lng: tripWarehouse.warehouse_lng };
+      // Check both naming conventions
+      const whLat = tripWarehouse?.lat || tripWarehouse?.warehouse_lat;
+      const whLng = tripWarehouse?.lng || tripWarehouse?.warehouse_lng;
+      
+      if (tripWarehouse && whLat && whLng) {
+        origin = { lat: whLat, lng: whLng };
       } else {
         origin = { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
       }
@@ -137,7 +141,7 @@ export const DriverPanel = ({ onLogout }) => {
       // Waypoints are all orders except the last (which is destination)
       // If warehouse is origin, include all orders as waypoints except last
       let waypoints;
-      if (tripWarehouse && tripWarehouse.warehouse_lat) {
+      if (tripWarehouse && whLat) {
         // All orders except last are waypoints
         waypoints = ordersWithCoords.slice(0, -1).map(order => ({
           location: { lat: order.lat, lng: order.lng },
