@@ -173,7 +173,7 @@ export const DriverPanel = ({ onLogout }) => {
     }
   }, [selectedTrip, isLoaded, buildRoute]);
 
-  // Open entire route in Google Maps navigator
+  // Open entire route in Google Maps navigator - use addresses for better display
   const openFullRouteInNavigator = () => {
     if (!selectedTrip || !selectedTrip.orders) return;
     
@@ -188,14 +188,19 @@ export const DriverPanel = ({ onLogout }) => {
     let url = 'https://www.google.com/maps/dir/?api=1';
     
     if (tripWarehouse && tripWarehouse.warehouse_lat && tripWarehouse.warehouse_lng) {
-      url += `&origin=${tripWarehouse.warehouse_lat},${tripWarehouse.warehouse_lng}`;
+      // Use warehouse address if available
+      const warehouseAddr = tripWarehouse.warehouse_address || tripWarehouse.address;
+      url += `&origin=${warehouseAddr ? encodeURIComponent(warehouseAddr) : `${tripWarehouse.warehouse_lat},${tripWarehouse.warehouse_lng}`}`;
     } else {
-      url += `&origin=${ordersWithCoords[0].lat},${ordersWithCoords[0].lng}`;
+      const firstOrder = ordersWithCoords[0];
+      const firstAddr = firstOrder.fullAddress || firstOrder.address;
+      url += `&origin=${firstAddr ? encodeURIComponent(firstAddr) : `${firstOrder.lat},${firstOrder.lng}`}`;
     }
     
-    // Destination is always the last order
+    // Destination is always the last order - use address
     const last = ordersWithCoords[ordersWithCoords.length - 1];
-    url += `&destination=${last.lat},${last.lng}`;
+    const lastAddr = last.fullAddress || last.address;
+    url += `&destination=${lastAddr ? encodeURIComponent(lastAddr) : `${last.lat},${last.lng}`}`;
     
     // Add waypoints - all orders except the last (which is destination)
     // If warehouse is origin, all orders except last are waypoints
@@ -208,7 +213,10 @@ export const DriverPanel = ({ onLogout }) => {
     
     if (waypointOrders.length > 0) {
       const waypoints = waypointOrders
-        .map(o => `${o.lat},${o.lng}`)
+        .map(o => {
+          const addr = o.fullAddress || o.address;
+          return addr ? encodeURIComponent(addr) : `${o.lat},${o.lng}`;
+        })
         .join('|');
       url += `&waypoints=${waypoints}`;
     }
