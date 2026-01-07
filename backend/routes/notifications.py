@@ -597,7 +597,19 @@ async def send_custom_notification(
         else:
             method_used = "Push"
     elif not telegram_sent:
-        method_used = "Нет способов доставки (водитель не связан с пользователем или нет подписки)"
+        # Provide specific reason
+        if not driver_user_id:
+            method_used = "Водитель не связан с учётной записью"
+        else:
+            # Check if user has subscriptions
+            sub_count = notification_subscriptions.count_documents({
+                "$or": [{"userId": driver_user_id}, {"driverId": request.driverId}],
+                "active": True
+            })
+            if sub_count == 0:
+                method_used = "Водитель не подписался на push-уведомления (нужно нажать 🔔 в Панели водителя)"
+            else:
+                method_used = "Ошибка отправки push-уведомления"
     
     return {
         "status": "sent" if (telegram_sent or push_sent) else "not_delivered",
