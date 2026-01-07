@@ -40,8 +40,6 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       driverDesc: 'Podgląd przydzielonych tras, nawigacja i potwierdzanie dostaw',
       adminTitle: 'Panel administracyjny',
       adminDesc: 'Zarządzanie wszystkimi zamówieniami, statystyki i ustawienia cen',
-      helpTitle: 'Pomoc',
-      helpDesc: 'Zalecenia dotyczące konfiguracji integracji i diagnostyka problemów',
       select: 'Wybierz',
       comingSoon: 'Wkrótce',
       noAccess: 'Brak dostępu',
