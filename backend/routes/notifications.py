@@ -488,9 +488,14 @@ async def send_custom_notification(
     """Send a custom notification message to a driver."""
     driver = drivers_collection.find_one({"id": request.driverId}, {"_id": 0})
     if not driver:
-        raise HTTPException(status_code=404, detail="Водитель не найден")
+        # Try to find by name as fallback
+        logger.warning(f"Driver not found by id: {request.driverId}")
+        raise HTTPException(status_code=404, detail=f"Водитель не найден (ID: {request.driverId})")
+    
+    logger.info(f"Sending notification to driver: {driver.get('name')}, userId: {driver.get('userId')}")
     
     telegram_sent = False
+    push_sent = False
     method_used = ""
     
     # Try Telegram first
@@ -515,22 +520,40 @@ async def send_custom_notification(
             except Exception as e:
                 logger.error(f"Failed to send Telegram message: {e}")
     
-    if not telegram_sent:
-        method_used = "Push"
-        # Send push notification to driver
-        # Get driver's userId for subscription lookup
-        driver_user_id = driver.get("userId")
-        success = await send_push_notification(
-            user_id=driver_user_id,
-            driver_id=request.driverId,
-            title="Сообщение",
-            body=request.message
-        )
-        if not success:
-            method_used = "Push (нет подписки)"
+    # Always try push as well (not as fallback)
+    driver_user_id = driver.get("userId")
+    logger.info(f"Looking for push subscriptions: userId={driver_user_id}, driverId={request.driverId}")
+    
+    # Check what subscriptions exist for debugging
+    all_subs = list(notification_subscriptions.find({}, {"_id": 0, "userId": 1, "driverId": 1, "endpoint": 1}))
+    logger.info(f"All subscriptions in DB: {len(all_subs)}")
+    for sub in all_subs[:5]:
+        logger.info(f"  Sub: userId={sub.get('userId')}, driverId={sub.get('driverId')}")
+    
+    push_sent = await send_push_notification(
+        user_id=driver_user_id,
+        driver_id=request.driverId,
+        title="Сообщение",
+        body=request.message
+    )
+    
+    if push_sent:
+        if telegram_sent:
+            method_used = "Telegram + Push"
+        else:
+            method_used = "Push"
+    elif not telegram_sent:
+        method_used = "Нет способов доставки (водитель не связан с пользователем или нет подписки)"
     
     return {
-        "status": "sent" if telegram_sent else "queued",
+        "status": "sent" if (telegram_sent or push_sent) else "not_delivered",
         "method": method_used,
-        "message": f"Отправлено водителю {driver.get('name')}"
+        "message": f"Водитель: {driver.get('name')}",
+        "debug": {
+            "driver_id": request.driverId,
+            "driver_user_id": driver_user_id,
+            "telegram_linked": bool(telegram_chat_id),
+            "telegram_sent": telegram_sent,
+            "push_sent": push_sent
+        }
     }
