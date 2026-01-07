@@ -93,6 +93,7 @@ export const DriverPanel = ({ onLogout }) => {
   const [notificationHistory, setNotificationHistory] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   
   // Mileage modal states
   const [showMileageModal, setShowMileageModal] = useState(null); // 'start' | 'finish' | null
