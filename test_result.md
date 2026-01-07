@@ -983,3 +983,5 @@ User needs to test with real amoCRM credentials:
 ### Agent Communication:
 - agent: "main"
   message: "amoCRM photo upload fix implemented using correct API v4 process: 1) Create session, 2) Upload file, 3) Create note with UUID. Ready for user testing with real credentials."
+- agent: "testing"
+  message: "amoCRM PHOTO UPLOAD FIX TESTING COMPLETED (January 2026): ✅ ALL TESTS PASSED (5/5). Test 1: Auth Test - Login with testuser/test123 successful, token received. Test 2: Debug Order Endpoint - GET /api/driver-panel/debug/order/{id} returns valid JSON with expected structure (orderId, found_in_collections, photo, amocrm_id, delivery_status). Test 3: Photo Debug List - GET /api/driver-panel/photos/list returns 2 photos with proper structure (count and photos array). Test 4: Backend Health Check - GET /api/health successful, backend running properly. Test 5: API Structure Verification - POST /api/driver-panel/resend-photo-to-amocrm/{id} endpoint exists and responds correctly. All backend APIs functioning correctly and ready to support amoCRM photo upload fix."
