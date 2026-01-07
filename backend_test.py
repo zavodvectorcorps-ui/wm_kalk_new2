@@ -5690,14 +5690,14 @@ def main():
         return False
 
 if __name__ == "__main__":
-    print("🚀 WM Calculator Backend API Testing - Review Request Scenarios")
+    print("🚀 WM Calculator Backend API Testing - amoCRM Photo Upload Fix")
     print("=" * 70)
     print(f"Backend URL: {BACKEND_URL}")
     print()
     
-    # Run specific review request tests
+    # Run amoCRM photo upload fix tests
     results = {
-        "Review Request Scenarios": test_review_request_scenarios(),
+        "amoCRM Photo Upload Fix": test_amocrm_photo_upload_fix(),
     }
     
     # Print summary
