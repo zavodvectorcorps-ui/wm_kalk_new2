@@ -92,23 +92,25 @@ async def unsubscribe_from_push(
     return {"status": "not_found", "message": "Подписка не найдена"}
 
 
-async def send_push_notification(user_id: str = None, driver_id: str = None, title: str = "", body: str = "", data: dict = None):
-    """Send push notification to user or driver."""
+async def send_push_notification(user_id: str = None, driver_id: str = None, title: str = "", body: str = "", data: dict = None) -> bool:
+    """Send push notification to user or driver. Returns True if sent successfully."""
     try:
-        # Find subscriptions
+        # Find subscriptions - check both userId and driverId
         query = {"active": True}
-        if driver_id:
+        if user_id and driver_id:
+            query["$or"] = [{"userId": user_id}, {"driverId": driver_id}]
+        elif driver_id:
             query["driverId"] = driver_id
         elif user_id:
             query["userId"] = user_id
         else:
-            return
+            return False
         
         subscriptions = list(notification_subscriptions.find(query, {"_id": 0}))
         
         if not subscriptions:
             logger.info(f"No push subscriptions found for driver={driver_id}, user={user_id}")
-            return
+            return False
         
         # Get VAPID keys from environment
         vapid_private_key = os.environ.get("VAPID_PRIVATE_KEY", "")
@@ -116,7 +118,7 @@ async def send_push_notification(user_id: str = None, driver_id: str = None, tit
         
         if not vapid_private_key:
             logger.warning("VAPID private key not configured in environment")
-            return
+            return False
         
         # Send push notifications using pywebpush
         from pywebpush import webpush, WebPushException
@@ -156,6 +158,7 @@ async def send_push_notification(user_id: str = None, driver_id: str = None, tit
                 logger.error(f"Push error: {e}")
         
         logger.info(f"Push notifications sent: {sent_count}/{len(subscriptions)}")
+        return sent_count > 0
         
     except Exception as e:
         logger.error(f"Error sending push notification: {e}")
