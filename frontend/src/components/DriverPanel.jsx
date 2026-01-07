@@ -609,6 +609,21 @@ export const DriverPanel = ({ onLogout }) => {
                 {pushEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
               </Button>
             )}
+            {/* Notification history button */}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={`text-white relative ${showNotifications ? 'bg-purple-500' : 'hover:bg-purple-500'}`}
+              onClick={toggleNotificationPanel}
+              title="История уведомлений"
+            >
+              <List className="h-4 w-4" />
+              {notificationHistory.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {notificationHistory.length > 9 ? '9+' : notificationHistory.length}
+                </span>
+              )}
+            </Button>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -628,6 +643,66 @@ export const DriverPanel = ({ onLogout }) => {
           </div>
         </div>
       </div>
+
+      {/* Notification history panel */}
+      {showNotifications && (
+        <div className="bg-white border-b shadow-md">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                История уведомлений
+              </h2>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={loadNotificationHistory}
+                disabled={loadingNotifications}
+              >
+                <RefreshCw className={`h-4 w-4 ${loadingNotifications ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+            
+            {loadingNotifications ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2" />
+                Загрузка...
+              </div>
+            ) : notificationHistory.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Нет уведомлений</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {notificationHistory.map((notif, index) => (
+                  <div 
+                    key={notif.id || index} 
+                    className={`p-3 rounded-lg border ${notif.status === 'sent' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium flex-1">{notif.message}</p>
+                      <Badge variant="outline" className="text-xs shrink-0">
+                        {notif.method || 'Push'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {new Date(notif.sentAt).toLocaleString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                      {notif.sentBy && <span>• от {notif.sentBy}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Trip selector */}
       {trips.length > 1 && (
