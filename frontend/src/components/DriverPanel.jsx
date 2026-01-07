@@ -136,6 +136,18 @@ export const DriverPanel = ({ onLogout }) => {
 
   // Subscribe to push notifications
   const subscribeToPush = async () => {
+    // Check if iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    
+    if (isIOS && !isStandalone) {
+      toast.error(
+        'На iPhone: нажмите "Поделиться" → "На экран Домой", затем откройте приложение с главного экрана',
+        { duration: 8000 }
+      );
+      return;
+    }
+    
     try {
       // Request notification permission
       const permission = await Notification.requestPermission();
