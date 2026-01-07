@@ -539,8 +539,7 @@ async def debug_order_info(order_id: str, current_user: dict = Depends(get_curre
     for section_name, collection in [
         ("balia", balia_orders),
         ("greenhouse", greenhouse_orders),
-        ("sauna", sauna_orders),
-        ("orders", orders_collection)
+        ("sauna", sauna_orders)
     ]:
         if collection is not None:
             order = collection.find_one({"id": order_id}, {"_id": 0, "deliveryPhotoUrl": 0})
