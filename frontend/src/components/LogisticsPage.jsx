@@ -856,6 +856,7 @@ const OrdersListCard = ({
               deleteOrder={deleteOrder}
               formatDate={formatDate}
               DELIVERY_STATUSES={DELIVERY_STATUSES}
+              API_URL={API_URL}
             />
           ))}
         </div>
