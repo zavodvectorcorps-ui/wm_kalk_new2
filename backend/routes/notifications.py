@@ -46,6 +46,87 @@ class DriverTelegramLink(BaseModel):
 
 # ============= Push Notifications =============
 
+@router.get("/vapid-check")
+async def check_vapid_keys():
+    """Check if VAPID keys are properly configured."""
+    vapid_private = os.environ.get("VAPID_PRIVATE_KEY", "")
+    vapid_public = os.environ.get("VAPID_PUBLIC_KEY", "")
+    vapid_email = os.environ.get("VAPID_CLAIMS_EMAIL", "")
+    
+    result = {
+        "private_key_length": len(vapid_private),
+        "private_key_format": "unknown",
+        "public_key_length": len(vapid_public),
+        "claims_email": vapid_email,
+        "valid": False,
+        "error": None
+    }
+    
+    # Check format
+    if vapid_private.startswith("-----BEGIN"):
+        result["private_key_format"] = "PEM (НЕПРАВИЛЬНО! Нужен raw base64url)"
+        result["error"] = "VAPID_PRIVATE_KEY в PEM формате. Нужен raw base64url формат (43 символа)"
+    elif len(vapid_private) == 43 or len(vapid_private) == 44:
+        result["private_key_format"] = "raw base64url (правильно)"
+    else:
+        result["private_key_format"] = f"неизвестный (длина {len(vapid_private)}, ожидается 43-44)"
+        result["error"] = f"Неверная длина ключа: {len(vapid_private)}, ожидается 43-44"
+    
+    # Try to use the key
+    if not result["error"]:
+        try:
+            from pywebpush import webpush, WebPushException
+            webpush(
+                subscription_info={"endpoint": "https://test.invalid", "keys": {"p256dh": "test", "auth": "test"}},
+                data="test",
+                vapid_private_key=vapid_private,
+                vapid_claims={"sub": vapid_email or "mailto:test@test.com"}
+            )
+        except WebPushException as e:
+            error_str = str(e)
+            if "Could not deserialize key" in error_str:
+                result["error"] = "Ключ не может быть десериализован - неверный формат"
+                result["private_key_format"] = "invalid"
+            elif "subscription" in error_str.lower() or "endpoint" in error_str.lower():
+                result["valid"] = True
+                result["error"] = None
+            else:
+                result["error"] = error_str[:200]
+        except Exception as e:
+            error_str = str(e)
+            if "subscription" in error_str.lower():
+                result["valid"] = True
+            else:
+                result["error"] = error_str[:200]
+    
+    result["private_key_preview"] = vapid_private[:20] + "..." if vapid_private else "не задан"
+    result["public_key_preview"] = vapid_public[:30] + "..." if vapid_public else "не задан"
+    
+    return result
+
+
+@router.get("/subscriptions")
+async def list_all_subscriptions(admin: dict = Depends(get_admin_user)):
+    """List all push subscriptions (admin only)."""
+    subscriptions = list(notification_subscriptions.find({}, {"_id": 0, "keys": 0}))
+    
+    # Get driver names
+    drivers = {d["id"]: d.get("name", "Unknown") for d in drivers_collection.find({}, {"_id": 0, "id": 1, "name": 1})}
+    
+    result = []
+    for sub in subscriptions:
+        result.append({
+            "userId": sub.get("userId"),
+            "driverId": sub.get("driverId"),
+            "driverName": drivers.get(sub.get("driverId"), "Unknown"),
+            "active": sub.get("active", True),
+            "endpoint_preview": sub.get("endpoint", "")[:60] + "...",
+            "createdAt": sub.get("createdAt")
+        })
+    
+    return {"count": len(result), "subscriptions": result}
+
+
 @router.post("/subscribe")
 async def subscribe_to_push(
     subscription: PushSubscription,
