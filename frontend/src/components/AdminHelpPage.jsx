@@ -132,10 +132,14 @@ const AdminHelpPage = () => {
       </div>
 
       <Tabs defaultValue="debug" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="debug" className="gap-2">
             <Bug className="h-4 w-4" />
             Диагностика
+          </TabsTrigger>
+          <TabsTrigger value="tools" className="gap-2">
+            <Wrench className="h-4 w-4" />
+            Инструменты
           </TabsTrigger>
           <TabsTrigger value="integrations" className="gap-2">
             <Settings className="h-4 w-4" />
