@@ -530,3 +530,204 @@ async def get_debug_logs(current_user: dict = Depends(get_current_user)):
         "sync_logs": sync_logs,
         "recent_backend_logs": driver_logs
     }
+
+
+
+class GeocodingRequest(BaseModel):
+    orderId: str
+    section: str
+    address: str
+
+
+@router.post("/geocode-order")
+async def geocode_order_address(
+    request: GeocodingRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Geocode an order's address using Google Maps API.
+    
+    This is useful when orders are created from amoCRM without coordinates.
+    """
+    collection = get_section_collection(request.section)
+    if not collection:
+        raise HTTPException(status_code=400, detail="Неверный раздел")
+    
+    order = collection.find_one({"id": request.orderId})
+    if not order:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    
+    # Get Google Maps API key
+    google_api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+    if not google_api_key:
+        raise HTTPException(status_code=400, detail="Google Maps API ключ не настроен")
+    
+    # Use address from request or from order
+    address = request.address or order.get("fullAddress", "")
+    if not address:
+        raise HTTPException(status_code=400, detail="Адрес не указан")
+    
+    try:
+        import httpx
+        
+        geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+        params = {
+            "address": address,
+            "key": google_api_key,
+            "language": "ru"
+        }
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(geocode_url, params=params)
+            data = response.json()
+            
+            if data.get("status") == "OK" and data.get("results"):
+                location = data["results"][0]["geometry"]["location"]
+                lat = location["lat"]
+                lng = location["lng"]
+                formatted_address = data["results"][0].get("formatted_address", address)
+                
+                # Update order with coordinates
+                collection.update_one(
+                    {"id": request.orderId},
+                    {"$set": {
+                        "lat": lat,
+                        "lng": lng,
+                        "geocodedAddress": formatted_address,
+                        "geocodedAt": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                logger.info(f"Geocoded order {request.orderId}: {lat}, {lng}")
+                
+                return {
+                    "status": "ok",
+                    "lat": lat,
+                    "lng": lng,
+                    "formatted_address": formatted_address
+                }
+            else:
+                error_msg = data.get("status", "Unknown error")
+                logger.error(f"Geocoding failed for {address}: {error_msg}")
+                return {
+                    "status": "error",
+                    "message": f"Не удалось определить координаты: {error_msg}"
+                }
+                
+    except Exception as e:
+        logger.error(f"Geocoding error: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка геокодирования: {str(e)}")
+
+
+@router.post("/geocode-trip/{trip_id}")
+async def geocode_trip_orders(
+    trip_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Geocode all orders in a trip that don't have coordinates."""
+    trip = trips_collection.find_one({"id": trip_id})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Рейс не найден")
+    
+    section = trip.get("section", "")
+    collection = get_section_collection(section)
+    if not collection:
+        raise HTTPException(status_code=400, detail="Неверный раздел")
+    
+    # Get Google Maps API key
+    google_api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+    if not google_api_key:
+        raise HTTPException(status_code=400, detail="Google Maps API ключ не настроен")
+    
+    # Find orders without coordinates
+    order_ids = trip.get("orderIds", [])
+    orders_to_geocode = list(collection.find({
+        "id": {"$in": order_ids},
+        "$or": [
+            {"lat": {"$exists": False}},
+            {"lat": None},
+            {"lng": {"$exists": False}},
+            {"lng": None}
+        ]
+    }, {"_id": 0}))
+    
+    if not orders_to_geocode:
+        return {
+            "status": "ok",
+            "message": "Все заказы уже имеют координаты",
+            "geocoded": 0,
+            "failed": 0
+        }
+    
+    geocoded_count = 0
+    failed_count = 0
+    results = []
+    
+    import httpx
+    
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for order in orders_to_geocode:
+            address = order.get("fullAddress", "")
+            if not address:
+                failed_count += 1
+                results.append({"order_id": order.get("id"), "status": "no_address"})
+                continue
+            
+            try:
+                geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+                params = {
+                    "address": address,
+                    "key": google_api_key,
+                    "language": "ru"
+                }
+                
+                response = await client.get(geocode_url, params=params)
+                data = response.json()
+                
+                if data.get("status") == "OK" and data.get("results"):
+                    location = data["results"][0]["geometry"]["location"]
+                    lat = location["lat"]
+                    lng = location["lng"]
+                    
+                    # Update order
+                    collection.update_one(
+                        {"id": order.get("id")},
+                        {"$set": {
+                            "lat": lat,
+                            "lng": lng,
+                            "geocodedAt": datetime.now(timezone.utc).isoformat()
+                        }}
+                    )
+                    
+                    geocoded_count += 1
+                    results.append({
+                        "order_id": order.get("id"),
+                        "status": "ok",
+                        "lat": lat,
+                        "lng": lng
+                    })
+                else:
+                    failed_count += 1
+                    results.append({
+                        "order_id": order.get("id"),
+                        "status": "geocode_failed",
+                        "error": data.get("status")
+                    })
+                    
+            except Exception as e:
+                failed_count += 1
+                results.append({
+                    "order_id": order.get("id"),
+                    "status": "error",
+                    "error": str(e)
+                })
+    
+    logger.info(f"Geocoded trip {trip_id}: {geocoded_count} success, {failed_count} failed")
+    
+    return {
+        "status": "ok",
+        "message": f"Геокодировано {geocoded_count} заказов, ошибок: {failed_count}",
+        "geocoded": geocoded_count,
+        "failed": failed_count,
+        "total": len(orders_to_geocode),
+        "results": results
+    }
