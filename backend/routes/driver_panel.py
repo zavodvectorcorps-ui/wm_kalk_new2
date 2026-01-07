@@ -450,6 +450,29 @@ async def get_delivery_photo(trip_id: str, order_id: str):
     return photo
 
 
+@router.get("/photo-image/{trip_id}/{order_id}")
+async def get_delivery_photo_image(trip_id: str, order_id: str):
+    """Get delivery photo as image file."""
+    from fastapi.responses import Response
+    
+    photo = delivery_photos.find_one({"tripId": trip_id, "orderId": order_id}, {"_id": 0})
+    if not photo:
+        raise HTTPException(status_code=404, detail="Фото не найдено")
+    
+    photo_data = photo.get("photoData")
+    if not photo_data:
+        raise HTTPException(status_code=404, detail="Фото данные не найдены")
+    
+    # Decode base64
+    import base64
+    try:
+        image_bytes = base64.b64decode(photo_data)
+        content_type = photo.get("contentType", "image/jpeg")
+        return Response(content=image_bytes, media_type=content_type)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка декодирования: {str(e)}")
+
+
 
 @router.post("/start-trip/{trip_id}")
 async def start_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
