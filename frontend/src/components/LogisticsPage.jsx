@@ -380,7 +380,7 @@ export const LogisticsPage = () => {
 
       {/* Section Tabs */}
       <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
+        <TabsList className="grid w-full grid-cols-4 mb-4">
           {Object.entries(SECTIONS).map(([key, section]) => {
             const Icon = section.icon;
             const unassignedCount = getUnassignedOrders(sectionData[key].orders).length;
@@ -396,6 +396,11 @@ export const LogisticsPage = () => {
               </TabsTrigger>
             );
           })}
+          <TabsTrigger value="history" className="gap-2 data-[state=active]:bg-purple-100">
+            <History className="h-4 w-4 text-purple-600" />
+            <span>История</span>
+            <Badge variant="secondary" className="ml-1 bg-purple-100 text-purple-700">{trips.length}</Badge>
+          </TabsTrigger>
         </TabsList>
 
         {Object.keys(SECTIONS).map(sectionKey => (
