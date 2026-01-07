@@ -1,7 +1,18 @@
 // Logistics constants and helpers
 import { Circle, Package, Truck, CheckCircle, Waves, Flame, Warehouse } from 'lucide-react';
 
-export const API_URL = process.env.REACT_APP_BACKEND_URL;
+// Smart API URL detection - use current origin on production
+const getApiUrl = () => {
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    if (origin.includes('wm-kalkulator.pl') || origin.includes('.emergent.host') || origin.includes('.emergentagent.com')) {
+      return origin;
+    }
+  }
+  return process.env.REACT_APP_BACKEND_URL || '';
+};
+
+export const API_URL = getApiUrl();
 export const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 export const mapContainerStyle = {
