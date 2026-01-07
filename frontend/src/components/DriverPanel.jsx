@@ -107,7 +107,7 @@ export const DriverPanel = ({ onLogout }) => {
     fetchTrips();
   }, []);
 
-  // Build route when trip is selected
+  // Build route when trip is selected - uses warehouse as start point if available
   const buildRoute = useCallback(async () => {
     if (!selectedTrip || !selectedTrip.orders || selectedTrip.orders.length === 0 || !isLoaded) return;
     
@@ -119,20 +119,44 @@ export const DriverPanel = ({ onLogout }) => {
     try {
       const directionsService = new window.google.maps.DirectionsService();
       
-      // Use first order as origin, last as destination
-      const waypoints = ordersWithCoords.slice(1, -1).map(order => ({
-        location: { lat: order.lat, lng: order.lng },
-        stopover: true
-      }));
+      // Use warehouse as origin if available, otherwise first order
+      let origin;
+      const tripWarehouse = selectedTrip.warehouse || warehouse;
+      if (tripWarehouse && tripWarehouse.warehouse_lat && tripWarehouse.warehouse_lng) {
+        origin = { lat: tripWarehouse.warehouse_lat, lng: tripWarehouse.warehouse_lng };
+      } else {
+        origin = { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng };
+      }
+      
+      // Destination is the last order
+      const destination = { 
+        lat: ordersWithCoords[ordersWithCoords.length - 1].lat, 
+        lng: ordersWithCoords[ordersWithCoords.length - 1].lng 
+      };
+      
+      // Waypoints are all orders except the last (which is destination)
+      // If warehouse is origin, include all orders as waypoints except last
+      let waypoints;
+      if (tripWarehouse && tripWarehouse.warehouse_lat) {
+        // All orders except last are waypoints
+        waypoints = ordersWithCoords.slice(0, -1).map(order => ({
+          location: { lat: order.lat, lng: order.lng },
+          stopover: true
+        }));
+      } else {
+        // First order is origin, so waypoints start from second
+        waypoints = ordersWithCoords.slice(1, -1).map(order => ({
+          location: { lat: order.lat, lng: order.lng },
+          stopover: true
+        }));
+      }
 
       const result = await directionsService.route({
-        origin: { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng },
-        destination: ordersWithCoords.length > 1 
-          ? { lat: ordersWithCoords[ordersWithCoords.length - 1].lat, lng: ordersWithCoords[ordersWithCoords.length - 1].lng }
-          : { lat: ordersWithCoords[0].lat, lng: ordersWithCoords[0].lng },
-        waypoints: waypoints,
+        origin,
+        destination,
+        waypoints,
         travelMode: window.google.maps.TravelMode.DRIVING,
-        optimizeWaypoints: false // Keep order as specified
+        optimizeWaypoints: false // Keep order as specified in logistics
       });
 
       setDirections(result);
@@ -141,7 +165,7 @@ export const DriverPanel = ({ onLogout }) => {
     } finally {
       setBuildingRoute(false);
     }
-  }, [selectedTrip, isLoaded]);
+  }, [selectedTrip, isLoaded, warehouse]);
 
   useEffect(() => {
     if (selectedTrip && isLoaded) {
@@ -159,15 +183,19 @@ export const DriverPanel = ({ onLogout }) => {
       return;
     }
 
+    // Start from warehouse if available
+    const tripWarehouse = selectedTrip.warehouse || warehouse;
     let url = 'https://www.google.com/maps/dir/?api=1';
-    url += `&origin=${ordersWithCoords[0].lat},${ordersWithCoords[0].lng}`;
     
-    if (ordersWithCoords.length > 1) {
-      const last = ordersWithCoords[ordersWithCoords.length - 1];
-      url += `&destination=${last.lat},${last.lng}`;
+    if (tripWarehouse && tripWarehouse.warehouse_lat && tripWarehouse.warehouse_lng) {
+      url += `&origin=${tripWarehouse.warehouse_lat},${tripWarehouse.warehouse_lng}`;
     } else {
-      url += `&destination=${ordersWithCoords[0].lat},${ordersWithCoords[0].lng}`;
+      url += `&origin=${ordersWithCoords[0].lat},${ordersWithCoords[0].lng}`;
     }
+    
+    // Destination is always the last order
+    const last = ordersWithCoords[ordersWithCoords.length - 1];
+    url += `&destination=${last.lat},${last.lng}`;
     
     if (ordersWithCoords.length > 2) {
       const waypoints = ordersWithCoords.slice(1, -1)
