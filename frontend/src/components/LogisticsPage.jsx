@@ -1033,6 +1033,21 @@ const OrderCard = ({
             />
             <label htmlFor={`important-${order.id}`} className={`text-xs cursor-pointer flex items-center gap-1 ${order.isImportant ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
               <AlertCircle className={`h-3 w-3 ${order.isImportant ? 'text-red-500' : ''}`} />
+              
+          {/* Delivery photo link - ALWAYS VISIBLE if exists */}
+          {order.deliveryPhotoUrl && (
+            <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
+              <a 
+                href={`${API_URL}/api/driver-panel/photo-image/${order.tripId || 'unknown'}/${order.id}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-green-700 hover:text-green-800 font-medium flex items-center gap-2"
+              >
+                📷 Открыть фото доставки
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </div>
+          )}
               Важный заказ
             </label>
           </div>
