@@ -2154,7 +2154,7 @@ const DriversModal = ({
           </div>
           {driverUsers.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Нет пользователей с ролью "водитель". Создайте пользователя с ролью driver.
+              Нет пользователей с ролью &quot;водитель&quot;. Создайте пользователя с ролью driver.
             </p>
           )}
         </div>
