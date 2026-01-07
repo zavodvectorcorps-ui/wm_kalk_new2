@@ -197,8 +197,17 @@ export const DriverPanel = ({ onLogout }) => {
     const last = ordersWithCoords[ordersWithCoords.length - 1];
     url += `&destination=${last.lat},${last.lng}`;
     
-    if (ordersWithCoords.length > 2) {
-      const waypoints = ordersWithCoords.slice(1, -1)
+    // Add waypoints - all orders except the last (which is destination)
+    // If warehouse is origin, all orders except last are waypoints
+    let waypointOrders;
+    if (tripWarehouse && tripWarehouse.warehouse_lat) {
+      waypointOrders = ordersWithCoords.slice(0, -1);
+    } else {
+      waypointOrders = ordersWithCoords.slice(1, -1);
+    }
+    
+    if (waypointOrders.length > 0) {
+      const waypoints = waypointOrders
         .map(o => `${o.lat},${o.lng}`)
         .join('|');
       url += `&waypoints=${waypoints}`;
