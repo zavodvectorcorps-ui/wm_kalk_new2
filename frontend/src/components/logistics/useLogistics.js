@@ -469,11 +469,15 @@ export const useLogistics = () => {
       const data = await res.json();
       
       if (res.ok) {
-        if (data.status === 'sent' || data.status === 'not_delivered') {
-          toast.success(`Уведомление отправлено: ${data.method}`);
+        if (data.status === 'sent') {
+          toast.success(`✅ Уведомление отправлено: ${data.method}`);
           return true;
+        } else if (data.status === 'not_delivered') {
+          // Not delivered - show warning with explanation
+          toast.warning(`⚠️ ${data.message}: ${data.method}`, { duration: 5000 });
+          return false;
         } else {
-          toast.warning(`Метод: ${data.method}`);
+          toast.info(`ℹ️ ${data.method}`);
           return false;
         }
       } else {
