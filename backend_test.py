@@ -3185,6 +3185,10 @@ def test_sauna_order_edit_functionality():
             else:
                 print("❌ Some sauna order edit functionality tests failed")
                 return False
+                
+    except Exception as e:
+        print(f"❌ Sauna order edit functionality test error: {str(e)}")
+        return False
 
 def test_review_request_logistics_fixes():
     """Test the specific logistics fixes from the review request"""
