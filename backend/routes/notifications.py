@@ -779,3 +779,51 @@ async def send_custom_notification(
             "push_sent": push_sent
         }
     }
+
+
+@router.get("/history/driver/{driver_id}")
+async def get_driver_notification_history(
+    driver_id: str,
+    limit: int = 50,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get notification history for a specific driver."""
+    # Find notifications for this driver
+    notifications = list(notification_history.find(
+        {"driverId": driver_id},
+        {"_id": 0}
+    ).sort("sentAt", -1).limit(limit))
+    
+    return {
+        "count": len(notifications),
+        "notifications": notifications
+    }
+
+
+@router.get("/history/me")
+async def get_my_notification_history(
+    limit: int = 50,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get notification history for the current logged-in driver."""
+    user_id = current_user.get("sub")
+    
+    # Find driver by userId
+    driver = drivers_collection.find_one({"userId": user_id}, {"_id": 0})
+    if not driver:
+        return {"count": 0, "notifications": [], "message": "Водитель не найден для этого пользователя"}
+    
+    driver_id = driver.get("id")
+    
+    # Find notifications for this driver
+    notifications = list(notification_history.find(
+        {"$or": [{"driverId": driver_id}, {"driverUserId": user_id}]},
+        {"_id": 0}
+    ).sort("sentAt", -1).limit(limit))
+    
+    return {
+        "count": len(notifications),
+        "driverId": driver_id,
+        "driverName": driver.get("name"),
+        "notifications": notifications
+    }
