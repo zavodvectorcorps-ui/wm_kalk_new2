@@ -71,7 +71,7 @@ def sync_trip_data_to_orders(trip: dict, collection):
     This stores trip info (name, driver, departure date, status) in each order,
     so that when syncing to amoCRM, each order has its own data to send.
     """
-    logger.info(f"=== sync_trip_data_to_orders START ===")
+    logger.info("=== sync_trip_data_to_orders START ===")
     
     if collection is None:
         logger.warning("sync_trip_data_to_orders: collection is None")
@@ -112,7 +112,7 @@ def sync_trip_data_to_orders(trip: dict, collection):
         )
         logger.info(f"Updated order {order_id}: matched={result.matched_count}, modified={result.modified_count}, tripOrderStatus='{order_status}'")
     
-    logger.info(f"=== sync_trip_data_to_orders END ===")
+    logger.info("=== sync_trip_data_to_orders END ===")
 
 
 async def sync_single_order_to_amocrm(order: dict):
@@ -208,7 +208,7 @@ async def sync_single_order_to_amocrm(order: dict):
             logger.error(f"  ValueError: {e}")
     
     if not custom_fields_values:
-        logger.warning(f"No custom_fields_values built - order may be missing trip data")
+        logger.warning("No custom_fields_values built - order may be missing trip data")
         log_sync_operation("sync_single_order", {
             "order_id": order.get("id"),
             "amocrm_id": amocrm_id,
@@ -260,7 +260,7 @@ async def sync_single_order_to_amocrm(order: dict):
             "error": str(e)
         })
     
-    logger.info(f"=== sync_single_order_to_amocrm END ===")
+    logger.info("=== sync_single_order_to_amocrm END ===")
 
 
 async def move_trip_orders_to_amocrm_stage(trip: dict, collection, pipeline_id: int, status_id: int):
@@ -268,7 +268,7 @@ async def move_trip_orders_to_amocrm_stage(trip: dict, collection, pipeline_id: 
     
     This is called when creating/updating a trip with amoCRM stage selection.
     """
-    logger.info(f"=== move_trip_orders_to_amocrm_stage START ===")
+    logger.info("=== move_trip_orders_to_amocrm_stage START ===")
     logger.info(f"Trip: {trip.get('id')}, Pipeline: {pipeline_id}, Status: {status_id}")
     
     # Load settings
@@ -507,7 +507,7 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str) -> dict:
             "error": str(e)
         })
     
-    logger.info(f"=== clear_order_trip_data_in_amocrm END ===")
+    logger.info("=== clear_order_trip_data_in_amocrm END ===")
     return result
 
 
@@ -528,7 +528,7 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
     This is called when trip is updated (status change, driver assignment, etc.)
     Now uses trip data stored in each order (tripName, tripDriverName, etc.)
     """
-    logger.info(f"=== sync_trip_orders_to_amocrm START ===")
+    logger.info("=== sync_trip_orders_to_amocrm START ===")
     logger.info(f"Trip ID: {trip.get('id')}, Trip Name: {trip.get('name')}")
     logger.info(f"Trip orderIds: {trip.get('orderIds', [])}")
     
@@ -696,7 +696,7 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
                 "error": str(e)
             })
     
-    logger.info(f"=== sync_trip_orders_to_amocrm END ===")
+    logger.info("=== sync_trip_orders_to_amocrm END ===")
 
 
 @router.get("")
@@ -860,7 +860,7 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
     
     # Sync trip data to all orders in this trip
     if collection is not None:
-        logger.info(f"Calling sync_trip_data_to_orders...")
+        logger.info("Calling sync_trip_data_to_orders...")
         sync_trip_data_to_orders(updated, collection)
         
         # Re-fetch to verify sync completed
@@ -874,7 +874,7 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
     
     # Sync trip data to amoCRM for orders with amocrm_id
     try:
-        logger.info(f"Calling sync_trip_orders_to_amocrm...")
+        logger.info("Calling sync_trip_orders_to_amocrm...")
         await sync_trip_orders_to_amocrm(updated, collection)
     except Exception as e:
         logger.error(f"Failed to sync trip to amoCRM: {e}")
