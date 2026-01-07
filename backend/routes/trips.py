@@ -479,13 +479,21 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str) -> dict:
         except ValueError:
             logger.error(f"Invalid trip_driver_field_id: {trip_driver_field_id}")
     
-    # Clear trip order status field - use "-" for status as empty may not work
+    # Clear trip order status field
     if trip_order_status_field_id:
         try:
-            custom_fields_values.append({
-                "field_id": int(trip_order_status_field_id),
-                "values": [{"value": "-"}]
-            })
+            clear_value = get_clear_value(trip_status_field_type)
+            if clear_value is None:
+                custom_fields_values.append({
+                    "field_id": int(trip_order_status_field_id),
+                    "values": []
+                })
+            else:
+                # For text/select status fields, use "-" as placeholder
+                custom_fields_values.append({
+                    "field_id": int(trip_order_status_field_id),
+                    "values": [{"value": "-"}]
+                })
         except ValueError:
             logger.error(f"Invalid trip_order_status_field_id: {trip_order_status_field_id}")
     
