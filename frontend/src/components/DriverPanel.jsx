@@ -217,13 +217,17 @@ export const DriverPanel = ({ onLogout }) => {
     window.open(url, '_blank');
   };
 
-  // Open single order in navigator
+  // Open single order in navigator - use address instead of just coordinates
   const openOrderInNavigator = (order) => {
     if (!order.lat || !order.lng) {
       toast.error('У заказа нет координат');
       return;
     }
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lng}&travelmode=driving`;
+    // Use address if available, otherwise coordinates
+    const destination = order.fullAddress || order.address 
+      ? encodeURIComponent(order.fullAddress || order.address)
+      : `${order.lat},${order.lng}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
     window.open(url, '_blank');
   };
 
