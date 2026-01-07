@@ -838,7 +838,7 @@ export const DriverPanel = ({ onLogout }) => {
                   {selectedTrip.status === 'planned' && (
                     <Button 
                       className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      onClick={handleStartTrip}
+                      onClick={handleStartTripClick}
                       disabled={startingTrip}
                       data-testid="start-trip-btn"
                     >
@@ -850,8 +850,23 @@ export const DriverPanel = ({ onLogout }) => {
                       В путь
                     </Button>
                   )}
+                  {selectedTrip.status === 'in_transit' && (
+                    <Button 
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={handleFinishTripClick}
+                      disabled={finishingTrip}
+                      data-testid="finish-trip-btn"
+                    >
+                      {finishingTrip ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Завершить рейс
+                    </Button>
+                  )}
                   <Button 
-                    className={`${selectedTrip.status === 'planned' ? '' : 'flex-1'} bg-green-600 hover:bg-green-700`}
+                    className={`${selectedTrip.status === 'planned' || selectedTrip.status === 'in_transit' ? '' : 'flex-1'} bg-purple-600 hover:bg-purple-700`}
                     onClick={openFullRouteInNavigator}
                     data-testid="open-route-btn"
                   >
@@ -859,9 +874,104 @@ export const DriverPanel = ({ onLogout }) => {
                     Навигатор
                   </Button>
                 </div>
+                
+                {/* Show mileage info if available */}
+                {selectedTrip.mileage && (
+                  <div className="mt-3 p-2 bg-gray-100 rounded-lg text-sm">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Truck className="h-4 w-4" />
+                      <span className="font-medium">Пробег:</span>
+                      {selectedTrip.mileage.start && (
+                        <span>начало: {selectedTrip.mileage.start} км</span>
+                      )}
+                      {selectedTrip.mileage.end && (
+                        <span>→ конец: {selectedTrip.mileage.end} км</span>
+                      )}
+                      {selectedTrip.mileage.total && (
+                        <span className="font-semibold text-purple-600">
+                          = {selectedTrip.mileage.total} км
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
+
+          {/* Mileage Modal */}
+          {showMileageModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <Card className="w-full max-w-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    {showMileageModal === 'start' ? 'Начать рейс' : 'Завершить рейс'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">
+                      {showMileageModal === 'start' 
+                        ? 'Текущий пробег одометра (км)' 
+                        : 'Текущий пробег одометра (км)'}
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="Например: 125430"
+                      value={mileageInput}
+                      onChange={(e) => setMileageInput(e.target.value)}
+                      className="text-lg"
+                      autoFocus
+                    />
+                    {showMileageModal === 'finish' && selectedTrip?.mileage?.start && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Пробег на начало: {selectedTrip.mileage.start} км
+                        {mileageInput && parseInt(mileageInput) > selectedTrip.mileage.start && (
+                          <span className="text-purple-600 font-medium ml-2">
+                            (пройдено: {parseInt(mileageInput) - selectedTrip.mileage.start} км)
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowMileageModal(null);
+                        setMileageInput('');
+                      }}
+                    >
+                      Отмена
+                    </Button>
+                    <Button
+                      className={`flex-1 ${showMileageModal === 'start' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
+                      onClick={showMileageModal === 'start' ? handleStartTrip : handleFinishTrip}
+                      disabled={startingTrip || finishingTrip}
+                    >
+                      {(startingTrip || finishingTrip) ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : showMileageModal === 'start' ? (
+                        <Play className="h-4 w-4 mr-2" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      {showMileageModal === 'start' ? 'В путь' : 'Завершить'}
+                    </Button>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 text-center">
+                    {showMileageModal === 'start' 
+                      ? 'Можно пропустить, если не нужен учёт пробега'
+                      : 'Укажите показания одометра для расчёта пробега'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
