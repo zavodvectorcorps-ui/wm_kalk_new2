@@ -5,6 +5,43 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Session 2026-01-07 - Priority Tasks Completion
+
+#### P0: amoCRM Clearing Bug - Enhanced
+- **Improvement**: Function `clear_order_trip_data_in_amocrm` now returns detailed result object
+- **Response structure**:
+  - `status`: "success" | "error" | "skipped" | "exception"
+  - `message`: Human-readable status message (Russian)
+  - `amocrm_success_count`, `amocrm_error_count`, `amocrm_skipped_count`
+- **Frontend feedback**: Toast messages now show specific errors from amoCRM API
+- **Empty value strategy**: Using empty string `""` for text fields, `"-"` for status field
+- **Status**: ✅ Code improved, requires amoCRM credentials to test live sync
+
+#### P1: Coordinate Bug Fix - Geocoding Feature Added
+- **New endpoint**: `POST /api/driver-panel/geocode-trip/{trip_id}`
+  - Geocodes all orders in trip that don't have lat/lng coordinates
+  - Uses Google Maps Geocoding API
+  - Returns count of geocoded and failed orders
+- **New endpoint**: `POST /api/driver-panel/geocode-order`
+  - Geocodes single order address
+- **Driver Panel UI**: Added "Определить координаты" button when orders lack coordinates
+- **Status**: ✅ Implemented and tested
+
+#### P2: Photo Upload to amoCRM - Frontend Integration
+- **Improved**: `handleConfirmDelivery` in DriverPanel.jsx now syncs photo to amoCRM
+- **Flow**: After successful photo upload, calls `/api/integrations/amocrm/upload-delivery-photo`
+- **Status**: ✅ Implemented, requires amoCRM credentials for live test
+
+#### P2: Push Notifications - Test UI
+- **Already implemented**: Settings → Integrations → Notifications tab
+- **Features**: Select driver, enter message, send test notification
+- **Status**: ✅ Verified working
+
+#### Testing Results
+- **Test file**: `/app/tests/test_driver_logistics_features.py` (15 tests)
+- **All tests passed**: 100% backend, 100% frontend
+- **Fixed bug**: PyMongo collection bool check changed to `is None`
+
 ### Driver Panel Improvements (2026-01-07)
 - **Водитель видит только кабинет водителя** - при логине под ролью "driver" автоматически открывается кабинет водителя без возможности перейти к калькуляторам
 - **Карта маршрута на главной** - показывает все точки заказов с нумерацией и построенным маршрутом
