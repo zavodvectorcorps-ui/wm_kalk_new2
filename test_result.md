@@ -918,3 +918,30 @@ curl -s "API_URL/api/notifications/debug/driver/{driver_id}" -H "Authorization: 
 - ✅ Help page displays with all sections
 - ✅ CSV export works
 - ✅ Filters work correctly
+
+## Fixes - Jan 7, 2026 (Session 2 continued)
+
+### 1. ✅ Notification Read Counter
+**Backend changes:**
+- Added `read` field to notification_history records
+- Added endpoint `POST /api/notifications/history/mark-read` - marks all notifications as read
+- Added endpoint `GET /api/notifications/history/unread-count` - returns count of unread
+- Modified `GET /api/notifications/history/me` to include `unreadCount`
+
+**Frontend changes:**
+- Added `unreadNotificationsCount` state to DriverPanel
+- Badge now shows unread count (with pulse animation)
+- When notification panel opens - automatically marks as read and resets counter
+- `fetchUnreadCount()` called on component mount
+
+**Files modified:**
+- `/app/backend/routes/notifications.py`
+- `/app/frontend/src/components/DriverPanel.jsx`
+
+### 2. 🔧 Photo Debug Improvements
+**Backend changes:**
+- Modified `/api/driver-panel/debug/order/{order_id}` to also search by `amocrm_id`
+- Returns `internal_id` in response for better debugging
+
+**Files modified:**
+- `/app/backend/routes/driver_panel.py`
