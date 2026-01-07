@@ -870,7 +870,7 @@ const OrderCard = ({
   order, sectionKey, currentSection, sectionData, expandedOrder, setExpandedOrder,
   editingAddressOrderId, editingAddressValue, setEditingAddressValue, editAddressInputRef,
   drivers, toggleOrderSelection, toggleOrderImportant, startEditingAddress, saveEditedAddress,
-  cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder, formatDate, DELIVERY_STATUSES
+  cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder, formatDate, DELIVERY_STATUSES, API_URL
 }) => {
   const status = DELIVERY_STATUSES[order.deliveryStatus] || DELIVERY_STATUSES.pending;
   const StatusIcon = status.icon;
