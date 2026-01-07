@@ -705,3 +705,36 @@ curl -s "API_URL/api/notifications/debug/driver/{driver_id}" -H "Authorization: 
   message: "PDF IMAGE OPTIMIZATION AND ORDER SORTING TESTING COMPLETED (Jan 2, 2025): ✅ SAUNA PDF IMAGE OPTIMIZATION VERIFIED (3/4 tests passed). Test 1: Sauna PDF with Image Optimization - POST /api/sauna/generate-pdf successful (HTTP 200), PDF generated (952,076 bytes), backend logs show 'Optimized image: 399.1KB -> 67.7KB' and 'Optimized image: 209.3KB -> 9.2KB' messages confirming optimization working. Test 2: Basic API verification - GET /api/sauna/orders and POST /api/sauna/generate-pdf working correctly. ❌ CRITICAL ISSUE: Order Sorting by Creation Time FAILED - Orders with WMS-DD-MM-YYYY-HHMMSS format found but NOT sorted correctly by timestamp within same date. Expected newer timestamps first but found incorrect order (e.g., '011217' before '200219' for same date). This affects user experience as newer orders should appear first."
 - agent: "testing"
   message: "LOGISTICS SYSTEM FIXES TESTING COMPLETED (Jan 7, 2025): ✅ ALL TESTS PASSED (4/4). Test 1: Photo Delivery Endpoint - GET /api/driver-panel/photo-image/{trip_id}/{order_id} returns HTTP 200 with 70 bytes PNG image data, content-type verified. Test 2: Debug Notifications Endpoint - GET /api/notifications/debug/driver/{driver_id} returns comprehensive driver status with push_notifications and telegram info. Test 3: Send Custom Notification - POST /api/notifications/send-custom working correctly with proper driver validation and debug info. Test 4: Drivers API - GET /api/drivers returns 3 drivers with userId field where applicable. All logistics system fixes verified and working correctly."
+
+## Logistics Trips Delivered Status Fix - Jan 7, 2026
+
+### Issues Fixed:
+
+1. **✅ Issue 1: Trips with "delivered" status disappear from Logistics UI**
+   - **Root cause**: Frontend constants `TRIP_STATUSES` had status `completed` but backend sets status to `delivered`
+   - **Fix**: Updated `/app/frontend/src/components/logistics/constants.js` to use `delivered` instead of `completed`
+   - **Verified**: Trips now visible in "Доставлен" tab showing "Маршрут Варшава" with 3 orders
+
+2. **✅ Issue 3: JSON parsing error on /photo-debug.html page**
+   - **Root cause**: Undefined `orders_collection` in debug endpoint
+   - **Fix**: Removed reference to undefined collection in `/app/backend/routes/driver_panel.py`
+   - **Verified**: Endpoint `/api/driver-panel/debug/order/{order_id}` returns valid JSON
+
+3. **✅ Issue 5: bcrypt attribute error**
+   - **Root cause**: bcrypt 5.0.0 incompatibility with passlib
+   - **Fix**: Downgraded to bcrypt==4.2.0
+   - **Verified**: Login works correctly with testuser/test123
+
+4. **🔧 Issue 2: Photo not visible in amoCRM (Improved)**
+   - Updated `send_photo_to_amocrm` function in `/app/backend/routes/trips.py`
+   - Now follows correct amoCRM API v4 process: create note first, then upload file to note
+   - Needs production testing with real amoCRM credentials
+
+### Files Modified:
+- `/app/frontend/src/components/logistics/constants.js` - Fixed TRIP_STATUSES
+- `/app/backend/routes/driver_panel.py` - Fixed debug endpoint
+- `/app/backend/routes/trips.py` - Improved amoCRM photo upload
+
+### Testing Credentials:
+- Admin: testuser / test123
+- Driver: drivertest / test123
