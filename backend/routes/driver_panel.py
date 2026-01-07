@@ -302,22 +302,23 @@ async def confirm_delivery(
     
     logger.info(f"Driver {driver.get('name')} confirmed delivery of order {confirmation.orderId}")
     
-    # Sync to amoCRM if order has amocrm_id
+    # Sync to amoCRM - update order status field
     amocrm_synced = False
-    if order.get("amocrm_id") and confirmation.isDelivered:
+    if order.get("amocrm_id"):
         try:
-            import httpx
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"{os.environ.get('APP_BASE_URL', 'http://localhost:8001')}/api/integrations/amocrm/upload-delivery-photo",
-                    params={
-                        "amocrm_id": order["amocrm_id"],
-                        "order_id": confirmation.orderId,
-                        "driver_name": driver.get("name", ""),
-                        "received_amount": confirmation.receivedAmount or ""
-                    }
-                )
-                amocrm_synced = True
+            # Prepare order data for sync
+            order_for_sync = {
+                **order,
+                "tripOrderStatus": "delivered" if confirmation.isDelivered else "pending",
+                "tripName": trip.get("name", ""),
+                "tripDriverName": trip.get("driverName", driver.get("name", "")),
+                "tripDepartureDate": trip.get("departureDate", "")
+            }
+            
+            from routes.trips import sync_single_order_to_amocrm
+            await sync_single_order_to_amocrm(order_for_sync)
+            amocrm_synced = True
+            logger.info(f"Synced delivery status to amoCRM for order {confirmation.orderId}")
         except Exception as e:
             logger.error(f"Failed to sync delivery to amoCRM: {e}")
     
