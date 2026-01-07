@@ -1824,6 +1824,21 @@ const TripDetailsCard = ({
                           </div>
                         )}
                         
+                        {/* Delivery photo link */}
+                        {order.deliveryPhotoUrl && (
+                          <div className="bg-green-50 rounded p-2 border border-green-200">
+                            <a 
+                              href={`${API_URL}/api/driver-panel/photo-image/${order.tripId || selectedTrip?.id || 'unknown'}/${order.id}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-green-700 hover:text-green-800 font-medium flex items-center gap-2"
+                            >
+                              📷 Открыть фото доставки
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </div>
+                        )}
+                        
                         {order.notes && !order.amocrm_id && (
                           <p className="flex items-start gap-2 text-xs">
                             <FileText className="h-3 w-3 mt-0.5 text-muted-foreground" />
