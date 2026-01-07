@@ -89,20 +89,89 @@ async def get_my_trips(current_user: dict = Depends(get_current_user)):
             "status": {"$in": ["planned", "in_transit"]}
         }, {"_id": 0}))
     
-    # Enrich trips with order data
+    # Get warehouse settings for route start point
+    logistics_settings = db.integration_settings.find_one({"type": "logistics"}, {"_id": 0})
+    warehouse = None
+    if logistics_settings:
+        warehouse = {
+            "address": logistics_settings.get("warehouse_address", ""),
+            "lat": logistics_settings.get("warehouse_lat"),
+            "lng": logistics_settings.get("warehouse_lng")
+        }
+    
+    # Enrich trips with order data, preserving order sequence from logistics
     for trip in trips:
         section = trip.get("section", "")
         collection = get_section_collection(section)
         if collection is not None:
             order_ids = trip.get("orderIds", [])
             orders = list(collection.find({"id": {"$in": order_ids}}, {"_id": 0}))
-            # Sort orders by their position in orderIds
+            
+            # Sort orders by their position in orderIds (preserves logistics sequence)
             order_map = {o["id"]: o for o in orders}
-            trip["orders"] = [order_map[oid] for oid in order_ids if oid in order_map]
+            ordered_list = [order_map[oid] for oid in order_ids if oid in order_map]
+            
+            # Auto-geocode orders without coordinates
+            orders_without_coords = [o for o in ordered_list if not o.get("lat") or not o.get("lng")]
+            if orders_without_coords:
+                google_api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+                if google_api_key:
+                    await auto_geocode_orders(orders_without_coords, collection, google_api_key)
+                    # Refresh orders after geocoding
+                    orders = list(collection.find({"id": {"$in": order_ids}}, {"_id": 0}))
+                    order_map = {o["id"]: o for o in orders}
+                    ordered_list = [order_map[oid] for oid in order_ids if oid in order_map]
+            
+            trip["orders"] = ordered_list
         else:
             trip["orders"] = []
+        
+        # Add warehouse to trip for route building
+        if warehouse and warehouse.get("address"):
+            trip["warehouse"] = warehouse
     
-    return {"trips": trips, "driver": driver}
+    return {"trips": trips, "driver": driver, "warehouse": warehouse}
+
+
+async def auto_geocode_orders(orders: list, collection, api_key: str):
+    """Auto-geocode orders that don't have coordinates."""
+    import httpx
+    
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for order in orders:
+            address = order.get("fullAddress", "")
+            if not address:
+                continue
+            
+            try:
+                geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+                params = {
+                    "address": address,
+                    "key": api_key,
+                    "language": "ru"
+                }
+                
+                response = await client.get(geocode_url, params=params)
+                data = response.json()
+                
+                if data.get("status") == "OK" and data.get("results"):
+                    location = data["results"][0]["geometry"]["location"]
+                    lat = location["lat"]
+                    lng = location["lng"]
+                    
+                    # Update order with coordinates
+                    collection.update_one(
+                        {"id": order.get("id")},
+                        {"$set": {
+                            "lat": lat,
+                            "lng": lng,
+                            "geocodedAt": datetime.now(timezone.utc).isoformat()
+                        }}
+                    )
+                    logger.info(f"Auto-geocoded order {order.get('id')}: {lat}, {lng}")
+                    
+            except Exception as e:
+                logger.error(f"Auto-geocode failed for order {order.get('id')}: {e}")
 
 
 @router.get("/trip/{trip_id}")
