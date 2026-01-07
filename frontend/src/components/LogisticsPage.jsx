@@ -644,6 +644,11 @@ export const LogisticsPage = () => {
             )}
           </TabsContent>
         ))}
+
+        {/* History Tab */}
+        <TabsContent value="history" className="mt-0">
+          <TripsHistory trips={trips} drivers={drivers} />
+        </TabsContent>
       </Tabs>
 
       {/* Create Trip Modal */}
