@@ -185,11 +185,21 @@ export const DriverPanel = ({ onLogout }) => {
         setPushEnabled(true);
         toast.success('Push-уведомления включены!');
       } else {
-        throw new Error('Server error');
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Server error');
       }
     } catch (error) {
       console.error('Push subscription error:', error);
-      toast.error('Ошибка подписки на уведомления');
+      // Show detailed error message
+      let errorMsg = 'Ошибка подписки на уведомления';
+      if (error.name === 'NotAllowedError') {
+        errorMsg = 'Разрешите уведомления в настройках браузера';
+      } else if (error.name === 'NotSupportedError') {
+        errorMsg = 'Push-уведомления не поддерживаются в этом браузере';
+      } else if (error.message) {
+        errorMsg = `Ошибка: ${error.message}`;
+      }
+      toast.error(errorMsg, { duration: 5000 });
     }
   };
 
