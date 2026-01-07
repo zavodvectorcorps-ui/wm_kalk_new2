@@ -1724,6 +1724,7 @@ const TripDetailsCard = ({
                         <div className="flex items-center gap-2">
                           <p className="font-medium truncate">{order.fullName || order.customerName}</p>
                           {order.isImportant && <span className="text-orange-600 font-bold text-[10px]">⚠️</span>}
+                          {order.deliveryPhotoUrl && <span className="text-green-600 text-[10px]" title="Есть фото доставки">📷</span>}
                           {order.amocrm_link && <a href={order.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700" onClick={(e) => e.stopPropagation()}><ExternalLink className="h-3 w-3" /></a>}
                         </div>
                         <p className="text-muted-foreground truncate">{order.fullAddress || order.address}</p>
