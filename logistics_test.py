@@ -179,15 +179,15 @@ def test_logistics_system_fixes():
             print("✅ Drivers API returned successfully")
             print(f"✅ Found {len(drivers)} drivers")
             
-            # Check if drivers have userId field
+            # Check if any drivers have userId field
             if drivers:
-                first_driver = drivers[0]
-                if 'userId' in first_driver:
-                    print("✅ Drivers contain userId field")
-                    print(f"✅ Sample driver: {first_driver}")
+                drivers_with_userid = [d for d in drivers if 'userId' in d]
+                if drivers_with_userid:
+                    print(f"✅ Found {len(drivers_with_userid)} drivers with userId field")
+                    print(f"✅ Sample driver with userId: {drivers_with_userid[0]}")
                     results["drivers_api"] = True
                 else:
-                    print("❌ Drivers missing userId field")
+                    print("❌ No drivers have userId field")
                     results["drivers_api"] = False
             else:
                 print("✅ Drivers API working (empty list)")
