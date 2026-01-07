@@ -266,9 +266,11 @@ async def sync_single_order_to_amocrm(order: dict):
 async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, driver_name: str = ""):
     """Send delivery photo to amoCRM as a note with file attachment.
     
-    amoCRM API v4 process (correct method):
-    1. Create a note on the lead (POST /api/v4/leads/{lead_id}/notes)
-    2. Upload file to /api/v4/files with entity_id, entity_type, attach_to=notes, to_note_id
+    amoCRM API v4 correct process:
+    1. Create upload session via POST /api/v4/files with file_name and file_size
+    2. Upload file to the returned upload_url
+    3. Get file UUID from the upload response
+    4. Create note on lead with file attachment via _embedded.files
     
     Args:
         order_id: Internal order ID
@@ -313,11 +315,107 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
         }
         file_ext = ext_map.get(content_type, "jpg")
         filename = f"delivery_photo_{order_id}.{file_ext}"
+        file_size = len(photo_bytes)
         
-        logger.info(f"Photo size: {len(photo_bytes)} bytes, type: {content_type}, filename: {filename}")
+        logger.info(f"Photo size: {file_size} bytes, type: {content_type}, filename: {filename}")
+        
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
         
         async with httpx.AsyncClient(timeout=60.0) as client:
-            # Step 1: Create a note on the lead
+            # Step 1: Create upload session
+            session_url = f"https://{domain}/api/v4/files"
+            session_payload = {
+                "file_name": filename,
+                "file_size": file_size
+            }
+            
+            logger.info(f"Step 1: Creating upload session at {session_url}")
+            logger.info(f"Session payload: {session_payload}")
+            
+            session_response = await client.post(
+                session_url,
+                headers=headers,
+                json=session_payload
+            )
+            
+            logger.info(f"Session response: {session_response.status_code} - {session_response.text[:500]}")
+            
+            if session_response.status_code not in [200, 201]:
+                logger.error(f"Failed to create upload session: {session_response.status_code}")
+                # Fallback: Try creating note without file
+                return await _create_note_without_file(client, domain, token, amocrm_id, order_id, driver_name)
+            
+            session_data = session_response.json()
+            upload_url = session_data.get("upload_url")
+            session_id = session_data.get("session_id")
+            max_part_size = session_data.get("max_part_size", file_size)
+            
+            logger.info(f"Got upload session: session_id={session_id}, upload_url={upload_url}, max_part_size={max_part_size}")
+            
+            if not upload_url:
+                logger.error("No upload_url in session response")
+                return await _create_note_without_file(client, domain, token, amocrm_id, order_id, driver_name)
+            
+            # Step 2: Upload file to upload_url
+            logger.info(f"Step 2: Uploading file ({file_size} bytes) to {upload_url}")
+            
+            # For small files, upload in one part
+            upload_headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/octet-stream"
+            }
+            
+            file_uuid = None
+            current_url = upload_url
+            offset = 0
+            
+            # Handle chunked upload if file is larger than max_part_size
+            while offset < file_size:
+                chunk_end = min(offset + max_part_size, file_size)
+                chunk = photo_bytes[offset:chunk_end]
+                
+                logger.info(f"Uploading chunk: bytes {offset}-{chunk_end} of {file_size}")
+                
+                upload_response = await client.put(
+                    current_url,
+                    headers=upload_headers,
+                    content=chunk
+                )
+                
+                logger.info(f"Upload response: {upload_response.status_code} - {upload_response.text[:500]}")
+                
+                if upload_response.status_code not in [200, 201]:
+                    logger.error(f"Failed to upload file chunk: {upload_response.status_code}")
+                    return await _create_note_without_file(client, domain, token, amocrm_id, order_id, driver_name)
+                
+                upload_data = upload_response.json()
+                file_uuid = upload_data.get("uuid")
+                next_url = upload_data.get("next_url")
+                
+                logger.info(f"Chunk upload result: uuid={file_uuid}, next_url={next_url}")
+                
+                if file_uuid:
+                    # File upload complete
+                    break
+                    
+                if next_url:
+                    current_url = next_url
+                    offset = chunk_end
+                else:
+                    # No next_url and no uuid - something wrong
+                    logger.warning("No uuid and no next_url in response")
+                    break
+            
+            if not file_uuid:
+                logger.error("File upload completed but no UUID received")
+                return await _create_note_without_file(client, domain, token, amocrm_id, order_id, driver_name)
+            
+            logger.info(f"✅ File uploaded successfully, UUID: {file_uuid}")
+            
+            # Step 3: Create note with file attachment
             note_text = f"📷 Фото акта доставки"
             if driver_name:
                 note_text += f"\nВодитель: {driver_name}"
@@ -330,89 +428,114 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
                     "note_type": "common",
                     "params": {
                         "text": note_text
+                    },
+                    "_embedded": {
+                        "files": [
+                            {
+                                "uuid": file_uuid
+                            }
+                        ]
                     }
                 }
             ]
             
-            logger.info(f"Creating note at {notes_url}")
-            response = await client.post(
+            logger.info(f"Step 3: Creating note with file attachment at {notes_url}")
+            logger.info(f"Note payload: {note_payload}")
+            
+            note_response = await client.post(
                 notes_url,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                },
+                headers=headers,
                 json=note_payload
             )
             
-            note_id = None
-            if response.status_code in [200, 201]:
-                try:
-                    resp_data = response.json()
-                    notes_list = resp_data.get("_embedded", {}).get("notes", [])
-                    if notes_list:
-                        note_id = notes_list[0].get("id")
-                        logger.info(f"✅ Created note {note_id} on amoCRM lead {amocrm_id}")
-                except Exception as parse_err:
-                    logger.warning(f"Could not parse note response: {parse_err}")
-            else:
-                logger.warning(f"Failed to create note: {response.status_code} - {response.text[:500]}")
+            logger.info(f"Note response: {note_response.status_code} - {note_response.text[:500]}")
             
-            # Step 2: Upload file using /api/v4/files endpoint (correct method)
-            if note_id:
-                files_url = f"https://{domain}/api/v4/files"
+            if note_response.status_code in [200, 201]:
+                logger.info(f"✅ Successfully created note with photo attachment on lead {amocrm_id}")
+                return True
+            else:
+                logger.warning(f"Failed to create note with file: {note_response.status_code}")
                 
-                # Use multipart/form-data with correct parameters
-                files = {
-                    "file[]": (filename, photo_bytes, content_type)
-                }
-                data = {
-                    "entity_id": str(amocrm_id),
-                    "entity_type": "leads",
-                    "attach_to": "notes",
-                    "to_note_id": str(note_id)
-                }
+                # Try creating note without embedded file, then attach file separately
+                logger.info("Trying alternative: create note first, then attach file")
                 
-                logger.info(f"Uploading file to {files_url} with data: {data}")
-                file_response = await client.post(
-                    files_url,
-                    headers={
-                        "Authorization": f"Bearer {token}"
-                    },
-                    files=files,
-                    data=data
+                simple_note_payload = [
+                    {
+                        "note_type": "common",
+                        "params": {
+                            "text": note_text
+                        }
+                    }
+                ]
+                
+                simple_note_response = await client.post(
+                    notes_url,
+                    headers=headers,
+                    json=simple_note_payload
                 )
                 
-                if file_response.status_code in [200, 201]:
-                    logger.info(f"✅ Uploaded photo file to amoCRM note {note_id}")
-                    logger.info(f"File response: {file_response.text[:300]}")
-                    return True
-                else:
-                    logger.warning(f"Failed to upload file: {file_response.status_code} - {file_response.text[:500]}")
+                if simple_note_response.status_code in [200, 201]:
+                    note_data = simple_note_response.json()
+                    note_id = note_data.get("_embedded", {}).get("notes", [{}])[0].get("id")
+                    logger.info(f"Created simple note {note_id}, trying to attach file")
                     
-                    # Fallback: Try direct lead file upload
-                    lead_files_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
-                    files_alt = {
-                        "file[]": (filename, photo_bytes, content_type)
-                    }
-                    alt_response = await client.post(
-                        lead_files_url,
-                        headers={
-                            "Authorization": f"Bearer {token}"
-                        },
-                        files=files_alt
+                    # Try to attach file to lead
+                    attach_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+                    attach_payload = [{"uuid": file_uuid}]
+                    
+                    attach_response = await client.put(
+                        attach_url,
+                        headers=headers,
+                        json=attach_payload
                     )
-                    if alt_response.status_code in [200, 201]:
-                        logger.info(f"✅ Uploaded photo file directly to lead {amocrm_id}")
+                    
+                    logger.info(f"Attach response: {attach_response.status_code} - {attach_response.text[:300]}")
+                    
+                    if attach_response.status_code in [200, 201]:
+                        logger.info(f"✅ File attached to lead {amocrm_id}")
                         return True
-                    else:
-                        logger.warning(f"Alt file upload failed: {alt_response.status_code} - {alt_response.text[:300]}")
-            
-            # Return True if at least note was created (partial success)
-            logger.info(f"=== send_photo_to_amocrm END (note_id={note_id}) ===")
-            return note_id is not None
+                
+                return False
                 
     except Exception as e:
         logger.error(f"❌ Error sending photo to amoCRM: {e}", exc_info=True)
+        return False
+
+
+async def _create_note_without_file(client, domain: str, token: str, amocrm_id: str, order_id: str, driver_name: str):
+    """Fallback: Create a text note without file attachment."""
+    from datetime import datetime, timezone
+    
+    logger.info(f"Creating fallback note without file for lead {amocrm_id}")
+    
+    note_text = f"📷 Фото акта доставки (файл не загружен - см. систему логистики)"
+    if driver_name:
+        note_text += f"\nВодитель: {driver_name}"
+    note_text += f"\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+    note_text += f"\nЗаказ: {order_id}"
+    
+    notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
+    note_payload = [
+        {
+            "note_type": "common",
+            "params": {
+                "text": note_text
+            }
+        }
+    ]
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    response = await client.post(notes_url, headers=headers, json=note_payload)
+    
+    if response.status_code in [200, 201]:
+        logger.info(f"✅ Created fallback note on lead {amocrm_id}")
+        return True
+    else:
+        logger.warning(f"Failed to create fallback note: {response.status_code}")
         return False
 
 
