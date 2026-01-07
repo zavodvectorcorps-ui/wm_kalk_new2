@@ -535,6 +535,20 @@ async def debug_order_info(order_id: str, current_user: dict = Depends(get_curre
         "delivery_status": None
     }
     
+    # Build possible ID variations for searching
+    search_ids = [order_id]
+    # If it's a plain number, also search with AMO- prefixes
+    if order_id.isdigit():
+        search_ids.extend([
+            f"AMO-GH-{order_id}",  # Greenhouse format
+            f"AMO-BA-{order_id}",  # Balia format
+            f"AMO-SA-{order_id}",  # Sauna format
+        ])
+    # If it has AMO- prefix, also search plain number
+    if order_id.startswith("AMO-"):
+        plain_id = order_id.split("-")[-1]
+        search_ids.append(plain_id)
+    
     # Check all section collections
     for section_name, collection in [
         ("balia", balia_orders),
@@ -542,10 +556,16 @@ async def debug_order_info(order_id: str, current_user: dict = Depends(get_curre
         ("sauna", sauna_orders)
     ]:
         if collection is not None:
-            # Try to find by id first, then by amocrm_id
-            order = collection.find_one({"id": order_id}, {"_id": 0, "deliveryPhotoUrl": 0})
-            if not order:
-                order = collection.find_one({"amocrm_id": order_id}, {"_id": 0, "deliveryPhotoUrl": 0})
+            # Try to find by any of the ID variations
+            order = None
+            for sid in search_ids:
+                order = collection.find_one({"id": sid}, {"_id": 0, "deliveryPhotoUrl": 0})
+                if order:
+                    break
+                order = collection.find_one({"amocrm_id": sid}, {"_id": 0, "deliveryPhotoUrl": 0})
+                if order:
+                    break
+            
             if order:
                 result["found_in_collections"].append(section_name)
                 result["amocrm_id"] = order.get("amocrm_id")
@@ -554,19 +574,32 @@ async def debug_order_info(order_id: str, current_user: dict = Depends(get_curre
                 result["trip_id"] = order.get("tripId")
                 result["order_data"] = order
     
-    # Check for photo - try both internal id and amocrm_id
-    photo = delivery_photos.find_one({"orderId": order_id}, {"_id": 0, "photoUrl": 0})
+    # Check for photo - try all ID variations
+    photo = None
+    for sid in search_ids:
+        photo = delivery_photos.find_one({"orderId": sid}, {"_id": 0, "photoUrl": 0})
+        if photo:
+            result["photo_found_by_id"] = sid
+            break
+    
     if not photo and result.get("internal_id"):
         photo = delivery_photos.find_one({"orderId": result["internal_id"]}, {"_id": 0, "photoUrl": 0})
+        if photo:
+            result["photo_found_by_id"] = result["internal_id"]
+    
     if photo:
         result["photo"] = {
             "id": photo.get("id"),
             "tripId": photo.get("tripId"),
+            "orderId": photo.get("orderId"),
             "uploadedBy": photo.get("uploadedBy"),
             "confirmedAt": photo.get("confirmedAt"),
             "receivedAmount": photo.get("receivedAmount"),
             "has_photoUrl": bool(photo.get("photoUrl"))
         }
+    
+    # Show what IDs were searched
+    result["searched_ids"] = search_ids
     
     return result
 
