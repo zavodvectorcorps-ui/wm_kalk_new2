@@ -445,6 +445,67 @@ export const useLogistics = () => {
     }
   };
 
+  // Send push notification to driver
+  const [sendingNotification, setSendingNotification] = useState(false);
+  
+  const sendDriverNotification = async (driverId, message) => {
+    if (!driverId || !message.trim()) {
+      toast.error('Выберите водителя и введите сообщение');
+      return false;
+    }
+    
+    setSendingNotification(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/notifications/send-custom`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ driverId, message })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        if (data.status === 'sent' || data.status === 'not_delivered') {
+          toast.success(`Уведомление отправлено: ${data.method}`);
+          return true;
+        } else {
+          toast.warning(`Метод: ${data.method}`);
+          return false;
+        }
+      } else {
+        toast.error(data.detail || 'Ошибка отправки');
+        return false;
+      }
+    } catch (e) {
+      console.error('Failed to send notification:', e);
+      toast.error('Ошибка отправки уведомления');
+      return false;
+    } finally {
+      setSendingNotification(false);
+    }
+  };
+
+  // Get driver notification status
+  const getDriverNotificationStatus = async (driverId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/notifications/debug/driver/${driverId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      return null;
+    } catch (e) {
+      console.error('Failed to get driver status:', e);
+      return null;
+    }
+  };
+
   // Fetch orders for a section
   const fetchSectionOrders = useCallback(async (sectionId) => {
     const section = SECTIONS[sectionId];
