@@ -1048,6 +1048,17 @@ const OrderCard = ({
                    'Ожидает'}
                 </Badge>
               )}
+              {/* Delivery photo indicator */}
+              {order.deliveryPhotoUrl && (
+                <a 
+                  href={`${API_URL}/api/driver-panel/photo/${order.tripId || 'unknown'}/${order.id}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  📷 Фото доставки
+                </a>
+              )}
             </div>
           )}
           
