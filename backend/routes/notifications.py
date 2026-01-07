@@ -516,9 +516,9 @@ async def send_custom_notification(
         method_used = "Push (в очереди)"
         # Queue push notification
         await send_push_notification(
-            request.driverId,
-            "Сообщение",
-            request.message
+            driver_id=request.driverId,
+            title="Сообщение",
+            body=request.message
         )
     
     return {
