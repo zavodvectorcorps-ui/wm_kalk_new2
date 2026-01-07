@@ -170,6 +170,10 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
           <TabsContent value="backup">
             <BackupPage />
           </TabsContent>
+
+          <TabsContent value="help">
+            <AdminHelpPage />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
