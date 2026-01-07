@@ -14,6 +14,15 @@ from services.auth_service import get_current_user
 router = APIRouter(prefix="/api/driver-panel", tags=["driver-panel"])
 logger = logging.getLogger(__name__)
 
+
+class StartTripRequest(BaseModel):
+    startMileage: Optional[int] = None  # Начальный пробег в км
+
+
+class FinishTripRequest(BaseModel):
+    endMileage: Optional[int] = None  # Конечный пробег в км
+logger = logging.getLogger(__name__)
+
 # MongoDB connection
 MONGO_URL = os.environ.get("MONGO_URL")
 DB_NAME = os.environ.get("DB_NAME", "wm_kalkulator")
