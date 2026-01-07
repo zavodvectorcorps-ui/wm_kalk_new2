@@ -460,17 +460,29 @@ async def get_delivery_photo_image(trip_id: str, order_id: str):
     if not photo:
         raise HTTPException(status_code=404, detail="Фото не найдено")
     
-    photo_data = photo.get("photoData")
-    if not photo_data:
+    # Photo is stored as data URL (data:image/jpeg;base64,xxx) in photoUrl field
+    photo_url = photo.get("photoUrl", "")
+    if not photo_url:
         raise HTTPException(status_code=404, detail="Фото данные не найдены")
     
-    # Decode base64
+    # Extract base64 data and content type from data URL
     import base64
     try:
-        image_bytes = base64.b64decode(photo_data)
-        content_type = photo.get("contentType", "image/jpeg")
+        # Parse data URL: "data:image/jpeg;base64,/9j/4AAQ..."
+        if photo_url.startswith("data:"):
+            # Extract content type and base64 data
+            header, base64_data = photo_url.split(",", 1)
+            # header is like "data:image/jpeg;base64"
+            content_type = header.replace("data:", "").replace(";base64", "")
+        else:
+            # Fallback if just raw base64
+            base64_data = photo_url
+            content_type = "image/jpeg"
+        
+        image_bytes = base64.b64decode(base64_data)
         return Response(content=image_bytes, media_type=content_type)
     except Exception as e:
+        logger.error(f"Photo decode error: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка декодирования: {str(e)}")
 
 
