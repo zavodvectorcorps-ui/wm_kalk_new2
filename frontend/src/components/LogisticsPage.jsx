@@ -1934,6 +1934,10 @@ const TripMapCard = ({ selectedTrip, sectionData, isLoaded, warehouseCoords, war
 
 const CreateTripModal = ({ currentSection, currentData, drivers, newTripName, setNewTripName, newTripDriver, setNewTripDriver, newTripPipelineId, setNewTripPipelineId, newTripStatusId, setNewTripStatusId, amocrmPipelines, creatingTrip, createTrip, setShowCreateTripModal }) => {
   const selectedPipeline = amocrmPipelines?.find(p => String(p.id) === String(newTripPipelineId));
+  // statuses may be directly on pipeline or in _embedded
+  const pipelineStatuses = (selectedPipeline?.statuses || selectedPipeline?._embedded?.statuses || [])
+    .filter(s => s.id !== 142 && s.id !== 143)
+    .sort((a, b) => (a.sort || 0) - (b.sort || 0));
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -1973,20 +1977,16 @@ const CreateTripModal = ({ currentSection, currentData, drivers, newTripName, se
                   </SelectContent>
                 </Select>
               </div>
-              {newTripPipelineId && selectedPipeline?._embedded?.statuses && (
+              {newTripPipelineId && pipelineStatuses.length > 0 && (
                 <div className="space-y-2">
                   <Label className="text-sm">Этап</Label>
                   <Select value={newTripStatusId || 'none'} onValueChange={(val) => setNewTripStatusId(val === 'none' ? '' : val)}>
                     <SelectTrigger><SelectValue placeholder="Выберите этап" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Выберите этап</SelectItem>
-                      {selectedPipeline._embedded.statuses
-                        .filter(s => s.id !== 142 && s.id !== 143) // Exclude system statuses
-                        .sort((a, b) => a.sort - b.sort)
-                        .map(s => (
-                          <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                        ))
-                      }
+                      {pipelineStatuses.map(s => (
+                        <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
