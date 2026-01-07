@@ -182,6 +182,9 @@ export const LogisticsPage = () => {
 
   const SectionIcon = currentSection?.icon || History;
 
+  // Don't render section-specific components when viewing history
+  const isHistoryView = activeSection === 'history';
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
