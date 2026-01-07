@@ -251,6 +251,7 @@ export const DriverPanel = ({ onLogout }) => {
       if (response.ok) {
         const data = await response.json();
         setNotificationHistory(data.notifications || []);
+        setUnreadNotificationsCount(data.unreadCount || 0);
       }
     } catch (error) {
       console.error('Failed to load notification history:', error);
@@ -259,10 +260,42 @@ export const DriverPanel = ({ onLogout }) => {
     }
   };
 
+  // Mark notifications as read
+  const markNotificationsAsRead = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      await fetch(`${API_URL}/api/notifications/history/mark-read`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setUnreadNotificationsCount(0);
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+    }
+  };
+
+  // Fetch unread count on mount
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_URL}/api/notifications/history/unread-count`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadNotificationsCount(data.count || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  };
+
   // Toggle notification panel and load history
   const toggleNotificationPanel = () => {
     if (!showNotifications) {
       loadNotificationHistory();
+      // Mark as read when opening panel
+      markNotificationsAsRead();
     }
     setShowNotifications(!showNotifications);
   };
