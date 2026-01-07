@@ -199,16 +199,18 @@ export const LogisticsPage = () => {
             <Users className="h-4 w-4 mr-2" />
             Водители
           </Button>
-          <Button 
-            onClick={() => {
-              setShowOrderForm(!showOrderForm);
-              autocompleteRef.current = null;
-            }}
-            className="bg-[#355c7d] hover:bg-[#2a4a63]"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Создать заказ
-          </Button>
+          {activeSection !== 'history' && (
+            <Button 
+              onClick={() => {
+                setShowOrderForm(!showOrderForm);
+                autocompleteRef.current = null;
+              }}
+              className="bg-[#355c7d] hover:bg-[#2a4a63]"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Создать заказ
+            </Button>
+          )}
           <Button variant="outline" onClick={fetchAllOrders} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Обновить
