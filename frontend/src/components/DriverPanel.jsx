@@ -412,21 +412,36 @@ export const DriverPanel = ({ onLogout }) => {
   };
 
   // Start trip - change all statuses to "delivering"
+  // Handle start trip - opens mileage modal first
+  const handleStartTripClick = () => {
+    if (!selectedTrip) return;
+    setMileageInput('');
+    setShowMileageModal('start');
+  };
+
   const handleStartTrip = async () => {
     if (!selectedTrip) return;
     
     setStartingTrip(true);
     try {
       const token = localStorage.getItem('authToken');
+      const startMileage = mileageInput ? parseInt(mileageInput, 10) : null;
+      
       const response = await fetch(`${API_URL}/api/driver-panel/start-trip/${selectedTrip.id}`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ startMileage })
       });
       
       const data = await response.json();
       
       if (response.ok) {
         toast.success(data.message || 'Рейс начат!');
+        setShowMileageModal(null);
+        setMileageInput('');
         fetchTrips(); // Refresh data
       } else {
         toast.error(data.detail || 'Ошибка');
@@ -436,6 +451,55 @@ export const DriverPanel = ({ onLogout }) => {
       toast.error('Ошибка запуска рейса');
     } finally {
       setStartingTrip(false);
+    }
+  };
+
+  // Handle finish trip - opens mileage modal first
+  const handleFinishTripClick = () => {
+    if (!selectedTrip) return;
+    // Pre-fill with start mileage + estimated distance if available
+    const startMileage = selectedTrip.mileage?.start;
+    if (startMileage && selectedTrip.estimatedDistance) {
+      const estimatedEnd = startMileage + Math.round(selectedTrip.estimatedDistance);
+      setMileageInput(estimatedEnd.toString());
+    } else {
+      setMileageInput('');
+    }
+    setShowMileageModal('finish');
+  };
+
+  const handleFinishTrip = async () => {
+    if (!selectedTrip) return;
+    
+    setFinishingTrip(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const endMileage = mileageInput ? parseInt(mileageInput, 10) : null;
+      
+      const response = await fetch(`${API_URL}/api/driver-panel/finish-trip/${selectedTrip.id}`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ endMileage })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success(data.message || 'Рейс завершён!');
+        setShowMileageModal(null);
+        setMileageInput('');
+        fetchTrips(); // Refresh data
+      } else {
+        toast.error(data.detail || 'Ошибка');
+      }
+    } catch (error) {
+      console.error('Error finishing trip:', error);
+      toast.error('Ошибка завершения рейса');
+    } finally {
+      setFinishingTrip(false);
     }
   };
 
