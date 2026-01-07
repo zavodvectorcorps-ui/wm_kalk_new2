@@ -1633,14 +1633,25 @@ def test_amocrm_photo_upload_fix():
         print(f"Status Code: {response.status_code}")
         
         if response.status_code == 200:
-            photos = response.json()
-            print(f"✅ Photo list endpoint successful - found {len(photos)} photos")
+            data = response.json()
+            print(f"✅ Photo list endpoint successful")
             
-            if photos:
-                first_photo = photos[0]
-                print(f"✅ First photo structure: {list(first_photo.keys())}")
-            
-            results["photo_list_test"] = True
+            if 'photos' in data and 'count' in data:
+                photos = data['photos']
+                count = data['count']
+                print(f"✅ Found {count} photos in response")
+                
+                if photos:
+                    first_photo = photos[0]
+                    print(f"✅ First photo structure: {list(first_photo.keys())}")
+                    print(f"✅ First photo ID: {first_photo.get('id')}")
+                    print(f"✅ First photo trip: {first_photo.get('tripId')}")
+                    print(f"✅ First photo order: {first_photo.get('orderId')}")
+                
+                results["photo_list_test"] = True
+            else:
+                print(f"❌ Unexpected response structure: {data}")
+                results["photo_list_test"] = False
         else:
             print(f"❌ Photo list endpoint failed with status {response.status_code}")
             print(f"Response: {response.text}")
