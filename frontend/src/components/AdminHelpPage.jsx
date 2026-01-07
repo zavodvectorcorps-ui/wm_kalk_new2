@@ -256,6 +256,86 @@ const AdminHelpPage = () => {
           </Card>
         </TabsContent>
 
+        {/* Tools Tab */}
+        <TabsContent value="tools" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-red-600" />
+                Очистка данных
+              </CardTitle>
+              <CardDescription>
+                Инструменты для удаления устаревших или тестовых данных
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium mb-1">Удалить рейсы с устаревшими статусами</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Удаляет рейсы со статусами: active, pending, cancelled, unknown.
+                      Эти статусы больше не используются в системе.
+                    </p>
+                  </div>
+                  <Button 
+                    variant="destructive" 
+                    onClick={deleteLegacyTrips}
+                    disabled={deletingLegacy}
+                  >
+                    {deletingLegacy ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Удалить
+                  </Button>
+                </div>
+                
+                {legacyResult && (
+                  <div className={`mt-4 p-3 rounded-lg ${legacyResult.error ? 'bg-red-50' : 'bg-green-50'}`}>
+                    {legacyResult.error ? (
+                      <p className="text-red-700">Ошибка: {legacyResult.error}</p>
+                    ) : (
+                      <>
+                        <p className={legacyResult.deleted > 0 ? 'text-green-700 font-medium' : 'text-gray-600'}>
+                          {legacyResult.message}
+                        </p>
+                        {legacyResult.trips && legacyResult.trips.length > 0 && (
+                          <div className="mt-2 text-sm">
+                            <p className="text-muted-foreground">Удалённые рейсы:</p>
+                            <ul className="list-disc list-inside mt-1">
+                              {legacyResult.trips.map((t, i) => (
+                                <li key={i} className="text-gray-600">
+                                  {t.name || t.id} (статус: {t.status})
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-amber-800">Внимание</h4>
+                  <p className="text-sm text-amber-700">
+                    Удаление данных необратимо. Убедитесь, что у вас есть резервная копия перед использованием инструментов очистки.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Integrations Tab */}
         <TabsContent value="integrations" className="space-y-6">
           {/* amoCRM */}
