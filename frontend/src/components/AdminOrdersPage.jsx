@@ -14,7 +14,15 @@ import { OrderFullEditModal } from './OrderFullEditModal';
 import { OrderFilters, OrdersPagination } from './orders';
 import { useOrdersFiltering } from '../hooks/useOrdersFiltering';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+// Smart API URL - auto-detect on production
+const getApiUrl = () => { 
+  if (typeof window !== 'undefined') { 
+    const o = window.location.origin; 
+    if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o; 
+  } 
+  return process.env.REACT_APP_BACKEND_URL || ''; 
+};
+const API_URL = getApiUrl();
 
 export const AdminOrdersPage = ({ onEditInCalculator }) => {
   const { t, i18n } = useTranslation();

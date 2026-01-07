@@ -23,7 +23,15 @@ import {
 import { toast } from 'sonner';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+// Smart API URL - auto-detect on production
+const getApiUrl = () => { 
+  if (typeof window !== 'undefined') { 
+    const o = window.location.origin; 
+    if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o; 
+  } 
+  return process.env.REACT_APP_BACKEND_URL || ''; 
+};
+const API_URL = getApiUrl();
 
 export const OrderFullEditModal = ({ 
   open, 

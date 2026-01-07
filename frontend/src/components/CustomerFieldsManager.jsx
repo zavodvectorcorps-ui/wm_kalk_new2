@@ -11,7 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Plus, Pencil, Trash2, GripVertical, Save, User } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+// Smart API URL - auto-detect on production
+const getApiUrl = () => { 
+  if (typeof window !== 'undefined') { 
+    const o = window.location.origin; 
+    if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o; 
+  } 
+  return process.env.REACT_APP_BACKEND_URL || ''; 
+};
+const API_URL = getApiUrl();
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Text', labelPl: 'Tekst', labelRu: 'Текст' },

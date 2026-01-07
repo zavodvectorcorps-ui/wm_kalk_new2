@@ -18,7 +18,15 @@ import {
 import axios from 'axios';
 import { TelegramSettings } from './TelegramSettings';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+// Smart API URL - auto-detect on production
+const getApiUrl = () => { 
+  if (typeof window !== 'undefined') { 
+    const o = window.location.origin; 
+    if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o; 
+  } 
+  return process.env.REACT_APP_BACKEND_URL || ''; 
+};
+const API_URL = getApiUrl();
 
 // Notification sound URL (simple beep)
 const NOTIFICATION_SOUND_URL = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleA4YR6PW0ZmGOU9hgZ+ZoaWtrKWbj3heR0M7Mjd+p7/KxaWBWz02LzJDfqO8xcu7n3dYQDIuNj1jhq7AyrqadlI8LiwxPVyEp7rGvJxyUDsqKzE8WYCjt8K7m3RQOywqLjlVfKC2wbubdFA7LCosMTtZgKS4wrybdFA7LCosMTtZgKS4wrybdFA7';
