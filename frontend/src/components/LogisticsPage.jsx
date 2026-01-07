@@ -772,7 +772,7 @@ const OrdersListCard = ({
   expandedOrder, setExpandedOrder, editingAddressOrderId, editingAddressValue, setEditingAddressValue,
   editAddressInputRef, drivers, toggleOrderSelection, toggleOrderImportant, startEditingAddress,
   saveEditedAddress, cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder,
-  getUnassignedOrders, getFilteredOrders, searchQuery, setShowCreateTripModal, setShowAddToTripModal, trips, formatDate, DELIVERY_STATUSES
+  getUnassignedOrders, getFilteredOrders, searchQuery, setShowCreateTripModal, setShowAddToTripModal, trips, formatDate, DELIVERY_STATUSES, API_URL
 }) => {
   // Check if there are active trips available
   const hasActiveTrips = trips.some(t => 
