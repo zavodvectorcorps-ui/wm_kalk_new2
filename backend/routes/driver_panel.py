@@ -800,3 +800,82 @@ async def geocode_trip_orders(
         "total": len(orders_to_geocode),
         "results": results
     }
+
+
+
+class WarehouseSettings(BaseModel):
+    warehouse_address: str
+    warehouse_lat: Optional[float] = None
+    warehouse_lng: Optional[float] = None
+
+
+@router.get("/warehouse-settings")
+async def get_warehouse_settings(current_user: dict = Depends(get_current_user)):
+    """Get warehouse/depot settings for route planning."""
+    settings = db.integration_settings.find_one({"type": "logistics"}, {"_id": 0})
+    if not settings:
+        return {
+            "warehouse_address": "",
+            "warehouse_lat": None,
+            "warehouse_lng": None
+        }
+    return {
+        "warehouse_address": settings.get("warehouse_address", ""),
+        "warehouse_lat": settings.get("warehouse_lat"),
+        "warehouse_lng": settings.get("warehouse_lng")
+    }
+
+
+@router.post("/warehouse-settings")
+async def save_warehouse_settings(
+    settings: WarehouseSettings,
+    current_user: dict = Depends(get_current_user)
+):
+    """Save warehouse/depot settings for route planning."""
+    # Check admin access
+    user = db.users.find_one({"id": current_user.get("sub")}, {"_id": 0})
+    if not user or user.get("role") not in ["admin", "super-admin"]:
+        raise HTTPException(status_code=403, detail="Требуются права администратора")
+    
+    update_data = {
+        "warehouse_address": settings.warehouse_address,
+        "warehouse_lat": settings.warehouse_lat,
+        "warehouse_lng": settings.warehouse_lng,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # If address provided but no coordinates, try to geocode
+    if settings.warehouse_address and (not settings.warehouse_lat or not settings.warehouse_lng):
+        google_api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+        if google_api_key:
+            import httpx
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+                    params = {
+                        "address": settings.warehouse_address,
+                        "key": google_api_key,
+                        "language": "ru"
+                    }
+                    response = await client.get(geocode_url, params=params)
+                    data = response.json()
+                    
+                    if data.get("status") == "OK" and data.get("results"):
+                        location = data["results"][0]["geometry"]["location"]
+                        update_data["warehouse_lat"] = location["lat"]
+                        update_data["warehouse_lng"] = location["lng"]
+                        logger.info(f"Geocoded warehouse: {location}")
+            except Exception as e:
+                logger.error(f"Failed to geocode warehouse: {e}")
+    
+    db.integration_settings.update_one(
+        {"type": "logistics"},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    return {
+        "status": "ok",
+        "message": "Настройки склада сохранены",
+        **update_data
+    }
