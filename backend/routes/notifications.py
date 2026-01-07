@@ -748,6 +748,24 @@ async def send_custom_notification(
             removed_info = f", удалено устаревших: {push_result['removed']}" if push_result.get("removed", 0) > 0 else ""
             method_used = f"Ошибка push ({error_text}){removed_info}"
     
+    # Save to notification history
+    from uuid import uuid4
+    history_entry = {
+        "id": str(uuid4()),
+        "driverId": request.driverId,
+        "driverName": driver.get("name"),
+        "driverUserId": driver_user_id,
+        "message": request.message,
+        "sentAt": datetime.now(timezone.utc).isoformat(),
+        "status": "sent" if (telegram_sent or push_sent) else "not_delivered",
+        "method": method_used,
+        "telegramSent": telegram_sent,
+        "pushSent": push_sent,
+        "sentBy": admin.get("username", "admin")
+    }
+    notification_history.insert_one(history_entry)
+    logger.info(f"Notification saved to history: {history_entry['id']}")
+    
     return {
         "status": "sent" if (telegram_sent or push_sent) else "not_delivered",
         "method": method_used,
