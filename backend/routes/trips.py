@@ -349,21 +349,36 @@ async def move_trip_orders_to_amocrm_stage(trip: dict, collection, pipeline_id: 
     }
 
 
-async def clear_order_trip_data_in_amocrm(amocrm_id: str):
+async def clear_order_trip_data_in_amocrm(amocrm_id: str) -> dict:
     """Clear trip-related fields in amoCRM when order is removed from trip.
     
-    Sets trip name, driver, departure date, and status fields to empty/null values.
+    Sets trip name, driver, departure date, and status fields to empty values.
+    
+    amoCRM API behavior for clearing text fields:
+    - Sending empty string "" clears the field
+    - Sending "0" shows "0" in the field
+    - Sending null/None may cause 400 error
+    
+    Returns dict with status and details for frontend feedback.
     """
     logger.info(f"=== clear_order_trip_data_in_amocrm START for lead {amocrm_id} ===")
     
+    result = {
+        "amocrm_id": amocrm_id,
+        "status": "pending",
+        "message": ""
+    }
+    
     if not amocrm_id:
         logger.warning("No amocrm_id provided")
+        result["status"] = "skipped"
+        result["message"] = "No amocrm_id"
         log_sync_operation("clear_trip_data", {
             "amocrm_id": amocrm_id,
             "status": "skipped",
             "reason": "no_amocrm_id"
         })
-        return
+        return result
     
     # Load settings from integration_settings collection with type: "amocrm"
     settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
@@ -375,12 +390,14 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     
     if not settings:
         logger.warning("amoCRM settings not found in integration_settings collection (type='amocrm') - skipping clear")
+        result["status"] = "skipped"
+        result["message"] = "Настройки amoCRM не найдены"
         log_sync_operation("clear_trip_data", {
             "amocrm_id": amocrm_id,
             "status": "skipped",
             "reason": "settings_not_found"
         })
-        return
+        return result
     
     domain = settings.get("amocrm_domain", "")
     token = settings.get("amocrm_token", "")
@@ -389,6 +406,8 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     
     if not domain or not token:
         logger.warning(f"amoCRM domain or token not set. Domain: '{domain}', Token: {'SET' if token else 'NOT SET'}")
+        result["status"] = "skipped"
+        result["message"] = "Домен или токен amoCRM не настроены"
         log_sync_operation("clear_trip_data", {
             "amocrm_id": amocrm_id,
             "status": "skipped",
@@ -396,7 +415,7 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
             "domain_set": bool(domain),
             "token_set": bool(token)
         })
-        return
+        return result
     
     # Get field IDs for trip data (try both naming conventions)
     trip_name_field_id = settings.get("trip_number_field_id") or settings.get("trip_name_field_id")
@@ -408,39 +427,41 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     
     custom_fields_values = []
     
-    # Clear trip name/number field - use "0" to clear
+    # Clear trip name/number field - use empty string to clear
     if trip_name_field_id:
         try:
             custom_fields_values.append({
                 "field_id": int(trip_name_field_id),
-                "values": [{"value": "0"}]
+                "values": [{"value": ""}]
             })
         except ValueError:
-            pass
+            logger.error(f"Invalid trip_name_field_id: {trip_name_field_id}")
     
     # Clear trip driver field
     if trip_driver_field_id:
         try:
             custom_fields_values.append({
                 "field_id": int(trip_driver_field_id),
-                "values": [{"value": "0"}]
+                "values": [{"value": ""}]
             })
         except ValueError:
-            pass
+            logger.error(f"Invalid trip_driver_field_id: {trip_driver_field_id}")
     
-    # Clear trip order status field
+    # Clear trip order status field - use "-" for status as empty may not work
     if trip_order_status_field_id:
         try:
             custom_fields_values.append({
                 "field_id": int(trip_order_status_field_id),
-                "values": [{"value": "0"}]
+                "values": [{"value": "-"}]
             })
         except ValueError:
-            pass
+            logger.error(f"Invalid trip_order_status_field_id: {trip_order_status_field_id}")
     
     if not custom_fields_values:
         logger.info("No trip fields configured to clear")
-        return
+        result["status"] = "skipped"
+        result["message"] = "ID полей рейса не настроены"
+        return result
     
     url = f"https://{domain}/api/v4/leads/{amocrm_id}"
     headers = {
@@ -454,22 +475,31 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
     try:
         async with httpx.AsyncClient(timeout=10.0) as http_client:
             response = await http_client.patch(url, json=payload, headers=headers)
-            logger.info(f"Clear response: status={response.status_code}, body={response.text[:500]}")
+            response_text = response.text[:500] if response.text else ""
+            logger.info(f"Clear response: status={response.status_code}, body={response_text}")
             
             log_sync_operation("clear_trip_data", {
                 "amocrm_id": amocrm_id,
                 "status": "success" if response.status_code == 200 else "error",
                 "response_code": response.status_code,
+                "response_text": response_text,
                 "payload": payload
             })
             
             if response.status_code == 200:
                 logger.info(f"✅ Successfully cleared trip data for lead {amocrm_id}")
+                result["status"] = "success"
+                result["message"] = "Данные рейса очищены в amoCRM"
             else:
-                logger.error(f"❌ Failed to clear trip data: {response.status_code} - {response.text}")
+                logger.error(f"❌ Failed to clear trip data: {response.status_code} - {response_text}")
+                result["status"] = "error"
+                result["message"] = f"Ошибка amoCRM API: {response.status_code}"
+                result["detail"] = response_text
                 
     except Exception as e:
         logger.error(f"❌ Error clearing trip data in amoCRM: {e}")
+        result["status"] = "exception"
+        result["message"] = f"Ошибка соединения: {str(e)}"
         log_sync_operation("clear_trip_data", {
             "amocrm_id": amocrm_id,
             "status": "exception",
@@ -477,6 +507,7 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str):
         })
     
     logger.info(f"=== clear_order_trip_data_in_amocrm END ===")
+    return result
 
 
 def get_section_collection(section: str):
@@ -1020,31 +1051,47 @@ async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
     logger.info(f"amoCRM settings check: {amocrm_settings_check}")
     
     # Clear trip data in amoCRM for orders that have amocrm_id
+    amocrm_success_count = 0
+    amocrm_error_count = 0
+    amocrm_skipped_count = 0
+    
     if orders_to_clear_in_amocrm:
         logger.info(f"Clearing trip data in amoCRM for {len(orders_to_clear_in_amocrm)} orders")
         for order in orders_to_clear_in_amocrm:
             try:
-                await clear_order_trip_data_in_amocrm(order.get("amocrm_id"))
+                clear_result = await clear_order_trip_data_in_amocrm(order.get("amocrm_id"))
                 amocrm_clear_results.append({
                     "order_id": order.get("id"),
                     "amocrm_id": order.get("amocrm_id"),
-                    "status": "attempted"
+                    **clear_result
                 })
+                
+                if clear_result.get("status") == "success":
+                    amocrm_success_count += 1
+                elif clear_result.get("status") == "skipped":
+                    amocrm_skipped_count += 1
+                else:
+                    amocrm_error_count += 1
+                    
             except Exception as e:
                 logger.error(f"Failed to clear amoCRM data for order {order.get('id')}: {e}")
+                amocrm_error_count += 1
                 amocrm_clear_results.append({
                     "order_id": order.get("id"),
                     "amocrm_id": order.get("amocrm_id"),
                     "status": "error",
-                    "error": str(e)
+                    "message": str(e)
                 })
     
-    logger.info(f"=== REMOVE ORDERS FROM TRIP END ===")
+    logger.info(f"=== REMOVE ORDERS FROM TRIP END: success={amocrm_success_count}, skipped={amocrm_skipped_count}, errors={amocrm_error_count} ===")
     
     return {
         "status": "ok", 
         "removed": order_ids, 
         "amocrm_orders_count": len(orders_to_clear_in_amocrm),
+        "amocrm_success_count": amocrm_success_count,
+        "amocrm_skipped_count": amocrm_skipped_count,
+        "amocrm_error_count": amocrm_error_count,
         "amocrm_settings": amocrm_settings_check,
         "amocrm_clear_results": amocrm_clear_results
     }
