@@ -788,6 +788,207 @@ async def repair_photo_link(order_id: str, current_user: dict = Depends(get_curr
     return result
 
 
+@router.post("/resend-photo-to-amocrm/{order_id}")
+async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get_current_user)):
+    """Manually resend a delivery photo to amoCRM.
+    
+    This is useful when the automatic sync failed.
+    Returns detailed debug info about the upload attempt.
+    """
+    import httpx
+    
+    result = {
+        "success": False,
+        "message": "",
+        "order_id": order_id,
+        "debug": {}
+    }
+    
+    # Build possible ID variations
+    search_ids = [order_id]
+    if order_id.isdigit():
+        search_ids.extend([f"AMO-GH-{order_id}", f"AMO-BA-{order_id}", f"AMO-SA-{order_id}"])
+    if order_id.startswith("AMO-"):
+        plain_id = order_id.split("-")[-1]
+        search_ids.append(plain_id)
+    
+    # Find photo
+    photo = None
+    for sid in search_ids:
+        photo = delivery_photos.find_one({"orderId": sid})
+        if photo:
+            break
+    
+    if not photo:
+        result["message"] = "Фото не найдено в базе"
+        return result
+    
+    photo_url = photo.get("photoUrl")
+    if not photo_url:
+        result["message"] = "Фото найдено, но photoUrl пустой"
+        return result
+    
+    result["debug"]["photo_size"] = len(photo_url)
+    
+    # Find order to get amocrm_id
+    order = None
+    for section_name, collection in [
+        ("balia", balia_orders),
+        ("greenhouse", greenhouse_orders),
+        ("sauna", sauna_orders)
+    ]:
+        if collection is not None:
+            for sid in search_ids:
+                order = collection.find_one({"id": sid})
+                if not order:
+                    order = collection.find_one({"amocrm_id": sid})
+                if order:
+                    result["debug"]["found_in"] = section_name
+                    break
+            if order:
+                break
+    
+    if not order:
+        result["message"] = "Заказ не найден"
+        return result
+    
+    amocrm_id = order.get("amocrm_id")
+    if not amocrm_id:
+        result["message"] = "У заказа нет amocrm_id"
+        return result
+    
+    result["debug"]["amocrm_id"] = amocrm_id
+    result["debug"]["order_id"] = order.get("id")
+    
+    # Get amoCRM settings
+    integration_settings = db["integration_settings"]
+    settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    if not settings:
+        result["message"] = "Настройки amoCRM не найдены"
+        return result
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        result["message"] = "Токен или домен amoCRM не настроены"
+        return result
+    
+    result["debug"]["domain"] = domain
+    result["debug"]["token_present"] = bool(token)
+    
+    # Parse photo data
+    try:
+        header, base64_data = photo_url.split(",", 1)
+        content_type = header.replace("data:", "").replace(";base64", "")
+        import base64
+        photo_bytes = base64.b64decode(base64_data)
+        
+        result["debug"]["content_type"] = content_type
+        result["debug"]["photo_bytes_size"] = len(photo_bytes)
+        
+        ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+        file_ext = ext_map.get(content_type, "jpg")
+        filename = f"delivery_photo_{order.get('id')}.{file_ext}"
+        
+        result["debug"]["filename"] = filename
+    except Exception as e:
+        result["message"] = f"Ошибка парсинга фото: {e}"
+        return result
+    
+    # Send to amoCRM
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            # Step 1: Create note
+            note_text = f"📷 Фото акта доставки\nЗаказ: {order.get('id')}\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+            
+            notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
+            note_payload = [{"note_type": "common", "params": {"text": note_text}}]
+            
+            response = await client.post(
+                notes_url,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json=note_payload
+            )
+            
+            result["debug"]["note_status"] = response.status_code
+            result["debug"]["note_response"] = response.text[:500]
+            
+            note_id = None
+            if response.status_code in [200, 201]:
+                try:
+                    resp_data = response.json()
+                    notes_list = resp_data.get("_embedded", {}).get("notes", [])
+                    if notes_list:
+                        note_id = notes_list[0].get("id")
+                        result["debug"]["note_id"] = note_id
+                except:
+                    pass
+            
+            if not note_id:
+                result["message"] = f"Не удалось создать заметку: {response.status_code}"
+                return result
+            
+            # Step 2: Try multiple file upload methods
+            upload_methods = [
+                # Method 1: /api/v4/files with form data
+                {
+                    "name": "files_endpoint",
+                    "url": f"https://{domain}/api/v4/files",
+                    "files": {"file[]": (filename, photo_bytes, content_type)},
+                    "data": {"entity_id": str(amocrm_id), "entity_type": "leads", "attach_to": "notes", "to_note_id": str(note_id)}
+                },
+                # Method 2: Direct to lead files
+                {
+                    "name": "lead_files",
+                    "url": f"https://{domain}/api/v4/leads/{amocrm_id}/files",
+                    "files": {"file[]": (filename, photo_bytes, content_type)},
+                    "data": None
+                },
+                # Method 3: Files with file_uuid approach
+                {
+                    "name": "files_simple",
+                    "url": f"https://{domain}/api/v4/files",
+                    "files": {"file": (filename, photo_bytes, content_type)},
+                    "data": None
+                }
+            ]
+            
+            for method in upload_methods:
+                try:
+                    if method["data"]:
+                        file_response = await client.post(
+                            method["url"],
+                            headers={"Authorization": f"Bearer {token}"},
+                            files=method["files"],
+                            data=method["data"]
+                        )
+                    else:
+                        file_response = await client.post(
+                            method["url"],
+                            headers={"Authorization": f"Bearer {token}"},
+                            files=method["files"]
+                        )
+                    
+                    result["debug"][f"{method['name']}_status"] = file_response.status_code
+                    result["debug"][f"{method['name']}_response"] = file_response.text[:300]
+                    
+                    if file_response.status_code in [200, 201]:
+                        result["success"] = True
+                        result["message"] = f"Фото загружено через {method['name']}"
+                        return result
+                except Exception as e:
+                    result["debug"][f"{method['name']}_error"] = str(e)
+            
+            result["message"] = "Все методы загрузки файла не сработали"
+            return result
+            
+    except Exception as e:
+        result["message"] = f"Ошибка при отправке в amoCRM: {e}"
+        result["debug"]["exception"] = str(e)
+        return result
+
+
 @router.post("/start-trip/{trip_id}")
 async def start_trip(
     trip_id: str, 
