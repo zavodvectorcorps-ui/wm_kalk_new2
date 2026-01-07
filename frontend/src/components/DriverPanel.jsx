@@ -13,7 +13,19 @@ import {
   List, Map as MapIcon, Clock, Play, LogOut, Route, Bell, BellOff
 } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+// Smart API URL detection - use current origin on production, env var for development
+const getApiUrl = () => {
+  // If we're on the production domain, use it as API URL
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    if (origin.includes('wm-kalkulator.pl') || origin.includes('emergent.host')) {
+      return origin;
+    }
+  }
+  return process.env.REACT_APP_BACKEND_URL || '';
+};
+
+const API_URL = getApiUrl();
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 // VAPID public key for push notifications - from environment
