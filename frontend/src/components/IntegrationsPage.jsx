@@ -151,10 +151,28 @@ export const IntegrationsPage = () => {
           balia: { ...DEFAULT_FIELD_MAPPING, ...(fieldMapping.balia || fieldMapping) },
           sauna: { ...DEFAULT_FIELD_MAPPING, ...(fieldMapping.sauna || fieldMapping) }
         };
+        
+        // Also fetch warehouse settings
+        let warehouseSettings = {};
+        try {
+          const token = localStorage.getItem('authToken');
+          const warehouseRes = await fetch(`${API_URL}/api/driver-panel/warehouse-settings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (warehouseRes.ok) {
+            warehouseSettings = await warehouseRes.json();
+          }
+        } catch (e) {
+          console.warn('Could not fetch warehouse settings:', e);
+        }
+        
         setSettings(prev => ({ 
           ...prev, 
           ...data,
-          field_mapping: normalizedMapping
+          field_mapping: normalizedMapping,
+          warehouse_address: warehouseSettings.warehouse_address || '',
+          warehouse_lat: warehouseSettings.warehouse_lat || null,
+          warehouse_lng: warehouseSettings.warehouse_lng || null
         }));
       }
     } catch (error) {
