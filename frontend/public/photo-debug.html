@@ -62,8 +62,9 @@
     
     <div class="card">
         <h2>4. Проверка синхронизации с amoCRM</h2>
-        <input type="text" id="amocrm-order-id" placeholder="Order ID">
+        <input type="text" id="amocrm-order-id" placeholder="Order ID (можно amoCRM ID или внутренний)">
         <button onclick="checkAmocrmSync()">Проверить заказ</button>
+        <button onclick="repairPhotoLink()" style="background: #e67e22; margin-left: 10px;">🔧 Восстановить связь фото</button>
         <pre id="amocrm-result">Результат появится здесь...</pre>
     </div>
     
