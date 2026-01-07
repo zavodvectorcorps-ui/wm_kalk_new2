@@ -394,7 +394,7 @@ async def upload_delivery_photo(
     if trip:
         section = trip.get("section", "")
         collection = get_section_collection(section)
-        if collection:
+        if collection is not None:
             update_data = {
                 "deliveryPhotoUrl": photo_url,
                 "deliveryConfirmedAt": now,
