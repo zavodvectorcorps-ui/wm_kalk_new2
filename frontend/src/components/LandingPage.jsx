@@ -23,8 +23,6 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       driverDesc: 'Просмотр назначенных рейсов, навигация и подтверждение доставок',
       adminTitle: 'Админ панель',
       adminDesc: 'Управление всеми заказами, статистика и настройки цен',
-      helpTitle: 'Справка',
-      helpDesc: 'Рекомендации по настройкам интеграций и диагностика проблем',
       select: 'Выбрать',
       comingSoon: 'Скоро',
       noAccess: 'Нет доступа',
