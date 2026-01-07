@@ -598,6 +598,13 @@ async def send_custom_notification(
     for sub in all_subs[:5]:
         logger.info(f"  Sub: userId={sub.get('userId')}, driverId={sub.get('driverId')}")
     
+    # Count subscriptions for this driver before sending
+    driver_sub_count = notification_subscriptions.count_documents({
+        "$or": [{"userId": driver_user_id}, {"driverId": request.driverId}] if driver_user_id else {"driverId": request.driverId},
+        "active": True
+    })
+    logger.info(f"Subscriptions for this driver: {driver_sub_count}")
+    
     push_sent = await send_push_notification(
         user_id=driver_user_id,
         driver_id=request.driverId,
@@ -614,16 +621,11 @@ async def send_custom_notification(
         # Provide specific reason
         if not driver_user_id:
             method_used = "Водитель не связан с учётной записью"
+        elif driver_sub_count == 0:
+            method_used = "Водитель не подписался на push-уведомления (нужно нажать 🔔 в Панели водителя)"
         else:
-            # Check if user has subscriptions
-            sub_count = notification_subscriptions.count_documents({
-                "$or": [{"userId": driver_user_id}, {"driverId": request.driverId}],
-                "active": True
-            })
-            if sub_count == 0:
-                method_used = "Водитель не подписался на push-уведомления (нужно нажать 🔔 в Панели водителя)"
-            else:
-                method_used = "Ошибка отправки push-уведомления"
+            # Subscriptions exist but push failed - likely expired or VAPID issue
+            method_used = f"Ошибка отправки push (подписок: {driver_sub_count}). Возможно подписка устарела - попросите водителя переподписаться."
     
     return {
         "status": "sent" if (telegram_sent or push_sent) else "not_delivered",
@@ -632,6 +634,7 @@ async def send_custom_notification(
         "debug": {
             "driver_id": request.driverId,
             "driver_user_id": driver_user_id,
+            "subscription_count": driver_sub_count,
             "telegram_linked": bool(telegram_chat_id),
             "telegram_sent": telegram_sent,
             "push_sent": push_sent
