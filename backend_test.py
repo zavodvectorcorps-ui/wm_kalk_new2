@@ -3185,13 +3185,38 @@ def test_sauna_order_edit_functionality():
             else:
                 print("❌ Some sauna order edit functionality tests failed")
                 return False
-        else:
-            print(f"❌ Failed to verify sauna order changes: {verify_response.status_code}")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Sauna order edit test error: {str(e)}")
-        return False
+if __name__ == "__main__":
+    print("🚀 BACKEND API TESTING STARTED")
+    print("=" * 50)
+    print(f"Backend URL: {BACKEND_URL}")
+    print("=" * 50)
+    
+    # Run logistics system tests (from review request)
+    results = {
+        "Logistics System Fixes": test_logistics_system_fixes()
+    }
+    
+    # Print summary
+    print("\n" + "=" * 50)
+    print("📊 FINAL TEST RESULTS")
+    print("=" * 50)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+    
+    print("=" * 50)
+    print(f"Overall: {passed_tests}/{total_tests} tests passed")
+    
+    if passed_tests == total_tests:
+        print("🎉 ALL TESTS PASSED!")
+        sys.exit(0)
+    else:
+        print("❌ Some tests failed")
+        sys.exit(1)
 
 def test_admin_discount_approval_system():
     """Test admin discount approval system comprehensively"""
