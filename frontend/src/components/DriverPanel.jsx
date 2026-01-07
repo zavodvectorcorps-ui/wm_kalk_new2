@@ -576,11 +576,31 @@ export const DriverPanel = ({ onLogout }) => {
               )}
               
               {!buildingRoute && !directions && selectedTrip.orders?.length > 0 && (
-                <div className="mt-2 text-center text-sm text-yellow-600">
-                  {selectedTrip.orders?.some(o => o.lat && o.lng) 
-                    ? 'Маршрут не построен. Проверьте координаты адресов.'
-                    : `Нет координат. У ${selectedTrip.orders?.length} заказов нет lat/lng.`
-                  }
+                <div className="mt-2 text-center space-y-2">
+                  <div className="text-sm text-yellow-600">
+                    {selectedTrip.orders?.some(o => o.lat && o.lng) 
+                      ? 'Маршрут не построен. Проверьте координаты адресов.'
+                      : `Нет координат. У ${selectedTrip.orders?.length} заказов нет lat/lng.`
+                    }
+                  </div>
+                  {/* Geocode button when orders lack coordinates */}
+                  {selectedTrip.orders?.some(o => !o.lat || !o.lng) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleGeocodeTrip}
+                      disabled={geocoding}
+                      className="text-xs"
+                      data-testid="geocode-trip-btn"
+                    >
+                      {geocoding ? (
+                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <MapPin className="h-3 w-3 mr-1" />
+                      )}
+                      Определить координаты
+                    </Button>
+                  )}
                 </div>
               )}
               
