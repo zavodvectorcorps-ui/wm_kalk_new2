@@ -333,7 +333,8 @@ export const TripsHistory = ({ trips, drivers }) => {
                 <tbody>
                   {filteredTrips.map((trip) => {
                     const SectionIcon = SECTION_ICONS[trip.section] || Package;
-                    const statusInfo = TRIP_STATUSES[trip.status] || TRIP_STATUSES.planned;
+                    const tripStatus = trip.status || 'planned';
+                    const statusInfo = TRIP_STATUSES[tripStatus] || { label: tripStatus, color: 'bg-gray-100 text-gray-700', icon: Clock };
                     const StatusIcon = statusInfo.icon || Clock;
                     const isExpanded = expandedTrip === trip.id;
 
