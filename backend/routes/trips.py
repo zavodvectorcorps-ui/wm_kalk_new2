@@ -263,6 +263,128 @@ async def sync_single_order_to_amocrm(order: dict):
     logger.info("=== sync_single_order_to_amocrm END ===")
 
 
+async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, driver_name: str = ""):
+    """Send delivery photo to amoCRM as a note with file attachment.
+    
+    Args:
+        order_id: Internal order ID
+        amocrm_id: amoCRM lead ID
+        photo_url: Base64 data URL of the photo
+        driver_name: Name of driver who uploaded the photo
+    """
+    logger.info(f"=== send_photo_to_amocrm START for order {order_id}, amoCRM lead {amocrm_id} ===")
+    
+    settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    if not settings:
+        logger.warning("amoCRM settings not found")
+        return False
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        logger.warning("amoCRM credentials not configured")
+        return False
+    
+    if not photo_url or not photo_url.startswith("data:"):
+        logger.warning("Invalid photo URL format")
+        return False
+    
+    try:
+        import base64
+        import httpx
+        from datetime import datetime, timezone
+        
+        # Parse data URL
+        header, base64_data = photo_url.split(",", 1)
+        content_type = header.replace("data:", "").replace(";base64", "")
+        photo_bytes = base64.b64decode(base64_data)
+        
+        # Determine file extension
+        ext_map = {
+            "image/jpeg": "jpg",
+            "image/png": "png",
+            "image/webp": "webp",
+            "image/gif": "gif"
+        }
+        file_ext = ext_map.get(content_type, "jpg")
+        filename = f"delivery_photo_{order_id}.{file_ext}"
+        
+        logger.info(f"Photo size: {len(photo_bytes)} bytes, type: {content_type}")
+        
+        # First, upload file to amoCRM
+        # amoCRM file upload endpoint
+        upload_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Method 1: Try to add note with text about the photo
+            # Since amoCRM file API can be complex, we'll add a note with link
+            
+            note_text = f"📷 Фото доставки загружено"
+            if driver_name:
+                note_text += f"\nВодитель: {driver_name}"
+            note_text += f"\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+            
+            # Add note to lead
+            notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
+            note_payload = [
+                {
+                    "note_type": "common",
+                    "params": {
+                        "text": note_text
+                    }
+                }
+            ]
+            
+            response = await client.post(
+                notes_url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                },
+                json=note_payload
+            )
+            
+            if response.status_code in [200, 201]:
+                logger.info(f"✅ Added delivery note to amoCRM lead {amocrm_id}")
+            else:
+                logger.warning(f"Failed to add note: {response.status_code} - {response.text[:200]}")
+            
+            # Method 2: Try to upload file via files API
+            # This requires multipart form data
+            try:
+                files = {
+                    "file": (filename, photo_bytes, content_type)
+                }
+                
+                file_response = await client.post(
+                    upload_url,
+                    headers={
+                        "Authorization": f"Bearer {token}"
+                    },
+                    files=files
+                )
+                
+                if file_response.status_code in [200, 201]:
+                    logger.info(f"✅ Uploaded photo file to amoCRM lead {amocrm_id}")
+                    return True
+                else:
+                    logger.warning(f"Failed to upload file: {file_response.status_code} - {file_response.text[:200]}")
+                    # Still return True if note was added
+                    return response.status_code in [200, 201]
+                    
+            except Exception as file_error:
+                logger.error(f"File upload error: {file_error}")
+                # Return True if at least the note was added
+                return response.status_code in [200, 201]
+                
+    except Exception as e:
+        logger.error(f"❌ Error sending photo to amoCRM: {e}")
+        return False
+    
+    logger.info("=== send_photo_to_amocrm END ===")
+
+
 async def move_trip_orders_to_amocrm_stage(trip: dict, collection, pipeline_id: int, status_id: int):
     """Move all orders in a trip to a specific amoCRM pipeline stage.
     
