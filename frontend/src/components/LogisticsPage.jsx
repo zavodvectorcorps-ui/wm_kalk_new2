@@ -791,6 +791,9 @@ const OrdersListCard = ({
   saveEditedAddress, cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder,
   getUnassignedOrders, getFilteredOrders, searchQuery, setShowCreateTripModal, setShowAddToTripModal, trips, formatDate, DELIVERY_STATUSES, API_URL
 }) => {
+  // Don't render if currentSection is not available (e.g., history tab)
+  if (!currentSection) return null;
+
   // Check if there are active trips available
   const hasActiveTrips = trips.some(t => 
     t.section === sectionKey && 
