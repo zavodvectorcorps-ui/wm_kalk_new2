@@ -1611,7 +1611,7 @@ const TripDetailsCard = ({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Select 
-                  value={selectedTrip.amocrmPipelineId || ''} 
+                  value={selectedTrip.amocrmPipelineId || 'none'} 
                   onValueChange={(val) => updateTrip(selectedTrip.id, { amocrmPipelineId: val === 'none' ? '' : val, amocrmStatusId: '' })}
                 >
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Воронка" /></SelectTrigger>
