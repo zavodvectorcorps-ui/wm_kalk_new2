@@ -504,6 +504,54 @@ async def get_delivery_photo_image(trip_id: str, order_id: str):
         raise HTTPException(status_code=500, detail=f"Ошибка декодирования: {str(e)}")
 
 
+@router.get("/photos/list")
+async def list_all_photos():
+    """List all delivery photos (for debugging)."""
+    photos = list(delivery_photos.find({}, {"_id": 0, "photoUrl": 0}))  # Exclude base64 data
+    return {"count": len(photos), "photos": photos}
+
+
+@router.get("/debug/order/{order_id}")
+async def debug_order_info(order_id: str, current_user: dict = Depends(get_current_user)):
+    """Get debug info for an order including photo and amoCRM sync status."""
+    result = {
+        "orderId": order_id,
+        "found_in_collections": [],
+        "photo": None,
+        "amocrm_id": None,
+        "delivery_status": None
+    }
+    
+    # Check all section collections
+    for section_name, collection in [
+        ("balia", balia_orders),
+        ("greenhouse", greenhouse_orders),
+        ("sauna", sauna_orders),
+        ("orders", orders_collection)
+    ]:
+        if collection is not None:
+            order = collection.find_one({"id": order_id}, {"_id": 0, "deliveryPhotoUrl": 0})
+            if order:
+                result["found_in_collections"].append(section_name)
+                result["amocrm_id"] = order.get("amocrm_id")
+                result["delivery_status"] = order.get("deliveryStatus")
+                result["trip_id"] = order.get("tripId")
+                result["order_data"] = order
+    
+    # Check for photo
+    photo = delivery_photos.find_one({"orderId": order_id}, {"_id": 0, "photoUrl": 0})
+    if photo:
+        result["photo"] = {
+            "id": photo.get("id"),
+            "tripId": photo.get("tripId"),
+            "uploadedBy": photo.get("uploadedBy"),
+            "confirmedAt": photo.get("confirmedAt"),
+            "receivedAmount": photo.get("receivedAmount"),
+            "has_photoUrl": bool(photo.get("photoUrl"))
+        }
+    
+    return result
+
 
 @router.post("/start-trip/{trip_id}")
 async def start_trip(
