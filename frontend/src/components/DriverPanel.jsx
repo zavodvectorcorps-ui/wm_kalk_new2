@@ -303,6 +303,7 @@ export const DriverPanel = ({ onLogout }) => {
   useEffect(() => {
     fetchTrips();
     checkPushStatus();
+    fetchUnreadCount();
   }, [checkPushStatus]);
 
   // Build route when trip is selected - uses warehouse as start point if available
