@@ -10,11 +10,14 @@ import { toast } from 'sonner';
 import {
   Truck, MapPin, Phone, User, Package, CheckCircle, Camera, Navigation,
   RefreshCw, ChevronDown, ChevronUp, DollarSign, FileText, AlertCircle,
-  List, Map as MapIcon, Clock, Play, LogOut, Route
+  List, Map as MapIcon, Clock, Play, LogOut, Route, Bell, BellOff
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+// VAPID public key for push notifications - should match backend
+const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY || 'BNbxGYNMhEIi9zrneh7mqBLkXz14xV2nqMJgnNvQQFDvWCrDKBPaJZqBkLSCPDrhsCjFV9zGNHNLNPQeTX1Iyuo';
 
 const libraries = ['places', 'geometry'];
 
@@ -40,6 +43,18 @@ const TRIP_STATUSES = {
   in_transit: { label: 'В пути', color: 'bg-blue-100 text-blue-700' },
   completed: { label: 'Завершён', color: 'bg-green-100 text-green-700' }
 };
+
+// Helper to convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export const DriverPanel = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
