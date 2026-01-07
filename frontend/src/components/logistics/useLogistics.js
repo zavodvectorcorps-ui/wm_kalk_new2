@@ -104,8 +104,8 @@ export const useLogistics = () => {
   });
 
   // Get current section data
-  const currentData = sectionData[activeSection];
-  const currentSection = SECTIONS[activeSection];
+  const currentData = sectionData[activeSection] || { orders: [], selectedOrders: [] };
+  const currentSection = SECTIONS[activeSection] || null;
 
   // Load drivers from API
   const fetchDrivers = useCallback(async () => {
