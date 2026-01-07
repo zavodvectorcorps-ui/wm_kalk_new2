@@ -66,7 +66,20 @@
         <button onclick="checkAmocrmSync()">Проверить заказ</button>
         <button onclick="repairPhotoLink()" style="background: #e67e22; margin-left: 10px;">🔧 Восстановить связь</button>
         <button onclick="resendToAmocrm()" style="background: #9b59b6; margin-left: 10px;">📤 Отправить фото в amoCRM</button>
+        
+        <div style="margin-top: 15px; padding: 10px; background: #e8f4f8; border-radius: 4px; font-size: 12px;">
+            <strong>📋 Процесс загрузки в amoCRM (API v4):</strong>
+            <ol style="margin: 5px 0 0 15px;">
+                <li>Создание сессии загрузки: POST /api/v4/files (file_name, file_size)</li>
+                <li>Загрузка файла по upload_url методом PUT</li>
+                <li>Получение UUID файла из ответа</li>
+                <li>Создание заметки с прикреплением файла через _embedded.files</li>
+            </ol>
+        </div>
+        
         <pre id="amocrm-result">Результат появится здесь...</pre>
+        
+        <div id="amocrm-steps" style="margin-top: 10px;"></div>
     </div>
     
     <div class="card">
