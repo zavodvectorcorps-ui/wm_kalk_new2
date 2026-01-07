@@ -1632,6 +1632,34 @@ const TripDetailsCard = ({
               <div className="flex items-center gap-1"><Clock className="h-3 w-3 text-purple-600" /><span className="font-medium">{formatDuration(tripRouteInfo.duration)}</span></div>
             </div>
           )}
+          
+          {/* Actual mileage from driver */}
+          {selectedTrip.mileage && (selectedTrip.mileage.start || selectedTrip.mileage.end) && (
+            <div className="p-2 bg-blue-50 rounded-lg text-sm border border-blue-200">
+              <div className="flex items-center gap-2 text-blue-700">
+                <Truck className="h-3 w-3" />
+                <span className="font-medium">Фактический пробег:</span>
+              </div>
+              <div className="flex items-center gap-3 mt-1 text-sm">
+                {selectedTrip.mileage.start && (
+                  <span className="text-gray-600">
+                    начало: <span className="font-medium">{selectedTrip.mileage.start} км</span>
+                  </span>
+                )}
+                {selectedTrip.mileage.end && (
+                  <span className="text-gray-600">
+                    конец: <span className="font-medium">{selectedTrip.mileage.end} км</span>
+                  </span>
+                )}
+                {selectedTrip.mileage.total && (
+                  <span className="text-blue-700 font-semibold">
+                    = {selectedTrip.mileage.total} км
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          
           <div className="border-t pt-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium">Заказы ({selectedTrip.orderIds?.length || 0}):</p>
