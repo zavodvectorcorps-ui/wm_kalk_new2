@@ -542,16 +542,22 @@ async def debug_order_info(order_id: str, current_user: dict = Depends(get_curre
         ("sauna", sauna_orders)
     ]:
         if collection is not None:
+            # Try to find by id first, then by amocrm_id
             order = collection.find_one({"id": order_id}, {"_id": 0, "deliveryPhotoUrl": 0})
+            if not order:
+                order = collection.find_one({"amocrm_id": order_id}, {"_id": 0, "deliveryPhotoUrl": 0})
             if order:
                 result["found_in_collections"].append(section_name)
                 result["amocrm_id"] = order.get("amocrm_id")
+                result["internal_id"] = order.get("id")
                 result["delivery_status"] = order.get("deliveryStatus")
                 result["trip_id"] = order.get("tripId")
                 result["order_data"] = order
     
-    # Check for photo
+    # Check for photo - try both internal id and amocrm_id
     photo = delivery_photos.find_one({"orderId": order_id}, {"_id": 0, "photoUrl": 0})
+    if not photo and result.get("internal_id"):
+        photo = delivery_photos.find_one({"orderId": result["internal_id"]}, {"_id": 0, "photoUrl": 0})
     if photo:
         result["photo"] = {
             "id": photo.get("id"),
