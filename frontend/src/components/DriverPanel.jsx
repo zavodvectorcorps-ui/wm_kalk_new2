@@ -219,6 +219,7 @@ export const DriverPanel = ({ onLogout }) => {
     setUploading(true);
     try {
       const token = localStorage.getItem('authToken');
+      const order = selectedTrip.orders?.find(o => o.id === orderId);
       
       if (deliveryForm.photo) {
         const formData = new FormData();
@@ -235,6 +236,18 @@ export const DriverPanel = ({ onLogout }) => {
 
         if (!uploadResponse.ok) {
           throw new Error('Ошибка загрузки фото');
+        }
+        
+        // Sync photo to amoCRM if order has amocrm_id
+        if (order?.amocrm_id) {
+          try {
+            await fetch(`${API_URL}/api/integrations/amocrm/upload-delivery-photo?amocrm_id=${order.amocrm_id}&order_id=${orderId}&driver_name=${encodeURIComponent(driver?.name || '')}&received_amount=${encodeURIComponent(deliveryForm.receivedAmount || '')}`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+          } catch (e) {
+            console.warn('amoCRM sync failed:', e);
+          }
         }
       } else {
         const response = await fetch(`${API_URL}/api/driver-panel/confirm-delivery`, {
