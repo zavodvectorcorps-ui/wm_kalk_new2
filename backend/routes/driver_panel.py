@@ -633,9 +633,142 @@ async def start_trip(
         "message": "Рейс начат! Статусы всех заказов изменены на 'В пути'",
         "trip_status": "in_transit",
         "orders_updated": len([s for s in order_statuses.values() if s == "delivering"]),
-        "amocrm_synced": amocrm_synced_count
+        "amocrm_synced": amocrm_synced_count,
+        "start_mileage": start_mileage
     }
 
+
+@router.post("/finish-trip/{trip_id}")
+async def finish_trip(
+    trip_id: str,
+    request: FinishTripRequest = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Finish a trip - change trip status to 'delivered' and all orders to 'delivered'.
+    
+    This syncs with logistics and amoCRM.
+    """
+    user_id = current_user.get("sub")
+    end_mileage = request.endMileage if request else None
+    
+    # Check if user is admin
+    user = db.users.find_one({"id": user_id}, {"_id": 0})
+    is_admin = user and user.get("role") == "admin"
+    
+    # Find driver
+    driver = drivers_collection.find_one({"userId": user_id}, {"_id": 0})
+    if not driver and user:
+        driver = drivers_collection.find_one({"name": user.get("username")}, {"_id": 0})
+    
+    if is_admin and not driver:
+        driver = {"id": "admin", "name": user.get("username", "Admin"), "isAdmin": True}
+    
+    if not driver:
+        raise HTTPException(status_code=403, detail="Водитель не найден")
+    
+    # Get trip
+    trip = trips_collection.find_one({"id": trip_id})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Рейс не найден")
+    
+    # Verify access
+    if not is_admin:
+        driver_id = driver.get("id")
+        driver_name = driver.get("name")
+        if trip.get("driverId") != driver_id and trip.get("driverName") != driver_name:
+            raise HTTPException(status_code=403, detail="Этот рейс не назначен вам")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    section = trip.get("section", "")
+    collection = get_section_collection(section)
+    
+    # Update all order statuses to 'delivered'
+    order_ids = trip.get("orderIds", [])
+    order_statuses = trip.get("orderStatuses", {})
+    
+    for order_id in order_ids:
+        order_statuses[order_id] = "delivered"
+    
+    # Calculate mileage
+    mileage_data = trip.get("mileage", {})
+    start_mileage = mileage_data.get("start")
+    total_mileage = None
+    
+    if end_mileage is not None:
+        mileage_data["end"] = end_mileage
+        if start_mileage is not None:
+            total_mileage = end_mileage - start_mileage
+            mileage_data["total"] = total_mileage
+    
+    # Update trip status to delivered
+    update_data = {
+        "status": "delivered",
+        "orderStatuses": order_statuses,
+        "finishedAt": now,
+        "finishedBy": driver.get("name"),
+        "updatedAt": now
+    }
+    
+    if mileage_data:
+        update_data["mileage"] = mileage_data
+    
+    trips_collection.update_one(
+        {"id": trip_id},
+        {"$set": update_data}
+    )
+    
+    # Update all orders in the collection
+    if collection is not None:
+        for order_id in order_ids:
+            collection.update_one(
+                {"id": order_id},
+                {"$set": {
+                    "tripOrderStatus": "delivered",
+                    "deliveryStatus": "delivered",
+                    "tripStatus": "delivered",
+                    "deliveredAt": now
+                }}
+            )
+    
+    logger.info(f"Driver {driver.get('name')} finished trip {trip_id}, mileage: {start_mileage} -> {end_mileage} = {total_mileage}")
+    
+    # Sync to amoCRM for all orders with amocrm_id
+    amocrm_synced_count = 0
+    if collection is not None:
+        orders_with_amocrm = list(collection.find(
+            {"id": {"$in": order_ids}, "amocrm_id": {"$exists": True, "$ne": ""}},
+            {"_id": 0}
+        ))
+        
+        try:
+            from routes.trips import sync_single_order_to_amocrm
+            for order in orders_with_amocrm:
+                try:
+                    order_for_sync = {
+                        **order,
+                        "tripOrderStatus": "delivered",
+                        "tripStatus": "delivered",
+                        "deliveredAt": now
+                    }
+                    await sync_single_order_to_amocrm(order_for_sync)
+                    amocrm_synced_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to sync order {order.get('id')} to amoCRM: {e}")
+        except ImportError:
+            logger.warning("Could not import sync function from trips module")
+    
+    return {
+        "status": "ok",
+        "message": "Рейс завершён! Все заказы отмечены как доставленные.",
+        "trip_status": "delivered",
+        "orders_updated": len(order_ids),
+        "amocrm_synced": amocrm_synced_count,
+        "mileage": {
+            "start": start_mileage,
+            "end": end_mileage,
+            "total": total_mileage
+        }
+    }
 
 
 @router.get("/debug/trip/{trip_id}")
