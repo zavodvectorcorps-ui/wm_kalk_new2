@@ -87,6 +87,10 @@ export const DriverPanel = ({ onLogout }) => {
       if (data.driver) {
         setDriver(data.driver);
       }
+      // Store warehouse for route building
+      if (data.warehouse) {
+        setWarehouse(data.warehouse);
+      }
       if (data.message && !data.driver) {
         toast.error(data.message);
       }
