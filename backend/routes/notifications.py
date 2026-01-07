@@ -232,8 +232,8 @@ async def send_push_notification(user_id: str = None, driver_id: str = None, tit
         
         logger.info(f"Found {len(subscriptions)} subscriptions for driver={driver_id}, user={user_id}")
         
-        # Get VAPID keys from environment
-        vapid_private_key = os.environ.get("VAPID_PRIVATE_KEY", "")
+        # Get VAPID keys - auto-convert PEM to raw format
+        vapid_private_key = get_vapid_private_key()
         vapid_claims_email = os.environ.get("VAPID_CLAIMS_EMAIL", "mailto:admin@wm-kalkulator.pl")
         
         if not vapid_private_key:
