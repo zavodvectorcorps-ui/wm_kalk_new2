@@ -608,40 +608,34 @@ async def send_custom_notification(
     driver_user_id = driver.get("userId")
     logger.info(f"Looking for push subscriptions: userId={driver_user_id}, driverId={request.driverId}")
     
-    # Check what subscriptions exist for debugging
-    all_subs = list(notification_subscriptions.find({}, {"_id": 0, "userId": 1, "driverId": 1, "endpoint": 1}))
-    logger.info(f"All subscriptions in DB: {len(all_subs)}")
-    for sub in all_subs[:5]:
-        logger.info(f"  Sub: userId={sub.get('userId')}, driverId={sub.get('driverId')}")
-    
-    # Count subscriptions for this driver before sending
-    driver_sub_count = notification_subscriptions.count_documents({
-        "$or": [{"userId": driver_user_id}, {"driverId": request.driverId}] if driver_user_id else {"driverId": request.driverId},
-        "active": True
-    })
-    logger.info(f"Subscriptions for this driver: {driver_sub_count}")
-    
-    push_sent = await send_push_notification(
+    # Send push notification - now returns detailed result
+    push_result = await send_push_notification(
         user_id=driver_user_id,
         driver_id=request.driverId,
         title="Сообщение",
         body=request.message
     )
     
+    push_sent = push_result.get("success", False)
+    
     if push_sent:
         if telegram_sent:
             method_used = "Telegram + Push"
         else:
-            method_used = "Push"
+            method_used = "Push ✅"
     elif not telegram_sent:
         # Provide specific reason
         if not driver_user_id:
             method_used = "Водитель не связан с учётной записью"
-        elif driver_sub_count == 0:
+        elif push_result["total"] == 0:
             method_used = "Водитель не подписался на push-уведомления (нужно нажать 🔔 в Панели водителя)"
         else:
-            # Subscriptions exist but push failed - likely expired or VAPID issue
-            method_used = f"Ошибка отправки push (подписок: {driver_sub_count}). Возможно подписка устарела - попросите водителя переподписаться."
+            # Subscriptions exist but push failed - show specific errors
+            errors = push_result.get("errors", [])
+            unique_errors = list(set(errors))[:3]  # First 3 unique errors
+            error_text = "; ".join(unique_errors) if unique_errors else "неизвестная ошибка"
+            removed_info = f", удалено устаревших: {push_result['removed']}" if push_result.get("removed", 0) > 0 else ""
+            method_used = f"Ошибка push ({error_text}){removed_info}"
     
     return {
         "status": "sent" if (telegram_sent or push_sent) else "not_delivered",
@@ -650,7 +644,7 @@ async def send_custom_notification(
         "debug": {
             "driver_id": request.driverId,
             "driver_user_id": driver_user_id,
-            "subscription_count": driver_sub_count,
+            "push_result": push_result,
             "telegram_linked": bool(telegram_chat_id),
             "telegram_sent": telegram_sent,
             "push_sent": push_sent
