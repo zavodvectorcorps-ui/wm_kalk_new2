@@ -426,25 +426,56 @@ async def clear_order_trip_data_in_amocrm(amocrm_id: str) -> dict:
     
     logger.info(f"Trip field IDs - name: {trip_name_field_id}, driver: {trip_driver_field_id}, departure: {trip_departure_field_id}, status: {trip_order_status_field_id}")
     
+    # Get field types from settings (text fields use empty string, numeric fields need null/special handling)
+    # By default assume text fields, but check for explicit type configuration
+    trip_name_field_type = settings.get("trip_number_field_type", "text")
+    trip_driver_field_type = settings.get("trip_driver_field_type", "text") 
+    trip_status_field_type = settings.get("trip_order_status_field_type", "text")
+    
     custom_fields_values = []
     
-    # Clear trip name/number field - use empty string to clear
+    # Helper to get clear value based on field type
+    def get_clear_value(field_type: str):
+        """Get the appropriate value to clear a field based on its type."""
+        if field_type == "numeric":
+            return None  # For numeric fields, use null to clear
+        elif field_type == "select":
+            return None  # For select/enum fields, use null
+        else:
+            return ""  # For text fields, use empty string
+    
+    # Clear trip name/number field
     if trip_name_field_id:
         try:
-            custom_fields_values.append({
-                "field_id": int(trip_name_field_id),
-                "values": [{"value": ""}]
-            })
+            clear_value = get_clear_value(trip_name_field_type)
+            if clear_value is None:
+                # For null values, we need to send empty values array or special structure
+                custom_fields_values.append({
+                    "field_id": int(trip_name_field_id),
+                    "values": []  # Empty array clears the field in amoCRM
+                })
+            else:
+                custom_fields_values.append({
+                    "field_id": int(trip_name_field_id),
+                    "values": [{"value": clear_value}]
+                })
         except ValueError:
             logger.error(f"Invalid trip_name_field_id: {trip_name_field_id}")
     
     # Clear trip driver field
     if trip_driver_field_id:
         try:
-            custom_fields_values.append({
-                "field_id": int(trip_driver_field_id),
-                "values": [{"value": ""}]
-            })
+            clear_value = get_clear_value(trip_driver_field_type)
+            if clear_value is None:
+                custom_fields_values.append({
+                    "field_id": int(trip_driver_field_id),
+                    "values": []
+                })
+            else:
+                custom_fields_values.append({
+                    "field_id": int(trip_driver_field_id),
+                    "values": [{"value": clear_value}]
+                })
         except ValueError:
             logger.error(f"Invalid trip_driver_field_id: {trip_driver_field_id}")
     
