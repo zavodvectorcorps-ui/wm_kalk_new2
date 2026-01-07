@@ -400,7 +400,8 @@ async def upload_delivery_photo(
                 "deliveryConfirmedAt": now,
                 "deliveryConfirmedBy": driver.get("name"),
                 "tripOrderStatus": "delivered",
-                "deliveryStatus": "delivered"
+                "deliveryStatus": "delivered",
+                "tripId": tripId  # Save tripId to order for photo link
             }
             if receivedAmount:
                 update_data["receivedAmount"] = receivedAmount
