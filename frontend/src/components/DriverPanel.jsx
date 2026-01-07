@@ -16,8 +16,8 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
-// VAPID public key for push notifications - should match backend
-const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY || 'BNbxGYNMhEIi9zrneh7mqBLkXz14xV2nqMJgnNvQQFDvWCrDKBPaJZqBkLSCPDrhsCjFV9zGNHNLNPQeTX1Iyuo';
+// VAPID public key for push notifications - from environment
+const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY || 'BJTzkaMvUO1s6uOYYjPwwi0UDpBvJpwHB0TYWFkNLGsrhbTxlVnJ2LEdaErMx0GdLBfjsQDqgvmHjuzAEuz7p9A';
 
 const libraries = ['places', 'geometry'];
 
