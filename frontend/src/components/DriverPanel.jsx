@@ -120,9 +120,86 @@ export const DriverPanel = ({ onLogout }) => {
     }
   }, [selectedTrip]);
 
+  // Check push notification support and status
+  const checkPushStatus = useCallback(async () => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      setPushSupported(true);
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        setPushEnabled(!!subscription);
+      } catch (e) {
+        console.error('Error checking push status:', e);
+      }
+    }
+  }, []);
+
+  // Subscribe to push notifications
+  const subscribeToPush = async () => {
+    try {
+      // Request notification permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        toast.error('Разрешите уведомления в настройках браузера');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Subscribe to push
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+
+      // Send subscription to server
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_URL}/api/notifications/subscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          endpoint: subscription.endpoint,
+          keys: {
+            p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')))),
+            auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth'))))
+          }
+        })
+      });
+
+      if (response.ok) {
+        setPushEnabled(true);
+        toast.success('Push-уведомления включены!');
+      } else {
+        throw new Error('Server error');
+      }
+    } catch (error) {
+      console.error('Push subscription error:', error);
+      toast.error('Ошибка подписки на уведомления');
+    }
+  };
+
+  // Unsubscribe from push
+  const unsubscribeFromPush = async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription) {
+        await subscription.unsubscribe();
+        setPushEnabled(false);
+        toast.success('Push-уведомления отключены');
+      }
+    } catch (error) {
+      console.error('Unsubscribe error:', error);
+    }
+  };
+
   useEffect(() => {
     fetchTrips();
-  }, []);
+    checkPushStatus();
+  }, [checkPushStatus]);
 
   // Build route when trip is selected - uses warehouse as start point if available
   const buildRoute = useCallback(async () => {
