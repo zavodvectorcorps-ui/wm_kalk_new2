@@ -561,6 +561,29 @@ export const DriverPanel = ({ onLogout }) => {
                       }
                       zoom={11}
                     >
+                      {/* Warehouse marker - green house icon */}
+                      {(() => {
+                        const wh = selectedTrip.warehouse || warehouse;
+                        if (wh && wh.warehouse_lat && wh.warehouse_lng) {
+                          return (
+                            <Marker
+                              position={{ lat: wh.warehouse_lat, lng: wh.warehouse_lng }}
+                              title={`Склад: ${wh.warehouse_address || wh.address || 'Начальная точка'}`}
+                              icon={{
+                                path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+                                scale: 1.5,
+                                fillColor: '#22c55e',
+                                fillOpacity: 1,
+                                strokeColor: 'white',
+                                strokeWeight: 2,
+                                anchor: new window.google.maps.Point(12, 22)
+                              }}
+                            />
+                          );
+                        }
+                        return null;
+                      })()}
+
                       {/* Order markers with numbers */}
                       {selectedTrip.orders?.map((order, index) => (
                         order.lat && order.lng && (
