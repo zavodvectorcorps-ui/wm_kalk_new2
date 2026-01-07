@@ -560,16 +560,26 @@ async def start_trip(
         if current_status != "delivered":
             order_statuses[order_id] = "delivering"
     
-    # Update trip status to in_transit
+    # Update trip status to in_transit with mileage data
+    update_data = {
+        "status": "in_transit",
+        "orderStatuses": order_statuses,
+        "startedAt": now,
+        "startedBy": driver.get("name"),
+        "updatedAt": now
+    }
+    
+    # Add mileage if provided
+    if start_mileage is not None:
+        update_data["mileage"] = {
+            "start": start_mileage,
+            "end": None,
+            "total": None
+        }
+    
     trips_collection.update_one(
         {"id": trip_id},
-        {"$set": {
-            "status": "in_transit",
-            "orderStatuses": order_statuses,
-            "startedAt": now,
-            "startedBy": driver.get("name"),
-            "updatedAt": now
-        }}
+        {"$set": update_data}
     )
     
     # Update all orders in the collection
