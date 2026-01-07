@@ -318,6 +318,7 @@
             const orderId = document.getElementById('amocrm-order-id').value;
             const token = getToken();
             const result = document.getElementById('amocrm-result');
+            const stepsDiv = document.getElementById('amocrm-steps');
             
             if (!orderId || !token) {
                 result.textContent = 'Введите Order ID и токен';
@@ -325,6 +326,7 @@
             }
             
             result.textContent = 'Отправка фото в amoCRM...';
+            stepsDiv.innerHTML = '';
             log(`Отправка фото в amoCRM для заказа ${orderId}`);
             
             try {
@@ -334,6 +336,38 @@
                 });
                 const data = await res.json();
                 result.textContent = JSON.stringify(data, null, 2);
+                
+                // Show step-by-step results
+                if (data.debug) {
+                    let stepsHtml = '<h4>Детали процесса:</h4>';
+                    const debug = data.debug;
+                    
+                    stepsHtml += '<table style="font-size: 11px;">';
+                    stepsHtml += '<tr><th>Шаг</th><th>Результат</th></tr>';
+                    
+                    if (debug.session_status) {
+                        const ok = debug.session_status === 200 || debug.session_status === 201;
+                        stepsHtml += `<tr><td>1. Создание сессии</td><td class="${ok ? 'success' : 'error'}">${debug.session_status}</td></tr>`;
+                    }
+                    if (debug.upload_status) {
+                        const ok = debug.upload_status === 200 || debug.upload_status === 201;
+                        stepsHtml += `<tr><td>2. Загрузка файла</td><td class="${ok ? 'success' : 'error'}">${debug.upload_status}</td></tr>`;
+                    }
+                    if (debug.file_uuid) {
+                        stepsHtml += `<tr><td>3. UUID файла</td><td class="success">${debug.file_uuid}</td></tr>`;
+                    }
+                    if (debug.note_status) {
+                        const ok = debug.note_status === 200 || debug.note_status === 201;
+                        stepsHtml += `<tr><td>4. Создание заметки</td><td class="${ok ? 'success' : 'error'}">${debug.note_status}</td></tr>`;
+                    }
+                    if (debug.link_status) {
+                        const ok = debug.link_status === 200 || debug.link_status === 201 || debug.link_status === 202;
+                        stepsHtml += `<tr><td>4b. Прикрепление к сделке</td><td class="${ok ? 'success' : 'error'}">${debug.link_status}</td></tr>`;
+                    }
+                    
+                    stepsHtml += '</table>';
+                    stepsDiv.innerHTML = stepsHtml;
+                }
                 
                 if (data.success) {
                     log(`✅ Фото отправлено: ${data.message}`, 'success');
