@@ -796,14 +796,28 @@ export const useLogistics = () => {
         // Show detailed message about amoCRM sync
         if (data.amocrm_orders_count > 0) {
           const settings = data.amocrm_settings || {};
+          const successCount = data.amocrm_success_count || 0;
+          const errorCount = data.amocrm_error_count || 0;
+          const skippedCount = data.amocrm_skipped_count || 0;
+          
           if (!settings.configured) {
             toast.warning('Заказ убран из рейса. Настройки amoCRM не найдены.');
           } else if (!settings.domain_set || !settings.token_set) {
             toast.warning('Заказ убран из рейса. Укажите домен и токен amoCRM для очистки данных в CRM.');
           } else if (!settings.trip_fields_configured) {
             toast.warning('Заказ убран из рейса. Укажите ID полей рейса в настройках amoCRM.');
+          } else if (successCount > 0) {
+            toast.success(`Заказ убран из рейса, данные очищены в amoCRM (${successCount} из ${data.amocrm_orders_count})`);
+          } else if (errorCount > 0) {
+            // Get detailed error info from results
+            const errorResult = data.amocrm_clear_results?.find(r => r.status === 'error');
+            const errorDetail = errorResult?.detail || errorResult?.message || 'Неизвестная ошибка';
+            toast.error(`Заказ убран, но ошибка очистки amoCRM: ${errorDetail}`);
+          } else if (skippedCount > 0) {
+            const skipResult = data.amocrm_clear_results?.find(r => r.status === 'skipped');
+            toast.warning(`Заказ убран из рейса. amoCRM: ${skipResult?.message || 'пропущено'}`);
           } else {
-            toast.success('Заказ убран из рейса, данные в amoCRM очищены');
+            toast.success('Заказ убран из рейса');
           }
         } else {
           toast.success('Заказ убран из рейса');
