@@ -12,7 +12,7 @@ import os
 import time
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://driver-logistics-4.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://logistics-hub-197.preview.emergentagent.com')
 
 
 class TestAddOrdersToTrip:
