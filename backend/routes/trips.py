@@ -266,6 +266,10 @@ async def sync_single_order_to_amocrm(order: dict):
 async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, driver_name: str = ""):
     """Send delivery photo to amoCRM as a note with file attachment.
     
+    amoCRM API v4 process:
+    1. Create a note on the lead (POST /api/v4/leads/{lead_id}/notes)
+    2. Upload file to that note (POST /api/v4/notes/{note_id}/files)
+    
     Args:
         order_id: Internal order ID
         amocrm_id: amoCRM lead ID
@@ -312,20 +316,13 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
         
         logger.info(f"Photo size: {len(photo_bytes)} bytes, type: {content_type}")
         
-        # First, upload file to amoCRM
-        # amoCRM file upload endpoint
-        upload_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
-        
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # Method 1: Try to add note with text about the photo
-            # Since amoCRM file API can be complex, we'll add a note with link
-            
-            note_text = f"📷 Фото доставки загружено"
+            # Step 1: Create a note on the lead
+            note_text = f"📷 Фото акта доставки"
             if driver_name:
                 note_text += f"\nВодитель: {driver_name}"
             note_text += f"\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
             
-            # Add note to lead
             notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
             note_payload = [
                 {
@@ -345,20 +342,31 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
                 json=note_payload
             )
             
+            note_id = None
             if response.status_code in [200, 201]:
-                logger.info(f"✅ Added delivery note to amoCRM lead {amocrm_id}")
+                try:
+                    resp_data = response.json()
+                    # amoCRM returns _embedded.notes[0].id
+                    notes_list = resp_data.get("_embedded", {}).get("notes", [])
+                    if notes_list:
+                        note_id = notes_list[0].get("id")
+                        logger.info(f"✅ Created note {note_id} on amoCRM lead {amocrm_id}")
+                except Exception as parse_err:
+                    logger.warning(f"Could not parse note response: {parse_err}")
             else:
-                logger.warning(f"Failed to add note: {response.status_code} - {response.text[:200]}")
+                logger.warning(f"Failed to create note: {response.status_code} - {response.text[:200]}")
             
-            # Method 2: Try to upload file via files API
-            # This requires multipart form data
-            try:
+            # Step 2: Upload file to the note
+            if note_id:
+                file_upload_url = f"https://{domain}/api/v4/notes/{note_id}/files"
+                
+                # Use multipart/form-data for file upload
                 files = {
                     "file": (filename, photo_bytes, content_type)
                 }
                 
                 file_response = await client.post(
-                    upload_url,
+                    file_upload_url,
                     headers={
                         "Authorization": f"Bearer {token}"
                     },
@@ -366,17 +374,27 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
                 )
                 
                 if file_response.status_code in [200, 201]:
-                    logger.info(f"✅ Uploaded photo file to amoCRM lead {amocrm_id}")
+                    logger.info(f"✅ Uploaded photo file to amoCRM note {note_id}")
                     return True
                 else:
-                    logger.warning(f"Failed to upload file: {file_response.status_code} - {file_response.text[:200]}")
-                    # Still return True if note was added
-                    return response.status_code in [200, 201]
-                    
-            except Exception as file_error:
-                logger.error(f"File upload error: {file_error}")
-                # Return True if at least the note was added
-                return response.status_code in [200, 201]
+                    logger.warning(f"Failed to upload file to note: {file_response.status_code} - {file_response.text[:300]}")
+                    # Try alternative: attach file directly to lead
+                    lead_files_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+                    alt_response = await client.post(
+                        lead_files_url,
+                        headers={
+                            "Authorization": f"Bearer {token}"
+                        },
+                        files=files
+                    )
+                    if alt_response.status_code in [200, 201]:
+                        logger.info(f"✅ Uploaded photo file directly to lead {amocrm_id}")
+                        return True
+                    else:
+                        logger.warning(f"Alt file upload failed: {alt_response.status_code}")
+            
+            # Return True if at least note was created (partial success)
+            return note_id is not None
                 
     except Exception as e:
         logger.error(f"❌ Error sending photo to amoCRM: {e}")
