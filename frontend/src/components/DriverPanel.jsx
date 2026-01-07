@@ -572,11 +572,15 @@ export const DriverPanel = ({ onLogout }) => {
                       {/* Warehouse marker - green house icon */}
                       {(() => {
                         const wh = selectedTrip.warehouse || warehouse;
-                        if (wh && wh.warehouse_lat && wh.warehouse_lng) {
+                        // Check both naming conventions: lat/lng and warehouse_lat/warehouse_lng
+                        const whLat = wh?.lat || wh?.warehouse_lat;
+                        const whLng = wh?.lng || wh?.warehouse_lng;
+                        const whAddr = wh?.address || wh?.warehouse_address;
+                        if (wh && whLat && whLng) {
                           return (
                             <Marker
-                              position={{ lat: wh.warehouse_lat, lng: wh.warehouse_lng }}
-                              title={`Склад: ${wh.warehouse_address || wh.address || 'Начальная точка'}`}
+                              position={{ lat: whLat, lng: whLng }}
+                              title={`Склад: ${whAddr || 'Начальная точка'}`}
                               icon={{
                                 path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
                                 scale: 1.5,
