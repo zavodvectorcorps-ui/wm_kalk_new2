@@ -532,6 +532,18 @@ export const DriverPanel = ({ onLogout }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Push notification toggle */}
+            {pushSupported && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={`text-white ${pushEnabled ? 'hover:bg-green-500 bg-green-600/50' : 'hover:bg-purple-500'}`}
+                onClick={pushEnabled ? unsubscribeFromPush : subscribeToPush}
+                title={pushEnabled ? 'Отключить уведомления' : 'Включить уведомления'}
+              >
+                {pushEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+              </Button>
+            )}
             <Button 
               variant="ghost" 
               size="sm" 
