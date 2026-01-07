@@ -180,11 +180,41 @@ export const IntegrationsPage = () => {
   const saveSettings = async () => {
     setSaving(true);
     try {
+      // Save amoCRM settings
       const res = await fetch(`${API_URL}/api/integrations/amocrm/settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
       });
+
+      // Also save warehouse settings if provided
+      if (settings.warehouse_address) {
+        const token = localStorage.getItem('authToken');
+        const warehouseRes = await fetch(`${API_URL}/api/driver-panel/warehouse-settings`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            warehouse_address: settings.warehouse_address,
+            warehouse_lat: settings.warehouse_lat,
+            warehouse_lng: settings.warehouse_lng
+          })
+        });
+        
+        if (warehouseRes.ok) {
+          const warehouseData = await warehouseRes.json();
+          // Update local state with geocoded coordinates
+          if (warehouseData.warehouse_lat && warehouseData.warehouse_lng) {
+            setSettings(prev => ({
+              ...prev,
+              warehouse_lat: warehouseData.warehouse_lat,
+              warehouse_lng: warehouseData.warehouse_lng
+            }));
+          }
+        }
+      }
 
       if (res.ok) {
         toast.success('Настройки сохранены');
