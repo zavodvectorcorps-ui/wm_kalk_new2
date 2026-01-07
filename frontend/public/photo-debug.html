@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Debug - WM Kalkulator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 0; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .info { color: #3b82f6; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #2563eb; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin: 5px; width: 200px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background: #f5f5f5; }
+        .photo-thumb { max-width: 100px; max-height: 100px; cursor: pointer; }
+        .photo-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .photo-modal img { max-width: 90%; max-height: 90%; }
+        .photo-modal .close { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>📷 Photo Upload Debug</h1>
+    
+    <div class="card">
+        <h2>1. Все сохранённые фото</h2>
+        <button onclick="loadAllPhotos()">Загрузить список фото</button>
+        <div id="photos-list"></div>
+    </div>
+    
+    <div class="card">
+        <h2>2. Поиск фото по заказу</h2>
+        <input type="text" id="search-trip-id" placeholder="Trip ID">
+        <input type="text" id="search-order-id" placeholder="Order ID">
+        <button onclick="searchPhoto()">Найти фото</button>
+        <pre id="photo-result">Результат появится здесь...</pre>
+        <div id="photo-preview"></div>
+    </div>
+    
+    <div class="card">
+        <h2>3. Тест загрузки фото</h2>
+        <div>
+            <input type="text" id="upload-trip-id" placeholder="Trip ID" value="">
+            <input type="text" id="upload-order-id" placeholder="Order ID" value="">
+            <input type="file" id="upload-file" accept="image/*">
+        </div>
+        <div style="margin-top: 10px;">
+            <input type="text" id="auth-token" placeholder="Auth Token" style="width: 400px;">
+            <button onclick="getTokenFromStorage()">Получить токен</button>
+        </div>
+        <button onclick="testUpload()">Загрузить фото</button>
+        <pre id="upload-result">Результат появится здесь...</pre>
+    </div>
+    
+    <div class="card">
+        <h2>4. Проверка синхронизации с amoCRM</h2>
+        <input type="text" id="amocrm-order-id" placeholder="Order ID">
+        <button onclick="checkAmocrmSync()">Проверить заказ</button>
+        <pre id="amocrm-result">Результат появится здесь...</pre>
+    </div>
+    
+    <div class="card">
+        <h2>5. Логи</h2>
+        <pre id="logs"></pre>
+    </div>
+
+    <div id="photo-modal" class="photo-modal" style="display: none;" onclick="closeModal()">
+        <span class="close">&times;</span>
+        <img id="modal-image" src="">
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8001'
+            : window.location.origin;
+        
+        const logs = [];
+        
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            logs.unshift({ time, message, type });
+            if (logs.length > 100) logs.pop();
+            
+            document.getElementById('logs').innerHTML = logs.map(l => 
+                `<span class="timestamp">[${l.time}]</span> <span class="${l.type}">${l.message}</span>`
+            ).join('\n');
+        }
+        
+        function getToken() {
+            return document.getElementById('auth-token').value || localStorage.getItem('authToken');
+        }
+        
+        function getTokenFromStorage() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                document.getElementById('auth-token').value = token;
+                log('Токен получен из localStorage', 'success');
+            } else {
+                log('Токен не найден', 'error');
+            }
+        }
+        
+        async function loadAllPhotos() {
+            const container = document.getElementById('photos-list');
+            container.innerHTML = '<p>Загрузка...</p>';
+            log('Загрузка списка фото...');
+            
+            try {
+                const token = getToken();
+                const res = await fetch(`${API_URL}/api/driver-panel/photos/list`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                const data = await res.json();
+                
+                if (data.photos && data.photos.length > 0) {
+                    let html = `<p>Найдено фото: ${data.photos.length}</p>`;
+                    html += '<table><tr><th>Превью</th><th>Trip ID</th><th>Order ID</th><th>Загружено</th><th>Кем</th><th>Сумма</th></tr>';
+                    
+                    for (const photo of data.photos) {
+                        const thumbUrl = `${API_URL}/api/driver-panel/photo-image/${photo.tripId}/${photo.orderId}`;
+                        html += `<tr>
+                            <td><img src="${thumbUrl}" class="photo-thumb" onclick="showPhoto('${thumbUrl}')" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><text x=%2250%%22 y=%2250%%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22>Нет фото</text></svg>'"></td>
+                            <td>${photo.tripId || '-'}</td>
+                            <td>${photo.orderId || '-'}</td>
+                            <td>${photo.confirmedAt ? new Date(photo.confirmedAt).toLocaleString('ru-RU') : '-'}</td>
+                            <td>${photo.uploadedBy || '-'}</td>
+                            <td>${photo.receivedAmount || '-'}</td>
+                        </tr>`;
+                    }
+                    html += '</table>';
+                    container.innerHTML = html;
+                    log(`Загружено ${data.photos.length} фото`, 'success');
+                } else {
+                    container.innerHTML = '<p>Нет сохранённых фото</p>';
+                    log('Фото не найдены', 'warning');
+                }
+            } catch (e) {
+                container.innerHTML = `<p class="error">Ошибка: ${e.message}</p>`;
+                log(`Ошибка: ${e.message}`, 'error');
+            }
+        }
+        
+        async function searchPhoto() {
+            const tripId = document.getElementById('search-trip-id').value;
+            const orderId = document.getElementById('search-order-id').value;
+            const result = document.getElementById('photo-result');
+            const preview = document.getElementById('photo-preview');
+            
+            if (!tripId || !orderId) {
+                result.textContent = 'Введите Trip ID и Order ID';
+                return;
+            }
+            
+            result.textContent = 'Поиск...';
+            preview.innerHTML = '';
+            log(`Поиск фото: tripId=${tripId}, orderId=${orderId}`);
+            
+            try {
+                const res = await fetch(`${API_URL}/api/driver-panel/photo/${tripId}/${orderId}`);
+                const data = await res.json();
+                
+                if (res.ok) {
+                    result.textContent = JSON.stringify(data, null, 2);
+                    
+                    // Show photo preview
+                    const imgUrl = `${API_URL}/api/driver-panel/photo-image/${tripId}/${orderId}`;
+                    preview.innerHTML = `<img src="${imgUrl}" style="max-width: 300px; margin-top: 10px; cursor: pointer;" onclick="showPhoto('${imgUrl}')">`;
+                    log('Фото найдено', 'success');
+                } else {
+                    result.textContent = JSON.stringify(data, null, 2);
+                    log('Фото не найдено', 'warning');
+                }
+            } catch (e) {
+                result.textContent = `Ошибка: ${e.message}`;
+                log(`Ошибка: ${e.message}`, 'error');
+            }
+        }
+        
+        async function testUpload() {
+            const tripId = document.getElementById('upload-trip-id').value;
+            const orderId = document.getElementById('upload-order-id').value;
+            const fileInput = document.getElementById('upload-file');
+            const token = getToken();
+            const result = document.getElementById('upload-result');
+            
+            if (!tripId || !orderId) {
+                result.textContent = 'Введите Trip ID и Order ID';
+                return;
+            }
+            if (!fileInput.files[0]) {
+                result.textContent = 'Выберите файл';
+                return;
+            }
+            if (!token) {
+                result.textContent = 'Нужен токен авторизации';
+                return;
+            }
+            
+            result.textContent = 'Загрузка...';
+            log(`Загрузка фото: tripId=${tripId}, orderId=${orderId}, file=${fileInput.files[0].name}`);
+            
+            try {
+                const formData = new FormData();
+                formData.append('tripId', tripId);
+                formData.append('orderId', orderId);
+                formData.append('photo', fileInput.files[0]);
+                formData.append('receivedAmount', '100');
+                
+                const res = await fetch(`${API_URL}/api/driver-panel/upload-photo`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                const data = await res.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (res.ok) {
+                    log(`Фото загружено: ${data.photoId}`, 'success');
+                } else {
+                    log(`Ошибка загрузки: ${data.detail}`, 'error');
+                }
+            } catch (e) {
+                result.textContent = `Ошибка: ${e.message}`;
+                log(`Ошибка: ${e.message}`, 'error');
+            }
+        }
+        
+        async function checkAmocrmSync() {
+            const orderId = document.getElementById('amocrm-order-id').value;
+            const token = getToken();
+            const result = document.getElementById('amocrm-result');
+            
+            if (!orderId || !token) {
+                result.textContent = 'Введите Order ID и токен';
+                return;
+            }
+            
+            result.textContent = 'Проверка...';
+            log(`Проверка amoCRM синхронизации для заказа ${orderId}`);
+            
+            try {
+                // This endpoint would need to be created
+                const res = await fetch(`${API_URL}/api/driver-panel/debug/order/${orderId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                log('Информация о заказе получена', 'success');
+            } catch (e) {
+                result.textContent = `Ошибка: ${e.message}`;
+                log(`Ошибка: ${e.message}`, 'error');
+            }
+        }
+        
+        function showPhoto(url) {
+            document.getElementById('modal-image').src = url;
+            document.getElementById('photo-modal').style.display = 'flex';
+        }
+        
+        function closeModal() {
+            document.getElementById('photo-modal').style.display = 'none';
+        }
+        
+        // Init
+        window.onload = () => {
+            getTokenFromStorage();
+            log('Страница загружена', 'info');
+        };
+    </script>
+</body>
+</html>
