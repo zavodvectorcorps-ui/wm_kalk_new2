@@ -663,10 +663,14 @@ async def repair_photo_link(order_id: str, current_user: dict = Depends(get_curr
     
     This is useful when photo was uploaded but the order record wasn't updated.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     result = {
         "success": False,
         "message": "",
-        "order_id": order_id
+        "order_id": order_id,
+        "debug": {}
     }
     
     # Build possible ID variations
@@ -677,28 +681,44 @@ async def repair_photo_link(order_id: str, current_user: dict = Depends(get_curr
         plain_id = order_id.split("-")[-1]
         search_ids.append(plain_id)
     
+    result["debug"]["search_ids"] = search_ids
+    
     # Find photo
     photo = None
+    photo_found_by = None
     for sid in search_ids:
         photo = delivery_photos.find_one({"orderId": sid})
         if photo:
+            photo_found_by = sid
             break
     
     if not photo:
-        result["message"] = "Фото не найдено в базе"
+        result["message"] = "Фото не найдено в базе delivery_photos"
+        result["debug"]["photos_count"] = delivery_photos.count_documents({})
+        # List some photos for debugging
+        sample_photos = list(delivery_photos.find({}, {"_id": 0, "orderId": 1, "tripId": 1}).limit(5))
+        result["debug"]["sample_photos"] = sample_photos
         return result
+    
+    result["debug"]["photo_found_by"] = photo_found_by
     
     photo_order_id = photo.get("orderId")
     photo_url = photo.get("photoUrl")
     trip_id = photo.get("tripId")
     
+    result["debug"]["photo_orderId"] = photo_order_id
+    result["debug"]["photo_tripId"] = trip_id
+    result["debug"]["has_photoUrl"] = bool(photo_url)
+    result["debug"]["photoUrl_length"] = len(photo_url) if photo_url else 0
+    
     if not photo_url:
-        result["message"] = "Фото найдено, но photoUrl пустой"
+        result["message"] = "Фото найдено в delivery_photos, но поле photoUrl пустое"
         return result
     
     # Find order in collections
     order = None
     order_collection = None
+    order_found_by = None
     for section_name, collection in [
         ("balia", balia_orders),
         ("greenhouse", greenhouse_orders),
@@ -709,19 +729,31 @@ async def repair_photo_link(order_id: str, current_user: dict = Depends(get_curr
                 order = collection.find_one({"id": sid})
                 if order:
                     order_collection = collection
+                    order_found_by = f"id={sid}"
                     result["found_in"] = section_name
                     break
                 order = collection.find_one({"amocrm_id": sid})
                 if order:
                     order_collection = collection
+                    order_found_by = f"amocrm_id={sid}"
                     result["found_in"] = section_name
                     break
             if order:
                 break
     
+    result["debug"]["order_found_by"] = order_found_by
+    
     if not order:
-        result["message"] = "Заказ не найден в коллекциях"
+        result["message"] = "Заказ не найден ни в одной коллекции (balia, greenhouse, sauna)"
+        # Count orders in each collection
+        result["debug"]["balia_count"] = balia_orders.count_documents({}) if balia_orders else 0
+        result["debug"]["greenhouse_count"] = greenhouse_orders.count_documents({}) if greenhouse_orders else 0
+        result["debug"]["sauna_count"] = sauna_orders.count_documents({}) if sauna_orders else 0
         return result
+    
+    result["debug"]["order_id_in_db"] = order.get("id")
+    result["debug"]["order_amocrm_id"] = order.get("amocrm_id")
+    result["debug"]["order_current_deliveryPhotoUrl"] = bool(order.get("deliveryPhotoUrl"))
     
     # Update order with photo data
     update_data = {
@@ -737,11 +769,21 @@ async def repair_photo_link(order_id: str, current_user: dict = Depends(get_curr
     if photo.get("receivedAmount"):
         update_data["receivedAmount"] = photo.get("receivedAmount")
     
-    order_collection.update_one({"id": order.get("id")}, {"$set": update_data})
+    update_result = order_collection.update_one({"id": order.get("id")}, {"$set": update_data})
     
-    result["success"] = True
-    result["message"] = f"Связь восстановлена для заказа {order.get('id')}"
-    result["updated_fields"] = list(update_data.keys())
+    result["debug"]["update_matched"] = update_result.matched_count
+    result["debug"]["update_modified"] = update_result.modified_count
+    
+    # Verify the update
+    updated_order = order_collection.find_one({"id": order.get("id")}, {"_id": 0, "deliveryPhotoUrl": 1})
+    result["debug"]["verified_has_photoUrl"] = bool(updated_order.get("deliveryPhotoUrl") if updated_order else False)
+    
+    if update_result.modified_count > 0 or (updated_order and updated_order.get("deliveryPhotoUrl")):
+        result["success"] = True
+        result["message"] = f"Связь восстановлена для заказа {order.get('id')}"
+        result["updated_fields"] = list(update_data.keys())
+    else:
+        result["message"] = "Обновление не применилось"
     
     return result
 
