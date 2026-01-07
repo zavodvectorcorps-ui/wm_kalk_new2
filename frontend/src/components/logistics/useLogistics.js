@@ -1882,6 +1882,9 @@ export const useLogistics = () => {
     setNewDriverUserId,
     driverUsers,
     updateDriver,
+    sendDriverNotification,
+    sendingNotification,
+    getDriverNotificationStatus,
     
     // Map
     mapFilter,
