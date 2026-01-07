@@ -513,13 +513,18 @@ async def send_custom_notification(
                 logger.error(f"Failed to send Telegram message: {e}")
     
     if not telegram_sent:
-        method_used = "Push (в очереди)"
-        # Queue push notification
-        await send_push_notification(
+        method_used = "Push"
+        # Send push notification to driver
+        # Get driver's userId for subscription lookup
+        driver_user_id = driver.get("userId")
+        success = await send_push_notification(
+            user_id=driver_user_id,
             driver_id=request.driverId,
             title="Сообщение",
             body=request.message
         )
+        if not success:
+            method_used = "Push (нет подписки)"
     
     return {
         "status": "sent" if telegram_sent else "queued",
