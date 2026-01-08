@@ -1137,167 +1137,61 @@ async def list_backups():
 async def create_auto_backup():
     """
     Create an automatic backup and send to Telegram.
-    Uses the same logic as /telegram/send endpoint but also saves metadata to DB.
+    Uses the SAME full backup as 'Send to Telegram' button - no MongoDB storage.
     """
     try:
-        from services.telegram_service import send_backup_to_telegram as send_to_tg
+        logger.info("Starting auto backup (full backup to Telegram)...")
         
-        logger.info("Starting auto backup...")
-        created_at = datetime.now(timezone.utc).isoformat()
+        # Call the same function as "Send to Telegram" button
+        result = await send_backup_to_telegram()
         
-        # Get Telegram config
-        config = await db.settings.find_one({"type": "telegram_backup"})
-        chat_id = config.get('chat_id') if config else os.environ.get('TELEGRAM_BACKUP_CHAT_ID', '')
-        
-        bot_token = await get_telegram_bot_token()
-        
-        telegram_sent = False
-        backup_size = 0
-        collections_count = 0
-        
-        if chat_id and bot_token:
-            # Create backup ZIP in memory (simplified - only essential data)
-            zip_buffer = io.BytesIO()
-            backup_manifest = {
-                "version": "3.0",
-                "createdAt": created_at,
-                "collections": []
-            }
-            
-            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-                # Core collections only (for speed)
-                collections_to_backup = [
-                    ("orders", "balia_orders"),
-                    ("sauna_orders", "sauna_orders"),
-                    ("greenhouse_orders", "greenhouse_orders"),
-                    ("web_orders", "web_orders"),
-                    ("trips", "trips"),
-                    ("drivers", "drivers"),
-                    ("users", "users"),
-                    ("settings", "settings"),
-                    ("customer_fields", "customer_fields"),
-                    ("integration_settings", "integration_settings"),
-                    # Additional important collections
-                    ("amocrm_settings", "amocrm_settings"),
-                    ("tech_spec_config", "tech_spec_config"),
-                    ("balia_tech_spec_config", "balia_tech_spec_config"),
-                    ("warehouse_history", "warehouse_history"),
-                    ("delivery_photos", "delivery_photos"),
-                    ("notification_subscriptions", "notification_subscriptions"),
-                    ("notification_settings", "notification_settings"),
-                    ("telegram_link_codes", "telegram_link_codes"),
-                    ("pending_notifications", "pending_notifications"),
-                    ("images_collection", "images_collection"),
-                ]
-                
-                for db_name, file_name in collections_to_backup:
-                    try:
-                        data = await db[db_name].find({}).to_list(10000)
-                        if data:
-                            data = [serialize_for_json(d) for d in data]
-                            zip_file.writestr(f"{file_name}.json", json.dumps(data, ensure_ascii=False, indent=2))
-                            backup_manifest["collections"].append({"name": file_name, "count": len(data)})
-                    except Exception as e:
-                        logger.warning(f"Failed to backup {db_name}: {e}")
-                
-                # Prices (important but can be large)
-                try:
-                    balia_prices = await db.prices.find_one({"_id": "default"})
-                    if not balia_prices:
-                        balia_prices = await db.prices.find_one({})
-                    if balia_prices:
-                        balia_prices = serialize_for_json(balia_prices)
-                        zip_file.writestr("balia_prices.json", json.dumps(balia_prices, ensure_ascii=False, indent=2))
-                        backup_manifest["collections"].append({"name": "balia_prices", "count": 1})
-                except Exception as e:
-                    logger.warning(f"Failed to backup balia_prices: {e}")
-                
-                try:
-                    sauna_prices = await db.sauna_prices.find_one({"_id": "default"})
-                    if sauna_prices:
-                        sauna_prices = serialize_for_json(sauna_prices)
-                        zip_file.writestr("sauna_prices.json", json.dumps(sauna_prices, ensure_ascii=False, indent=2))
-                        backup_manifest["collections"].append({"name": "sauna_prices", "count": 1})
-                except Exception as e:
-                    logger.warning(f"Failed to backup sauna_prices: {e}")
-                
-                # Uploaded files metadata (without actual file content to keep size manageable)
-                try:
-                    uploaded_files = await db.uploaded_files.find({}).to_list(10000)
-                    if uploaded_files:
-                        uploaded_files = [serialize_for_json(f) for f in uploaded_files]
-                        zip_file.writestr("uploaded_files_metadata.json", json.dumps(uploaded_files, ensure_ascii=False, indent=2))
-                        backup_manifest["collections"].append({"name": "uploaded_files_metadata", "count": len(uploaded_files)})
-                except Exception as e:
-                    logger.warning(f"Failed to backup uploaded_files: {e}")
-                
-                # Write manifest
-                zip_file.writestr("manifest.json", json.dumps(backup_manifest, ensure_ascii=False, indent=2))
-            
-            zip_buffer.seek(0)
-            backup_bytes = zip_buffer.getvalue()
-            backup_size = len(backup_bytes)
-            collections_count = len(backup_manifest["collections"])
-            
-            logger.info(f"Auto backup ZIP created: {backup_size} bytes, {collections_count} collections")
-            
-            # Send to Telegram
-            try:
-                result = await send_to_tg(
-                    backup_data=backup_bytes,
-                    backup_info=backup_manifest,
-                    chat_id=chat_id,
-                    bot_token=bot_token
-                )
-                telegram_sent = result.get('success', False)
-                if telegram_sent:
-                    logger.info("Auto backup sent to Telegram successfully")
-                else:
-                    logger.warning(f"Failed to send to Telegram: {result}")
-            except Exception as tg_error:
-                logger.error(f"Telegram send error: {tg_error}")
+        # Extract info from response
+        if hasattr(result, 'body'):
+            import json as json_module
+            result_data = json_module.loads(result.body)
         else:
-            logger.warning(f"Telegram not configured: chat_id={bool(chat_id)}, bot_token={bool(bot_token)}")
+            result_data = result
         
-        # Save metadata to DB (small document)
-        backup_metadata = {
-            "createdAt": created_at,
-            "size": backup_size,
-            "collections": backup_manifest.get("collections", []) if 'backup_manifest' in dir() else [],
-            "version": "3.0",
-            "telegram_sent": telegram_sent
-        }
-        result = await db.backups.insert_one(backup_metadata)
-        
-        # Update last backup time
+        # Update last backup time in settings (lightweight metadata only)
+        created_at = datetime.now(timezone.utc).isoformat()
         await db.settings.update_one(
             {"type": "backup_settings"},
             {"$set": {"lastBackup": created_at}},
             upsert=True
         )
         
-        if telegram_sent:
-            await db.settings.update_one(
-                {"type": "telegram_backup"},
-                {"$set": {"last_sent": created_at}},
-                upsert=True
-            )
+        await db.settings.update_one(
+            {"type": "telegram_backup"},
+            {"$set": {"last_sent": created_at}},
+            upsert=True
+        )
         
-        # Clean old backup records (keep only 10)
+        # Save only metadata to backups collection (not full data)
+        backup_metadata = {
+            "createdAt": created_at,
+            "size": result_data.get("size", 0),
+            "telegram_sent": result_data.get("success", False),
+            "collections_count": result_data.get("collections_count", 0),
+            "version": "3.0",
+            "type": "auto"
+        }
+        await db.backups.insert_one(backup_metadata)
+        
+        # Clean old backup records (keep only last 10)
         all_backups = await db.backups.find({}).sort("createdAt", -1).to_list(100)
         if len(all_backups) > 10:
             for old_backup in all_backups[10:]:
                 await db.backups.delete_one({"_id": old_backup["_id"]})
         
-        logger.info(f"Auto backup completed. Size: {backup_size}, Telegram: {telegram_sent}")
+        logger.info(f"Auto backup completed. Size: {result_data.get('size', 0)}, Telegram: {result_data.get('success', False)}")
         
         return {
-            "success": True,
-            "backupId": str(result.inserted_id),
+            "success": result_data.get("success", False),
+            "backupId": str(backup_metadata.get("_id", "")),
             "createdAt": created_at,
-            "size": backup_size,
-            "telegram_sent": telegram_sent,
-            "collections_count": collections_count
+            "size": result_data.get("size", 0),
+            "telegram_sent": result_data.get("success", False),
+            "collections_count": result_data.get("collections_count", 0)
         }
         
     except Exception as e:
