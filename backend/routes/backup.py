@@ -1145,12 +1145,10 @@ async def create_auto_backup():
         # Call the same function as "Send to Telegram" button
         result = await send_backup_to_telegram()
         
-        # Extract info from response
-        if hasattr(result, 'body'):
-            import json as json_module
-            result_data = json_module.loads(result.body)
-        else:
-            result_data = result
+        # Result is a dict with: success, message, file_size, collections
+        telegram_sent = result.get("success", False)
+        backup_size = result.get("file_size", 0)
+        collections_count = result.get("collections", 0)
         
         # Update last backup time in settings (lightweight metadata only)
         created_at = datetime.now(timezone.utc).isoformat()
@@ -1160,22 +1158,16 @@ async def create_auto_backup():
             upsert=True
         )
         
-        await db.settings.update_one(
-            {"type": "telegram_backup"},
-            {"$set": {"last_sent": created_at}},
-            upsert=True
-        )
-        
         # Save only metadata to backups collection (not full data)
         backup_metadata = {
             "createdAt": created_at,
-            "size": result_data.get("size", 0),
-            "telegram_sent": result_data.get("success", False),
-            "collections_count": result_data.get("collections_count", 0),
+            "size": backup_size,
+            "telegram_sent": telegram_sent,
+            "collections_count": collections_count,
             "version": "3.0",
             "type": "auto"
         }
-        await db.backups.insert_one(backup_metadata)
+        insert_result = await db.backups.insert_one(backup_metadata)
         
         # Clean old backup records (keep only last 10)
         all_backups = await db.backups.find({}).sort("createdAt", -1).to_list(100)
@@ -1183,17 +1175,19 @@ async def create_auto_backup():
             for old_backup in all_backups[10:]:
                 await db.backups.delete_one({"_id": old_backup["_id"]})
         
-        logger.info(f"Auto backup completed. Size: {result_data.get('size', 0)}, Telegram: {result_data.get('success', False)}")
+        logger.info(f"Auto backup completed. Size: {backup_size}, Telegram: {telegram_sent}")
         
         return {
-            "success": result_data.get("success", False),
-            "backupId": str(backup_metadata.get("_id", "")),
+            "success": telegram_sent,
+            "backupId": str(insert_result.inserted_id),
             "createdAt": created_at,
-            "size": result_data.get("size", 0),
-            "telegram_sent": result_data.get("success", False),
-            "collections_count": result_data.get("collections_count", 0)
+            "size": backup_size,
+            "telegram_sent": telegram_sent,
+            "collections_count": collections_count
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
