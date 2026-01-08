@@ -912,6 +912,19 @@ const OrderCard = ({
           <div className="flex items-center justify-between gap-2">
             <p className="font-medium truncate">{order.fullName || order.customerName}</p>
             <div className="flex items-center gap-1">
+              {/* Warehouse status badge */}
+              {order.warehouseStatus === 'ready' && (
+                <Badge className="bg-emerald-100 text-emerald-700 text-xs gap-1">
+                  <Package className="h-3 w-3" />
+                  Скомплектован
+                </Badge>
+              )}
+              {order.warehouseStatus === 'picking' && (
+                <Badge className="bg-amber-100 text-amber-700 text-xs gap-1">
+                  <Package className="h-3 w-3" />
+                  Комплектуется
+                </Badge>
+              )}
               <Badge className={`${status.color} text-xs gap-1`}>
                 <StatusIcon className="h-3 w-3" />
                 {status.label}
