@@ -492,17 +492,6 @@ const WarehousePage = ({ onBack }) => {
       </Card>
     );
   };
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-sm">Нет заказов в рейсе</p>
-              )}
-            </div>
-          </CardContent>
-        )}
-      </Card>
-    );
-  };
 
   if (loading) {
     return (
