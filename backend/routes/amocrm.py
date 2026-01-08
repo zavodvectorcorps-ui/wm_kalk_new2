@@ -572,8 +572,9 @@ def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str] = None
     full_address = ", ".join(address_parts) if address_parts else ""
     lead_data["fullAddress"] = full_address
     
-    # Состав заказа
-    lead_data["orderContents"] = get_field_value("orderContents", ["состав", "комплектация", "товар", "продукт"])
+    # Состав заказа - извлекаем значения после разделителя "|" если он есть
+    raw_order_contents = get_field_value("orderContents", ["состав", "комплектация", "товар", "продукт"])
+    lead_data["orderContents"] = parse_pipe_separated_value(raw_order_contents)
     
     # Комментарий к заказу
     lead_data["orderComment"] = get_field_value("orderComment", ["коммент", "примечан", "note", "comment"])
