@@ -934,8 +934,13 @@ async def sync_missing_orders(
         "sauna": sauna_orders
     }[section]
     
-    # Get field mapping for this section
-    section_mapping = settings.get(f"{section}_field_mapping", {})
+    # Get field mapping for this section (same logic as webhook)
+    all_mappings = settings.get("field_mapping", {})
+    # Support both old (flat) and new (per-section) structure
+    if section in all_mappings:
+        section_mapping = all_mappings[section]
+    else:
+        section_mapping = all_mappings  # Old flat structure
     
     results = {
         "synced": [],
