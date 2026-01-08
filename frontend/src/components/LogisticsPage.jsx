@@ -158,6 +158,7 @@ export const LogisticsPage = () => {
     setSelectedStatus,
     fetchAmocrmStats,
     getAmocrmComparison,
+    syncMissingOrders,
     // Search
     searchQuery,
     setSearchQuery,
