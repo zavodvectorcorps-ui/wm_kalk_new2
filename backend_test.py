@@ -6011,19 +6011,17 @@ def main():
         return False
 
 if __name__ == "__main__":
-    print("🚀 WM Calculator Backend API Testing - amoCRM Photo Upload Fix")
+    print("🚀 WM Calculator Backend API Testing - Warehouse Module Focus")
     print("=" * 70)
     print(f"Backend URL: {BACKEND_URL}")
     print()
     
-    # Run amoCRM photo upload fix tests
-    results = {
-        "amoCRM Photo Upload Fix": test_amocrm_photo_upload_fix(),
-    }
+    # Run warehouse module tests
+    results = test_warehouse_module()
     
     # Print summary
     print("\n" + "=" * 70)
-    print("📊 FINAL TEST SUMMARY")
+    print("📊 WAREHOUSE MODULE TEST SUMMARY")
     print("=" * 70)
     
     total_tests = len(results)
@@ -6041,7 +6039,7 @@ if __name__ == "__main__":
         print(f"  {test_name}: {status}")
     
     if failed_tests == 0:
-        print("\n🎉 ALL TESTS PASSED! Backend API is working correctly.")
+        print("\n🎉 ALL WAREHOUSE TESTS PASSED! Warehouse module API is working correctly.")
         sys.exit(0)
     else:
         print(f"\n⚠️ {failed_tests} test(s) failed. Please check the issues above.")
