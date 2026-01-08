@@ -209,7 +209,7 @@ class PDFRequest(BaseModel):
     fullName: str
     phoneNumber: str
     fullAddress: str
-    orderDate: str
+    orderDate: Optional[str] = Field(default_factory=lambda: datetime.now(timezone.utc).strftime('%Y-%m-%d'))
     # New structure fields
     modelId: Optional[str] = None
     modelName: Optional[str] = None
