@@ -411,6 +411,7 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
                 
                 if file_uuid:
                     logger.info(f"✅ File uploaded in {chunk_num} chunks, UUID: {file_uuid}")
+                    version_uuid = upload_data.get("version_uuid")
                     break
                     
                 if next_url:
