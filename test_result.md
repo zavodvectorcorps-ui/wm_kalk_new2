@@ -1213,3 +1213,34 @@ In `/app/frontend/src/components/logistics/useLogistics.js`:
 3. The amoCRM sync statistics should appear (if amoCRM credentials are configured)
 4. If there are missing orders, click "Синхронизировать" button
 5. Verify orders reload without JavaScript errors
+
+## Order Contents Pipe Separator Parsing - Jan 8, 2026
+
+### Feature Implemented:
+Parse "состав заказа" (order contents) field from amoCRM to extract values after the `|` separator.
+
+### Logic:
+- If field contains `|` separator: extract value AFTER the separator
+- If no separator found: keep full value
+- Handles multiple lines (each line parsed separately)
+
+### Examples:
+```
+Input: "SKU123 | Товар 1"
+Output: "Товар 1"
+
+Input: "SKU123 | Товар 1\nSKU456 | Товар 2"
+Output: "Товар 1\nТовар 2"
+
+Input: "Просто товар без разделителя"
+Output: "Просто товар без разделителя"
+```
+
+### Files Modified:
+- `/app/backend/routes/amocrm.py`:
+  - Added `parse_pipe_separated_value()` function
+  - Applied to `orderContents` field extraction in both webhook handler and API call handler
+
+### Testing:
+- ✅ Unit tests passed for all scenarios
+- ✅ Backend health check passed
