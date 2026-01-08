@@ -837,6 +837,149 @@ async def delete_amocrm_orders(section: str):
     return {"status": "ok", "deleted_count": deleted_count, "section": section}
 
 
+@router.post("/sync-missing/{section}")
+async def sync_missing_orders(
+    section: str,
+    lead_ids: List[str] = []
+):
+    """Sync missing orders from amoCRM by their lead IDs.
+    
+    Fetches lead data from amoCRM API and creates orders in the local database.
+    """
+    if section not in ["greenhouse", "balia", "sauna"]:
+        raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
+    
+    # Get amoCRM settings
+    settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
+    if not settings:
+        raise HTTPException(status_code=400, detail="amoCRM not configured")
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        raise HTTPException(status_code=400, detail="amoCRM credentials not set")
+    
+    # Get collection for section
+    collection = {
+        "greenhouse": greenhouse_orders,
+        "balia": balia_orders,
+        "sauna": sauna_orders
+    }[section]
+    
+    results = {
+        "synced": [],
+        "failed": [],
+        "already_exists": []
+    }
+    
+    for lead_id in lead_ids:
+        try:
+            # Check if order already exists
+            existing = collection.find_one({"amocrm_id": str(lead_id)})
+            if existing:
+                results["already_exists"].append(lead_id)
+                continue
+            
+            # Fetch lead data from amoCRM
+            lead_data = await fetch_lead_from_amocrm(str(lead_id), domain, token)
+            
+            if not lead_data:
+                results["failed"].append({"id": lead_id, "reason": "Lead not found in amoCRM"})
+                continue
+            
+            # Extract contact info if embedded
+            contact_name = ""
+            contact_phone = ""
+            contact_email = ""
+            
+            embedded = lead_data.get("_embedded", {})
+            contacts = embedded.get("contacts", [])
+            if contacts:
+                contact = contacts[0]
+                contact_name = contact.get("name", "")
+                # Try to get phone/email from custom fields
+                for cf in contact.get("custom_fields_values", []):
+                    if cf.get("field_code") == "PHONE":
+                        vals = cf.get("values", [])
+                        if vals:
+                            contact_phone = vals[0].get("value", "")
+                    elif cf.get("field_code") == "EMAIL":
+                        vals = cf.get("values", [])
+                        if vals:
+                            contact_email = vals[0].get("value", "")
+            
+            # Extract custom fields
+            custom_fields = {}
+            for cf in lead_data.get("custom_fields_values", []):
+                field_id = str(cf.get("field_id", ""))
+                values = cf.get("values", [])
+                if values:
+                    custom_fields[field_id] = values[0].get("value", "")
+            
+            # Get field mappings from settings
+            field_mapping = settings.get("field_mapping", {})
+            
+            # Build order data
+            now = datetime.now(timezone.utc).isoformat()
+            prefix = {"greenhouse": "GH", "balia": "BA", "sauna": "SA"}[section]
+            order_id = f"AMO-{prefix}-{lead_id}"
+            
+            order_data = {
+                "id": order_id,
+                "amocrm_id": str(lead_id),
+                "source": "amocrm",
+                "createdAt": now,
+                "updatedAt": now,
+                "clientName": contact_name or lead_data.get("name", ""),
+                "fullName": contact_name or lead_data.get("name", ""),
+                "phone": contact_phone,
+                "email": contact_email,
+                "totalPrice": lead_data.get("price", 0),
+                "warehouseStatus": "request",
+                "deliveryStatus": "pending"
+            }
+            
+            # Map custom fields to order fields
+            address_field = field_mapping.get("address")
+            if address_field and address_field in custom_fields:
+                order_data["deliveryAddress"] = custom_fields[address_field]
+                order_data["fullAddress"] = custom_fields[address_field]
+            
+            dispatch_field = field_mapping.get("dispatch_date")
+            if dispatch_field and dispatch_field in custom_fields:
+                order_data["dispatchDate"] = custom_fields[dispatch_field]
+            
+            comment_field = field_mapping.get("comment")
+            if comment_field and comment_field in custom_fields:
+                order_data["deliveryComment"] = custom_fields[comment_field]
+            
+            # Insert order
+            collection.insert_one(order_data)
+            order_data.pop("_id", None)
+            
+            results["synced"].append({
+                "id": order_id,
+                "amocrm_id": lead_id,
+                "name": order_data.get("clientName")
+            })
+            
+            logger.info(f"Synced missing order from amoCRM: {order_id}")
+            
+        except Exception as e:
+            logger.error(f"Error syncing lead {lead_id}: {e}")
+            results["failed"].append({"id": lead_id, "reason": str(e)})
+    
+    return {
+        "status": "ok",
+        "section": section,
+        "synced_count": len(results["synced"]),
+        "failed_count": len(results["failed"]),
+        "already_exists_count": len(results["already_exists"]),
+        "details": results
+    }
+
+
 # Keep old endpoint for backward compatibility but simplified
 @router.post("/webhook")
 async def receive_webhook_legacy(
