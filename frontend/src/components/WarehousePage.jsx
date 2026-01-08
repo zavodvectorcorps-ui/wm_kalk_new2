@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   Package, Truck, Search, ArrowRight, Clock, User, MapPin, 
   ChevronRight, Box, CheckCircle, History, Filter, RefreshCw,
-  Calendar, Eye, ChevronDown, ChevronUp
+  Calendar, Eye, ChevronDown, ChevronUp, GripVertical, Phone, Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 
