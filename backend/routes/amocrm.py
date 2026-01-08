@@ -894,6 +894,7 @@ async def sync_missing_orders(
     """Sync missing orders from amoCRM by their lead IDs.
     
     Fetches lead data from amoCRM API and creates orders in the local database.
+    Uses the same field extraction logic as the main webhook sync.
     """
     if section not in ["greenhouse", "balia", "sauna"]:
         raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
@@ -916,11 +917,17 @@ async def sync_missing_orders(
         "sauna": sauna_orders
     }[section]
     
+    # Get field mapping for this section
+    section_mapping = settings.get(f"{section}_field_mapping", {})
+    
     results = {
         "synced": [],
         "failed": [],
         "already_exists": []
     }
+    
+    section_prefix = {"greenhouse": "GH", "balia": "BAL", "sauna": "SAU"}
+    section_names = {"greenhouse": "Теплицы", "balia": "Купели", "sauna": "Сауны"}
     
     for lead_id in lead_ids:
         try:
@@ -930,78 +937,83 @@ async def sync_missing_orders(
                 results["already_exists"].append(lead_id)
                 continue
             
-            # Fetch lead data from amoCRM
-            lead_data = await fetch_lead_from_amocrm(str(lead_id), domain, token)
+            # Fetch lead data from amoCRM API
+            api_data = await fetch_lead_from_amocrm(str(lead_id), domain, token)
             
-            if not lead_data:
+            if not api_data:
                 results["failed"].append({"id": lead_id, "reason": "Lead not found in amoCRM"})
                 continue
             
-            # Extract contact info if embedded
-            contact_name = ""
-            contact_phone = ""
-            contact_email = ""
+            # Use the same extraction function as webhook
+            lead_data = extract_lead_data_from_api(api_data, section_mapping)
             
-            embedded = lead_data.get("_embedded", {})
-            contacts = embedded.get("contacts", [])
-            if contacts:
-                contact = contacts[0]
-                contact_name = contact.get("name", "")
-                # Try to get phone/email from custom fields
-                for cf in contact.get("custom_fields_values", []):
-                    if cf.get("field_code") == "PHONE":
-                        vals = cf.get("values", [])
-                        if vals:
-                            contact_phone = vals[0].get("value", "")
-                    elif cf.get("field_code") == "EMAIL":
-                        vals = cf.get("values", [])
-                        if vals:
-                            contact_email = vals[0].get("value", "")
+            if not lead_data:
+                results["failed"].append({"id": lead_id, "reason": "Failed to extract lead data"})
+                continue
             
-            # Extract custom fields
-            custom_fields = {}
-            for cf in lead_data.get("custom_fields_values", []):
-                field_id = str(cf.get("field_id", ""))
-                values = cf.get("values", [])
-                if values:
-                    custom_fields[field_id] = values[0].get("value", "")
+            # Build notes from various fields (same as webhook)
+            notes_parts = []
+            notes_parts.append(f"Из amoCRM ({section_names.get(section, section)})")
+            if lead_data.get("amocrm_name"):
+                notes_parts.append(f"Сделка: {lead_data['amocrm_name']}")
+            if lead_data.get("orderContents"):
+                notes_parts.append(f"Состав: {lead_data['orderContents']}")
+            if lead_data.get("orderComment"):
+                notes_parts.append(f"Комментарий: {lead_data['orderComment']}")
             
-            # Get field mappings from settings
-            field_mapping = settings.get("field_mapping", {})
+            # Generate full amoCRM link with domain
+            amocrm_link = ""
+            domain_clean = domain.replace("https://", "").replace("http://", "").rstrip("/")
+            if lead_data.get("amocrm_id"):
+                amocrm_link = f"https://{domain_clean}/leads/detail/{lead_data.get('amocrm_id')}"
             
-            # Build order data
+            # Check if order is important based on amoCRM flag field
+            is_important = False
+            important_field_id = settings.get("important_order_field_id", "")
+            if important_field_id and api_data:
+                custom_fields = api_data.get("custom_fields_values", [])
+                for field in custom_fields:
+                    if str(field.get("field_id", "")) == important_field_id:
+                        values = field.get("values", [])
+                        if values:
+                            first_val = values[0] if isinstance(values, list) else values
+                            if isinstance(first_val, dict):
+                                val = first_val.get("value", False)
+                            else:
+                                val = first_val
+                            is_important = val in [True, "true", "1", 1, "да", "yes"]
+                        break
+            
+            # Create order with ALL fields (same as webhook)
             now = datetime.now(timezone.utc).isoformat()
-            prefix = {"greenhouse": "GH", "balia": "BA", "sauna": "SA"}[section]
-            order_id = f"AMO-{prefix}-{lead_id}"
+            order_id = f"AMO-{section_prefix.get(section, 'X')}-{lead_data.get('amocrm_id', int(datetime.now().timestamp()))}"
             
             order_data = {
                 "id": order_id,
-                "amocrm_id": str(lead_id),
-                "source": "amocrm",
+                "fullName": lead_data.get("fullName", "") or "Без имени",
+                "phoneNumber": lead_data.get("phoneNumber", ""),
+                "fullAddress": lead_data.get("fullAddress", ""),
+                "addressIndex": lead_data.get("addressIndex", ""),
+                "addressCity": lead_data.get("addressCity", ""),
+                "addressStreet": lead_data.get("addressStreet", ""),
+                "orderNumber": lead_data.get("orderNumber", "") or str(lead_data.get("amocrm_id", "")),
+                "orderContents": lead_data.get("orderContents", ""),
+                "orderComment": lead_data.get("orderComment", ""),
+                "dealSum": lead_data.get("dealSum", ""),
+                "debtSum": lead_data.get("debtSum", ""),
+                "notes": ". ".join(notes_parts),
+                "orderDate": now,
                 "createdAt": now,
-                "updatedAt": now,
-                "clientName": contact_name or lead_data.get("name", ""),
-                "fullName": contact_name or lead_data.get("name", ""),
-                "phone": contact_phone,
-                "email": contact_email,
-                "totalPrice": lead_data.get("price", 0),
+                "source": "amocrm",
+                "status": "new",
+                "deliveryStatus": "pending",
+                "deliveryComment": "",
                 "warehouseStatus": "request",
-                "deliveryStatus": "pending"
+                "isImportant": is_important,
+                "amocrm_id": lead_data.get("amocrm_id"),
+                "amocrm_link": amocrm_link,
+                "amocrm_data": lead_data
             }
-            
-            # Map custom fields to order fields
-            address_field = field_mapping.get("address")
-            if address_field and address_field in custom_fields:
-                order_data["deliveryAddress"] = custom_fields[address_field]
-                order_data["fullAddress"] = custom_fields[address_field]
-            
-            dispatch_field = field_mapping.get("dispatch_date")
-            if dispatch_field and dispatch_field in custom_fields:
-                order_data["dispatchDate"] = custom_fields[dispatch_field]
-            
-            comment_field = field_mapping.get("comment")
-            if comment_field and comment_field in custom_fields:
-                order_data["deliveryComment"] = custom_fields[comment_field]
             
             # Insert order
             collection.insert_one(order_data)
@@ -1010,10 +1022,10 @@ async def sync_missing_orders(
             results["synced"].append({
                 "id": order_id,
                 "amocrm_id": lead_id,
-                "name": order_data.get("clientName")
+                "name": order_data.get("fullName")
             })
             
-            logger.info(f"Synced missing order from amoCRM: {order_id}")
+            logger.info(f"Synced missing order from amoCRM: {order_id} with all fields")
             
         except Exception as e:
             logger.error(f"Error syncing lead {lead_id}: {e}")
