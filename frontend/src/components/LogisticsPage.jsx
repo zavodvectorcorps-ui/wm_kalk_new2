@@ -515,12 +515,33 @@ export const LogisticsPage = () => {
                                   return (
                                     <>
                                       <Badge variant="outline" className="bg-white">
-                                        Локально: {comparison.localCount}
+                                        Свободных: {comparison.localCount}
                                       </Badge>
                                       {comparison.missingInLocal.length > 0 ? (
-                                        <Badge variant="destructive">
-                                          Не перенесено: {comparison.missingInLocal.length}
-                                        </Badge>
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="destructive">
+                                            Не перенесено: {comparison.missingInLocal.length}
+                                          </Badge>
+                                          <Button 
+                                            size="sm" 
+                                            variant="destructive"
+                                            className="h-6 text-xs"
+                                            onClick={async () => {
+                                              try {
+                                                const result = await syncMissingOrders(comparison.missingInLocal);
+                                                if (result) {
+                                                  toast.success(`Синхронизировано: ${result.synced_count}, не удалось: ${result.failed_count}`);
+                                                  fetchAmocrmStats();
+                                                }
+                                              } catch (err) {
+                                                toast.error('Ошибка синхронизации');
+                                              }
+                                            }}
+                                          >
+                                            <RefreshCw className="h-3 w-3 mr-1" />
+                                            Синхронизировать
+                                          </Button>
+                                        </div>
                                       ) : (
                                         <Badge className="bg-green-600">
                                           <CheckCircle className="h-3 w-3 mr-1" />
