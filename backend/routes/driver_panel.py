@@ -1019,41 +1019,101 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
                 result["message"] = "UUID файла не получен после загрузки"
                 return result
             
-            # Step 4: Attach file to lead
-            link_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
-            link_payload = [{"file_uuid": file_uuid}]
+            # Step 4: Create note with file attachment
+            note_text = f"📷 Фото акта доставки"
+            note_text += f"\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+            note_text += f"\nЗаказ: {order.get('id')}"
             
-            result["debug"]["step4_url"] = link_url
-            result["debug"]["step4_payload"] = link_payload
+            notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
             
-            link_response = await client.put(
-                link_url,
+            # Try to create note with embedded file first
+            note_payload_with_file = [
+                {
+                    "note_type": "common",
+                    "params": {
+                        "text": note_text
+                    },
+                    "params_file": {
+                        "file_uuid": file_uuid
+                    }
+                }
+            ]
+            
+            result["debug"]["step4_note_with_file"] = True
+            
+            note_response = await client.post(
+                notes_url,
                 headers=headers_json,
-                json=link_payload
+                json=note_payload_with_file
             )
             
-            result["debug"]["link_status"] = link_response.status_code
-            result["debug"]["link_response"] = link_response.text[:500]
+            result["debug"]["note_with_file_status"] = note_response.status_code
+            result["debug"]["note_with_file_response"] = note_response.text[:500]
             
-            if link_response.status_code in [200, 201, 202]:
-                # Step 5: Also create a note about the photo
-                note_text = f"📷 Фото акта доставки загружено"
-                note_text += f"\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
-                note_text += f"\nЗаказ: {order.get('id')}"
-                note_text += f"\nФайл: {filename}"
+            # If note with file failed, try alternative methods
+            if note_response.status_code not in [200, 201]:
+                # Method 2: Try with _embedded.files
+                note_payload_embedded = [
+                    {
+                        "note_type": "common",
+                        "params": {
+                            "text": note_text
+                        },
+                        "_embedded": {
+                            "files": [{"uuid": file_uuid}]
+                        }
+                    }
+                ]
                 
-                notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
-                note_payload = [{"note_type": "common", "params": {"text": note_text}}]
+                note_response = await client.post(
+                    notes_url,
+                    headers=headers_json,
+                    json=note_payload_embedded
+                )
                 
-                note_response = await client.post(notes_url, headers=headers_json, json=note_payload)
+                result["debug"]["note_embedded_status"] = note_response.status_code
+                result["debug"]["note_embedded_response"] = note_response.text[:500]
+            
+            # If still failed, attach file to lead and create simple note
+            if note_response.status_code not in [200, 201]:
+                # Attach file to lead
+                link_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+                link_payload = [{"file_uuid": file_uuid}]
+                
+                result["debug"]["step4_url"] = link_url
+                result["debug"]["step4_payload"] = link_payload
+                
+                link_response = await client.put(
+                    link_url,
+                    headers=headers_json,
+                    json=link_payload
+                )
+                
+                result["debug"]["link_status"] = link_response.status_code
+                result["debug"]["link_response"] = link_response.text[:500]
+                
+                # Create simple note
+                simple_note = [{"note_type": "common", "params": {"text": note_text + f"\nФайл: {filename}"}}]
+                note_response = await client.post(notes_url, headers=headers_json, json=simple_note)
                 result["debug"]["note_status"] = note_response.status_code
                 
+                if link_response.status_code in [200, 201, 202]:
+                    result["success"] = True
+                    result["message"] = f"Фото загружено в файлы сделки {amocrm_id}"
+                    return result
+            else:
+                result["success"] = True
+                result["message"] = f"Фото прикреплено к заметке на сделке {amocrm_id}"
+                return result
+            
+            if note_response.status_code in [200, 201]:
                 result["success"] = True
                 result["message"] = f"Фото успешно загружено и привязано к сделке {amocrm_id}"
-                return result
             else:
-                result["message"] = f"Не удалось привязать файл к сделке: {link_response.status_code}"
-                return result
+                result["message"] = f"Файл загружен, но не удалось создать заметку: {note_response.status_code}"
+                result["success"] = False
+            
+            return result
             
     except Exception as e:
         result["message"] = f"Ошибка при отправке в amoCRM: {e}"
