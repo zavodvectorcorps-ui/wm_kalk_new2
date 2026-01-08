@@ -924,9 +924,13 @@ const OrderCard = ({
   const status = DELIVERY_STATUSES[order.deliveryStatus] || DELIVERY_STATUSES.pending;
   const StatusIcon = status.icon;
   const isSelected = sectionData[sectionKey].selectedOrders.includes(order.id);
+  
+  // Check if order has empty name
+  const orderName = order.fullName || order.customerName || order.clientName || '';
+  const hasEmptyName = !orderName || orderName.trim() === '' || orderName === 'Без имени';
 
   return (
-    <div className={`p-3 border rounded-lg transition-colors ${isSelected ? `${currentSection.bgColor} ${currentSection.borderColor}` : 'hover:bg-muted/50'}`}>
+    <div className={`p-3 border rounded-lg transition-colors ${hasEmptyName ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : ''} ${isSelected ? `${currentSection.bgColor} ${currentSection.borderColor}` : 'hover:bg-muted/50'}`}>
       <div className="flex items-start gap-3">
         <Checkbox
           checked={isSelected}
