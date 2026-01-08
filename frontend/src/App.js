@@ -407,6 +407,23 @@ const API_URL = getApiUrl();
     );
   }
 
+  // Warehouse Page
+  if (currentCalculator === 'warehouse') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <LandingHeader 
+          isAdmin={isAdmin()} 
+          onLogout={handleLogout}
+        />
+        <Suspense fallback={<PageLoader />}>
+          <WarehousePage onBack={handleBackToLanding} />
+        </Suspense>
+        
+        <Toaster position="top-right" richColors />
+      </div>
+    );
+  }
+
   // Admin Panel
   if (currentCalculator === 'admin' && isAdmin()) {
     return (
