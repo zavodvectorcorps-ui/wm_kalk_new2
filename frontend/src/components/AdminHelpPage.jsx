@@ -132,7 +132,7 @@ const AdminHelpPage = () => {
       </div>
 
       <Tabs defaultValue="debug" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="debug" className="gap-2">
             <Bug className="h-4 w-4" />
             Диагностика
@@ -140,6 +140,10 @@ const AdminHelpPage = () => {
           <TabsTrigger value="tools" className="gap-2">
             <Wrench className="h-4 w-4" />
             Инструменты
+          </TabsTrigger>
+          <TabsTrigger value="amocrm-api" className="gap-2">
+            <Database className="h-4 w-4" />
+            amoCRM API
           </TabsTrigger>
           <TabsTrigger value="integrations" className="gap-2">
             <Settings className="h-4 w-4" />
