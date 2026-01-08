@@ -991,7 +991,8 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
                 result["debug"]["upload_status"] = upload_response.status_code
                 result["debug"]["upload_response"] = upload_response.text[:500]
                 
-                if upload_response.status_code not in [200, 201]:
+                # 200 = complete, 201 = created, 202 = accepted (continue uploading)
+                if upload_response.status_code not in [200, 201, 202]:
                     result["message"] = f"Не удалось загрузить файл (chunk {chunk_num}): {upload_response.status_code}"
                     return result
                 
@@ -1003,15 +1004,15 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
                 
                 if file_uuid:
                     result["debug"]["file_uuid"] = file_uuid
+                    result["debug"]["total_chunks"] = chunk_num
                     break
                     
                 if next_url:
                     current_url = next_url
                     offset = chunk_end
                 else:
-                    # No next_url and no uuid - check if upload is complete
-                    if upload_data.get("next_url") is None and not file_uuid:
-                        result["debug"]["upload_complete_no_uuid"] = upload_data
+                    # No next_url and no uuid - check response for completion
+                    result["debug"]["upload_final_response"] = upload_data
                     break
             
             if not file_uuid:
