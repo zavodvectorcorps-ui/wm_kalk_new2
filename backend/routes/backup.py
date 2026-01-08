@@ -1177,6 +1177,17 @@ async def create_auto_backup():
                     ("settings", "settings"),
                     ("customer_fields", "customer_fields"),
                     ("integration_settings", "integration_settings"),
+                    # Additional important collections
+                    ("amocrm_settings", "amocrm_settings"),
+                    ("tech_spec_config", "tech_spec_config"),
+                    ("balia_tech_spec_config", "balia_tech_spec_config"),
+                    ("warehouse_history", "warehouse_history"),
+                    ("delivery_photos", "delivery_photos"),
+                    ("notification_subscriptions", "notification_subscriptions"),
+                    ("notification_settings", "notification_settings"),
+                    ("telegram_link_codes", "telegram_link_codes"),
+                    ("pending_notifications", "pending_notifications"),
+                    ("images_collection", "images_collection"),
                 ]
                 
                 for db_name, file_name in collections_to_backup:
@@ -1209,6 +1220,16 @@ async def create_auto_backup():
                         backup_manifest["collections"].append({"name": "sauna_prices", "count": 1})
                 except Exception as e:
                     logger.warning(f"Failed to backup sauna_prices: {e}")
+                
+                # Uploaded files metadata (without actual file content to keep size manageable)
+                try:
+                    uploaded_files = await db.uploaded_files.find({}).to_list(10000)
+                    if uploaded_files:
+                        uploaded_files = [serialize_for_json(f) for f in uploaded_files]
+                        zip_file.writestr("uploaded_files_metadata.json", json.dumps(uploaded_files, ensure_ascii=False, indent=2))
+                        backup_manifest["collections"].append({"name": "uploaded_files_metadata", "count": len(uploaded_files)})
+                except Exception as e:
+                    logger.warning(f"Failed to backup uploaded_files: {e}")
                 
                 # Write manifest
                 zip_file.writestr("manifest.json", json.dumps(backup_manifest, ensure_ascii=False, indent=2))
