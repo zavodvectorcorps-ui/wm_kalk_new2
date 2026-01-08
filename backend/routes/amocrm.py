@@ -471,52 +471,6 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
     
     logger.info(f"Final lead_data from API: {lead_data}")
     return lead_data
-        # Domain will be added later when creating order
-        lead_data["amocrm_link"] = f"/leads/detail/{amocrm_id}"
-    
-    # Адрес - всегда собираем из 3 полей (улица, город, индекс)
-    index_val = get_value("addressIndex")
-    city_val = get_value("addressCity")
-    street_val = get_value("addressStreet")
-    
-    # Store individual parts for reference
-    lead_data["addressIndex"] = index_val or ""
-    lead_data["addressCity"] = city_val or ""
-    lead_data["addressStreet"] = street_val or ""
-    
-    # Build full address - put street first (most important), then city, then index
-    address_parts = []
-    if street_val:
-        address_parts.append(street_val)
-    if city_val:
-        address_parts.append(city_val)
-    if index_val:
-        address_parts.append(index_val)
-    
-    full_address = ", ".join(address_parts) if address_parts else ""
-    lead_data["fullAddress"] = full_address
-    
-    # Состав заказа - извлекаем значения после разделителя "|" если он есть
-    raw_order_contents = get_value("orderContents")
-    lead_data["orderContents"] = parse_pipe_separated_value(raw_order_contents)
-    
-    # Комментарий к заказу
-    lead_data["orderComment"] = get_value("orderComment")
-    
-    # Сумма сделки
-    deal_sum = get_value("dealSum")
-    if not deal_sum and lead_data.get("price"):
-        deal_sum = str(lead_data["price"])
-    lead_data["dealSum"] = deal_sum
-    
-    # Сумма задолженности
-    lead_data["debtSum"] = get_value("debtSum")
-    
-    # Notes for compatibility
-    lead_data["notes"] = lead_data.get("orderComment", "")
-    
-    logger.info(f"Final lead_data from API: {lead_data}")
-    return lead_data
 
 
 def extract_lead_data(data: Dict[str, Any], field_mapping: Dict[str, str] = None) -> Dict[str, Any]:
