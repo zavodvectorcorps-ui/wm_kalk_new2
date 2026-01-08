@@ -242,20 +242,43 @@ async def get_warehouse_trips(
         order_ids = trip.get("orderIds", [])
         
         for order_id in order_ids:
-            # Search in all collections
+            order = None
+            # Search in all collections with multiple ID formats
             for section_name, collection in [
                 ("balia", balia_orders),
                 ("greenhouse", greenhouse_orders),
                 ("sauna", sauna_orders)
             ]:
+                # Try exact match first
                 order = await collection.find_one({"id": order_id}, {"_id": 0})
+                
+                # Try amocrm_id match
+                if not order:
+                    order = await collection.find_one({"amocrm_id": order_id}, {"_id": 0})
+                
+                # Try partial match (AMO-GH-12345 -> 12345)
+                if not order and order_id.isdigit():
+                    for prefix in ["AMO-GH-", "AMO-BA-", "AMO-SA-"]:
+                        order = await collection.find_one({"id": f"{prefix}{order_id}"}, {"_id": 0})
+                        if order:
+                            break
+                
                 if order:
                     order["section"] = section_name
                     trip_orders.append(order)
                     break
+            
+            # If order not found, add placeholder
+            if not order:
+                trip_orders.append({
+                    "id": order_id,
+                    "section": "unknown",
+                    "clientName": None,
+                    "_notFound": True
+                })
         
         trip["orders"] = trip_orders
-        trip["orderCount"] = len(trip_orders)
+        trip["orderCount"] = len([o for o in trip_orders if not o.get("_notFound")])
         enriched_trips.append(trip)
     
     return {
