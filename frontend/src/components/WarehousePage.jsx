@@ -155,6 +155,56 @@ const WarehousePage = ({ onBack }) => {
     }
   };
 
+  // Drag and drop handlers
+  const [draggedOrder, setDraggedOrder] = useState(null);
+  const [dragOverStatus, setDragOverStatus] = useState(null);
+
+  const handleDragStart = (e, order) => {
+    setDraggedOrder(order);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', order.id);
+  };
+
+  const handleDragOver = (e, status) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverStatus(status);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverStatus(null);
+  };
+
+  const handleDrop = async (e, newStatus) => {
+    e.preventDefault();
+    setDragOverStatus(null);
+    
+    if (draggedOrder && (draggedOrder.warehouseStatus || 'request') !== newStatus) {
+      await updateOrderStatus(draggedOrder.id, newStatus);
+    }
+    setDraggedOrder(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedOrder(null);
+    setDragOverStatus(null);
+  };
+
+  // Helper to get order display name
+  const getOrderDisplayName = (order) => {
+    return order.clientName || order.fullName || order.customerName || order.name || 'Без имени';
+  };
+
+  // Helper to get order address
+  const getOrderAddress = (order) => {
+    return order.deliveryAddress || order.address || order.city || '';
+  };
+
+  // Helper to get order phone
+  const getOrderPhone = (order) => {
+    return order.phone || order.clientPhone || order.telephone || '';
+  };
+
   // Group orders by status for kanban view
   const ordersByStatus = {
     request: orders.filter(o => o.warehouseStatus === 'request' || !o.warehouseStatus),
