@@ -228,52 +228,8 @@ export const useLogistics = () => {
     };
   }, [amocrmStats, currentData?.orders]);
 
-  // Sync missing orders from amoCRM
-  const syncMissingOrders = useCallback(async (missingIds) => {
-    if (!missingIds || missingIds.length === 0) return null;
-    
-    const sectionMap = {
-      balia: 'balia',
-      greenhouse: 'greenhouse',
-      sauna: 'sauna'
-    };
-    
-    const section = sectionMap[activeSection];
-    if (!section) return null;
-    
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      toast.error('Необходима авторизация');
-      return null;
-    }
-    
-    try {
-      const response = await fetch(`${API_URL}/api/integrations/amocrm/sync-missing/${section}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(missingIds)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to sync missing orders');
-      }
-      
-      const result = await response.json();
-      
-      // Reload orders after sync
-      if (result.synced_count > 0) {
-        await fetchSectionOrders(activeSection);
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Error syncing missing orders:', error);
-      throw error;
-    }
-  }, [activeSection, fetchSectionOrders]);
+  // Sync missing orders from amoCRM - defined as ref to be set later
+  const syncMissingOrdersRef = useRef(null);
 
   // Search function - filters orders by query
   const searchOrders = useCallback((query) => {
