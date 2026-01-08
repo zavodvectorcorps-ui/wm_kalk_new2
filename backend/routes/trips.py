@@ -433,34 +433,36 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
             
             notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
             
-            # Method 1: Use note_type "attachment" - специальный тип для файлов
-            logger.info(f"Step 4: Creating attachment note with file_uuid={file_uuid}")
-            
-            note_payload_attachment = [
-                {
-                    "note_type": "attachment",
-                    "params": {
-                        "file_uuid": file_uuid,
-                        "file_name": filename
-                    }
-                }
-            ]
-            
-            note_response = await client.post(
-                notes_url,
-                headers=headers_json,
-                json=note_payload_attachment
-            )
-            
-            logger.info(f"Attachment note response: {note_response.status_code}")
-            
-            if note_response.status_code in [200, 201]:
-                # Also create a text note with details
-                text_note = [{"note_type": "common", "params": {"text": note_text}}]
-                await client.post(notes_url, headers=headers_json, json=text_note)
+            # Method 1: Use note_type "attachment" with version_uuid
+            if version_uuid:
+                logger.info(f"Step 4: Creating attachment note with file_uuid={file_uuid}, version_uuid={version_uuid}")
                 
-                logger.info(f"✅ Successfully created attachment note on lead {amocrm_id}")
-                return True
+                note_payload_attachment = [
+                    {
+                        "note_type": "attachment",
+                        "params": {
+                            "file_uuid": file_uuid,
+                            "version_uuid": version_uuid,
+                            "file_name": filename
+                        }
+                    }
+                ]
+                
+                note_response = await client.post(
+                    notes_url,
+                    headers=headers_json,
+                    json=note_payload_attachment
+                )
+                
+                logger.info(f"Attachment note response: {note_response.status_code}")
+                
+                if note_response.status_code in [200, 201]:
+                    # Also create a text note with details
+                    text_note = [{"note_type": "common", "params": {"text": note_text}}]
+                    await client.post(notes_url, headers=headers_json, json=text_note)
+                    
+                    logger.info(f"✅ Successfully created attachment note on lead {amocrm_id}")
+                    return True
             
             # Method 2: Attach file to lead files as fallback
             logger.info(f"Step 4b: Fallback - attaching file to lead files")
