@@ -6281,6 +6281,195 @@ def test_warehouse_module():
     return results
 
 
+def test_logistics_sync_missing_orders():
+    """Test the Logistics module 'Sync Missing Orders' feature fix"""
+    print("\n🔍 Testing LOGISTICS MODULE - SYNC MISSING ORDERS FEATURE FIX")
+    print("=" * 70)
+    
+    results = {}
+    
+    # Test 1: Authentication Test
+    print("\n📝 Test 1: Authentication Test...")
+    try:
+        login_data = {
+            "username": "testuser",
+            "password": "test123"
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/auth/login", json=login_data)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Authentication successful with testuser/test123")
+            
+            if 'token' in data:
+                token = data['token']
+                print("✅ Token received successfully")
+                results["authentication_test"] = True
+                headers = {"Authorization": f"Bearer {token}"}
+            else:
+                print("❌ No token in response")
+                results["authentication_test"] = False
+                return results
+        else:
+            print(f"❌ Authentication failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["authentication_test"] = False
+            return results
+            
+    except Exception as e:
+        print(f"❌ Authentication test error: {str(e)}")
+        results["authentication_test"] = False
+        return results
+    
+    # Test 2: Sync Missing Orders Endpoint Test (Greenhouse)
+    print("\n📝 Test 2: Sync Missing Orders Endpoint Test (Greenhouse)...")
+    try:
+        sync_data = ["test123", "test456"]
+        
+        response = requests.post(
+            f"{BACKEND_URL}/integrations/amocrm/sync-missing/greenhouse", 
+            json=sync_data,
+            headers=headers
+        )
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Sync Missing Orders (Greenhouse) endpoint responds correctly")
+            print(f"Response: {data}")
+            results["sync_greenhouse_test"] = True
+        elif response.status_code == 400 and "amoCRM credentials not set" in response.text:
+            print("✅ Sync Missing Orders (Greenhouse) endpoint responds with expected error")
+            print("✅ Expected response: amoCRM credentials not set")
+            results["sync_greenhouse_test"] = True
+        else:
+            print(f"❌ Sync Missing Orders (Greenhouse) failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["sync_greenhouse_test"] = False
+            
+    except Exception as e:
+        print(f"❌ Sync Missing Orders (Greenhouse) test error: {str(e)}")
+        results["sync_greenhouse_test"] = False
+    
+    # Test 3: Sync Missing Orders for Balia
+    print("\n📝 Test 3: Sync Missing Orders for Balia...")
+    try:
+        sync_data = ["test123", "test456"]
+        
+        response = requests.post(
+            f"{BACKEND_URL}/integrations/amocrm/sync-missing/balia", 
+            json=sync_data,
+            headers=headers
+        )
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Sync Missing Orders (Balia) endpoint responds correctly")
+            print(f"Response: {data}")
+            results["sync_balia_test"] = True
+        elif response.status_code == 400 and "amoCRM credentials not set" in response.text:
+            print("✅ Sync Missing Orders (Balia) endpoint responds with expected error")
+            print("✅ Expected response: amoCRM credentials not set")
+            results["sync_balia_test"] = True
+        else:
+            print(f"❌ Sync Missing Orders (Balia) failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["sync_balia_test"] = False
+            
+    except Exception as e:
+        print(f"❌ Sync Missing Orders (Balia) test error: {str(e)}")
+        results["sync_balia_test"] = False
+    
+    # Test 4: Trips API Test
+    print("\n📝 Test 4: Trips API Test...")
+    try:
+        response = requests.get(f"{BACKEND_URL}/trips", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            trips = response.json()
+            print(f"✅ Trips API successful - found {len(trips)} trips")
+            
+            # Check if any trips have "delivered" status
+            delivered_trips = [trip for trip in trips if trip.get('status') == 'delivered']
+            if delivered_trips:
+                print(f"✅ Found {len(delivered_trips)} trips with 'delivered' status")
+            else:
+                print("ℹ️ No trips with 'delivered' status found (this is normal)")
+            
+            results["trips_api_test"] = True
+        else:
+            print(f"❌ Trips API failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["trips_api_test"] = False
+            
+    except Exception as e:
+        print(f"❌ Trips API test error: {str(e)}")
+        results["trips_api_test"] = False
+    
+    # Test 5: Warehouse API Test
+    print("\n📝 Test 5: Warehouse API Test...")
+    try:
+        response = requests.get(f"{BACKEND_URL}/warehouse/orders", headers=headers)
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("✅ Warehouse API successful")
+            
+            # Check if response has expected structure
+            if 'orders' in data:
+                orders = data['orders']
+                print(f"✅ Found {len(orders)} warehouse orders")
+                
+                # Check if orders have warehouseStatus field
+                if orders:
+                    first_order = orders[0]
+                    if 'warehouseStatus' in first_order:
+                        print("✅ Orders contain warehouseStatus field")
+                    else:
+                        print("❌ Orders missing warehouseStatus field")
+                        results["warehouse_api_test"] = False
+                        return results
+                
+                results["warehouse_api_test"] = True
+            else:
+                print("❌ Warehouse API response missing 'orders' field")
+                print(f"Response structure: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+                results["warehouse_api_test"] = False
+        else:
+            print(f"❌ Warehouse API failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            results["warehouse_api_test"] = False
+            
+    except Exception as e:
+        print(f"❌ Warehouse API test error: {str(e)}")
+        results["warehouse_api_test"] = False
+    
+    # Summary
+    print("\n📊 LOGISTICS SYNC MISSING ORDERS TEST SUMMARY:")
+    print("=" * 60)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"{test_name}: {status}")
+    
+    print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+    
+    if passed_tests == total_tests:
+        print("🎉 ALL LOGISTICS SYNC MISSING ORDERS TESTS PASSED!")
+        return True
+    else:
+        print("❌ Some logistics tests failed")
+        return False
+
+
 def main():
     """Run all backend tests for the review request"""
     print("🚀 WM Calculator Backend API Testing - Review Request Focus")
