@@ -1126,7 +1126,12 @@ async def create_auto_backup():
     Called by a scheduled task or manually.
     """
     try:
-        from services.telegram_service import send_backup_to_telegram as send_to_tg
+        # Import telegram service - handle if not available
+        try:
+            from services.telegram_service import send_backup_to_telegram as send_to_tg
+        except ImportError as ie:
+            logger.warning(f"Telegram service not available: {ie}")
+            send_to_tg = None
         
         # Create backup data
         backup_data = {
@@ -1140,6 +1145,8 @@ async def create_auto_backup():
             "createdAt": backup_data["createdAt"],
             "collections": []
         }
+        
+        logger.info("Starting auto backup collection...")
         
         # Collect all data
         balia_orders = await db.orders.find({}).to_list(10000)
