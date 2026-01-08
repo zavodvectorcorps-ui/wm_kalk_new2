@@ -340,6 +340,269 @@ const AdminHelpPage = () => {
           </Card>
         </TabsContent>
 
+        {/* amoCRM API Documentation Tab */}
+        <TabsContent value="amocrm-api" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5 text-green-600" />
+                Загрузка файлов в amoCRM (API v4)
+              </CardTitle>
+              <CardDescription>
+                Рабочий алгоритм загрузки фото доставки с прикреплением к заметке сделки
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="font-medium text-green-800 mb-2">✅ Проверенный рабочий процесс</h4>
+                <ol className="text-sm text-green-700 space-y-2 list-decimal list-inside">
+                  <li><strong>Получить drive_url</strong> — GET /api/v4/account?with=drive_url</li>
+                  <li><strong>Создать сессию загрузки</strong> — POST {'{drive_url}'}/v1.0/sessions</li>
+                  <li><strong>Загрузить файл по частям</strong> — POST на upload_url (chunked upload)</li>
+                  <li><strong>Получить UUID</strong> — из ответа последнего chunk'а (uuid + version_uuid)</li>
+                  <li><strong>Создать заметку с файлом</strong> — POST /api/v4/leads/{'{id}'}/notes с note_type: "attachment"</li>
+                </ol>
+              </div>
+
+              <div className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h5 className="font-medium mb-2 flex items-center gap-2">
+                    <Badge variant="secondary">Шаг 1</Badge>
+                    Получение drive_url
+                  </h5>
+                  <div className="bg-gray-900 text-gray-100 p-3 rounded text-xs overflow-x-auto">
+                    <pre>{`GET https://{domain}/api/v4/account?with=drive_url
+Authorization: Bearer {token}
+
+Response:
+{
+  "id": 12345,
+  "name": "Account Name",
+  "drive_url": "https://drive-b.amocrm.ru"  // ← Нужен этот URL
+}`}</pre>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <h5 className="font-medium mb-2 flex items-center gap-2">
+                    <Badge variant="secondary">Шаг 2</Badge>
+                    Создание сессии загрузки
+                  </h5>
+                  <div className="bg-gray-900 text-gray-100 p-3 rounded text-xs overflow-x-auto">
+                    <pre>{`POST https://drive-b.amocrm.ru/v1.0/sessions
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Request:
+{
+  "file_name": "delivery_photo_AMO-GH-12345.jpg",
+  "file_size": 2309276,
+  "content_type": "image/jpeg"
+}
+
+Response:
+{
+  "max_file_size": 314572800,
+  "max_part_size": 524288,      // ← Размер chunk'а (512KB)
+  "session_id": 388222867,
+  "upload_url": "https://drive-b.amocrm.ru/upload/..." // ← URL для загрузки
+}`}</pre>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <h5 className="font-medium mb-2 flex items-center gap-2">
+                    <Badge variant="secondary">Шаг 3</Badge>
+                    Загрузка файла по частям (Chunked Upload)
+                  </h5>
+                  <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm mb-3">
+                    <strong>⚠️ Важно:</strong> Файлы загружаются частями по max_part_size (обычно 512KB). 
+                    HTTP 202 = chunk принят, продолжайте загрузку. HTTP 200 = загрузка завершена.
+                  </div>
+                  <div className="bg-gray-900 text-gray-100 p-3 rounded text-xs overflow-x-auto">
+                    <pre>{`POST {upload_url}
+Authorization: Bearer {token}
+Content-Type: application/octet-stream
+Body: [binary data - chunk 1]
+
+Response (HTTP 202 - ещё не всё):
+{
+  "next_url": "https://drive-b.amocrm.ru/upload/..."  // ← URL для следующего chunk'а
+}
+
+...продолжаем загрузку chunk'ов...
+
+Response (HTTP 200 - последний chunk):
+{
+  "uuid": "edd31437-42fd-4cb3-981a-7c408c688e1e",           // ← Нужен!
+  "version_uuid": "9aaec7ab-2328-4686-917f-76773fa9bad7",  // ← Нужен!
+  "_links": {
+    "download": {"href": "https://drive-b.amocrm.ru/download/..."}
+  }
+}`}</pre>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <h5 className="font-medium mb-2 flex items-center gap-2">
+                    <Badge variant="secondary">Шаг 4</Badge>
+                    Создание заметки с прикреплённым файлом
+                  </h5>
+                  <div className="bg-green-50 border border-green-200 p-3 rounded text-sm mb-3">
+                    <strong>✅ Ключевой момент:</strong> Используем note_type: "attachment" и передаём 
+                    file_uuid + version_uuid + file_name в params.
+                  </div>
+                  <div className="bg-gray-900 text-gray-100 p-3 rounded text-xs overflow-x-auto">
+                    <pre>{`POST https://{domain}/api/v4/leads/{lead_id}/notes
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Request:
+[
+  {
+    "note_type": "attachment",
+    "params": {
+      "file_uuid": "edd31437-42fd-4cb3-981a-7c408c688e1e",
+      "version_uuid": "9aaec7ab-2328-4686-917f-76773fa9bad7",
+      "file_name": "delivery_photo_AMO-GH-12345.jpg"
+    }
+  }
+]
+
+Response (HTTP 200):
+{
+  "_embedded": {
+    "notes": [{"id": 57748909, "entity_id": 22413565}]
+  }
+}`}</pre>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                Ошибки и их решения
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="p-3 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="destructive">404</Badge>
+                    <span className="font-medium">Cannot POST /api/v4/files</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Причина:</strong> Прямой endpoint /api/v4/files не работает для создания сессии.
+                    <br/>
+                    <strong>Решение:</strong> Сначала получите drive_url через /api/v4/account?with=drive_url, 
+                    затем создавайте сессию на {'{drive_url}'}/v1.0/sessions
+                  </p>
+                </div>
+                <div className="p-3 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="destructive">400</Badge>
+                    <span className="font-medium">FieldMissing: params.version_uuid</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Причина:</strong> Для note_type: "attachment" требуется version_uuid.
+                    <br/>
+                    <strong>Решение:</strong> Сохраняйте version_uuid из ответа загрузки файла и передавайте его в params.
+                  </p>
+                </div>
+                <div className="p-3 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline">202</Badge>
+                    <span className="font-medium">HTTP 202 при загрузке</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Это НЕ ошибка!</strong> 202 Accepted означает что chunk принят.
+                    <br/>
+                    <strong>Решение:</strong> Продолжайте загрузку на next_url пока не получите HTTP 200 с uuid.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Пример кода (Python)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+                <pre>{`import httpx
+import base64
+
+async def upload_photo_to_amocrm(domain: str, token: str, lead_id: str, photo_base64: str, filename: str):
+    """Upload photo to amoCRM and attach to lead note."""
+    
+    # Parse base64
+    header, data = photo_base64.split(",", 1)
+    content_type = header.replace("data:", "").replace(";base64", "")
+    photo_bytes = base64.b64decode(data)
+    
+    headers_auth = {"Authorization": f"Bearer {token}"}
+    headers_json = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        # Step 1: Get drive_url
+        account_resp = await client.get(
+            f"https://{domain}/api/v4/account?with=drive_url",
+            headers=headers_auth
+        )
+        drive_url = account_resp.json().get("drive_url")
+        
+        # Step 2: Create upload session
+        session_resp = await client.post(
+            f"{drive_url}/v1.0/sessions",
+            headers=headers_json,
+            json={"file_name": filename, "file_size": len(photo_bytes), "content_type": content_type}
+        )
+        session_data = session_resp.json()
+        upload_url = session_data["upload_url"]
+        max_part_size = session_data["max_part_size"]
+        
+        # Step 3: Upload chunks
+        file_uuid, version_uuid = None, None
+        offset = 0
+        
+        while offset < len(photo_bytes):
+            chunk = photo_bytes[offset:offset + max_part_size]
+            resp = await client.post(upload_url, headers=headers_auth, content=chunk)
+            data = resp.json()
+            
+            if data.get("uuid"):
+                file_uuid = data["uuid"]
+                version_uuid = data["version_uuid"]
+                break
+            
+            upload_url = data["next_url"]
+            offset += max_part_size
+        
+        # Step 4: Create attachment note
+        note_resp = await client.post(
+            f"https://{domain}/api/v4/leads/{lead_id}/notes",
+            headers=headers_json,
+            json=[{
+                "note_type": "attachment",
+                "params": {
+                    "file_uuid": file_uuid,
+                    "version_uuid": version_uuid,
+                    "file_name": filename
+                }
+            }]
+        )
+        
+        return note_resp.status_code in [200, 201]`}</pre>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Integrations Tab */}
         <TabsContent value="integrations" className="space-y-6">
           {/* amoCRM */}
