@@ -241,6 +241,12 @@ export const useLogistics = () => {
     const section = sectionMap[activeSection];
     if (!section) return null;
     
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      toast.error('Необходима авторизация');
+      return null;
+    }
+    
     try {
       const response = await fetch(`${API_URL}/api/integrations/amocrm/sync-missing/${section}`, {
         method: 'POST',
@@ -267,7 +273,7 @@ export const useLogistics = () => {
       console.error('Error syncing missing orders:', error);
       throw error;
     }
-  }, [activeSection, token, loadSection]);
+  }, [activeSection, loadSection]);
 
   // Search function - filters orders by query
   const searchOrders = useCallback((query) => {
