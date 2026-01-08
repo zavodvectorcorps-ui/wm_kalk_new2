@@ -792,11 +792,12 @@ async def repair_photo_link(order_id: str, current_user: dict = Depends(get_curr
 async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get_current_user)):
     """Manually resend a delivery photo to amoCRM.
     
-    amoCRM File Upload Process (correct method via /api/v4/files):
-    1. Create upload session: POST /api/v4/files with file_name, file_size
-    2. Upload file to the returned upload_url
-    3. Get file UUID from response
-    4. Create note with file attachment using _embedded.files
+    amoCRM File Upload Process (correct method via drive_url):
+    1. Get drive_url from /api/v4/account?with=drive_url
+    2. Create upload session: POST {drive_url}/v1.0/sessions
+    3. Upload file to the returned upload_url
+    4. Get file UUID from response
+    5. Attach file to lead: PUT /api/v4/leads/{lead_id}/files
     """
     import httpx
     import base64
@@ -899,27 +900,47 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
         result["message"] = f"Ошибка парсинга фото: {e}"
         return result
     
-    # Send to amoCRM using correct process via /api/v4/files
+    # Send to amoCRM using correct process via drive_url
     try:
         async with httpx.AsyncClient(timeout=120.0) as client:
+            headers_auth = {"Authorization": f"Bearer {token}"}
             headers_json = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json"
             }
-            headers_octet = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/octet-stream"
-            }
             
-            # Step 1: Create upload session via /api/v4/files
-            session_url = f"https://{domain}/api/v4/files"
+            # Step 1: Get drive_url from account info
+            account_url = f"https://{domain}/api/v4/account?with=drive_url"
+            result["debug"]["step1_url"] = account_url
+            
+            account_response = await client.get(account_url, headers=headers_auth)
+            result["debug"]["account_status"] = account_response.status_code
+            
+            if account_response.status_code != 200:
+                result["message"] = f"Не удалось получить данные аккаунта: {account_response.status_code}"
+                result["debug"]["account_response"] = account_response.text[:500]
+                return result
+            
+            account_data = account_response.json()
+            drive_url = account_data.get("drive_url")
+            
+            if not drive_url:
+                result["message"] = "drive_url не найден в данных аккаунта"
+                result["debug"]["account_keys"] = list(account_data.keys())
+                return result
+            
+            result["debug"]["drive_url"] = drive_url
+            
+            # Step 2: Create upload session on drive
+            session_url = f"{drive_url}/v1.0/sessions"
             session_payload = {
                 "file_name": filename,
-                "file_size": len(photo_bytes)
+                "file_size": len(photo_bytes),
+                "content_type": content_type
             }
             
-            result["debug"]["step1_url"] = session_url
-            result["debug"]["step1_payload"] = session_payload
+            result["debug"]["step2_url"] = session_url
+            result["debug"]["step2_payload"] = session_payload
             
             session_response = await client.post(
                 session_url,
@@ -946,21 +967,24 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
             result["debug"]["upload_url"] = upload_url
             result["debug"]["max_part_size"] = max_part_size
             
-            # Step 2: Upload file to upload_url
+            # Step 3: Upload file to upload_url (chunked if needed)
             file_uuid = None
             current_url = upload_url
             offset = 0
             file_size = len(photo_bytes)
+            chunk_num = 0
             
             while offset < file_size:
                 chunk_end = min(offset + max_part_size, file_size)
                 chunk = photo_bytes[offset:chunk_end]
+                chunk_num += 1
                 
-                result["debug"][f"chunk_{offset}"] = f"bytes {offset}-{chunk_end}"
+                result["debug"][f"chunk_{chunk_num}"] = f"bytes {offset}-{chunk_end} of {file_size}"
                 
-                upload_response = await client.put(
+                # Use POST for upload to session URL
+                upload_response = await client.post(
                     current_url,
-                    headers=headers_octet,
+                    headers=headers_auth,
                     content=chunk
                 )
                 
@@ -968,73 +992,38 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
                 result["debug"]["upload_response"] = upload_response.text[:500]
                 
                 if upload_response.status_code not in [200, 201]:
-                    result["message"] = f"Не удалось загрузить файл: {upload_response.status_code}"
+                    result["message"] = f"Не удалось загрузить файл (chunk {chunk_num}): {upload_response.status_code}"
                     return result
                 
                 upload_data = upload_response.json()
                 file_uuid = upload_data.get("uuid")
                 next_url = upload_data.get("next_url")
                 
+                result["debug"]["upload_data_keys"] = list(upload_data.keys())
+                
                 if file_uuid:
+                    result["debug"]["file_uuid"] = file_uuid
                     break
                     
                 if next_url:
                     current_url = next_url
                     offset = chunk_end
                 else:
+                    # No next_url and no uuid - check if upload is complete
+                    if upload_data.get("next_url") is None and not file_uuid:
+                        result["debug"]["upload_complete_no_uuid"] = upload_data
                     break
             
             if not file_uuid:
                 result["message"] = "UUID файла не получен после загрузки"
-                result["debug"]["upload_data"] = upload_data
                 return result
             
-            result["debug"]["file_uuid"] = file_uuid
-            
-            # Step 3: Create note with file attachment
-            note_text = f"📷 Фото акта доставки"
-            note_text += f"\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
-            note_text += f"\nЗаказ: {order.get('id')}"
-            
-            notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
-            note_payload = [
-                {
-                    "note_type": "common",
-                    "params": {
-                        "text": note_text
-                    },
-                    "_embedded": {
-                        "files": [
-                            {
-                                "uuid": file_uuid
-                            }
-                        ]
-                    }
-                }
-            ]
-            
-            result["debug"]["note_url"] = notes_url
-            result["debug"]["note_payload"] = note_payload
-            
-            note_response = await client.post(
-                notes_url,
-                headers=headers_json,
-                json=note_payload
-            )
-            
-            result["debug"]["note_status"] = note_response.status_code
-            result["debug"]["note_response"] = note_response.text[:500]
-            
-            if note_response.status_code in [200, 201]:
-                result["success"] = True
-                result["message"] = f"Фото успешно загружено и прикреплено к заметке на сделке {amocrm_id}"
-                return result
-            
-            # Fallback: Try attaching file directly to lead
-            result["debug"]["trying_direct_attach"] = True
-            
+            # Step 4: Attach file to lead
             link_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
-            link_payload = [{"uuid": file_uuid}]
+            link_payload = [{"file_uuid": file_uuid}]
+            
+            result["debug"]["step4_url"] = link_url
+            result["debug"]["step4_payload"] = link_payload
             
             link_response = await client.put(
                 link_url,
@@ -1043,18 +1032,26 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
             )
             
             result["debug"]["link_status"] = link_response.status_code
-            result["debug"]["link_response"] = link_response.text[:300]
+            result["debug"]["link_response"] = link_response.text[:500]
             
             if link_response.status_code in [200, 201, 202]:
-                # Also create a simple note
-                simple_note = [{"note_type": "common", "params": {"text": note_text}}]
-                await client.post(notes_url, headers=headers_json, json=simple_note)
+                # Step 5: Also create a note about the photo
+                note_text = f"📷 Фото акта доставки загружено"
+                note_text += f"\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+                note_text += f"\nЗаказ: {order.get('id')}"
+                note_text += f"\nФайл: {filename}"
+                
+                notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
+                note_payload = [{"note_type": "common", "params": {"text": note_text}}]
+                
+                note_response = await client.post(notes_url, headers=headers_json, json=note_payload)
+                result["debug"]["note_status"] = note_response.status_code
                 
                 result["success"] = True
-                result["message"] = f"Фото прикреплено к сделке {amocrm_id} (файлы сделки)"
+                result["message"] = f"Фото успешно загружено и привязано к сделке {amocrm_id}"
                 return result
             else:
-                result["message"] = f"Не удалось прикрепить файл: note={note_response.status_code}, files={link_response.status_code}"
+                result["message"] = f"Не удалось привязать файл к сделке: {link_response.status_code}"
                 return result
             
     except Exception as e:
