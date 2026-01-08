@@ -1005,6 +1005,8 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
                 if file_uuid:
                     result["debug"]["file_uuid"] = file_uuid
                     result["debug"]["total_chunks"] = chunk_num
+                    # Also save version_uuid for attachment notes
+                    result["debug"]["version_uuid"] = upload_data.get("version_uuid")
                     break
                     
                 if next_url:
