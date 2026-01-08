@@ -1021,6 +1021,9 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
                 result["message"] = "UUID файла не получен после загрузки"
                 return result
             
+            # Get version_uuid from debug (saved during upload)
+            version_uuid = result["debug"].get("version_uuid")
+            
             # Step 4: Create note with file attachment
             note_text = f"📷 Фото акта доставки"
             note_text += f"\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
@@ -1028,36 +1031,39 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
             
             notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
             
-            # Method 1: Use note_type "attachment" - специальный тип для файлов
-            note_payload_attachment = [
-                {
-                    "note_type": "attachment",
-                    "params": {
-                        "file_uuid": file_uuid,
-                        "file_name": filename
+            # Method 1: Use note_type "attachment" with version_uuid
+            if version_uuid:
+                note_payload_attachment = [
+                    {
+                        "note_type": "attachment",
+                        "params": {
+                            "file_uuid": file_uuid,
+                            "version_uuid": version_uuid,
+                            "file_name": filename
+                        }
                     }
-                }
-            ]
-            
-            result["debug"]["step4_method"] = "attachment"
-            
-            note_response = await client.post(
-                notes_url,
-                headers=headers_json,
-                json=note_payload_attachment
-            )
-            
-            result["debug"]["note_attachment_status"] = note_response.status_code
-            result["debug"]["note_attachment_response"] = note_response.text[:500]
-            
-            if note_response.status_code in [200, 201]:
-                # Also create a text note with details
-                text_note = [{"note_type": "common", "params": {"text": note_text}}]
-                await client.post(notes_url, headers=headers_json, json=text_note)
+                ]
                 
-                result["success"] = True
-                result["message"] = f"Фото прикреплено к заметке на сделке {amocrm_id}"
-                return result
+                result["debug"]["step4_method"] = "attachment"
+                result["debug"]["attachment_payload"] = note_payload_attachment[0]
+                
+                note_response = await client.post(
+                    notes_url,
+                    headers=headers_json,
+                    json=note_payload_attachment
+                )
+                
+                result["debug"]["note_attachment_status"] = note_response.status_code
+                result["debug"]["note_attachment_response"] = note_response.text[:500]
+                
+                if note_response.status_code in [200, 201]:
+                    # Also create a text note with details
+                    text_note = [{"note_type": "common", "params": {"text": note_text}}]
+                    await client.post(notes_url, headers=headers_json, json=text_note)
+                    
+                    result["success"] = True
+                    result["message"] = f"Фото прикреплено к заметке на сделке {amocrm_id}"
+                    return result
             
             # Method 2: Attach file to lead files
             result["debug"]["step4_fallback"] = "lead_files"
