@@ -1394,13 +1394,13 @@ async def create_auto_backup():
         else:
             logger.info(f"Auto backup: Telegram not configured or disabled. config={telegram_config}")
         
-        logger.info(f"Auto backup completed successfully. Size: {backup_data['size']} bytes")
+        logger.info(f"Auto backup completed successfully. Size: {backup_size} bytes")
         
         return {
             "success": True,
             "backupId": str(result.inserted_id),
             "createdAt": backup_data["createdAt"],
-            "size": backup_data["size"],
+            "size": backup_size,
             "telegram_sent": telegram_sent
         }
         
