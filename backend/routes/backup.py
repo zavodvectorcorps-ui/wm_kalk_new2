@@ -479,6 +479,22 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "pending_notifications", "count": len(pending_notifications)})
                 logger.info(f"Exported {len(pending_notifications)} pending notifications")
             
+            # Export warehouse history (warehouse status changes log)
+            warehouse_history = await db.warehouse_history.find({}).to_list(10000)
+            if warehouse_history:
+                warehouse_history = [serialize_for_json(w) for w in warehouse_history]
+                zip_file.writestr("warehouse_history.json", json.dumps(warehouse_history, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "warehouse_history", "count": len(warehouse_history)})
+                logger.info(f"Exported {len(warehouse_history)} warehouse history entries")
+            
+            # Export greenhouse prices (if exists as separate collection)
+            greenhouse_prices = await db.greenhouse_prices.find({}).to_list(100)
+            if greenhouse_prices:
+                greenhouse_prices = [serialize_for_json(p) for p in greenhouse_prices]
+                zip_file.writestr("greenhouse_prices.json", json.dumps(greenhouse_prices, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "greenhouse_prices", "count": len(greenhouse_prices)})
+                logger.info(f"Exported {len(greenhouse_prices)} greenhouse prices")
+            
             # Export Telegram configuration from .env
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
