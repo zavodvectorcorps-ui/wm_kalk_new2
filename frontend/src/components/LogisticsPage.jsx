@@ -807,8 +807,28 @@ const OrdersListCard = ({
   // Get orders with search filter applied
   const unassignedOrders = getUnassignedOrders(sectionData[sectionKey].orders);
   const filteredUnassignedOrders = getFilteredOrders ? getFilteredOrders(unassignedOrders) : unassignedOrders;
+  
+  // Sort orders: "Без имени" (empty name) first, then by date
+  const sortedFilteredOrders = [...filteredUnassignedOrders].sort((a, b) => {
+    const nameA = a.fullName || a.customerName || a.clientName || '';
+    const nameB = b.fullName || b.customerName || b.clientName || '';
+    const isEmptyA = !nameA || nameA.trim() === '' || nameA === 'Без имени';
+    const isEmptyB = !nameB || nameB.trim() === '' || nameB === 'Без имени';
+    
+    // Empty names first
+    if (isEmptyA && !isEmptyB) return -1;
+    if (!isEmptyA && isEmptyB) return 1;
+    
+    // Then sort by creation date (newest first)
+    return (b.createdAt || '').localeCompare(a.createdAt || '');
+  });
+  
   const totalUnassigned = unassignedOrders.length;
-  const filteredCount = filteredUnassignedOrders.length;
+  const filteredCount = sortedFilteredOrders.length;
+  const emptyNameCount = sortedFilteredOrders.filter(o => {
+    const name = o.fullName || o.customerName || o.clientName || '';
+    return !name || name.trim() === '' || name === 'Без имени';
+  }).length;
   const isFiltered = searchQuery && searchQuery.trim().length > 0;
   
   return (
