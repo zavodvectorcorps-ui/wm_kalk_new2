@@ -875,13 +875,13 @@ const OrdersListCard = ({
         <div className="flex items-center justify-center py-8">
           <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : filteredUnassignedOrders.length === 0 ? (
+      ) : sortedFilteredOrders.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">
           {isFiltered ? 'Ничего не найдено' : 'Нет заказов без рейса'}
         </p>
       ) : (
         <div className="space-y-2 max-h-[400px] overflow-y-auto">
-          {filteredUnassignedOrders.map((order) => (
+          {sortedFilteredOrders.map((order) => (
             <OrderCard
               key={order.id}
               order={order}
