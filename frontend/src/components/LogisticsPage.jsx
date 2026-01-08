@@ -862,6 +862,11 @@ const OrdersListCard = ({
           <Badge variant="secondary" className={currentSection.bgColor}>
             {isFiltered ? `${filteredCount} из ${totalUnassigned}` : `${totalUnassigned}`} заказов
           </Badge>
+          {emptyNameCount > 0 && (
+            <Badge variant="destructive" className="animate-pulse">
+              ⚠️ {emptyNameCount} без имени
+            </Badge>
+          )}
         </div>
       </div>
     </CardHeader>
