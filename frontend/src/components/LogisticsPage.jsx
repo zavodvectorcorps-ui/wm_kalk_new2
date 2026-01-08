@@ -939,8 +939,23 @@ const OrderCard = ({
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-medium truncate">{order.fullName || order.customerName}</p>
+            <p className="font-medium truncate">
+              {hasEmptyName ? (
+                <span className="text-red-600 flex items-center gap-1">
+                  ⚠️ Без имени
+                  <span className="text-xs text-muted-foreground">(ID: {order.id})</span>
+                </span>
+              ) : (
+                order.fullName || order.customerName
+              )}
+            </p>
             <div className="flex items-center gap-1">
+              {/* Empty name warning */}
+              {hasEmptyName && (
+                <Badge variant="destructive" className="text-xs animate-pulse">
+                  Требуется имя
+                </Badge>
+              )}
               {/* Warehouse status badge */}
               {order.warehouseStatus === 'ready' && (
                 <Badge className="bg-emerald-100 text-emerald-700 text-xs gap-1">
