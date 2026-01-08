@@ -217,11 +217,24 @@ const WarehousePage = ({ onBack }) => {
     const section = SECTION_BADGES[order.section];
     const isExpanded = expandedOrder === order.id;
     const StatusIcon = status.icon;
+    const isDragging = draggedOrder?.id === order.id;
+    
+    const displayName = getOrderDisplayName(order);
+    const displayAddress = getOrderAddress(order);
+    const displayPhone = getOrderPhone(order);
 
     return (
-      <Card className={`mb-3 transition-all ${isExpanded ? 'ring-2 ring-primary' : ''}`}>
+      <Card 
+        className={`mb-3 transition-all cursor-grab active:cursor-grabbing ${isExpanded ? 'ring-2 ring-primary' : ''} ${isDragging ? 'opacity-50 scale-95' : ''}`}
+        draggable
+        onDragStart={(e) => handleDragStart(e, order)}
+        onDragEnd={handleDragEnd}
+      >
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <GripVertical className="w-4 h-4 text-muted-foreground/50" />
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <Badge className={`${section?.color} text-white text-xs`}>
@@ -233,13 +246,23 @@ const WarehousePage = ({ onBack }) => {
                 </Badge>
               </div>
               
-              <h4 className="font-medium text-sm truncate">{order.clientName || 'Без имени'}</h4>
+              <h4 className="font-medium text-sm truncate">{displayName}</h4>
               <p className="text-xs text-muted-foreground truncate">ID: {order.id}</p>
+              {order.amocrm_id && order.amocrm_id !== order.id && (
+                <p className="text-xs text-muted-foreground truncate">amoCRM: {order.amocrm_id}</p>
+              )}
               
-              {order.deliveryAddress && (
+              {displayAddress && (
                 <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                   <MapPin className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">{order.deliveryAddress}</span>
+                  <span className="truncate">{displayAddress}</span>
+                </div>
+              )}
+              
+              {displayPhone && (
+                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                  <Phone className="w-3 h-3 flex-shrink-0" />
+                  <span>{displayPhone}</span>
                 </div>
               )}
               
@@ -248,7 +271,7 @@ const WarehousePage = ({ onBack }) => {
                   <Calendar className="w-3 h-3" />
                   <span>Отправка: {order.dispatchDate}</span>
                 </div>
-              )}
+              )}}
             </div>
             
             <Button 
