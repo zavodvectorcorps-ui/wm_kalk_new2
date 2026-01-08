@@ -2041,6 +2041,7 @@ export const useLogistics = () => {
     setSelectedStatus,
     fetchAmocrmStats,
     getAmocrmComparison,
+    syncMissingOrders,
     API_URL
   };
 };
