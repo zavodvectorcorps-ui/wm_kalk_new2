@@ -1611,6 +1611,12 @@ async def send_backup_to_telegram():
                 zip_file.writestr("tech_specs.json", json.dumps(tech_specs, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "tech_specs", "count": len(tech_specs)})
             
+            # Greenhouse prices (if exists)
+            greenhouse_prices = await safe_collect("greenhouse_prices", limit=100)
+            if greenhouse_prices:
+                zip_file.writestr("greenhouse_prices.json", json.dumps(greenhouse_prices, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "greenhouse_prices", "count": len(greenhouse_prices)})
+            
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
                 "chat_id": os.environ.get('TELEGRAM_CHAT_ID', ''),
