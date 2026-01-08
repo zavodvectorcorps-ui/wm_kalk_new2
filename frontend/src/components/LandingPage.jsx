@@ -188,9 +188,9 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
           )}
         </div>
 
-        {/* Second Row: Logistics, Driver */}
-        {(canAccessLogistics || canAccessDriver) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        {/* Second Row: Logistics, Driver, Warehouse */}
+        {(canAccessLogistics || canAccessDriver || canAccessWarehouse) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {/* Logistics Card */}
             {canAccessLogistics && (
               <Card 
@@ -209,6 +209,33 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                       {txt.logisticsDesc}
                     </p>
                     <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-teal-500/50 text-teal-600 hover:bg-teal-500/10 hover:text-teal-600">
+                      {txt.select}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Warehouse Card */}
+            {canAccessWarehouse && (
+              <Card 
+                className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-amber-500/50"
+                onClick={() => onSelectCalculator('warehouse')}
+                data-testid="warehouse-card"
+              >
+                <CardContent className="p-8">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors bg-amber-500/10 group-hover:bg-amber-500/20">
+                      <Package className="w-10 h-10 text-amber-500" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-foreground mb-3">
+                      {txt.warehouseTitle}
+                    </h2>
+                    <p className="text-muted-foreground mb-6">
+                      {txt.warehouseDesc}
+                    </p>
+                    <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-amber-500/50 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600">
                       {txt.select}
                       <ArrowRight className="w-4 h-4" />
                     </Button>
