@@ -1373,6 +1373,8 @@ async def create_auto_backup():
         else:
             logger.info(f"Auto backup: Telegram not configured or disabled. config={telegram_config}")
         
+        logger.info(f"Auto backup completed successfully. Size: {backup_data['size']} bytes")
+        
         return {
             "success": True,
             "backupId": str(result.inserted_id),
@@ -1382,8 +1384,10 @@ async def create_auto_backup():
         }
         
     except Exception as e:
-        logger.error(f"Auto backup error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Auto backup error: {str(e)}\n{error_details}")
+        raise HTTPException(status_code=500, detail=f"Auto backup failed: {str(e)}")
 
 
 @router.get("/download/{backup_id}")
