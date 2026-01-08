@@ -1091,3 +1091,39 @@ User needs to test with real amoCRM credentials:
   message: "amoCRM PHOTO UPLOAD FIX TESTING COMPLETED (January 2026): ✅ ALL TESTS PASSED (5/5). Test 1: Auth Test - Login with testuser/test123 successful, token received. Test 2: Debug Order Endpoint - GET /api/driver-panel/debug/order/{id} returns valid JSON with expected structure (orderId, found_in_collections, photo, amocrm_id, delivery_status). Test 3: Photo Debug List - GET /api/driver-panel/photos/list returns 2 photos with proper structure (count and photos array). Test 4: Backend Health Check - GET /api/health successful, backend running properly. Test 5: API Structure Verification - POST /api/driver-panel/resend-photo-to-amocrm/{id} endpoint exists and responds correctly. All backend APIs functioning correctly and ready to support amoCRM photo upload fix."
 - agent: "testing"
   message: "WAREHOUSE MODULE API TESTING COMPLETED (January 8, 2026): ✅ ALL TESTS PASSED (8/8). Test 1: GET /api/warehouse/orders - Returns 7 orders with warehouseStatus field and proper response structure (orders, total, statuses). Test 2: GET /api/warehouse/orders with filters - Filtering by section=greenhouse and status=request working correctly. Test 3: GET /api/warehouse/stats - Returns proper statistics (byStatus, bySection, total) with current data: 7 total orders, 7 request status, 5 greenhouse + 2 sauna sections. Test 4: PUT /api/warehouse/orders/{id}/status - Successfully updated order AMO-TEST-003 from 'request' to 'picking' status. Test 5: GET /api/warehouse/orders/{id}/history - Returns complete status change history with proper audit trail (changedBy, oldStatus, newStatus, changedAt). Test 6: GET /api/warehouse/trips - Returns 2 trips with enriched order details. Test 7: Access Control - Warehouse role authentication working with testuser/test123 credentials. All warehouse endpoints functional and ready for production use."
+
+## Sync Missing Orders Bug Fix - Jan 8, 2026
+
+### Issue Fixed:
+**`loadSection is not defined` JavaScript error** - The "Синхронизировать" (Sync) button in the Logistics page was not working because the `syncMissingOrders` function was trying to use a non-existent `loadSection()` function.
+
+### Root Cause:
+In `/app/frontend/src/components/logistics/useLogistics.js`:
+1. The `syncMissingOrders` function was defined before `fetchSectionOrders` and referenced it in its dependency array
+2. In `LogisticsPage.jsx`, `fetchAmocrmStats()` was called without required arguments (`pipelineId`, `statusId`)
+
+### Fixes Applied:
+1. **useLogistics.js**: Moved `syncMissingOrders` function after `fetchAllOrders` definition and changed the refresh call from `fetchSectionOrders(activeSection)` to `fetchAllOrders()` which properly reloads all orders
+2. **LogisticsPage.jsx**: Fixed `fetchAmocrmStats()` call to include required parameters: `fetchAmocrmStats(selectedPipeline, selectedStatus)`
+
+### Files Modified:
+- `/app/frontend/src/components/logistics/useLogistics.js`
+- `/app/frontend/src/components/LogisticsPage.jsx`
+
+### Testing Status:
+- ✅ Frontend compiles without JavaScript errors
+- ✅ Logistics page loads correctly
+- ✅ Теплицы (Greenhouse) tab shows 3 orders
+- ✅ Warehouse module (Склад) works with Kanban board
+- ✅ Backend endpoint `/api/integrations/amocrm/sync-missing/{section}` responds correctly
+
+### Test Credentials:
+- Admin: testuser / test123
+- Driver: drivertest / test123
+
+### Testing Instructions:
+1. Login with testuser/test123
+2. Navigate to Logistyka > Теплицы tab
+3. The amoCRM sync statistics should appear (if amoCRM credentials are configured)
+4. If there are missing orders, click "Синхронизировать" button
+5. Verify orders reload without JavaScript errors
