@@ -110,9 +110,17 @@ export const AuthProvider = ({ children }) => {
     // Driver role automatically has access to driver panel
     if (calculator === 'driver' && user.role === 'driver') return true;
     
+    // Warehouse role automatically has access to warehouse
+    if (calculator === 'warehouse' && user.role === 'warehouse') return true;
+    
     // Drivers only have access to driver panel
     if (user.role === 'driver') {
       return calculator === 'driver';
+    }
+    
+    // Warehouse users only have access to warehouse
+    if (user.role === 'warehouse') {
+      return calculator === 'warehouse';
     }
     
     if (user.access === 'all') return true;
@@ -124,6 +132,7 @@ export const AuthProvider = ({ children }) => {
   };
   
   const isDriver = () => user?.role === 'driver';
+  const isWarehouse = () => user?.role === 'warehouse';
 
   const value = {
     user,
@@ -135,6 +144,7 @@ export const AuthProvider = ({ children }) => {
     isSuperAdmin,
     isObserver,
     isDriver,
+    isWarehouse,
     canEdit,
     canViewPricing,
     hasAccess,
