@@ -3597,17 +3597,39 @@ def test_review_request_logistics_fixes():
         return False
 
 if __name__ == "__main__":
-    print("🚀 BACKEND API TESTING STARTED")
+    print("🚀 WAREHOUSE MODULE BACKEND API TESTING")
     print("=" * 50)
     print(f"Backend URL: {BACKEND_URL}")
     print("=" * 50)
     
-    # Run review request logistics tests
-    results = {
-        "Review Request Logistics Fixes": test_review_request_logistics_fixes()
-    }
+    # Run warehouse module tests
+    results = test_warehouse_module()
     
     # Print summary
+    print("\n" + "=" * 50)
+    print("📊 WAREHOUSE MODULE TEST RESULTS")
+    print("=" * 50)
+    
+    total_tests = len(results)
+    passed_tests = sum(1 for result in results.values() if result)
+    failed_tests = total_tests - passed_tests
+    
+    print(f"Total Tests: {total_tests}")
+    print(f"✅ Passed: {passed_tests}")
+    print(f"❌ Failed: {failed_tests}")
+    print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+    
+    print("\n📋 DETAILED RESULTS:")
+    for test_name, result in results.items():
+        status = "✅ PASS" if result else "❌ FAIL"
+        print(f"  {test_name}: {status}")
+    
+    if failed_tests == 0:
+        print("\n🎉 ALL WAREHOUSE TESTS PASSED!")
+        sys.exit(0)
+    else:
+        print(f"\n⚠️ {failed_tests} test(s) failed.")
+        sys.exit(1)
     print("\n" + "=" * 50)
     print("📊 FINAL TEST RESULTS")
     print("=" * 50)
