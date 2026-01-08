@@ -86,7 +86,7 @@ class SaunaPDFRequest(BaseModel):
     phoneNumber: str
     fullAddress: str = ""
     email: str = ""
-    orderDate: str
+    orderDate: Optional[str] = Field(default_factory=lambda: datetime.now().strftime('%Y-%m-%d'))
     selectedModel: str
     modelName: str = ""
     modelImageUrl: str = ""  # Model image URL for PDF
