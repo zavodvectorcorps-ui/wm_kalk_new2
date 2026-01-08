@@ -1244,3 +1244,33 @@ Output: "Просто товар без разделителя"
 ### Testing:
 - ✅ Unit tests passed for all scenarios
 - ✅ Backend health check passed
+
+## Sync Missing Orders - Full Field Extraction Fix - Jan 8, 2026
+
+### Issue:
+When syncing missing orders via the "Синхронизировать" button, not all fields were being transferred from amoCRM.
+
+### Root Cause:
+The `sync_missing_orders` endpoint was using simplified field extraction logic instead of the same `extract_lead_data_from_api` function used by the main webhook sync.
+
+### Fix Applied:
+Rewrote `/api/integrations/amocrm/sync-missing/{section}` to use the same extraction logic as webhook:
+
+**Fields now synced (same as webhook):**
+- fullName, phoneNumber
+- fullAddress, addressIndex, addressCity, addressStreet
+- orderNumber, orderContents (with pipe separator parsing)
+- orderComment, dealSum, debtSum
+- notes (built from amocrm_name, orderContents, orderComment)
+- isImportant (from amoCRM checkbox field)
+- amocrm_link (direct link to lead card)
+- amocrm_data (full raw data for debugging)
+- warehouseStatus, deliveryStatus
+
+### Files Modified:
+- `/app/backend/routes/amocrm.py`: Rewrote `sync_missing_orders` function
+
+### Testing:
+- ✅ Backend compiles and starts successfully
+- ✅ Endpoint responds correctly
+- Requires amoCRM credentials to fully test
