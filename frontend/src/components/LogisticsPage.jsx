@@ -531,7 +531,9 @@ export const LogisticsPage = () => {
                                                 const result = await syncMissingOrders(comparison.missingInLocal);
                                                 if (result) {
                                                   toast.success(`Синхронизировано: ${result.synced_count}, не удалось: ${result.failed_count}`);
-                                                  fetchAmocrmStats();
+                                                  if (selectedPipeline && selectedStatus) {
+                                                    fetchAmocrmStats(selectedPipeline, selectedStatus);
+                                                  }
                                                 }
                                               } catch (err) {
                                                 toast.error('Ошибка синхронизации');
