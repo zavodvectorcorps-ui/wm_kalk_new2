@@ -1303,12 +1303,18 @@ async def create_auto_backup():
         if pending_notifications:
             backup_manifest["collections"].append({"name": "pending_notifications", "count": len(pending_notifications)})
         
-        # Calculate size
+        # Calculate size of full backup (for reference, not storing full data in DB)
         backup_json = json.dumps(backup_data)
-        backup_data["size"] = len(backup_json)
+        backup_size = len(backup_json)
         
-        # Store backup
-        result = await db.backups.insert_one(backup_data)
+        # Store only metadata in MongoDB (NOT full backup data - it's too large!)
+        backup_metadata = {
+            "createdAt": backup_data["createdAt"],
+            "size": backup_size,
+            "collections": backup_manifest["collections"],
+            "version": "3.0"
+        }
+        result = await db.backups.insert_one(backup_metadata)
         
         # Update last backup time in settings
         await db.settings.update_one(
