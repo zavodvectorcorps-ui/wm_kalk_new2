@@ -389,7 +389,7 @@ const WarehousePage = ({ onBack }) => {
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Truck className="w-5 h-5 text-teal-600" />
-                {trip.name || `Рейс ${trip.id.slice(-6)}`}
+                {trip.name || `Рейс ${trip.id?.slice(-6) || 'N/A'}`}
               </CardTitle>
               <CardDescription className="mt-1">
                 {trip.driverName && <span className="mr-3">🚗 {trip.driverName}</span>}
@@ -398,12 +398,13 @@ const WarehousePage = ({ onBack }) => {
             </div>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="text-sm">
-                {trip.orderCount || trip.orders?.length || 0} заказов
+                {trip.orderCount || trip.orders?.length || trip.orderIds?.length || 0} заказов
               </Badge>
               <Badge className={
                 trip.status === 'completed' ? 'bg-gray-500' :
                 trip.status === 'in_progress' ? 'bg-blue-500' :
                 trip.status === 'ready' ? 'bg-green-500' :
+                trip.status === 'delivered' ? 'bg-green-600' :
                 'bg-yellow-500'
               }>
                 {trip.status === 'completed' ? 'Завершён' :
@@ -424,33 +425,73 @@ const WarehousePage = ({ onBack }) => {
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3 flex items-center gap-2">
                 <Box className="w-4 h-4" />
-                Заказы в рейсе
+                Заказы в рейсе ({trip.orders?.length || trip.orderIds?.length || 0})
               </h4>
               {trip.orders && trip.orders.length > 0 ? (
                 <div className="space-y-2">
-                  {trip.orders.map((order, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Badge className={`${SECTION_BADGES[order.section]?.color} text-white text-xs`}>
-                          {SECTION_BADGES[order.section]?.label}
-                        </Badge>
-                        <div>
-                          <p className="font-medium text-sm">{order.clientName || 'Без имени'}</p>
-                          <p className="text-xs text-muted-foreground">{order.deliveryAddress}</p>
+                  {trip.orders.map((order, idx) => {
+                    const displayName = getOrderDisplayName(order);
+                    const displayAddress = getOrderAddress(order);
+                    const displayPhone = getOrderPhone(order);
+                    
+                    return (
+                      <div key={order.id || idx} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Badge className={`${SECTION_BADGES[order.section]?.color || 'bg-gray-500'} text-white text-xs shrink-0`}>
+                            {SECTION_BADGES[order.section]?.label || order.section || 'N/A'}
+                          </Badge>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{displayName}</p>
+                            {displayAddress && (
+                              <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                {displayAddress}
+                              </p>
+                            )}
+                            {displayPhone && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Phone className="w-3 h-3 shrink-0" />
+                                {displayPhone}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground">ID: {order.id}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {order.warehouseStatus === 'ready' && (
+                            <Badge className="bg-green-100 text-green-800 text-xs">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Скомплектован
+                            </Badge>
+                          )}
+                          {order.warehouseStatus === 'picking' && (
+                            <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                              <Package className="w-3 h-3 mr-1" />
+                              Комплектуется
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {order.warehouseStatus === 'ready' && (
-                          <Badge className="bg-green-100 text-green-800 text-xs">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Скомплектован
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="text-xs">
-                          {trip.orderStatuses?.[order.id] || 'pending'}
-                        </Badge>
-                      </div>
+                    );
+                  })}
+                </div>
+              ) : trip.orderIds && trip.orderIds.length > 0 ? (
+                <div className="space-y-2">
+                  {trip.orderIds.map((orderId, idx) => (
+                    <div key={idx} className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground">ID: {orderId}</p>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">Нет заказов в рейсе</p>
+              )}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
                   ))}
                 </div>
               ) : (
