@@ -206,15 +206,17 @@ export const useLogistics = () => {
     if (!amocrmStats || !amocrmStats.lead_ids) return null;
     
     const localOrders = currentData?.orders || [];
-    const localAmocrmIds = localOrders
+    // Only compare unassigned orders (not in a trip)
+    const unassignedOrders = localOrders.filter(o => !o.tripId);
+    const localAmocrmIds = unassignedOrders
       .filter(o => o.amocrm_id)
       .map(o => String(o.amocrm_id));
     
     const amocrmIds = amocrmStats.lead_ids;
     
-    // Find which IDs are in amoCRM but not in local
+    // Find which IDs are in amoCRM but not in local (free orders)
     const missingInLocal = amocrmIds.filter(id => !localAmocrmIds.includes(id));
-    // Find which IDs are in local but not in amoCRM (already processed)
+    // Find which IDs are in local but not in amoCRM (already processed or moved to another stage)
     const extraInLocal = localAmocrmIds.filter(id => !amocrmIds.includes(id));
     
     return {
