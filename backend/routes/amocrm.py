@@ -343,6 +343,7 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
     """Extract lead data from amoCRM API response (full data with custom_fields_values).
     
     API response format is different from webhook format.
+    Supports both field_id mapping AND auto-detection by field name keywords.
     """
     lead_data = {}
     field_mapping = field_mapping or {}
@@ -360,14 +361,17 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
     # Extract custom_fields_values from API response
     custom_fields = api_data.get("custom_fields_values", [])
     
-    # Build map of field_id -> value
+    # Build maps of field_id -> value AND field_name -> value for auto-detection
     field_values_by_id = {}
+    field_values_by_name = {}
     
     for field in custom_fields:
         if not isinstance(field, dict):
             continue
         
         field_id = str(field.get("field_id", ""))
+        field_name = str(field.get("field_name", "")).lower()
+        field_code = str(field.get("field_code", "")).lower()
         values = field.get("values", [])
         
         # Get first value
@@ -381,26 +385,40 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
         
         if field_id and value:
             field_values_by_id[field_id] = value
+        if field_name and value:
+            field_values_by_name[field_name] = value
+        if field_code and value:
+            field_values_by_name[field_code] = value
     
-    logger.info(f"Extracted field values by ID: {field_values_by_id}")
+    logger.info(f"API extraction - field values by ID: {field_values_by_id}")
+    logger.info(f"API extraction - field values by name: {field_values_by_name}")
     
-    # Map fields using provided IDs
-    def get_value(mapping_key):
-        field_id = field_mapping.get(mapping_key, "")
-        if field_id:
-            return field_values_by_id.get(field_id, "")
+    # Helper to get field value by ID or auto-detect by keywords (same as extract_lead_data)
+    def get_field_value(mapping_key, auto_keywords=None):
+        # First try by field ID from mapping
+        if field_mapping.get(mapping_key):
+            val = field_values_by_id.get(field_mapping[mapping_key], "")
+            if val:
+                return val
+        # Then try auto-detection by keywords in field name
+        if auto_keywords:
+            for name, value in field_values_by_name.items():
+                if any(kw in name for kw in auto_keywords):
+                    return value
         return ""
     
-    # === MAP ALL FIELDS ===
+    # === MAP ALL FIELDS (with auto-keywords like extract_lead_data) ===
     
     # Имя клиента
-    lead_data["fullName"] = get_value("fullName") or lead_data.get("amocrm_name", "")
+    lead_data["fullName"] = get_field_value("fullName", ["имя", "name", "контакт", "фио", "клиент"])
+    if not lead_data["fullName"]:
+        lead_data["fullName"] = lead_data.get("amocrm_name", "")
     
     # Телефон клиента
-    lead_data["phoneNumber"] = get_value("phoneNumber")
+    lead_data["phoneNumber"] = get_field_value("phoneNumber", ["телефон", "phone", "тел", "моб"])
     
-    # Номер заказа - use lead ID if no custom field specified
-    order_number = get_value("orderNumber")
+    # Номер заказа
+    order_number = get_field_value("orderNumber", ["номер заказа", "order number", "№ заказа"])
     if not order_number:
         order_number = str(lead_data.get("amocrm_id", ""))
     lead_data["orderNumber"] = order_number
@@ -408,6 +426,51 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
     # amoCRM link - generate direct link to lead card
     amocrm_id = lead_data.get("amocrm_id")
     if amocrm_id:
+        lead_data["amocrm_link"] = f"/leads/detail/{amocrm_id}"
+    
+    # Адрес - всегда собираем из 3 полей (улица, город, индекс)
+    index_val = get_field_value("addressIndex", ["индекс", "postal", "zip", "kod"])
+    city_val = get_field_value("addressCity", ["город", "city", "населенный пункт", "miasto"])
+    street_val = get_field_value("addressStreet", ["улица", "street", "ул.", "adres", "адрес"])
+    
+    # Store individual parts for reference
+    lead_data["addressIndex"] = index_val or ""
+    lead_data["addressCity"] = city_val or ""
+    lead_data["addressStreet"] = street_val or ""
+    
+    # Build full address - put street first, then city, then index
+    address_parts = []
+    if street_val:
+        address_parts.append(street_val)
+    if city_val:
+        address_parts.append(city_val)
+    if index_val:
+        address_parts.append(index_val)
+    
+    full_address = ", ".join(address_parts) if address_parts else ""
+    lead_data["fullAddress"] = full_address
+    
+    # Состав заказа - извлекаем значения после разделителя "|" если он есть
+    raw_order_contents = get_field_value("orderContents", ["состав", "комплектация", "товар", "продукт"])
+    lead_data["orderContents"] = parse_pipe_separated_value(raw_order_contents)
+    
+    # Комментарий к заказу
+    lead_data["orderComment"] = get_field_value("orderComment", ["коммент", "примечан", "note", "comment"])
+    
+    # Сумма сделки
+    deal_sum = get_field_value("dealSum", ["сумма сделки", "стоимость", "итого"])
+    if not deal_sum and lead_data.get("price"):
+        deal_sum = str(lead_data["price"])
+    lead_data["dealSum"] = deal_sum
+    
+    # Сумма задолженности
+    lead_data["debtSum"] = get_field_value("debtSum", ["задолженность", "долг", "остаток", "debt"])
+    
+    # Notes for compatibility
+    lead_data["notes"] = lead_data.get("orderComment", "")
+    
+    logger.info(f"Final lead_data from API: {lead_data}")
+    return lead_data
         # Domain will be added later when creating order
         lead_data["amocrm_link"] = f"/leads/detail/{amocrm_id}"
     
