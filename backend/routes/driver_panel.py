@@ -1057,10 +1057,6 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
                 result["debug"]["note_attachment_response"] = note_response.text[:500]
                 
                 if note_response.status_code in [200, 201]:
-                    # Also create a text note with details
-                    text_note = [{"note_type": "common", "params": {"text": note_text}}]
-                    await client.post(notes_url, headers=headers_json, json=text_note)
-                    
                     result["success"] = True
                     result["message"] = f"Фото прикреплено к заметке на сделке {amocrm_id}"
                     return result
