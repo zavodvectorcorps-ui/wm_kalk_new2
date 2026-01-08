@@ -984,6 +984,34 @@ async def import_backup(file: UploadFile = File(...)):
                     logger.error(f"Error importing pending_notifications: {e}")
                     import_stats["errors"].append(f"pending_notifications: {str(e)}")
             
+            # Import warehouse history
+            if "warehouse_history.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("warehouse_history.json").decode('utf-8'))
+                    await db.warehouse_history.delete_many({})
+                    for entry in data:
+                        entry.pop('_id', None)
+                        await db.warehouse_history.insert_one(entry)
+                    import_stats["imported"]["warehouse_history"] = len(data)
+                    logger.info(f"Imported {len(data)} warehouse history entries")
+                except Exception as e:
+                    logger.error(f"Error importing warehouse_history: {e}")
+                    import_stats["errors"].append(f"warehouse_history: {str(e)}")
+            
+            # Import greenhouse prices
+            if "greenhouse_prices.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("greenhouse_prices.json").decode('utf-8'))
+                    await db.greenhouse_prices.delete_many({})
+                    for price in data:
+                        price.pop('_id', None)
+                        await db.greenhouse_prices.insert_one(price)
+                    import_stats["imported"]["greenhouse_prices"] = len(data)
+                    logger.info(f"Imported {len(data)} greenhouse prices")
+                except Exception as e:
+                    logger.error(f"Error importing greenhouse_prices: {e}")
+                    import_stats["errors"].append(f"greenhouse_prices: {str(e)}")
+            
             # Import uploaded files
             uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
             os.makedirs(uploads_dir, exist_ok=True)
