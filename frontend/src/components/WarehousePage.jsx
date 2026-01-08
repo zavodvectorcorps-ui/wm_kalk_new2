@@ -599,52 +599,73 @@ const WarehousePage = ({ onBack }) => {
           {/* Kanban Board */}
           <div className="grid grid-cols-3 gap-6">
             {/* Request Column */}
-            <div className="bg-blue-50/50 rounded-lg p-4">
+            <div 
+              className={`rounded-lg p-4 transition-all ${dragOverStatus === 'request' ? 'bg-blue-100 ring-2 ring-blue-400' : 'bg-blue-50/50'}`}
+              onDragOver={(e) => handleDragOver(e, 'request')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'request')}
+            >
               <h3 className="font-semibold mb-4 flex items-center gap-2 text-blue-800">
                 <Clock className="w-5 h-5" />
                 Заявка
                 <Badge variant="secondary" className="ml-auto">{ordersByStatus.request.length}</Badge>
               </h3>
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto min-h-[100px]">
                 {ordersByStatus.request.map(order => (
                   <OrderCard key={order.id} order={order} />
                 ))}
                 {ordersByStatus.request.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">Нет заказов</p>
+                  <p className="text-center text-muted-foreground py-8">
+                    {dragOverStatus === 'request' ? 'Отпустите для перемещения' : 'Нет заказов'}
+                  </p>
                 )}
               </div>
             </div>
 
             {/* Picking Column */}
-            <div className="bg-yellow-50/50 rounded-lg p-4">
+            <div 
+              className={`rounded-lg p-4 transition-all ${dragOverStatus === 'picking' ? 'bg-yellow-100 ring-2 ring-yellow-400' : 'bg-yellow-50/50'}`}
+              onDragOver={(e) => handleDragOver(e, 'picking')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'picking')}
+            >
               <h3 className="font-semibold mb-4 flex items-center gap-2 text-yellow-800">
                 <Package className="w-5 h-5" />
                 Комплектация
                 <Badge variant="secondary" className="ml-auto">{ordersByStatus.picking.length}</Badge>
               </h3>
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto min-h-[100px]">
                 {ordersByStatus.picking.map(order => (
                   <OrderCard key={order.id} order={order} />
                 ))}
                 {ordersByStatus.picking.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">Нет заказов</p>
+                  <p className="text-center text-muted-foreground py-8">
+                    {dragOverStatus === 'picking' ? 'Отпустите для перемещения' : 'Нет заказов'}
+                  </p>
                 )}
               </div>
             </div>
 
             {/* Ready Column */}
-            <div className="bg-green-50/50 rounded-lg p-4">
+            <div 
+              className={`rounded-lg p-4 transition-all ${dragOverStatus === 'ready' ? 'bg-green-100 ring-2 ring-green-400' : 'bg-green-50/50'}`}
+              onDragOver={(e) => handleDragOver(e, 'ready')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'ready')}
+            >
               <h3 className="font-semibold mb-4 flex items-center gap-2 text-green-800">
                 <CheckCircle className="w-5 h-5" />
                 Готов к загрузке
                 <Badge variant="secondary" className="ml-auto">{ordersByStatus.ready.length}</Badge>
               </h3>
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto min-h-[100px]">
                 {ordersByStatus.ready.map(order => (
                   <OrderCard key={order.id} order={order} />
                 ))}
                 {ordersByStatus.ready.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">Нет заказов</p>
+                  <p className="text-center text-muted-foreground py-8">
+                    {dragOverStatus === 'ready' ? 'Отпустите для перемещения' : 'Нет заказов'}
+                  </p>
                 )}
               </div>
             </div>
