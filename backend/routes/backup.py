@@ -1498,6 +1498,12 @@ async def send_backup_to_telegram():
                 sauna_prices = await db.sauna_prices.find_one({})
             if sauna_prices:
                 sauna_prices = serialize_for_json(sauna_prices)
+                base_url = os.environ.get('API_BASE_URL', os.environ.get('REACT_APP_BACKEND_URL', ''))
+                if base_url:
+                    try:
+                        sauna_prices = await embed_images_in_data(sauna_prices, base_url)
+                    except:
+                        pass
                 zip_file.writestr("sauna_prices.json", json.dumps(sauna_prices, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "sauna_prices", "count": 1})
             
