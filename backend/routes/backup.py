@@ -1590,7 +1590,7 @@ async def send_backup_to_telegram():
         # Create backup ZIP in memory
         zip_buffer = io.BytesIO()
         backup_manifest = {
-            "version": "2.0",
+            "version": "3.0",
             "createdAt": datetime.now(timezone.utc).isoformat(),
             "collections": []
         }
