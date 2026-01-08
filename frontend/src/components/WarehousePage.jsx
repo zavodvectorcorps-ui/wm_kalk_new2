@@ -271,7 +271,7 @@ const WarehousePage = ({ onBack }) => {
                   <Calendar className="w-3 h-3" />
                   <span>Отправка: {order.dispatchDate}</span>
                 </div>
-              )}}
+              )}
             </div>
             
             <Button 
