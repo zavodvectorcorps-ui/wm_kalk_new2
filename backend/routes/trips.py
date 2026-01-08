@@ -381,6 +381,7 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
             
             # Step 3: Upload file (with chunking support)
             file_uuid = None
+            version_uuid = None
             current_url = upload_url
             offset = 0
             chunk_num = 0
