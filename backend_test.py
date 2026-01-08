@@ -6031,38 +6031,3 @@ def main():
     else:
         print(f"\n⚠️ {failed_tests} test(s) failed. Please check the issues above.")
         return False
-
-if __name__ == "__main__":
-    print("🚀 WM Calculator Backend API Testing - Warehouse Module Focus")
-    print("=" * 70)
-    print(f"Backend URL: {BACKEND_URL}")
-    print()
-    
-    # Run warehouse module tests
-    results = test_warehouse_module()
-    
-    # Print summary
-    print("\n" + "=" * 70)
-    print("📊 WAREHOUSE MODULE TEST SUMMARY")
-    print("=" * 70)
-    
-    total_tests = len(results)
-    passed_tests = sum(1 for result in results.values() if result)
-    failed_tests = total_tests - passed_tests
-    
-    print(f"Total Tests: {total_tests}")
-    print(f"✅ Passed: {passed_tests}")
-    print(f"❌ Failed: {failed_tests}")
-    print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
-    
-    print("\n📋 DETAILED RESULTS:")
-    for test_name, result in results.items():
-        status = "✅ PASS" if result else "❌ FAIL"
-        print(f"  {test_name}: {status}")
-    
-    if failed_tests == 0:
-        print("\n🎉 ALL WAREHOUSE TESTS PASSED! Warehouse module API is working correctly.")
-        sys.exit(0)
-    else:
-        print(f"\n⚠️ {failed_tests} test(s) failed. Please check the issues above.")
-        sys.exit(1)
