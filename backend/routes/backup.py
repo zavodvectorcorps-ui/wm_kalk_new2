@@ -1413,38 +1413,77 @@ async def create_auto_backup():
 
 @router.get("/download/{backup_id}")
 async def download_backup(backup_id: str):
-    """Download a stored backup as ZIP file"""
+    """Download a stored backup as ZIP file.
+    
+    Note: Since we only store metadata in MongoDB (not full backup data due to size limits),
+    this endpoint creates a fresh backup with current data.
+    """
     try:
         from bson import ObjectId
         backup = await db.backups.find_one({"_id": ObjectId(backup_id)})
         if not backup:
             raise HTTPException(status_code=404, detail="Backup not found")
         
-        # Create ZIP from stored backup
+        # Since we only store metadata, create fresh backup
+        # Use export_backup logic
         zip_buffer = io.BytesIO()
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            collections = backup.get("collections", {})
-            
-            manifest = {
-                "version": "1.0",
-                "createdAt": backup.get("createdAt"),
+            backup_manifest = {
+                "version": "3.0",
+                "createdAt": backup.get("createdAt", datetime.now(timezone.utc).isoformat()),
                 "collections": []
             }
             
-            for name, data in collections.items():
-                if data:
-                    if isinstance(data, list):
-                        zip_file.writestr(f"{name}.json", json.dumps(data, ensure_ascii=False, indent=2))
-                        manifest["collections"].append({"name": name, "count": len(data)})
-                    else:
-                        zip_file.writestr(f"{name}.json", json.dumps(data, ensure_ascii=False, indent=2))
-                        manifest["collections"].append({"name": name, "count": 1})
+            # Export all collections (same as export_backup)
+            balia_orders = await db.orders.find({}).to_list(10000)
+            if balia_orders:
+                balia_orders = [serialize_for_json(o) for o in balia_orders]
+                zip_file.writestr("balia_orders.json", json.dumps(balia_orders, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "balia_orders", "count": len(balia_orders)})
             
-            zip_file.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+            sauna_orders = await db.sauna_orders.find({}).to_list(10000)
+            if sauna_orders:
+                sauna_orders = [serialize_for_json(o) for o in sauna_orders]
+                zip_file.writestr("sauna_orders.json", json.dumps(sauna_orders, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_orders", "count": len(sauna_orders)})
+            
+            greenhouse_orders = await db.greenhouse_orders.find({}).to_list(10000)
+            if greenhouse_orders:
+                greenhouse_orders = [serialize_for_json(o) for o in greenhouse_orders]
+                zip_file.writestr("greenhouse_orders.json", json.dumps(greenhouse_orders, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "greenhouse_orders", "count": len(greenhouse_orders)})
+            
+            # Add other essential collections
+            trips = await db.trips.find({}).to_list(10000)
+            if trips:
+                trips = [serialize_for_json(t) for t in trips]
+                zip_file.writestr("trips.json", json.dumps(trips, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "trips", "count": len(trips)})
+            
+            drivers = await db.drivers.find({}).to_list(1000)
+            if drivers:
+                drivers = [serialize_for_json(d) for d in drivers]
+                zip_file.writestr("drivers.json", json.dumps(drivers, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "drivers", "count": len(drivers)})
+            
+            users = await db.users.find({}).to_list(1000)
+            if users:
+                users = [serialize_for_json(u) for u in users]
+                zip_file.writestr("users.json", json.dumps(users, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "users", "count": len(users)})
+            
+            # Settings
+            all_settings = await db.settings.find({}).to_list(100)
+            if all_settings:
+                all_settings = [serialize_for_json(s) for s in all_settings]
+                zip_file.writestr("settings.json", json.dumps(all_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "settings", "count": len(all_settings)})
+            
+            zip_file.writestr("manifest.json", json.dumps(backup_manifest, ensure_ascii=False, indent=2))
         
         zip_buffer.seek(0)
-        filename = f"backup_{backup.get('createdAt', 'unknown').replace(':', '-')}.zip"
+        filename = f"backup_{backup.get('createdAt', 'unknown').replace(':', '-').replace('.', '-')}.zip"
         
         return StreamingResponse(
             zip_buffer,
