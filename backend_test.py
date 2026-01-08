@@ -5660,6 +5660,12 @@ def main():
     # Test results tracking
     results = {}
     
+    # Warehouse Module Tests (NEW - Primary Focus)
+    print("\n🏭 WAREHOUSE MODULE TESTS")
+    print("-" * 40)
+    warehouse_results = test_warehouse_module()
+    results.update(warehouse_results)
+    
     # Review Request Specific Tests
     print("\n📋 REVIEW REQUEST TESTS")
     print("-" * 40)
