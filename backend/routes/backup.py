@@ -1239,6 +1239,48 @@ async def create_auto_backup():
         if webhook_logs:
             backup_manifest["collections"].append({"name": "webhook_logs", "count": len(webhook_logs)})
         
+        # Warehouse history (status changes log)
+        warehouse_history = await db.warehouse_history.find({}).to_list(10000)
+        backup_data["collections"]["warehouse_history"] = [serialize_for_json(w) for w in warehouse_history]
+        if warehouse_history:
+            backup_manifest["collections"].append({"name": "warehouse_history", "count": len(warehouse_history)})
+        
+        # Notification subscriptions (push notifications)
+        notification_subscriptions = await db.notification_subscriptions.find({}).to_list(10000)
+        backup_data["collections"]["notification_subscriptions"] = [serialize_for_json(n) for n in notification_subscriptions]
+        if notification_subscriptions:
+            backup_manifest["collections"].append({"name": "notification_subscriptions", "count": len(notification_subscriptions)})
+        
+        # Notification settings
+        notification_settings = await db.notification_settings.find({}).to_list(100)
+        backup_data["collections"]["notification_settings"] = [serialize_for_json(n) for n in notification_settings]
+        if notification_settings:
+            backup_manifest["collections"].append({"name": "notification_settings", "count": len(notification_settings)})
+        
+        # Telegram link codes
+        telegram_link_codes = await db.telegram_link_codes.find({}).to_list(1000)
+        backup_data["collections"]["telegram_link_codes"] = [serialize_for_json(t) for t in telegram_link_codes]
+        if telegram_link_codes:
+            backup_manifest["collections"].append({"name": "telegram_link_codes", "count": len(telegram_link_codes)})
+        
+        # Delivery photos
+        delivery_photos = await db.delivery_photos.find({}).to_list(10000)
+        backup_data["collections"]["delivery_photos"] = [serialize_for_json(p) for p in delivery_photos]
+        if delivery_photos:
+            backup_manifest["collections"].append({"name": "delivery_photos", "count": len(delivery_photos)})
+        
+        # amoCRM sync logs
+        amocrm_sync_logs = await db.amocrm_sync_logs.find({}).to_list(10000)
+        backup_data["collections"]["amocrm_sync_logs"] = [serialize_for_json(l) for l in amocrm_sync_logs]
+        if amocrm_sync_logs:
+            backup_manifest["collections"].append({"name": "amocrm_sync_logs", "count": len(amocrm_sync_logs)})
+        
+        # Pending notifications
+        pending_notifications = await db.pending_notifications.find({}).to_list(10000)
+        backup_data["collections"]["pending_notifications"] = [serialize_for_json(n) for n in pending_notifications]
+        if pending_notifications:
+            backup_manifest["collections"].append({"name": "pending_notifications", "count": len(pending_notifications)})
+        
         # Calculate size
         backup_json = json.dumps(backup_data)
         backup_data["size"] = len(backup_json)
