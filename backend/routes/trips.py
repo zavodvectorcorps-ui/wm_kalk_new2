@@ -423,50 +423,85 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
                 logger.error("No UUID received after upload")
                 return await _create_note_without_file(client, domain, token, amocrm_id, order_id, driver_name)
             
-            # Step 4: Attach file to lead
-            link_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
-            link_payload = [{"file_uuid": file_uuid}]
-            
-            logger.info(f"Step 4: Attaching file to lead at {link_url}")
-            
-            link_response = await client.put(
-                link_url,
-                headers=headers_json,
-                json=link_payload
-            )
-            
-            logger.info(f"Link response: {link_response.status_code}")
-            
-            if link_response.status_code not in [200, 201, 202]:
-                logger.warning(f"Failed to attach file to lead: {link_response.status_code}")
-                # Still try to create note
-            
-            # Step 5: Create note about the photo
+            # Step 4: Create note with file attachment
             note_text = f"📷 Фото акта доставки"
             if driver_name:
                 note_text += f"\nВодитель: {driver_name}"
             note_text += f"\nВремя: {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
             note_text += f"\nЗаказ: {order_id}"
-            note_text += f"\nФайл: {filename}"
             
             notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
-            note_payload = [{"note_type": "common", "params": {"text": note_text}}]
             
-            logger.info(f"Step 5: Creating note at {notes_url}")
+            # Try to create note with embedded file first
+            logger.info(f"Step 4: Creating note with file attachment")
+            
+            note_payload_with_file = [
+                {
+                    "note_type": "common",
+                    "params": {
+                        "text": note_text
+                    },
+                    "params_file": {
+                        "file_uuid": file_uuid
+                    }
+                }
+            ]
             
             note_response = await client.post(
                 notes_url,
                 headers=headers_json,
-                json=note_payload
+                json=note_payload_with_file
             )
             
-            if note_response.status_code in [200, 201]:
-                logger.info(f"✅ Successfully uploaded photo and created note on lead {amocrm_id}")
-                return True
-            else:
-                logger.warning(f"Note creation failed: {note_response.status_code}")
-                # File was attached, consider partial success
+            logger.info(f"Note with file response: {note_response.status_code}")
+            
+            # If note with file failed, try alternative methods
+            if note_response.status_code not in [200, 201]:
+                # Method 2: Try with _embedded.files
+                note_payload_embedded = [
+                    {
+                        "note_type": "common",
+                        "params": {
+                            "text": note_text
+                        },
+                        "_embedded": {
+                            "files": [{"uuid": file_uuid}]
+                        }
+                    }
+                ]
+                
+                note_response = await client.post(
+                    notes_url,
+                    headers=headers_json,
+                    json=note_payload_embedded
+                )
+                
+                logger.info(f"Note embedded response: {note_response.status_code}")
+            
+            # If still failed, attach file to lead and create simple note
+            if note_response.status_code not in [200, 201]:
+                # Attach file to lead
+                link_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+                link_payload = [{"file_uuid": file_uuid}]
+                
+                logger.info(f"Step 4b: Attaching file to lead at {link_url}")
+                
+                link_response = await client.put(
+                    link_url,
+                    headers=headers_json,
+                    json=link_payload
+                )
+                
+                logger.info(f"Link response: {link_response.status_code}")
+                
+                # Create simple note
+                simple_note = [{"note_type": "common", "params": {"text": note_text + f"\nФайл: {filename}"}}]
+                await client.post(notes_url, headers=headers_json, json=simple_note)
+                
                 return link_response.status_code in [200, 201, 202]
+            
+            logger.info(f"✅ Successfully created note with photo on lead {amocrm_id}")
+            return True
                 
     except Exception as e:
         logger.error(f"❌ Error sending photo to amoCRM: {e}", exc_info=True)
