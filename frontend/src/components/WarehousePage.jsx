@@ -360,7 +360,7 @@ const WarehousePage = ({ onBack }) => {
                             {new Date(entry.changedAt).toLocaleString('ru-RU')}
                           </div>
                           {entry.comment && (
-                            <div className="mt-1 italic">"{entry.comment}"</div>
+                            <div className="mt-1 italic">&quot;{entry.comment}&quot;</div>
                           )}
                         </div>
                       ))}
