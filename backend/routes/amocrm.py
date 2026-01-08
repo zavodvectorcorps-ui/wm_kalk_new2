@@ -28,6 +28,40 @@ webhook_logs = db["webhook_logs"]
 logger = logging.getLogger(__name__)
 
 
+def parse_pipe_separated_value(value: str) -> str:
+    """
+    Parse value and extract part after '|' separator.
+    If no separator found, return full value.
+    Handles multiple items separated by newlines or commas.
+    
+    Example:
+    "SKU123 | Товар 1\nSKU456 | Товар 2" -> "Товар 1\nТовар 2"
+    "Просто товар без разделителя" -> "Просто товар без разделителя"
+    """
+    if not value:
+        return ""
+    
+    # Split by newlines or commas to handle multiple items
+    lines = value.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+    result_lines = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Check if line contains '|' separator
+        if '|' in line:
+            # Take part after the last '|' and strip whitespace
+            parts = line.split('|')
+            result_lines.append(parts[-1].strip())
+        else:
+            # No separator - keep full line
+            result_lines.append(line)
+    
+    return '\n'.join(result_lines)
+
+
 class FieldMapping(BaseModel):
     fullName: str = ""
     phoneNumber: str = ""
