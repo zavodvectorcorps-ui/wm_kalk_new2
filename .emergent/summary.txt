@@ -10,178 +10,185 @@ The user's high-level goal is to build a comprehensive logistics management syst
 *   Fix various UI/UX bugs and data sync issues.
 
 **New Requirements from this session:**
-1.  **Trips History Page**: Create a new, separate top-level page/tab in the logistics section to display a comprehensive list of all historical trips from all sections, including details like driver, date, order count, and mileage. Add filtering and a CSV export option.
-2.  **Admin Help Page**: Add a dedicated Help section within the Admin Panel. This page should contain links to the diagnostic tools (, ) and provide guidance for troubleshooting common issues.
-3.  **Notification Counter**: In the Driver Panel, display a counter for unread notifications. This counter should be reset to zero when the driver opens the notification history.
-4.  **Photo Sync & Visibility**:
-    *   Fix the bug where uploaded delivery photos are not visible in the logistics UI.
-    *   Fix the bug where photos are not being attached as files to notes in amoCRM.
-5.  **Data Cleanup**: Create a tool for an administrator to delete old trips that are stuck with legacy statuses (e.g., ) and are no longer visible or manageable in the UI.
+1.  **Fix amoCRM Photo Upload**: Resolve the long-standing issue of photos not being attached as files to notes in amoCRM.
+2.  **Warehouse Module**: Create a new top-level section for warehouse management.
+    *   Introduce a new user role: .
+    *   Build a Kanban board UI to track order statuses: Заявка (Request), Комплектация (Packing), Готов к загрузке (Ready for loading).
+    *   Implement drag-and-drop functionality for changing an order's warehouse status.
+    *   Provide a read-only view of logistics trips for warehouse staff.
+    *   When an order is Ready for loading, display a Packed status icon in the main Logistics UI.
+3.  **No Name Order Handling**: In the Logistics page, orders that sync from amoCRM without a client name should be sorted to the top of the list and visually highlighted to draw attention.
+4.  **amoCRM Sync Enhancement**:
+    *   The Compare with amoCRM feature should only analyze unassigned orders (not those already in a trip).
+    *   Add a Sync button to automatically import any orders found in amoCRM but missing from the local database.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a logistics management system with a React frontend and FastAPI backend.
+The application is a logistics management system with a React frontend and FastAPI backend. This session accomplished two major goals: fixing a critical, long-standing bug with amoCRM photo uploads and building the first phase of a new Warehouse module.
 
-This session focused on fixing critical bugs from the previous fork and implementing several new features requested by the user.
-- **Critical Bug Fixes**:
-    - **Login Failure**: A  package version conflict causing login failures was resolved by downgrading the package to a stable version ().
-    - **Disappearing Delivered Trips**: A bug where trips with  status were not showing in the Logistics UI was fixed by aligning frontend constants () with the backend status.
-    - **Photo Debug Page**: An internal server error on the debug page was fixed by correcting a  in the backend endpoint.
-- **New Features Implemented**:
-    - **Trips History Page**: A new top-level tab, История (History), was added to the Logistics page. It displays a paginated and filterable table of all trips from all sections, with an option to export the data to CSV.
-    - **Admin Help Page**: A Помощь (Help) tab was added to the Admin Panel. It includes a Tools section with a button to clean up legacy trips and links to diagnostic pages.
-    - **Driver Notification Counter**: The Driver Panel now displays a badge with the count of unread notifications. The count is reset when the driver views the notification history.
-- **Photo Delivery Workflow (Partially Fixed)**:
-    - The photo now correctly appears in the Logistics UI on the specific order card within a trip.
-    - A Repair Link function was created on the  page to fix broken associations between uploaded photos and their corresponding orders in the database.
-    - A manual Resend to amoCRM button was added to the debug page to help diagnose the amoCRM integration issue.
-    - The core issue of attaching the photo *file* to an amoCRM note remains unresolved.
+-   **amoCRM Photo Upload (Resolved)**: After extensive debugging through multiple failed approaches, the agent successfully implemented the correct multi-step, chunked file upload process for the amoCRM API v4. The working solution now correctly creates a special  note with the uploaded photo. The working code was also documented and added to a new amoCRM API tab in the Admin Help section.
+-   **Warehouse Module (Phase 1 Implemented)**: A new Warehouse page () is now available for users with the  role. It features a drag-and-drop Kanban board (using ) to manage orders through statuses. It also includes a read-only tab to view scheduled trips. The backend was updated with a new  role, new API endpoints (), and logic to support this functionality.
+-   **Logistics UI/UX Improvements**:
+    -   The Logistics page now automatically sorts orders without a name to the top of the list and highlights them with a red border and a ⚠️ Без имени badge for easy identification.
+    -   The amoCRM comparison logic was updated to ignore assigned orders. A Sync button was added to import missing orders, though this feature is currently broken.
 
 **Last working item**:
--   **Last item agent was working**: Debugging the final, persistent issue where the delivery photo is not being attached as a file to the lead note in amoCRM. The system successfully creates a text note, but the file upload part consistently fails.
+-   **Last item agent was working**: Fixing a JavaScript error in the newly created Sync Missing Orders feature. After a user clicks the Синхронизировать (Sync) button, the data is fetched from the backend, but the UI fails to refresh because it calls a non-existent function .
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (Agent confirmed through a custom debug endpoint that its previous file upload methods were incorrect, receiving 404/405 errors from the amoCRM API. It has identified a new, more complex approach.)
--   **Which testing method agent to use?**: backend testing agent (To test the complex, multi-step amoCRM API flow for file uploads).
--   **User Testing Done**: Y (User confirmed the photo is still not in amoCRM, only a text note appears).
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: manual testing by curl/ python -c. The agent should first test the backend endpoint () to ensure it works as expected. After fixing the JavaScript error, the agent should use the screenshot tool to verify the button works and the UI refreshes correctly.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Delivery photo is not visible as a file attachment in amoCRM. (P0)
+-   **Issue 1**:  JavaScript error prevents UI refresh after syncing missing amoCRM orders. (P0)
 -   **Issue 2**: Deprecated Google Maps Autocomplete component. (P2)
 -   **Issue 3**: Unstable user login sessions. (P3)
 
 **Issues Detail**:
--   **Issue 1: Delivery photo is not visible as a file attachment in amoCRM.**
-    -   **Attempted fixes**: The agent tried multiple incorrect API endpoints (, ) which resulted in 404/405 errors. A debug endpoint () was created to diagnose this. The agent has now discovered through web research that a complex multi-step process is required.
+-   **Issue 1:  JavaScript error prevents UI refresh after syncing missing amoCRM orders.**
+    -   **Attempted fixes**: The agent created the  async function in . In the  block after the successful API call, it attempts to call  to refresh the list, but this function does not exist in the scope.
     -   **Next debug checklist**:
-        1.  Modify the  function in .
-        2.  Implement the correct amoCRM file upload workflow:
-            a. Get the account's .
-            b. Create an upload session on the  to get a temporary .
-            c.  the file data to the .
-            d. Retrieve the file's UUID from the upload response.
-            e. Attach the file to the lead note using the obtained UUID.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a core product requirement for proof of delivery and has been a recurring blocker.
+        1.  Open .
+        2.  Find the  function.
+        3.  In the success callback, replace the line  with a call to an existing data-fetching function like  to correctly reload the orders for the current view.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is the final step to complete the Sync Missing Orders feature. Fixing it will allow users to import orders from amoCRM and see the updated list in the UI without needing to manually refresh the page.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Both
     -   **Blocked on other issue**: None
+
 -   **Issue 2: Deprecated Google Maps Autocomplete component.**
     -   **Attempted fixes**: None.
     -   **Next debug checklist**: Research and implement a modern alternative, such as the  React library.
     -   **Why fix this issue and what will be achieved with the fix?**: Eliminates technical debt and prevents future failures of the address input functionality.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend.
-    -   **Blocked on other issue**: None.
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
+
 -   **Issue 3: Unstable user login sessions.**
-    -   **Attempted fixes**: None in this session. The critical login failure was due to .
-    -   **Next debug checklist**: Investigate potential causes like backend service restarts or issues with token refresh logic if any exists. Review user management and authentication flow in  and .
+    -   **Attempted fixes**: None in this session.
+    -   **Next debug checklist**: Investigate potential causes like backend service restarts or issues with token refresh logic. Review user management and authentication flow in  and .
     -   **Why fix this issue and what will be achieved with the fix?**: Improves user experience by preventing random logouts.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Backend.
-    -   **Blocked on other issue**: None.
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
-None.
+-   **Task 1: Complete the Sync Missing Orders feature.** (P0)
+    -   **Where to resume**: Fix the  JavaScript error in .
+    -   **What will be achieved with this?**: A functional button on the Logistics page that allows users to import orders from amoCRM that are missing in the local database.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on something**: None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
+    -   **P1**: Refine Warehouse Module: Verify with the user that the enriched order details now correctly appear in the Trips tab.
     -   **P1**: Add a UI for importing a backup ZIP file.
 -   **Future Tasks**:
+    -   **P2**: Replace the deprecated Google Maps Autocomplete component.
     -   **P2**: Refactor .
     -   **P3**: Finalize strategy for Sauna Lead Statistics.
+    -   **P3**: Investigate and fix unstable user login sessions.
+    -   **P3**: Refactor  and  into smaller components/hooks.
 
 **Completed work in this session**
--   **Critical Login Bug Fix**: Resolved a fatal  error preventing user login by downgrading the package in .
--   **Logistics UI Bug Fix**: Corrected frontend logic to ensure trips with delivered status are correctly displayed in the Logistics panel.
--   **Trips History Page**: Implemented a new top-level History tab in Logistics, showing a filterable and exportable table of all trips.
--   **Admin Help Page**: Created a new Help tab in the Admin Panel with links to diagnostic pages and a new tool to clean up legacy trips.
--   **Notification Counter**: Added a counter for unread notifications in the Driver Panel, which resets upon viewing the history.
--   **Photo Visibility in Logistics**: Fixed the display of delivery photos within the trip order cards in the Logistics UI.
--   **Photo Debugging Tools**: Enhanced the  page with a Repair Link function and a Resend to amoCRM button to aid in diagnostics.
+-   **amoCRM Photo Upload Fix**: Resolved a critical blocker by implementing the correct multi-step, chunked upload process for amoCRM API v4 in . The system now successfully attaches photos to lead notes.
+-   **Warehouse Module (Phase 1)**:
+    -   Created a new  user role and corresponding API endpoints in .
+    -   Built a new  component featuring a drag-and-drop Kanban board (using ) for managing order statuses and a read-only view of trips.
+-   **Logistics UI/UX Improvements**:
+    -   In , implemented sorting and visual highlighting to prioritize orders imported Без имени (without a name).
+-   **Admin Help Page Enhancement**: Added a new amoCRM API tab to  with technical documentation on the working file upload process.
+-   **amoCRM Sync Feature**:
+    -   Modified  to only compare unassigned orders with amoCRM.
+    -   Added a new backend endpoint  to import missing leads.
+    -   Added a Sync button to the UI (currently needs a bug fix to be fully functional).
 
 **Earlier issues found/mentioned but not fixed**
-None. The  attribute warning was implicitly resolved by downgrading the package to fix the more critical login error.
+None.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Photo visibility and delivery to amoCRM has been a persistent theme. The problem has evolved from upload errors to sync/attachment errors.
+-   **Issue recurrence in previous fork**: Photo delivery to amoCRM.
 -   **Recurrence count**: High
--   **Status**: IN PROGRESS
+-   **Status**: RESOLVED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Dependency Management**: Resolved a critical runtime error by downgrading a conflicting package version ().
--   **Complex API Integration Debugging**: Methodically diagnosed a failing third-party API (amoCRM) by adding dedicated debug endpoints, logging responses, and using web search to find the correct, previously unknown multi-step workflow.
--   **Conditional UI Rendering & State Management**: Refactored  and  to handle a new top-level tab (History) that doesn't share state with other tabs, preventing crashes with optional chaining () and conditional returns ().
--   **Data Repair & Migration**: Created an API endpoint () and a UI button to perform a one-off data cleanup task for the user.
--   **Data Discrepancy Reconciliation**: Created a Repair Link feature () to fix data integrity issues where a photo existed but was not correctly linked to its parent order document.
+-   **Complex API Integration (amoCRM)**: Mastered a multi-step, chunked file upload process, handling  status codes and using  with both  and .
+-   **Drag-and-Drop UI**: Implemented a Kanban board using the  library in React.
+-   **Role-Based Access Control (RBAC)**: Extended the auth system by adding a new  role and protecting the new UI and API routes.
+-   **State Management & Hooks**: Added new functionality () to the large  custom hook, which is the source of the current bug.
+-   **Dynamic UI Sorting**: Implemented client-side array sorting in React to prioritize No Name orders, improving usability for logistics managers.
 
 **key DB schema**
--   **notification_history**: Added  (defaulting to ).
--   **orders** (in , , etc.): Now has  field populated by the repair/upload logic.
+-   **users**: The  and  array can now include the string .
+-   **orders** (e.g., ): A  field is now used to track the order's progress on the Kanban board (e.g., request, packing, ready).
 
 **changes in tech stack**
--   ****: Downgraded from  to  in  to fix a critical login issue.
+-   **** and ****: These libraries were added to the frontend to enable drag-and-drop functionality.
 
 **All files of reference**
--   : Contains the  function that needs to be completely rewritten.
--   : Contains the debug and repair endpoints for photos.
--   : Contains the logic for the notification counter.
--   : Contains the new History tab and the UI logic for displaying photos in trip order cards.
--   : The new component for the history page.
--   : The new component for the admin help page.
--   : The user-facing tool for diagnosing and fixing photo issues.
+-   : Contains the buggy  function that needs to be fixed.
+-   : UI containing the Sync button and No Name order highlighting.
+-   : Contains the new  endpoint.
+-   : The new warehouse module component.
+-   : The backend API for the new warehouse module.
+-   : Contains the final, correct amoCRM photo upload logic.
+-   : Contains the new documentation for the amoCRM API process.
 
 **Areas that need refactoring**:
--   ****: Still over 2000 lines. The inline components (, , , ) should be extracted.
--   ****: Still approaching 2000 lines. Should be broken down into smaller, more focused hooks.
+-   ****: This hook is becoming overly complex and should be considered for splitting into smaller, more focused hooks.
+-   ****: The  tool flagged that several components (, , ) are defined inline. They should be extracted into separate files.
+-   ****: This component remains very large and continues to accumulate new logic, making it a candidate for future refactoring.
 
 **key api endpoints**
--   : (New) Marks all of a driver's notifications as read.
--   : (New) Gets the count of unread notifications for a driver.
--   : (Modified) Now searches for an order by multiple ID formats (, , etc.).
--   : (New) Links an existing photo to its order document.
--   : (New) A debug endpoint to manually trigger the amoCRM photo send process.
--   : (New) Deletes trips with outdated statuses.
+-   : (New) Imports a list of missing amoCRM leads into the local database.
+-   : (New) Returns counts of orders by their warehouse status.
+-   : (New) Fetches all orders for the warehouse Kanban view.
+-   : (New) Updates the  of an order.
+-   : (New) Fetches all trips for the read-only warehouse view, enriching them with order details.
 
 **Critical Info for New Agent**
 -   You MUST respond in **Russian**.
--   **The #1 Blocker is amoCRM Photo Upload**: The current implementation is wrong. The next step is to completely rewrite the  function in  to use the correct multi-step process: 1. Get , 2. Create upload session, 3. Upload file, 4. Get UUID, 5. Attach UUID to lead note.
--   ** Version**: The  package was intentionally downgraded to  to fix a critical login bug. Do not upgrade it.
--   **User is Collaborative**: The user is helpful and provides detailed feedback, including logs and screenshots from browser developer tools. Utilize the debug pages () when interacting with them.
+-   **Current Blocker**: The Sync Missing Orders feature is broken. You need to fix a JavaScript error in . In the  function, replace the call to the non-existent  with a correct data refresh function like .
+-   **amoCRM Photo Upload is SOLVED**: The logic in  is correct and user-verified. Do not modify it. The working process is documented in the Admin Help page.
+-   **New Warehouse Module**: This is a major new feature. The user has requested drag-and-drop (which is implemented) and full order details in the trips view (which the previous agent attempted to fix). Verify if the fix was successful.
 
 **documents and test reports created in this job**
--    (significantly enhanced)
--    (updated)
+None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Reports photo is not in amoCRM, just a note. Provides debug output for an order.
-2.  **User**: Clarifies that in amoCRM the order ID is , but in the database the photo is linked to . Also requests deletion of old trips with  status.
-3.  **User**: Provides detailed debug output showing the photo exists for  but not when searching for . Confirms photo is not in logistics UI.
-4.  **User**: Provides screenshots showing the note in amoCRM without the file, and the logistics UI without the photo link.
-5.  **User**: Responds to agent's question about whether Repair Link was clicked, providing the successful JSON response.
-6.  **User**: After being asked to check DevTools, provides a screenshot of the network tab showing the large  API response.
-7.  **User**: Corrects the agent's placement of the photo link, clarifying it should be on the miniature order card *inside* a trip, not the main order list.
-8.  **User**: Confirms the photo link now appears correctly in the logistics UI, but the photo still doesn't appear in amoCRM.
-9.  **User**: After being asked to test the new Resend to amoCRM button, provides the JSON failure response, which reveals the 404 error on the  endpoint.
-10. **Pending**: User is waiting for the agent to fix the amoCRM file upload based on the latest findings.
+1.  **User**: Asks to improve the amoCRM comparison: it should only compare unassigned orders, and there should be a button to sync/import missing ones.
+2.  **User**: Reports that the Warehouse page doesn't show full order details and requests drag-and-drop for the Kanban board.
+3.  **User**: Provides the successful debug log for the amoCRM photo upload and confirms it works, asking for the same logic to be used in the main workflow.
+4.  **User**: Requests that orders without a name should be sorted to the top of the Logistics list for easier visibility.
+5.  **User**: Reports that sometimes duplicate notes appear in amoCRM after photo upload (one with the file, one with just text).
+6.  **User**: Agrees with the agent's idea to document the working amoCRM API process in the admin panel.
+7.  **User**: Submits a large feature request for a new Warehouse module with a specific user role, Kanban board, and read-only views.
+8.  **User**: Provides clarifications on the Warehouse module requirements (filtering, status updates reflecting in logistics, trip visibility, history).
+9.  **Pending User Message**: None. The agent was in the middle of a development task.
+10. **(Agent's last communication to user)**: The agent presented the implemented drag-and-drop feature and the fix for displaying order details in the warehouse view, asking for further feedback.
 
 **Project Health Check:**
 -   **Broken**:
-    -   amoCRM photo file attachment. The backend logic for uploading files to amoCRM is incorrect and needs a complete rewrite.
+    -   The Sync Missing Orders button in the Logistics page is non-functional due to a JavaScript error ().
+-   **Mocked**: None.
 
 **3rd Party Integrations**
--   **Google Maps API**: Used for address autocomplete (deprecated component), geocoding, and map display.
--   **amoCRM**: Heavily integrated for lead sync, status updates, and note creation. File attachment is the main broken feature.
+-   **Google Maps API**: Used for address autocomplete (known deprecated component).
+-   **amoCRM**: Heavily integrated for lead and photo synchronization.
+-   **@dnd-kit/core & @dnd-kit/sortable**: Frontend libraries for drag-and-drop functionality in the new Warehouse module.
 
 **Testing status**
 -   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None
+-   **Test files created**: None.
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
@@ -189,4 +196,4 @@ None. The  attribute warning was implicitly resolved by downgrading the package 
 -   Driver:  /  (Note: linked driver ID is )
 
 **What agent forgot to execute**
--   The agent systematically addressed all user requests and pre-existing bugs from the last fork. The primary remaining task is the one the agent was actively working on when the session ended.</analysis>
+- The agent was in the process of fixing the  error when the session ended. This was not forgotten, but rather interrupted.</analysis>
