@@ -1261,45 +1261,45 @@ async def create_auto_backup():
         if webhook_logs:
             backup_manifest["collections"].append({"name": "webhook_logs", "count": len(webhook_logs)})
         
-        # Warehouse history (status changes log)
-        warehouse_history = await db.warehouse_history.find({}).to_list(10000)
-        backup_data["collections"]["warehouse_history"] = [serialize_for_json(w) for w in warehouse_history]
+        # Warehouse history (status changes log) - safe collection
+        warehouse_history = await safe_collect("warehouse_history")
+        backup_data["collections"]["warehouse_history"] = warehouse_history
         if warehouse_history:
             backup_manifest["collections"].append({"name": "warehouse_history", "count": len(warehouse_history)})
         
-        # Notification subscriptions (push notifications)
-        notification_subscriptions = await db.notification_subscriptions.find({}).to_list(10000)
-        backup_data["collections"]["notification_subscriptions"] = [serialize_for_json(n) for n in notification_subscriptions]
+        # Notification subscriptions (push notifications) - safe collection
+        notification_subscriptions = await safe_collect("notification_subscriptions")
+        backup_data["collections"]["notification_subscriptions"] = notification_subscriptions
         if notification_subscriptions:
             backup_manifest["collections"].append({"name": "notification_subscriptions", "count": len(notification_subscriptions)})
         
-        # Notification settings
-        notification_settings = await db.notification_settings.find({}).to_list(100)
-        backup_data["collections"]["notification_settings"] = [serialize_for_json(n) for n in notification_settings]
+        # Notification settings - safe collection
+        notification_settings = await safe_collect("notification_settings", limit=100)
+        backup_data["collections"]["notification_settings"] = notification_settings
         if notification_settings:
             backup_manifest["collections"].append({"name": "notification_settings", "count": len(notification_settings)})
         
-        # Telegram link codes
-        telegram_link_codes = await db.telegram_link_codes.find({}).to_list(1000)
-        backup_data["collections"]["telegram_link_codes"] = [serialize_for_json(t) for t in telegram_link_codes]
+        # Telegram link codes - safe collection
+        telegram_link_codes = await safe_collect("telegram_link_codes", limit=1000)
+        backup_data["collections"]["telegram_link_codes"] = telegram_link_codes
         if telegram_link_codes:
             backup_manifest["collections"].append({"name": "telegram_link_codes", "count": len(telegram_link_codes)})
         
-        # Delivery photos
-        delivery_photos = await db.delivery_photos.find({}).to_list(10000)
-        backup_data["collections"]["delivery_photos"] = [serialize_for_json(p) for p in delivery_photos]
+        # Delivery photos - safe collection
+        delivery_photos = await safe_collect("delivery_photos")
+        backup_data["collections"]["delivery_photos"] = delivery_photos
         if delivery_photos:
             backup_manifest["collections"].append({"name": "delivery_photos", "count": len(delivery_photos)})
         
-        # amoCRM sync logs
-        amocrm_sync_logs = await db.amocrm_sync_logs.find({}).to_list(10000)
-        backup_data["collections"]["amocrm_sync_logs"] = [serialize_for_json(l) for l in amocrm_sync_logs]
+        # amoCRM sync logs - safe collection
+        amocrm_sync_logs = await safe_collect("amocrm_sync_logs")
+        backup_data["collections"]["amocrm_sync_logs"] = amocrm_sync_logs
         if amocrm_sync_logs:
             backup_manifest["collections"].append({"name": "amocrm_sync_logs", "count": len(amocrm_sync_logs)})
         
-        # Pending notifications
-        pending_notifications = await db.pending_notifications.find({}).to_list(10000)
-        backup_data["collections"]["pending_notifications"] = [serialize_for_json(n) for n in pending_notifications]
+        # Pending notifications - safe collection
+        pending_notifications = await safe_collect("pending_notifications")
+        backup_data["collections"]["pending_notifications"] = pending_notifications
         if pending_notifications:
             backup_manifest["collections"].append({"name": "pending_notifications", "count": len(pending_notifications)})
         
