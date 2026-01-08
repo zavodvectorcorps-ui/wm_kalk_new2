@@ -1026,92 +1026,66 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
             
             notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
             
-            # Try to create note with embedded file first
-            note_payload_with_file = [
+            # Method 1: Use note_type "attachment" - специальный тип для файлов
+            note_payload_attachment = [
                 {
-                    "note_type": "common",
+                    "note_type": "attachment",
                     "params": {
-                        "text": note_text
-                    },
-                    "params_file": {
-                        "file_uuid": file_uuid
+                        "file_uuid": file_uuid,
+                        "file_name": filename
                     }
                 }
             ]
             
-            result["debug"]["step4_note_with_file"] = True
+            result["debug"]["step4_method"] = "attachment"
             
             note_response = await client.post(
                 notes_url,
                 headers=headers_json,
-                json=note_payload_with_file
+                json=note_payload_attachment
             )
             
-            result["debug"]["note_with_file_status"] = note_response.status_code
-            result["debug"]["note_with_file_response"] = note_response.text[:500]
+            result["debug"]["note_attachment_status"] = note_response.status_code
+            result["debug"]["note_attachment_response"] = note_response.text[:500]
             
-            # If note with file failed, try alternative methods
-            if note_response.status_code not in [200, 201]:
-                # Method 2: Try with _embedded.files
-                note_payload_embedded = [
-                    {
-                        "note_type": "common",
-                        "params": {
-                            "text": note_text
-                        },
-                        "_embedded": {
-                            "files": [{"uuid": file_uuid}]
-                        }
-                    }
-                ]
+            if note_response.status_code in [200, 201]:
+                # Also create a text note with details
+                text_note = [{"note_type": "common", "params": {"text": note_text}}]
+                await client.post(notes_url, headers=headers_json, json=text_note)
                 
-                note_response = await client.post(
-                    notes_url,
-                    headers=headers_json,
-                    json=note_payload_embedded
-                )
-                
-                result["debug"]["note_embedded_status"] = note_response.status_code
-                result["debug"]["note_embedded_response"] = note_response.text[:500]
-            
-            # If still failed, attach file to lead and create simple note
-            if note_response.status_code not in [200, 201]:
-                # Attach file to lead
-                link_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
-                link_payload = [{"file_uuid": file_uuid}]
-                
-                result["debug"]["step4_url"] = link_url
-                result["debug"]["step4_payload"] = link_payload
-                
-                link_response = await client.put(
-                    link_url,
-                    headers=headers_json,
-                    json=link_payload
-                )
-                
-                result["debug"]["link_status"] = link_response.status_code
-                result["debug"]["link_response"] = link_response.text[:500]
-                
-                # Create simple note
-                simple_note = [{"note_type": "common", "params": {"text": note_text + f"\nФайл: {filename}"}}]
-                note_response = await client.post(notes_url, headers=headers_json, json=simple_note)
-                result["debug"]["note_status"] = note_response.status_code
-                
-                if link_response.status_code in [200, 201, 202]:
-                    result["success"] = True
-                    result["message"] = f"Фото загружено в файлы сделки {amocrm_id}"
-                    return result
-            else:
                 result["success"] = True
                 result["message"] = f"Фото прикреплено к заметке на сделке {amocrm_id}"
                 return result
             
-            if note_response.status_code in [200, 201]:
+            # Method 2: Attach file to lead files
+            result["debug"]["step4_fallback"] = "lead_files"
+            
+            link_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+            link_payload = [{"file_uuid": file_uuid}]
+            
+            result["debug"]["link_url"] = link_url
+            result["debug"]["link_payload"] = link_payload
+            
+            link_response = await client.put(
+                link_url,
+                headers=headers_json,
+                json=link_payload
+            )
+            
+            result["debug"]["link_status"] = link_response.status_code
+            result["debug"]["link_response"] = link_response.text[:500]
+            
+            # Create text note
+            text_note = [{"note_type": "common", "params": {"text": note_text + f"\n📎 Файл: {filename}"}}]
+            note_response = await client.post(notes_url, headers=headers_json, json=text_note)
+            result["debug"]["text_note_status"] = note_response.status_code
+            
+            if link_response.status_code in [200, 201, 202]:
                 result["success"] = True
-                result["message"] = f"Фото успешно загружено и привязано к сделке {amocrm_id}"
+                result["message"] = f"Фото загружено в файлы сделки {amocrm_id}"
             else:
-                result["message"] = f"Файл загружен, но не удалось создать заметку: {note_response.status_code}"
                 result["success"] = False
+                result["message"] = f"Не удалось привязать файл: {link_response.status_code}"
             
             return result
             
