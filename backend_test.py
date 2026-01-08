@@ -6472,7 +6472,7 @@ def test_logistics_sync_missing_orders():
 
 def main():
     """Run all backend tests for the review request"""
-    print("🚀 WM Calculator Backend API Testing - Review Request Focus")
+    print("🚀 WM Calculator Backend API Testing - Logistics Sync Missing Orders Fix")
     print("=" * 70)
     print(f"Backend URL: {BACKEND_URL}")
     print("=" * 70)
@@ -6480,7 +6480,12 @@ def main():
     # Test results tracking
     results = {}
     
-    # Warehouse Module Tests (NEW - Primary Focus)
+    # Logistics Sync Missing Orders Tests (PRIMARY FOCUS)
+    print("\n🚛 LOGISTICS SYNC MISSING ORDERS TESTS")
+    print("-" * 50)
+    results["Logistics Sync Missing Orders Feature"] = test_logistics_sync_missing_orders()
+    
+    # Warehouse Module Tests (Related)
     print("\n🏭 WAREHOUSE MODULE TESTS")
     print("-" * 40)
     warehouse_results = test_warehouse_module()
