@@ -56,6 +56,7 @@ app.include_router(drivers_router)
 app.include_router(driver_panel_router)
 app.include_router(widget_router)
 app.include_router(notifications_router)
+app.include_router(warehouse_router)
 
 # Initialize backup database reference
 from database import db
