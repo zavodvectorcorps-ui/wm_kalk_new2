@@ -265,7 +265,7 @@ export const useLogistics = () => {
       
       // Reload orders after sync
       if (result.synced_count > 0) {
-        await loadSection(activeSection);
+        await fetchSectionOrders(activeSection);
       }
       
       return result;
@@ -273,7 +273,7 @@ export const useLogistics = () => {
       console.error('Error syncing missing orders:', error);
       throw error;
     }
-  }, [activeSection, loadSection]);
+  }, [activeSection, fetchSectionOrders]);
 
   // Search function - filters orders by query
   const searchOrders = useCallback((query) => {
