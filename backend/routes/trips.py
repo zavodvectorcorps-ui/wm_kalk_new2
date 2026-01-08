@@ -460,10 +460,6 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
                 logger.info(f"Attachment note response: {note_response.status_code} - {note_response.text[:300]}")
                 
                 if note_response.status_code in [200, 201]:
-                    # Also create a text note with details
-                    text_note = [{"note_type": "common", "params": {"text": note_text}}]
-                    await client.post(notes_url, headers=headers_json, json=text_note)
-                    
                     logger.info(f"✅ Successfully created attachment note on lead {amocrm_id}")
                     return True
                 else:
