@@ -30,18 +30,21 @@ logger = logging.getLogger(__name__)
 
 def parse_pipe_separated_value(value: str) -> str:
     """
-    Parse value and extract part after '|' separator.
+    Parse value and extract part after '|' separator, preserving line numbering.
     If no separator found, return full value.
-    Handles multiple items separated by newlines or commas.
+    Handles multiple items separated by newlines.
     
     Example:
-    "SKU123 | Товар 1\nSKU456 | Товар 2" -> "Товар 1\nТовар 2"
+    "3. LUX Termiczny | LTO, 1 szt" -> "3. LTO, 1 szt"
+    "SKU123 | Товар 1" -> "Товар 1"
     "Просто товар без разделителя" -> "Просто товар без разделителя"
     """
+    import re
+    
     if not value:
         return ""
     
-    # Split by newlines or commas to handle multiple items
+    # Split by newlines to handle multiple items
     lines = value.replace('\r\n', '\n').replace('\r', '\n').split('\n')
     result_lines = []
     
@@ -49,12 +52,22 @@ def parse_pipe_separated_value(value: str) -> str:
         line = line.strip()
         if not line:
             continue
+        
+        # Check for numbering at the start (e.g., "3. ", "12. ", "1) ")
+        numbering = ""
+        numbering_match = re.match(r'^(\d+[\.\)]\s*)', line)
+        if numbering_match:
+            numbering = numbering_match.group(1)
+            line_without_number = line[len(numbering):]
+        else:
+            line_without_number = line
             
         # Check if line contains '|' separator
-        if '|' in line:
+        if '|' in line_without_number:
             # Take part after the last '|' and strip whitespace
-            parts = line.split('|')
-            result_lines.append(parts[-1].strip())
+            parts = line_without_number.split('|')
+            extracted_value = parts[-1].strip()
+            result_lines.append(numbering + extracted_value)
         else:
             # No separator - keep full line
             result_lines.append(line)
