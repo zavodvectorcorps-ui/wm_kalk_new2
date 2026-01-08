@@ -383,12 +383,14 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
             file_uuid = None
             current_url = upload_url
             offset = 0
+            chunk_num = 0
             
             while offset < file_size:
                 chunk_end = min(offset + max_part_size, file_size)
                 chunk = photo_bytes[offset:chunk_end]
+                chunk_num += 1
                 
-                logger.info(f"Step 3: Uploading chunk {offset}-{chunk_end} of {file_size}")
+                logger.info(f"Step 3: Uploading chunk {chunk_num} ({offset}-{chunk_end} of {file_size})")
                 
                 upload_response = await client.post(
                     current_url,
@@ -396,9 +398,8 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
                     content=chunk
                 )
                 
-                logger.info(f"Upload response: {upload_response.status_code}")
-                
-                if upload_response.status_code not in [200, 201]:
+                # 200 = complete, 201 = created, 202 = accepted (continue uploading chunks)
+                if upload_response.status_code not in [200, 201, 202]:
                     logger.error(f"Failed to upload chunk: {upload_response.status_code} - {upload_response.text[:300]}")
                     return await _create_note_without_file(client, domain, token, amocrm_id, order_id, driver_name)
                 
@@ -406,8 +407,10 @@ async def send_photo_to_amocrm(order_id: str, amocrm_id: str, photo_url: str, dr
                 file_uuid = upload_data.get("uuid")
                 next_url = upload_data.get("next_url")
                 
+                logger.info(f"Chunk {chunk_num} response: status={upload_response.status_code}, uuid={file_uuid}, has_next={bool(next_url)}")
+                
                 if file_uuid:
-                    logger.info(f"✅ File uploaded, UUID: {file_uuid}")
+                    logger.info(f"✅ File uploaded in {chunk_num} chunks, UUID: {file_uuid}")
                     break
                     
                 if next_url:
