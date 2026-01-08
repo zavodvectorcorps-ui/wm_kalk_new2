@@ -79,6 +79,21 @@ def serialize_for_json(obj):
         return [serialize_for_json(item) for item in obj]
     return obj
 
+
+async def safe_collect(collection_name: str, query: dict = None, limit: int = 10000):
+    """Safely collect data from a MongoDB collection, returning empty list on error."""
+    try:
+        collection = db[collection_name]
+        if query:
+            data = await collection.find(query).to_list(limit)
+        else:
+            data = await collection.find({}).to_list(limit)
+        return [serialize_for_json(item) for item in data]
+    except Exception as e:
+        logger.warning(f"Failed to collect {collection_name}: {e}")
+        return []
+
+
 async def download_image_as_base64(url: str) -> Optional[str]:
     """Download an image and convert to base64"""
     try:
