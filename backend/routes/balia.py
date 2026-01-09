@@ -668,6 +668,12 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
     import base64
     from PIL import Image as PILImage
     
+    # Log incoming options for debugging
+    logger.info(f"PDF generation - selectedOptions count: {len(request.selectedOptions) if request.selectedOptions else 0}")
+    for opt in (request.selectedOptions or [])[:5]:
+        opt_name = opt.get('optionName') or opt.get('name') or opt.get('namePl', '-')
+        logger.info(f"  Option: {opt_name}, price: {opt.get('price', 0)}, notSelected: {opt.get('notSelected', False)}")
+    
     async def load_image_from_mongodb(image_url: str) -> bytes:
         """Load image from MongoDB by extracting ID from URL"""
         if not image_url or '/api/uploads/' not in image_url:
