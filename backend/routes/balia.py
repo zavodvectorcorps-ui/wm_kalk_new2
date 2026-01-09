@@ -804,29 +804,26 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
         for idx, opt in enumerate(request.selectedOptions):
             opt_name = opt.get('optionName') or opt.get('name') or opt.get('namePl', '-')
             opt_price = opt.get('optionPrice') or opt.get('price', 0)
-            is_not_selected = opt.get('notSelected', False)
             currency_symbol = request.currencySymbol or 'zł'
             
-            # Check if option is "not selected" by various indicators:
-            # 1. Explicit notSelected flag
-            # 2. Name starts with "Bez " (Polish "without")
-            # 3. Name starts with "Без " (Russian "without")
-            # 4. Price is 0 and name contains "bez" or "без"
-            name_lower = opt_name.lower() if opt_name else ''
+            # Check if this is a "without" option (Bez.../Без.../Standardowy...)
+            # These should always be shown in gray with "-" price
+            name_lower = (opt_name or '').lower()
             is_without_option = (
-                is_not_selected or 
                 opt_name.startswith('Bez ') or 
                 opt_name.startswith('Без ') or
-                (opt_price == 0 and ('bez ' in name_lower or 'без ' in name_lower))
+                'bez ' in name_lower or
+                'без ' in name_lower or
+                opt.get('notSelected', False)
             )
             
             if is_without_option:
-                # Not selected - gray text with "-" for price
+                # "Without" option - gray text with "-" for price
                 options_data.append([opt_name, "-"])
                 # Row index is idx + 1 (because header is row 0)
                 options_styles.append(('TEXTCOLOR', (0, idx + 1), (1, idx + 1), MUTED))
             else:
-                # Selected - normal text with price
+                # Regular selected option - normal text with price
                 if opt_price > 0:
                     options_data.append([opt_name, f"+{opt_price:,.0f} {currency_symbol}".replace(",", " ")])
                 else:
@@ -847,7 +844,7 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
             ('GRID', (0, 0), (-1, -1), 0.5, BLUE_BORDER),
         ]
         
-        # Add row-specific styles for not selected options
+        # Add row-specific styles for "without" options
         base_styles.extend(options_styles)
         
         options_table.setStyle(TableStyle(base_styles))
