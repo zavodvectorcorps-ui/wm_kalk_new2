@@ -5,6 +5,31 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Session 2026-01-09 - PDF Images Fix
+
+#### P0: Images Not Appearing in Balia Calculator PDF - FIXED ✅
+- **Problem**: Images were not displaying in the generated PDF for the Balia calculator
+- **Root Cause**: Frontend sends images as base64 data strings, but backend was only looking for imageUrl in the database, ignoring the imageUrl sent in the request payload
+- **Solution**:
+  1. Modified `/app/backend/routes/balia.py` - `generate_pdf_bytes` function
+  2. For selected options: Now checks request imageUrl first, then falls back to DB option imageUrl, then DB category imageUrl
+  3. For "not selected" categories: Now loads and displays category images (previously showed blank)
+  4. Added detailed logging for debugging image loading
+- **Code Changes**:
+  ```python
+  # Priority for image URL: request > DB option > DB category
+  request_image_url = opt.get('imageUrl', '')
+  db_opt_image_url = opt_info.get('imageUrl', '')
+  db_cat_image_url = cat_info.get('imageUrl', '')
+  image_url = request_image_url or db_opt_image_url or db_cat_image_url
+  ```
+- **Testing**:
+  - Verified via curl API tests: PDF generates with images (145984 bytes with 12 images)
+  - Logs confirm: "Option image processed: 60x33", "Successfully loaded image for option fiberglass"
+  - Images now appear for both selected and "not selected" options
+- **Status**: ✅ COMPLETED AND TESTED
+
+
 ### Session 2026-01-07 - Priority Tasks Completion
 
 #### P0: amoCRM Clearing Bug - Enhanced
