@@ -812,18 +812,19 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
             opt_price = opt.get('optionPrice') or opt.get('price', 0)
             currency_symbol = request.currencySymbol or 'zł'
             
-            # Check if this is a "without" option
+            # Check if this is a "without" option by name pattern
             # These should always be shown in gray with "-" price
             name_lower = (opt_name or '').lower()
             is_without_option = (
                 opt_name.startswith('Bez ') or 
                 opt_name.startswith('Без ') or
-                'bez ' in name_lower or
-                'без ' in name_lower or
-                'standardowy' in name_lower or
-                'стандартн' in name_lower or
-                opt.get('notSelected', False) or
-                (opt_price == 0 and not opt.get('includedInPrice', False))  # Zero price = likely "without" option
+                name_lower.startswith('bez ') or
+                name_lower.startswith('без ') or
+                ' bez ' in name_lower or
+                ' без ' in name_lower or
+                name_lower.startswith('standardowy') or
+                name_lower.startswith('стандартн') or
+                opt.get('notSelected', False)
             )
             
             if is_without_option:
