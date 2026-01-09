@@ -799,14 +799,27 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
         elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))
         
         options_data = [["Opcja", "Cena"]]
-        for opt in request.selectedOptions:
+        options_styles = []  # Store row-specific styles
+        
+        for idx, opt in enumerate(request.selectedOptions):
             opt_name = opt.get('optionName') or opt.get('name') or opt.get('namePl', '-')
             opt_price = opt.get('optionPrice') or opt.get('price', 0)
+            is_not_selected = opt.get('notSelected', False)
             currency_symbol = request.currencySymbol or 'zł'
-            options_data.append([opt_name, f"{opt_price:,.0f} {currency_symbol}".replace(",", " ")])
+            
+            if is_not_selected:
+                # Not selected - gray text with "-" for price
+                options_data.append([opt_name, "-"])
+                # Row index is idx + 1 (because header is row 0)
+                options_styles.append(('TEXTCOLOR', (0, idx + 1), (1, idx + 1), MUTED))
+            else:
+                # Selected - normal text with price
+                options_data.append([opt_name, f"{opt_price:,.0f} {currency_symbol}".replace(",", " ")])
         
         options_table = Table(options_data, colWidths=[125*mm, 50*mm])
-        options_table.setStyle(TableStyle([
+        
+        # Base styles
+        base_styles = [
             ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
             ('FONTNAME', (0, 1), (-1, -1), 'DejaVuSans'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
@@ -816,7 +829,12 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, BLUE_BORDER),
-        ]))
+        ]
+        
+        # Add row-specific styles for not selected options
+        base_styles.extend(options_styles)
+        
+        options_table.setStyle(TableStyle(base_styles))
         elements.append(options_table)
         elements.append(Spacer(1, 6*mm))
     
