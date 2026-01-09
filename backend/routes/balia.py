@@ -804,12 +804,13 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
     if request.selectedOptions:
         elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))
         
-        options_data = [["Opcja", "Cena"]]
+        options_data = [["", "Opcja", "Cena"]]  # Added image column
         options_styles = []  # Store row-specific styles
         
         for idx, opt in enumerate(request.selectedOptions):
             opt_name = opt.get('optionName') or opt.get('name') or opt.get('namePl', '-')
             opt_price = opt.get('optionPrice') or opt.get('price', 0)
+            opt_image_url = opt.get('imageUrl', '')
             currency_symbol = request.currencySymbol or 'zł'
             
             # Check if this is a "without" option by name pattern
@@ -827,19 +828,39 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
                 opt.get('notSelected', False)
             )
             
+            # Try to load image
+            img_cell = ""
+            if opt_image_url:
+                try:
+                    img_data = await load_image_from_mongodb(opt_image_url)
+                    if img_data:
+                        img_buffer = io.BytesIO(img_data)
+                        pil_img = PILImage.open(img_buffer)
+                        # Convert to RGB if necessary
+                        if pil_img.mode in ('RGBA', 'P'):
+                            pil_img = pil_img.convert('RGB')
+                        # Resize to thumbnail
+                        pil_img.thumbnail((40, 40), PILImage.Resampling.LANCZOS)
+                        thumb_buffer = io.BytesIO()
+                        pil_img.save(thumb_buffer, format='JPEG', quality=70)
+                        thumb_buffer.seek(0)
+                        img_cell = RLImage(thumb_buffer, width=12*mm, height=12*mm)
+                except Exception as img_err:
+                    logger.warning(f"Failed to load option image: {img_err}")
+            
             if is_without_option:
                 # "Without" option - gray text with "-" for price
-                options_data.append([opt_name, "-"])
+                options_data.append([img_cell, opt_name, "-"])
                 # Row index is idx + 1 (because header is row 0)
-                options_styles.append(('TEXTCOLOR', (0, idx + 1), (1, idx + 1), MUTED))
+                options_styles.append(('TEXTCOLOR', (1, idx + 1), (2, idx + 1), MUTED))
             else:
                 # Regular selected option - normal text with price
                 if opt_price > 0:
-                    options_data.append([opt_name, f"+{opt_price:,.0f} {currency_symbol}".replace(",", " ")])
+                    options_data.append([img_cell, opt_name, f"+{opt_price:,.0f} {currency_symbol}".replace(",", " ")])
                 else:
-                    options_data.append([opt_name, f"W cenie"])
+                    options_data.append([img_cell, opt_name, f"W cenie"])
         
-        options_table = Table(options_data, colWidths=[125*mm, 50*mm])
+        options_table = Table(options_data, colWidths=[15*mm, 110*mm, 50*mm])
         
         # Base styles
         base_styles = [
@@ -848,9 +869,11 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('BACKGROUND', (0, 0), (-1, 0), BLUE_LIGHT),
             ('TEXTCOLOR', (0, 0), (-1, 0), BLUE_DARK),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('GRID', (0, 0), (-1, -1), 0.5, BLUE_BORDER),
         ]
         
