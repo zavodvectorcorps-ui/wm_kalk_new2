@@ -1414,12 +1414,14 @@ async def generate_pdf(request: PDFRequest):
                 opt_info = cat_info.get('options', {}).get(opt_id, {})
                 opt_name = opt_info.get('name', opt.get('optionName', '') or opt.get('name', ''))
                 
-                # Get image URL - option image first, then category image as fallback
-                opt_image_url = opt_info.get('imageUrl', '')
-                cat_image_url = cat_info.get('imageUrl', '')
-                image_url = opt_image_url or cat_image_url
+                # Get image URL - priority: request > DB option > DB category
+                # First try from request (frontend sends imageUrl in selectedOptions)
+                request_image_url = opt.get('imageUrl', '')
+                db_opt_image_url = opt_info.get('imageUrl', '')
+                db_cat_image_url = cat_info.get('imageUrl', '')
+                image_url = request_image_url or db_opt_image_url or db_cat_image_url
                 
-                logger.info(f"Option {opt_id}: opt_image_url={opt_image_url}, cat_image_url={cat_image_url}, using={image_url}")
+                logger.info(f"Option {opt_id}: request_imageUrl={request_image_url[:50] if request_image_url else 'None'}, db_opt={db_opt_image_url[:50] if db_opt_image_url else 'None'}, db_cat={db_cat_image_url[:50] if db_cat_image_url else 'None'}, using={image_url[:50] if image_url else 'None'}")
                 
                 # Load image
                 option_img = await load_option_image(image_url)
