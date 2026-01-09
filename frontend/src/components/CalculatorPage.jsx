@@ -223,9 +223,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
           if (cat.inputType === 'checkbox') {
             initialSelections[cat.id] = {};
           } else {
-            // Set first option as default for dropdowns
-            const firstOption = cat.options?.[0];
-            initialSelections[cat.id] = firstOption?.id || '';
+            // Start with empty selection - user must choose
+            initialSelections[cat.id] = '';
           }
         });
         
