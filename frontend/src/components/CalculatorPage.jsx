@@ -1298,7 +1298,11 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                           })()}
                         </SelectTrigger>
                         <SelectContent>
-                          {category.options?.map(option => (
+                          {category.options?.filter(option => {
+                            // Hide "Bez..." options
+                            const optName = (option.namePl || option.name || '').toLowerCase();
+                            return !optName.startsWith('bez ') && !optName.startsWith('без ');
+                          }).map(option => (
                             <SelectItem key={option.id} value={option.id}>
                               <div className="flex items-center gap-2">
                                 {option.colorPreview ? (
