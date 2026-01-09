@@ -664,8 +664,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
       if (cat.inputType === 'checkbox') {
         initialSelections[cat.id] = {};
       } else {
-        const firstOption = cat.options?.[0];
-        initialSelections[cat.id] = firstOption?.id || '';
+        // Start with empty selection
+        initialSelections[cat.id] = '';
       }
     });
     
