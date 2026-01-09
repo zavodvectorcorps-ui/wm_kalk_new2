@@ -1108,7 +1108,11 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                   {/* Tiles display for categories with images */}
                   {(category.displayType === 'tiles' || category.displayType === 'grid') ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {category.options?.map(option => {
+                      {category.options?.filter(option => {
+                        // Hide "Bez..." options - they will be shown as "not selected" in PDF
+                        const optName = (option.namePl || option.name || '').toLowerCase();
+                        return !optName.startsWith('bez ') && !optName.startsWith('без ');
+                      }).map(option => {
                         const isSelected = category.inputType === 'checkbox'
                           ? formData.selections[category.id]?.[option.id]
                           : formData.selections[category.id] === option.id;
