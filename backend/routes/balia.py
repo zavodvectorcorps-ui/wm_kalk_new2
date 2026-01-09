@@ -1382,7 +1382,19 @@ async def generate_pdf(request: PDFRequest):
             if is_not_selected:
                 # Not selected - show "Bez X" in gray (use name from frontend)
                 opt_name = opt.get('optionName', '') or opt.get('name', '') or 'Nie wybrano'
-                img_cell = ''
+                
+                # Load category image for not-selected option
+                # First try from request, then from DB (categories_map)
+                request_image_url = opt.get('imageUrl', '')
+                db_cat_image_url = cat_info.get('imageUrl', '')
+                image_url_for_not_selected = request_image_url or db_cat_image_url
+                
+                logger.info(f"Not selected option for {cat_id}: request_imageUrl={request_image_url[:50] if request_image_url else 'None'}, db_cat_imageUrl={db_cat_image_url[:50] if db_cat_image_url else 'None'}")
+                
+                # Load image for not-selected category
+                not_selected_img = await load_option_image(image_url_for_not_selected) if image_url_for_not_selected else None
+                img_cell = not_selected_img if not_selected_img else ''
+                
                 price_text = '-'
                 price_cell = Paragraph(price_text, ParagraphStyle(
                     'NotSelected',
