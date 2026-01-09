@@ -440,7 +440,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                   optionId: opt.id,
                   optionName: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
                   name: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
-                  price: opt.price
+                  price: opt.price,
+                  imageUrl: opt.imageUrl || cat.imageUrl || ''
                 });
               }
             }
@@ -456,7 +457,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
               optionId: opt.id,
               optionName: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
               name: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
-              price: opt.price
+              price: opt.price,
+              imageUrl: opt.imageUrl || cat.imageUrl || ''
             });
           }
         }
