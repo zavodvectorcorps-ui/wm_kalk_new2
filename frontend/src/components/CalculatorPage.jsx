@@ -417,6 +417,14 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
       // Prepare selected options - include ALL categories, show "не выбрано" if nothing selected
       const selectedOptions = [];
       prices.categories?.forEach(cat => {
+        // Skip category if it depends on another category and the dependency is not met
+        if (cat.dependsOn && cat.dependsOnValue) {
+          const parentValue = formData.selections[cat.dependsOn];
+          if (parentValue !== cat.dependsOnValue) {
+            return; // Skip this category - dependency not met
+          }
+        }
+        
         const selection = formData.selections[cat.id];
         let hasSelection = false;
         
