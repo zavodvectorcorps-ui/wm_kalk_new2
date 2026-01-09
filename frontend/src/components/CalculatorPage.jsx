@@ -488,7 +488,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
             optionName: withoutText,
             name: withoutText,
             price: 0,
-            notSelected: true
+            notSelected: true,
+            imageUrl: cat.imageUrl || ''  // Use category image for not selected options
           });
         }
       });
