@@ -7,7 +7,7 @@ Tests the specific scenarios mentioned in the review request
 import requests
 import json
 
-BACKEND_URL = "https://tripsync-10.preview.emergentagent.com/api"
+BACKEND_URL = "https://logimgr-1.preview.emergentagent.com/api"
 
 def test_custom_category_flow():
     """Test the complete custom category creation flow as specified in review request"""
