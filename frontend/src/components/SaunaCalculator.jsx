@@ -7,9 +7,10 @@ import { Textarea } from './ui/textarea';
 import { CheckboxOrange } from './ui/checkbox-orange';
 import { RadioGroupOrange, RadioGroupItemOrange } from './ui/radio-group-orange';
 import { SelectOrange, SelectContentOrange, SelectItemOrange, SelectTriggerOrange, SelectValueOrange } from './ui/select-orange';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, Calendar,
-  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package
+  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info
 } from 'lucide-react';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
