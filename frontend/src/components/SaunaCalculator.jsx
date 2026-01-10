@@ -375,26 +375,44 @@ const CheckboxOptions = ({ category, formData, handleCheckboxChange, handleQuant
   </div>
 );
 
-const DropdownOptions = ({ category, formData, handleRadioChange, getCategoryName, txt }) => (
-  <SelectOrange value={formData.selections[category.id] || ''} onValueChange={(value) => handleRadioChange(category.id, value)}>
-    <SelectTriggerOrange className="w-full">
-      <SelectValueOrange placeholder={getCategoryName(category)} />
-    </SelectTriggerOrange>
-    <SelectContentOrange>
-      {category.options?.map((option) => (
-        <SelectItemOrange key={option.id} value={option.id}>
-          <div className="flex items-center gap-2">
-            {option.imageUrl && <img src={option.imageUrl} alt={option.name} className="w-8 h-6 object-cover rounded" loading="lazy" />}
-            <span>{option.name}</span>
-            <span className="text-amber-700 font-medium ml-2">
-              {option.price > 0 ? `+${formatPrice(option.price)} PLN` : (option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
-            </span>
-          </div>
-        </SelectItemOrange>
-      ))}
-    </SelectContentOrange>
-  </SelectOrange>
-);
+const DropdownOptions = ({ category, formData, handleRadioChange, getCategoryName, txt }) => {
+  const selectedOption = category.options?.find(o => o.id === formData.selections[category.id]);
+  
+  return (
+    <div className="space-y-2">
+      <SelectOrange value={formData.selections[category.id] || ''} onValueChange={(value) => handleRadioChange(category.id, value)}>
+        <SelectTriggerOrange className="w-full">
+          <SelectValueOrange placeholder={getCategoryName(category)} />
+        </SelectTriggerOrange>
+        <SelectContentOrange>
+          {category.options?.map((option) => (
+            <SelectItemOrange key={option.id} value={option.id}>
+              <div className="flex items-center gap-2">
+                {option.imageUrl && <img src={option.imageUrl} alt={option.name} className="w-8 h-6 object-cover rounded" loading="lazy" />}
+                <span>{option.name}</span>
+                {option.hint && (
+                  <Info className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                )}
+                <span className="text-amber-700 font-medium ml-2">
+                  {option.price > 0 ? `+${formatPrice(option.price)} PLN` : (option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                </span>
+              </div>
+            </SelectItemOrange>
+          ))}
+        </SelectContentOrange>
+      </SelectOrange>
+      {/* Show hint text below dropdown for selected option */}
+      {selectedOption?.hint && (
+        <div className="flex items-start gap-1.5 p-2 bg-amber-50 rounded-md border border-amber-100">
+          <Info className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-gray-600 leading-relaxed">
+            {selectedOption.hint}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const RadioOptions = ({ category, formData, handleRadioChange, handleQuantityChange, txt }) => (
   <RadioGroupOrange value={formData.selections[category.id] || ''} onValueChange={(value) => handleRadioChange(category.id, value)} className="grid grid-cols-1 md:grid-cols-2 gap-3">
