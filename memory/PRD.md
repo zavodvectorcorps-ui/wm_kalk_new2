@@ -5,6 +5,32 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Session 2026-01-10 - Sauna Calculator Hints Feature
+
+#### Feature: Hints/Tooltips for Sauna Calculator - COMPLETED ✅
+- **Request**: Add hints (подсказки) to the Sauna calculator similar to Balia calculator
+- **Implementation**:
+  1. Added `hint` field support to Sauna models and options
+  2. Added Tooltip component for displaying hints in the calculator
+  3. Added hint editing fields in admin panel (ModelDialog.jsx, OptionDialog.jsx)
+  4. Added translations for "hint" field (Russian/Polish)
+
+- **Files Modified**:
+  - `/app/frontend/src/components/SaunaCalculator.jsx` - Added Tooltip imports, hint icons on models and options
+  - `/app/frontend/src/components/sauna-pricing/ModelDialog.jsx` - Added hint Textarea field
+  - `/app/frontend/src/components/sauna-pricing/OptionDialog.jsx` - Added hint Textarea field
+  - `/app/frontend/src/components/sauna-pricing/useSaunaPricing.js` - Added hint translations
+
+- **How it works**:
+  - Models: Info icon (i) appears in top-right corner of model cards when hint is set
+  - Checkbox options: Info icon in top-right of option card
+  - Radio options: Info icon in top-right of option card
+  - Dropdown options: Info icon next to option name, hint text shows below dropdown after selection
+  - Hover over icon to see tooltip with hint text
+
+- **Testing**: Verified with test data - hints appear correctly on models and options
+- **Status**: ✅ COMPLETED AND TESTED
+
 ### Session 2026-01-09 - PDF Images Fix
 
 #### P0: Images Not Appearing in Balia Calculator PDF - FIXED ✅
