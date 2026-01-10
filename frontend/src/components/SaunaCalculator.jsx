@@ -359,6 +359,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
                 <div className="flex items-center gap-2">
                   {m.imageUrl && <img src={m.imageUrl} alt={m.name} className="w-8 h-6 object-cover rounded" loading="lazy" />}
                   <span>{m.name}</span>
+                  {(m.hint || m.hintImageUrl || m.hintVideoUrl) && <Info className="h-3 w-3 text-amber-500" />}
                   <span className="text-amber-700 font-medium ml-auto">{formatPrice(m.basePrice)} PLN</span>
                   {m.discount > 0 && <span className="text-green-600 text-xs">-{m.discount}%</span>}
                 </div>
@@ -378,19 +379,13 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
                   : 'border-border hover:border-amber-300 hover:bg-amber-50/50'
               }`}
             >
-              {/* Hint icon for model */}
-              {m.hint && (
-                <Tooltip>
-                  <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <div className="absolute top-2 right-2 bg-amber-100 hover:bg-amber-200 text-amber-600 rounded-full p-1 z-10 cursor-help shadow-sm">
-                      <Info className="h-4 w-4" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
-                    {m.hint}
-                  </TooltipContent>
-                </Tooltip>
-              )}
+              {/* Hint icon for model with media support */}
+              <HintIcon 
+                hint={m.hint} 
+                hintImageUrl={m.hintImageUrl} 
+                hintVideoUrl={m.hintVideoUrl}
+                size="md"
+              />
               {m.imageUrl && (
                 <div className="aspect-video mb-2 rounded overflow-hidden bg-muted">
                   <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
