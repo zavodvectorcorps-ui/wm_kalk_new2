@@ -168,6 +168,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 };
 
