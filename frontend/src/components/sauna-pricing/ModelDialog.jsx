@@ -63,6 +63,41 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
             rows={3}
           />
         </div>
+        
+        {/* Hint media fields */}
+        <div className="border-t pt-4 mt-4">
+          <Label className="text-sm font-medium text-amber-700 mb-2 block">{txt.hintMedia || 'Медиа для подсказки'}</Label>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">{txt.hintImageUrl || 'URL изображения подсказки'}</Label>
+              <Input
+                value={newModel.hintImageUrl || ''}
+                onChange={(e) => setNewModel(prev => ({ ...prev, hintImageUrl: e.target.value }))}
+                placeholder="https://example.com/image.jpg или imgur/imgbb ссылка"
+              />
+              {newModel.hintImageUrl && (
+                <div className="mt-2">
+                  <img 
+                    src={newModel.hintImageUrl} 
+                    alt="Hint preview" 
+                    className="w-full max-h-32 object-contain rounded border bg-muted/50"
+                    onError={(e) => e.target.style.display = 'none'}
+                  />
+                </div>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">{txt.hintVideoUrl || 'URL видео подсказки'}</Label>
+              <Input
+                value={newModel.hintVideoUrl || ''}
+                onChange={(e) => setNewModel(prev => ({ ...prev, hintVideoUrl: e.target.value }))}
+                placeholder="YouTube ссылка или прямая ссылка на видео"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Поддерживается YouTube и прямые ссылки на видео</p>
+            </div>
+          </div>
+        </div>
+        
         <ImageUploader
           value={newModel.imageUrl}
           onChange={(url) => setNewModel(prev => ({ ...prev, imageUrl: url }))}
