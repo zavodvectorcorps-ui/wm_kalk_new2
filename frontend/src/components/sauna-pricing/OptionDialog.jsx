@@ -228,6 +228,41 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 rows={3}
               />
             </div>
+            
+            {/* Hint media fields */}
+            <div className="border-t pt-4 mt-4">
+              <Label className="text-sm font-medium text-amber-700 mb-2 block">{txt.hintMedia || 'Медиа для подсказки'}</Label>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">{txt.hintImageUrl || 'URL изображения подсказки'}</Label>
+                  <Input
+                    value={editingOption.hintImageUrl || ''}
+                    onChange={(e) => setEditingOption(prev => ({ ...prev, hintImageUrl: e.target.value }))}
+                    placeholder="https://example.com/image.jpg или imgur/imgbb ссылка"
+                  />
+                  {editingOption.hintImageUrl && (
+                    <div className="mt-2">
+                      <img 
+                        src={editingOption.hintImageUrl} 
+                        alt="Hint preview" 
+                        className="w-full max-h-24 object-contain rounded border bg-muted/50"
+                        onError={(e) => e.target.style.display = 'none'}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">{txt.hintVideoUrl || 'URL видео подсказки'}</Label>
+                  <Input
+                    value={editingOption.hintVideoUrl || ''}
+                    onChange={(e) => setEditingOption(prev => ({ ...prev, hintVideoUrl: e.target.value }))}
+                    placeholder="YouTube ссылка или прямая ссылка на видео"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Поддерживается YouTube и прямые ссылки на видео</p>
+                </div>
+              </div>
+            </div>
+            
             <div>
               <Label>{txt.imageUrl}</Label>
               <Input
