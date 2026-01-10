@@ -479,6 +479,7 @@ const CheckboxOptions = ({ category, formData, handleCheckboxChange, handleQuant
 
 const DropdownOptions = ({ category, formData, handleRadioChange, getCategoryName, txt }) => {
   const selectedOption = category.options?.find(o => o.id === formData.selections[category.id]);
+  const hasMedia = selectedOption?.hintImageUrl || selectedOption?.hintVideoUrl;
   
   return (
     <div className="space-y-2">
@@ -492,8 +493,11 @@ const DropdownOptions = ({ category, formData, handleRadioChange, getCategoryNam
               <div className="flex items-center gap-2">
                 {option.imageUrl && <img src={option.imageUrl} alt={option.name} className="w-8 h-6 object-cover rounded" loading="lazy" />}
                 <span>{option.name}</span>
-                {option.hint && (
-                  <Info className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                {(option.hint || option.hintImageUrl || option.hintVideoUrl) && (
+                  <div className="flex items-center gap-0.5">
+                    <Info className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                    {(option.hintImageUrl || option.hintVideoUrl) && <span className="text-amber-500 text-[8px] font-bold">+</span>}
+                  </div>
                 )}
                 <span className="text-amber-700 font-medium ml-2">
                   {option.price > 0 ? `+${formatPrice(option.price)} PLN` : (option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
@@ -503,16 +507,66 @@ const DropdownOptions = ({ category, formData, handleRadioChange, getCategoryNam
           ))}
         </SelectContentOrange>
       </SelectOrange>
-      {/* Show hint text below dropdown for selected option */}
-      {selectedOption?.hint && (
-        <div className="flex items-start gap-1.5 p-2 bg-amber-50 rounded-md border border-amber-100">
-          <Info className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-gray-600 leading-relaxed">
-            {selectedOption.hint}
-          </p>
-        </div>
+      {/* Show hint with media below dropdown for selected option */}
+      {(selectedOption?.hint || hasMedia) && (
+        <DropdownHintBox option={selectedOption} />
       )}
     </div>
+  );
+};
+
+// Separate component for dropdown hint box with media modal
+const DropdownHintBox = ({ option }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const hasMedia = option?.hintImageUrl || option?.hintVideoUrl;
+  
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+  };
+  
+  return (
+    <>
+      <div 
+        className={`flex items-start gap-1.5 p-2 bg-amber-50 rounded-md border border-amber-100 ${hasMedia ? 'cursor-pointer hover:bg-amber-100 transition-colors' : ''}`}
+        onClick={() => hasMedia && setDialogOpen(true)}
+      >
+        <Info className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-xs text-gray-600 leading-relaxed">
+            {option.hint}
+          </p>
+          {hasMedia && (
+            <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+              {option.hintImageUrl && <ImageIcon className="h-3 w-3" />}
+              {option.hintVideoUrl && <Play className="h-3 w-3" />}
+              <span>Нажмите для просмотра</span>
+            </p>
+          )}
+        </div>
+      </div>
+      
+      {hasMedia && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-amber-600" />
+                Подробная информация
+              </DialogTitle>
+            </DialogHeader>
+            <HintContent 
+              hint={option.hint} 
+              hintImageUrl={option.hintImageUrl} 
+              hintVideoUrl={option.hintVideoUrl} 
+              expanded 
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 };
 
@@ -523,19 +577,12 @@ const RadioOptions = ({ category, formData, handleRadioChange, handleQuantityCha
       const quantity = formData.quantities[option.id] || 1;
       return (
         <div key={option.id} className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
-          {/* Hint icon for option */}
-          {option.hint && (
-            <Tooltip>
-              <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <div className="absolute top-1 right-1 bg-amber-100 hover:bg-amber-200 text-amber-600 rounded-full p-0.5 z-10 cursor-help">
-                  <Info className="h-3 w-3" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
-                {option.hint}
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {/* Hint icon with media support */}
+          <HintIcon 
+            hint={option.hint} 
+            hintImageUrl={option.hintImageUrl} 
+            hintVideoUrl={option.hintVideoUrl}
+          />
           <RadioGroupItemOrange value={option.id} id={`${category.id}-${option.id}`} />
           <div className="flex-1">
             <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block">{option.name}</Label>
