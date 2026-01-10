@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
@@ -53,6 +54,15 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
               type="number"
               value={newOption.price}
               onChange={(e) => setNewOption(prev => ({ ...prev, price: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label>{txt.hint || 'Подсказка / Описание'}</Label>
+            <Textarea
+              value={newOption.hint || ''}
+              onChange={(e) => setNewOption(prev => ({ ...prev, hint: e.target.value }))}
+              placeholder="Описание опции, преимущества, технические детали..."
+              rows={3}
             />
           </div>
           <div>
@@ -172,6 +182,15 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 type="number"
                 value={editingOption.price}
                 onChange={(e) => setEditingOption(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+              />
+            </div>
+            <div>
+              <Label>{txt.hint || 'Подсказка / Описание'}</Label>
+              <Textarea
+                value={editingOption.hint || ''}
+                onChange={(e) => setEditingOption(prev => ({ ...prev, hint: e.target.value }))}
+                placeholder="Описание опции, преимущества, технические детали..."
+                rows={3}
               />
             </div>
             <div>
