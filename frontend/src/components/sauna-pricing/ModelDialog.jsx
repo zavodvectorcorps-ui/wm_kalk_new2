@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,15 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
             type="number"
             value={newModel.discount}
             onChange={(e) => setNewModel(prev => ({ ...prev, discount: e.target.value }))}
+          />
+        </div>
+        <div>
+          <Label>{txt.hint || 'Подсказка / Описание'}</Label>
+          <Textarea
+            value={newModel.hint || ''}
+            onChange={(e) => setNewModel(prev => ({ ...prev, hint: e.target.value }))}
+            placeholder="Описание модели, характеристики, особенности..."
+            rows={3}
           />
         </div>
         <ImageUploader
@@ -113,6 +123,15 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
               type="number"
               value={editingModel.discount}
               onChange={(e) => setEditingModel(prev => ({ ...prev, discount: parseInt(e.target.value) || 0 }))}
+            />
+          </div>
+          <div>
+            <Label>{txt.hint || 'Подсказка / Описание'}</Label>
+            <Textarea
+              value={editingModel.hint || ''}
+              onChange={(e) => setEditingModel(prev => ({ ...prev, hint: e.target.value }))}
+              placeholder="Описание модели, характеристики, особенности..."
+              rows={3}
             />
           </div>
           <ImageUploader
