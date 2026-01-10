@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { InputOrange } from './ui/input-orange';
@@ -8,12 +8,126 @@ import { CheckboxOrange } from './ui/checkbox-orange';
 import { RadioGroupOrange, RadioGroupItemOrange } from './ui/radio-group-orange';
 import { SelectOrange, SelectContentOrange, SelectItemOrange, SelectTriggerOrange, SelectValueOrange } from './ui/select-orange';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, Calendar,
-  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info
+  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon
 } from 'lucide-react';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
+
+// Component to display hint with optional media (image/video)
+const HintContent = ({ hint, hintImageUrl, hintVideoUrl, expanded = false }) => {
+  const [showMedia, setShowMedia] = useState(false);
+  const hasMedia = hintImageUrl || hintVideoUrl;
+  
+  // Check if it's a YouTube URL
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+  };
+  
+  const youtubeUrl = getYouTubeEmbedUrl(hintVideoUrl);
+  const isDirectVideo = hintVideoUrl && !youtubeUrl;
+  
+  if (expanded) {
+    return (
+      <div className="space-y-3">
+        {hint && <p className="text-sm text-gray-700 leading-relaxed">{hint}</p>}
+        {hintImageUrl && (
+          <div className="rounded-lg overflow-hidden border">
+            <img src={hintImageUrl} alt="Hint" className="w-full max-h-64 object-contain bg-gray-50" />
+          </div>
+        )}
+        {youtubeUrl && (
+          <div className="aspect-video rounded-lg overflow-hidden">
+            <iframe
+              src={youtubeUrl}
+              title="Video"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+            />
+          </div>
+        )}
+        {isDirectVideo && (
+          <video controls className="w-full max-h-64 rounded-lg">
+            <source src={hintVideoUrl} />
+          </video>
+        )}
+      </div>
+    );
+  }
+  
+  // Compact tooltip view
+  return (
+    <div className="space-y-2">
+      {hint && <p>{hint}</p>}
+      {hasMedia && (
+        <div className="flex items-center gap-1 text-xs text-amber-300 mt-1">
+          {hintImageUrl && <ImageIcon className="h-3 w-3" />}
+          {hintVideoUrl && <Play className="h-3 w-3" />}
+          <span>Нажмите для просмотра</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Wrapper component with tooltip and optional modal for media
+const HintIcon = ({ hint, hintImageUrl, hintVideoUrl, size = 'sm' }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const hasMedia = hintImageUrl || hintVideoUrl;
+  const hasHint = hint || hasMedia;
+  
+  if (!hasHint) return null;
+  
+  const iconSize = size === 'sm' ? 'h-3 w-3' : 'h-4 w-4';
+  const containerSize = size === 'sm' ? 'p-0.5' : 'p-1';
+  
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (hasMedia) {
+      setDialogOpen(true);
+    }
+  };
+  
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild onClick={handleClick}>
+          <div className={`absolute top-1 right-1 bg-amber-100 hover:bg-amber-200 text-amber-600 rounded-full ${containerSize} z-10 cursor-help shadow-sm flex items-center gap-0.5`}>
+            <Info className={iconSize} />
+            {hasMedia && (
+              <span className="text-[8px] font-bold">+</span>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
+          <HintContent hint={hint} hintImageUrl={hintImageUrl} hintVideoUrl={hintVideoUrl} />
+        </TooltipContent>
+      </Tooltip>
+      
+      {/* Modal for media content */}
+      {hasMedia && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-amber-600" />
+                Подробная информация
+              </DialogTitle>
+            </DialogHeader>
+            <HintContent hint={hint} hintImageUrl={hintImageUrl} hintVideoUrl={hintVideoUrl} expanded />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+};
 
 export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPrefill = null, onAmocrmPrefillUsed = null }) => {
   const {
