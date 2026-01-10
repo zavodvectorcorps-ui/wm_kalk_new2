@@ -264,6 +264,19 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
                   : 'border-border hover:border-amber-300 hover:bg-amber-50/50'
               }`}
             >
+              {/* Hint icon for model */}
+              {m.hint && (
+                <Tooltip>
+                  <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <div className="absolute top-2 right-2 bg-amber-100 hover:bg-amber-200 text-amber-600 rounded-full p-1 z-10 cursor-help shadow-sm">
+                      <Info className="h-4 w-4" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
+                    {m.hint}
+                  </TooltipContent>
+                </Tooltip>
+              )}
               {m.imageUrl && (
                 <div className="aspect-video mb-2 rounded overflow-hidden bg-muted">
                   <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
