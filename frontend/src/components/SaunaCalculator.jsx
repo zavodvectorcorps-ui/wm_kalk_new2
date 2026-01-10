@@ -420,7 +420,20 @@ const RadioOptions = ({ category, formData, handleRadioChange, handleQuantityCha
       const isSelected = formData.selections[category.id] === option.id;
       const quantity = formData.quantities[option.id] || 1;
       return (
-        <div key={option.id} className={`flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
+        <div key={option.id} className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
+          {/* Hint icon for option */}
+          {option.hint && (
+            <Tooltip>
+              <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <div className="absolute top-1 right-1 bg-amber-100 hover:bg-amber-200 text-amber-600 rounded-full p-0.5 z-10 cursor-help">
+                  <Info className="h-3 w-3" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
+                {option.hint}
+              </TooltipContent>
+            </Tooltip>
+          )}
           <RadioGroupItemOrange value={option.id} id={`${category.id}-${option.id}`} />
           <div className="flex-1">
             <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block">{option.name}</Label>
