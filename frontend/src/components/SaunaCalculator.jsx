@@ -38,6 +38,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
   }
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Edit Mode Banner */}
       {isEditMode && (
