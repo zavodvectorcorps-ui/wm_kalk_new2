@@ -66,6 +66,31 @@ A full-featured quoting and order management application for Saunas and Balias (
 - **Testing**: Verified - modal displays correctly with image and YouTube video
 - **Status**: ✅ COMPLETED AND TESTED
 
+#### Fix: Hint Fields in Sauna Backend Models - COMPLETED ✅
+- **Issue**: Hints not saving/displaying in Sauna calculator on production
+- **Root Cause**: Missing `hint`, `hintImageUrl`, `hintVideoUrl` fields in backend Pydantic models
+- **Solution**: Added optional hint fields to `SaunaModel` and `SaunaOption` classes in `/app/backend/models/sauna.py`
+- **Testing**: Verified via API - hints now save and return correctly
+- **Status**: ✅ FIXED
+
+#### Feature: Direct Image Upload for Hints - COMPLETED ✅
+- **Request**: Add ability to upload images directly to hints (not just URL)
+- **Implementation**:
+  1. Added `handleHintImageUpload` function to all dialog components
+  2. Uses existing `/api/upload/image` endpoint
+  3. Shows upload button next to URL input field
+  4. Added delete button to clear uploaded image
+  5. Preview shows after upload
+
+- **Files Modified**:
+  - `/app/frontend/src/components/balia-pricing/ModelEditDialog.jsx`
+  - `/app/frontend/src/components/balia-pricing/OptionEditDialog.jsx`
+  - `/app/frontend/src/components/sauna-pricing/ModelDialog.jsx`
+  - `/app/frontend/src/components/sauna-pricing/OptionDialog.jsx`
+  - `/app/backend/models/sauna.py` - Added hint fields to Pydantic models
+
+- **Status**: ✅ COMPLETED AND TESTED
+
 #### Feature: Direct Image Upload for Hints - COMPLETED ✅
 - **Request**: Add ability to upload images directly to hints (not just URL)
 - **Implementation**:
