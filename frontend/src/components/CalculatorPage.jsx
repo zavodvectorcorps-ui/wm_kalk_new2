@@ -960,6 +960,14 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
               <CardTitle className="text-blue-700">{t('balia.selectModel')}</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Global hint for models section */}
+              {(prices.modelsHint || prices.modelsHintPl || prices.modelsHintImageUrl || prices.modelsHintVideoUrl) && (
+                <ModelsGlobalHint 
+                  hint={lang === 'pl' ? (prices.modelsHintPl || prices.modelsHint) : prices.modelsHint}
+                  hintImageUrl={prices.modelsHintImageUrl}
+                  hintVideoUrl={prices.modelsHintVideoUrl}
+                />
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {prices.models?.map(model => {
                   const isSelected = formData.selectedModel === model.id;
@@ -1217,6 +1225,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                     )}
                     <Label className="font-semibold text-sm">{getCategoryName(category)}</Label>
                   </div>
+                  
+                  {/* Category hint */}
+                  <CategoryHint category={category} lang={lang} />
                   
                   {/* Tiles display for categories with images */}
                   {(category.displayType === 'tiles' || category.displayType === 'grid') ? (
