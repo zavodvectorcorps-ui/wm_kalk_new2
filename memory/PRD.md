@@ -15,20 +15,32 @@ A full-featured quoting and order management application for Saunas and Balias (
   3. Added hint editing fields in admin panel (ModelDialog.jsx, OptionDialog.jsx)
   4. Added translations for "hint" field (Russian/Polish)
 
+#### Feature: Media Support for Hints (Images/Videos) - COMPLETED ✅
+- **Request**: Add ability to attach photos or videos to hints
+- **Implementation**:
+  1. Added `hintImageUrl` and `hintVideoUrl` fields for models and options
+  2. Created `HintIcon` component that shows (i)+ when media is attached
+  3. Created `HintContent` component for rendering text, images, and videos
+  4. Added modal dialog for viewing hint media in larger format
+  5. YouTube video embed support (auto-detect YouTube URLs)
+  6. Direct video file support (mp4, etc.)
+  7. Added editing fields in admin panel for both image and video URLs
+  8. Added translations for new fields
+
 - **Files Modified**:
-  - `/app/frontend/src/components/SaunaCalculator.jsx` - Added Tooltip imports, hint icons on models and options
-  - `/app/frontend/src/components/sauna-pricing/ModelDialog.jsx` - Added hint Textarea field
-  - `/app/frontend/src/components/sauna-pricing/OptionDialog.jsx` - Added hint Textarea field
-  - `/app/frontend/src/components/sauna-pricing/useSaunaPricing.js` - Added hint translations
+  - `/app/frontend/src/components/SaunaCalculator.jsx` - Added HintIcon, HintContent, DropdownHintBox components
+  - `/app/frontend/src/components/sauna-pricing/ModelDialog.jsx` - Added hintImageUrl, hintVideoUrl fields
+  - `/app/frontend/src/components/sauna-pricing/OptionDialog.jsx` - Added hintImageUrl, hintVideoUrl fields
+  - `/app/frontend/src/components/sauna-pricing/useSaunaPricing.js` - Added translations
 
 - **How it works**:
-  - Models: Info icon (i) appears in top-right corner of model cards when hint is set
-  - Checkbox options: Info icon in top-right of option card
-  - Radio options: Info icon in top-right of option card
-  - Dropdown options: Info icon next to option name, hint text shows below dropdown after selection
-  - Hover over icon to see tooltip with hint text
+  - Models/Options: Info icon (i) appears with "+" if media is attached
+  - Click on icon opens modal with full hint content (text + image + video)
+  - Tooltip on hover shows hint text with "Click for more" indicator
+  - YouTube videos are auto-embedded, direct video files use HTML5 player
+  - Dropdown options show hint box below dropdown when selected
 
-- **Testing**: Verified with test data - hints appear correctly on models and options
+- **Testing**: Verified with test data - modal displays image and YouTube video correctly
 - **Status**: ✅ COMPLETED AND TESTED
 
 ### Session 2026-01-09 - PDF Images Fix
