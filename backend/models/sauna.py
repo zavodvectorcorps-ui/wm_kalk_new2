@@ -13,6 +13,9 @@ class SaunaModel(BaseModel):
     imageUrl: str = ""
     sortOrder: int = 1
     active: bool = True
+    hint: Optional[str] = None
+    hintImageUrl: Optional[str] = None
+    hintVideoUrl: Optional[str] = None
 
 
 class SaunaOption(BaseModel):
@@ -25,6 +28,9 @@ class SaunaOption(BaseModel):
     hasQuantity: bool = False
     techSpecId: Optional[str] = None  # Link to tech spec option ID
     techSpecCategoryId: Optional[str] = None  # Override category mapping for specific options
+    hint: Optional[str] = None
+    hintImageUrl: Optional[str] = None
+    hintVideoUrl: Optional[str] = None
 
 
 class SaunaCategory(BaseModel):
