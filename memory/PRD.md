@@ -5,6 +5,41 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Session 2026-01-11 - Global and Category Hints
+
+#### Feature: Global Model Hints and Category Hints - COMPLETED ✅
+- **Request**: Add general hint for entire models section and hints for each option category
+- **Implementation**:
+  1. Added `ModelsGlobalHint` component to display a hint above all models in calculators
+  2. Added `CategoryHint` component to display hints under each option category
+  3. Added admin UI for editing global models hint in Sauna pricing (ModelsTab.jsx)
+  4. Added admin UI for editing global models hint in Balia pricing (SettingsTab)
+  5. Added category hint editing dialog for Sauna categories (CategoriesTab.jsx)
+  6. Added category hint fields in Balia category edit dialog (CategoryEditDialog.jsx)
+  7. Added translations for new UI labels (Russian/Polish)
+
+- **Files Modified**:
+  - `/app/frontend/src/components/CalculatorPage.jsx` - Added ModelsGlobalHint and CategoryHint components
+  - `/app/frontend/src/components/BaliaPricingPage.jsx` - Added ModelsHintSection for global models hint editing
+  - `/app/frontend/src/components/balia-pricing/CategoryEditDialog.jsx` - Added category hint fields (text, image, video)
+  - `/app/frontend/src/components/sauna-pricing/ModelsTab.jsx` - Added global models hint editing section
+  - `/app/frontend/src/components/sauna-pricing/CategoriesTab.jsx` - Added category edit dialog with hint fields
+  - `/app/frontend/src/components/sauna-pricing/useSaunaPricing.js` - Added handleUpdateModelsHint function and translations
+
+- **How it works**:
+  - **Global Models Hint**: Displayed as a blue info box above all models in the calculator. Can contain text, image, and video.
+  - **Category Hints**: Displayed as a subtle info box under each category name. Can contain text, image, and video.
+  - **Admin UI**: Collapsible section in Models tab for global hint; Edit dialog for categories includes hint section.
+  - Direct image upload supported for all hints.
+
+- **Data Fields Added**:
+  - `prices.modelsHint`, `prices.modelsHintPl`, `prices.modelsHintImageUrl`, `prices.modelsHintVideoUrl` - for global models hint
+  - `category.hint`, `category.hintPl`, `category.hintImageUrl`, `category.hintVideoUrl` - for category hints
+
+- **Status**: ✅ COMPLETED AND TESTED
+
+---
+
 ### Session 2026-01-10 - Sauna Calculator Hints Feature
 
 #### Feature: Hints/Tooltips for Sauna Calculator - COMPLETED ✅
