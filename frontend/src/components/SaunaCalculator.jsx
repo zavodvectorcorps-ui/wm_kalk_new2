@@ -694,7 +694,7 @@ const DropdownHintBox = ({ option }) => {
       >
         <Info className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
         <div className="flex-1">
-          <p className="text-xs text-gray-600 leading-relaxed">
+          <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">
             {option.hint}
           </p>
           {hasMedia && (
