@@ -149,7 +149,7 @@ const ModelsGlobalHint = ({ hint, hintImageUrl, hintVideoUrl }) => {
         <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
         <div className="flex-1">
           {hint && (
-            <p className="text-sm text-blue-800">{hint}</p>
+            <p className="text-sm text-blue-800 whitespace-pre-line">{hint}</p>
           )}
           {hasMedia && (
             <button 
@@ -174,7 +174,7 @@ const ModelsGlobalHint = ({ hint, hintImageUrl, hintVideoUrl }) => {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              {hint && <p className="text-gray-700">{hint}</p>}
+              {hint && <p className="text-gray-700 whitespace-pre-line">{hint}</p>}
               {hintImageUrl && (
                 <img src={hintImageUrl} alt="Models info" className="w-full rounded-lg" />
               )}
