@@ -72,6 +72,8 @@ class CategoryOption(BaseModel):
     imageUrl: Optional[str] = ""
     hint: Optional[str] = ""
     hintPl: Optional[str] = ""
+    hintImageUrl: Optional[str] = ""  # Image for hint
+    hintVideoUrl: Optional[str] = ""  # Video for hint
     applicableTo: Optional[str] = None
     sortOrder: int
     # Pricing calculation fields
@@ -96,6 +98,11 @@ class BaliaCategory(BaseModel):
     # Conditional display - show only when parent category has specific value
     dependsOn: Optional[str] = None  # Parent category ID
     dependsOnValue: Optional[str] = None  # Required value in parent category
+    # Category-level hint (shown under category name for all options)
+    hint: Optional[str] = ""  # Russian hint
+    hintPl: Optional[str] = ""  # Polish hint
+    hintImageUrl: Optional[str] = ""  # Image for category hint
+    hintVideoUrl: Optional[str] = ""  # Video for category hint
 
 
 class CustomerField(BaseModel):
