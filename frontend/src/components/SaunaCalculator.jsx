@@ -129,6 +129,143 @@ const HintIcon = ({ hint, hintImageUrl, hintVideoUrl, size = 'sm' }) => {
   );
 };
 
+// Component for models section hint media
+const ModelsHintMedia = ({ hintImageUrl, hintVideoUrl }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+  };
+  
+  return (
+    <>
+      <button 
+        onClick={() => setDialogOpen(true)}
+        className="mt-2 text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1 underline"
+      >
+        {hintImageUrl && <ImageIcon className="h-3 w-3" />}
+        {hintVideoUrl && <Play className="h-3 w-3" />}
+        Посмотреть подробнее
+      </button>
+      
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-amber-600" />
+              Информация о моделях
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {hintImageUrl && (
+              <img src={hintImageUrl} alt="Models info" className="w-full rounded-lg" />
+            )}
+            {hintVideoUrl && getYouTubeEmbedUrl(hintVideoUrl) && (
+              <div className="aspect-video rounded-lg overflow-hidden">
+                <iframe
+                  src={getYouTubeEmbedUrl(hintVideoUrl)}
+                  title="Video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              </div>
+            )}
+            {hintVideoUrl && !getYouTubeEmbedUrl(hintVideoUrl) && (
+              <video controls className="w-full rounded-lg">
+                <source src={hintVideoUrl} />
+              </video>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+// Component for category hint display
+const CategoryHint = ({ category }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const hasHint = category.hint || category.hintImageUrl || category.hintVideoUrl;
+  const hasMedia = category.hintImageUrl || category.hintVideoUrl;
+  
+  if (!hasHint) return null;
+  
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+  };
+  
+  return (
+    <>
+      <div className="mb-3 p-2 bg-amber-50/50 rounded border border-amber-100">
+        <div className="flex items-start gap-2">
+          <Info className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            {category.hint && (
+              <p className="text-sm text-gray-600">{category.hint}</p>
+            )}
+            {hasMedia && (
+              <button 
+                onClick={() => setDialogOpen(true)}
+                className="mt-1 text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1 underline"
+              >
+                {category.hintImageUrl && <ImageIcon className="h-3 w-3" />}
+                {category.hintVideoUrl && <Play className="h-3 w-3" />}
+                Подробнее
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {hasMedia && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-amber-600" />
+                {category.name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {category.hint && (
+                <p className="text-gray-700">{category.hint}</p>
+              )}
+              {category.hintImageUrl && (
+                <img src={category.hintImageUrl} alt={category.name} className="w-full rounded-lg" />
+              )}
+              {category.hintVideoUrl && getYouTubeEmbedUrl(category.hintVideoUrl) && (
+                <div className="aspect-video rounded-lg overflow-hidden">
+                  <iframe
+                    src={getYouTubeEmbedUrl(category.hintVideoUrl)}
+                    title="Video"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                </div>
+              )}
+              {category.hintVideoUrl && !getYouTubeEmbedUrl(category.hintVideoUrl) && (
+                <video controls className="w-full rounded-lg">
+                  <source src={category.hintVideoUrl} />
+                </video>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+};
+
 export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPrefill = null, onAmocrmPrefillUsed = null }) => {
   const {
     loading, initialLoading, prices, formData, appliedDiscount,
