@@ -53,7 +53,10 @@ class BaliaModel(BaseModel):
     currency: Optional[str] = "EUR"
     sortOrder: Optional[int] = 0
     active: Optional[bool] = True
-    hint: Optional[str] = ""  # General model hint
+    hint: Optional[str] = ""  # General model hint (RU)
+    hintPl: Optional[str] = ""  # Polish hint
+    hintImageUrl: Optional[str] = ""  # Image for hint
+    hintVideoUrl: Optional[str] = ""  # Video for hint
     # New: heater variants with individual prices and images
     heaterVariants: Optional[List[HeaterVariant]] = []
 
