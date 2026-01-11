@@ -226,7 +226,7 @@ const CategoryHint = ({ category, lang }) => {
           <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             {hint && (
-              <p className="text-sm text-gray-600">{hint}</p>
+              <p className="text-sm text-gray-600 whitespace-pre-line">{hint}</p>
             )}
             {hasMedia && (
               <button 
@@ -253,7 +253,7 @@ const CategoryHint = ({ category, lang }) => {
             </DialogHeader>
             <div className="space-y-4">
               {hint && (
-                <p className="text-gray-700">{hint}</p>
+                <p className="text-gray-700 whitespace-pre-line">{hint}</p>
               )}
               {category.hintImageUrl && (
                 <img src={category.hintImageUrl} alt={category.name} className="w-full rounded-lg" />
