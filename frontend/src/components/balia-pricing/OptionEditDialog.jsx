@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 
 // Smart API URL - auto-detect on production
@@ -195,19 +196,51 @@ export const OptionEditDialog = memo(({
           
           <div className="space-y-2">
             <Label>Подсказка (RU)</Label>
-            <Input 
+            <Textarea 
               value={formData.hint || ''} 
               onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
               placeholder="Описание опции для клиента..."
+              rows={2}
             />
           </div>
           <div className="space-y-2">
             <Label>Podpowiedź (PL)</Label>
-            <Input 
+            <Textarea 
               value={formData.hintPl || ''} 
               onChange={(e) => setFormData({ ...formData, hintPl: e.target.value })}
               placeholder="Opis opcji dla klienta..."
+              rows={2}
             />
+          </div>
+          
+          {/* Hint Media Section */}
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
+            <h4 className="text-sm font-medium text-blue-800">Медиа для подсказки / Media podpowiedzi</h4>
+            <div className="space-y-2">
+              <Label className="text-xs text-blue-700">URL изображения подсказки</Label>
+              <Input 
+                value={formData.hintImageUrl || ''} 
+                onChange={(e) => setFormData({ ...formData, hintImageUrl: e.target.value })}
+                placeholder="https://example.com/image.jpg"
+              />
+              {formData.hintImageUrl && (
+                <img 
+                  src={formData.hintImageUrl} 
+                  alt="Hint preview" 
+                  className="w-full max-h-24 object-contain rounded border bg-muted/50 mt-1"
+                  onError={(e) => e.target.style.display = 'none'}
+                />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-blue-700">URL видео подсказки</Label>
+              <Input 
+                value={formData.hintVideoUrl || ''} 
+                onChange={(e) => setFormData({ ...formData, hintVideoUrl: e.target.value })}
+                placeholder="YouTube ссылка или прямая ссылка на видео"
+              />
+              <p className="text-xs text-blue-500">Поддерживается YouTube и прямые ссылки</p>
+            </div>
           </div>
         </div>
         <DialogFooter>
