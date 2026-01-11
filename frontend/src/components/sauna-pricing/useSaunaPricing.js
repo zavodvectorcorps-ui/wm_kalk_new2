@@ -505,6 +505,7 @@ export const useSaunaPricing = () => {
     handleDeleteModel,
     moveModel,
     handleModelsDisplayTypeChange,
+    handleUpdateModelsHint,
     // Categories
     handleAddCategory,
     handleSaveEditCategory,
