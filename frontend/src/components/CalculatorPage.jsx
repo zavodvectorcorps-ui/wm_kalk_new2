@@ -1251,17 +1251,15 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                                 <Check className="h-3 w-3" />
                               </div>
                             )}
-                            {option.hint && (
-                              <Tooltip>
-                                <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <div className="absolute top-1 left-1 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full p-1 z-10 cursor-help shadow-sm">
-                                    <Info className="h-4 w-4" />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
-                                  {option.hint}
-                                </TooltipContent>
-                              </Tooltip>
+                            {(option.hint || option.hintImageUrl || option.hintVideoUrl) && (
+                              <div className="absolute top-1 left-1 z-10">
+                                <HintIcon 
+                                  hint={option.hint} 
+                                  hintImageUrl={option.hintImageUrl} 
+                                  hintVideoUrl={option.hintVideoUrl}
+                                  size="md"
+                                />
+                              </div>
                             )}
                             <div className="w-full h-20 rounded mb-2 bg-gray-100 overflow-hidden">
                               {option.imageUrl ? (
