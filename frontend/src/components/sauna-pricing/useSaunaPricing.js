@@ -251,6 +251,14 @@ export const useSaunaPricing = () => {
     }));
   };
 
+  // Update global models hint
+  const handleUpdateModelsHint = (field, value) => {
+    setPrices(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   // ========== CATEGORIES ==========
   const handleAddCategory = async (newCategory) => {
     if (!newCategory.name) return false;
