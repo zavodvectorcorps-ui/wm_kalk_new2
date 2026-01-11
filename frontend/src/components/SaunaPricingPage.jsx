@@ -110,6 +110,7 @@ export const SaunaPricingPage = () => {
             handleDeleteModel={handleDeleteModel}
             moveModel={moveModel}
             handleModelsDisplayTypeChange={handleModelsDisplayTypeChange}
+            onUpdateModelsHint={handleUpdateModelsHint}
           />
         </TabsContent>
 
