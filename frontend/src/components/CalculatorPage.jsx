@@ -129,6 +129,160 @@ const HintIcon = ({ hint, hintImageUrl, hintVideoUrl, size = 'sm', className = '
   );
 };
 
+// Component for global models section hint
+const ModelsGlobalHint = ({ hint, hintImageUrl, hintVideoUrl }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const hasMedia = hintImageUrl || hintVideoUrl;
+  
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+  };
+  
+  if (!hint && !hasMedia) return null;
+  
+  return (
+    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+      <div className="flex items-start gap-2">
+        <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          {hint && (
+            <p className="text-sm text-blue-800">{hint}</p>
+          )}
+          {hasMedia && (
+            <button 
+              onClick={() => setDialogOpen(true)}
+              className="mt-2 text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 underline"
+            >
+              {hintImageUrl && <ImageIcon className="h-3 w-3" />}
+              {hintVideoUrl && <Play className="h-3 w-3" />}
+              Посмотреть подробнее
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {hasMedia && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-blue-600" />
+                Информация о моделях
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {hint && <p className="text-gray-700">{hint}</p>}
+              {hintImageUrl && (
+                <img src={hintImageUrl} alt="Models info" className="w-full rounded-lg" />
+              )}
+              {hintVideoUrl && getYouTubeEmbedUrl(hintVideoUrl) && (
+                <div className="aspect-video rounded-lg overflow-hidden">
+                  <iframe
+                    src={getYouTubeEmbedUrl(hintVideoUrl)}
+                    title="Video"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                </div>
+              )}
+              {hintVideoUrl && !getYouTubeEmbedUrl(hintVideoUrl) && (
+                <video controls className="w-full rounded-lg">
+                  <source src={hintVideoUrl} />
+                </video>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+};
+
+// Component for category hint display  
+const CategoryHint = ({ category, lang }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const hint = lang === 'pl' ? (category.hintPl || category.hint) : category.hint;
+  const hasHint = hint || category.hintImageUrl || category.hintVideoUrl;
+  const hasMedia = category.hintImageUrl || category.hintVideoUrl;
+  
+  if (!hasHint) return null;
+  
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+  };
+  
+  return (
+    <>
+      <div className="mb-3 p-2 bg-blue-50/50 rounded border border-blue-100">
+        <div className="flex items-start gap-2">
+          <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            {hint && (
+              <p className="text-sm text-gray-600">{hint}</p>
+            )}
+            {hasMedia && (
+              <button 
+                onClick={() => setDialogOpen(true)}
+                className="mt-1 text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 underline"
+              >
+                {category.hintImageUrl && <ImageIcon className="h-3 w-3" />}
+                {category.hintVideoUrl && <Play className="h-3 w-3" />}
+                Подробнее
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {hasMedia && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-blue-600" />
+                {lang === 'pl' ? (category.namePl || category.name) : (category.nameRu || category.name)}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {hint && (
+                <p className="text-gray-700">{hint}</p>
+              )}
+              {category.hintImageUrl && (
+                <img src={category.hintImageUrl} alt={category.name} className="w-full rounded-lg" />
+              )}
+              {category.hintVideoUrl && getYouTubeEmbedUrl(category.hintVideoUrl) && (
+                <div className="aspect-video rounded-lg overflow-hidden">
+                  <iframe
+                    src={getYouTubeEmbedUrl(category.hintVideoUrl)}
+                    title="Video"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                </div>
+              )}
+              {category.hintVideoUrl && !getYouTubeEmbedUrl(category.hintVideoUrl) && (
+                <video controls className="w-full rounded-lg">
+                  <source src={category.hintVideoUrl} />
+                </video>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+};
+
 // Smart API URL - auto-detect on production
 const getApiUrl = () => { 
   if (typeof window !== 'undefined') { 
