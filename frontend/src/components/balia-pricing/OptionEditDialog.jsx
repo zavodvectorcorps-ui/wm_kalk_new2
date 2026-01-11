@@ -241,17 +241,46 @@ export const OptionEditDialog = memo(({
           <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
             <h4 className="text-sm font-medium text-blue-800">Медиа для подсказки / Media podpowiedzi</h4>
             <div className="space-y-2">
-              <Label className="text-xs text-blue-700">URL изображения подсказки</Label>
-              <Input 
-                value={formData.hintImageUrl || ''} 
-                onChange={(e) => setFormData({ ...formData, hintImageUrl: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-              />
+              <Label className="text-xs text-blue-700">Изображение подсказки</Label>
+              <div className="flex items-center gap-2">
+                <Input 
+                  value={formData.hintImageUrl || ''} 
+                  onChange={(e) => setFormData({ ...formData, hintImageUrl: e.target.value })}
+                  placeholder="URL или загрузите файл"
+                  className="flex-1"
+                />
+                <label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleHintImageUpload}
+                    disabled={uploadingHintImage}
+                  />
+                  <Button type="button" variant="outline" size="sm" asChild disabled={uploadingHintImage}>
+                    <span>
+                      {uploadingHintImage ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                      Загрузить
+                    </span>
+                  </Button>
+                </label>
+                {formData.hintImageUrl && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => setFormData({ ...formData, hintImageUrl: '' })}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               {formData.hintImageUrl && (
                 <img 
-                  src={formData.hintImageUrl} 
+                  src={getFullImageUrl(formData.hintImageUrl)} 
                   alt="Hint preview" 
-                  className="w-full max-h-24 object-contain rounded border bg-muted/50 mt-1"
+                  className="w-full max-h-32 object-contain rounded border bg-white mt-1"
                   onError={(e) => e.target.style.display = 'none'}
                 />
               )}
