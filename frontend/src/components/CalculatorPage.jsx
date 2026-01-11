@@ -1349,15 +1349,14 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                             <Label htmlFor={option.id} className="text-sm cursor-pointer flex-1 flex items-center gap-1">
                               {isGift && <Gift className="h-3 w-3 text-emerald-600" />}
                               {getOptionName(option)}
-                              {option.hint && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
-                                    {option.hint}
-                                  </TooltipContent>
-                                </Tooltip>
+                              {(option.hint || option.hintImageUrl || option.hintVideoUrl) && (
+                                <HintIcon 
+                                  hint={option.hint} 
+                                  hintImageUrl={option.hintImageUrl} 
+                                  hintVideoUrl={option.hintVideoUrl}
+                                  size="sm"
+                                  className="ml-1"
+                                />
                               )}
                               {option.price > 0 && (
                                 <span className={`ml-1 ${isGift ? 'line-through text-gray-400' : 'text-blue-600'}`}>
