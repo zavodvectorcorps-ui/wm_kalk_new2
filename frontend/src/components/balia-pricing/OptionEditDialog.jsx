@@ -35,6 +35,7 @@ export const OptionEditDialog = memo(({
 }) => {
   const [formData, setFormData] = useState(() => option || {});
   const [uploading, setUploading] = useState(false);
+  const [uploadingHintImage, setUploadingHintImage] = useState(false);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -56,6 +57,29 @@ export const OptionEditDialog = memo(({
       console.error('Upload error:', error);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleHintImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingHintImage(true);
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formDataUpload
+      });
+      const data = await response.json();
+      const fullUrl = `${API_URL}${data.url}`;
+      setFormData(prev => ({ ...prev, hintImageUrl: fullUrl }));
+    } catch (error) {
+      console.error('Hint image upload error:', error);
+    } finally {
+      setUploadingHintImage(false);
     }
   };
 
