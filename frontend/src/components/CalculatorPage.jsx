@@ -1223,7 +1223,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                               {variant.price?.toLocaleString('pl-PL')} {prices.currencySymbol}
                             </div>
                             {variant.hint && (
-                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{variant.hint}</p>
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">{variant.hint}</p>
                             )}
                           </div>
                         </div>
