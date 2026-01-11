@@ -66,6 +66,30 @@ A full-featured quoting and order management application for Saunas and Balias (
 - **Testing**: Verified - modal displays correctly with image and YouTube video
 - **Status**: ✅ COMPLETED AND TESTED
 
+#### Feature: Direct Image Upload for Hints - COMPLETED ✅
+- **Request**: Add ability to upload images directly to hints (not just URL)
+- **Implementation**:
+  1. Added `handleHintImageUpload` function to all dialog components
+  2. Added upload button with Loader2 spinner during upload
+  3. Added X button to clear uploaded image
+  4. Uses existing `/api/upload/image` endpoint
+  5. Preview of uploaded image shown below input
+
+- **Files Modified**:
+  - `/app/frontend/src/components/balia-pricing/ModelEditDialog.jsx` - Added hint image upload
+  - `/app/frontend/src/components/balia-pricing/OptionEditDialog.jsx` - Added hint image upload
+  - `/app/frontend/src/components/sauna-pricing/ModelDialog.jsx` - Added hint image upload (Add & Edit)
+  - `/app/frontend/src/components/sauna-pricing/OptionDialog.jsx` - Added hint image upload (Add & Edit)
+
+- **How it works**:
+  - Click upload button → select image → image uploaded to server → URL auto-filled
+  - Preview shown below input field
+  - X button clears the image URL
+  - Can still paste URL manually
+
+- **Testing**: Verified via screenshot - upload button visible in edit dialog
+- **Status**: ✅ COMPLETED AND TESTED
+
 ### Session 2026-01-09 - PDF Images Fix
 
 #### P0: Images Not Appearing in Balia Calculator PDF - FIXED ✅
