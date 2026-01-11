@@ -15,6 +15,13 @@ const getApiUrl = () => {
 };
 const API_URL = getApiUrl();
 
+const getFullImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/api/')) return `${API_URL}${url}`;
+  return url;
+};
+
 export const ModelEditDialog = memo(({ 
   open, 
   model,
@@ -26,6 +33,7 @@ export const ModelEditDialog = memo(({
 }) => {
   const [formData, setFormData] = useState(model || {});
   const [uploadingVariant, setUploadingVariant] = useState(null);
+  const [uploadingHintImage, setUploadingHintImage] = useState(false);
   
   useEffect(() => {
     if (model) {
@@ -42,6 +50,29 @@ export const ModelEditDialog = memo(({
       setFormData(data);
     }
   }, [model]);
+
+  const handleHintImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingHintImage(true);
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formDataUpload
+      });
+      const data = await response.json();
+      const fullUrl = `${API_URL}${data.url}`;
+      setFormData(prev => ({ ...prev, hintImageUrl: fullUrl }));
+    } catch (error) {
+      console.error('Hint image upload error:', error);
+    } finally {
+      setUploadingHintImage(false);
+    }
+  };
 
   const handleVariantImageUpload = async (e, variantType) => {
     const file = e.target.files?.[0];
