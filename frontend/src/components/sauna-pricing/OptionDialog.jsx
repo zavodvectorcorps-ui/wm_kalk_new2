@@ -259,6 +259,30 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
 
 export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditingOption, techSpecCategories, onSave, txt }) => {
   const selectedTechSpecCategory = techSpecCategories?.find(tc => tc.id === editingOption?.techSpecCategoryId);
+  const [uploadingHintImage, setUploadingHintImage] = useState(false);
+  
+  const handleHintImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingHintImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      const fullUrl = `${API_URL}${data.url}`;
+      setEditingOption(prev => ({ ...prev, hintImageUrl: fullUrl }));
+    } catch (error) {
+      console.error('Hint image upload error:', error);
+    } finally {
+      setUploadingHintImage(false);
+    }
+  };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
