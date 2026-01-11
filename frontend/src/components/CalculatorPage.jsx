@@ -978,18 +978,16 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                           : 'border-gray-200 hover:border-blue-300'
                       }`}
                     >
-                      {/* Info icon for model hint */}
-                      {model.hint && (
-                        <Tooltip>
-                          <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <div className="absolute top-2 left-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full p-1 z-10 cursor-help shadow-sm">
-                              <Info className="h-4 w-4" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs text-sm bg-gray-900 text-white p-2">
-                            {model.hint}
-                          </TooltipContent>
-                        </Tooltip>
+                      {/* Info icon for model hint with media support */}
+                      {(model.hint || model.hintImageUrl || model.hintVideoUrl) && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <HintIcon 
+                            hint={model.hint} 
+                            hintImageUrl={model.hintImageUrl} 
+                            hintVideoUrl={model.hintVideoUrl}
+                            size="md"
+                          />
+                        </div>
                       )}
                       <div className="w-full h-28 rounded mb-2 bg-gray-100 overflow-hidden relative">
                         {previewImage ? (
