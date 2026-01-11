@@ -348,6 +348,25 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
       </CardTitle>
     </CardHeader>
     <CardContent className="pt-4">
+      {/* Models section general hint */}
+      {(prices.modelsHint || prices.modelsHintImageUrl || prices.modelsHintVideoUrl) && (
+        <div className="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              {prices.modelsHint && (
+                <p className="text-sm text-amber-800">{prices.modelsHint}</p>
+              )}
+              {(prices.modelsHintImageUrl || prices.modelsHintVideoUrl) && (
+                <ModelsHintMedia 
+                  hintImageUrl={prices.modelsHintImageUrl} 
+                  hintVideoUrl={prices.modelsHintVideoUrl} 
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {prices.modelsDisplayType === 'dropdown' ? (
         <SelectOrange value={formData.selectedModel} onValueChange={handleModelChange}>
           <SelectTriggerOrange className="w-full">
