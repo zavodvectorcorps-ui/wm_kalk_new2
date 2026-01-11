@@ -492,7 +492,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
             <Info className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               {prices.modelsHint && (
-                <p className="text-sm text-amber-800">{prices.modelsHint}</p>
+                <p className="text-sm text-amber-800 whitespace-pre-line">{prices.modelsHint}</p>
               )}
               {(prices.modelsHintImageUrl || prices.modelsHintVideoUrl) && (
                 <ModelsHintMedia 
