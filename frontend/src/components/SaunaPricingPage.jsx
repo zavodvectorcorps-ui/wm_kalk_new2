@@ -32,6 +32,7 @@ export const SaunaPricingPage = () => {
     handleDeleteModel,
     moveModel,
     handleModelsDisplayTypeChange,
+    handleUpdateModelsHint,
     // Categories
     handleAddCategory,
     handleSaveEditCategory,
