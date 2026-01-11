@@ -35,7 +35,7 @@ const HintContent = ({ hint, hintImageUrl, hintVideoUrl, expanded = false }) => 
   if (expanded) {
     return (
       <div className="space-y-3">
-        {hint && <p className="text-sm text-gray-700 leading-relaxed">{hint}</p>}
+        {hint && <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{hint}</p>}
         {hintImageUrl && (
           <div className="rounded-lg overflow-hidden border">
             <img src={hintImageUrl} alt="Hint" className="w-full max-h-64 object-contain bg-gray-50" />
@@ -65,7 +65,7 @@ const HintContent = ({ hint, hintImageUrl, hintVideoUrl, expanded = false }) => 
   // Compact tooltip view
   return (
     <div className="space-y-2">
-      {hint && <p>{hint}</p>}
+      {hint && <p className="whitespace-pre-line">{hint}</p>}
       {hasMedia && (
         <div className="flex items-center gap-1 text-xs text-blue-300 mt-1">
           {hintImageUrl && <ImageIcon className="h-3 w-3" />}
