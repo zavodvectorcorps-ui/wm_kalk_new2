@@ -322,12 +322,41 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               <Label className="text-sm font-medium text-amber-700 mb-2 block">{txt.hintMedia || 'Медиа для подсказки'}</Label>
               <div className="space-y-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">{txt.hintImageUrl || 'URL изображения подсказки'}</Label>
-                  <Input
-                    value={editingOption.hintImageUrl || ''}
-                    onChange={(e) => setEditingOption(prev => ({ ...prev, hintImageUrl: e.target.value }))}
-                    placeholder="https://example.com/image.jpg или imgur/imgbb ссылка"
-                  />
+                  <Label className="text-xs text-muted-foreground">{txt.hintImageUrl || 'Изображение подсказки'}</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={editingOption.hintImageUrl || ''}
+                      onChange={(e) => setEditingOption(prev => ({ ...prev, hintImageUrl: e.target.value }))}
+                      placeholder="URL или загрузите файл"
+                      className="flex-1"
+                    />
+                    <label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleHintImageUpload}
+                        disabled={uploadingHintImage}
+                      />
+                      <Button type="button" variant="outline" size="sm" asChild disabled={uploadingHintImage}>
+                        <span>
+                          {uploadingHintImage ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                          Загрузить
+                        </span>
+                      </Button>
+                    </label>
+                    {editingOption.hintImageUrl && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-red-500 hover:text-red-700"
+                        onClick={() => setEditingOption(prev => ({ ...prev, hintImageUrl: '' }))}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                   {editingOption.hintImageUrl && (
                     <div className="mt-2">
                       <img 
