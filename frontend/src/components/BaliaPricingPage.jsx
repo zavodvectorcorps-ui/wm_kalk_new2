@@ -1089,6 +1089,126 @@ const SettingsTab = ({ prices, setPrices, nbpRate, lang, canEdit, txt, onExport,
             : 'Formuła: Zakup (EUR) × Kurs × (1 + Marża%) = Cena detaliczna (PLN)'}
         </p>
       </div>
+      
+      {/* Global Models Hint Section */}
+      <Separator />
+      <ModelsHintSection prices={prices} setPrices={setPrices} lang={lang} canEdit={canEdit} />
     </CardContent>
   </Card>
 );
+
+// Models Global Hint Section Component
+const ModelsHintSection = ({ prices, setPrices, lang, canEdit }) => {
+  const handleHintImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPrices(prev => ({ ...prev, modelsHintImageUrl: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="border rounded-lg p-4 bg-blue-50 space-y-4">
+      <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+        <Droplets className="h-4 w-4" />
+        {lang === 'ru' ? 'Общая подсказка для моделей' : 'Ogólna podpowiedź dla modeli'}
+      </h3>
+      <p className="text-xs text-blue-700">
+        {lang === 'ru' 
+          ? 'Эта подсказка будет отображаться над всеми моделями в калькуляторе' 
+          : 'Ta podpowiedź będzie wyświetlana nad wszystkimi modelami w kalkulatorze'}
+      </p>
+      
+      <div className="space-y-3">
+        {/* Hint text RU */}
+        <div className="space-y-2">
+          <Label className="text-sm">{lang === 'ru' ? 'Подсказка (RU)' : 'Podpowiedź (RU)'}</Label>
+          <textarea 
+            value={prices.modelsHint || ''} 
+            onChange={(e) => setPrices(prev => ({ ...prev, modelsHint: e.target.value }))}
+            placeholder={lang === 'ru' ? 'Текст подсказки на русском...' : 'Tekst podpowiedzi po rosyjsku...'}
+            rows={2}
+            className="w-full text-sm p-2 border rounded-md resize-none"
+            disabled={!canEdit()}
+          />
+        </div>
+        
+        {/* Hint text PL */}
+        <div className="space-y-2">
+          <Label className="text-sm">{lang === 'ru' ? 'Подсказка (PL)' : 'Podpowiedź (PL)'}</Label>
+          <textarea 
+            value={prices.modelsHintPl || ''} 
+            onChange={(e) => setPrices(prev => ({ ...prev, modelsHintPl: e.target.value }))}
+            placeholder={lang === 'ru' ? 'Текст подсказки на польском...' : 'Tekst podpowiedzi po polsku...'}
+            rows={2}
+            className="w-full text-sm p-2 border rounded-md resize-none"
+            disabled={!canEdit()}
+          />
+        </div>
+        
+        {/* Hint Image */}
+        <div className="space-y-2">
+          <Label className="text-sm flex items-center gap-1">
+            {lang === 'ru' ? 'Изображение' : 'Obraz'}
+          </Label>
+          <div className="flex gap-2 items-start">
+            <Input 
+              value={prices.modelsHintImageUrl || ''} 
+              onChange={(e) => setPrices(prev => ({ ...prev, modelsHintImageUrl: e.target.value }))}
+              placeholder="URL"
+              className="text-sm flex-1"
+              disabled={!canEdit()}
+            />
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleHintImageUpload}
+                className="hidden"
+                disabled={!canEdit()}
+              />
+              <Button type="button" variant="outline" size="sm" disabled={!canEdit()} asChild>
+                <span><Upload className="h-4 w-4" /></span>
+              </Button>
+            </label>
+            {prices.modelsHintImageUrl && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPrices(prev => ({ ...prev, modelsHintImageUrl: '' }))}
+                disabled={!canEdit()}
+              >
+                ✕
+              </Button>
+            )}
+          </div>
+          {prices.modelsHintImageUrl && (
+            <img 
+              src={prices.modelsHintImageUrl} 
+              alt="Models hint preview" 
+              className="w-full max-h-32 object-contain rounded border bg-white"
+            />
+          )}
+        </div>
+        
+        {/* Hint Video URL */}
+        <div className="space-y-2">
+          <Label className="text-sm">
+            {lang === 'ru' ? 'URL видео (YouTube)' : 'URL wideo (YouTube)'}
+          </Label>
+          <Input 
+            value={prices.modelsHintVideoUrl || ''} 
+            onChange={(e) => setPrices(prev => ({ ...prev, modelsHintVideoUrl: e.target.value }))}
+            placeholder="https://www.youtube.com/watch?v=..."
+            className="text-sm"
+            disabled={!canEdit()}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
