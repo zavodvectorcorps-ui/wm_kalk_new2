@@ -183,9 +183,36 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
       </DialogFooter>
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
-export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingModel, onSave, txt }) => (
+export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingModel, onSave, txt }) => {
+  const [uploadingHintImage, setUploadingHintImage] = useState(false);
+  
+  const handleHintImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingHintImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      const fullUrl = `${API_URL}${data.url}`;
+      setEditingModel(prev => ({ ...prev, hintImageUrl: fullUrl }));
+    } catch (error) {
+      console.error('Hint image upload error:', error);
+    } finally {
+      setUploadingHintImage(false);
+    }
+  };
+  
+  return (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
