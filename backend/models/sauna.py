@@ -40,12 +40,18 @@ class SaunaCategory(BaseModel):
     displayType: str = "grid"
     options: List[SaunaOption] = []
     techSpecCategoryId: Optional[str] = None  # Link to tech spec category ID
+    hint: Optional[str] = None  # General hint for category (shown under category name)
+    hintImageUrl: Optional[str] = None
+    hintVideoUrl: Optional[str] = None
 
 
 class SaunaPriceData(BaseModel):
     models: List[SaunaModel] = []
     categories: List[SaunaCategory] = []
     modelsDisplayType: str = "grid"
+    modelsHint: Optional[str] = None  # General hint for models section
+    modelsHintImageUrl: Optional[str] = None
+    modelsHintVideoUrl: Optional[str] = None
 
 
 class SaunaOrder(BaseModel):
