@@ -43,6 +43,29 @@ A full-featured quoting and order management application for Saunas and Balias (
 - **Testing**: Verified with test data - modal displays image and YouTube video correctly
 - **Status**: ✅ COMPLETED AND TESTED
 
+#### Feature: Media Hints for Balia Calculator - COMPLETED ✅
+- **Request**: Add media hints (photos/videos) to Balia calculator like Sauna
+- **Implementation**:
+  1. Added `HintIcon` and `HintContent` components to CalculatorPage.jsx
+  2. Added Dialog component for modal media display
+  3. Added `hintImageUrl` and `hintVideoUrl` fields in model and option edit dialogs
+  4. YouTube video auto-embed support
+  5. Direct video file support
+
+- **Files Modified**:
+  - `/app/frontend/src/components/CalculatorPage.jsx` - Added HintIcon, HintContent components, Dialog imports
+  - `/app/frontend/src/components/balia-pricing/ModelEditDialog.jsx` - Added hintImageUrl, hintVideoUrl fields
+  - `/app/frontend/src/components/balia-pricing/OptionEditDialog.jsx` - Added hintImageUrl, hintVideoUrl fields
+
+- **How it works**:
+  - Models/Options: Info icon (i) with "+" indicator if media is attached
+  - Click on icon opens modal with full content (text + image + video)
+  - YouTube links auto-embed, direct videos use HTML5 player
+  - Blue color theme (vs amber for Sauna)
+
+- **Testing**: Verified - modal displays correctly with image and YouTube video
+- **Status**: ✅ COMPLETED AND TESTED
+
 ### Session 2026-01-09 - PDF Images Fix
 
 #### P0: Images Not Appearing in Balia Calculator PDF - FIXED ✅
