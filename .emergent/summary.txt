@@ -155,7 +155,7 @@ declare -x base_url="https://demobackend.emergentagent.com"
 declare -x code_server_password="fcd9c757"
 declare -x integration_proxy_url="https://integrations.emergentagent.com"
 declare -x monitor_polling_interval="1"
-declare -x preview_endpoint="https://logimgr-1.preview.emergentagent.com"
+declare -x preview_endpoint="https://balia-calc.preview.emergentagent.com"
 declare -x run_id="35c4219d-f348-4c5c-94b7-b40c2eeaca81", , ) by refactoring shared logic and data sources.
 -   **React State & Logic**: Deeply modified the state management and data preparation logic in  to filter UI options, change default behaviors, and correctly structure a complex payload for the backend based on user selections and dependencies.
 

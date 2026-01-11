@@ -27,11 +27,11 @@
 ```
 
 Где `{{app_url}}` - это URL вашего приложения:
-`https://logimgr-1.preview.emergentagent.com`
+`https://balia-calc.preview.emergentagent.com`
 
 #### Вариант B: Добавление кнопки через цифровую воронку
 1. В настройках этапа воронки добавьте **Webhook**
-2. URL: `https://logimgr-1.preview.emergentagent.com/?calc=balia&amocrm_id={{lead.id}}`
+2. URL: `https://balia-calc.preview.emergentagent.com/?calc=balia&amocrm_id={{lead.id}}`
 
 ### Шаг 3: Добавление кнопки в карточку (через виджет)
 
@@ -59,7 +59,7 @@ define(['jquery'], function($) {
       leads: {
         selected: function() {
           var lead_id = AMOCRM.data.current_card.id;
-          var app_url = 'https://logimgr-1.preview.emergentagent.com';
+          var app_url = 'https://balia-calc.preview.emergentagent.com';
           
           // Добавляем кнопки в карточку
           if ($('#calculator-buttons').length === 0) {
@@ -95,12 +95,12 @@ define(['jquery'], function($) {
 
 ### Balia калькулятор:
 ```
-https://logimgr-1.preview.emergentagent.com/?calc=balia&amocrm_id=ID_СДЕЛКИ
+https://balia-calc.preview.emergentagent.com/?calc=balia&amocrm_id=ID_СДЕЛКИ
 ```
 
 ### Sauna калькулятор:
 ```
-https://logimgr-1.preview.emergentagent.com/?calc=sauna&amocrm_id=ID_СДЕЛКИ
+https://balia-calc.preview.emergentagent.com/?calc=sauna&amocrm_id=ID_СДЕЛКИ
 ```
 
 Замените `ID_СДЕЛКИ` на номер сделки из amoCRM.
