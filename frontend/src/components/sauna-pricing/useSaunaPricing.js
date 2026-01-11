@@ -73,6 +73,10 @@ export const useSaunaPricing = () => {
       selectTechSpecCategory: 'Выберите категорию',
       selectTechSpecOption: 'Выберите опцию',
       noMapping: '— Без маппинга —',
+      globalModelsHint: 'Общая подсказка для моделей',
+      globalModelsHintDescription: 'Эта подсказка будет отображаться над всеми моделями в калькуляторе',
+      categoryHint: 'Подсказка категории',
+      categoryHintDescription: 'Подсказка будет отображаться под названием категории в калькуляторе',
     },
     pl: {
       saunaPricing: 'Zarządzanie cenami saun',
@@ -126,6 +130,10 @@ export const useSaunaPricing = () => {
       selectTechSpecCategory: 'Wybierz kategorię',
       selectTechSpecOption: 'Wybierz opcję',
       noMapping: '— Bez mapowania —',
+      globalModelsHint: 'Ogólna podpowiedź dla modeli',
+      globalModelsHintDescription: 'Ta podpowiedź będzie wyświetlana nad wszystkimi modelami w kalkulatorze',
+      categoryHint: 'Podpowiedź kategorii',
+      categoryHintDescription: 'Podpowiedź będzie wyświetlana pod nazwą kategorii w kalkulatorze',
     },
   };
 
