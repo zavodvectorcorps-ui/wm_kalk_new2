@@ -346,4 +346,5 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
       </DialogFooter>
     </DialogContent>
   </Dialog>
-);
+  );
+};
