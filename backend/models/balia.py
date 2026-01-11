@@ -138,6 +138,11 @@ class PriceData(BaseModel):
     # EUR exchange rate and markup settings
     eurRate: Optional[float] = 4.30  # EUR to PLN exchange rate
     defaultMarkupPercent: Optional[float] = 30  # Default markup percentage
+    # Models section hint (shown above all models)
+    modelsHint: Optional[str] = ""  # Russian hint for models section
+    modelsHintPl: Optional[str] = ""  # Polish hint for models section
+    modelsHintImageUrl: Optional[str] = ""  # Image for models section hint
+    modelsHintVideoUrl: Optional[str] = ""  # Video for models section hint
     
     # Legacy structure (for backward compatibility)
     shellModels: Optional[Dict[str, float]] = {}
