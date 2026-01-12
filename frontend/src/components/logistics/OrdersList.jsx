@@ -313,6 +313,56 @@ export const OrderCard = ({
                       <span className="font-medium">{order.budget} PLN</span>
                     </div>
                   )}
+                  {order.transferredAt && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <Clock className="h-3 w-3 text-purple-500" />
+                      <span className="text-muted-foreground">Перенесён:</span>
+                      <span className="font-medium">{formatDate(order.transferredAt)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Transfer info for non-amoCRM orders */}
+              {!order.amocrm_id && order.transferredAt && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>Создан: {formatDate(order.transferredAt || order.createdAt)}</span>
+                </div>
+              )}
+              
+              {/* Change history */}
+              {order.changeHistory && order.changeHistory.length > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 space-y-2 mt-2">
+                  <details>
+                    <summary className="text-xs font-medium text-gray-600 cursor-pointer flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      История изменений ({order.changeHistory.length})
+                    </summary>
+                    <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                      {order.changeHistory.slice().reverse().map((entry, idx) => (
+                        <div key={idx} className="text-xs border-l-2 border-gray-300 pl-2">
+                          <div className="text-gray-500">{formatDate(entry.timestamp)}</div>
+                          {entry.changes?.map((change, cIdx) => (
+                            <div key={cIdx} className="text-gray-700">
+                              <span className="font-medium">{change.field}</span>: {' '}
+                              <span className="text-red-500 line-through">{change.oldValue || '—'}</span>
+                              {' → '}
+                              <span className="text-green-600">{change.newValue || '—'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              )}
+              
+              {/* Last updated */}
+              {order.updatedAt && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                  <Clock className="h-3 w-3" />
+                  <span>Обновлено: {formatDate(order.updatedAt)}</span>
                 </div>
               )}
               
