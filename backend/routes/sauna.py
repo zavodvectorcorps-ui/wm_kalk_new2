@@ -317,15 +317,61 @@ async def get_sauna_order(order_id: str):
 
 @router.put("/orders/{order_id}")
 async def update_sauna_order(order_id: str, order: SaunaOrder):
-    """Update an existing sauna order"""
+    """Update an existing sauna order with change history tracking"""
+    from datetime import datetime, timezone
+    
+    # Get existing order to track changes
+    existing = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
     order_dict = order.model_dump()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Track what fields changed
+    changes = []
+    tracked_fields = [
+        'fullName', 'clientName', 'phoneNumber', 'phone', 'fullAddress',
+        'orderContents', 'notes', 'dealSum', 'debtSum', 'totalPrice', 'amountDue',
+        'deliveryStatus', 'deliveryComment', 'isImportant',
+        'tripId', 'tripName', 'tripDriverName', 'tripDepartureDate', 'tripOrderStatus',
+        'modelName', 'total', 'discountPercent'
+    ]
+    
+    for field in tracked_fields:
+        old_val = existing.get(field)
+        new_val = order_dict.get(field)
+        if old_val != new_val:
+            changes.append({
+                'field': field,
+                'oldValue': old_val,
+                'newValue': new_val
+            })
+    
+    # If there are changes, add to history
+    if changes:
+        history_entry = {
+            'timestamp': now,
+            'changes': changes,
+            'changedBy': order_dict.get('updatedBy', 'system')
+        }
+        
+        # Get existing history or create new
+        change_history = existing.get('changeHistory', []) or []
+        change_history.append(history_entry)
+        order_dict['changeHistory'] = change_history
+        order_dict['updatedAt'] = now
+    
     result = await db.sauna_orders.update_one(
         {"id": order_id},
         {"$set": order_dict}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Order not found")
-    return order
+    
+    # Return updated order
+    updated = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    return updated
 
 
 @router.delete("/orders/{order_id}")
