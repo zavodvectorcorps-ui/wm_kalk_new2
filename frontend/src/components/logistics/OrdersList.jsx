@@ -162,6 +162,17 @@ export const OrderCard = ({
               </Badge>
             )}
             {order.amocrm_id && <span className="text-purple-500">• amoCRM</span>}
+            {order.updatedAt && (
+              <span className="text-blue-500" title={`Обновлено: ${formatDateTime(order.updatedAt)}`}>
+                • изм. {formatDateTime(order.updatedAt)}
+              </span>
+            )}
+            {order.changeHistory && order.changeHistory.length > 0 && (
+              <Badge variant="outline" className="text-xs py-0 px-1 bg-gray-100">
+                <FileText className="h-2 w-2 mr-1" />
+                {order.changeHistory.length} изм.
+              </Badge>
+            )}
           </div>
           
           {/* Important checkbox */}
