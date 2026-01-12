@@ -1051,11 +1051,27 @@ const OrderCard = ({
             </div>
           )}
           
-          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-muted-foreground">
             <span>{formatDate(order.orderDate || order.createdAt)}</span>
             {order.routeNumber && <Badge variant="outline" className="text-xs py-0 px-1"><Hash className="h-2 w-2 mr-1" />Рейс {order.routeNumber}</Badge>}
             {order.driverName && <Badge variant="outline" className="text-xs py-0 px-1"><User className="h-2 w-2 mr-1" />{order.driverName}</Badge>}
             {order.amocrm_id && <span className="text-purple-500">• amoCRM</span>}
+            {order.transferredAt && (
+              <span className="text-green-600" title={`Перенесён: ${new Date(order.transferredAt).toLocaleString('ru-RU')}`}>
+                • перенесён {new Date(order.transferredAt).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}
+              </span>
+            )}
+            {order.updatedAt && (
+              <span className="text-blue-500" title={`Обновлено: ${new Date(order.updatedAt).toLocaleString('ru-RU')}`}>
+                • изм. {new Date(order.updatedAt).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}
+              </span>
+            )}
+            {order.changeHistory && order.changeHistory.length > 0 && (
+              <Badge variant="outline" className="text-xs py-0 px-1 bg-gray-100">
+                <FileText className="h-2 w-2 mr-1" />
+                {order.changeHistory.length} изм.
+              </Badge>
+            )}
           </div>
           
           {/* Trip data display */}
