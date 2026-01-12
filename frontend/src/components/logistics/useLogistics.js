@@ -1923,9 +1923,9 @@ export const useLogistics = () => {
                 <td class="phone">${order.phoneNumber || order.phone || '-'}</td>
                 <td class="address">${order.fullAddress || order.address || '-'}</td>
                 <td class="contents">${contents}</td>
-                <td>${order.dealSum || order.orderSum || '-'}</td>
-                <td style="color: ${order.debtSum ? '#dc2626' : 'inherit'}; font-weight: ${order.debtSum ? 'bold' : 'normal'};">${order.debtSum || '-'}</td>
-                <td>${order.orderComment || order.notes || '-'}</td>
+                <td class="sum">${order.dealSum || order.orderSum || '-'}</td>
+                <td class="sum" style="color: ${order.debtSum ? '#dc2626' : 'inherit'}; font-weight: ${order.debtSum ? 'bold' : 'normal'};">${order.debtSum || '-'}</td>
+                <td class="comment">${order.orderComment || order.notes || '-'}</td>
               </tr>
             `}).join('')}
           </tbody>
