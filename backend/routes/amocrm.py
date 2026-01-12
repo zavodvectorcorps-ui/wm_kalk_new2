@@ -853,6 +853,7 @@ async def receive_webhook_section(
         "notes": ". ".join(notes_parts),
         "orderDate": now,
         "createdAt": now,
+        "transferredAt": now,  # Date/time of transfer from amoCRM
         "source": "amocrm",
         "status": "new",
         "deliveryStatus": "pending",  # pending, delivering, delivered, cancelled
@@ -860,7 +861,8 @@ async def receive_webhook_section(
         "isImportant": is_important,  # Flag from amoCRM
         "amocrm_id": lead_data.get("amocrm_id"),
         "amocrm_link": amocrm_link,
-        "amocrm_data": lead_data
+        "amocrm_data": lead_data,
+        "changeHistory": []  # Initialize empty change history
     }
     
     collection.insert_one(order_data)
