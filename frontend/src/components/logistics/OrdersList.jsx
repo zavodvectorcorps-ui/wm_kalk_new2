@@ -342,7 +342,7 @@ export const OrderCard = ({
                     <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
                       {order.changeHistory.slice().reverse().map((entry, idx) => (
                         <div key={idx} className="text-xs border-l-2 border-gray-300 pl-2">
-                          <div className="text-gray-500">{formatDate(entry.timestamp)}</div>
+                          <div className="text-gray-500">{formatDateTime(entry.timestamp)}</div>
                           {entry.changes?.map((change, cIdx) => (
                             <div key={cIdx} className="text-gray-700">
                               <span className="font-medium">{change.field}</span>: {' '}
@@ -362,7 +362,7 @@ export const OrderCard = ({
               {order.updatedAt && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
                   <Clock className="h-3 w-3" />
-                  <span>Обновлено: {formatDate(order.updatedAt)}</span>
+                  <span>Обновлено: {formatDateTime(order.updatedAt)}</span>
                 </div>
               )}
               
