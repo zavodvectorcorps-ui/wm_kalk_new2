@@ -1340,6 +1340,36 @@ const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDelivery
       />
       {order.amocrm_id && <p className="text-xs text-purple-500 flex items-center gap-1"><Send className="h-3 w-3" />Синхр. с amoCRM при изменении</p>}
     </div>
+    
+    {/* Change history */}
+    {order.changeHistory && order.changeHistory.length > 0 && (
+      <div className="bg-gray-50 rounded-lg p-3 space-y-2 mt-2">
+        <details>
+          <summary className="text-xs font-medium text-gray-600 cursor-pointer flex items-center gap-1">
+            <FileText className="h-3 w-3" />
+            История изменений ({order.changeHistory.length})
+          </summary>
+          <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+            {order.changeHistory.slice().reverse().map((entry, idx) => (
+              <div key={idx} className="text-xs border-l-2 border-gray-300 pl-2">
+                <div className="text-gray-500">
+                  {new Date(entry.timestamp).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'})}
+                  {entry.changedBy && <span className="ml-1">({entry.changedBy})</span>}
+                </div>
+                {entry.changes?.map((change, cIdx) => (
+                  <div key={cIdx} className="text-gray-700">
+                    <span className="font-medium">{change.field}</span>: {' '}
+                    <span className="text-red-500 line-through">{String(change.oldValue || '—').substring(0, 50)}{String(change.oldValue || '').length > 50 ? '...' : ''}</span>
+                    {' → '}
+                    <span className="text-green-600">{String(change.newValue || '—').substring(0, 50)}{String(change.newValue || '').length > 50 ? '...' : ''}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </details>
+      </div>
+    )}
   </div>
 );
 
