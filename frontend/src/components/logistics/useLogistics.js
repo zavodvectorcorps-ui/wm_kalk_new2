@@ -1870,6 +1870,19 @@ export const useLogistics = () => {
             max-width: 150px;
           }
           
+          /* Trip header in table - repeats on each page */
+          .trip-header {
+            background-color: #1f2937 !important;
+            color: white !important;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: left;
+            padding: 8px 10px;
+          }
+          .trip-header-row {
+            background-color: #1f2937 !important;
+          }
+          
           @media print {
             body { 
               padding: 0; 
