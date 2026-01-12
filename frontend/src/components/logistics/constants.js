@@ -100,13 +100,34 @@ export const SECTIONS = {
 };
 
 // Helper functions
-export const formatDate = (dateString) => {
+export const formatDate = (dateString, includeTime = false) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  
+  const dateOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  };
+  
+  if (includeTime) {
+    dateOptions.hour = '2-digit';
+    dateOptions.minute = '2-digit';
+  }
+  
+  return date.toLocaleDateString('ru-RU', dateOptions);
+};
+
+// Format datetime for history display (always includes time)
+export const formatDateTime = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
   return date.toLocaleDateString('ru-RU', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
 };
 
