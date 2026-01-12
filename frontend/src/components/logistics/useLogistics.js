@@ -1894,15 +1894,20 @@ export const useLogistics = () => {
         
         <table>
           <thead>
+            <tr class="trip-header-row">
+              <th colspan="8" class="trip-header">
+                🚛 ${trip.name || 'Рейс'} &nbsp;|&nbsp; 📅 ${trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('ru-RU') : 'Дата не указана'} &nbsp;|&nbsp; 👤 ${trip.driverName || 'Водитель не назначен'}
+              </th>
+            </tr>
             <tr>
               <th class="order-num">№</th>
               <th>Клиент</th>
               <th>Телефон</th>
               <th class="address">Адрес</th>
               <th class="contents">Состав заказа</th>
-              <th>Сумма заказа</th>
-              <th>Задолженность</th>
-              <th>Комментарий</th>
+              <th class="sum">Сумма</th>
+              <th class="sum">Долг</th>
+              <th class="comment">Комментарий</th>
             </tr>
           </thead>
           <tbody>
