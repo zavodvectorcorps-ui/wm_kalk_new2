@@ -215,6 +215,45 @@ class Order(BaseModel):
     woodColor: Optional[str] = None
     sandFilter: Optional[str] = "none"
     features: Optional[Dict[str, bool]] = {}
+    # === LOGISTICS FIELDS ===
+    # Client info (editable in logistics)
+    clientName: Optional[str] = None
+    phone: Optional[str] = None
+    # Order contents
+    orderContents: Optional[str] = None  # Состав заказа
+    # Financial fields
+    dealSum: Optional[str] = None  # Сумма заказа
+    debtSum: Optional[str] = None  # Задолженность
+    totalPrice: Optional[str] = None
+    amountDue: Optional[str] = None
+    # Trip assignment
+    tripId: Optional[str] = None
+    tripName: Optional[str] = None
+    tripDriverName: Optional[str] = None
+    tripDepartureDate: Optional[str] = None
+    tripOrderStatus: Optional[str] = None
+    # Delivery status
+    deliveryStatus: Optional[str] = "pending"
+    deliveryComment: Optional[str] = ""
+    # Order flags
+    isImportant: Optional[bool] = False
+    # amoCRM fields
+    amocrm_id: Optional[str] = None
+    amocrm_link: Optional[str] = None
+    amocrm_data: Optional[Dict[str, Any]] = None
+    order_number: Optional[str] = None
+    budget: Optional[float] = None
+    # Geo coordinates
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    # === TRANSFER / HISTORY FIELDS ===
+    transferredAt: Optional[str] = None  # Дата/время переноса из amoCRM
+    transferredBy: Optional[str] = None  # Кто перенёс
+    source: Optional[str] = None  # Источник: "amocrm", "manual", "web"
+    updatedAt: Optional[str] = None  # Дата последнего обновления
+    updatedBy: Optional[str] = None  # Кто обновил
+    # History of changes
+    changeHistory: Optional[List[Dict[str, Any]]] = []  # История изменений
 
 
 class PDFRequest(BaseModel):
