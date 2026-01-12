@@ -1562,10 +1562,12 @@ async def test_webhook(section: str):
         "notes": "Тестовый заказ для проверки интеграции",
         "orderDate": now,
         "createdAt": now,
+        "transferredAt": now,  # Date/time of creation
         "source": "amocrm_test",
         "status": "new",
         "deliveryStatus": "pending",
-        "deliveryComment": ""
+        "deliveryComment": "",
+        "changeHistory": []  # Initialize empty change history
     }
     
     collection.insert_one(order_data)
