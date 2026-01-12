@@ -1781,47 +1781,68 @@ export const useLogistics = () => {
         <title>Рейс: ${trip.name || 'Без названия'}</title>
         <style>
           * { box-sizing: border-box; }
+          
+          /* Page setup for printing */
+          @page {
+            size: A4 landscape;
+            margin: 15mm 10mm 15mm 10mm;
+          }
+          
           body { 
             font-family: Arial, sans-serif; 
-            padding: 20px; 
+            padding: 10px; 
             max-width: 100%;
-            font-size: 12px;
+            font-size: 11px;
+            line-height: 1.3;
           }
           h1 { 
-            font-size: 18px; 
-            margin-bottom: 10px;
+            font-size: 16px; 
+            margin-bottom: 8px;
             border-bottom: 2px solid #333;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
           }
           .trip-info {
-            margin-bottom: 15px;
-            padding: 10px;
+            margin-bottom: 12px;
+            padding: 8px;
             background: #f5f5f5;
             border-radius: 4px;
           }
           .trip-info p {
-            margin: 3px 0;
+            margin: 2px 0;
           }
           table { 
             width: 100%; 
             border-collapse: collapse; 
-            margin-top: 15px;
+            margin-top: 10px;
           }
           th, td { 
             border: 1px solid #ddd; 
-            padding: 8px; 
+            padding: 6px 8px; 
             text-align: left;
             vertical-align: top;
           }
           th { 
             background-color: #f0f0f0; 
             font-weight: bold;
+            font-size: 10px;
           }
+          
+          /* Prevent row breaks across pages */
+          tr { 
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
+          /* Keep table header with content */
+          thead {
+            display: table-header-group;
+          }
+          
           tr:nth-child(even) { background-color: #fafafa; }
           .order-num { 
             font-weight: bold; 
             text-align: center;
-            width: 30px;
+            width: 25px;
           }
           .important { 
             background-color: #fff3cd !important;
@@ -1832,25 +1853,43 @@ export const useLogistics = () => {
           }
           .phone { white-space: nowrap; }
           .contents { 
-            font-size: 11px;
-            max-width: 200px;
+            font-size: 10px;
+            max-width: 180px;
             white-space: pre-line;
           }
           .address {
-            max-width: 250px;
+            max-width: 200px;
+            font-size: 10px;
           }
+          .sum {
+            white-space: nowrap;
+            text-align: right;
+          }
+          .comment {
+            font-size: 10px;
+            max-width: 150px;
+          }
+          
           @media print {
-            body { padding: 10px; }
+            body { 
+              padding: 0; 
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
             .no-print { display: none; }
+            
+            /* Ensure rows don't break */
+            tr { 
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
           }
         </style>
       </head>
       <body>
         <h1>🚛 Рейс: ${trip.name || 'Без названия'}</h1>
         <div class="trip-info">
-          <p><strong>Водитель:</strong> ${trip.driverName || 'Не назначен'}</p>
-          <p><strong>Дата отправки:</strong> ${trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('ru-RU') : 'Не указана'}</p>
-          <p><strong>Всего заказов:</strong> ${orders.length}</p>
+          <p><strong>Водитель:</strong> ${trip.driverName || 'Не назначен'} &nbsp;&nbsp; <strong>Дата отправки:</strong> ${trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('ru-RU') : 'Не указана'} &nbsp;&nbsp; <strong>Всего заказов:</strong> ${orders.length}</p>
         </div>
         
         <table>
