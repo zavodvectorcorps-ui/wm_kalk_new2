@@ -109,13 +109,44 @@ async def get_greenhouse_order(order_id: str):
 
 @router.put("/orders/{order_id}")
 async def update_greenhouse_order(order_id: str, order: GreenhouseOrder):
-    """Update a greenhouse order."""
-    existing = greenhouse_orders.find_one({"id": order_id})
+    """Update a greenhouse order with change history tracking."""
+    existing = greenhouse_orders.find_one({"id": order_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Order not found")
     
+    now = datetime.now(timezone.utc).isoformat()
     update_data = {k: v for k, v in order.dict().items() if v is not None}
     update_data["id"] = order_id  # Preserve original ID
+    
+    # Track changes
+    changes = []
+    tracked_fields = [
+        'fullName', 'clientName', 'phoneNumber', 'phone', 'fullAddress',
+        'orderContents', 'notes', 'dealSum', 'debtSum', 'totalPrice', 'amountDue',
+        'deliveryStatus', 'deliveryComment', 'isImportant',
+        'tripId', 'tripName', 'tripDriverName', 'tripDepartureDate', 'tripOrderStatus'
+    ]
+    
+    for field in tracked_fields:
+        old_val = existing.get(field)
+        new_val = update_data.get(field)
+        if old_val != new_val and new_val is not None:
+            changes.append({
+                'field': field,
+                'oldValue': old_val,
+                'newValue': new_val
+            })
+    
+    if changes:
+        history_entry = {
+            'timestamp': now,
+            'changes': changes,
+            'changedBy': update_data.get('updatedBy', 'system')
+        }
+        change_history = existing.get('changeHistory', []) or []
+        change_history.append(history_entry)
+        update_data['changeHistory'] = change_history
+        update_data['updatedAt'] = now
     
     greenhouse_orders.update_one({"id": order_id}, {"$set": update_data})
     
