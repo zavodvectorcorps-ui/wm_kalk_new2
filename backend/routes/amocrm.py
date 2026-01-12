@@ -1028,6 +1028,7 @@ async def sync_missing_orders(
                 "notes": ". ".join(notes_parts),
                 "orderDate": now,
                 "createdAt": now,
+                "transferredAt": now,  # Date/time of transfer from amoCRM
                 "source": "amocrm",
                 "status": "new",
                 "deliveryStatus": "pending",
@@ -1036,7 +1037,8 @@ async def sync_missing_orders(
                 "isImportant": is_important,
                 "amocrm_id": lead_data.get("amocrm_id"),
                 "amocrm_link": amocrm_link,
-                "amocrm_data": lead_data
+                "amocrm_data": lead_data,
+                "changeHistory": []  # Initialize empty change history
             }
             
             # Insert order
