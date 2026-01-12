@@ -162,6 +162,11 @@ export const OrderCard = ({
               </Badge>
             )}
             {order.amocrm_id && <span className="text-purple-500">• amoCRM</span>}
+            {order.transferredAt && (
+              <span className="text-green-600" title={`Перенесён: ${formatDateTime(order.transferredAt)}`}>
+                • перенесён {formatDateTime(order.transferredAt)}
+              </span>
+            )}
             {order.updatedAt && (
               <span className="text-blue-500" title={`Обновлено: ${formatDateTime(order.updatedAt)}`}>
                 • изм. {formatDateTime(order.updatedAt)}
