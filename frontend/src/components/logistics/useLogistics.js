@@ -1867,18 +1867,28 @@ export const useLogistics = () => {
             </tr>
           </thead>
           <tbody>
-            ${orders.map((order, index) => `
+            ${orders.map((order, index) => {
+              // Format order contents with line breaks
+              let contents = order.orderContents || order.orderDetails || '-';
+              if (contents !== '-') {
+                // Replace numbered items (1. 2. 3. or 1) 2) 3) or 1, 2, 3,) with line breaks
+                contents = contents
+                  .replace(/(\d+[\.\)]\s*)/g, '\n$1')  // Add newline before numbered items
+                  .replace(/^\n/, '')  // Remove leading newline
+                  .trim();
+              }
+              return `
               <tr class="${order.isImportant ? 'important' : ''}">
                 <td class="order-num">${index + 1}</td>
                 <td>${order.fullName || order.customerName || '-'}</td>
                 <td class="phone">${order.phoneNumber || order.phone || '-'}</td>
                 <td class="address">${order.fullAddress || order.address || '-'}</td>
-                <td class="contents">${order.orderContents || order.orderDetails || '-'}</td>
+                <td class="contents">${contents}</td>
                 <td>${order.dealSum || order.orderSum || '-'}</td>
                 <td style="color: ${order.debtSum ? '#dc2626' : 'inherit'}; font-weight: ${order.debtSum ? 'bold' : 'normal'};">${order.debtSum || '-'}</td>
                 <td>${order.orderComment || order.notes || '-'}</td>
               </tr>
-            `).join('')}
+            `}).join('')}
           </tbody>
         </table>
         
