@@ -10,7 +10,7 @@ import {
   Hash, User, ExternalLink, DollarSign, MessageSquare, 
   AlertCircle, CheckCircle, X, Clock
 } from 'lucide-react';
-import { DELIVERY_STATUSES, formatDate } from './constants';
+import { DELIVERY_STATUSES, formatDate, formatDateTime } from './constants';
 
 // Single order card component
 export const OrderCard = ({ 
