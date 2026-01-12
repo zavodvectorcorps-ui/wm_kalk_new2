@@ -19,6 +19,8 @@ greenhouse_orders = db["greenhouse_orders"]
 
 
 class GreenhouseOrder(BaseModel):
+    model_config = {"extra": "allow"}  # Allow extra fields
+    
     id: Optional[str] = None
     fullName: str
     phoneNumber: Optional[str] = None
@@ -34,6 +36,35 @@ class GreenhouseOrder(BaseModel):
     routeNumber: Optional[str] = ""
     amocrm_id: Optional[str] = None
     amocrm_data: Optional[dict] = None
+    # === LOGISTICS FIELDS ===
+    clientName: Optional[str] = None
+    phone: Optional[str] = None
+    orderContents: Optional[str] = None
+    dealSum: Optional[str] = None
+    debtSum: Optional[str] = None
+    totalPrice: Optional[str] = None
+    amountDue: Optional[str] = None
+    # Trip assignment
+    tripId: Optional[str] = None
+    tripName: Optional[str] = None
+    tripDriverName: Optional[str] = None
+    tripDepartureDate: Optional[str] = None
+    tripOrderStatus: Optional[str] = None
+    # Flags
+    isImportant: Optional[bool] = False
+    # amoCRM
+    amocrm_link: Optional[str] = None
+    order_number: Optional[str] = None
+    budget: Optional[float] = None
+    # Geo
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    # Transfer/History
+    transferredAt: Optional[str] = None
+    transferredBy: Optional[str] = None
+    updatedAt: Optional[str] = None
+    updatedBy: Optional[str] = None
+    changeHistory: Optional[list] = []
 
 
 @router.get("/orders")
