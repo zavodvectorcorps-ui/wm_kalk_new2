@@ -1834,6 +1834,7 @@ export const useLogistics = () => {
           .contents { 
             font-size: 11px;
             max-width: 200px;
+            white-space: pre-line;
           }
           .address {
             max-width: 250px;
