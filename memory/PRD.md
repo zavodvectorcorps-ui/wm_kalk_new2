@@ -5,6 +5,55 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Session 2026-01-12 - Logistics Order Editing Fix & History
+
+#### Bug Fix: Order Data Not Saving in Logistics - FIXED ✅
+- **Problem**: Changes to order fields (orderContents, clientName, dealSum, etc.) were not being saved when editing orders in the logistics module
+- **Root Cause**: Backend Pydantic models (Order, SaunaOrder, GreenhouseOrder) didn't have explicit fields for logistics data. Although `extra="allow"` was set, the data wasn't being properly validated and saved.
+- **Solution**: Added all necessary logistics fields to the Order models:
+  - Client info: `clientName`, `phone`
+  - Order contents: `orderContents`
+  - Financial: `dealSum`, `debtSum`, `totalPrice`, `amountDue`
+  - Trip: `tripId`, `tripName`, `tripDriverName`, `tripDepartureDate`, `tripOrderStatus`
+  - Delivery: `deliveryStatus`, `deliveryComment`, `isImportant`
+  - amoCRM: `amocrm_id`, `amocrm_link`, `amocrm_data`, `order_number`, `budget`
+  - Geo: `lat`, `lng`
+  - History: `transferredAt`, `transferredBy`, `source`, `updatedAt`, `updatedBy`, `changeHistory`
+
+- **Files Modified**:
+  - `/app/backend/models/balia.py` - Extended Order model with logistics fields
+  - `/app/backend/models/sauna.py` - Extended SaunaOrder model with logistics fields
+  - `/app/backend/routes/greenhouse.py` - Extended GreenhouseOrder model with logistics fields
+  - `/app/backend/routes/balia.py` - Updated PUT endpoint with change tracking
+  - `/app/backend/routes/sauna.py` - Updated PUT endpoint with change tracking
+  - `/app/backend/routes/amocrm.py` - Added transferredAt and changeHistory initialization
+
+- **Status**: ✅ FIXED AND TESTED
+
+#### Feature: Order Change History - COMPLETED ✅
+- **Request**: Add date/time of order transfer and history of changes
+- **Implementation**:
+  1. Added `transferredAt` field for tracking when order was imported from amoCRM
+  2. Added `changeHistory` array for tracking all field changes
+  3. Backend automatically tracks changes to key fields: fullName, clientName, phoneNumber, fullAddress, orderContents, notes, dealSum, debtSum, deliveryStatus, deliveryComment, isImportant, tripId, etc.
+  4. Each history entry includes: timestamp, list of changes (field, oldValue, newValue), changedBy
+  5. Frontend displays collapsible "История изменений" section in order card
+  6. Frontend shows "Обновлено" timestamp when order was last modified
+
+- **Files Modified**:
+  - `/app/frontend/src/components/logistics/OrdersList.jsx` - Added change history display UI
+  - `/app/frontend/src/components/logistics/constants.js` - Added formatDateTime function
+
+- **How it works**:
+  - Every order update via PUT endpoint compares old vs new values
+  - Changed fields are recorded in `changeHistory` array
+  - UI shows expandable list of all changes with old → new values
+  - Dates shown with time (formatDateTime function)
+
+- **Status**: ✅ COMPLETED AND TESTED
+
+---
+
 ### Session 2026-01-11 - Global and Category Hints
 
 #### Feature: Global Model Hints and Category Hints - COMPLETED ✅
