@@ -1880,17 +1880,17 @@ export const useLogistics = () => {
           }
           .comment {
             font-size: 8px;
-            max-width: 150px;
+            max-width: 100px;
           }
           
           /* Trip header in table - repeats on each page */
           .trip-header {
             background-color: #1f2937 !important;
             color: white !important;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: bold;
             text-align: left;
-            padding: 8px 10px;
+            padding: 5px 6px;
           }
           .trip-header-row {
             background-color: #1f2937 !important;
@@ -1913,9 +1913,9 @@ export const useLogistics = () => {
         </style>
       </head>
       <body>
-        <h1>🚛 Рейс: ${trip.name || 'Без названия'}</h1>
+        <h1>🚛 ${trip.name || 'Рейс'} | 📅 ${trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('ru-RU') : ''}</h1>
         <div class="trip-info">
-          <p><strong>Водитель:</strong> ${trip.driverName || 'Не назначен'} &nbsp;&nbsp; <strong>Дата отправки:</strong> ${trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('ru-RU') : 'Не указана'} &nbsp;&nbsp; <strong>Всего заказов:</strong> ${orders.length}</p>
+          <p><strong>Водитель:</strong> ${trip.driverName || 'Не назначен'} &nbsp;|&nbsp; <strong>Заказов:</strong> ${orders.length}</p>
         </div>
         
         <table>
