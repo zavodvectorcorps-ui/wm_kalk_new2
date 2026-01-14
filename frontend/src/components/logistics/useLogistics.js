@@ -1938,9 +1938,9 @@ export const useLogistics = () => {
           </thead>
           <tbody>
             ${orders.map((order, index) => {
-              // Extract only numbered items from order contents
+              // Extract only numbered items from order contents, or show original if no numbered items
               let contents = order.orderContents || order.orderDetails || '-';
-              if (contents !== '-') {
+              if (contents && contents !== '-') {
                 // Split by lines and filter only numbered items (1. 2. 3. etc)
                 const lines = contents.split(/[\n\r]+/);
                 const numberedItems = lines.filter(line => {
@@ -1958,9 +1958,8 @@ export const useLogistics = () => {
                       .replace(/\s*[\d\s,.]+\s*(zł|PLN|EUR|€)\s*$/i, '')
                       .trim();
                   }).join('\n');
-                } else {
-                  contents = '-';
                 }
+                // If no numbered items found, keep original contents as-is
               }
               return `
               <tr class="${order.isImportant ? 'important' : ''}">
