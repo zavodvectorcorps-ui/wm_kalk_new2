@@ -1782,30 +1782,31 @@ export const useLogistics = () => {
         <style>
           * { box-sizing: border-box; }
           
-          /* Page setup for printing */
+          /* Page setup for printing - Portrait orientation */
           @page {
-            size: A4 landscape;
-            margin: 15mm 10mm 15mm 10mm;
+            size: A4 portrait;
+            margin: 10mm 8mm 10mm 8mm;
           }
           
           body { 
             font-family: Arial, sans-serif; 
-            padding: 10px; 
+            padding: 5px; 
             max-width: 100%;
-            font-size: 11px;
-            line-height: 1.3;
+            font-size: 9px;
+            line-height: 1.15;
           }
           h1 { 
-            font-size: 16px; 
-            margin-bottom: 8px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 8px;
+            font-size: 14px; 
+            margin-bottom: 5px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
           }
           .trip-info {
-            margin-bottom: 12px;
-            padding: 8px;
+            margin-bottom: 8px;
+            padding: 5px;
             background: #f5f5f5;
-            border-radius: 4px;
+            border-radius: 3px;
+            font-size: 9px;
           }
           .trip-info p {
             margin: 2px 0;
