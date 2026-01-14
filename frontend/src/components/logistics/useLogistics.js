@@ -1809,23 +1809,25 @@ export const useLogistics = () => {
             font-size: 9px;
           }
           .trip-info p {
-            margin: 2px 0;
+            margin: 1px 0;
           }
           table { 
             width: 100%; 
             border-collapse: collapse; 
-            margin-top: 10px;
+            margin-top: 5px;
           }
           th, td { 
-            border: 1px solid #ddd; 
-            padding: 6px 8px; 
+            border: 1px solid #ccc; 
+            padding: 3px 4px; 
             text-align: left;
             vertical-align: top;
+            font-size: 8px;
           }
           th { 
             background-color: #f0f0f0; 
             font-weight: bold;
-            font-size: 10px;
+            font-size: 8px;
+            padding: 4px 4px;
           }
           
           /* Prevent row breaks across pages */
@@ -1843,31 +1845,41 @@ export const useLogistics = () => {
           .order-num { 
             font-weight: bold; 
             text-align: center;
-            width: 25px;
+            width: 18px;
+            font-size: 9px;
           }
           .important { 
             background-color: #fff3cd !important;
             font-weight: bold;
           }
           .important td:first-child::before {
-            content: "⚠️ ";
+            content: "⚠ ";
           }
-          .phone { white-space: nowrap; }
+          .phone { 
+            white-space: nowrap;
+            font-size: 8px;
+          }
+          .client {
+            font-size: 8px;
+            max-width: 80px;
+          }
           .contents { 
-            font-size: 10px;
-            max-width: 180px;
+            font-size: 8px;
+            max-width: 130px;
             white-space: pre-line;
+            line-height: 1.1;
           }
           .address {
-            max-width: 200px;
-            font-size: 10px;
+            max-width: 120px;
+            font-size: 8px;
           }
           .sum {
             white-space: nowrap;
             text-align: right;
+            font-size: 8px;
           }
           .comment {
-            font-size: 10px;
+            font-size: 8px;
             max-width: 150px;
           }
           
