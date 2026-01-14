@@ -1921,27 +1921,26 @@ export const useLogistics = () => {
         <table>
           <thead>
             <tr class="trip-header-row">
-              <th colspan="8" class="trip-header">
-                🚛 ${trip.name || 'Рейс'} &nbsp;|&nbsp; 📅 ${trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('ru-RU') : 'Дата не указана'} &nbsp;|&nbsp; 👤 ${trip.driverName || 'Водитель не назначен'}
+              <th colspan="6" class="trip-header">
+                🚛 ${trip.name || 'Рейс'} | 📅 ${trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('ru-RU') : ''} | 👤 ${trip.driverName || '-'}
               </th>
             </tr>
             <tr>
               <th class="order-num">№</th>
-              <th>Клиент</th>
-              <th>Телефон</th>
+              <th class="client">Клиент</th>
+              <th class="phone">Телефон</th>
               <th class="address">Адрес</th>
               <th class="contents">Состав заказа</th>
-              <th class="sum">Сумма</th>
-              <th class="sum">Долг</th>
-              <th class="comment">Комментарий</th>
+              <th class="comment">Примечание</th>
             </tr>
           </thead>
           <tbody>
             ${orders.map((order, index) => {
-              // Format order contents with line breaks
+              // Format order contents - just show the items without prices
               let contents = order.orderContents || order.orderDetails || '-';
               if (contents !== '-') {
-                // Replace numbered items (1. 2. 3. or 1) 2) 3) or 1, 2, 3,) with line breaks
+                // Clean up: remove prices, keep only item names
+                // Replace numbered items with line breaks
                 contents = contents
                   .replace(/(\d+[\.\)]\s*)/g, '\n$1')  // Add newline before numbered items
                   .replace(/^\n/, '')  // Remove leading newline
@@ -1950,19 +1949,17 @@ export const useLogistics = () => {
               return `
               <tr class="${order.isImportant ? 'important' : ''}">
                 <td class="order-num">${index + 1}</td>
-                <td>${order.fullName || order.customerName || '-'}</td>
+                <td class="client">${order.fullName || order.customerName || '-'}</td>
                 <td class="phone">${order.phoneNumber || order.phone || '-'}</td>
                 <td class="address">${order.fullAddress || order.address || '-'}</td>
                 <td class="contents">${contents}</td>
-                <td class="sum">${order.dealSum || order.orderSum || '-'}</td>
-                <td class="sum" style="color: ${order.debtSum ? '#dc2626' : 'inherit'}; font-weight: ${order.debtSum ? 'bold' : 'normal'};">${order.debtSum || '-'}</td>
                 <td class="comment">${order.orderComment || order.notes || '-'}</td>
               </tr>
             `}).join('')}
           </tbody>
         </table>
         
-        <p style="margin-top: 20px; font-size: 10px; color: #666;">
+        <p style="margin-top: 15px; font-size: 8px; color: #999;">
           Распечатано: ${new Date().toLocaleString('ru-RU')}
         </p>
         
