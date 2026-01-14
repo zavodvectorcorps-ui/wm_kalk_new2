@@ -1921,7 +1921,7 @@ export const useLogistics = () => {
         <table>
           <thead>
             <tr class="trip-header-row">
-              <th colspan="6" class="trip-header">
+              <th colspan="8" class="trip-header">
                 🚛 ${trip.name || 'Рейс'} | 📅 ${trip.departureDate ? new Date(trip.departureDate).toLocaleDateString('ru-RU') : ''} | 👤 ${trip.driverName || '-'}
               </th>
             </tr>
@@ -1931,20 +1931,36 @@ export const useLogistics = () => {
               <th class="phone">Телефон</th>
               <th class="address">Адрес</th>
               <th class="contents">Состав заказа</th>
+              <th class="sum">Сумма</th>
+              <th class="sum">Долг</th>
               <th class="comment">Примечание</th>
             </tr>
           </thead>
           <tbody>
             ${orders.map((order, index) => {
-              // Format order contents - just show the items without prices
+              // Extract only numbered items from order contents
               let contents = order.orderContents || order.orderDetails || '-';
               if (contents !== '-') {
-                // Clean up: remove prices, keep only item names
-                // Replace numbered items with line breaks
-                contents = contents
-                  .replace(/(\d+[\.\)]\s*)/g, '\n$1')  // Add newline before numbered items
-                  .replace(/^\n/, '')  // Remove leading newline
-                  .trim();
+                // Split by lines and filter only numbered items (1. 2. 3. etc)
+                const lines = contents.split(/[\n\r]+/);
+                const numberedItems = lines.filter(line => {
+                  const trimmed = line.trim();
+                  // Keep only lines that start with a number followed by . or )
+                  return /^\d+[\.\)]\s*.+/.test(trimmed);
+                });
+                
+                if (numberedItems.length > 0) {
+                  // Clean up each item - remove prices if present at the end
+                  contents = numberedItems.map(item => {
+                    // Remove price patterns like "- 1000 zł" or "1000,00 zł" at the end
+                    return item.trim()
+                      .replace(/\s*[-–]\s*[\d\s,.]+\s*(zł|PLN|EUR|€)?\s*$/i, '')
+                      .replace(/\s*[\d\s,.]+\s*(zł|PLN|EUR|€)\s*$/i, '')
+                      .trim();
+                  }).join('\n');
+                } else {
+                  contents = '-';
+                }
               }
               return `
               <tr class="${order.isImportant ? 'important' : ''}">
@@ -1953,6 +1969,8 @@ export const useLogistics = () => {
                 <td class="phone">${order.phoneNumber || order.phone || '-'}</td>
                 <td class="address">${order.fullAddress || order.address || '-'}</td>
                 <td class="contents">${contents}</td>
+                <td class="sum">${order.dealSum || order.orderSum || '-'}</td>
+                <td class="sum" style="color: ${order.debtSum ? '#dc2626' : 'inherit'}; font-weight: ${order.debtSum ? 'bold' : 'normal'};">${order.debtSum || '-'}</td>
                 <td class="comment">${order.orderComment || order.notes || '-'}</td>
               </tr>
             `}).join('')}
