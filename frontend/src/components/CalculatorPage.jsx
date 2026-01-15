@@ -877,8 +877,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
       const filename = `BALIA_${safeName}_${orderId}.pdf`;
       
       // Download the PDF
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
+      const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
@@ -888,6 +888,28 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
       document.body.removeChild(a);
       
       toast.success(t('balia.pdfGenerated') || 'PDF created!');
+
+      // Upload PDF to amoCRM if this order came from amoCRM
+      if (amocrmData?.amocrm_id && orderId) {
+        try {
+          const uploadResponse = await fetch(
+            `${API_URL}/api/integrations/amocrm/upload-calculator-pdf?amocrm_id=${amocrmData.amocrm_id}&order_id=${orderId}&calculator_type=balia&client_name=${encodeURIComponent(formData.fullName || '')}`,
+            {
+              method: 'POST',
+              body: pdfBlob,
+              headers: {
+                'Content-Type': 'application/pdf'
+              }
+            }
+          );
+          const uploadResult = await uploadResponse.json();
+          if (uploadResult.pdf_uploaded) {
+            toast.success('PDF загружен в amoCRM');
+          }
+        } catch (e) {
+          console.error('Failed to upload PDF to amoCRM:', e);
+        }
+      }
 
       // If in edit mode, exit edit mode and notify parent
       if (isEditMode) {
