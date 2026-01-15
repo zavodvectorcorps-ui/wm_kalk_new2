@@ -667,10 +667,14 @@ async def get_settings(request: Request):
     # Get field mapping from settings, ensure structure for each section
     saved_mapping = settings.get("field_mapping", {})
     field_mapping = {}
+    # Webhook sections (for order import)
     for section in ["greenhouse", "balia", "sauna"]:
         section_mapping = saved_mapping.get(section, {})
         # Merge default with saved, preserving saved values
         field_mapping[section] = {**default_mapping, **section_mapping}
+    # Calculator sections (for opening from amoCRM) - no defaults needed
+    for calc_section in ["calculatorBalia", "calculatorSauna"]:
+        field_mapping[calc_section] = saved_mapping.get(calc_section, {})
     
     return {
         "enabled": settings.get("enabled", False),
