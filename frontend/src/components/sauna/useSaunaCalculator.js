@@ -47,10 +47,12 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       setAmocrmData({
         amocrm_id: amocrmPrefill.amocrm_id,
         amocrm_link: amocrmPrefill.amocrm_link,
-        amocrm_name: amocrmPrefill.amocrm_name,
+        amocrm_name: amocrmPrefill.amocrm_name || amocrmPrefill.fullName,
+        crmLeadId: amocrmPrefill.crmLeadId, // From Sauna CRM
       });
       
-      toast.success(`Данные загружены из amoCRM: ${amocrmPrefill.fullName || amocrmPrefill.amocrm_name}`);
+      const sourceName = amocrmPrefill.fullName || amocrmPrefill.amocrm_name || 'CRM';
+      toast.success(`Данные загружены: ${sourceName}`);
       
       // Notify parent that prefill was used
       if (onAmocrmPrefillUsed) {
