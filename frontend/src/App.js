@@ -425,6 +425,42 @@ const API_URL = getApiUrl();
     );
   }
 
+  // Sauna CRM Page
+  if (currentCalculator === 'sauna_crm') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <Header 
+          activeTab={activeTab} 
+          onTabChange={handleTabChange}
+          isAdminAuthenticated={isAdmin()}
+          onAdminLogout={handleLogout}
+          showNavigation={false}
+          showUsers={false}
+          calculatorType="sauna_crm"
+        />
+        
+        {/* Back Button */}
+        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleBackToLanding}
+            className="gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {txt.backToSelection}
+          </Button>
+        </div>
+        
+        <Suspense fallback={<PageLoader />}>
+          <SaunaCRMPage />
+        </Suspense>
+        
+        <Toaster position="top-right" richColors />
+      </div>
+    );
+  }
+
   // Admin Panel
   if (currentCalculator === 'admin' && isAdmin()) {
     return (
