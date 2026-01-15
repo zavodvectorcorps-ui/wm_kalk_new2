@@ -5,6 +5,57 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Session 2026-01-15 - Sauna CRM Module - COMPLETED ✅
+
+#### Feature: Sauna CRM Kanban Board
+- **Request**: Create a CRM module for managing sauna sales leads with Kanban board and amoCRM integration
+- **Implementation**:
+  1. **Backend API** (`/app/backend/routes/sauna_crm.py`):
+     - `GET /api/sauna-crm/settings` - Get CRM configuration
+     - `POST /api/sauna-crm/settings` - Update CRM configuration
+     - `GET /api/sauna-crm/leads` - Get all leads with stage grouping
+     - `POST /api/sauna-crm/leads` - Create new lead
+     - `PUT /api/sauna-crm/leads/{id}` - Update lead
+     - `PUT /api/sauna-crm/leads/{id}/stage` - Change lead stage (Kanban drag-drop)
+     - `DELETE /api/sauna-crm/leads/{id}` - Delete lead
+     - `POST /api/sauna-crm/leads/{id}/open-calculator` - Get prefill data for calculator
+     - `POST /api/sauna-crm/sync-from-amocrm` - Sync leads from amoCRM
+     
+  2. **Frontend Components** (`/app/frontend/src/components/SaunaCRMPage.jsx`):
+     - Kanban board with drag-and-drop (using @dnd-kit)
+     - Stage columns with color coding and lead counts
+     - Lead cards with client info, phone, custom fields preview
+     - Stage selector dropdown on cards
+     - Edit lead dialog with all fields
+     - Settings dialog with two tabs:
+       - Fields tab: 10 configurable fields with amoCRM ID mapping
+       - Stages tab: Add/remove stages with color picker and amoCRM mapping
+     - Calculator button opens sauna calculator with prefilled data
+     
+  3. **Access Control**:
+     - Added `sauna_crm` to user access rights
+     - Landing page shows CRM card only for users with access
+     - Settings button visible only for admin/canEdit users
+     
+- **Files Modified/Created**:
+  - `/app/backend/routes/sauna_crm.py` - Created (518 lines)
+  - `/app/backend/models/auth.py` - Added 'sauna_crm' to access types
+  - `/app/backend/server.py` - Added sauna_crm_router
+  - `/app/frontend/src/components/SaunaCRMPage.jsx` - Created (670 lines)
+  - `/app/frontend/src/components/LandingPage.jsx` - Added CRM card
+  - `/app/frontend/src/App.js` - Added sauna_crm route handler and URL parameter parsing
+
+- **Database Collections**:
+  - `sauna_crm_settings` - CRM configuration (fields, stages)
+  - `sauna_crm_leads` - Lead documents with stage history
+
+- **Testing**: 15/15 backend tests passed, 100% frontend verification
+  - Test file: `/app/tests/test_sauna_crm.py`
+  
+- **Status**: ✅ COMPLETED AND TESTED
+
+---
+
 ### Session 2026-01-12 - Logistics Order Editing Fix & History
 
 #### Bug Fix: Order Data Not Saving in Logistics - FIXED ✅
