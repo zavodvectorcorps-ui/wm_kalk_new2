@@ -207,6 +207,8 @@ async def create_lead(lead: CRMLead):
     }]
     
     await db.sauna_crm_leads.insert_one(lead_dict)
+    # Remove _id before returning (MongoDB adds it)
+    lead_dict.pop("_id", None)
     return {"status": "ok", "lead": lead_dict}
 
 
