@@ -659,6 +659,14 @@ async def get_settings(request: Request):
         "debtSum": ""
     }
     
+    # Get field mapping from settings, ensure structure for each section
+    saved_mapping = settings.get("field_mapping", {})
+    field_mapping = {}
+    for section in ["greenhouse", "balia", "sauna"]:
+        section_mapping = saved_mapping.get(section, {})
+        # Merge default with saved, preserving saved values
+        field_mapping[section] = {**default_mapping, **section_mapping}
+    
     return {
         "enabled": settings.get("enabled", False),
         # Webhook URLs for each section
@@ -667,8 +675,8 @@ async def get_settings(request: Request):
             "balia": f"{base_url}/api/integrations/amocrm/webhook/balia",
             "sauna": f"{base_url}/api/integrations/amocrm/webhook/sauna"
         },
-        # Field mapping
-        "field_mapping": {**default_mapping, **settings.get("field_mapping", {})},
+        # Field mapping - separate for each section
+        "field_mapping": field_mapping,
         # Sync settings (for two-way sync)
         "amocrm_domain": settings.get("amocrm_domain", ""),
         "amocrm_token": settings.get("amocrm_token", ""),
