@@ -27,6 +27,7 @@ const EmbedCodePage = lazy(() => import('./components/EmbedCodePage').then(m => 
 const LogisticsPage = lazy(() => import('./components/LogisticsPage').then(m => ({ default: m.LogisticsPage })));
 const DriverPanel = lazy(() => import('./components/DriverPanel').then(m => ({ default: m.DriverPanel })));
 const WarehousePage = lazy(() => import('./components/WarehousePage'));
+const SaunaCRMPage = lazy(() => import('./components/SaunaCRMPage'));
 
 // Loading fallback component
 const PageLoader = () => (
