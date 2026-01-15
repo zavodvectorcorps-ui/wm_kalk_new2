@@ -158,9 +158,13 @@ export const IntegrationsPage = () => {
         // Ensure field_mapping has proper structure for each section
         const fieldMapping = data.field_mapping || {};
         const normalizedMapping = {
+          // Webhook sections (for order import)
           greenhouse: { ...DEFAULT_FIELD_MAPPING, ...(fieldMapping.greenhouse || {}) },
           balia: { ...DEFAULT_FIELD_MAPPING, ...(fieldMapping.balia || {}) },
-          sauna: { ...DEFAULT_FIELD_MAPPING, ...(fieldMapping.sauna || {}) }
+          sauna: { ...DEFAULT_FIELD_MAPPING, ...(fieldMapping.sauna || {}) },
+          // Calculator sections (for opening from amoCRM)
+          calculatorBalia: fieldMapping.calculatorBalia || {},
+          calculatorSauna: fieldMapping.calculatorSauna || {}
         };
         
         console.log('Normalized mapping:', normalizedMapping);
