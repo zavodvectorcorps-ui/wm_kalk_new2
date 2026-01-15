@@ -460,6 +460,23 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         }
       }
 
+      // Save calculator data back to CRM lead if opened from Sauna CRM
+      if (amocrmData?.crmLeadId && finalOrderId) {
+        try {
+          await axios.put(`${API_URL}/api/sauna-crm/leads/${amocrmData.crmLeadId}/calculator-data`, {
+            calculatorData: {
+              orderId: finalOrderId,
+              selectedModel: formData.selectedModel,
+              total: total,
+              createdAt: new Date().toISOString()
+            },
+            pdfUrl: null // PDF is stored in amoCRM, not as URL
+          });
+        } catch (e) {
+          console.error('Failed to save calculator data to CRM lead:', e);
+        }
+      }
+
       if (isEditMode) {
         setIsEditMode(false);
         setEditOrderId(null);
