@@ -305,6 +305,27 @@ const SettingsDialog = ({ open, settings, onClose, onSave }) => {
     setFormData(prev => ({ ...prev, stages: newStages }));
   };
 
+  const addStage = () => {
+    const newStage = {
+      id: `stage_${Date.now()}`,
+      name: 'Новый этап',
+      amoStageId: '',
+      amoPipelineId: '',
+      color: '#6b7280',
+      sortOrder: formData.stages.length + 1
+    };
+    setFormData(prev => ({ ...prev, stages: [...prev.stages, newStage] }));
+  };
+
+  const removeStage = (index) => {
+    if (formData.stages.length <= 1) {
+      alert('Должен остаться хотя бы один этап');
+      return;
+    }
+    const newStages = formData.stages.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, stages: newStages }));
+  };
+
   const handleSave = () => {
     onSave(formData);
     onClose();
@@ -318,8 +339,8 @@ const SettingsDialog = ({ open, settings, onClose, onSave }) => {
         </DialogHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="fields">Поля (10)</TabsTrigger>
-            <TabsTrigger value="stages">Этапы (3)</TabsTrigger>
+            <TabsTrigger value="fields">Поля ({formData.fields.length})</TabsTrigger>
+            <TabsTrigger value="stages">Этапы ({formData.stages.length})</TabsTrigger>
           </TabsList>
           
           <TabsContent value="fields" className="space-y-3 max-h-[400px] overflow-y-auto">
@@ -363,6 +384,14 @@ const SettingsDialog = ({ open, settings, onClose, onSave }) => {
                     placeholder="Название этапа"
                     className="flex-1"
                   />
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-red-500 hover:text-red-700 h-8 w-8 p-0"
+                    onClick={() => removeStage(idx)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Input 
@@ -378,6 +407,14 @@ const SettingsDialog = ({ open, settings, onClose, onSave }) => {
                 </div>
               </div>
             ))}
+            <Button 
+              variant="outline" 
+              onClick={addStage} 
+              className="w-full gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Добавить этап
+            </Button>
           </TabsContent>
         </Tabs>
         <DialogFooter>
