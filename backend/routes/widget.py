@@ -519,7 +519,15 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
 </html>
 """
 
-    return HTMLResponse(content=html)
+    # Return with headers that allow iframe embedding from amoCRM
+    return HTMLResponse(
+        content=html,
+        headers={
+            "X-Frame-Options": "ALLOWALL",
+            "Content-Security-Policy": "frame-ancestors *",
+            "Access-Control-Allow-Origin": "*"
+        }
+    )
 
 
 @router.get("/embed-info")
