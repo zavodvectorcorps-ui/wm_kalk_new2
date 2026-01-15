@@ -1426,8 +1426,11 @@ async def upload_calculator_pdf_to_amocrm(
     
     # Upload PDF to amoCRM files
     pdf_uploaded = False
+    file_uuid = None
+    
     try:
-        upload_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+        # Step 1: Upload file to amoCRM file service
+        upload_url = f"https://{domain}/api/v4/files"
         
         # Clean filename
         safe_name = (client_name or 'Client').replace(' ', '_')
@@ -1438,18 +1441,46 @@ async def upload_calculator_pdf_to_amocrm(
         filename = f"KP_{calculator_type.upper()}_{safe_name}_{order_id}.pdf"
         
         async with httpx.AsyncClient(timeout=60.0) as client_http:
+            # Upload file first
             files = {
                 "file": (filename, pdf_bytes, "application/pdf")
             }
             headers = {"Authorization": f"Bearer {token}"}
             
-            response = await client_http.post(upload_url, files=files, headers=headers)
+            upload_response = await client_http.post(upload_url, files=files, headers=headers)
             
-            if response.status_code in [200, 201]:
-                pdf_uploaded = True
-                logger.info(f"✅ PDF uploaded to amoCRM for lead {amocrm_id}: {filename}")
+            if upload_response.status_code in [200, 201]:
+                upload_data = upload_response.json()
+                logger.info(f"File upload response: {upload_data}")
+                
+                # Get file UUID from response
+                if upload_data.get("_embedded", {}).get("files"):
+                    file_info = upload_data["_embedded"]["files"][0]
+                    file_uuid = file_info.get("uuid") or file_info.get("file_uuid")
+                    version_uuid = file_info.get("version_uuid")
+                    
+                    if file_uuid:
+                        # Step 2: Attach file to lead using unsorted/files endpoint
+                        attach_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+                        attach_data = {
+                            "file_uuid": file_uuid
+                        }
+                        
+                        attach_response = await client_http.post(
+                            attach_url, 
+                            json=attach_data, 
+                            headers={**headers, "Content-Type": "application/json"}
+                        )
+                        
+                        if attach_response.status_code in [200, 201, 204]:
+                            pdf_uploaded = True
+                            logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}: {filename}")
+                        else:
+                            logger.warning(f"Failed to attach PDF to lead: {attach_response.status_code} - {attach_response.text[:300]}")
+                else:
+                    logger.warning(f"No file UUID in upload response: {upload_data}")
             else:
-                logger.warning(f"Failed to upload PDF to amoCRM: {response.status_code} - {response.text[:200]}")
+                logger.warning(f"Failed to upload PDF to amoCRM: {upload_response.status_code} - {upload_response.text[:200]}")
     except Exception as e:
         logger.error(f"Error uploading PDF to amoCRM: {e}")
     
