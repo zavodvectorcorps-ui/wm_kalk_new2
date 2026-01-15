@@ -1367,6 +1367,95 @@ async def upload_delivery_photo_to_amocrm(
         return {"status": "error", "message": "Failed to add note to amoCRM"}
 
 
+@router.post("/upload-calculator-pdf")
+async def upload_calculator_pdf_to_amocrm(
+    request: Request,
+    amocrm_id: str,
+    order_id: str,
+    calculator_type: str = "sauna",
+    client_name: str = ""
+):
+    """Upload calculator PDF to amoCRM lead.
+    
+    Receives PDF file as raw body and uploads it to amoCRM files.
+    Also adds a note about the created quote.
+    """
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        return {"status": "skipped", "message": "amoCRM credentials not configured"}
+    
+    # Get PDF content from request body
+    pdf_bytes = await request.body()
+    
+    if not pdf_bytes or len(pdf_bytes) < 100:
+        return {"status": "error", "message": "No PDF data received"}
+    
+    # Add note about quote creation
+    calc_name = "Сауна" if calculator_type == "sauna" else "Купель"
+    note_text = f"""📄 Коммерческое предложение создано
+
+🧮 Калькулятор: {calc_name}
+📦 Номер заказа: {order_id}
+👤 Клиент: {client_name or 'Не указан'}
+📅 Дата: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}
+
+📎 PDF файл прикреплен к сделке."""
+
+    note_added = await add_note_to_amocrm(amocrm_id, note_text, domain, token)
+    
+    # Upload PDF to amoCRM files
+    pdf_uploaded = False
+    try:
+        upload_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+        
+        # Clean filename
+        safe_name = (client_name or 'Client').replace(' ', '_')
+        safe_name = ''.join(c for c in safe_name if c.isalnum() or c in '_-')
+        if not safe_name:
+            safe_name = 'Client'
+        
+        filename = f"KP_{calculator_type.upper()}_{safe_name}_{order_id}.pdf"
+        
+        async with httpx.AsyncClient(timeout=60.0) as client_http:
+            files = {
+                "file": (filename, pdf_bytes, "application/pdf")
+            }
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = await client_http.post(upload_url, files=files, headers=headers)
+            
+            if response.status_code in [200, 201]:
+                pdf_uploaded = True
+                logger.info(f"✅ PDF uploaded to amoCRM for lead {amocrm_id}: {filename}")
+            else:
+                logger.warning(f"Failed to upload PDF to amoCRM: {response.status_code} - {response.text[:200]}")
+    except Exception as e:
+        logger.error(f"Error uploading PDF to amoCRM: {e}")
+    
+    # Log sync
+    webhook_logs.insert_one({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "type": "calculator_pdf_upload",
+        "amocrm_id": amocrm_id,
+        "order_id": order_id,
+        "calculator_type": calculator_type,
+        "pdf_uploaded": pdf_uploaded,
+        "note_added": note_added,
+        "result": "success" if pdf_uploaded else "partial"
+    })
+    
+    return {
+        "status": "ok" if pdf_uploaded else "partial",
+        "message": "PDF uploaded to amoCRM" if pdf_uploaded else "Note added but PDF upload failed",
+        "pdf_uploaded": pdf_uploaded,
+        "note_added": note_added
+    }
+
+
 @router.post("/sync-order")
 async def sync_order_to_amocrm(
     amocrm_id: str,
