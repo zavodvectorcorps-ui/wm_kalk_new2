@@ -211,6 +211,9 @@ export const IntegrationsPage = () => {
   const saveSettings = async () => {
     setSaving(true);
     try {
+      console.log('Saving settings:', settings);
+      console.log('Saving field_mapping:', settings.field_mapping);
+      
       // Save amoCRM settings
       const res = await fetch(`${API_URL}/api/integrations/amocrm/settings`, {
         method: 'POST',
