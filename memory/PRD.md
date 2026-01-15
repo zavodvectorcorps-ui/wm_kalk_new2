@@ -54,6 +54,36 @@ A full-featured quoting and order management application for Saunas and Balias (
   
 - **Status**: ✅ COMPLETED AND TESTED
 
+### Session 2026-01-15 - PDF Upload to amoCRM - COMPLETED ✅
+
+#### Feature: Automatic PDF Upload to amoCRM after Order Creation
+- **Request**: After creating order in calculator, PDF should download AND upload to amoCRM deal
+- **Implementation**:
+  1. **Backend endpoint** (`/app/backend/routes/amocrm.py`):
+     - `POST /api/integrations/amocrm/upload-calculator-pdf` - receives PDF blob and uploads to amoCRM
+     - Adds note to amoCRM with order details
+     - Uses amoCRM API v4 `/leads/{id}/files` endpoint
+     
+  2. **Frontend integration**:
+     - Sauna calculator (`useSaunaCalculator.js`): After PDF generation, uploads blob to amoCRM if `amocrm_id` exists
+     - Balia calculator (`CalculatorPage.jsx`): Same logic added
+     - Also saves calculator data back to CRM lead if opened from Sauna CRM (`crmLeadId`)
+     
+- **Flow**:
+  1. User opens calculator from amoCRM widget or Sauna CRM
+  2. User fills order and clicks "Save & Generate PDF"
+  3. PDF downloads to user's computer
+  4. If `amocrm_id` is present, PDF automatically uploads to amoCRM deal
+  5. Note with order info is added to amoCRM timeline
+  6. Toast notification shows "PDF загружен в amoCRM"
+
+- **Files Modified**:
+  - `/app/backend/routes/amocrm.py` - Added `upload-calculator-pdf` endpoint
+  - `/app/frontend/src/components/sauna/useSaunaCalculator.js` - Added PDF upload logic
+  - `/app/frontend/src/components/CalculatorPage.jsx` - Added PDF upload logic for Balia
+
+- **Status**: ✅ COMPLETED AND TESTED
+
 ---
 
 ### Session 2026-01-12 - Logistics Order Editing Fix & History
