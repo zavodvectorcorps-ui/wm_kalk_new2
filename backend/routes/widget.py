@@ -565,3 +565,93 @@ async def get_embed_info():
             ]
         }
     }
+
+
+@router.post("/salesbot-handler")
+async def salesbot_handler(request: dict = {}):
+    """Handler for amoCRM Salesbot - returns calculator buttons.
+    
+    amoCRM Salesbot calls this endpoint and expects a response with widgets/buttons.
+    """
+    # Get lead_id from request params
+    lead_id = request.get("lead_id") or request.get("params", {}).get("lead_id", "")
+    
+    # If no lead_id provided, try to get from leads array
+    if not lead_id:
+        leads = request.get("leads", [])
+        if leads and len(leads) > 0:
+            lead_id = leads[0].get("id", "")
+    
+    # Get base URL
+    app_domain = os.environ.get("APP_DOMAIN", "")
+    if app_domain:
+        base_url = f"https://{app_domain}"
+    else:
+        try:
+            with open("/app/frontend/.env", "r") as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        base_url = line.strip().split("=", 1)[1]
+                        break
+        except:
+            base_url = "https://wm-kalkulator.pl"
+    
+    # Build calculator URLs
+    sauna_url = f"{base_url}/?calc=sauna&amocrm_id={lead_id}"
+    balia_url = f"{base_url}/?calc=balia&amocrm_id={lead_id}"
+    
+    # Return widget with buttons
+    return {
+        "type": "buttons",
+        "text": "🧮 Калькуляторы WM",
+        "buttons": [
+            {
+                "type": "url",
+                "text": "🔥 Калькулятор саун",
+                "url": sauna_url
+            },
+            {
+                "type": "url",
+                "text": "💧 Калькулятор купелей", 
+                "url": balia_url
+            }
+        ]
+    }
+
+
+@router.get("/salesbot-handler")
+async def salesbot_handler_get(lead_id: str = ""):
+    """GET version of salesbot handler for testing."""
+    # Get base URL
+    app_domain = os.environ.get("APP_DOMAIN", "")
+    if app_domain:
+        base_url = f"https://{app_domain}"
+    else:
+        try:
+            with open("/app/frontend/.env", "r") as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        base_url = line.strip().split("=", 1)[1]
+                        break
+        except:
+            base_url = "https://wm-kalkulator.pl"
+    
+    sauna_url = f"{base_url}/?calc=sauna&amocrm_id={lead_id}"
+    balia_url = f"{base_url}/?calc=balia&amocrm_id={lead_id}"
+    
+    return {
+        "type": "buttons",
+        "text": "🧮 Калькуляторы WM",
+        "buttons": [
+            {
+                "type": "url",
+                "text": "🔥 Калькулятор саун",
+                "url": sauna_url
+            },
+            {
+                "type": "url",
+                "text": "💧 Калькулятор купелей",
+                "url": balia_url
+            }
+        ]
+    }
