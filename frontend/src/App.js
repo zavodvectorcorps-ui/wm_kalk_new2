@@ -61,6 +61,31 @@ const AppContent = () => {
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = texts[lang];
 
+  // Fetch amoCRM lead data function
+  const fetchAmocrmLeadData = async (leadId, section) => {
+    try {
+      // Smart API URL - auto-detect on production
+      const getApiUrl = () => { 
+        if (typeof window !== 'undefined') { 
+          const o = window.location.origin; 
+          if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o; 
+        } 
+        return process.env.REACT_APP_BACKEND_URL || ''; 
+      };
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/api/integrations/amocrm/lead/${leadId}?section=${section}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'ok' && data.lead) {
+          setAmocrmPrefill(data.lead);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching amoCRM lead data:', error);
+    }
+  };
+
   // Check URL parameters for amoCRM integration and CRM prefill
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -91,30 +116,6 @@ const AppContent = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
-
-  const fetchAmocrmLeadData = async (leadId, section) => {
-    try {
-      // Smart API URL - auto-detect on production
-const getApiUrl = () => { 
-  if (typeof window !== 'undefined') { 
-    const o = window.location.origin; 
-    if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o; 
-  } 
-  return process.env.REACT_APP_BACKEND_URL || ''; 
-};
-const API_URL = getApiUrl();
-      const response = await fetch(`${API_URL}/api/integrations/amocrm/lead/${leadId}?section=${section}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.status === 'ok' && data.lead) {
-          setAmocrmPrefill(data.lead);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching amoCRM lead data:', error);
-    }
-  };
 
   // Check for embed URL - show public calculator without auth
   const isEmbed = window.location.pathname.startsWith('/embed');
