@@ -99,8 +99,8 @@ class SectionFieldMappings(BaseModel):
 
 class AmoCRMSettings(BaseModel):
     enabled: bool = False
-    # Field mapping - separate for each section
-    field_mapping: SectionFieldMappings = SectionFieldMappings()
+    # Field mapping - separate for each section (Dict to accept any structure)
+    field_mapping: Dict[str, Any] = {}
     # amoCRM API credentials for syncing back
     amocrm_domain: str = ""  # e.g., "mycompany.amocrm.ru"
     amocrm_token: str = ""  # Long-lived token
@@ -114,6 +114,11 @@ class AmoCRMSettings(BaseModel):
     trip_order_status_field_id: str = ""  # Custom field for order status in trip
     # Important order flag
     important_order_field_id: str = ""  # Custom field (checkbox/flag) for important orders
+    # Stage sync settings
+    stage_sync: Dict[str, Any] = {}
+    
+    class Config:
+        extra = "allow"  # Allow extra fields from frontend
 
 
 # Default field mapping template
