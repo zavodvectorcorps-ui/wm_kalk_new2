@@ -193,9 +193,9 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
           )}
         </div>
 
-        {/* Second Row: Logistics, Driver, Warehouse */}
-        {(canAccessLogistics || canAccessDriver || canAccessWarehouse) && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        {/* Second Row: Logistics, Driver, Warehouse, Sauna CRM */}
+        {(canAccessLogistics || canAccessDriver || canAccessWarehouse || canAccessSaunaCRM) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {/* Logistics Card */}
             {canAccessLogistics && (
               <Card 
@@ -268,6 +268,33 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                       {txt.driverDesc}
                     </p>
                     <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-green-500/50 text-green-600 hover:bg-green-500/10 hover:text-green-600">
+                      {txt.select}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sauna CRM Card */}
+            {canAccessSaunaCRM && (
+              <Card 
+                className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-rose-500/50"
+                onClick={() => onSelectCalculator('sauna_crm')}
+                data-testid="sauna-crm-card"
+              >
+                <CardContent className="p-8">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors bg-rose-500/10 group-hover:bg-rose-500/20">
+                      <Kanban className="w-10 h-10 text-rose-500" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-foreground mb-3">
+                      {txt.saunaCrmTitle}
+                    </h2>
+                    <p className="text-muted-foreground mb-6">
+                      {txt.saunaCrmDesc}
+                    </p>
+                    <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-rose-500/50 text-rose-600 hover:bg-rose-500/10 hover:text-rose-600">
                       {txt.select}
                       <ArrowRight className="w-4 h-4" />
                     </Button>
