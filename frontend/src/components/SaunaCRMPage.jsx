@@ -549,12 +549,13 @@ const SaunaCRMPage = () => {
       });
       const data = await response.json();
       
-      // Open calculator in new tab with query params
+      // Open calculator in new tab with query params (using ?calc=sauna format)
       const params = new URLSearchParams({
+        calc: 'sauna',
         crmLeadId: lead.id,
         prefill: JSON.stringify(data.calculatorData)
       });
-      window.open(`/sauna?${params.toString()}`, '_blank');
+      window.open(`/?${params.toString()}`, '_blank');
     } catch (error) {
       console.error('Error opening calculator:', error);
     }
