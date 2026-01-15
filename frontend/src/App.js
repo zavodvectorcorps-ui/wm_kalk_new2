@@ -61,11 +61,13 @@ const AppContent = () => {
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = texts[lang];
 
-  // Check URL parameters for amoCRM integration
+  // Check URL parameters for amoCRM integration and CRM prefill
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const calc = params.get('calc'); // Calculator type: balia or sauna
     const amocrmId = params.get('amocrm_id'); // amoCRM lead ID
+    const crmLeadId = params.get('crmLeadId'); // CRM lead ID (from Sauna CRM)
+    const prefillData = params.get('prefill'); // Prefill data JSON
     
     if (calc && (calc === 'balia' || calc === 'sauna')) {
       // Set calculator type from URL
@@ -75,6 +77,14 @@ const AppContent = () => {
       if (amocrmId) {
         // Fetch lead data from amoCRM
         fetchAmocrmLeadData(amocrmId, calc);
+      } else if (crmLeadId && prefillData) {
+        // Direct prefill from Sauna CRM
+        try {
+          const parsedData = JSON.parse(prefillData);
+          setAmocrmPrefill(parsedData);
+        } catch (e) {
+          console.error('Error parsing CRM prefill data:', e);
+        }
       }
       
       // Clean URL without reload
