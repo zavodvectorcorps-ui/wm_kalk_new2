@@ -422,7 +422,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       const pdfData = { ...orderData, orderId: finalOrderId, language: 'pl', categories: prices.categories };
       const response = await axios.post(`${API_URL}/api/sauna/generate-pdf`, pdfData, { responseType: 'blob' });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
       
@@ -434,6 +435,28 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       link.remove();
 
       toast.success(txt.pdfGenerated);
+
+      // Upload PDF to amoCRM if this order came from amoCRM
+      if (amocrmData?.amocrm_id && finalOrderId) {
+        try {
+          const uploadResponse = await fetch(
+            `${API_URL}/api/integrations/amocrm/upload-calculator-pdf?amocrm_id=${amocrmData.amocrm_id}&order_id=${finalOrderId}&calculator_type=sauna&client_name=${encodeURIComponent(formData.fullName || '')}`,
+            {
+              method: 'POST',
+              body: pdfBlob,
+              headers: {
+                'Content-Type': 'application/pdf'
+              }
+            }
+          );
+          const uploadResult = await uploadResponse.json();
+          if (uploadResult.pdf_uploaded) {
+            toast.success('PDF загружен в amoCRM');
+          }
+        } catch (e) {
+          console.error('Failed to upload PDF to amoCRM:', e);
+        }
+      }
 
       if (isEditMode) {
         setIsEditMode(false);
