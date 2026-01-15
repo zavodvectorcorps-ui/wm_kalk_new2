@@ -23,6 +23,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       driverDesc: 'Просмотр назначенных рейсов, навигация и подтверждение доставок',
       warehouseTitle: 'Склад',
       warehouseDesc: 'Комплектация заказов и подготовка к отправке',
+      saunaCrmTitle: 'CRM Сауны',
+      saunaCrmDesc: 'Управление заявками на сауны с Kanban-доской и интеграцией с amoCRM',
       adminTitle: 'Админ панель',
       adminDesc: 'Управление всеми заказами, статистика и настройки цен',
       select: 'Выбрать',
@@ -42,6 +44,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       driverDesc: 'Podgląd przydzielonych tras, nawigacja i potwierdzanie dostaw',
       warehouseTitle: 'Magazyn',
       warehouseDesc: 'Kompletacja zamówień i przygotowanie do wysyłki',
+      saunaCrmTitle: 'CRM Sauny',
+      saunaCrmDesc: 'Zarządzanie leadami saun z tablicą Kanban i integracją amoCRM',
       adminTitle: 'Panel administracyjny',
       adminDesc: 'Zarządzanie wszystkimi zamówieniami, statystyki i ustawienia cen',
       select: 'Wybierz',
@@ -58,6 +62,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const canAccessLogistics = hasAccess ? hasAccess('logistics') : false;
   const canAccessDriver = hasAccess ? hasAccess('driver') : false;
   const canAccessWarehouse = hasAccess ? hasAccess('warehouse') : false;
+  const canAccessSaunaCRM = hasAccess ? hasAccess('sauna_crm') : false;
   const canAccessAdmin = isAdmin && isAdmin();
 
   return (
