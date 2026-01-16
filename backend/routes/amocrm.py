@@ -1472,11 +1472,17 @@ async def upload_calculator_pdf_to_amocrm(
         import aiohttp
         from aiohttp import FormData
         
-        clean_domain = domain.rstrip('/')
+        clean_domain = domain.rstrip('/').strip()
         
-        # Step 1: Upload file to /api/v4/files (general File API)
-        upload_url = f"https://{clean_domain}/api/v4/files"
-        logger.info(f"Step 1: Uploading file to {upload_url}")
+        # Build URL explicitly
+        upload_url = "https://" + clean_domain + "/api/v4/files"
+        
+        # Debug: print exactly what we're using
+        logger.info(f"=== PDF UPLOAD DEBUG ===")
+        logger.info(f"Domain from settings: '{domain}'")
+        logger.info(f"Clean domain: '{clean_domain}'")
+        logger.info(f"Upload URL being used: '{upload_url}'")
+        logger.info(f"========================")
         
         async with aiohttp.ClientSession() as session:
             headers = {"Authorization": f"Bearer {token}"}
@@ -1485,9 +1491,12 @@ async def upload_calculator_pdf_to_amocrm(
             form = FormData()
             form.add_field('file', pdf_bytes, filename=filename, content_type='application/pdf')
             
+            logger.info(f"Sending POST request to: {upload_url}")
+            
             async with session.post(upload_url, data=form, headers=headers) as response:
                 response_text = await response.text()
-                logger.info(f"File API response: {response.status} from {upload_url}")
+                logger.info(f"Response status: {response.status}")
+                logger.info(f"Response URL: {response.url}")
                 logger.info(f"Response body: {response_text[:1000]}")
                 
                 if response.status in [200, 201]:
@@ -1502,7 +1511,7 @@ async def upload_calculator_pdf_to_amocrm(
                     
                     if file_uuid:
                         # Step 2: Attach file to lead via notes API
-                        notes_url = f"https://{clean_domain}/api/v4/leads/{amocrm_id}/notes"
+                        notes_url = "https://" + clean_domain + "/api/v4/leads/" + amocrm_id + "/notes"
                         logger.info(f"Step 2: Attaching file to lead via {notes_url}")
                         
                         note_data = [
@@ -1532,7 +1541,7 @@ async def upload_calculator_pdf_to_amocrm(
                     else:
                         upload_error = f"No file UUID in response: {result}"
                 else:
-                    upload_error = f"Step 1 failed: URL {upload_url} | Status {response.status}: {response_text[:500]}"
+                    upload_error = f"Step 1 failed: URL {upload_url} | Response URL {response.url} | Status {response.status}: {response_text[:500]}"
                 
     except Exception as e:
         upload_error = str(e)
