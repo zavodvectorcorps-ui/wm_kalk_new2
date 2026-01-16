@@ -1604,8 +1604,9 @@ async def upload_calculator_pdf_to_amocrm(
                                 
                                 logger.info(f"Part {part_num} response: {upload_resp.status_code} - {upload_resp.text[:300]}")
                                 
-                                if upload_resp.status_code not in [200, 201]:
-                                    upload_error = f"[V7] Upload part {part_num} failed: {upload_resp.status_code} - {upload_resp.text[:200]}"
+                                # 200/201 = final part success, 202 = intermediate part success (need more parts)
+                                if upload_resp.status_code not in [200, 201, 202]:
+                                    upload_error = f"[V8] Upload part {part_num} failed: {upload_resp.status_code} - {upload_resp.text[:200]}"
                                     logger.error(upload_error)
                                     break
                                 
