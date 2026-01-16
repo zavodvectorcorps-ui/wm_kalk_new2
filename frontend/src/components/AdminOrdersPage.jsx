@@ -26,9 +26,12 @@ const API_URL = getApiUrl();
 
 export const AdminOrdersPage = ({ onEditInCalculator }) => {
   const { t, i18n } = useTranslation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canEdit } = useAuth();
   const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Check if user can give gifts (admin or employee/manager)
+  const canGiveGifts = canEdit && canEdit();
   
   // Modal states
   const [selectedOrder, setSelectedOrder] = useState(null);
