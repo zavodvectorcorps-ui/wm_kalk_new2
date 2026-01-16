@@ -1469,43 +1469,61 @@ async def upload_calculator_pdf_to_amocrm(
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         
-        import httpx
+        # SIMPLE DIRECT UPLOAD - NO WRAPPERS
+        import requests as req
         
-        clean_domain = domain.rstrip('/').strip()
-        upload_url = f"https://{clean_domain}/api/v4/files"
+        # Build URL explicitly
+        upload_url = "https://" + domain.strip().rstrip('/') + "/api/v4/files"
         
-        logger.info(f"=== PDF UPLOAD (same as photos) ===")
-        logger.info(f"Upload URL: {upload_url}")
+        # Log what we're using
+        print(f"UPLOAD URL USED: {upload_url}")
+        logger.info(f"UPLOAD URL USED: {upload_url}")
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            headers = {"Authorization": f"Bearer {token}"}
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+        
+        files = {
+            "file": (filename, pdf_bytes, "application/pdf")
+        }
+        
+        # Direct request
+        resp = req.post(upload_url, headers=headers, files=files, timeout=60)
+        
+        print(f"STATUS: {resp.status_code} BODY: {resp.text[:500]}")
+        logger.info(f"STATUS: {resp.status_code} BODY: {resp.text[:500]}")
+        
+        if resp.status_code in [200, 201]:
+            result = resp.json()
+            file_uuid = None
+            if "_embedded" in result and "files" in result["_embedded"]:
+                file_uuid = result["_embedded"]["files"][0].get("uuid")
             
-            # Same format as working photo upload - with entity_type and entity_id
-            files = {
-                "file": (filename, pdf_bytes, "application/pdf")
-            }
-            data = {
-                "entity_type": "leads",
-                "entity_id": str(amocrm_id)
-            }
-            
-            response = await client.post(upload_url, headers=headers, files=files, data=data)
-            
-            logger.info(f"Response status: {response.status_code}")
-            logger.info(f"Response body: {response.text[:1000]}")
-            
-            if response.status_code in [200, 201]:
-                result = response.json()
-                file_id = result.get("_embedded", {}).get("files", [{}])[0].get("id")
-                file_uuid = result.get("_embedded", {}).get("files", [{}])[0].get("uuid")
+            if file_uuid:
+                # Step 2: Attach to lead
+                notes_url = "https://" + domain.strip().rstrip('/') + "/api/v4/leads/" + amocrm_id + "/notes"
+                note_data = [{
+                    "note_type": "attachment",
+                    "params": {
+                        "attachments": [{
+                            "file_uuid": file_uuid,
+                            "version_uuid": file_uuid,
+                            "file_name": filename
+                        }]
+                    }
+                }]
                 
-                if file_id or file_uuid:
+                note_resp = req.post(notes_url, headers={**headers, "Content-Type": "application/json"}, json=note_data, timeout=30)
+                
+                if note_resp.status_code in [200, 201]:
                     pdf_uploaded = True
-                    logger.info(f"✅ PDF uploaded to amoCRM lead {amocrm_id}, file_id: {file_id}, uuid: {file_uuid}")
+                    logger.info(f"✅ PDF attached to lead {amocrm_id}")
                 else:
-                    upload_error = f"No file ID in response: {result}"
+                    upload_error = f"Note failed: {note_resp.status_code} - {note_resp.text[:300]}"
             else:
-                upload_error = f"Upload failed: {response.status_code} - {response.text[:500]}"
+                upload_error = f"No UUID in response: {result}"
+        else:
+            upload_error = f"Upload failed: URL={upload_url} Status={resp.status_code} Body={resp.text[:500]}"
                 
     except Exception as e:
         upload_error = str(e)
