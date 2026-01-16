@@ -1631,16 +1631,15 @@ async def upload_calculator_pdf_to_amocrm(
                             
                             if file_uuid:
                                 # Step 4: Attach file to lead via notes
-                                # POST /api/v4/leads/{id}/notes with attachments array
+                                # POST /api/v4/leads/{id}/notes
+                                # Note type "attachment" requires file_uuid directly in params (not in attachments array)
                                 notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
                                 note_data = [{
                                     "note_type": "attachment",
                                     "params": {
-                                        "attachments": [{
-                                            "file_uuid": file_uuid,
-                                            "version_uuid": file_uuid,
-                                            "file_name": filename
-                                        }]
+                                        "file_uuid": file_uuid,
+                                        "version_uuid": file_uuid,
+                                        "file_name": filename
                                     }
                                 }]
                                 
@@ -1657,12 +1656,12 @@ async def upload_calculator_pdf_to_amocrm(
                                 
                                 if attach_resp.status_code in [200, 201]:
                                     pdf_uploaded = True
-                                    logger.info(f"✅ PDF uploaded via Kommo Drive V7 (chunked)!")
+                                    logger.info(f"✅ PDF uploaded via Kommo Drive V9!")
                                 else:
-                                    upload_error = f"[V8] Attach failed: {attach_resp.status_code} - {attach_resp.text[:200]}"
+                                    upload_error = f"[V9] Attach failed: {attach_resp.status_code} - {attach_resp.text[:200]}"
                                     logger.error(upload_error)
                             elif not upload_error:
-                                upload_error = f"[V8] No uuid after upload"
+                                upload_error = f"[V9] No uuid after upload"
                                 logger.error(upload_error)
                 
     except Exception as e:
