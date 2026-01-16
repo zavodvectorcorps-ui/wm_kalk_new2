@@ -26,9 +26,12 @@ const API_URL = getApiUrl();
 
 export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => {
   const { t, i18n } = useTranslation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canEdit } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Check if user can give gifts (admin or employee/manager)
+  const canGiveGifts = canEdit && canEdit();
   
   // Tech Spec Modal state
   const [techSpecModalOpen, setTechSpecModalOpen] = useState(false);
