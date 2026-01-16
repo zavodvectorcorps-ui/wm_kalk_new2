@@ -1469,94 +1469,43 @@ async def upload_calculator_pdf_to_amocrm(
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         
-        import subprocess
-        import tempfile
-        import json as json_module
+        import httpx
         
         clean_domain = domain.rstrip('/').strip()
         upload_url = f"https://{clean_domain}/api/v4/files"
         
-        logger.info(f"=== PDF UPLOAD VIA CURL ===")
-        logger.info(f"Domain: '{clean_domain}'")
-        logger.info(f"Upload URL: '{upload_url}'")
+        logger.info(f"=== PDF UPLOAD (same as photos) ===")
+        logger.info(f"Upload URL: {upload_url}")
         
-        # Save PDF to temp file
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
-            tmp_file.write(pdf_bytes)
-            tmp_path = tmp_file.name
-        
-        try:
-            # Use curl directly
-            curl_cmd = [
-                'curl', '-s', '-w', '\\n%{http_code}',
-                '-X', 'POST',
-                upload_url,
-                '-H', f'Authorization: Bearer {token}',
-                '-F', f'file=@{tmp_path};filename={filename};type=application/pdf'
-            ]
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            headers = {"Authorization": f"Bearer {token}"}
             
-            logger.info(f"Running curl command to {upload_url}")
+            # Same format as working photo upload - with entity_type and entity_id
+            files = {
+                "file": (filename, pdf_bytes, "application/pdf")
+            }
+            data = {
+                "entity_type": "leads",
+                "entity_id": str(amocrm_id)
+            }
             
-            result = subprocess.run(curl_cmd, capture_output=True, text=True, timeout=60)
+            response = await client.post(upload_url, headers=headers, files=files, data=data)
             
-            output = result.stdout.strip()
-            lines = output.rsplit('\n', 1)
-            response_body = lines[0] if len(lines) > 1 else output
-            status_code = int(lines[-1]) if lines[-1].isdigit() else 0
+            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"Response body: {response.text[:1000]}")
             
-            logger.info(f"Curl response status: {status_code}")
-            logger.info(f"Curl response body: {response_body[:1000]}")
-            
-            if status_code in [200, 201]:
-                result_json = json_module.loads(response_body)
+            if response.status_code in [200, 201]:
+                result = response.json()
+                file_id = result.get("_embedded", {}).get("files", [{}])[0].get("id")
+                file_uuid = result.get("_embedded", {}).get("files", [{}])[0].get("uuid")
                 
-                file_uuid = None
-                if "_embedded" in result_json and "files" in result_json["_embedded"]:
-                    file_info = result_json["_embedded"]["files"][0]
-                    file_uuid = file_info.get("uuid")
-                    logger.info(f"Got file UUID: {file_uuid}")
-                
-                if file_uuid:
-                    # Step 2: Attach file to lead via notes API
-                    notes_url = f"https://{clean_domain}/api/v4/leads/{amocrm_id}/notes"
-                    note_data = json_module.dumps([{
-                        "note_type": "attachment",
-                        "params": {
-                            "attachments": [{
-                                "file_uuid": file_uuid,
-                                "version_uuid": file_uuid,
-                                "file_name": filename
-                            }]
-                        }
-                    }])
-                    
-                    curl_notes = [
-                        'curl', '-s', '-w', '\\n%{http_code}',
-                        '-X', 'POST',
-                        notes_url,
-                        '-H', f'Authorization: Bearer {token}',
-                        '-H', 'Content-Type: application/json',
-                        '-d', note_data
-                    ]
-                    
-                    notes_result = subprocess.run(curl_notes, capture_output=True, text=True, timeout=30)
-                    notes_output = notes_result.stdout.strip()
-                    notes_lines = notes_output.rsplit('\n', 1)
-                    notes_status = int(notes_lines[-1]) if notes_lines[-1].isdigit() else 0
-                    
-                    if notes_status in [200, 201]:
-                        pdf_uploaded = True
-                        logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}")
-                    else:
-                        upload_error = f"Step 2 failed: {notes_status} - {notes_lines[0][:300]}"
+                if file_id or file_uuid:
+                    pdf_uploaded = True
+                    logger.info(f"✅ PDF uploaded to amoCRM lead {amocrm_id}, file_id: {file_id}, uuid: {file_uuid}")
                 else:
-                    upload_error = f"No file UUID in response"
+                    upload_error = f"No file ID in response: {result}"
             else:
-                upload_error = f"Step 1 failed: URL {upload_url} | Status {status_code}: {response_body[:500]}"
-                
-        finally:
-            import os
-            os.unlink(tmp_path)
+                upload_error = f"Upload failed: {response.status_code} - {response.text[:500]}"
                 
     except Exception as e:
         upload_error = str(e)
