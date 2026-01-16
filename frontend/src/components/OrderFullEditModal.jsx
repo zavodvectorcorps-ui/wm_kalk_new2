@@ -253,7 +253,7 @@ export const OrderFullEditModal = ({
   };
   
   const toggleGift = (optionId) => {
-    if (!isAdminUser) return;
+    if (!canGiveGifts) return;
     
     const adminGifts = formData.adminGifts || [];
     const isGift = adminGifts.includes(optionId);
@@ -270,6 +270,8 @@ export const OrderFullEditModal = ({
     const newData = {
       ...formData,
       adminGifts: newGifts,
+      // Track who gave the gift
+      giftGivenBy: user?.username || 'unknown',
     };
     
     const { subtotal, total } = calculateTotals(newData);
