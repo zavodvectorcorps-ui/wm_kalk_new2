@@ -809,12 +809,12 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         // Manager requested discount
         requestedDiscount: !isAdminUser ? requestedDiscount : 0,
         requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
-        // amoCRM integration fields
+        // amoCRM integration fields - use 'calculator_amocrm' to distinguish from webhook imports
         ...(amocrmData && {
           amocrm_id: amocrmData.amocrm_id,
           amocrm_link: amocrmData.amocrm_link,
           amocrm_name: amocrmData.amocrm_name,
-          source: 'amocrm',
+          source: 'calculator_amocrm',  // Different from 'amocrm' which is used for webhook imports
         }),
       };
 
