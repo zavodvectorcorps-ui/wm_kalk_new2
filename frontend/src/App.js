@@ -94,6 +94,14 @@ const AppContent = () => {
     const amocrmId = params.get('amocrm_id'); // amoCRM lead ID
     const crmLeadId = params.get('crmLeadId'); // CRM lead ID (from Sauna CRM)
     const prefillData = params.get('prefill'); // Prefill data JSON
+    const debug = params.get('debug'); // Debug page
+    
+    // Handle debug page
+    if (debug === 'pdf') {
+      setCurrentCalculator('pdf_debug');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
     
     if (calc && (calc === 'balia' || calc === 'sauna')) {
       // Set calculator type from URL
