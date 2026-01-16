@@ -5,6 +5,18 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
+### Session 2026-01-16 - PDF Upload to amoCRM - FIX ✅
+
+#### Bug Fix: PDF not uploading to amoCRM deal
+- **Problem**: PDF files were not being uploaded to amoCRM deals after creating orders in calculator
+- **Root Cause**: The PDF upload code was using a different endpoint (`/api/v4/files`) and two-step process, while the working photo upload used `/api/v4/leads/{id}/files` endpoint
+- **Solution**: Rewrote `upload-calculator-pdf` function in `/app/backend/routes/amocrm.py` to use:
+  - Same endpoint as photo upload: `/api/v4/leads/{amocrm_id}/files`
+  - `httpx.AsyncClient` instead of sync `requests`
+  - Single-step upload (file attaches directly to lead)
+- **File Modified**: `/app/backend/routes/amocrm.py` (lines 1459-1500)
+- **Status**: ✅ FIXED - awaiting user verification
+
 ### Session 2026-01-15 - Sauna CRM Module - COMPLETED ✅
 
 #### Feature: Sauna CRM Kanban Board
