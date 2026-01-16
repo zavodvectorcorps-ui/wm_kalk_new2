@@ -1542,10 +1542,9 @@ async def upload_calculator_pdf_to_amocrm(
                         upload_error = f"Note attachment failed: {note_response.status_code} - {note_response.text[:300]}"
                         logger.warning(upload_error)
             else:
-                upload_error = f"No file UUID in response: {result}"
-        else:
-            upload_error = f"File upload failed: {response.status_code} - {response.text[:300]}"
-            logger.warning(upload_error)
+                if not upload_error:
+                    upload_error = f"No file UUID in response: {result}"
+        # Error already set above if status not 200/201
                 
     except Exception as e:
         upload_error = str(e)
