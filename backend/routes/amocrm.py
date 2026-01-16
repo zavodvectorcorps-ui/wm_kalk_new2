@@ -1469,60 +1469,63 @@ async def upload_calculator_pdf_to_amocrm(
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         
-        async with httpx.AsyncClient(timeout=60.0, follow_redirects=False) as client_http:
-            headers = {"Authorization": f"Bearer {token}"}
+        # Use requests library for file upload (more reliable for multipart)
+        import requests as sync_requests
+        
+        # Ensure domain doesn't have trailing slash
+        clean_domain = domain.rstrip('/')
+        upload_url = f"https://{clean_domain}/api/v4/files"
+        logger.info(f"Uploading PDF via requests to: {upload_url}")
+        
+        # Upload file
+        files_data = {
+            "file": (filename, pdf_bytes, "application/pdf")
+        }
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = sync_requests.post(upload_url, files=files_data, headers=headers, timeout=60)
+        logger.info(f"File API response: {response.status_code} - {response.text[:500]}")
+        
+        if response.status_code in [200, 201]:
+            result = response.json()
             
-            # Step 1: Upload file to /api/v4/files
-            # Ensure domain doesn't have trailing slash
-            clean_domain = domain.rstrip('/')
-            upload_url = f"https://{clean_domain}/api/v4/files"
-            logger.info(f"Uploading PDF to URL: {upload_url}, domain was: {domain}")
-            
-            # Use proper multipart/form-data with explicit content type
-            files = {"file": (filename, pdf_bytes, "application/pdf")}
-            
-            response = await client_http.post(upload_url, files=files, headers=headers)
-            logger.info(f"File API response: {response.status_code} - {response.text[:500]}")
-            
-            if response.status_code in [200, 201]:
-                result = response.json()
+            # Get file UUID
+            if "_embedded" in result and "files" in result["_embedded"]:
+                file_info = result["_embedded"]["files"][0]
+                file_uuid = file_info.get("uuid")
+                logger.info(f"File uploaded, UUID: {file_uuid}")
                 
-                # Get file UUID
-                if "_embedded" in result and "files" in result["_embedded"]:
-                    file_info = result["_embedded"]["files"][0]
-                    file_uuid = file_info.get("uuid")
-                    logger.info(f"File uploaded, UUID: {file_uuid}")
-                    
-                    if file_uuid:
-                        # Step 2: Create note with attachment
-                        notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
-                        note_data = [
-                            {
-                                "note_type": "attachment",
-                                "params": {
-                                    "file_uuid": file_uuid,
-                                    "file_name": filename
-                                }
+                if file_uuid:
+                    # Step 2: Create note with attachment
+                    notes_url = f"https://{clean_domain}/api/v4/leads/{amocrm_id}/notes"
+                    note_data = [
+                        {
+                            "note_type": "attachment",
+                            "params": {
+                                "file_uuid": file_uuid,
+                                "file_name": filename
                             }
-                        ]
-                        
-                        note_response = await client_http.post(
-                            notes_url,
-                            json=note_data,
-                            headers={**headers, "Content-Type": "application/json"}
-                        )
-                        
-                        if note_response.status_code in [200, 201]:
-                            pdf_uploaded = True
-                            logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}")
-                        else:
-                            upload_error = f"Note attachment failed: {note_response.status_code} - {note_response.text[:300]}"
-                            logger.warning(upload_error)
-                else:
-                    upload_error = f"No file UUID in response: {result}"
+                        }
+                    ]
+                    
+                    note_response = sync_requests.post(
+                        notes_url,
+                        json=note_data,
+                        headers={**headers, "Content-Type": "application/json"},
+                        timeout=30
+                    )
+                    
+                    if note_response.status_code in [200, 201]:
+                        pdf_uploaded = True
+                        logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}")
+                    else:
+                        upload_error = f"Note attachment failed: {note_response.status_code} - {note_response.text[:300]}"
+                        logger.warning(upload_error)
             else:
-                upload_error = f"File upload failed: {response.status_code} - {response.text[:300]}"
-                logger.warning(upload_error)
+                upload_error = f"No file UUID in response: {result}"
+        else:
+            upload_error = f"File upload failed: {response.status_code} - {response.text[:300]}"
+            logger.warning(upload_error)
                 
     except Exception as e:
         upload_error = str(e)
