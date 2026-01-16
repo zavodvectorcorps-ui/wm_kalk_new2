@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://sales-hub-71.preview.emergentagent.com/api"
+BACKEND_URL = "https://sales-hub-72.preview.emergentagent.com/api"
 
 def test_get_prices():
     """Test GET /api/prices endpoint"""
@@ -297,7 +297,7 @@ def test_balia_pdf_generation():
             "modelId": "round_ext_200",
             "modelName": "Купель 200см (внешний нагрев)",
             "modelPrice": 1250,
-            "modelImageUrl": "https://sales-hub-71.preview.emergentagent.com/api/uploads/27fa922f2f7a4d808e41d1a7eb18eb23.png",
+            "modelImageUrl": "https://sales-hub-72.preview.emergentagent.com/api/uploads/27fa922f2f7a4d808e41d1a7eb18eb23.png",
             "selectedOptions": [
                 {
                     "categoryId": "hydromassage", 
@@ -2552,7 +2552,7 @@ def test_pdf_generation_with_model_images():
             "modelId": "round_ext_200",
             "modelName": "Купель 200см (внешний нагрев)",
             "modelPrice": 1250,
-            "modelImageUrl": "https://sales-hub-71.preview.emergentagent.com/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg",
+            "modelImageUrl": "https://sales-hub-72.preview.emergentagent.com/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg",
             "selectedOptions": [
                 {
                     "categoryId": "hydromassage", 
