@@ -1471,17 +1471,37 @@ async def upload_calculator_pdf_to_amocrm(
         
         import aiohttp
         from aiohttp import FormData
+        import base64
+        import json as json_module
         
         clean_domain = domain.rstrip('/').strip()
         
-        # Build URL explicitly
-        upload_url = "https://" + clean_domain + "/api/v4/files"
+        # Try to get api_domain from JWT token
+        api_domain = clean_domain
+        try:
+            # Decode JWT payload (base64)
+            parts = token.split('.')
+            if len(parts) >= 2:
+                # Add padding if needed
+                payload = parts[1]
+                padding = 4 - len(payload) % 4
+                if padding != 4:
+                    payload += '=' * padding
+                decoded = base64.urlsafe_b64decode(payload)
+                token_data = json_module.loads(decoded)
+                if token_data.get("api_domain"):
+                    api_domain = token_data["api_domain"]
+                    logger.info(f"Using api_domain from token: {api_domain}")
+        except Exception as e:
+            logger.warning(f"Could not decode token: {e}")
         
-        # Debug: print exactly what we're using
+        # Build URL with api_domain
+        upload_url = "https://" + api_domain + "/api/v4/files"
+        
         logger.info(f"=== PDF UPLOAD DEBUG ===")
-        logger.info(f"Domain from settings: '{domain}'")
-        logger.info(f"Clean domain: '{clean_domain}'")
-        logger.info(f"Upload URL being used: '{upload_url}'")
+        logger.info(f"Original domain: '{domain}'")
+        logger.info(f"API domain: '{api_domain}'")
+        logger.info(f"Upload URL: '{upload_url}'")
         logger.info(f"========================")
         
         async with aiohttp.ClientSession() as session:
@@ -1490,8 +1510,6 @@ async def upload_calculator_pdf_to_amocrm(
             # Create multipart form data
             form = FormData()
             form.add_field('file', pdf_bytes, filename=filename, content_type='application/pdf')
-            
-            logger.info(f"Sending POST request to: {upload_url}")
             
             async with session.post(upload_url, data=form, headers=headers) as response:
                 response_text = await response.text()
@@ -1510,7 +1528,7 @@ async def upload_calculator_pdf_to_amocrm(
                         logger.info(f"Got file UUID: {file_uuid}")
                     
                     if file_uuid:
-                        # Step 2: Attach file to lead via notes API
+                        # Step 2: Attach file to lead via notes API (use original domain for leads)
                         notes_url = "https://" + clean_domain + "/api/v4/leads/" + amocrm_id + "/notes"
                         logger.info(f"Step 2: Attaching file to lead via {notes_url}")
                         
@@ -1541,7 +1559,7 @@ async def upload_calculator_pdf_to_amocrm(
                     else:
                         upload_error = f"No file UUID in response: {result}"
                 else:
-                    upload_error = f"Step 1 failed: URL {upload_url} | Response URL {response.url} | Status {response.status}: {response_text[:500]}"
+                    upload_error = f"Step 1 failed: URL {upload_url} | Status {response.status}: {response_text[:500]}"
                 
     except Exception as e:
         upload_error = str(e)
