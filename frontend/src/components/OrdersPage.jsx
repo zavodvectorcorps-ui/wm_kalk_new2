@@ -420,8 +420,8 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                             <Calculator className="h-4 w-4 mr-1" />
                             {lang === 'pl' ? 'Edytuj' : 'Редактировать'}
                           </Button>
-                          {/* Quick Edit Button - Only for admins (discount, gifts) */}
-                          {isAdmin && isAdmin() && (
+                          {/* Quick Edit Button - For admins and managers (discount, gifts) */}
+                          {canGiveGifts && (
                             <Button
                               size="sm"
                               variant="ghost"
