@@ -1420,7 +1420,7 @@ async def upload_calculator_pdf_to_amocrm(
     Uses Kommo Drive file service for uploads.
     """
     # Log version for debugging
-    logger.info(f"=== upload_calculator_pdf V6-drive called ===")
+    logger.info(f"=== upload_calculator_pdf V7-chunked called ===")
     logger.info(f"amocrm_id={amocrm_id}, order_id={order_id}, calculator_type={calculator_type}")
     
     settings = get_amocrm_settings()
@@ -1429,13 +1429,13 @@ async def upload_calculator_pdf_to_amocrm(
     token = settings.get("amocrm_token", "")
     
     if not domain or not token:
-        return {"status": "skipped", "message": "amoCRM credentials not configured", "code_version": "V6-drive"}
+        return {"status": "skipped", "message": "amoCRM credentials not configured", "code_version": "V7-chunked"}
     
     # Get PDF content from request body
     pdf_bytes = await request.body()
     
     if not pdf_bytes or len(pdf_bytes) < 100:
-        return {"status": "error", "message": "No PDF data received", "code_version": "V6-drive"}
+        return {"status": "error", "message": "No PDF data received", "code_version": "V7-chunked"}
     
     # Save PDF to database for download link (since direct amoCRM upload has issues)
     pdf_saved = False
@@ -1500,7 +1500,7 @@ async def upload_calculator_pdf_to_amocrm(
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         file_size = len(pdf_bytes)
         
-        logger.info(f"=== PDF Upload V6 (Kommo Drive) ===")
+        logger.info(f"=== PDF Upload V7 (Kommo Drive Chunked) ===")
         logger.info(f"domain: {domain}, amocrm_id: {amocrm_id}")
         logger.info(f"filename: {filename}, size: {file_size}")
         
