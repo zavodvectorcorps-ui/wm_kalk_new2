@@ -441,8 +441,12 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       // Upload PDF to amoCRM if this order came from amoCRM
       if (amocrmData?.amocrm_id && finalOrderId) {
         try {
+          // Get employee name from current user
+          const employeeName = user?.username || user?.name || '';
+          const totalAmount = total?.toFixed(2) || '';
+          
           const uploadResponse = await fetch(
-            `${API_URL}/api/integrations/amocrm/upload-calculator-pdf?amocrm_id=${amocrmData.amocrm_id}&order_id=${finalOrderId}&calculator_type=sauna&client_name=${encodeURIComponent(formData.fullName || '')}`,
+            `${API_URL}/api/integrations/amocrm/upload-calculator-pdf?amocrm_id=${amocrmData.amocrm_id}&order_id=${finalOrderId}&calculator_type=sauna&client_name=${encodeURIComponent(formData.fullName || '')}&employee_name=${encodeURIComponent(employeeName)}&total_amount=${encodeURIComponent(totalAmount)}`,
             {
               method: 'POST',
               body: pdfBlob,
