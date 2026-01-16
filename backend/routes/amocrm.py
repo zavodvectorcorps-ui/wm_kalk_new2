@@ -703,7 +703,7 @@ async def get_settings(request: Request):
 
 @router.get("/debug-info")
 async def get_debug_info():
-    """Get debug information about PDF upload system - V7-chunked version."""
+    """Get debug information about PDF upload system - V8-chunked version."""
     
     # Get last 20 PDF upload logs
     pdf_logs = list(webhook_logs.find(
@@ -715,7 +715,7 @@ async def get_debug_info():
     settings = get_amocrm_settings()
     
     return {
-        "code_version": "V7-chunked",
+        "code_version": "V8-chunked",
         "debug_endpoint_version": "2026-01-17",
         "amocrm_configured": bool(settings.get("amocrm_domain") and settings.get("amocrm_token")),
         "amocrm_domain": settings.get("amocrm_domain", ""),
@@ -1420,7 +1420,7 @@ async def upload_calculator_pdf_to_amocrm(
     Uses Kommo Drive file service for uploads.
     """
     # Log version for debugging
-    logger.info(f"=== upload_calculator_pdf V7-chunked called ===")
+    logger.info(f"=== upload_calculator_pdf V8-chunked called ===")
     logger.info(f"amocrm_id={amocrm_id}, order_id={order_id}, calculator_type={calculator_type}")
     
     settings = get_amocrm_settings()
@@ -1429,13 +1429,13 @@ async def upload_calculator_pdf_to_amocrm(
     token = settings.get("amocrm_token", "")
     
     if not domain or not token:
-        return {"status": "skipped", "message": "amoCRM credentials not configured", "code_version": "V7-chunked"}
+        return {"status": "skipped", "message": "amoCRM credentials not configured", "code_version": "V8-chunked"}
     
     # Get PDF content from request body
     pdf_bytes = await request.body()
     
     if not pdf_bytes or len(pdf_bytes) < 100:
-        return {"status": "error", "message": "No PDF data received", "code_version": "V7-chunked"}
+        return {"status": "error", "message": "No PDF data received", "code_version": "V8-chunked"}
     
     # Save PDF to database for download link (since direct amoCRM upload has issues)
     pdf_saved = False
@@ -1569,7 +1569,7 @@ async def upload_calculator_pdf_to_amocrm(
                         logger.info(f"Got max_part_size: {max_part_size}")
                         
                         if not upload_url:
-                            upload_error = f"[V7] No upload_url: {session_result}"
+                            upload_error = f"[V8] No upload_url: {session_result}"
                             logger.error(upload_error)
                         else:
                             # Step 3: Upload file in chunks if needed
@@ -1620,7 +1620,7 @@ async def upload_calculator_pdf_to_amocrm(
                                     # Not final - get next_url for next chunk
                                     next_url = upload_result.get("next_url")
                                     if not next_url:
-                                        upload_error = f"[V7] No next_url in response: {upload_result}"
+                                        upload_error = f"[V8] No next_url in response: {upload_result}"
                                         logger.error(upload_error)
                                         break
                                     current_url = next_url
@@ -1659,14 +1659,14 @@ async def upload_calculator_pdf_to_amocrm(
                                     pdf_uploaded = True
                                     logger.info(f"✅ PDF uploaded via Kommo Drive V7 (chunked)!")
                                 else:
-                                    upload_error = f"[V7] Attach failed: {attach_resp.status_code} - {attach_resp.text[:200]}"
+                                    upload_error = f"[V8] Attach failed: {attach_resp.status_code} - {attach_resp.text[:200]}"
                                     logger.error(upload_error)
                             elif not upload_error:
-                                upload_error = f"[V7] No uuid after upload"
+                                upload_error = f"[V8] No uuid after upload"
                                 logger.error(upload_error)
                 
     except Exception as e:
-        upload_error = f"[V7] Exception: {str(e)}"
+        upload_error = f"[V8] Exception: {str(e)}"
         logger.error(f"Error uploading PDF to amoCRM: {e}")
     
     # Add text note with info (and download link as backup)
@@ -1698,7 +1698,7 @@ async def upload_calculator_pdf_to_amocrm(
     return {
         "status": "ok" if pdf_uploaded else "partial",
         "message": "PDF uploaded to amoCRM" if pdf_uploaded else f"PDF saved with download link",
-        "code_version": "V7-chunked",  # Version marker to confirm deployment
+        "code_version": "V8-chunked",  # Version marker to confirm deployment
         "pdf_saved": pdf_saved,
         "pdf_uploaded": pdf_uploaded,
         "pdf_url": pdf_download_url,
