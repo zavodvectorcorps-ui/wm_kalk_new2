@@ -1469,13 +1469,23 @@ async def upload_calculator_pdf_to_amocrm(
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         
-        # Use requests library for file upload (more reliable for multipart)
+        # Use requests library for file upload
         import requests as sync_requests
+        import jwt
         
-        # Ensure domain doesn't have trailing slash
-        clean_domain = domain.rstrip('/')
+        # Try to get api_domain from token
+        api_domain = domain  # default to regular domain
+        try:
+            # Decode JWT without verification to get api_domain
+            decoded = jwt.decode(token, options={"verify_signature": False})
+            api_domain = decoded.get("api_domain", domain)
+            logger.info(f"Using API domain from token: {api_domain}")
+        except Exception as e:
+            logger.warning(f"Could not decode token for api_domain: {e}")
+        
+        clean_domain = api_domain.rstrip('/')
         upload_url = f"https://{clean_domain}/api/v4/files"
-        logger.info(f"Uploading PDF via requests to: {upload_url}")
+        logger.info(f"Uploading PDF to: {upload_url}")
         
         # Upload file
         files_data = {
