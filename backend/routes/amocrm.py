@@ -1457,8 +1457,8 @@ async def upload_calculator_pdf_to_amocrm(
     calc_name = "Сауна" if calculator_type == "sauna" else "Купель"
     
     # Try to upload PDF to amoCRM via File API
+    # Using the SAME approach as working photo upload: /api/v4/leads/{id}/files
     pdf_uploaded = False
-    file_uuid = None
     upload_error = None
     
     try:
@@ -1469,54 +1469,32 @@ async def upload_calculator_pdf_to_amocrm(
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         
-        # HARDCODED TEST - absolutely no variables in URL path
-        import requests as req
+        # Use the SAME endpoint as working photo upload: /api/v4/leads/{id}/files
+        upload_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
         
-        # Hardcode the full URL to eliminate any variable issues
-        base = "https://elitnaszklarnia.amocrm.ru"
-        path = "/api/v4/files"
-        upload_url = base + path
-        
-        # Triple-check what we're sending
-        logger.info(f"=== HARDCODED URL TEST ===")
-        logger.info(f"base: {base}")
-        logger.info(f"path: {path}")
+        logger.info(f"=== PDF Upload using PHOTO method ===")
         logger.info(f"upload_url: {upload_url}")
-        logger.info(f"len(upload_url): {len(upload_url)}")
-        logger.info(f"repr(upload_url): {repr(upload_url)}")
+        logger.info(f"filename: {filename}")
+        logger.info(f"pdf_bytes size: {len(pdf_bytes)}")
         
-        headers = {"Authorization": f"Bearer {token}"}
-        files_data = {"file": (filename, pdf_bytes, "application/pdf")}
-        
-        # Make request and capture EVERYTHING
-        resp = req.post(upload_url, headers=headers, files=files_data, timeout=60, allow_redirects=False)
-        
-        logger.info(f"Request URL: {resp.request.url}")
-        logger.info(f"Request method: {resp.request.method}")
-        logger.info(f"Response status: {resp.status_code}")
-        logger.info(f"Response headers: {dict(resp.headers)}")
-        logger.info(f"Response body: {resp.text[:1000]}")
-        
-        # Check for redirects
-        if resp.status_code in [301, 302, 307, 308]:
-            logger.info(f"REDIRECT detected to: {resp.headers.get('Location')}")
-            upload_error = f"REDIRECT: {resp.status_code} to {resp.headers.get('Location')}"
-        elif resp.status_code in [200, 201]:
-            result = resp.json()
-            file_uuid = result.get("_embedded", {}).get("files", [{}])[0].get("uuid")
-            if file_uuid:
-                # Step 2 with same hardcoded approach
-                notes_url = base + "/api/v4/leads/" + amocrm_id + "/notes"
-                note_data = [{"note_type": "attachment", "params": {"attachments": [{"file_uuid": file_uuid, "version_uuid": file_uuid, "file_name": filename}]}}]
-                note_resp = req.post(notes_url, headers={**headers, "Content-Type": "application/json"}, json=note_data, timeout=30)
-                if note_resp.status_code in [200, 201]:
-                    pdf_uploaded = True
-                else:
-                    upload_error = f"Note: {note_resp.status_code} - {note_resp.text[:300]}"
+        # Use httpx (same as photo upload) with multipart form data
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            files = {
+                "file": (filename, pdf_bytes, "application/pdf")
+            }
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = await client.post(upload_url, files=files, headers=headers)
+            
+            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"Response body: {response.text[:500]}")
+            
+            if response.status_code in [200, 201]:
+                pdf_uploaded = True
+                logger.info(f"✅ PDF uploaded to amoCRM for lead {amocrm_id}")
             else:
-                upload_error = f"No UUID: {result}"
-        else:
-            upload_error = f"ReqURL={resp.request.url} | Status={resp.status_code} | Body={resp.text[:500]}"
+                upload_error = f"Status={response.status_code} | Body={response.text[:300]}"
+                logger.warning(f"Failed to upload PDF to amoCRM: {upload_error}")
                 
     except Exception as e:
         upload_error = str(e)
