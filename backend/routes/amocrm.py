@@ -1474,6 +1474,7 @@ async def upload_calculator_pdf_to_amocrm(
             
             # Step 1: Upload file to /api/v4/files
             upload_url = f"https://{domain}/api/v4/files"
+            logger.info(f"Uploading PDF to URL: {upload_url}")
             
             # Use proper multipart/form-data
             files = {"file": (filename, pdf_bytes, "application/pdf")}
