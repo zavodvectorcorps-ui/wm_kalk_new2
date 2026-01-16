@@ -1567,14 +1567,12 @@ async def upload_calculator_pdf_to_amocrm(
     
     return {
         "status": "ok" if pdf_uploaded else "partial",
-        "message": "PDF uploaded to amoCRM" if pdf_uploaded else f"PDF saved with download link. Error: {upload_error}",
+        "message": "PDF uploaded to amoCRM" if pdf_uploaded else f"PDF saved with download link",
         "pdf_saved": pdf_saved,
         "pdf_uploaded": pdf_uploaded,
         "pdf_url": pdf_download_url,
         "note_added": note_added,
-        "upload_error": upload_error,
-        "debug_domain": domain,
-        "debug_url_used": f"https://{domain.rstrip('/')}/api/v4/files" if domain else "no domain"
+        "upload_error": upload_error
     }
 
 
