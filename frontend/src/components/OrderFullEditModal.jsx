@@ -493,7 +493,7 @@ export const OrderFullEditModal = ({
                             {isGift && (
                               <span className="font-bold text-green-600 text-sm">0 {currency}</span>
                             )}
-                            {isAdminUser && (
+                            {canGiveGifts && (
                               <div className="flex items-center gap-1">
                                 <Button
                                   size="sm"
