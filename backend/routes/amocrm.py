@@ -1526,12 +1526,6 @@ async def upload_calculator_pdf_to_amocrm(
         "pdf_url": pdf_download_url,
         "note_added": note_added
     }
-        "pdf_saved": pdf_saved,
-        "pdf_uploaded": pdf_uploaded,
-        "pdf_url": pdf_download_url,
-        "note_added": note_added,
-        "upload_error": upload_error
-    }
 
 
 @router.get("/calculator-pdf/{order_id}")
