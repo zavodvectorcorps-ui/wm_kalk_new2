@@ -1469,75 +1469,70 @@ async def upload_calculator_pdf_to_amocrm(
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         
-        import httpx
+        import aiohttp
+        from aiohttp import FormData
         
         clean_domain = domain.rstrip('/')
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        # Step 1: Upload file to /api/v4/files (general File API)
+        upload_url = f"https://{clean_domain}/api/v4/files"
+        logger.info(f"Step 1: Uploading file to {upload_url}")
+        
+        async with aiohttp.ClientSession() as session:
             headers = {"Authorization": f"Bearer {token}"}
             
-            # Step 1: Upload file to /api/v4/files (general File API)
-            upload_url = f"https://{clean_domain}/api/v4/files"
-            logger.info(f"Step 1: Uploading file to {upload_url}")
+            # Create multipart form data
+            form = FormData()
+            form.add_field('file', pdf_bytes, filename=filename, content_type='application/pdf')
             
-            files = {
-                "file": (filename, pdf_bytes, "application/pdf")
-            }
-            
-            response = await client.post(upload_url, files=files, headers=headers)
-            
-            actual_url = str(response.request.url) if response.request else "unknown"
-            response_text = response.text[:1000] if response.text else "(empty)"
-            logger.info(f"File API response: {response.status_code} from {actual_url}")
-            logger.info(f"Response body: {response_text}")
-            
-            if response.status_code in [200, 201]:
-                result = response.json()
+            async with session.post(upload_url, data=form, headers=headers) as response:
+                response_text = await response.text()
+                logger.info(f"File API response: {response.status} from {upload_url}")
+                logger.info(f"Response body: {response_text[:1000]}")
                 
-                # Get file UUID from response
-                file_uuid = None
-                if "_embedded" in result and "files" in result["_embedded"] and len(result["_embedded"]["files"]) > 0:
-                    file_info = result["_embedded"]["files"][0]
-                    file_uuid = file_info.get("uuid")
-                    logger.info(f"Got file UUID: {file_uuid}")
-                
-                if file_uuid:
-                    # Step 2: Attach file to lead via notes API
-                    notes_url = f"https://{clean_domain}/api/v4/leads/{amocrm_id}/notes"
-                    logger.info(f"Step 2: Attaching file to lead via {notes_url}")
+                if response.status in [200, 201]:
+                    result = await response.json()
                     
-                    note_data = [
-                        {
-                            "note_type": "attachment",
-                            "params": {
-                                "attachments": [
-                                    {
-                                        "file_uuid": file_uuid,
-                                        "version_uuid": file_uuid,
-                                        "file_name": filename
-                                    }
-                                ]
+                    # Get file UUID from response
+                    file_uuid = None
+                    if "_embedded" in result and "files" in result["_embedded"] and len(result["_embedded"]["files"]) > 0:
+                        file_info = result["_embedded"]["files"][0]
+                        file_uuid = file_info.get("uuid")
+                        logger.info(f"Got file UUID: {file_uuid}")
+                    
+                    if file_uuid:
+                        # Step 2: Attach file to lead via notes API
+                        notes_url = f"https://{clean_domain}/api/v4/leads/{amocrm_id}/notes"
+                        logger.info(f"Step 2: Attaching file to lead via {notes_url}")
+                        
+                        note_data = [
+                            {
+                                "note_type": "attachment",
+                                "params": {
+                                    "attachments": [
+                                        {
+                                            "file_uuid": file_uuid,
+                                            "version_uuid": file_uuid,
+                                            "file_name": filename
+                                        }
+                                    ]
+                                }
                             }
-                        }
-                    ]
-                    
-                    note_response = await client.post(
-                        notes_url,
-                        json=note_data,
-                        headers={**headers, "Content-Type": "application/json"}
-                    )
-                    
-                    logger.info(f"Notes API response: {note_response.status_code} - {note_response.text[:500]}")
-                    
-                    if note_response.status_code in [200, 201]:
-                        pdf_uploaded = True
-                        logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}")
+                        ]
+                        
+                        async with session.post(notes_url, json=note_data, headers={**headers, "Content-Type": "application/json"}) as note_response:
+                            note_text = await note_response.text()
+                            logger.info(f"Notes API response: {note_response.status} - {note_text[:500]}")
+                            
+                            if note_response.status in [200, 201]:
+                                pdf_uploaded = True
+                                logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}")
+                            else:
+                                upload_error = f"Step 2 failed: {note_response.status} - {note_text[:300]}"
                     else:
-                        upload_error = f"Step 2 failed: {note_response.status_code} - {note_response.text[:300]}"
+                        upload_error = f"No file UUID in response: {result}"
                 else:
-                    upload_error = f"No file UUID in response: {result}"
-            else:
-                upload_error = f"Step 1 failed: URL {actual_url} | Status {response.status_code}: {response_text}"
+                    upload_error = f"Step 1 failed: URL {upload_url} | Status {response.status}: {response_text[:500]}"
                 
     except Exception as e:
         upload_error = str(e)
