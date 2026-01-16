@@ -473,6 +473,15 @@ const AppContent = () => {
     );
   }
 
+  // PDF Upload Debug Page (accessible to admins)
+  if (currentCalculator === 'pdf_debug' && isAdmin()) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PdfUploadDebugPage />
+      </Suspense>
+    );
+  }
+
   // Admin Panel
   if (currentCalculator === 'admin' && isAdmin()) {
     return (
