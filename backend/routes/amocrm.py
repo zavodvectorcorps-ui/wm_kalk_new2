@@ -1601,8 +1601,28 @@ async def upload_calculator_pdf_to_amocrm(
                                     break
                                 
                                 if is_final:
+                                    # Get both file_uuid and version_uuid from response
                                     file_uuid = upload_result.get("uuid")
+                                    # version_uuid might be in the response directly
+                                    version_uuid = upload_result.get("version_uuid")
+                                    
+                                    # If not, try to extract from download_version link
+                                    # Format: .../file_uuid/version_uuid/filename
+                                    if not version_uuid:
+                                        download_version_link = upload_result.get("_links", {}).get("download_version", {}).get("href", "")
+                                        if download_version_link and file_uuid:
+                                            # Extract version_uuid from URL path
+                                            parts = download_version_link.split("/")
+                                            try:
+                                                file_uuid_idx = parts.index(file_uuid)
+                                                if file_uuid_idx + 1 < len(parts):
+                                                    version_uuid = parts[file_uuid_idx + 1]
+                                            except (ValueError, IndexError):
+                                                pass
+                                    
                                     debug_log["file_uuid"] = file_uuid
+                                    debug_log["version_uuid"] = version_uuid
+                                    debug_log["full_upload_response"] = upload_result
                                 else:
                                     next_url = upload_result.get("next_url")
                                     if not next_url:
