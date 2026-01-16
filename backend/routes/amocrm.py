@@ -1473,7 +1473,8 @@ async def upload_calculator_pdf_to_amocrm(
         import requests as sync_requests
         
         clean_domain = domain.rstrip('/')
-        upload_url = f"https://{clean_domain}/api/v4/files"
+        # Use the same endpoint as delivery photos - /api/v4/leads/{id}/files
+        upload_url = f"https://{clean_domain}/api/v4/leads/{amocrm_id}/files"
         
         # Upload file - amoCRM requires specific format
         files_data = [
