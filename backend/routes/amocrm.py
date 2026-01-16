@@ -703,7 +703,7 @@ async def get_settings(request: Request):
 
 @router.get("/debug-info")
 async def get_debug_info():
-    """Get debug information about PDF upload system - V6-drive version."""
+    """Get debug information about PDF upload system - V7-chunked version."""
     
     # Get last 20 PDF upload logs
     pdf_logs = list(webhook_logs.find(
@@ -715,7 +715,7 @@ async def get_debug_info():
     settings = get_amocrm_settings()
     
     return {
-        "code_version": "V6-drive",
+        "code_version": "V7-chunked",
         "debug_endpoint_version": "2026-01-17",
         "amocrm_configured": bool(settings.get("amocrm_domain") and settings.get("amocrm_token")),
         "amocrm_domain": settings.get("amocrm_domain", ""),
@@ -1665,7 +1665,7 @@ async def upload_calculator_pdf_to_amocrm(
                                 logger.error(upload_error)
                 
     except Exception as e:
-        upload_error = f"[V6] Exception: {str(e)}"
+        upload_error = f"[V7] Exception: {str(e)}"
         logger.error(f"Error uploading PDF to amoCRM: {e}")
     
     # Add text note with info (and download link as backup)
@@ -1697,7 +1697,7 @@ async def upload_calculator_pdf_to_amocrm(
     return {
         "status": "ok" if pdf_uploaded else "partial",
         "message": "PDF uploaded to amoCRM" if pdf_uploaded else f"PDF saved with download link",
-        "code_version": "V6-drive",  # Version marker to confirm deployment
+        "code_version": "V7-chunked",  # Version marker to confirm deployment
         "pdf_saved": pdf_saved,
         "pdf_uploaded": pdf_uploaded,
         "pdf_url": pdf_download_url,

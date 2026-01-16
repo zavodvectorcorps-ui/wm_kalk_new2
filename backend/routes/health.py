@@ -4,7 +4,7 @@ from fastapi import APIRouter
 router = APIRouter(tags=["Health"])
 
 # Code version marker - change this to verify deployment
-CODE_VERSION = "V6-drive-2026-01-17"
+CODE_VERSION = "V7-chunked-2026-01-17"
 
 
 @router.get("/health")
