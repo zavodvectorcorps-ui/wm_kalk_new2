@@ -1687,10 +1687,19 @@ async def upload_calculator_pdf_to_amocrm(
     # If file upload failed, add text note with link as fallback
     if not pdf_uploaded:
         note_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')
-        info_note = f"""✅ Коммерческое предложение создано
-Заказ: {order_id}
-Калькулятор: {calc_name}
-{note_date}"""
+        # Build note with employee name and total if provided
+        info_parts = [
+            f"✅ Коммерческое предложение создано",
+            f"Заказ: {order_id}",
+            f"Калькулятор: {calc_name}",
+        ]
+        if employee_name:
+            info_parts.append(f"Сотрудник: {employee_name}")
+        if total_amount:
+            info_parts.append(f"Сумма: {total_amount} zł")
+        info_parts.append(note_date)
+        
+        info_note = "\n".join(info_parts)
         await add_note_to_amocrm(amocrm_id, info_note, domain, token)
         
         link_note = f"Скачать PDF: {pdf_download_url}"
