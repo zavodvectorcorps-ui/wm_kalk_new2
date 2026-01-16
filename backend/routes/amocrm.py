@@ -1499,7 +1499,12 @@ async def upload_calculator_pdf_to_amocrm(
         logger.info(f"Actual request URL: {actual_url}")
         
         response_text = response.text[:1000] if response.text else "(empty)"
-        logger.info(f"File API response: {response.status_code} - {response_text}")
+        actual_url = str(response.request.url) if response.request else "unknown"
+        logger.info(f"File API response: {response.status_code} from {actual_url} - {response_text}")
+        
+        # Add to upload_error for debugging
+        if response.status_code not in [200, 201]:
+            upload_error = f"URL: {actual_url} | Status {response.status_code}: {response_text}"
         
         if response.status_code in [200, 201]:
             result = response.json()
