@@ -1482,203 +1482,28 @@ async def upload_calculator_pdf_to_amocrm(
     # Add note with download link
     calc_name = "Сауна" if calculator_type == "sauna" else "Купель"
     
-    # Try to upload PDF to amoCRM via File API
-    # Kommo uses separate file service (drive-X.amocrm.ru)
-    # Step 1: Get drive_url from account info  
-    # Step 2: Create upload session on drive
-    # Step 3: Upload file to session URL
-    # Step 4: Attach file UUID to lead as note
-    pdf_uploaded = False
-    upload_error = None
+    # V10: Simple approach - just add download link as a separate note
+    # (Kommo Drive file upload has issues with file visibility)
+    logger.info(f"=== PDF Note V10 (Download Link) ===")
+    logger.info(f"domain: {domain}, amocrm_id: {amocrm_id}, order_id: {order_id}")
     
-    try:
-        # Clean filename
-        safe_name = (client_name or 'Client').replace(' ', '_')
-        safe_name = ''.join(c for c in safe_name if c.isalnum() or c in '_-')
-        if not safe_name:
-            safe_name = 'Client'
-        filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
-        file_size = len(pdf_bytes)
-        
-        logger.info(f"=== PDF Upload V7 (Kommo Drive Chunked) ===")
-        logger.info(f"domain: {domain}, amocrm_id: {amocrm_id}")
-        logger.info(f"filename: {filename}, size: {file_size}")
-        
-        headers = {"Authorization": f"Bearer {token}"}
-        
-        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http_client:
-            # Step 1: Get drive_url from account
-            # Response: { "_embedded": { "account": { "drive_url": "https://drive-b.amocrm.ru" } } }
-            account_url = f"https://{domain}/api/v4/account?with=drive_url"
-            logger.info(f"Step 1: Getting drive_url from {account_url}")
-            
-            account_resp = await http_client.get(account_url, headers=headers)
-            logger.info(f"Account response: {account_resp.status_code} - {account_resp.text[:500]}")
-            
-            if account_resp.status_code != 200:
-                upload_error = f"[V5] Failed to get account: {account_resp.status_code} - {account_resp.text[:200]}"
-                logger.error(upload_error)
-            else:
-                account_data = account_resp.json()
-                # drive_url is in _embedded.account.drive_url OR directly in drive_url
-                drive_url = account_data.get("drive_url")
-                if not drive_url:
-                    drive_url = account_data.get("_embedded", {}).get("account", {}).get("drive_url")
-                if not drive_url:
-                    # Try root level
-                    drive_url = account_data.get("drive_url")
-                    
-                logger.info(f"Got drive_url: {drive_url}")
-                
-                if not drive_url:
-                    upload_error = f"[V5] No drive_url in account response: {account_data}"
-                    logger.error(upload_error)
-                else:
-                    # Step 2: Create upload session on drive
-                    # POST {drive_url}/v1.0/sessions with: file_name, file_size, content_type
-                    # NOTE: Kommo uses file_name and file_size (with underscores!)
-                    session_url = f"{drive_url}/v1.0/sessions"
-                    session_data = {
-                        "file_name": filename,  # Kommo requires file_name (with underscore)
-                        "file_size": file_size,  # Kommo requires file_size (with underscore)
-                        "content_type": "application/pdf"
-                    }
-                    
-                    logger.info(f"Step 2: Creating session at {session_url}")
-                    logger.info(f"Session data: {session_data}")
-                    
-                    session_resp = await http_client.post(
-                        session_url,
-                        json=session_data,
-                        headers={**headers, "Content-Type": "application/json"}
-                    )
-                    
-                    logger.info(f"Session response: {session_resp.status_code} - {session_resp.text[:500]}")
-                    
-                    if session_resp.status_code not in [200, 201]:
-                        upload_error = f"[V6] Session failed: {session_resp.status_code} - {session_resp.text[:300]}"
-                        logger.error(upload_error)
-                    else:
-                        session_result = session_resp.json()
-                        upload_url = session_result.get("upload_url")
-                        session_id = session_result.get("session_id")
-                        max_part_size = session_result.get("max_part_size", 524288)  # Default 512KB
-                        
-                        logger.info(f"Got upload_url: {upload_url}")
-                        logger.info(f"Got session_id: {session_id}")
-                        logger.info(f"Got max_part_size: {max_part_size}")
-                        
-                        if not upload_url:
-                            upload_error = f"[V9] No upload_url: {session_result}"
-                            logger.error(upload_error)
-                        else:
-                            # Step 3: Upload file in chunks if needed
-                            # Kommo has max_part_size limit (usually 512KB)
-                            # If file > max_part_size, upload in parts
-                            # Each part upload returns next_url for next chunk
-                            # Final part upload returns uuid
-                            
-                            file_uuid = None
-                            current_url = upload_url
-                            offset = 0
-                            part_num = 1
-                            
-                            logger.info(f"Step 3: Uploading file in chunks (size={file_size}, max_part={max_part_size})")
-                            
-                            while offset < file_size:
-                                # Get chunk
-                                chunk_end = min(offset + max_part_size, file_size)
-                                chunk = pdf_bytes[offset:chunk_end]
-                                is_final = (chunk_end >= file_size)
-                                
-                                logger.info(f"Uploading part {part_num}: bytes {offset}-{chunk_end} ({len(chunk)} bytes), final={is_final}")
-                                
-                                upload_resp = await http_client.post(
-                                    current_url,
-                                    content=chunk,
-                                    headers={
-                                        **headers,
-                                        "Content-Type": "application/octet-stream"
-                                    }
-                                )
-                                
-                                logger.info(f"Part {part_num} response: {upload_resp.status_code} - {upload_resp.text[:300]}")
-                                
-                                # 200/201 = final part success, 202 = intermediate part success (need more parts)
-                                if upload_resp.status_code not in [200, 201, 202]:
-                                    upload_error = f"[V9] Upload part {part_num} failed: {upload_resp.status_code} - {upload_resp.text[:200]}"
-                                    logger.error(upload_error)
-                                    break
-                                
-                                upload_result = upload_resp.json()
-                                
-                                if is_final:
-                                    # Final part - should return uuid
-                                    file_uuid = upload_result.get("uuid")
-                                    logger.info(f"Final part uploaded, got uuid: {file_uuid}")
-                                else:
-                                    # Not final - get next_url for next chunk
-                                    next_url = upload_result.get("next_url")
-                                    if not next_url:
-                                        upload_error = f"[V9] No next_url in response: {upload_result}"
-                                        logger.error(upload_error)
-                                        break
-                                    current_url = next_url
-                                    logger.info(f"Got next_url for part {part_num + 1}")
-                                
-                                offset = chunk_end
-                                part_num += 1
-                            
-                            if file_uuid:
-                                # Step 4: Attach file to lead via notes
-                                # POST /api/v4/leads/{id}/notes
-                                # Note type "attachment" requires file_uuid directly in params (not in attachments array)
-                                notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
-                                note_data = [{
-                                    "note_type": "attachment",
-                                    "params": {
-                                        "file_uuid": file_uuid,
-                                        "version_uuid": file_uuid,
-                                        "file_name": filename
-                                    }
-                                }]
-                                
-                                logger.info(f"Step 4: Attaching to lead at {notes_url}")
-                                logger.info(f"Note data: {note_data}")
-                                
-                                attach_resp = await http_client.post(
-                                    notes_url,
-                                    json=note_data,
-                                    headers={**headers, "Content-Type": "application/json"}
-                                )
-                                
-                                logger.info(f"Attach response: {attach_resp.status_code} - {attach_resp.text[:300]}")
-                                
-                                if attach_resp.status_code in [200, 201]:
-                                    pdf_uploaded = True
-                                    logger.info(f"✅ PDF uploaded via Kommo Drive V9!")
-                                else:
-                                    upload_error = f"[V9] Attach failed: {attach_resp.status_code} - {attach_resp.text[:200]}"
-                                    logger.error(upload_error)
-                            elif not upload_error:
-                                upload_error = f"[V9] No uuid after upload"
-                                logger.error(upload_error)
-                
-    except Exception as e:
-        upload_error = f"[V9] Exception: {str(e)}"
-        logger.error(f"Error uploading PDF to amoCRM: {e}")
-    
-    # Add text note with info (and download link as backup)
-    note_text = f"""📄 Коммерческое предложение создано
+    # Add info note
+    info_note = f"""📄 Коммерческое предложение создано
 
 🧮 Калькулятор: {calc_name}
 📦 Номер заказа: {order_id}
 👤 Клиент: {client_name or 'Не указан'}
-📅 Дата: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}
+📅 Дата: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"""
 
-📎 {'PDF файл прикреплён выше' if pdf_uploaded else f'Скачать PDF: {pdf_download_url}'}"""
+    info_note_added = await add_note_to_amocrm(amocrm_id, info_note, domain, token)
+    
+    # Add separate note with just the download link (easier to click)
+    link_note = f"""📎 Скачать PDF:
+{pdf_download_url}"""
 
-    note_added = await add_note_to_amocrm(amocrm_id, note_text, domain, token)
+    link_note_added = await add_note_to_amocrm(amocrm_id, link_note, domain, token)
+    
+    note_added = info_note_added and link_note_added
     
     # Log
     webhook_logs.insert_one({
@@ -1688,16 +1513,19 @@ async def upload_calculator_pdf_to_amocrm(
         "order_id": order_id,
         "calculator_type": calculator_type,
         "pdf_saved": pdf_saved,
-        "pdf_uploaded": pdf_uploaded,
+        "pdf_url": pdf_download_url,
         "note_added": note_added,
-        "upload_error": upload_error,
-        "result": "success" if pdf_uploaded else "partial"
+        "result": "success" if pdf_saved and note_added else "partial"
     })
     
     return {
-        "status": "ok" if pdf_uploaded else "partial",
-        "message": "PDF uploaded to amoCRM" if pdf_uploaded else f"PDF saved with download link",
-        "code_version": "V9-chunked",  # Version marker to confirm deployment
+        "status": "ok" if pdf_saved and note_added else "partial",
+        "message": "PDF saved and link added to amoCRM",
+        "code_version": "V10-link",
+        "pdf_saved": pdf_saved,
+        "pdf_url": pdf_download_url,
+        "note_added": note_added
+    }
         "pdf_saved": pdf_saved,
         "pdf_uploaded": pdf_uploaded,
         "pdf_url": pdf_download_url,
