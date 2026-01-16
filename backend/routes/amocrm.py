@@ -1392,18 +1392,21 @@ async def upload_calculator_pdf_to_amocrm(
     calculator_type: str = "sauna",
     client_name: str = ""
 ):
-    """Upload calculator PDF to amoCRM lead.
+    """Upload calculator PDF to amoCRM lead - V5-drive version.
     
-    Receives PDF file as raw body and uploads it to amoCRM files.
-    Also adds a note about the created quote.
+    Uses Kommo Drive file service for uploads.
     """
+    # Log version for debugging
+    logger.info(f"=== upload_calculator_pdf V5-drive called ===")
+    logger.info(f"amocrm_id={amocrm_id}, order_id={order_id}, calculator_type={calculator_type}")
+    
     settings = get_amocrm_settings()
     
     domain = settings.get("amocrm_domain", "")
     token = settings.get("amocrm_token", "")
     
     if not domain or not token:
-        return {"status": "skipped", "message": "amoCRM credentials not configured"}
+        return {"status": "skipped", "message": "amoCRM credentials not configured", "code_version": "V5-drive"}
     
     # Get PDF content from request body
     pdf_bytes = await request.body()
