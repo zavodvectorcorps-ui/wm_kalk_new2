@@ -1500,7 +1500,7 @@ async def upload_calculator_pdf_to_amocrm(
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         file_size = len(pdf_bytes)
         
-        logger.info(f"=== PDF Upload V5 (Kommo Drive) ===")
+        logger.info(f"=== PDF Upload V6 (Kommo Drive) ===")
         logger.info(f"domain: {domain}, amocrm_id: {amocrm_id}")
         logger.info(f"filename: {filename}, size: {file_size}")
         
