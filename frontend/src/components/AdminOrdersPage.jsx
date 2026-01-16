@@ -406,8 +406,8 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
                               {txt.edit}
                             </Button>
                             
-                            {/* Quick Edit (Admin) */}
-                            {isAdmin && isAdmin() && (
+                            {/* Quick Edit (Admin/Manager) */}
+                            {canGiveGifts && (
                               <Button
                                 size="sm"
                                 variant="ghost"
