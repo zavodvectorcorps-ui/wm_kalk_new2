@@ -1473,10 +1473,12 @@ async def upload_calculator_pdf_to_amocrm(
             headers = {"Authorization": f"Bearer {token}"}
             
             # Step 1: Upload file to /api/v4/files
-            upload_url = f"https://{domain}/api/v4/files"
-            logger.info(f"Uploading PDF to URL: {upload_url}")
+            # Ensure domain doesn't have trailing slash
+            clean_domain = domain.rstrip('/')
+            upload_url = f"https://{clean_domain}/api/v4/files"
+            logger.info(f"Uploading PDF to URL: {upload_url}, domain was: {domain}")
             
-            # Use proper multipart/form-data
+            # Use proper multipart/form-data with explicit content type
             files = {"file": (filename, pdf_bytes, "application/pdf")}
             
             response = await client_http.post(upload_url, files=files, headers=headers)
