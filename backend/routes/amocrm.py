@@ -1493,7 +1493,7 @@ async def upload_calculator_pdf_to_amocrm(
                 pdf_uploaded = True
                 logger.info(f"✅ PDF uploaded to amoCRM for lead {amocrm_id}")
             else:
-                upload_error = f"Status={response.status_code} | Body={response.text[:300]}"
+                upload_error = f"[V2] URL={upload_url} | Status={response.status_code} | Response={response.text[:300]}"
                 logger.warning(f"Failed to upload PDF to amoCRM: {upload_error}")
                 
     except Exception as e:
