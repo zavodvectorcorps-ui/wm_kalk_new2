@@ -1409,7 +1409,7 @@ async def upload_calculator_pdf_to_amocrm(
     pdf_bytes = await request.body()
     
     if not pdf_bytes or len(pdf_bytes) < 100:
-        return {"status": "error", "message": "No PDF data received"}
+        return {"status": "error", "message": "No PDF data received", "code_version": "V5-drive"}
     
     # Save PDF to database for download link (since direct amoCRM upload has issues)
     pdf_saved = False
