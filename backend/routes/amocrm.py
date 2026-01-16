@@ -1448,7 +1448,7 @@ async def upload_calculator_pdf_to_amocrm(
             except:
                 base_url = "https://wm-kalkulator.pl"
         
-        pdf_download_url = f"{base_url}/api/calculator-pdf/{order_id}"
+        pdf_download_url = f"{base_url}/api/integrations/amocrm/calculator-pdf/{order_id}"
         
     except Exception as e:
         logger.error(f"Error saving PDF: {e}")
