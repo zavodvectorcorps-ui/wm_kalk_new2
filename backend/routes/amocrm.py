@@ -1562,77 +1562,107 @@ async def upload_calculator_pdf_to_amocrm(
                         session_result = session_resp.json()
                         upload_url = session_result.get("upload_url")
                         session_id = session_result.get("session_id")
+                        max_part_size = session_result.get("max_part_size", 524288)  # Default 512KB
                         
                         logger.info(f"Got upload_url: {upload_url}")
                         logger.info(f"Got session_id: {session_id}")
+                        logger.info(f"Got max_part_size: {max_part_size}")
                         
                         if not upload_url:
-                            upload_error = f"[V6] No upload_url: {session_result}"
+                            upload_error = f"[V7] No upload_url: {session_result}"
                             logger.error(upload_error)
                         else:
-                            # Step 3: Upload file as raw bytes to upload_url
-                            # POST {upload_url} with raw bytes
-                            # IMPORTANT: file_uuid is returned AFTER upload, not from session!
-                            logger.info(f"Step 3: Uploading file to {upload_url}")
+                            # Step 3: Upload file in chunks if needed
+                            # Kommo has max_part_size limit (usually 512KB)
+                            # If file > max_part_size, upload in parts
+                            # Each part upload returns next_url for next chunk
+                            # Final part upload returns uuid
                             
-                            upload_resp = await http_client.post(
-                                upload_url,
-                                content=pdf_bytes,
-                                headers={
-                                    **headers,
-                                    "Content-Type": "application/octet-stream"
-                                }
-                            )
+                            file_uuid = None
+                            current_url = upload_url
+                            offset = 0
+                            part_num = 1
                             
-                            logger.info(f"Upload response: {upload_resp.status_code} - {upload_resp.text[:500]}")
+                            logger.info(f"Step 3: Uploading file in chunks (size={file_size}, max_part={max_part_size})")
                             
-                            if upload_resp.status_code not in [200, 201]:
-                                upload_error = f"[V6] Upload failed: {upload_resp.status_code} - {upload_resp.text[:200]}"
-                                logger.error(upload_error)
-                            else:
-                                # Parse upload response to get file UUID
-                                # The final upload response contains: uuid, name, size, etc.
-                                upload_result = upload_resp.json()
-                                file_uuid = upload_result.get("uuid")
+                            while offset < file_size:
+                                # Get chunk
+                                chunk_end = min(offset + max_part_size, file_size)
+                                chunk = pdf_bytes[offset:chunk_end]
+                                is_final = (chunk_end >= file_size)
                                 
-                                logger.info(f"Upload result: {upload_result}")
-                                logger.info(f"Got file_uuid from upload: {file_uuid}")
+                                logger.info(f"Uploading part {part_num}: bytes {offset}-{chunk_end} ({len(chunk)} bytes), final={is_final}")
                                 
-                                if not file_uuid:
-                                    upload_error = f"[V6] No uuid in upload response: {upload_result}"
+                                upload_resp = await http_client.post(
+                                    current_url,
+                                    content=chunk,
+                                    headers={
+                                        **headers,
+                                        "Content-Type": "application/octet-stream"
+                                    }
+                                )
+                                
+                                logger.info(f"Part {part_num} response: {upload_resp.status_code} - {upload_resp.text[:300]}")
+                                
+                                if upload_resp.status_code not in [200, 201]:
+                                    upload_error = f"[V7] Upload part {part_num} failed: {upload_resp.status_code} - {upload_resp.text[:200]}"
                                     logger.error(upload_error)
+                                    break
+                                
+                                upload_result = upload_resp.json()
+                                
+                                if is_final:
+                                    # Final part - should return uuid
+                                    file_uuid = upload_result.get("uuid")
+                                    logger.info(f"Final part uploaded, got uuid: {file_uuid}")
                                 else:
-                                    # Step 4: Attach file to lead via notes
-                                    # POST /api/v4/leads/{id}/notes with attachments array
-                                    notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
-                                    note_data = [{
-                                        "note_type": "attachment",
-                                        "params": {
-                                            "attachments": [{
-                                                "file_uuid": file_uuid,
-                                                "version_uuid": file_uuid,
-                                                "file_name": filename
-                                            }]
-                                        }
-                                    }]
-                                    
-                                    logger.info(f"Step 4: Attaching to lead at {notes_url}")
-                                    logger.info(f"Note data: {note_data}")
-                                    
-                                    attach_resp = await http_client.post(
-                                        notes_url,
-                                        json=note_data,
-                                        headers={**headers, "Content-Type": "application/json"}
-                                    )
-                                    
-                                    logger.info(f"Attach response: {attach_resp.status_code} - {attach_resp.text[:300]}")
-                                    
-                                    if attach_resp.status_code in [200, 201]:
-                                        pdf_uploaded = True
-                                        logger.info(f"✅ PDF uploaded via Kommo Drive V6!")
-                                    else:
-                                        upload_error = f"[V6] Attach failed: {attach_resp.status_code} - {attach_resp.text[:200]}"
+                                    # Not final - get next_url for next chunk
+                                    next_url = upload_result.get("next_url")
+                                    if not next_url:
+                                        upload_error = f"[V7] No next_url in response: {upload_result}"
                                         logger.error(upload_error)
+                                        break
+                                    current_url = next_url
+                                    logger.info(f"Got next_url for part {part_num + 1}")
+                                
+                                offset = chunk_end
+                                part_num += 1
+                            
+                            if file_uuid:
+                                # Step 4: Attach file to lead via notes
+                                # POST /api/v4/leads/{id}/notes with attachments array
+                                notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
+                                note_data = [{
+                                    "note_type": "attachment",
+                                    "params": {
+                                        "attachments": [{
+                                            "file_uuid": file_uuid,
+                                            "version_uuid": file_uuid,
+                                            "file_name": filename
+                                        }]
+                                    }
+                                }]
+                                
+                                logger.info(f"Step 4: Attaching to lead at {notes_url}")
+                                logger.info(f"Note data: {note_data}")
+                                
+                                attach_resp = await http_client.post(
+                                    notes_url,
+                                    json=note_data,
+                                    headers={**headers, "Content-Type": "application/json"}
+                                )
+                                
+                                logger.info(f"Attach response: {attach_resp.status_code} - {attach_resp.text[:300]}")
+                                
+                                if attach_resp.status_code in [200, 201]:
+                                    pdf_uploaded = True
+                                    logger.info(f"✅ PDF uploaded via Kommo Drive V7 (chunked)!")
+                                else:
+                                    upload_error = f"[V7] Attach failed: {attach_resp.status_code} - {attach_resp.text[:200]}"
+                                    logger.error(upload_error)
+                            elif not upload_error:
+                                upload_error = f"[V7] No uuid after upload"
+                                logger.error(upload_error)
                 
     except Exception as e:
         upload_error = f"[V6] Exception: {str(e)}"
