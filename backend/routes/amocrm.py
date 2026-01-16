@@ -1471,30 +1471,28 @@ async def upload_calculator_pdf_to_amocrm(
         
         # Use requests library for file upload
         import requests as sync_requests
-        import jwt
         
-        # Try to get api_domain from token
-        api_domain = domain  # default to regular domain
-        try:
-            # Decode JWT without verification to get api_domain
-            decoded = jwt.decode(token, options={"verify_signature": False})
-            api_domain = decoded.get("api_domain", domain)
-            logger.info(f"Using API domain from token: {api_domain}")
-        except Exception as e:
-            logger.warning(f"Could not decode token for api_domain: {e}")
-        
-        clean_domain = api_domain.rstrip('/')
+        clean_domain = domain.rstrip('/')
         upload_url = f"https://{clean_domain}/api/v4/files"
         logger.info(f"Uploading PDF to: {upload_url}")
         
-        # Upload file
-        files_data = {
-            "file": (filename, pdf_bytes, "application/pdf")
+        # Upload file - amoCRM requires specific format
+        files_data = [
+            ("file", (filename, pdf_bytes, "application/pdf"))
+        ]
+        headers = {
+            "Authorization": f"Bearer {token}"
         }
-        headers = {"Authorization": f"Bearer {token}"}
         
-        response = sync_requests.post(upload_url, files=files_data, headers=headers, timeout=60)
-        logger.info(f"File API response: {response.status_code} - {response.text[:500]}")
+        response = sync_requests.post(
+            upload_url, 
+            files=files_data, 
+            headers=headers, 
+            timeout=60
+        )
+        
+        response_text = response.text[:1000] if response.text else "(empty)"
+        logger.info(f"File API response: {response.status_code} - {response_text}")
         
         if response.status_code in [200, 201]:
             result = response.json()
