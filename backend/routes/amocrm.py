@@ -1411,7 +1411,49 @@ async def upload_calculator_pdf_to_amocrm(
     if not pdf_bytes or len(pdf_bytes) < 100:
         return {"status": "error", "message": "No PDF data received"}
     
-    # Add note about quote creation
+    # Save PDF to database for download link (since direct amoCRM upload has issues)
+    pdf_saved = False
+    pdf_download_url = None
+    
+    try:
+        # Save PDF to database
+        pdf_collection = db["calculator_pdfs"]
+        pdf_doc = {
+            "order_id": order_id,
+            "amocrm_id": amocrm_id,
+            "calculator_type": calculator_type,
+            "client_name": client_name,
+            "pdf_data": pdf_bytes,
+            "filename": f"KP_{calculator_type.upper()}_{order_id}.pdf",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        pdf_collection.update_one(
+            {"order_id": order_id},
+            {"$set": pdf_doc},
+            upsert=True
+        )
+        pdf_saved = True
+        
+        # Build download URL
+        app_domain = os.environ.get("APP_DOMAIN", "")
+        if app_domain:
+            base_url = f"https://{app_domain}"
+        else:
+            try:
+                with open("/app/frontend/.env", "r") as f:
+                    for line in f:
+                        if line.startswith("REACT_APP_BACKEND_URL="):
+                            base_url = line.strip().split("=", 1)[1]
+                            break
+            except:
+                base_url = "https://wm-kalkulator.pl"
+        
+        pdf_download_url = f"{base_url}/api/calculator-pdf/{order_id}"
+        
+    except Exception as e:
+        logger.error(f"Error saving PDF: {e}")
+    
+    # Add note with download link
     calc_name = "Сауна" if calculator_type == "sauna" else "Купель"
     note_text = f"""📄 Коммерческое предложение создано
 
@@ -1420,7 +1462,7 @@ async def upload_calculator_pdf_to_amocrm(
 👤 Клиент: {client_name or 'Не указан'}
 📅 Дата: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}
 
-📎 PDF файл прикреплен к сделке."""
+📎 Скачать PDF: {pdf_download_url or 'Ошибка сохранения'}"""
 
     note_added = await add_note_to_amocrm(amocrm_id, note_text, domain, token)
     
