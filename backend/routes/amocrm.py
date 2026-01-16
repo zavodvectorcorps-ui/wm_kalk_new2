@@ -1508,43 +1508,10 @@ async def upload_calculator_pdf_to_amocrm(
             upload_error = f"URL: {actual_url} | Status {response.status_code}: {response_text}"
         
         if response.status_code in [200, 201]:
+            pdf_uploaded = True
+            logger.info(f"✅ PDF uploaded to amoCRM lead {amocrm_id}")
             result = response.json()
-            
-            # Get file UUID
-            if "_embedded" in result and "files" in result["_embedded"]:
-                file_info = result["_embedded"]["files"][0]
-                file_uuid = file_info.get("uuid")
-                logger.info(f"File uploaded, UUID: {file_uuid}")
-                
-                if file_uuid:
-                    # Step 2: Create note with attachment
-                    notes_url = f"https://{clean_domain}/api/v4/leads/{amocrm_id}/notes"
-                    note_data = [
-                        {
-                            "note_type": "attachment",
-                            "params": {
-                                "file_uuid": file_uuid,
-                                "file_name": filename
-                            }
-                        }
-                    ]
-                    
-                    note_response = sync_requests.post(
-                        notes_url,
-                        json=note_data,
-                        headers={**headers, "Content-Type": "application/json"},
-                        timeout=30
-                    )
-                    
-                    if note_response.status_code in [200, 201]:
-                        pdf_uploaded = True
-                        logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}")
-                    else:
-                        upload_error = f"Note attachment failed: {note_response.status_code} - {note_response.text[:300]}"
-                        logger.warning(upload_error)
-            else:
-                if not upload_error:
-                    upload_error = f"No file UUID in response: {result}"
+            logger.info(f"Upload result: {result}")
         # Error already set above if status not 200/201
                 
     except Exception as e:
