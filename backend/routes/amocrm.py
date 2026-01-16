@@ -1469,50 +1469,33 @@ async def upload_calculator_pdf_to_amocrm(
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         
-        # Use requests library for file upload
-        import requests as sync_requests
+        # Use httpx (same as delivery photos)
+        import httpx
         
         clean_domain = domain.rstrip('/')
         # Use the same endpoint as delivery photos - /api/v4/leads/{id}/files
         upload_url = f"https://{clean_domain}/api/v4/leads/{amocrm_id}/files"
         
-        # Upload file - amoCRM requires specific format
-        files_data = [
-            ("file", (filename, pdf_bytes, "application/pdf"))
-        ]
-        headers = {
-            "Authorization": f"Bearer {token}"
-        }
-        
         logger.info(f"Sending POST to: {upload_url}")
         
-        # Disable redirects to see what's happening
-        response = sync_requests.post(
-            upload_url, 
-            files=files_data, 
-            headers=headers, 
-            timeout=60,
-            allow_redirects=False
-        )
-        
-        # Log actual request URL
-        actual_url = response.request.url if response.request else "unknown"
-        logger.info(f"Actual request URL: {actual_url}")
-        
-        response_text = response.text[:1000] if response.text else "(empty)"
-        actual_url = str(response.request.url) if response.request else "unknown"
-        logger.info(f"File API response: {response.status_code} from {actual_url} - {response_text}")
-        
-        # Add to upload_error for debugging
-        if response.status_code not in [200, 201]:
-            upload_error = f"URL: {actual_url} | Status {response.status_code}: {response_text}"
-        
-        if response.status_code in [200, 201]:
-            pdf_uploaded = True
-            logger.info(f"✅ PDF uploaded to amoCRM lead {amocrm_id}")
-            result = response.json()
-            logger.info(f"Upload result: {result}")
-        # Error already set above if status not 200/201
+        # Same format as delivery photos
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            files = {
+                "file": (filename, pdf_bytes, "application/pdf")
+            }
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = await client.post(upload_url, files=files, headers=headers)
+            
+            actual_url = str(response.request.url) if response.request else "unknown"
+            response_text = response.text[:1000] if response.text else "(empty)"
+            logger.info(f"File API response: {response.status_code} from {actual_url} - {response_text}")
+            
+            if response.status_code in [200, 201]:
+                pdf_uploaded = True
+                logger.info(f"✅ PDF uploaded to amoCRM lead {amocrm_id}")
+            else:
+                upload_error = f"URL: {actual_url} | Status {response.status_code}: {response_text}"
                 
     except Exception as e:
         upload_error = str(e)
