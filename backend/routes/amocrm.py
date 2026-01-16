@@ -1455,6 +1455,77 @@ async def upload_calculator_pdf_to_amocrm(
     
     # Add note with download link
     calc_name = "Сауна" if calculator_type == "sauna" else "Купель"
+    
+    # Try to upload PDF to amoCRM via File API
+    pdf_uploaded = False
+    file_uuid = None
+    upload_error = None
+    
+    try:
+        # Clean filename
+        safe_name = (client_name or 'Client').replace(' ', '_')
+        safe_name = ''.join(c for c in safe_name if c.isalnum() or c in '_-')
+        if not safe_name:
+            safe_name = 'Client'
+        filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
+        
+        async with httpx.AsyncClient(timeout=60.0) as client_http:
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            # Step 1: Upload file to /api/v4/files
+            upload_url = f"https://{domain}/api/v4/files"
+            
+            # Use proper multipart/form-data
+            files = {"file": (filename, pdf_bytes, "application/pdf")}
+            
+            response = await client_http.post(upload_url, files=files, headers=headers)
+            logger.info(f"File API response: {response.status_code} - {response.text[:500]}")
+            
+            if response.status_code in [200, 201]:
+                result = response.json()
+                
+                # Get file UUID
+                if "_embedded" in result and "files" in result["_embedded"]:
+                    file_info = result["_embedded"]["files"][0]
+                    file_uuid = file_info.get("uuid")
+                    logger.info(f"File uploaded, UUID: {file_uuid}")
+                    
+                    if file_uuid:
+                        # Step 2: Create note with attachment
+                        notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
+                        note_data = [
+                            {
+                                "note_type": "attachment",
+                                "params": {
+                                    "file_uuid": file_uuid,
+                                    "file_name": filename
+                                }
+                            }
+                        ]
+                        
+                        note_response = await client_http.post(
+                            notes_url,
+                            json=note_data,
+                            headers={**headers, "Content-Type": "application/json"}
+                        )
+                        
+                        if note_response.status_code in [200, 201]:
+                            pdf_uploaded = True
+                            logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}")
+                        else:
+                            upload_error = f"Note attachment failed: {note_response.status_code} - {note_response.text[:300]}"
+                            logger.warning(upload_error)
+                else:
+                    upload_error = f"No file UUID in response: {result}"
+            else:
+                upload_error = f"File upload failed: {response.status_code} - {response.text[:300]}"
+                logger.warning(upload_error)
+                
+    except Exception as e:
+        upload_error = str(e)
+        logger.error(f"Error uploading PDF to amoCRM: {e}")
+    
+    # Add text note with info (and download link as backup)
     note_text = f"""📄 Коммерческое предложение создано
 
 🧮 Калькулятор: {calc_name}
@@ -1462,7 +1533,7 @@ async def upload_calculator_pdf_to_amocrm(
 👤 Клиент: {client_name or 'Не указан'}
 📅 Дата: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}
 
-📎 Скачать PDF: {pdf_download_url or 'Ошибка сохранения'}"""
+📎 {'PDF файл прикреплён выше' if pdf_uploaded else f'Скачать PDF: {pdf_download_url}'}"""
 
     note_added = await add_note_to_amocrm(amocrm_id, note_text, domain, token)
     
@@ -1474,16 +1545,20 @@ async def upload_calculator_pdf_to_amocrm(
         "order_id": order_id,
         "calculator_type": calculator_type,
         "pdf_saved": pdf_saved,
+        "pdf_uploaded": pdf_uploaded,
         "note_added": note_added,
-        "result": "success" if (pdf_saved and note_added) else "partial"
+        "upload_error": upload_error,
+        "result": "success" if pdf_uploaded else "partial"
     })
     
     return {
-        "status": "ok" if (pdf_saved and note_added) else "partial",
-        "message": "PDF saved and link added to amoCRM" if pdf_saved else "Failed to save PDF",
+        "status": "ok" if pdf_uploaded else "partial",
+        "message": "PDF uploaded to amoCRM" if pdf_uploaded else f"PDF saved with download link. Error: {upload_error}",
         "pdf_saved": pdf_saved,
+        "pdf_uploaded": pdf_uploaded,
         "pdf_url": pdf_download_url,
-        "note_added": note_added
+        "note_added": note_added,
+        "upload_error": upload_error
     }
 
 
