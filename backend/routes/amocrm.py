@@ -1635,12 +1635,15 @@ async def upload_calculator_pdf_to_amocrm(
                             
                             if file_uuid:
                                 # Step 4: Attach file to lead
+                                # Use version_uuid if available, otherwise fall back to file_uuid
+                                actual_version_uuid = version_uuid if version_uuid else file_uuid
+                                
                                 notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
                                 note_data = [{
                                     "note_type": "attachment",
                                     "params": {
                                         "file_uuid": file_uuid,
-                                        "version_uuid": file_uuid,
+                                        "version_uuid": actual_version_uuid,
                                         "file_name": filename
                                     }
                                 }]
@@ -1661,6 +1664,8 @@ async def upload_calculator_pdf_to_amocrm(
                                     "step": 4,
                                     "name": "attach_to_lead",
                                     "note_data": str(note_data),
+                                    "file_uuid_used": file_uuid,
+                                    "version_uuid_used": actual_version_uuid,
                                     "status": attach_resp.status_code,
                                     "response": str(attach_result)[:500]
                                 })
