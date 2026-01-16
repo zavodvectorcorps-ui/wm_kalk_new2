@@ -1474,7 +1474,6 @@ async def upload_calculator_pdf_to_amocrm(
         
         clean_domain = domain.rstrip('/')
         upload_url = f"https://{clean_domain}/api/v4/files"
-        logger.info(f"Uploading PDF to: {upload_url}")
         
         # Upload file - amoCRM requires specific format
         files_data = [
@@ -1484,12 +1483,20 @@ async def upload_calculator_pdf_to_amocrm(
             "Authorization": f"Bearer {token}"
         }
         
+        logger.info(f"Sending POST to: {upload_url}")
+        
+        # Disable redirects to see what's happening
         response = sync_requests.post(
             upload_url, 
             files=files_data, 
             headers=headers, 
-            timeout=60
+            timeout=60,
+            allow_redirects=False
         )
+        
+        # Log actual request URL
+        actual_url = response.request.url if response.request else "unknown"
+        logger.info(f"Actual request URL: {actual_url}")
         
         response_text = response.text[:1000] if response.text else "(empty)"
         logger.info(f"File API response: {response.status_code} - {response_text}")
