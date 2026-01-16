@@ -1480,8 +1480,9 @@ async def upload_calculator_pdf_to_amocrm(
         
         # Same format as delivery photos
         async with httpx.AsyncClient(timeout=60.0) as client:
+            # Try application/octet-stream instead of application/pdf
             files = {
-                "file": (filename, pdf_bytes, "application/pdf")
+                "file": (filename, pdf_bytes, "application/octet-stream")
             }
             headers = {"Authorization": f"Bearer {token}"}
             
