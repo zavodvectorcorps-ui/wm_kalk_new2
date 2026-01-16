@@ -1413,14 +1413,16 @@ async def upload_calculator_pdf_to_amocrm(
     amocrm_id: str,
     order_id: str,
     calculator_type: str = "sauna",
-    client_name: str = ""
+    client_name: str = "",
+    employee_name: str = "",
+    total_amount: str = ""
 ):
     """Upload calculator PDF to amoCRM lead - V12 with Content-Range.
     
     Uses Kommo Drive file service with proper Content-Range headers.
     """
     logger.info(f"=== upload_calculator_pdf V12-range called ===")
-    logger.info(f"amocrm_id={amocrm_id}, order_id={order_id}, calculator_type={calculator_type}")
+    logger.info(f"amocrm_id={amocrm_id}, order_id={order_id}, calculator_type={calculator_type}, employee={employee_name}, total={total_amount}")
     
     settings = get_amocrm_settings()
     
