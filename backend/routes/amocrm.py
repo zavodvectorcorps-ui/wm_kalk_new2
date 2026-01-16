@@ -1469,7 +1469,7 @@ async def upload_calculator_pdf_to_amocrm(
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         
-        async with httpx.AsyncClient(timeout=60.0) as client_http:
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=False) as client_http:
             headers = {"Authorization": f"Bearer {token}"}
             
             # Step 1: Upload file to /api/v4/files
