@@ -1693,48 +1693,6 @@ async def upload_calculator_pdf_to_amocrm(
         "upload_error": upload_error,
         "debug": debug_log
     }
-    logger.info(f"=== PDF Note V11 (Simple Text) ===")
-    logger.info(f"domain: {domain}, amocrm_id: {amocrm_id}, order_id: {order_id}")
-    
-    # Format date
-    note_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')
-    
-    # Add info note (first message)
-    info_note = f"""✅ Коммерческое предложение создано
-Заказ: {order_id}
-Калькулятор: {calc_name}
-{note_date}"""
-
-    info_note_added = await add_note_to_amocrm(amocrm_id, info_note, domain, token)
-    
-    # Add separate note with download link (second message)
-    link_note = f"Скачать PDF: {pdf_download_url}"
-
-    link_note_added = await add_note_to_amocrm(amocrm_id, link_note, domain, token)
-    
-    note_added = info_note_added and link_note_added
-    
-    # Log
-    webhook_logs.insert_one({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "type": "calculator_pdf_upload",
-        "amocrm_id": amocrm_id,
-        "order_id": order_id,
-        "calculator_type": calculator_type,
-        "pdf_saved": pdf_saved,
-        "pdf_url": pdf_download_url,
-        "note_added": note_added,
-        "result": "success" if pdf_saved and note_added else "partial"
-    })
-    
-    return {
-        "status": "ok" if pdf_saved and note_added else "partial",
-        "message": "PDF saved and link added to amoCRM",
-        "code_version": "V11-simple",
-        "pdf_saved": pdf_saved,
-        "pdf_url": pdf_download_url,
-        "note_added": note_added
-    }
 
 
 @router.post("/test-file-upload")
