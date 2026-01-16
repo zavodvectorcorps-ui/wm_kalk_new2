@@ -1469,116 +1469,94 @@ async def upload_calculator_pdf_to_amocrm(
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
         
-        import aiohttp
-        from aiohttp import FormData
-        import base64
+        import subprocess
+        import tempfile
         import json as json_module
         
         clean_domain = domain.rstrip('/').strip()
+        upload_url = f"https://{clean_domain}/api/v4/files"
         
-        # Try to get api_domain from JWT token
-        api_domain = clean_domain
-        try:
-            # Decode JWT payload (base64)
-            parts = token.split('.')
-            if len(parts) >= 2:
-                # Add padding if needed
-                payload = parts[1]
-                padding = 4 - len(payload) % 4
-                if padding != 4:
-                    payload += '=' * padding
-                decoded = base64.urlsafe_b64decode(payload)
-                token_data = json_module.loads(decoded)
-                if token_data.get("api_domain"):
-                    api_domain = token_data["api_domain"]
-                    logger.info(f"Using api_domain from token: {api_domain}")
-        except Exception as e:
-            logger.warning(f"Could not decode token: {e}")
-        
-        # Build URL with api_domain
-        upload_url = "https://" + api_domain + "/api/v4/files"
-        
-        logger.info(f"=== PDF UPLOAD DEBUG ===")
-        logger.info(f"Original domain: '{domain}'")
-        logger.info(f"API domain: '{api_domain}'")
+        logger.info(f"=== PDF UPLOAD VIA CURL ===")
+        logger.info(f"Domain: '{clean_domain}'")
         logger.info(f"Upload URL: '{upload_url}'")
-        logger.info(f"========================")
         
-        async with aiohttp.ClientSession() as session:
-            headers = {
-                "Authorization": f"Bearer {token}",
-            }
+        # Save PDF to temp file
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
+            tmp_file.write(pdf_bytes)
+            tmp_path = tmp_file.name
+        
+        try:
+            # Use curl directly
+            curl_cmd = [
+                'curl', '-s', '-w', '\\n%{http_code}',
+                '-X', 'POST',
+                upload_url,
+                '-H', f'Authorization: Bearer {token}',
+                '-F', f'file=@{tmp_path};filename={filename};type=application/pdf'
+            ]
             
-            # Try to add account_id if available in token
-            try:
-                parts = token.split('.')
-                if len(parts) >= 2:
-                    payload = parts[1]
-                    padding = 4 - len(payload) % 4
-                    if padding != 4:
-                        payload += '=' * padding
-                    decoded = base64.urlsafe_b64decode(payload)
-                    token_data = json_module.loads(decoded)
-                    account_id = token_data.get("account_id")
-                    if account_id:
-                        headers["X-Account-Id"] = str(account_id)
-                        logger.info(f"Added X-Account-Id: {account_id}")
-            except:
-                pass
+            logger.info(f"Running curl command to {upload_url}")
             
-            # Create multipart form data
-            form = FormData()
-            form.add_field('file', pdf_bytes, filename=filename, content_type='application/pdf')
+            result = subprocess.run(curl_cmd, capture_output=True, text=True, timeout=60)
             
-            async with session.post(upload_url, data=form, headers=headers) as response:
-                response_text = await response.text()
-                logger.info(f"Response status: {response.status}")
-                logger.info(f"Response URL: {response.url}")
-                logger.info(f"Response body: {response_text[:1000]}")
+            output = result.stdout.strip()
+            lines = output.rsplit('\n', 1)
+            response_body = lines[0] if len(lines) > 1 else output
+            status_code = int(lines[-1]) if lines[-1].isdigit() else 0
+            
+            logger.info(f"Curl response status: {status_code}")
+            logger.info(f"Curl response body: {response_body[:1000]}")
+            
+            if status_code in [200, 201]:
+                result_json = json_module.loads(response_body)
                 
-                if response.status in [200, 201]:
-                    result = await response.json()
+                file_uuid = None
+                if "_embedded" in result_json and "files" in result_json["_embedded"]:
+                    file_info = result_json["_embedded"]["files"][0]
+                    file_uuid = file_info.get("uuid")
+                    logger.info(f"Got file UUID: {file_uuid}")
+                
+                if file_uuid:
+                    # Step 2: Attach file to lead via notes API
+                    notes_url = f"https://{clean_domain}/api/v4/leads/{amocrm_id}/notes"
+                    note_data = json_module.dumps([{
+                        "note_type": "attachment",
+                        "params": {
+                            "attachments": [{
+                                "file_uuid": file_uuid,
+                                "version_uuid": file_uuid,
+                                "file_name": filename
+                            }]
+                        }
+                    }])
                     
-                    # Get file UUID from response
-                    file_uuid = None
-                    if "_embedded" in result and "files" in result["_embedded"] and len(result["_embedded"]["files"]) > 0:
-                        file_info = result["_embedded"]["files"][0]
-                        file_uuid = file_info.get("uuid")
-                        logger.info(f"Got file UUID: {file_uuid}")
+                    curl_notes = [
+                        'curl', '-s', '-w', '\\n%{http_code}',
+                        '-X', 'POST',
+                        notes_url,
+                        '-H', f'Authorization: Bearer {token}',
+                        '-H', 'Content-Type: application/json',
+                        '-d', note_data
+                    ]
                     
-                    if file_uuid:
-                        # Step 2: Attach file to lead via notes API (use original domain for leads)
-                        notes_url = "https://" + clean_domain + "/api/v4/leads/" + amocrm_id + "/notes"
-                        logger.info(f"Step 2: Attaching file to lead via {notes_url}")
-                        
-                        note_data = [
-                            {
-                                "note_type": "attachment",
-                                "params": {
-                                    "attachments": [
-                                        {
-                                            "file_uuid": file_uuid,
-                                            "version_uuid": file_uuid,
-                                            "file_name": filename
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                        
-                        async with session.post(notes_url, json=note_data, headers={**headers, "Content-Type": "application/json"}) as note_response:
-                            note_text = await note_response.text()
-                            logger.info(f"Notes API response: {note_response.status} - {note_text[:500]}")
-                            
-                            if note_response.status in [200, 201]:
-                                pdf_uploaded = True
-                                logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}")
-                            else:
-                                upload_error = f"Step 2 failed: {note_response.status} - {note_text[:300]}"
+                    notes_result = subprocess.run(curl_notes, capture_output=True, text=True, timeout=30)
+                    notes_output = notes_result.stdout.strip()
+                    notes_lines = notes_output.rsplit('\n', 1)
+                    notes_status = int(notes_lines[-1]) if notes_lines[-1].isdigit() else 0
+                    
+                    if notes_status in [200, 201]:
+                        pdf_uploaded = True
+                        logger.info(f"✅ PDF attached to amoCRM lead {amocrm_id}")
                     else:
-                        upload_error = f"No file UUID in response: {result}"
+                        upload_error = f"Step 2 failed: {notes_status} - {notes_lines[0][:300]}"
                 else:
-                    upload_error = f"Step 1 failed: URL {upload_url} | Status {response.status}: {response_text[:500]}"
+                    upload_error = f"No file UUID in response"
+            else:
+                upload_error = f"Step 1 failed: URL {upload_url} | Status {status_code}: {response_body[:500]}"
+                
+        finally:
+            import os
+            os.unlink(tmp_path)
                 
     except Exception as e:
         upload_error = str(e)
