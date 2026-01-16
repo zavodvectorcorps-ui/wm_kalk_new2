@@ -703,7 +703,7 @@ async def get_settings(request: Request):
 
 @router.get("/debug-info")
 async def get_debug_info():
-    """Get debug information about PDF upload system - V5-drive version."""
+    """Get debug information about PDF upload system - V6-drive version."""
     
     # Get last 20 PDF upload logs
     pdf_logs = list(webhook_logs.find(
@@ -715,8 +715,8 @@ async def get_debug_info():
     settings = get_amocrm_settings()
     
     return {
-        "code_version": "V5-drive",
-        "debug_endpoint_version": "2026-01-16",
+        "code_version": "V6-drive",
+        "debug_endpoint_version": "2026-01-17",
         "amocrm_configured": bool(settings.get("amocrm_domain") and settings.get("amocrm_token")),
         "amocrm_domain": settings.get("amocrm_domain", ""),
         "recent_pdf_uploads": pdf_logs,
