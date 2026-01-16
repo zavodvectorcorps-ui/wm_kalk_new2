@@ -1505,7 +1505,26 @@ async def upload_calculator_pdf_to_amocrm(
         logger.info(f"========================")
         
         async with aiohttp.ClientSession() as session:
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = {
+                "Authorization": f"Bearer {token}",
+            }
+            
+            # Try to add account_id if available in token
+            try:
+                parts = token.split('.')
+                if len(parts) >= 2:
+                    payload = parts[1]
+                    padding = 4 - len(payload) % 4
+                    if padding != 4:
+                        payload += '=' * padding
+                    decoded = base64.urlsafe_b64decode(payload)
+                    token_data = json_module.loads(decoded)
+                    account_id = token_data.get("account_id")
+                    if account_id:
+                        headers["X-Account-Id"] = str(account_id)
+                        logger.info(f"Added X-Account-Id: {account_id}")
+            except:
+                pass
             
             # Create multipart form data
             form = FormData()
