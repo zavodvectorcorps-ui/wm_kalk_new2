@@ -138,8 +138,9 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
     try {
       const endpoint = isSauna ? `${API_URL}/api/sauna/orders` : `${API_URL}/api/orders`;
       const response = await axios.get(endpoint);
-      // Filter out amoCRM orders - they belong to logistics, not calculator
-      const calculatorOrders = response.data.filter(o => !o.amocrm_id && o.source !== 'amocrm');
+      // Filter out orders that were IMPORTED from amoCRM via webhook (source === 'amocrm')
+      // BUT keep orders that were CREATED in calculator from amoCRM link (they have amocrm_id but no source='amocrm')
+      const calculatorOrders = response.data.filter(o => o.source !== 'amocrm');
       setOrders(calculatorOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
