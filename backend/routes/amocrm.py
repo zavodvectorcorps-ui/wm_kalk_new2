@@ -1480,7 +1480,9 @@ async def upload_calculator_pdf_to_amocrm(
         "status": "ok" if pdf_uploaded else "partial",
         "message": "PDF uploaded to amoCRM" if pdf_uploaded else "Note added but PDF upload failed",
         "pdf_uploaded": pdf_uploaded,
-        "note_added": note_added
+        "note_added": note_added,
+        "upload_error": upload_error,
+        "pdf_size": len(pdf_bytes) if pdf_bytes else 0
     }
 
 
