@@ -1487,6 +1487,29 @@ async def upload_calculator_pdf_to_amocrm(
     }
 
 
+@router.get("/calculator-pdf/{order_id}")
+async def download_calculator_pdf(order_id: str):
+    """Download saved calculator PDF by order ID."""
+    from fastapi.responses import Response
+    
+    pdf_collection = db["calculator_pdfs"]
+    pdf_doc = pdf_collection.find_one({"order_id": order_id}, {"_id": 0})
+    
+    if not pdf_doc or not pdf_doc.get("pdf_data"):
+        return {"status": "error", "message": "PDF not found"}
+    
+    pdf_bytes = pdf_doc["pdf_data"]
+    filename = pdf_doc.get("filename", f"KP_{order_id}.pdf")
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+
 @router.post("/sync-order")
 async def sync_order_to_amocrm(
     amocrm_id: str,
