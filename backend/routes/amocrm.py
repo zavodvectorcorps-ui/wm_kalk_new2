@@ -703,7 +703,7 @@ async def get_settings(request: Request):
 
 @router.get("/debug-info")
 async def get_debug_info():
-    """Get debug information about PDF upload system - V10-link version."""
+    """Get debug information about PDF upload system - V11-simple version."""
     
     # Get last 20 PDF upload logs
     pdf_logs = list(webhook_logs.find(
@@ -715,7 +715,7 @@ async def get_debug_info():
     settings = get_amocrm_settings()
     
     return {
-        "code_version": "V10-link",
+        "code_version": "V11-simple",
         "debug_endpoint_version": "2026-01-17",
         "amocrm_configured": bool(settings.get("amocrm_domain") and settings.get("amocrm_token")),
         "amocrm_domain": settings.get("amocrm_domain", ""),
@@ -1520,7 +1520,7 @@ async def upload_calculator_pdf_to_amocrm(
     return {
         "status": "ok" if pdf_saved and note_added else "partial",
         "message": "PDF saved and link added to amoCRM",
-        "code_version": "V10-link",
+        "code_version": "V11-simple",
         "pdf_saved": pdf_saved,
         "pdf_url": pdf_download_url,
         "note_added": note_added
