@@ -1527,6 +1527,212 @@ async def upload_calculator_pdf_to_amocrm(
     }
 
 
+@router.post("/test-file-upload")
+async def test_file_upload_to_amocrm(
+    request: Request,
+    amocrm_id: str,
+    order_id: str
+):
+    """Test file upload to amoCRM with proper Content-Range headers.
+    
+    Returns detailed debug info about each step.
+    """
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        return {"status": "error", "message": "amoCRM credentials not configured"}
+    
+    pdf_bytes = await request.body()
+    if not pdf_bytes or len(pdf_bytes) < 100:
+        return {"status": "error", "message": "No PDF data received"}
+    
+    file_size = len(pdf_bytes)
+    filename = f"KP_TEST_{order_id}.pdf"
+    
+    debug_log = {
+        "version": "V12-debug",
+        "file_size": file_size,
+        "filename": filename,
+        "steps": []
+    }
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http_client:
+            # Step 1: Get drive_url
+            account_url = f"https://{domain}/api/v4/account?with=drive_url"
+            account_resp = await http_client.get(account_url, headers=headers)
+            account_data = account_resp.json() if account_resp.status_code == 200 else {}
+            
+            debug_log["steps"].append({
+                "step": 1,
+                "name": "get_drive_url",
+                "url": account_url,
+                "status": account_resp.status_code,
+                "response": account_data
+            })
+            
+            if account_resp.status_code != 200:
+                return {"status": "error", "debug": debug_log}
+            
+            drive_url = account_data.get("drive_url")
+            if not drive_url:
+                return {"status": "error", "message": "No drive_url", "debug": debug_log}
+            
+            # Step 2: Create upload session
+            session_url = f"{drive_url}/v1.0/sessions"
+            session_data = {
+                "file_name": filename,
+                "file_size": file_size,
+                "content_type": "application/pdf"
+            }
+            
+            session_resp = await http_client.post(
+                session_url,
+                json=session_data,
+                headers={**headers, "Content-Type": "application/json"}
+            )
+            session_result = session_resp.json() if session_resp.status_code in [200, 201] else {}
+            
+            debug_log["steps"].append({
+                "step": 2,
+                "name": "create_session",
+                "url": session_url,
+                "request_body": session_data,
+                "status": session_resp.status_code,
+                "response": session_result
+            })
+            
+            if session_resp.status_code not in [200, 201]:
+                return {"status": "error", "debug": debug_log}
+            
+            upload_url = session_result.get("upload_url")
+            max_part_size = session_result.get("max_part_size", 524288)
+            
+            if not upload_url:
+                return {"status": "error", "message": "No upload_url", "debug": debug_log}
+            
+            # Step 3: Upload file in chunks with Content-Range header
+            file_uuid = None
+            current_url = upload_url
+            offset = 0
+            part_num = 1
+            
+            while offset < file_size:
+                chunk_end = min(offset + max_part_size, file_size)
+                chunk = pdf_bytes[offset:chunk_end]
+                chunk_size = len(chunk)
+                is_final = (chunk_end >= file_size)
+                
+                # Content-Range format: bytes start-end/total
+                # Example: bytes 0-524287/1048576
+                content_range = f"bytes {offset}-{chunk_end - 1}/{file_size}"
+                
+                upload_headers = {
+                    **headers,
+                    "Content-Type": "application/octet-stream",
+                    "Content-Length": str(chunk_size),
+                    "Content-Range": content_range
+                }
+                
+                upload_resp = await http_client.post(
+                    current_url,
+                    content=chunk,
+                    headers=upload_headers
+                )
+                
+                upload_result = {}
+                if upload_resp.status_code in [200, 201, 202]:
+                    try:
+                        upload_result = upload_resp.json()
+                    except:
+                        upload_result = {"raw": upload_resp.text[:500]}
+                
+                debug_log["steps"].append({
+                    "step": 3,
+                    "name": f"upload_part_{part_num}",
+                    "url": current_url[:100] + "...",
+                    "headers_sent": {
+                        "Content-Range": content_range,
+                        "Content-Length": str(chunk_size)
+                    },
+                    "bytes_range": f"{offset}-{chunk_end}",
+                    "is_final": is_final,
+                    "status": upload_resp.status_code,
+                    "response": upload_result
+                })
+                
+                if upload_resp.status_code not in [200, 201, 202]:
+                    return {"status": "error", "message": f"Upload part {part_num} failed", "debug": debug_log}
+                
+                if is_final:
+                    # Final part - get uuid
+                    file_uuid = upload_result.get("uuid")
+                    debug_log["file_uuid_from_upload"] = file_uuid
+                else:
+                    # Get next_url
+                    next_url = upload_result.get("next_url")
+                    if not next_url:
+                        return {"status": "error", "message": "No next_url", "debug": debug_log}
+                    current_url = next_url
+                
+                offset = chunk_end
+                part_num += 1
+            
+            if not file_uuid:
+                return {"status": "error", "message": "No file_uuid after upload", "debug": debug_log}
+            
+            # Step 4: Attach file to lead
+            notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
+            note_data = [{
+                "note_type": "attachment",
+                "params": {
+                    "file_uuid": file_uuid,
+                    "version_uuid": file_uuid,
+                    "file_name": filename
+                }
+            }]
+            
+            attach_resp = await http_client.post(
+                notes_url,
+                json=note_data,
+                headers={**headers, "Content-Type": "application/json"}
+            )
+            
+            attach_result = {}
+            try:
+                attach_result = attach_resp.json()
+            except:
+                attach_result = {"raw": attach_resp.text[:500]}
+            
+            debug_log["steps"].append({
+                "step": 4,
+                "name": "attach_to_lead",
+                "url": notes_url,
+                "request_body": note_data,
+                "status": attach_resp.status_code,
+                "response": attach_result
+            })
+            
+            if attach_resp.status_code in [200, 201]:
+                return {
+                    "status": "ok",
+                    "message": "File uploaded and attached successfully",
+                    "file_uuid": file_uuid,
+                    "debug": debug_log
+                }
+            else:
+                return {"status": "error", "message": "Attach failed", "debug": debug_log}
+                
+    except Exception as e:
+        debug_log["exception"] = str(e)
+        return {"status": "error", "message": str(e), "debug": debug_log}
+
+
 @router.get("/calculator-pdf/{order_id}")
 async def download_calculator_pdf(order_id: str):
     """Download saved calculator PDF by order ID."""
