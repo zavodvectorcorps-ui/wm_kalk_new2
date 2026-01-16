@@ -1632,6 +1632,7 @@ async def upload_calculator_pdf_to_amocrm(
     return {
         "status": "ok" if pdf_uploaded else "partial",
         "message": "PDF uploaded to amoCRM" if pdf_uploaded else f"PDF saved with download link",
+        "code_version": "V5-drive",  # Version marker to confirm deployment
         "pdf_saved": pdf_saved,
         "pdf_uploaded": pdf_uploaded,
         "pdf_url": pdf_download_url,
