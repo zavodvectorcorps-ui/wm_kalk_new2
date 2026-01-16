@@ -1480,26 +1480,25 @@ async def upload_calculator_pdf_to_amocrm(
         logger.error(f"Error saving PDF: {e}")
     
     # Add note with download link
-    calc_name = "Сауна" if calculator_type == "sauna" else "Купель"
+    calc_name = "SAUNA" if calculator_type == "sauna" else "BALIA"
     
-    # V10: Simple approach - just add download link as a separate note
-    # (Kommo Drive file upload has issues with file visibility)
-    logger.info(f"=== PDF Note V10 (Download Link) ===")
+    # V11: Simple text notes as requested by user
+    logger.info(f"=== PDF Note V11 (Simple Text) ===")
     logger.info(f"domain: {domain}, amocrm_id: {amocrm_id}, order_id: {order_id}")
     
-    # Add info note
-    info_note = f"""📄 Коммерческое предложение создано
-
-🧮 Калькулятор: {calc_name}
-📦 Номер заказа: {order_id}
-👤 Клиент: {client_name or 'Не указан'}
-📅 Дата: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"""
+    # Format date
+    note_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')
+    
+    # Add info note (first message)
+    info_note = f"""✅ Коммерческое предложение создано
+Заказ: {order_id}
+Калькулятор: {calc_name}
+{note_date}"""
 
     info_note_added = await add_note_to_amocrm(amocrm_id, info_note, domain, token)
     
-    # Add separate note with just the download link (easier to click)
-    link_note = f"""📎 Скачать PDF:
-{pdf_download_url}"""
+    # Add separate note with download link (second message)
+    link_note = f"Скачать PDF: {pdf_download_url}"
 
     link_note_added = await add_note_to_amocrm(amocrm_id, link_note, domain, token)
     
