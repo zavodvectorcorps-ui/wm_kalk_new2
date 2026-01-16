@@ -1426,6 +1426,7 @@ async def upload_calculator_pdf_to_amocrm(
     
     # Upload PDF to amoCRM files (same method as delivery photos)
     pdf_uploaded = False
+    upload_error = None
     
     try:
         # Use same endpoint as delivery photos
@@ -1440,7 +1441,8 @@ async def upload_calculator_pdf_to_amocrm(
         filename = f"KP_{calculator_type.upper()}_{safe_name}_{order_id}.pdf"
         
         # Log PDF size for debugging
-        logger.info(f"Uploading PDF to amoCRM: {filename}, size: {len(pdf_bytes)} bytes")
+        pdf_size = len(pdf_bytes)
+        logger.info(f"Uploading PDF to amoCRM: {filename}, size: {pdf_size} bytes")
         
         async with httpx.AsyncClient(timeout=60.0) as client_http:
             files = {
@@ -1456,8 +1458,10 @@ async def upload_calculator_pdf_to_amocrm(
                 pdf_uploaded = True
                 logger.info(f"✅ PDF uploaded to amoCRM for lead {amocrm_id}: {filename}")
             else:
-                logger.warning(f"Failed to upload PDF to amoCRM: {response.status_code} - {response.text[:500]}")
+                upload_error = f"Status {response.status_code}: {response.text[:500]}"
+                logger.warning(f"Failed to upload PDF to amoCRM: {upload_error}")
     except Exception as e:
+        upload_error = str(e)
         logger.error(f"Error uploading PDF to amoCRM: {e}")
     
     # Log sync
