@@ -3,8 +3,15 @@ from fastapi import APIRouter
 
 router = APIRouter(tags=["Health"])
 
+# Code version marker - change this to verify deployment
+CODE_VERSION = "V5-drive-2026-01-16"
+
 
 @router.get("/health")
 async def api_health_check():
     """Health check endpoint accessible via /api/health"""
-    return {"status": "healthy", "service": "wm-calculator-backend"}
+    return {
+        "status": "healthy", 
+        "service": "wm-calculator-backend",
+        "code_version": CODE_VERSION
+    }
