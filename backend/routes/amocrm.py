@@ -1635,7 +1635,7 @@ async def upload_calculator_pdf_to_amocrm(
                                         logger.error(upload_error)
                 
     except Exception as e:
-        upload_error = f"[V5] Exception: {str(e)}"
+        upload_error = f"[V6] Exception: {str(e)}"
         logger.error(f"Error uploading PDF to amoCRM: {e}")
     
     # Add text note with info (and download link as backup)
@@ -1667,7 +1667,7 @@ async def upload_calculator_pdf_to_amocrm(
     return {
         "status": "ok" if pdf_uploaded else "partial",
         "message": "PDF uploaded to amoCRM" if pdf_uploaded else f"PDF saved with download link",
-        "code_version": "V5-drive",  # Version marker to confirm deployment
+        "code_version": "V6-drive",  # Version marker to confirm deployment
         "pdf_saved": pdf_saved,
         "pdf_uploaded": pdf_uploaded,
         "pdf_url": pdf_download_url,
