@@ -1457,7 +1457,8 @@ async def upload_calculator_pdf_to_amocrm(
     calc_name = "Сауна" if calculator_type == "sauna" else "Купель"
     
     # Try to upload PDF to amoCRM via File API
-    # Using the SAME approach as working photo upload: /api/v4/leads/{id}/files
+    # Method 1: Try direct upload to /leads/{id}/files (works for photos)
+    # Method 2: If fails, try session-based upload
     pdf_uploaded = False
     upload_error = None
     
@@ -1468,36 +1469,98 @@ async def upload_calculator_pdf_to_amocrm(
         if not safe_name:
             safe_name = 'Client'
         filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
+        file_size = len(pdf_bytes)
         
-        # Use the SAME endpoint as working photo upload: /api/v4/leads/{id}/files
-        upload_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+        logger.info(f"=== PDF Upload V3 ===")
+        logger.info(f"domain: {domain}, amocrm_id: {amocrm_id}")
+        logger.info(f"filename: {filename}, size: {file_size}")
         
-        logger.info(f"=== PDF Upload using PHOTO method ===")
-        logger.info(f"upload_url: {upload_url}")
-        logger.info(f"filename: {filename}")
-        logger.info(f"pdf_bytes size: {len(pdf_bytes)}")
+        headers = {"Authorization": f"Bearer {token}"}
         
-        # Use httpx (same as photo upload) with multipart form data
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            files = {
-                "file": (filename, pdf_bytes, "application/pdf")
-            }
-            headers = {"Authorization": f"Bearer {token}"}
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http_client:
+            # Method 1: Try direct upload (like photos)
+            direct_url = f"https://{domain}/api/v4/leads/{amocrm_id}/files"
+            logger.info(f"Method 1: Direct upload to {direct_url}")
             
-            response = await client.post(upload_url, files=files, headers=headers)
+            response = await http_client.post(
+                direct_url,
+                files={"file": (filename, pdf_bytes, "application/pdf")},
+                headers=headers
+            )
             
-            logger.info(f"Response status: {response.status_code}")
-            logger.info(f"Response body: {response.text[:500]}")
+            logger.info(f"Direct upload response: {response.status_code}")
             
             if response.status_code in [200, 201]:
                 pdf_uploaded = True
-                logger.info(f"✅ PDF uploaded to amoCRM for lead {amocrm_id}")
+                logger.info(f"✅ PDF uploaded via direct method")
             else:
-                upload_error = f"[V2] URL={upload_url} | Status={response.status_code} | Response={response.text[:300]}"
-                logger.warning(f"Failed to upload PDF to amoCRM: {upload_error}")
+                logger.info(f"Direct failed: {response.text[:200]}")
+                
+                # Method 2: Try session-based upload
+                logger.info("Method 2: Session-based upload")
+                
+                # Step 2a: Create upload session
+                session_url = f"https://{domain}/api/v4/files/upload-session"
+                session_data = {
+                    "file_name": filename,
+                    "file_size": file_size,
+                    "content_type": "application/pdf"
+                }
+                
+                session_response = await http_client.post(
+                    session_url,
+                    json=session_data,
+                    headers={**headers, "Content-Type": "application/json"}
+                )
+                
+                logger.info(f"Session response: {session_response.status_code} - {session_response.text[:300]}")
+                
+                if session_response.status_code in [200, 201]:
+                    session_result = session_response.json()
+                    upload_url = session_result.get("upload_url")
+                    file_uuid = session_result.get("file_uuid")
+                    
+                    if upload_url:
+                        # Step 2b: Upload file to session URL
+                        upload_response = await http_client.post(
+                            upload_url,
+                            files={"file": (filename, pdf_bytes, "application/pdf")},
+                            headers=headers
+                        )
+                        
+                        logger.info(f"File upload response: {upload_response.status_code}")
+                        
+                        if upload_response.status_code in [200, 201] and file_uuid:
+                            # Step 2c: Attach to lead via note
+                            notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
+                            note_data = [{
+                                "note_type": "attachment",
+                                "params": {
+                                    "file_uuid": file_uuid,
+                                    "file_name": filename
+                                }
+                            }]
+                            
+                            attach_response = await http_client.post(
+                                notes_url,
+                                json=note_data,
+                                headers={**headers, "Content-Type": "application/json"}
+                            )
+                            
+                            if attach_response.status_code in [200, 201]:
+                                pdf_uploaded = True
+                                logger.info(f"✅ PDF uploaded via session method")
+                            else:
+                                upload_error = f"[V3] Attach failed: {attach_response.status_code} - {attach_response.text[:200]}"
+                        else:
+                            upload_error = f"[V3] Session upload failed: {upload_response.status_code}"
+                    else:
+                        upload_error = f"[V3] No upload_url in session: {session_result}"
+                else:
+                    upload_error = f"[V3] Session create failed: {session_response.status_code} - {session_response.text[:200]}"
                 
     except Exception as e:
-        upload_error = str(e)
+        upload_error = f"[V3] Exception: {str(e)}"
         logger.error(f"Error uploading PDF to amoCRM: {e}")
     
     # Add text note with info (and download link as backup)
