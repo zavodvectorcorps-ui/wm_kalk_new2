@@ -1564,7 +1564,9 @@ async def upload_calculator_pdf_to_amocrm(
         "pdf_uploaded": pdf_uploaded,
         "pdf_url": pdf_download_url,
         "note_added": note_added,
-        "upload_error": upload_error
+        "upload_error": upload_error,
+        "debug_domain": domain,
+        "debug_url_used": f"https://{domain.rstrip('/')}/api/v4/files" if domain else "no domain"
     }
 
 
