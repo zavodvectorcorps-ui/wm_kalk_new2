@@ -1602,27 +1602,6 @@ async def upload_calculator_pdf_to_amocrm(
     except Exception as e:
         upload_error = f"[V5] Exception: {str(e)}"
         logger.error(f"Error uploading PDF to amoCRM: {e}")
-                                    }]
-                                    
-                                    logger.info(f"Step 4: Attaching to lead at {notes_url}")
-                                    attach_resp = await http_client.post(
-                                        notes_url,
-                                        json=note_data,
-                                        headers={**headers, "Content-Type": "application/json"}
-                                    )
-                                    
-                                    logger.info(f"Attach response: {attach_resp.status_code}")
-                                    
-                                    if attach_resp.status_code in [200, 201]:
-                                        pdf_uploaded = True
-                                        logger.info(f"✅ PDF uploaded via Kommo Drive!")
-                                    else:
-                                        upload_error = f"[V4] Attach failed: {attach_resp.status_code} - {attach_resp.text[:200]}"
-                                        logger.error(upload_error)
-                
-    except Exception as e:
-        upload_error = f"[V4] Exception: {str(e)}"
-        logger.error(f"Error uploading PDF to amoCRM: {e}")
     
     # Add text note with info (and download link as backup)
     note_text = f"""📄 Коммерческое предложение создано
