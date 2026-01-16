@@ -5,17 +5,18 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
-### Session 2026-01-16 - PDF Upload to amoCRM - FIX ✅
+### Session 2026-01-16 - PDF Upload to amoCRM - FIX V4 ✅
 
 #### Bug Fix: PDF not uploading to amoCRM deal
 - **Problem**: PDF files were not being uploaded to amoCRM deals after creating orders in calculator
-- **Root Cause**: The PDF upload code was using a different endpoint (`/api/v4/files`) and two-step process, while the working photo upload used `/api/v4/leads/{id}/files` endpoint
-- **Solution**: Rewrote `upload-calculator-pdf` function in `/app/backend/routes/amocrm.py` to use:
-  - Same endpoint as photo upload: `/api/v4/leads/{amocrm_id}/files`
-  - `httpx.AsyncClient` instead of sync `requests`
-  - Single-step upload (file attaches directly to lead)
-- **File Modified**: `/app/backend/routes/amocrm.py` (lines 1459-1500)
-- **Status**: ✅ FIXED - awaiting user verification
+- **Root Cause**: Kommo/amoCRM uses a **separate file service** (`drive-X.kommo.com`), not the main API domain. The old endpoint `/api/v4/files` doesn't exist on the main domain - hence the 404 error.
+- **Solution**: Implemented 4-step upload process per Kommo documentation:
+  1. `GET /api/v4/account?with=drive_url` - get file service URL
+  2. `POST {drive_url}/v1.0/sessions` - create upload session
+  3. `POST {upload_url}` - upload PDF to file service
+  4. `POST /api/v4/leads/{id}/notes` - attach file to lead
+- **File Modified**: `/app/backend/routes/amocrm.py` (lines 1459-1560)
+- **Status**: ✅ FIXED - awaiting user verification after deploy
 
 ### Session 2026-01-15 - Sauna CRM Module - COMPLETED ✅
 
