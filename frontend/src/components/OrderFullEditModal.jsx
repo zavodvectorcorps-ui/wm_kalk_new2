@@ -42,7 +42,7 @@ export const OrderFullEditModal = ({
   onSaved 
 }) => {
   const { t, i18n } = useTranslation();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, canEdit, user } = useAuth();
   const [formData, setFormData] = useState({});
   const [saving, setSaving] = useState(false);
   const [availablePrices, setAvailablePrices] = useState(null);
@@ -52,6 +52,8 @@ export const OrderFullEditModal = ({
   const isSauna = calculatorType === 'sauna';
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const isAdminUser = isAdmin && isAdmin();
+  const canEditUser = canEdit && canEdit(); // admin or employee (manager)
+  const canGiveGifts = canEditUser; // Both admins and managers can give gifts
   
   const txt = {
     ru: {
