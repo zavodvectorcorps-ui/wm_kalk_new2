@@ -1495,6 +1495,7 @@ async def upload_calculator_pdf_to_amocrm(
     pdf_uploaded = False
     upload_error = None
     file_uuid = None
+    version_uuid = None
     
     try:
         headers = {"Authorization": f"Bearer {token}"}
