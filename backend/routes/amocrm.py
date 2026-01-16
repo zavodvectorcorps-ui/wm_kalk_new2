@@ -1537,25 +1537,24 @@ async def upload_calculator_pdf_to_amocrm(
         upload_error = str(e)
         logger.error(f"Error uploading PDF to amoCRM: {e}")
     
-    # Log sync
+    # Log
     webhook_logs.insert_one({
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "type": "calculator_pdf_upload",
         "amocrm_id": amocrm_id,
         "order_id": order_id,
         "calculator_type": calculator_type,
-        "pdf_uploaded": pdf_uploaded,
+        "pdf_saved": pdf_saved,
         "note_added": note_added,
-        "result": "success" if pdf_uploaded else "partial"
+        "result": "success" if (pdf_saved and note_added) else "partial"
     })
     
     return {
-        "status": "ok" if pdf_uploaded else "partial",
-        "message": "PDF uploaded to amoCRM" if pdf_uploaded else "Note added but PDF upload failed",
-        "pdf_uploaded": pdf_uploaded,
-        "note_added": note_added,
-        "upload_error": upload_error,
-        "pdf_size": len(pdf_bytes) if pdf_bytes else 0
+        "status": "ok" if (pdf_saved and note_added) else "partial",
+        "message": "PDF saved and link added to amoCRM" if pdf_saved else "Failed to save PDF",
+        "pdf_saved": pdf_saved,
+        "pdf_url": pdf_download_url,
+        "note_added": note_added
     }
 
 
