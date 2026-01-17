@@ -45,6 +45,7 @@ export const SaunaPricingPage = () => {
     handleSaveEditOption,
     handleUpdateOptionPrice,
     handleToggleOptionQuantity,
+    handleToggleOptionDefault,
     handleReorderOptions,
   } = useSaunaPricing();
 
