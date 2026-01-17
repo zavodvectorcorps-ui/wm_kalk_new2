@@ -1381,19 +1381,26 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                         ]))
                         elements.append(img_table)
+                        elements.append(Spacer(1, 15))
                     except Exception as e:
                         logger.warning(f"Could not load gallery promo image: {e}")
     
-    # ========== GALLERY COLLAGE PAGE ==========
+    # ========== GALLERY COLLAGE ==========
     if is_block_enabled(pdf_template, 'gallery'):
-        # Add a new page with photo collage
-        elements.append(PageBreak())
+        # Check if we need page break (only if gallery_promo was NOT shown)
+        gallery_promo_shown = is_block_enabled(pdf_template, 'gallery_promo') and (
+            pdf_template.get('galleryPromoTitle') or pdf_template.get('galleryPromoImageId')
+        )
         
-        # Gallery title from template
-        gallery_title = template_texts.get('galleryTitle', 'GALERIA REALIZACJI')
-        elements.append(Paragraph(gallery_title, 
-                                 ParagraphStyle('GalleryTitle', fontName='DejaVuSans-Bold', fontSize=16, 
-                                               textColor=BROWN, alignment=TA_CENTER, spaceAfter=15)))
+        if not gallery_promo_shown:
+            # Add page break only if promo page wasn't added
+            elements.append(PageBreak())
+            
+            # Gallery title from template (show only if no promo page)
+            gallery_title = template_texts.get('galleryTitle', 'GALERIA REALIZACJI')
+            elements.append(Paragraph(gallery_title, 
+                                     ParagraphStyle('GalleryTitle', fontName='DejaVuSans-Bold', fontSize=16, 
+                                                   textColor=BROWN, alignment=TA_CENTER, spaceAfter=15)))
         
         # Helper function to scale image preserving aspect ratio
         def scale_image_proportionally(img_data_or_path, max_width=250, max_height=180):
