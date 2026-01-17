@@ -1458,76 +1458,39 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 img_path = os.path.join(gallery_dir, img_file)
                 if os.path.exists(img_path):
                     try:
-                        gallery_images.append(scale_image_proportionally(img_path, 250, 180))
+                        gallery_images.append(scale_image_proportionally(img_path, 165, 120))
                     except Exception as e:
                         logger.warning(f"Could not load gallery image {img_file}: {e}")
         
-        # Create 2x2 grid of images
+        # Create 3x2 grid of images (3 per row)
         if gallery_images:
-            # First row
-            if len(gallery_images) >= 2:
-                row1 = Table([[gallery_images[0], gallery_images[1]]], 
-                            colWidths=[265, 265],
-                            rowHeights=[185])
-                row1.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-                ]))
-                elements.append(row1)
-                elements.append(Spacer(1, 10))
-            elif len(gallery_images) == 1:
-                row1 = Table([[gallery_images[0]]], 
-                            colWidths=[265],
-                            rowHeights=[185])
-                row1.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ]))
-                elements.append(row1)
-                elements.append(Spacer(1, 10))
+            row_style = TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+            ])
             
-            # Second row
-            if len(gallery_images) >= 4:
-                row2 = Table([[gallery_images[2], gallery_images[3]]], 
-                            colWidths=[265, 265],
-                            rowHeights=[185])
-                row2.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-                ]))
-                elements.append(row2)
-                elements.append(Spacer(1, 10))
-            elif len(gallery_images) == 3:
-                row2 = Table([[gallery_images[2]]], 
-                            colWidths=[265],
-                            rowHeights=[185])
-                row2.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ]))
-                elements.append(row2)
-                elements.append(Spacer(1, 10))
+            # First row (images 0, 1, 2)
+            row1_images = gallery_images[:3]
+            if row1_images:
+                # Pad with empty cells if less than 3 images
+                while len(row1_images) < 3:
+                    row1_images.append('')
+                row1 = Table([row1_images], colWidths=[176, 176, 176], rowHeights=[125])
+                row1.setStyle(row_style)
+                elements.append(row1)
+                elements.append(Spacer(1, 8))
             
-            # Third row (for 5-6 images)
-            if len(gallery_images) >= 6:
-                row3 = Table([[gallery_images[4], gallery_images[5]]], 
-                            colWidths=[265, 265],
-                            rowHeights=[185])
-                row3.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-                ]))
-                elements.append(row3)
-            elif len(gallery_images) == 5:
-                row3 = Table([[gallery_images[4]]], 
-                            colWidths=[265],
-                            rowHeights=[185])
+            # Second row (images 3, 4, 5)
+            if len(gallery_images) > 3:
+                row2_images = gallery_images[3:6]
+                # Pad with empty cells if less than 3 images
+                while len(row2_images) < 3:
+                    row2_images.append('')
+                row2 = Table([row2_images], colWidths=[176, 176, 176], rowHeights=[125])
+                row2.setStyle(row_style)
+                elements.append(row2)
                 row3.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
