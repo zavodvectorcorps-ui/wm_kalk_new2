@@ -420,10 +420,19 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
       } else if (imageType === 'promo') {
         setTemplate(prev => ({ ...prev, promoImageId: response.data.id }));
       } else if (imageType === 'gallery') {
-        setTemplate(prev => ({
-          ...prev,
-          galleryImageIds: [...(prev.galleryImageIds || []), response.data.id]
-        }));
+        setTemplate(prev => {
+          const newGalleryIds = [...(prev.galleryImageIds || []), response.data.id];
+          // Auto-save template after adding gallery image
+          if (prev.id) {
+            axios.put(`${API_URL}/api/pdf-templates/${prev.id}`, {
+              galleryImageIds: newGalleryIds
+            }).catch(err => console.error('Auto-save gallery failed:', err));
+          }
+          return {
+            ...prev,
+            galleryImageIds: newGalleryIds
+          };
+        });
       }
       
       fetchImages();
