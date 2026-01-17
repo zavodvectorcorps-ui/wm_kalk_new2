@@ -220,13 +220,14 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
     Embeddable HTML widget for amoCRM external integration.
     
     This endpoint returns an HTML page that can be embedded in an iframe
-    within amoCRM. It shows delivery status and calculator buttons.
+    within amoCRM. It shows order info, delivery status and calculator buttons.
     
     Usage in amoCRM:
     1. Create external integration
     2. Add widget with iframe URL: {APP_URL}/api/widget/embed/{lead_id}
     """
     from fastapi.responses import HTMLResponse
+    from datetime import datetime
     
     # Get order status
     order, section = get_all_orders_by_amocrm_id(lead_id)
@@ -254,7 +255,8 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
     # Status config
     status_config = {
         "pending": {"label": "Ожидает", "color": "#6b7280", "bg": "#f3f4f6"},
-        "planned": {"label": "Запланирован", "color": "#3b82f6", "bg": "#eff6ff"},
+        "new": {"label": "Новый", "color": "#3b82f6", "bg": "#eff6ff"},
+        "planned": {"label": "Запланирован", "color": "#8b5cf6", "bg": "#f5f3ff"},
         "in_transit": {"label": "В пути", "color": "#f59e0b", "bg": "#fffbeb"},
         "delivering": {"label": "Доставляется", "color": "#f59e0b", "bg": "#fffbeb"},
         "delivered": {"label": "Доставлен", "color": "#22c55e", "bg": "#f0fdf4"},
@@ -267,7 +269,7 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
     status_bg = "#f3f4f6"
     
     if order:
-        order_status = order.get("tripOrderStatus") or order.get("deliveryStatus") or "pending"
+        order_status = order.get("tripOrderStatus") or order.get("deliveryStatus") or order.get("status") or "new"
         cfg = status_config.get(order_status, status_config["pending"])
         status_label = cfg["label"]
         status_color = cfg["color"]
@@ -280,7 +282,6 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
     else:
         base_url = os.environ.get("APP_BASE_URL", "")
         if not base_url:
-            # Fallback: try to read from frontend .env
             try:
                 with open("/app/frontend/.env", "r") as f:
                     for line in f:
@@ -296,6 +297,23 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
     text_color = "#f9fafb" if is_dark else "#1f2937"
     border_color = "#374151" if is_dark else "#e5e7eb"
     muted_color = "#9ca3af" if is_dark else "#6b7280"
+    card_bg = "#374151" if is_dark else "#f9fafb"
+    
+    # Section labels
+    section_labels = {
+        "greenhouse": "Теплица",
+        "balia": "Купель",
+        "sauna": "Сауна"
+    }
+    
+    # Source labels
+    source_labels = {
+        "calculator": "Калькулятор",
+        "widget": "Виджет amoCRM",
+        "web": "Сайт",
+        "manual": "Ручной ввод",
+        "iframe": "Iframe"
+    }
     
     # Build HTML
     html = f"""
@@ -304,7 +322,7 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WM-Group Widget</title>
+    <title>Информация о заказе</title>
     <style>
         * {{
             margin: 0;
@@ -315,98 +333,198 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: {bg_color};
             color: {text_color};
-            padding: 12px;
-            font-size: 13px;
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.5;
         }}
         .widget {{
-            max-width: 320px;
+            max-width: 420px;
+            margin: 0 auto;
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid {border_color};
+        }}
+        .header-title {{
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }}
+        .header-subtitle {{
+            font-size: 13px;
+            color: {muted_color};
         }}
         .section {{
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }}
         .section-title {{
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: {muted_color};
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+        }}
+        .status-row {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
         }}
         .status-badge {{
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 20px;
             font-weight: 500;
-            font-size: 13px;
+            font-size: 14px;
         }}
         .status-dot {{
             width: 8px;
             height: 8px;
             border-radius: 50%;
         }}
+        .info-card {{
+            background: {card_bg};
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid {border_color};
+        }}
         .info-row {{
             display: flex;
             justify-content: space-between;
-            padding: 6px 0;
+            padding: 8px 0;
             border-bottom: 1px solid {border_color};
         }}
         .info-row:last-child {{
             border-bottom: none;
+            padding-bottom: 0;
+        }}
+        .info-row:first-child {{
+            padding-top: 0;
         }}
         .info-label {{
             color: {muted_color};
+            font-size: 13px;
         }}
         .info-value {{
             font-weight: 500;
+            text-align: right;
+            max-width: 60%;
+        }}
+        .info-value.highlight {{
+            color: #3b82f6;
+        }}
+        .info-value.success {{
+            color: #22c55e;
+        }}
+        .info-value.warning {{
+            color: #f59e0b;
+        }}
+        .calculator-block {{
+            background: linear-gradient(135deg, {'#1e3a5f' if is_dark else '#e0f2fe'} 0%, {'#1e293b' if is_dark else '#f0f9ff'} 100%);
+            border: 2px solid {'#3b82f6' if is_dark else '#3b82f6'};
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }}
+        .calculator-title {{
+            font-size: 16px;
+            font-weight: 600;
+            color: {'#60a5fa' if is_dark else '#1e40af'};
+            margin-bottom: 6px;
+        }}
+        .calculator-subtitle {{
+            font-size: 13px;
+            color: {muted_color};
+            margin-bottom: 16px;
         }}
         .btn-group {{
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
         }}
         .btn {{
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
             text-decoration: none;
-            border: 1px solid {border_color};
-            background: {bg_color};
-            color: {text_color};
+            border: none;
             cursor: pointer;
-            transition: all 0.15s;
+            transition: all 0.2s;
+            min-width: 130px;
         }}
-        .btn:hover {{
-            background: {'#374151' if is_dark else '#f3f4f6'};
-        }}
-        .btn-primary {{
-            background: #3b82f6;
-            border-color: #3b82f6;
+        .btn-balia {{
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
             color: white;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
         }}
-        .btn-primary:hover {{
-            background: #2563eb;
+        .btn-balia:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }}
+        .btn-sauna {{
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+        }}
+        .btn-sauna:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
         }}
         .btn svg {{
-            width: 14px;
-            height: 14px;
+            width: 18px;
+            height: 18px;
         }}
         .not-found {{
             text-align: center;
-            padding: 20px;
+            padding: 30px 20px;
             color: {muted_color};
+        }}
+        .not-found-icon {{
+            font-size: 48px;
+            margin-bottom: 12px;
+        }}
+        .not-found-text {{
+            font-size: 16px;
+            margin-bottom: 6px;
+        }}
+        .not-found-hint {{
+            font-size: 13px;
         }}
         .photo-badge {{
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
             color: #22c55e;
+            font-size: 13px;
+            background: {'#064e3b' if is_dark else '#dcfce7'};
+            padding: 6px 12px;
+            border-radius: 16px;
+        }}
+        .kp-badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }}
+        .kp-yes {{
+            background: {'#064e3b' if is_dark else '#dcfce7'};
+            color: #22c55e;
+        }}
+        .kp-no {{
+            background: {'#7f1d1d' if is_dark else '#fee2e2'};
+            color: #ef4444;
         }}
     </style>
 </head>
@@ -415,94 +533,177 @@ async def get_embed_widget(lead_id: str, theme: str = "light"):
 """
 
     if order:
+        # Format dates
+        created_at = order.get('createdAt') or order.get('created_at', '')
+        created_date_str = '-'
+        if created_at:
+            try:
+                if isinstance(created_at, str):
+                    dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                else:
+                    dt = created_at
+                created_date_str = dt.strftime('%d.%m.%Y %H:%M')
+            except:
+                created_date_str = str(created_at)[:16] if created_at else '-'
+        
+        # Get creator info
+        created_by = order.get('createdBy') or order.get('managerName') or order.get('employeeName') or '-'
+        
+        # Get source
+        source = order.get('source') or order.get('orderSource') or 'calculator'
+        source_label = source_labels.get(source, source)
+        
+        # Check if KP (commercial proposal) was created
+        has_pdf = order.get('pdfGenerated') or order.get('hasPdf') or order.get('pdfUrl') or order.get('pdf_url')
+        
+        # Get total
+        total = order.get('total') or order.get('totalPrice') or 0
+        currency = order.get('currencySymbol') or order.get('currency', 'zł')
+        try:
+            total_formatted = f"{float(total):,.0f}".replace(",", " ")
+        except:
+            total_formatted = str(total)
+        
+        # Customer name
+        customer_name = order.get('fullName') or order.get('customerName') or '-'
+        
         html += f"""
+        <div class="header">
+            <div class="header-title">Информация о заказе</div>
+            <div class="header-subtitle">amoCRM ID: {lead_id}</div>
+        </div>
+        
         <!-- Status Section -->
         <div class="section">
-            <div class="section-title">Статус доставки</div>
-            <div class="status-badge" style="background: {status_bg}; color: {status_color};">
-                <span class="status-dot" style="background: {status_color};"></span>
-                {status_label}
+            <div class="section-title">Статус</div>
+            <div class="status-row">
+                <div class="status-badge" style="background: {status_bg}; color: {status_color};">
+                    <span class="status-dot" style="background: {status_color};"></span>
+                    {status_label}
+                </div>
+                {f'<span class="photo-badge">📷 Фото доставки</span>' if photo_info else ''}
             </div>
-            {f'<span class="photo-badge" style="margin-left: 8px;">📷 Фото загружено</span>' if photo_info else ''}
+        </div>
+        
+        <!-- Order Details -->
+        <div class="section">
+            <div class="section-title">Детали заказа</div>
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label">ID заказа</span>
+                    <span class="info-value">{order.get('id', '-')}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Тип</span>
+                    <span class="info-value highlight">{section_labels.get(section, section.capitalize() if section else '-')}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Клиент</span>
+                    <span class="info-value">{customer_name}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Сумма</span>
+                    <span class="info-value success">{total_formatted} {currency}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Создан</span>
+                    <span class="info-value">{created_date_str}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Создал</span>
+                    <span class="info-value">{created_by}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Источник</span>
+                    <span class="info-value">{source_label}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">КП создано</span>
+                    <span class="info-value">
+                        <span class="kp-badge {'kp-yes' if has_pdf else 'kp-no'}">
+                            {'✓ Да' if has_pdf else '✗ Нет'}
+                        </span>
+                    </span>
+                </div>
+            </div>
         </div>
 """
         
+        # Trip info section (especially for greenhouse)
         if trip_info:
             departure_date = trip_info.get('departureDate', '')
             if departure_date:
                 try:
-                    from datetime import datetime
                     dt = datetime.fromisoformat(departure_date.replace('Z', '+00:00'))
                     departure_date = dt.strftime('%d.%m.%Y')
                 except:
                     pass
             
+            trip_status_labels = {
+                "planned": "Запланирован",
+                "in_progress": "В пути",
+                "completed": "Завершён",
+                "cancelled": "Отменён"
+            }
+            trip_status = trip_info.get('status', '')
+            trip_status_label = trip_status_labels.get(trip_status, trip_status)
+            
             html += f"""
         <!-- Trip Info -->
         <div class="section">
-            <div class="section-title">Информация о рейсе</div>
-            <div class="info-row">
-                <span class="info-label">Рейс</span>
-                <span class="info-value">{trip_info.get('name', '-')}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Водитель</span>
-                <span class="info-value">{trip_info.get('driverName', '-')}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Дата</span>
-                <span class="info-value">{departure_date or '-'}</span>
+            <div class="section-title">Рейс и доставка</div>
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label">Рейс</span>
+                    <span class="info-value highlight">{trip_info.get('name', '-')}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Водитель</span>
+                    <span class="info-value">{trip_info.get('driverName', '-')}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Дата выезда</span>
+                    <span class="info-value">{departure_date or '-'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Статус рейса</span>
+                    <span class="info-value">{trip_status_label}</span>
+                </div>
             </div>
         </div>
 """
 
-        html += f"""
-        <!-- Order Info -->
-        <div class="section">
-            <div class="section-title">Заказ</div>
-            <div class="info-row">
-                <span class="info-label">ID</span>
-                <span class="info-value">{order.get('id', '-')}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Раздел</span>
-                <span class="info-value">{section.capitalize() if section else '-'}</span>
-            </div>
-        </div>
-"""
     else:
         html += f"""
         <div class="not-found">
-            <div style="font-size: 24px; margin-bottom: 8px;">📦</div>
-            <div>Заказ не найден в системе</div>
-            <div style="font-size: 11px; margin-top: 4px;">Создайте заказ через калькулятор</div>
+            <div class="not-found-icon">📦</div>
+            <div class="not-found-text">Заказ не найден</div>
+            <div class="not-found-hint">Создайте заказ через калькулятор ниже</div>
         </div>
 """
 
     html += f"""
-        <!-- Calculator Buttons -->
+        <!-- Calculator Block -->
         <div class="section">
-            <div class="section-title">Калькуляторы</div>
-            <div class="btn-group">
-                <a href="{base_url}/?calc=balia&amocrm_id={lead_id}" target="_blank" class="btn btn-primary">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-                    </svg>
-                    Купель
-                </a>
-                <a href="{base_url}/?calc=sauna&amocrm_id={lead_id}" target="_blank" class="btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13 3.23 12.17 3.75 11.46 4.32C8.87 6.4 7.85 10.07 9.07 13.22C9.11 13.32 9.15 13.42 9.15 13.55C9.15 13.77 9 13.97 8.8 14.05C8.57 14.15 8.33 14.09 8.14 13.93C8.08 13.88 8.04 13.83 8 13.76C6.87 12.33 6.69 10.28 7.45 8.64C5.78 10 4.87 12.3 5 14.47C5.06 14.97 5.12 15.47 5.29 15.97C5.43 16.57 5.7 17.17 6 17.7C7.08 19.43 8.95 20.67 10.96 20.92C13.1 21.19 15.39 20.8 17.03 19.32C18.86 17.66 19.5 15 18.56 12.72L18.43 12.46C18.22 12 17.66 11.2 17.66 11.2Z"/>
-                    </svg>
-                    Сауна
-                </a>
+            <div class="calculator-block">
+                <div class="calculator-title">Создать КП в калькуляторе</div>
+                <div class="calculator-subtitle">Выберите тип продукта</div>
+                <div class="btn-group">
+                    <a href="{base_url}/?calc=balia&amocrm_id={lead_id}" target="_blank" class="btn btn-balia">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M8 12h8M12 8v8"/>
+                        </svg>
+                        Купель
+                    </a>
+                    <a href="{base_url}/?calc=sauna&amocrm_id={lead_id}" target="_blank" class="btn btn-sauna">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v4M4.93 4.93l2.83 2.83M2 12h4M4.93 19.07l2.83-2.83M12 18v4M16.24 16.24l2.83 2.83M18 12h4M16.24 7.76l2.83-2.83"/>
+                        </svg>
+                        Сауна
+                    </a>
+                </div>
             </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 12px;">
-            <a href="{base_url}/logistics" target="_blank" style="color: {muted_color}; font-size: 11px; text-decoration: none;">
-                Открыть логистику →
-            </a>
         </div>
     </div>
     
