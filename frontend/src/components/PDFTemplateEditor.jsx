@@ -49,6 +49,7 @@ const BLOCK_NAMES = {
 export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
   const { isAdmin } = useAuth();
   const [template, setTemplate] = useState(null);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState([]);
@@ -57,21 +58,35 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [duplicating, setDuplicating] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [showNewTemplateDialog, setShowNewTemplateDialog] = useState(false);
 
-  // Fetch template and images on mount
+  // Fetch templates and images on mount
   useEffect(() => {
-    fetchTemplate();
+    fetchTemplates();
     fetchImages();
   }, [calculatorType]);
 
-  const fetchTemplate = async () => {
+  const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/pdf-templates/default/${calculatorType}`);
-      setTemplate(response.data);
+      const response = await axios.get(`${API_URL}/api/pdf-templates?calculator_type=${calculatorType}`);
+      const allTemplates = response.data;
+      setTemplates(allTemplates);
+      
+      // Select default template or first one
+      const defaultTemplate = allTemplates.find(t => t.isDefault) || allTemplates[0];
+      if (defaultTemplate) {
+        setTemplate(defaultTemplate);
+      } else {
+        // Load default structure if no templates exist
+        const defaultResponse = await axios.get(`${API_URL}/api/pdf-templates/default/${calculatorType}`);
+        setTemplate(defaultResponse.data);
+      }
     } catch (error) {
-      console.error('Error fetching template:', error);
-      toast.error('Błąd ładowania szablonu');
+      console.error('Error fetching templates:', error);
+      toast.error('Błąd ładowania szablonów');
     } finally {
       setLoading(false);
     }
