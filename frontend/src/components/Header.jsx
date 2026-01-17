@@ -323,6 +323,27 @@ export const Header = ({
                     {txt.techSpec}
                   </Button>
                 )}
+                {/* FAQ in mobile menu */}
+                <Button
+                  variant={activeTab === 'faq' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('faq')}
+                  className="w-full justify-start gap-2"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  FAQ
+                </Button>
+                {isAdminAuthenticated && (
+                  <Button
+                    variant={activeTab === 'faq-admin' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleTabChange('faq-admin')}
+                    className="w-full justify-start gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    FAQ ⚙
+                  </Button>
+                )}
               </>
             )}
             {showUsers && isAdminAuthenticated && (
