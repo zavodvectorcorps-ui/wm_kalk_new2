@@ -218,6 +218,40 @@ async def delete_template(template_id: str):
     return {"status": "deleted", "id": template_id}
 
 
+@router.post("/{template_id}/duplicate")
+async def duplicate_template(template_id: str, new_name: str = None):
+    """Duplicate an existing PDF template."""
+    # Find the original template
+    original = templates_collection.find_one({"id": template_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Create a new template based on the original
+    now = datetime.now(timezone.utc).isoformat()
+    new_id = f"tpl-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{str(ObjectId())[:8]}"
+    
+    new_template = {
+        "id": new_id,
+        "name": new_name or f"{original.get('name', 'Szablon')} (kopia)",
+        "calculator_type": original.get("calculator_type", "sauna"),
+        "isDefault": False,  # Duplicates are never default
+        "blocks": original.get("blocks", []),
+        "colors": original.get("colors", {}),
+        "texts": original.get("texts", {}),
+        "logoImageId": original.get("logoImageId"),
+        "promoImageId": original.get("promoImageId"),
+        "galleryImageIds": original.get("galleryImageIds", []),
+        "createdAt": now,
+        "updatedAt": now
+    }
+    
+    templates_collection.insert_one(new_template)
+    
+    # Return without _id
+    del new_template["_id"] if "_id" in new_template else None
+    return new_template
+
+
 # ========== IMAGE MANAGEMENT ==========
 
 @router.post("/images/upload")
