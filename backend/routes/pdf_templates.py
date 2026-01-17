@@ -248,7 +248,8 @@ async def duplicate_template(template_id: str, new_name: str = None):
     templates_collection.insert_one(new_template)
     
     # Return without _id
-    del new_template["_id"] if "_id" in new_template else None
+    if "_id" in new_template:
+        del new_template["_id"]
     return new_template
 
 
