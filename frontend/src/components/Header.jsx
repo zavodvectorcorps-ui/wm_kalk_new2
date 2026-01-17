@@ -146,17 +146,6 @@ export const Header = ({
                   {i18n.language === 'pl' ? 'Kod' : 'Код'}
                 </Button>
               )}
-              {calculatorType === 'sauna' && (isAdminAuthenticated || canViewPricing()) && (
-                <Button
-                  variant={activeTab === 'techspec' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => handleTabChange('techspec')}
-                  className="flex items-center gap-2"
-                >
-                  <Settings className="h-4 w-4" />
-                  {txt.techSpec}
-                </Button>
-              )}
               {/* FAQ Button */}
               {showNavigation && (
                 <Button
