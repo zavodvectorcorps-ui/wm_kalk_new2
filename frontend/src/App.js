@@ -378,7 +378,7 @@ const AppContent = () => {
           </Suspense>
         ) : activeTab === 'faq-admin' && isAdmin() ? (
           <Suspense fallback={<PageLoader />}>
-            <FAQPage.FAQAdmin calculatorType="sauna" />
+            <FAQAdminComponent calculatorType="sauna" />
           </Suspense>
         ) : (
           <Suspense fallback={<PageLoader />}>
