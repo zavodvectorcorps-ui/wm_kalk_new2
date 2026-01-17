@@ -157,6 +157,30 @@ export const Header = ({
                   {txt.techSpec}
                 </Button>
               )}
+              {/* FAQ Button */}
+              {showNavigation && (
+                <Button
+                  variant={activeTab === 'faq' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('faq')}
+                  className="flex items-center gap-2"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  FAQ
+                </Button>
+              )}
+              {/* FAQ Admin - only for admins */}
+              {showNavigation && isAdminAuthenticated && (
+                <Button
+                  variant={activeTab === 'faq-admin' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('faq-admin')}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  FAQ ⚙
+                </Button>
+              )}
             </>
           )}
           {showUsers && isAdminAuthenticated && (
