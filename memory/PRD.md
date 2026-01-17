@@ -16,12 +16,13 @@ A full-featured quoting and order management application for Saunas and Balias (
      - `POST /api/pdf-templates` - Create new template
      - `PUT /api/pdf-templates/{id}` - Update template
      - `DELETE /api/pdf-templates/{id}` - Delete template
-     - **NEW** `POST /api/pdf-templates/{id}/duplicate` - Duplicate a template
+     - `POST /api/pdf-templates/{id}/duplicate` - Duplicate a template
+     - **`GET /api/pdf-templates/{id}/export`** - Export template with images as JSON
+     - **`POST /api/pdf-templates/import`** - Import template from JSON package
      - `POST /api/pdf-templates/images/upload` - Upload image for templates
      - `GET /api/pdf-templates/images` - List uploaded images
-     - `GET /api/pdf-templates/images/{id}/data` - Get image binary data
      - `DELETE /api/pdf-templates/images/{id}` - Delete image
-     - `POST /api/pdf-templates/preview/{calculator_type}` - Generate preview PDF with sample data
+     - `POST /api/pdf-templates/preview/{calculator_type}` - Generate preview PDF
      
   2. **Frontend Component** (`/app/frontend/src/components/PDFTemplateEditor.jsx`):
      - **Template Management**:
@@ -30,28 +31,17 @@ A full-featured quoting and order management application for Saunas and Balias (
        - Duplicate existing template
        - Set template as default
        - Delete non-default templates
+       - **Export template to JSON file (with images)**
+       - **Import template from JSON file**
      - 4 tabs: Блоки, Изображения, Тексты, Цвета
-     - **Blocks tab**: Toggle sections on/off (header, client info, model, options, promo, benches, total, gallery, footer)
-     - **Images tab**: Upload logo, promo image, gallery images (up to 6)
-     - **Texts tab**: Edit all PDF texts (header title, promo text, warranty, footer, gallery title, company slogan)
-     - **Colors tab**: Customize color scheme with live preview (primary, secondary, accent, text, muted)
-     - Preview button: Opens modal with generated PDF preview
-     - Download and open in new tab options
+     - Preview button with PDF viewer
      
   3. **PDF Generation Integration** (`/app/backend/routes/sauna.py`):
-     - `get_pdf_template()` - Loads template from database
-     - `is_block_enabled()` - Checks if section should be rendered
-     - `load_template_image()` - Loads custom images from template
-     - Colors, texts, and images from template are applied to generated PDF
-     - Blocks can be disabled to hide sections from PDF
-     - **Logic preserved**: Discount block shows when discount applied, otherwise promo/gift block shows
+     - Template settings applied to generated PDF
+     - **Logic preserved**: Discount/promo block selection based on discount value
      
-- **Database Collections**:
-  - `pdf_templates` - Template configurations (blocks, colors, texts, image IDs)
-  - `pdf_images` - Uploaded images stored as base64
-  
-- **Access**: Available via "Szablon PDF" tab in Sauna section (**ADMIN ONLY**)
-- **Status**: ✅ COMPLETED WITH TEMPLATE MANAGEMENT AND PREVIEW
+- **Access**: **ADMIN ONLY** (via "Szablon PDF" tab in Sauna section)
+- **Status**: ✅ COMPLETED
 
 ### Session 2026-01-16 - PDF Upload to amoCRM - FIX V4 ✅
 
