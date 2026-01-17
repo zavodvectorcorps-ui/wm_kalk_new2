@@ -371,6 +371,14 @@ const AppContent = () => {
           <Suspense fallback={<PageLoader />}>
             <TechSpecAdminPage />
           </Suspense>
+        ) : activeTab === 'faq' ? (
+          <Suspense fallback={<PageLoader />}>
+            <FAQPage calculatorType="sauna" />
+          </Suspense>
+        ) : activeTab === 'faq-admin' && isAdmin() ? (
+          <Suspense fallback={<PageLoader />}>
+            <FAQPage.FAQAdmin calculatorType="sauna" />
+          </Suspense>
         ) : (
           <Suspense fallback={<PageLoader />}>
             <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} amocrmPrefill={amocrmPrefill} onAmocrmPrefillUsed={() => setAmocrmPrefill(null)} />
