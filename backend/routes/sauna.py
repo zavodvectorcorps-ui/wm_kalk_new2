@@ -1,7 +1,7 @@
 """Sauna calculator routes."""
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 import io
 import os
