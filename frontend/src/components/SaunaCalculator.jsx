@@ -291,6 +291,15 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
   return (
     <TooltipProvider delayDuration={200}>
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Logo */}
+      <div className="flex justify-center mb-6">
+        <img 
+          src="/logo-wm-sauna.svg" 
+          alt="WM Sauna" 
+          className="h-16 md:h-20"
+        />
+      </div>
+      
       {/* Edit Mode Banner */}
       {isEditMode && (
         <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
