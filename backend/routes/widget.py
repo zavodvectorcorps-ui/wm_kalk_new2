@@ -214,17 +214,33 @@ async def download_widget():
 
 # ============= External Integration (iframe widget) =============
 
+@router.get("/embed/{theme}/{lead_id}")
+async def get_embed_widget_with_theme(lead_id: str, theme: str = "light"):
+    """
+    Embeddable HTML widget with theme in URL path.
+    
+    URL format: /api/widget/embed/{theme}/{lead_id}
+    Example: /api/widget/embed/dark/12345
+    """
+    return await _render_embed_widget(lead_id, theme)
+
+
 @router.get("/embed/{lead_id}")
 async def get_embed_widget(lead_id: str, theme: str = "light"):
     """
-    Embeddable HTML widget for amoCRM external integration.
+    Embeddable HTML widget (legacy URL format with query param).
+    
+    URL format: /api/widget/embed/{lead_id}?theme=dark
+    """
+    return await _render_embed_widget(lead_id, theme)
+
+
+async def _render_embed_widget(lead_id: str, theme: str = "light"):
+    """
+    Internal function to render the embed widget.
     
     This endpoint returns an HTML page that can be embedded in an iframe
     within amoCRM. It shows order info, delivery status and calculator buttons.
-    
-    Usage in amoCRM:
-    1. Create external integration
-    2. Add widget with iframe URL: {APP_URL}/api/widget/embed/{lead_id}
     """
     from fastapi.responses import HTMLResponse
     from datetime import datetime
