@@ -150,6 +150,16 @@ export const OptionsTab = ({
                                   {txt.quantityLabel}
                                 </Label>
                               </div>
+                              <div className="flex items-center gap-1 border rounded px-2 py-1 border-green-300 bg-green-50">
+                                <Checkbox
+                                  id={`default-${option.id}`}
+                                  checked={option.isDefaultSelected || false}
+                                  onCheckedChange={(checked) => handleToggleOptionDefault(category.id, option.id, checked)}
+                                />
+                                <Label htmlFor={`default-${option.id}`} className="text-xs cursor-pointer text-green-700">
+                                  {txt.defaultLabel || 'Domyślnie'}
+                                </Label>
+                              </div>
                               <Button
                                 size="icon"
                                 variant="ghost"
