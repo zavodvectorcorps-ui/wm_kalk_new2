@@ -1556,54 +1556,31 @@ async def send_backup_to_telegram():
                 zip_file.writestr("integration_settings.json", json.dumps(integration_settings, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "integration_settings", "count": len(integration_settings)})
             
-            # Webhook logs (for debugging and audit)
-            webhook_logs = await db.webhook_logs.find({}).to_list(10000)
-            if webhook_logs:
-                webhook_logs = [serialize_for_json(w) for w in webhook_logs]
-                zip_file.writestr("webhook_logs.json", json.dumps(webhook_logs, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "webhook_logs", "count": len(webhook_logs)})
+            # EXCLUDED FROM TELEGRAM BACKUP (to reduce size):
+            # - webhook_logs (debug logs, not critical)
+            # - amocrm_sync_logs (debug logs, not critical)
+            # - pending_notifications (temporary queue)
+            # - delivery_photos (large binary data)
+            # - warehouse_history (audit logs)
+            # These are still included in full export (/api/backup/export)
             
-            # Warehouse history - safe collection
-            warehouse_history = await safe_collect("warehouse_history")
-            if warehouse_history:
-                zip_file.writestr("warehouse_history.json", json.dumps(warehouse_history, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "warehouse_history", "count": len(warehouse_history)})
-            
-            # Delivery photos - safe collection
-            delivery_photos = await safe_collect("delivery_photos")
-            if delivery_photos:
-                zip_file.writestr("delivery_photos.json", json.dumps(delivery_photos, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "delivery_photos", "count": len(delivery_photos)})
-            
-            # Notification subscriptions - safe collection
+            # Notification subscriptions - keep (small, needed for push notifications)
             notification_subscriptions = await safe_collect("notification_subscriptions")
             if notification_subscriptions:
                 zip_file.writestr("notification_subscriptions.json", json.dumps(notification_subscriptions, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "notification_subscriptions", "count": len(notification_subscriptions)})
             
-            # Notification settings - safe collection
+            # Notification settings - keep (small, needed for notifications config)
             notification_settings = await safe_collect("notification_settings", limit=100)
             if notification_settings:
                 zip_file.writestr("notification_settings.json", json.dumps(notification_settings, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "notification_settings", "count": len(notification_settings)})
             
-            # Telegram link codes - safe collection
+            # Telegram link codes - keep (small, needed for driver linking)
             telegram_link_codes = await safe_collect("telegram_link_codes", limit=1000)
             if telegram_link_codes:
                 zip_file.writestr("telegram_link_codes.json", json.dumps(telegram_link_codes, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "telegram_link_codes", "count": len(telegram_link_codes)})
-            
-            # amoCRM sync logs - safe collection
-            amocrm_sync_logs = await safe_collect("amocrm_sync_logs")
-            if amocrm_sync_logs:
-                zip_file.writestr("amocrm_sync_logs.json", json.dumps(amocrm_sync_logs, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "amocrm_sync_logs", "count": len(amocrm_sync_logs)})
-            
-            # Pending notifications - safe collection
-            pending_notifications = await safe_collect("pending_notifications")
-            if pending_notifications:
-                zip_file.writestr("pending_notifications.json", json.dumps(pending_notifications, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "pending_notifications", "count": len(pending_notifications)})
             
             # Tech specs (legacy)
             tech_specs = await safe_collect("tech_specs", limit=1000)
