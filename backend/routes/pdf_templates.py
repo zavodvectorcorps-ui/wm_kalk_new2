@@ -253,6 +253,105 @@ async def duplicate_template(template_id: str, new_name: str = None):
     return new_template
 
 
+@router.get("/{template_id}/export")
+async def export_template(template_id: str):
+    """Export a template with all its images as a JSON package."""
+    # Find template
+    template = templates_collection.find_one({"id": template_id}, {"_id": 0})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Collect all image IDs
+    image_ids = []
+    if template.get("logoImageId"):
+        image_ids.append(template["logoImageId"])
+    if template.get("promoImageId"):
+        image_ids.append(template["promoImageId"])
+    if template.get("galleryImageIds"):
+        image_ids.extend(template["galleryImageIds"])
+    
+    # Fetch all images
+    images = []
+    for img_id in image_ids:
+        img_doc = pdf_images_collection.find_one({"id": img_id}, {"_id": 0})
+        if img_doc:
+            images.append(img_doc)
+    
+    # Create export package
+    export_data = {
+        "version": "1.0",
+        "exportedAt": datetime.now(timezone.utc).isoformat(),
+        "template": template,
+        "images": images
+    }
+    
+    return export_data
+
+
+@router.post("/import")
+async def import_template(import_data: dict):
+    """Import a template with its images from a JSON package."""
+    if "template" not in import_data:
+        raise HTTPException(status_code=400, detail="Invalid import data: missing template")
+    
+    template_data = import_data["template"]
+    images_data = import_data.get("images", [])
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Create ID mapping for images (old ID -> new ID)
+    image_id_map = {}
+    
+    # Import images first
+    for img in images_data:
+        old_id = img.get("id")
+        new_id = f"img-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{str(ObjectId())[:8]}"
+        
+        new_img = {
+            "id": new_id,
+            "filename": img.get("filename", "imported.jpg"),
+            "content_type": img.get("content_type", "image/jpeg"),
+            "image_type": img.get("image_type", "gallery"),
+            "calculator_type": template_data.get("calculator_type", "sauna"),
+            "data": img.get("data", ""),
+            "size": img.get("size", 0),
+            "createdAt": now
+        }
+        
+        pdf_images_collection.insert_one(new_img)
+        image_id_map[old_id] = new_id
+    
+    # Create new template with updated image IDs
+    new_template_id = f"tpl-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{str(ObjectId())[:8]}"
+    
+    new_template = {
+        "id": new_template_id,
+        "name": f"{template_data.get('name', 'Imported')} (import)",
+        "calculator_type": template_data.get("calculator_type", "sauna"),
+        "isDefault": False,  # Imported templates are never default
+        "blocks": template_data.get("blocks", []),
+        "colors": template_data.get("colors", {}),
+        "texts": template_data.get("texts", {}),
+        "logoImageId": image_id_map.get(template_data.get("logoImageId")),
+        "promoImageId": image_id_map.get(template_data.get("promoImageId")),
+        "galleryImageIds": [image_id_map.get(gid) for gid in template_data.get("galleryImageIds", []) if image_id_map.get(gid)],
+        "createdAt": now,
+        "updatedAt": now
+    }
+    
+    templates_collection.insert_one(new_template)
+    
+    # Return without _id
+    if "_id" in new_template:
+        del new_template["_id"]
+    
+    return {
+        "status": "imported",
+        "template": new_template,
+        "imagesImported": len(image_id_map)
+    }
+
+
 # ========== IMAGE MANAGEMENT ==========
 
 @router.post("/images/upload")
