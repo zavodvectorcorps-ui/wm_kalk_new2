@@ -29,6 +29,7 @@ const DriverPanel = lazy(() => import('./components/DriverPanel').then(m => ({ d
 const WarehousePage = lazy(() => import('./components/WarehousePage'));
 const SaunaCRMPage = lazy(() => import('./components/SaunaCRMPage'));
 const PdfUploadDebugPage = lazy(() => import('./components/PdfUploadDebugPage'));
+const FAQPage = lazy(() => import('./components/FAQPage'));
 
 // Loading fallback component
 const PageLoader = () => (
