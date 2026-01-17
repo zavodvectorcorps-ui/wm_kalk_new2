@@ -67,13 +67,40 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       const response = await axios.get(`${API_URL}/api/sauna/prices`);
       setPrices(response.data);
       
-      // Initialize selections for each category
+      // Initialize selections for each category with default options
       const initialSelections = {};
+      const initialQuantities = {};
+      
       (response.data.categories || []).forEach(cat => {
-        initialSelections[cat.id] = cat.inputType === 'checkbox' ? {} : '';
+        if (cat.inputType === 'checkbox') {
+          // For checkboxes, find all default selected options
+          const defaultSelected = {};
+          (cat.options || []).forEach(opt => {
+            if (opt.isDefaultSelected) {
+              defaultSelected[opt.id] = true;
+              // Set default quantity if option has quantity
+              if (opt.hasQuantity) {
+                initialQuantities[`${cat.id}_${opt.id}`] = 1;
+              }
+            }
+          });
+          initialSelections[cat.id] = defaultSelected;
+        } else {
+          // For radio/select, find the first default selected option
+          const defaultOpt = (cat.options || []).find(opt => opt.isDefaultSelected);
+          initialSelections[cat.id] = defaultOpt ? defaultOpt.id : '';
+          // Set quantity if default option has quantity
+          if (defaultOpt?.hasQuantity) {
+            initialQuantities[`${cat.id}_${defaultOpt.id}`] = 1;
+          }
+        }
       });
       
-      setFormData(prev => ({ ...prev, selections: initialSelections }));
+      setFormData(prev => ({ 
+        ...prev, 
+        selections: initialSelections,
+        quantities: { ...prev.quantities, ...initialQuantities }
+      }));
     } catch (error) {
       console.error('Error fetching sauna prices:', error);
       toast.error(t('error'));
