@@ -572,13 +572,29 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         # Check if KP (commercial proposal) was created
         has_pdf = order.get('pdfGenerated') or order.get('hasPdf') or order.get('pdfUrl') or order.get('pdf_url')
         
-        # Get total
+        # Get total and payment info
         total = order.get('total') or order.get('totalPrice') or 0
+        received_amount = order.get('receivedAmount') or 0
         currency = order.get('currencySymbol') or order.get('currency', 'zł')
+        
+        # Calculate debt
         try:
-            total_formatted = f"{float(total):,.0f}".replace(",", " ")
+            total_float = float(total)
+            received_float = float(received_amount)
+            debt = total_float - received_float
+        except:
+            total_float = 0
+            received_float = 0
+            debt = 0
+        
+        try:
+            total_formatted = f"{total_float:,.0f}".replace(",", " ")
+            received_formatted = f"{received_float:,.0f}".replace(",", " ")
+            debt_formatted = f"{debt:,.0f}".replace(",", " ")
         except:
             total_formatted = str(total)
+            received_formatted = str(received_amount)
+            debt_formatted = "0"
         
         # Customer name
         customer_name = order.get('fullName') or order.get('customerName') or '-'
@@ -618,8 +634,16 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                     <span class="info-value">{customer_name}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Сумма</span>
-                    <span class="info-value success">{total_formatted} {currency}</span>
+                    <span class="info-label">Сумма заказа</span>
+                    <span class="info-value">{total_formatted} {currency}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Оплачено</span>
+                    <span class="info-value {'success' if received_float > 0 else ''}">{received_formatted} {currency}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Задолженность</span>
+                    <span class="info-value {'warning' if debt > 0 else 'success'}">{debt_formatted} {currency}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Создан</span>
