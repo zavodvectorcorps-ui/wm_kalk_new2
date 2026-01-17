@@ -314,6 +314,8 @@ const AppContent = () => {
             {activeTab === 'pricing' && canViewPricing() && <BaliaPricingPage />}
             {activeTab === 'embed' && isAdmin() && <EmbedCodePage />}
             {activeTab === 'users' && isAdmin() && <UserManagement />}
+            {activeTab === 'faq' && <FAQPage calculatorType="balia" />}
+            {activeTab === 'faq-admin' && isAdmin() && <FAQPage.FAQAdmin calculatorType="balia" />}
           </Suspense>
         </main>
         
