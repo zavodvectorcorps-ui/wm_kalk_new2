@@ -488,6 +488,15 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
 
   return (
     <div className="space-y-6">
+      {/* Hidden file input for import */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".json"
+        className="hidden"
+        onChange={handleImportTemplate}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -505,7 +514,7 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
           )}
           <Button variant="outline" onClick={() => setShowNewTemplateDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Nowy szablon
+            Nowy
           </Button>
           {template?.id && (
             <Button variant="outline" onClick={() => {
@@ -516,13 +525,23 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
               Duplikuj
             </Button>
           )}
+          {template?.id && (
+            <Button variant="outline" onClick={handleExportTemplate}>
+              <Download className="h-4 w-4 mr-2" />
+              Eksport
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+            <FileUp className="h-4 w-4 mr-2" />
+            {importing ? 'Import...' : 'Import'}
+          </Button>
           <Button variant="outline" onClick={handlePreview} disabled={previewLoading}>
             <FileSearch className="h-4 w-4 mr-2" />
-            {previewLoading ? 'Генерация...' : 'Предпросмотр'}
+            {previewLoading ? 'Генерация...' : 'Podgląd'}
           </Button>
           <Button onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Сохранение...' : 'Сохранить'}
+            {saving ? 'Zapisuję...' : 'Zapisz'}
           </Button>
         </div>
       </div>
