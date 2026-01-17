@@ -1267,14 +1267,21 @@ export const IntegrationsPage = () => {
                 </ul>
               </div>
 
-              {/* Preview link */}
-              <div className="pt-2">
+              {/* Preview links */}
+              <div className="pt-2 flex gap-2 flex-wrap">
                 <Button
                   variant="outline"
-                  onClick={() => window.open(`${widgetInfo?.base_url || API_URL}/api/widget/embed/12345?theme=light`, '_blank')}
+                  onClick={() => window.open(`${widgetInfo?.base_url || API_URL}/api/widget/embed/dark/12345`, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Посмотреть пример виджета
+                  Пример (тёмная)
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(`${widgetInfo?.base_url || API_URL}/api/widget/embed/light/12345`, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Пример (светлая)
                 </Button>
               </div>
             </CardContent>
