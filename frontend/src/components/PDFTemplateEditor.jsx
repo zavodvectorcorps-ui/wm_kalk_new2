@@ -127,6 +127,73 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
     }
   };
 
+  const handlePreview = async () => {
+    try {
+      setPreviewLoading(true);
+      
+      // First save the template to ensure preview uses latest changes
+      if (template) {
+        if (template.id) {
+          await axios.put(`${API_URL}/api/pdf-templates/${template.id}`, {
+            blocks: template.blocks,
+            colors: template.colors,
+            texts: template.texts,
+            logoImageId: template.logoImageId,
+            promoImageId: template.promoImageId,
+            galleryImageIds: template.galleryImageIds
+          });
+        } else {
+          const response = await axios.post(`${API_URL}/api/pdf-templates`, {
+            name: `Szablon ${calculatorType.toUpperCase()}`,
+            calculator_type: calculatorType,
+            isDefault: true,
+            blocks: template.blocks,
+            colors: template.colors,
+            texts: template.texts,
+            logoImageId: template.logoImageId,
+            promoImageId: template.promoImageId,
+            galleryImageIds: template.galleryImageIds
+          });
+          setTemplate(response.data);
+        }
+      }
+      
+      // Generate preview PDF
+      const response = await axios.post(
+        `${API_URL}/api/pdf-templates/preview/${calculatorType}`,
+        {},
+        { responseType: 'blob' }
+      );
+      
+      // Create blob URL for the PDF
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      // Revoke old URL if exists
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      
+      setPreviewUrl(url);
+      setPreviewOpen(true);
+      
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      toast.error('Błąd generowania podglądu');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleBlockToggle = (blockId) => {
     setTemplate(prev => ({
       ...prev,
