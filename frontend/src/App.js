@@ -316,7 +316,7 @@ const AppContent = () => {
             {activeTab === 'embed' && isAdmin() && <EmbedCodePage />}
             {activeTab === 'users' && isAdmin() && <UserManagement />}
             {activeTab === 'faq' && <FAQPage calculatorType="balia" />}
-            {activeTab === 'faq-admin' && isAdmin() && <FAQPage.FAQAdmin calculatorType="balia" />}
+            {activeTab === 'faq-admin' && isAdmin() && <FAQAdminComponent calculatorType="balia" />}
           </Suspense>
         </main>
         
