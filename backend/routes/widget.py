@@ -542,6 +542,36 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             background: {'#7f1d1d' if is_dark else '#fee2e2'};
             color: #ef4444;
         }}
+        .allegro-badge {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, {'#7c2d12' if is_dark else '#fff7ed'} 0%, {'#431407' if is_dark else '#ffedd5'} 100%);
+            border: 2px solid #f97316;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            color: #f97316;
+        }}
+        .allegro-icon {{
+            font-size: 20px;
+        }}
+        .tags-row {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }}
+        .tag-badge {{
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            background: {'#4c1d95' if is_dark else '#ede9fe'};
+            color: {'#c4b5fd' if is_dark else '#7c3aed'};
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }}
     </style>
 </head>
 <body>
