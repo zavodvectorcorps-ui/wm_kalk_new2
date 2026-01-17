@@ -55,6 +55,10 @@ class PDFTemplate(BaseModel):
     logoImageId: Optional[str] = None
     promoImageId: Optional[str] = None
     galleryImageIds: List[str] = []
+    # Gallery promo block (before gallery collage)
+    galleryPromoTitle: Optional[str] = None
+    galleryPromoText: Optional[str] = None
+    galleryPromoImageId: Optional[str] = None
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
 
@@ -69,6 +73,9 @@ class PDFTemplateCreate(BaseModel):
     logoImageId: Optional[str] = None
     promoImageId: Optional[str] = None
     galleryImageIds: List[str] = []
+    galleryPromoTitle: Optional[str] = None
+    galleryPromoText: Optional[str] = None
+    galleryPromoImageId: Optional[str] = None
 
 
 class PDFTemplateUpdate(BaseModel):
@@ -80,6 +87,9 @@ class PDFTemplateUpdate(BaseModel):
     logoImageId: Optional[str] = None
     promoImageId: Optional[str] = None
     galleryImageIds: Optional[List[str]] = None
+    galleryPromoTitle: Optional[str] = None
+    galleryPromoText: Optional[str] = None
+    galleryPromoImageId: Optional[str] = None
 
 
 # Default blocks configuration
