@@ -590,12 +590,12 @@ async def create_order(order: Order):
     """Create a new order"""
     order_dict = order.model_dump()
     
-    # Mark that PDF will be generated
-    pdf_generated = False
+    # Save order first
+    await db.orders.insert_one(order_dict)
     
-    # Send Telegram notification with PDF for new balia order
+    # Then send Telegram notification with PDF
+    pdf_generated = False
     try:
-        # Generate PDF for the order
         from models.balia import PDFRequest
         pdf_request = PDFRequest(
             orderId=order_dict.get('id'),
@@ -618,17 +618,17 @@ async def create_order(order: Order):
         await notify_new_order(order_dict, order_type='balia', is_web_order=False, pdf_data=pdf_data)
     except Exception as e:
         logger.warning(f"Failed to send Telegram notification with PDF for order: {e}")
-        # Fallback: try to send without PDF
         try:
             await notify_new_order(order_dict, order_type='balia', is_web_order=False)
         except:
             pass
     
-    # Save PDF generation status
-    order_dict['pdfGenerated'] = pdf_generated
-    order_dict['pdfGeneratedAt'] = datetime.now(timezone.utc).isoformat() if pdf_generated else None
-    
-    await db.orders.insert_one(order_dict)
+    # Update order with PDF status
+    if pdf_generated:
+        await db.orders.update_one(
+            {"id": order_dict.get('id')},
+            {"$set": {"pdfGenerated": True, "pdfGeneratedAt": datetime.now(timezone.utc).isoformat()}}
+        )
     
     return order
 
