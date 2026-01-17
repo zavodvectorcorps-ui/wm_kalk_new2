@@ -342,3 +342,381 @@ async def seed_default_templates():
             created.append(calc_type)
     
     return {"status": "ok", "created": created}
+
+
+
+@router.post("/preview/{calculator_type}")
+async def generate_preview_pdf(calculator_type: str):
+    """Generate a preview PDF with sample data using current template settings."""
+    from fastapi.responses import Response
+    import io
+    import base64
+    from datetime import datetime, timedelta
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+    from reportlab.platypus import Image as RLImage
+    
+    # Load template
+    template = templates_collection.find_one(
+        {"calculator_type": calculator_type, "isDefault": True},
+        {"_id": 0}
+    )
+    
+    if not template:
+        template = {
+            "blocks": DEFAULT_BLOCKS,
+            "colors": PDFColors().model_dump(),
+            "texts": PDFTexts().model_dump(),
+            "logoImageId": None,
+            "promoImageId": None,
+            "galleryImageIds": []
+        }
+    
+    def is_block_enabled(block_id: str) -> bool:
+        blocks = template.get("blocks", [])
+        for block in blocks:
+            if block.get("id") == block_id:
+                return block.get("enabled", True)
+        return True
+    
+    def load_template_image(image_id: str) -> bytes:
+        if not image_id:
+            return None
+        try:
+            image_doc = pdf_images_collection.find_one({"id": image_id})
+            if image_doc and image_doc.get("data"):
+                return base64.b64decode(image_doc["data"])
+        except Exception:
+            pass
+        return None
+    
+    template_colors = template.get("colors", {})
+    template_texts = template.get("texts", {})
+    
+    buffer = io.BytesIO()
+    
+    try:
+        pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+        pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+    except Exception:
+        pass
+    
+    # Colors from template
+    BROWN = colors.HexColor(template_colors.get('primary', '#97724E'))
+    BROWN_LIGHT = colors.HexColor('#FAF6F0')
+    BROWN_BORDER = colors.HexColor(template_colors.get('secondary', '#D4C4B0'))
+    BROWN_DARK = colors.HexColor(template_colors.get('accent', '#6B5038'))
+    RED = colors.HexColor('#C53030')
+    RED_LIGHT = colors.HexColor('#FFF5F5')
+    TEXT_COLOR = colors.HexColor(template_colors.get('text', '#323232'))
+    MUTED = colors.HexColor(template_colors.get('muted', '#888888'))
+    
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                          rightMargin=20, leftMargin=20,
+                          topMargin=20, bottomMargin=20)
+    
+    elements = []
+    
+    # Sample data
+    current_date = datetime.now().strftime('%d.%m.%Y')
+    valid_until = (datetime.now() + timedelta(days=30)).strftime('%d.%m.%Y')
+    promo_until = (datetime.now() + timedelta(days=7)).strftime('%d.%m.%Y')
+    offer_number = f"PREVIEW-{datetime.now().strftime('%Y%m%d')}"
+    
+    # ========== HEADER ==========
+    if is_block_enabled('header'):
+        header_title = template_texts.get('headerTitle', 'OFERTA HANDLOWA')
+        
+        # Try to load custom logo
+        logo_cell = None
+        if template.get('logoImageId'):
+            logo_data = load_template_image(template.get('logoImageId'))
+            if logo_data:
+                try:
+                    logo_buffer = io.BytesIO(logo_data)
+                    logo_cell = RLImage(logo_buffer, width=180, height=36)
+                except Exception:
+                    pass
+        
+        if not logo_cell:
+            logo_cell = Paragraph('<b>WM-SAUNA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BROWN))
+        
+        header_data = [[
+            logo_cell,
+            '',
+            Paragraph(f'''<b>{header_title}</b><br/>
+            <font size="9" color="#95856e">Tel: +48 732 099 201</font><br/>
+            <font size="9" color="#95856e">Email: wmsauna@gmail.com</font><br/>
+            <font size="9" color="#95856e">www.wm-sauna.pl</font>''',
+            ParagraphStyle('HeaderRight', fontName='DejaVuSans', fontSize=16, alignment=TA_RIGHT, textColor=BROWN))
+        ]]
+        header_table = Table(header_data, colWidths=[200, 130, 200])
+        header_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (0, 0), 10),
+        ]))
+        elements.append(header_table)
+        elements.append(Spacer(1, 4))
+        elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+        elements.append(Spacer(1, 8))
+    
+    # ========== CLIENT INFO ==========
+    if is_block_enabled('client_info'):
+        client_info = Paragraph(f'''<b>DANE KLIENTA:</b><br/>
+        Imię i nazwisko: Jan Kowalski<br/>
+        Email: jan.kowalski@example.com<br/>
+        Telefon: +48 123 456 789''', 
+        ParagraphStyle('ClientInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR))
+        
+        offer_info = Paragraph(f'''<b>INFORMACJE O OFERCIE:</b><br/>
+        Data wystawienia: {current_date}<br/>
+        Ważność oferty: {valid_until}<br/>
+        <b>Nr oferty: {offer_number}</b>''',
+        ParagraphStyle('OfferInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, alignment=TA_RIGHT))
+        
+        info_table = Table([[client_info, offer_info]], colWidths=[265, 265])
+        info_table.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 1, BROWN),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(info_table)
+        elements.append(Spacer(1, 8))
+    
+    # ========== PROMO SECTION ==========
+    if is_block_enabled('promo'):
+        promo_title = template_texts.get('promoTitle', 'PROMOCJA')
+        promo_text_content = template_texts.get('promoText', 'Darmowa balia do schłodzenia<br/>lub beczka z sauną!')
+        
+        # Try to load custom promo image
+        promo_img = None
+        if template.get('promoImageId'):
+            promo_data = load_template_image(template.get('promoImageId'))
+            if promo_data:
+                try:
+                    promo_buffer = io.BytesIO(promo_data)
+                    promo_img = RLImage(promo_buffer, width=100, height=100)
+                except Exception:
+                    pass
+        
+        promo_text = Paragraph(f'''<b><font color="#C53030" size="13">{promo_title}</font></b><br/><br/>
+        <font size="9">Zamów do {promo_until} i wybierz swój super gratis świąteczny:<br/>
+        {promo_text_content}</font><br/><br/>
+        <font size="8" color="#888888">Oferta ważna tylko przy zakupie w tym terminie</font>''',
+        ParagraphStyle('PromoText', fontName='DejaVuSans', fontSize=11))
+        
+        if promo_img:
+            promo_data_table = [[promo_img, promo_text]]
+            promo_table = Table(promo_data_table, colWidths=[120, 400])
+        else:
+            promo_table = Table([[promo_text]], colWidths=[530])
+        
+        promo_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), RED_LIGHT),
+            ('BOX', (0, 0), (-1, -1), 1.5, RED),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(promo_table)
+        elements.append(Spacer(1, 10))
+    
+    # ========== MODEL SECTION ==========
+    if is_block_enabled('model_photo'):
+        model_section_title = ParagraphStyle(
+            'ModelSectionTitle',
+            fontName='DejaVuSans-Bold',
+            fontSize=16,
+            textColor=BROWN_DARK,
+            spaceAfter=6
+        )
+        elements.append(Paragraph('MODEL I ŁAWKI', model_section_title))
+        elements.append(Spacer(1, 4))
+        elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+        elements.append(Spacer(1, 6))
+        
+        model_info = Paragraph(f'''<b>MODEL</b><br/><br/>
+        Sauna Kwadro-Beczka 235×200 cm<br/>
+        <font color="{template_colors.get('primary', '#97724E')}"><b>12 500 PLN</b></font>''',
+        ParagraphStyle('ModelInfo', fontName='DejaVuSans', fontSize=10, leading=13))
+        
+        bench_info = Paragraph(f'''<b>ŁAWKI</b><br/><br/>
+        Ławki standardowe<br/>
+        <font color="{template_colors.get('primary', '#97724E')}"><b>2 500 PLN</b></font>''',
+        ParagraphStyle('BenchInfo', fontName='DejaVuSans', fontSize=10, leading=13))
+        
+        combined_table = Table([[model_info, bench_info]], colWidths=[265, 265])
+        combined_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        elements.append(combined_table)
+        elements.append(Spacer(1, 8))
+    
+    # ========== OPTIONS SECTION ==========
+    if is_block_enabled('options'):
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            fontName='DejaVuSans-Bold',
+            fontSize=13,
+            textColor=BROWN_DARK,
+        )
+        elements.append(Paragraph('DODATKOWE OPCJE', section_title_style))
+        elements.append(Spacer(1, 4))
+        elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
+        elements.append(Spacer(1, 4))
+        
+        sample_options = [
+            ['Piec elektryczny 9kW', '3 500 PLN', 'Oświetlenie LED', '800 PLN'],
+            ['Termometr', '150 PLN', 'Klepsydra', '100 PLN'],
+            ['Podłoga drewniana', '1 200 PLN', 'Wentylacja', '400 PLN'],
+        ]
+        
+        options_body = [[
+            Paragraph('<b>OPCJA</b>', ParagraphStyle('OptHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white)),
+            '',
+            Paragraph('<b>OPCJA</b>', ParagraphStyle('OptHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white)),
+            ''
+        ]]
+        
+        for row in sample_options:
+            options_body.append([
+                Paragraph(row[0], ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=9)),
+                Paragraph(row[1], ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=9, alignment=TA_RIGHT)),
+                Paragraph(row[2], ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=9)),
+                Paragraph(row[3], ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=9, alignment=TA_RIGHT)),
+            ])
+        
+        options_table = Table(options_body, colWidths=[180, 80, 180, 80])
+        options_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), BROWN),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('LINEBELOW', (0, 0), (-1, -1), 0.8, BROWN_BORDER),
+            ('BOX', (0, 0), (-1, -1), 1, BROWN_BORDER),
+            ('BACKGROUND', (0, 1), (-1, 1), BROWN_LIGHT),
+            ('BACKGROUND', (0, 3), (-1, 3), BROWN_LIGHT),
+        ]))
+        elements.append(options_table)
+        elements.append(Spacer(1, 10))
+    
+    # ========== TOTAL SECTION ==========
+    if is_block_enabled('total'):
+        total_price_str = "21 150"
+        warranty_text = template_texts.get('warrantyText', 'GWARANCJA: 12 miesiące od daty montażu')
+        
+        total_left = Paragraph(f'''<font color="white"><b>WARTOŚĆ CAŁKOWITA OFERTY</b></font><br/><br/>
+        <font color="white" size="20"><b>{total_price_str} PLN</b></font>''', 
+        ParagraphStyle('TotalLeft', fontName='DejaVuSans-Bold', fontSize=11, textColor=colors.white, leading=14))
+        
+        total_right = Paragraph(f'''TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni<br/>
+        ZALICZKA: 50% przed produkcją, 50% przed wysyłką<br/>
+        {warranty_text}''', 
+        ParagraphStyle('TotalRight', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, leading=12))
+        
+        total_table = Table([[total_left, total_right]], colWidths=[280, 250])
+        total_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), BROWN),
+            ('BACKGROUND', (1, 0), (1, 0), BROWN_LIGHT),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('LEFTPADDING', (0, 0), (-1, -1), 15),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 15),
+        ]))
+        elements.append(total_table)
+    
+    # ========== FOOTER ==========
+    if is_block_enabled('footer'):
+        footer_text = template_texts.get('footerText', 'Oferta ważna 30 dni od daty wystawienia.')
+        elements.append(Spacer(1, 10))
+        elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+        elements.append(Spacer(1, 4))
+        elements.append(Paragraph(footer_text, 
+                                 ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)))
+    
+    # ========== GALLERY PAGE ==========
+    if is_block_enabled('gallery'):
+        elements.append(PageBreak())
+        
+        gallery_title = template_texts.get('galleryTitle', 'GALERIA REALIZACJI')
+        elements.append(Paragraph(gallery_title, 
+                                 ParagraphStyle('GalleryTitle', fontName='DejaVuSans-Bold', fontSize=16, 
+                                               textColor=BROWN, alignment=TA_CENTER, spaceAfter=15)))
+        
+        # Try to load gallery images from template
+        gallery_images = []
+        template_gallery_ids = template.get('galleryImageIds', [])
+        
+        if template_gallery_ids:
+            for img_id in template_gallery_ids[:6]:
+                img_data = load_template_image(img_id)
+                if img_data:
+                    try:
+                        img_buffer = io.BytesIO(img_data)
+                        gallery_images.append(RLImage(img_buffer, width=250, height=180))
+                    except Exception:
+                        pass
+        
+        if gallery_images:
+            # Create grid
+            if len(gallery_images) >= 2:
+                row1 = Table([[gallery_images[0], gallery_images[1]]], colWidths=[265, 265], rowHeights=[185])
+                row1.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                elements.append(row1)
+                elements.append(Spacer(1, 10))
+            
+            if len(gallery_images) >= 4:
+                row2 = Table([[gallery_images[2], gallery_images[3]]], colWidths=[265, 265], rowHeights=[185])
+                row2.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                elements.append(row2)
+        else:
+            # Placeholder for gallery
+            elements.append(Spacer(1, 50))
+            elements.append(Paragraph('<font color="#888888"><i>Galeria zdjęć — dodaj zdjęcia w zakładce "Изображения"</i></font>', 
+                                     ParagraphStyle('GalleryPlaceholder', fontName='DejaVuSans', fontSize=12, 
+                                                   textColor=MUTED, alignment=TA_CENTER)))
+            elements.append(Spacer(1, 50))
+        
+        company_slogan = template_texts.get('companySlogan', 'WM-Group — Producent saun i bali na wymiar')
+        elements.append(Spacer(1, 15))
+        elements.append(Paragraph(company_slogan, 
+                                 ParagraphStyle('GalleryFooter', fontName='DejaVuSans', fontSize=10, 
+                                               textColor=MUTED, alignment=TA_CENTER)))
+    
+    doc.build(elements)
+    
+    pdf_data = buffer.getvalue()
+    buffer.close()
+    
+    return Response(
+        content=pdf_data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "inline; filename=preview.pdf"}
+    )
