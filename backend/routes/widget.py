@@ -573,15 +573,33 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         has_pdf = order.get('pdfGenerated') or order.get('hasPdf') or order.get('pdfUrl') or order.get('pdf_url')
         
         # Get total and payment info
-        total = order.get('total') or order.get('totalPrice') or 0
+        # Different collections use different field names:
+        # - balia/sauna: total, totalPrice
+        # - greenhouse: dealSum, debtSum, amountDue
+        total = (
+            order.get('total') or 
+            order.get('totalPrice') or 
+            order.get('dealSum') or 
+            order.get('amountDue') or 
+            0
+        )
         received_amount = order.get('receivedAmount') or 0
+        
+        # For greenhouse, debtSum is already calculated
+        debt_from_order = order.get('debtSum')
+        
         currency = order.get('currencySymbol') or order.get('currency', 'zł')
         
         # Calculate debt
         try:
-            total_float = float(total)
-            received_float = float(received_amount)
-            debt = total_float - received_float
+            total_float = float(total) if total else 0
+            received_float = float(received_amount) if received_amount else 0
+            
+            # Use debtSum if available (greenhouse), otherwise calculate
+            if debt_from_order is not None and debt_from_order != '':
+                debt = float(debt_from_order)
+            else:
+                debt = total_float - received_float
         except:
             total_float = 0
             received_float = 0
