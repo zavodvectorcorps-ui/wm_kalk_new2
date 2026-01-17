@@ -26,6 +26,7 @@ class SaunaOption(BaseModel):
     sortOrder: int = 1
     imageUrl: Optional[str] = None
     hasQuantity: bool = False
+    isDefaultSelected: bool = False  # If true, option is selected by default in calculator
     techSpecId: Optional[str] = None  # Link to tech spec option ID
     techSpecCategoryId: Optional[str] = None  # Override category mapping for specific options
     hint: Optional[str] = None
