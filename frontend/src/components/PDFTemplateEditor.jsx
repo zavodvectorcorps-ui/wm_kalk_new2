@@ -65,6 +65,8 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
   const [duplicating, setDuplicating] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
   const [showNewTemplateDialog, setShowNewTemplateDialog] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = React.useRef(null);
 
   // Fetch templates and images on mount
   useEffect(() => {
