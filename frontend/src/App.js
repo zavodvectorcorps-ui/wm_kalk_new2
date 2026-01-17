@@ -90,6 +90,39 @@ const AppContent = () => {
     }
   };
 
+  // Load existing order for editing by amocrm_id
+  const loadOrderForEdit = async (amocrmId, section) => {
+    try {
+      const getApiUrl = () => { 
+        if (typeof window !== 'undefined') { 
+          const o = window.location.origin; 
+          if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o; 
+        } 
+        return process.env.REACT_APP_BACKEND_URL || ''; 
+      };
+      const API_URL = getApiUrl();
+      
+      // Try to find order by amocrm_id
+      const ordersEndpoint = section === 'sauna' ? '/api/sauna/orders' : '/api/balia/orders';
+      const response = await fetch(`${API_URL}${ordersEndpoint}`);
+      
+      if (response.ok) {
+        const orders = await response.json();
+        // Find order with matching amocrm_id
+        const order = orders.find(o => o.amocrm_id === amocrmId || o.amocrm_id === String(amocrmId));
+        
+        if (order) {
+          setEditingOrder(order);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Error loading order for edit:', error);
+      return false;
+    }
+  };
+
   // Check URL parameters for amoCRM integration and CRM prefill
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
