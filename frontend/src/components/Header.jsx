@@ -334,6 +334,18 @@ export const Header = ({
                     FAQ ⚙
                   </Button>
                 )}
+                {/* PDF Template - only for sauna admins */}
+                {calculatorType === 'sauna' && isAdminAuthenticated && (
+                  <Button
+                    variant={activeTab === 'pdf-template' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleTabChange('pdf-template')}
+                    className="w-full justify-start gap-2"
+                  >
+                    <FileImage className="h-4 w-4" />
+                    {i18n.language === 'pl' ? 'Szablon PDF' : 'Шаблон PDF'}
+                  </Button>
+                )}
               </>
             )}
             {showUsers && isAdminAuthenticated && (
