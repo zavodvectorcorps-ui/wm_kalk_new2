@@ -5,42 +5,26 @@ A full-featured quoting and order management application for Saunas and Balias (
 
 ## Recent Updates (January 2026)
 
-### Session 2026-01-17 - PDF Template Editor - COMPLETED ✅
+### Session 2026-01-17 - PDF Template Editor & Default Options - COMPLETED ✅
 
-#### Feature: PDF Template Constructor (Konstruktor PDF)
-- **Request**: Build a feature allowing admins to design and customize the structure of generated PDF proposals
+#### Feature 1: PDF Template Constructor (Konstruktor PDF)
+- Template management: create, duplicate, set default, delete
+- Export/Import templates as JSON
+- Preview PDF with sample data
+- **Access**: ADMIN ONLY
+
+#### Feature 2: Default Options for Sauna Calculator ✅ NEW
+- **Request**: Allow setting options as "selected by default" in pricing settings
 - **Implementation**:
-  1. **Backend API** (`/app/backend/routes/pdf_templates.py`):
-     - `GET /api/pdf-templates` - Get all templates
-     - `GET /api/pdf-templates/default/{calculator_type}` - Get default template
-     - `POST /api/pdf-templates` - Create new template
-     - `PUT /api/pdf-templates/{id}` - Update template
-     - `DELETE /api/pdf-templates/{id}` - Delete template
-     - `POST /api/pdf-templates/{id}/duplicate` - Duplicate a template
-     - **`GET /api/pdf-templates/{id}/export`** - Export template with images as JSON
-     - **`POST /api/pdf-templates/import`** - Import template from JSON package
-     - `POST /api/pdf-templates/images/upload` - Upload image for templates
-     - `GET /api/pdf-templates/images` - List uploaded images
-     - `DELETE /api/pdf-templates/images/{id}` - Delete image
-     - `POST /api/pdf-templates/preview/{calculator_type}` - Generate preview PDF
-     
-  2. **Frontend Component** (`/app/frontend/src/components/PDFTemplateEditor.jsx`):
-     - **Template Management**:
-       - Template selector showing all templates with default badge
-       - Create new template with custom name
-       - Duplicate existing template
-       - Set template as default
-       - Delete non-default templates
-       - **Export template to JSON file (with images)**
-       - **Import template from JSON file**
-     - 4 tabs: Блоки, Изображения, Тексты, Цвета
-     - Preview button with PDF viewer
-     
-  3. **PDF Generation Integration** (`/app/backend/routes/sauna.py`):
-     - Template settings applied to generated PDF
-     - **Logic preserved**: Discount/promo block selection based on discount value
-     
-- **Access**: **ADMIN ONLY** (via "Szablon PDF" tab in Sauna section)
+  - Added `isDefaultSelected` field to `SaunaOption` model in `/app/backend/models/sauna.py`
+  - Added checkbox "Выбрано по умолчанию" in Add/Edit option dialogs (`/app/frontend/src/components/sauna-pricing/OptionDialog.jsx`)
+  - Added "Domyślnie" badge for default options in options list (`/app/frontend/src/components/sauna-pricing/OptionsTab.jsx`)
+  - Modified calculator initialization to pre-select default options (`/app/frontend/src/components/sauna/useSaunaCalculator.js`)
+- **Behavior**:
+  - Admin can mark any option as "default selected"
+  - When calculator loads, these options are automatically checked
+  - Manager can change selections as needed
+  - Works for both checkbox (multi-select) and radio (single-select) categories
 - **Status**: ✅ COMPLETED
 
 ### Session 2026-01-16 - PDF Upload to amoCRM - FIX V4 ✅
