@@ -321,12 +321,49 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
               Создать шаблон
             </Button>
           )}
+          <Button variant="outline" onClick={handlePreview} disabled={previewLoading}>
+            <FileSearch className="h-4 w-4 mr-2" />
+            {previewLoading ? 'Генерация...' : 'Предпросмотр'}
+          </Button>
           <Button onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Сохранение...' : 'Сохранить'}
           </Button>
         </div>
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSearch className="h-5 w-5" />
+              Podgląd PDF
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 h-full min-h-0">
+            {previewUrl && (
+              <iframe
+                src={previewUrl}
+                className="w-full h-[calc(90vh-120px)] border rounded-lg"
+                title="PDF Preview"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+              Zamknij
+            </Button>
+            {previewUrl && (
+              <Button asChild>
+                <a href={previewUrl} download="preview.pdf">
+                  Pobierz PDF
+                </a>
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
