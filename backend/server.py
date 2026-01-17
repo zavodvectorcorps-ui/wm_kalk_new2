@@ -73,6 +73,61 @@ app.include_router(pdf_templates_router, prefix="/api")
 from database import db
 set_backup_db(db)
 
+
+async def backup_scheduler():
+    """Background task that runs automatic backups based on settings."""
+    logger.info("Backup scheduler started")
+    
+    while True:
+        try:
+            # Check backup settings
+            settings = await db.settings.find_one({"type": "backup_settings"})
+            
+            if settings and settings.get("enabled", False):
+                interval_hours = settings.get("intervalHours", 24)
+                last_backup_str = settings.get("lastBackup")
+                
+                should_backup = False
+                
+                if not last_backup_str:
+                    # Never backed up, do it now
+                    should_backup = True
+                    logger.info("No previous backup found, triggering backup")
+                else:
+                    # Check if interval has passed
+                    try:
+                        last_backup = datetime.fromisoformat(last_backup_str.replace('Z', '+00:00'))
+                        now = datetime.now(timezone.utc)
+                        hours_since = (now - last_backup).total_seconds() / 3600
+                        
+                        if hours_since >= interval_hours:
+                            should_backup = True
+                            logger.info(f"Backup interval passed ({hours_since:.1f}h >= {interval_hours}h), triggering backup")
+                    except Exception as e:
+                        logger.warning(f"Could not parse last backup date: {e}")
+                        should_backup = True
+                
+                if should_backup:
+                    try:
+                        # Import and call the backup function
+                        from routes.backup import create_auto_backup
+                        result = await create_auto_backup()
+                        logger.info(f"Auto backup completed: {result}")
+                    except Exception as e:
+                        logger.error(f"Auto backup failed: {e}")
+            
+            # Check every hour
+            await asyncio.sleep(3600)
+            
+        except asyncio.CancelledError:
+            logger.info("Backup scheduler cancelled")
+            break
+        except Exception as e:
+            logger.error(f"Backup scheduler error: {e}")
+            # Wait before retrying
+            await asyncio.sleep(300)
+
+
 # Startup event to ensure phone field exists
 @app.on_event("startup")
 async def startup_event():
