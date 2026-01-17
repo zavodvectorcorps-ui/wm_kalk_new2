@@ -572,6 +572,30 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             font-size: 12px;
             font-weight: 500;
         }}
+        .btn-edit {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 20px;
+            background: {'#1e3a5f' if is_dark else '#f0f9ff'};
+            border: 2px solid #0ea5e9;
+            border-radius: 10px;
+            color: {'#38bdf8' if is_dark else '#0284c7'};
+            font-weight: 600;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }}
+        .btn-edit:hover {{
+            background: {'#0c4a6e' if is_dark else '#e0f2fe'};
+            transform: translateY(-1px);
+        }}
+        .btn-edit svg {{
+            width: 18px;
+            height: 18px;
+        }}
     </style>
 </head>
 <body>
