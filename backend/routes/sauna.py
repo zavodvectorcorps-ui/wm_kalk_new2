@@ -1325,75 +1325,126 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     elements.append(Spacer(1, 10))
     elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
     elements.append(Spacer(1, 4))
-    elements.append(Paragraph('Oferta ważna 30 dni od daty wystawienia.', 
+    elements.append(Paragraph(template_texts.get('footerText', 'Oferta ważna 30 dni od daty wystawienia.'), 
                              ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)))
     
     # ========== GALLERY PAGE ==========
-    # Add a new page with photo collage
-    elements.append(PageBreak())
-    
-    # Gallery title
-    elements.append(Paragraph('GALERIA REALIZACJI', 
-                             ParagraphStyle('GalleryTitle', fontName='DejaVuSans-Bold', fontSize=16, 
-                                           textColor=BROWN, alignment=TA_CENTER, spaceAfter=15)))
-    
-    # Load gallery images
-    gallery_dir = '/app/assets/gallery'
-    gallery_images = []
-    gallery_files = ['grat-3.jpg', 'f-bg-3.jpg', 'grat-2.jpg', 'photo-4.jpg']
-    
-    for img_file in gallery_files:
-        img_path = os.path.join(gallery_dir, img_file)
-        if os.path.exists(img_path):
-            try:
-                gallery_images.append(RLImage(img_path, width=250, height=180))
-            except Exception as e:
-                logger.warning(f"Could not load gallery image {img_file}: {e}")
-    
-    # Create 2x2 grid of images
-    if gallery_images:
-        # First row
-        if len(gallery_images) >= 2:
-            row1 = Table([[gallery_images[0], gallery_images[1]]], 
-                        colWidths=[265, 265],
-                        rowHeights=[185])
-            row1.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ]))
-            elements.append(row1)
-            elements.append(Spacer(1, 10))
+    if is_block_enabled(pdf_template, 'gallery'):
+        # Add a new page with photo collage
+        elements.append(PageBreak())
         
-        # Second row
-        if len(gallery_images) >= 4:
-            row2 = Table([[gallery_images[2], gallery_images[3]]], 
-                        colWidths=[265, 265],
-                        rowHeights=[185])
-            row2.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-            ]))
-            elements.append(row2)
-        elif len(gallery_images) == 3:
-            # If only 3 images, center the third one
-            row2 = Table([[gallery_images[2]]], 
-                        colWidths=[265],
-                        rowHeights=[185])
-            row2.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ]))
-            elements.append(row2)
-    
-    # Gallery footer
-    elements.append(Spacer(1, 15))
-    elements.append(Paragraph('WM-Group — Producent saun i bali na wymiar', 
-                             ParagraphStyle('GalleryFooter', fontName='DejaVuSans', fontSize=10, 
-                                           textColor=MUTED, alignment=TA_CENTER)))
+        # Gallery title from template
+        gallery_title = template_texts.get('galleryTitle', 'GALERIA REALIZACJI')
+        elements.append(Paragraph(gallery_title, 
+                                 ParagraphStyle('GalleryTitle', fontName='DejaVuSans-Bold', fontSize=16, 
+                                               textColor=BROWN, alignment=TA_CENTER, spaceAfter=15)))
+        
+        # Load gallery images - first try from template, then fall back to default
+        gallery_images = []
+        template_gallery_ids = pdf_template.get('galleryImageIds', [])
+        
+        if template_gallery_ids:
+            # Load images from template
+            for img_id in template_gallery_ids[:6]:  # Max 6 images
+                img_data = await load_template_image(img_id)
+                if img_data:
+                    try:
+                        img_buffer = io.BytesIO(img_data)
+                        gallery_images.append(RLImage(img_buffer, width=250, height=180))
+                    except Exception as e:
+                        logger.warning(f"Could not load template gallery image {img_id}: {e}")
+        
+        # Fall back to default gallery if no template images
+        if not gallery_images:
+            gallery_dir = '/app/assets/gallery'
+            gallery_files = ['grat-3.jpg', 'f-bg-3.jpg', 'grat-2.jpg', 'photo-4.jpg']
+            
+            for img_file in gallery_files:
+                img_path = os.path.join(gallery_dir, img_file)
+                if os.path.exists(img_path):
+                    try:
+                        gallery_images.append(RLImage(img_path, width=250, height=180))
+                    except Exception as e:
+                        logger.warning(f"Could not load gallery image {img_file}: {e}")
+        
+        # Create 2x2 grid of images
+        if gallery_images:
+            # First row
+            if len(gallery_images) >= 2:
+                row1 = Table([[gallery_images[0], gallery_images[1]]], 
+                            colWidths=[265, 265],
+                            rowHeights=[185])
+                row1.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ]))
+                elements.append(row1)
+                elements.append(Spacer(1, 10))
+            elif len(gallery_images) == 1:
+                row1 = Table([[gallery_images[0]]], 
+                            colWidths=[265],
+                            rowHeights=[185])
+                row1.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                elements.append(row1)
+                elements.append(Spacer(1, 10))
+            
+            # Second row
+            if len(gallery_images) >= 4:
+                row2 = Table([[gallery_images[2], gallery_images[3]]], 
+                            colWidths=[265, 265],
+                            rowHeights=[185])
+                row2.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ]))
+                elements.append(row2)
+                elements.append(Spacer(1, 10))
+            elif len(gallery_images) == 3:
+                row2 = Table([[gallery_images[2]]], 
+                            colWidths=[265],
+                            rowHeights=[185])
+                row2.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                elements.append(row2)
+                elements.append(Spacer(1, 10))
+            
+            # Third row (for 5-6 images)
+            if len(gallery_images) >= 6:
+                row3 = Table([[gallery_images[4], gallery_images[5]]], 
+                            colWidths=[265, 265],
+                            rowHeights=[185])
+                row3.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ]))
+                elements.append(row3)
+            elif len(gallery_images) == 5:
+                row3 = Table([[gallery_images[4]]], 
+                            colWidths=[265],
+                            rowHeights=[185])
+                row3.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                elements.append(row3)
+        
+        # Gallery footer / company slogan from template
+        company_slogan = template_texts.get('companySlogan', 'WM-Group — Producent saun i bali na wymiar')
+        elements.append(Spacer(1, 15))
+        elements.append(Paragraph(company_slogan, 
+                                 ParagraphStyle('GalleryFooter', fontName='DejaVuSans', fontSize=10, 
+                                               textColor=MUTED, alignment=TA_CENTER)))
     
     doc.build(elements)
     
