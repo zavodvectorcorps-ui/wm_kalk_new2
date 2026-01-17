@@ -313,6 +313,69 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
     }
   };
 
+  const handleExportTemplate = async () => {
+    if (!template?.id) {
+      toast.error('Najpierw wybierz szablon do eksportu');
+      return;
+    }
+    
+    try {
+      const response = await axios.get(`${API_URL}/api/pdf-templates/${template.id}/export`);
+      
+      // Create and download JSON file
+      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${template.name || 'template'}_export.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Szablon wyeksportowany!');
+    } catch (error) {
+      console.error('Error exporting template:', error);
+      toast.error('Błąd eksportu szablonu');
+    }
+  };
+
+  const handleImportTemplate = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      setImporting(true);
+      
+      // Read JSON file
+      const text = await file.text();
+      const importData = JSON.parse(text);
+      
+      // Validate structure
+      if (!importData.template) {
+        throw new Error('Nieprawidłowy format pliku');
+      }
+      
+      // Send to backend
+      const response = await axios.post(`${API_URL}/api/pdf-templates/import`, importData);
+      
+      // Refresh templates and select the imported one
+      await fetchTemplates();
+      setTemplate(response.data.template);
+      
+      toast.success(`Zaimportowano szablon! (${response.data.imagesImported} zdjęć)`);
+    } catch (error) {
+      console.error('Error importing template:', error);
+      toast.error(error.message || 'Błąd importu szablonu');
+    } finally {
+      setImporting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleBlockToggle = (blockId) => {
     setTemplate(prev => ({
       ...prev,
