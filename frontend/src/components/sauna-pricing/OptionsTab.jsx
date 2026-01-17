@@ -20,6 +20,7 @@ export const OptionsTab = ({
   handleSaveEditOption,
   handleUpdateOptionPrice,
   handleToggleOptionQuantity,
+  handleToggleOptionDefault,
   handleReorderOptions,
 }) => {
   const { canEdit } = useAuth();
