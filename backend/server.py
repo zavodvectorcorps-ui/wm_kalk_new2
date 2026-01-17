@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
+import asyncio
+from datetime import datetime, timezone
 
 from database import client
 from routes.auth import router as auth_router
@@ -33,6 +35,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Background task control
+backup_scheduler_task = None
 
 # Create the main app
 app = FastAPI(
