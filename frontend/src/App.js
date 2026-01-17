@@ -144,9 +144,21 @@ const AppContent = () => {
       setCurrentCalculator(calc);
       setActiveTab('calculator');
       
+      const isEditMode = params.get('edit') === 'true';
+      
       if (amocrmId) {
-        // Fetch lead data from amoCRM
-        fetchAmocrmLeadData(amocrmId, calc);
+        if (isEditMode) {
+          // Load existing order for editing
+          loadOrderForEdit(amocrmId, calc).then(found => {
+            if (!found) {
+              // If order not found, just prefill from amoCRM
+              fetchAmocrmLeadData(amocrmId, calc);
+            }
+          });
+        } else {
+          // Fetch lead data from amoCRM for new order
+          fetchAmocrmLeadData(amocrmId, calc);
+        }
       } else if (crmLeadId && prefillData) {
         // Direct prefill from Sauna CRM
         try {
