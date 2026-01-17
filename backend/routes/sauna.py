@@ -322,7 +322,9 @@ async def delete_sauna_option(category_id: str, option_id: str):
 async def create_sauna_order(order: SaunaOrder):
     """Create a new sauna order"""
     order_dict = order.model_dump()
-    await db.sauna_orders.insert_one(order_dict)
+    
+    # Mark that PDF will be generated
+    pdf_generated = False
     
     # Send Telegram notification with PDF for new sauna order
     try:
@@ -342,6 +344,7 @@ async def create_sauna_order(order: SaunaOrder):
             total=order_dict.get('total', 0)
         )
         pdf_data = await generate_sauna_pdf_bytes(pdf_request)
+        pdf_generated = True
         await notify_new_order(order_dict, order_type='sauna', is_web_order=False, pdf_data=pdf_data)
     except Exception as e:
         logger.warning(f"Failed to send Telegram notification with PDF for sauna order: {e}")
@@ -350,6 +353,12 @@ async def create_sauna_order(order: SaunaOrder):
             await notify_new_order(order_dict, order_type='sauna', is_web_order=False)
         except:
             pass
+    
+    # Save PDF generation status
+    order_dict['pdfGenerated'] = pdf_generated
+    order_dict['pdfGeneratedAt'] = datetime.now(timezone.utc).isoformat() if pdf_generated else None
+    
+    await db.sauna_orders.insert_one(order_dict)
     
     return order
 
