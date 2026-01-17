@@ -653,6 +653,12 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         # Get tags from amoCRM
         amocrm_tags = order.get('amocrm_tags') or order.get('tags') or []
         
+        # Check for OPŁACONE tag (paid on Allegro)
+        is_paid_allegro = False
+        tag_names = [t.get('name', t) if isinstance(t, dict) else t for t in amocrm_tags]
+        if 'OPŁACONE' in tag_names or 'OPLACONE' in tag_names:
+            is_paid_allegro = True
+        
         html += f"""
         <div class="header">
             <div class="header-title">Информация о заказе</div>
@@ -712,7 +718,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 </div>
                 <div class="info-row">
                     <span class="info-label">Задолженность</span>
-                    <span class="info-value {'warning' if debt > 0 else 'success'}">{debt_formatted} {currency}</span>
+                    <span class="info-value {'success' if is_paid_allegro else ('warning' if debt > 0 else 'success')}">{'✓ Оплачен на Allegro' if is_paid_allegro else f'{debt_formatted} {currency}'}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Создан</span>
@@ -736,6 +742,17 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 </div>
             </div>
         </div>
+        
+        <!-- Edit Button (if order exists and has PDF) -->
+        {f'''<div class="section">
+            <a href="{base_url}/?calc={section}&amocrm_id={lead_id}&edit=true" target="_blank" class="btn btn-edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Редактировать заказ
+            </a>
+        </div>''' if has_pdf else ''}
 """
         
         # Trip info section (especially for greenhouse)
