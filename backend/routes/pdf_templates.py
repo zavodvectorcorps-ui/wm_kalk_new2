@@ -101,8 +101,9 @@ DEFAULT_BLOCKS = [
     {"id": "promo", "name": "Промо-блок с подарком", "enabled": True, "order": 5},
     {"id": "benches", "name": "Информация о лавках", "enabled": True, "order": 6},
     {"id": "total", "name": "Итого", "enabled": True, "order": 7},
-    {"id": "gallery", "name": "Галерея", "enabled": True, "order": 8},
-    {"id": "footer", "name": "Футер", "enabled": True, "order": 9},
+    {"id": "gallery_promo", "name": "Промо-страница галереи", "enabled": True, "order": 8},
+    {"id": "gallery", "name": "Коллаж галереи", "enabled": True, "order": 9},
+    {"id": "footer", "name": "Футер", "enabled": True, "order": 10},
 ]
 
 
