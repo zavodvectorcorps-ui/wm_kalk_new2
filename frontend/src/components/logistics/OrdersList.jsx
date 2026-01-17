@@ -284,19 +284,37 @@ export const OrderCard = ({
                     <DollarSign className="h-3 w-3" />
                     Задолженность
                   </label>
-                  <Input
-                    defaultValue={order.debtSum || order.amountDue || ''}
-                    placeholder="0"
-                    className="h-8 text-sm border-red-200 focus:ring-red-500"
-                    onBlur={(e) => {
-                      const newValue = e.target.value;
-                      if (newValue !== (order.debtSum || order.amountDue || '')) {
-                        onUpdateOrderField(order.id, { debtSum: newValue, amountDue: newValue });
-                      }
-                    }}
-                  />
+                  {/* Check for OPŁACONE tag */}
+                  {(order.amocrm_tags?.some(t => (t.name || t) === 'OPŁACONE' || (t.name || t) === 'OPLACONE')) ? (
+                    <div className="h-8 flex items-center px-2 bg-green-100 border border-green-300 rounded text-green-700 text-sm font-medium">
+                      ✓ Оплачен на Allegro
+                    </div>
+                  ) : (
+                    <Input
+                      defaultValue={order.debtSum || order.amountDue || ''}
+                      placeholder="0"
+                      className="h-8 text-sm border-red-200 focus:ring-red-500"
+                      onBlur={(e) => {
+                        const newValue = e.target.value;
+                        if (newValue !== (order.debtSum || order.amountDue || '')) {
+                          onUpdateOrderField(order.id, { debtSum: newValue, amountDue: newValue });
+                        }
+                      }}
+                    />
+                  )}
                 </div>
               </div>
+
+              {/* amoCRM Tags */}
+              {order.amocrm_tags && order.amocrm_tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-2">
+                  {order.amocrm_tags.map((tag, idx) => (
+                    <span key={idx} className="inline-flex items-center px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-medium rounded-full">
+                      {tag.name || tag}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* amoCRM data */}
               {order.amocrm_id && (
