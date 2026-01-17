@@ -1491,11 +1491,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 row2 = Table([row2_images], colWidths=[176, 176, 176], rowHeights=[125])
                 row2.setStyle(row_style)
                 elements.append(row2)
-                row3.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ]))
-                elements.append(row3)
         
         # Gallery footer / company slogan from template
         company_slogan = template_texts.get('companySlogan', 'WM-Group — Producent saun i bali na wymiar')
