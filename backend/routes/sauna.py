@@ -24,6 +24,61 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/sauna", tags=["Sauna Calculator"])
 
 
+# Default PDF template settings
+DEFAULT_PDF_TEMPLATE = {
+    "blocks": [
+        {"id": "header", "enabled": True},
+        {"id": "client_info", "enabled": True},
+        {"id": "model_photo", "enabled": True},
+        {"id": "options", "enabled": True},
+        {"id": "promo", "enabled": True},
+        {"id": "benches", "enabled": True},
+        {"id": "total", "enabled": True},
+        {"id": "gallery", "enabled": True},
+        {"id": "footer", "enabled": True},
+    ],
+    "colors": {
+        "primary": "#8B4513",
+        "secondary": "#D2B48C",
+        "accent": "#CD853F",
+        "text": "#333333",
+        "muted": "#666666"
+    },
+    "texts": {
+        "headerTitle": "OFERTA HANDLOWA",
+        "promoTitle": "PROMOCJA",
+        "promoText": "Darmowa balia do schłodzenia<br/>lub beczka z sauną!",
+        "warrantyText": "GWARANCJA: 12 miesiące od daty montażu",
+        "footerText": "Oferta ważna 30 dni od daty wystawienia.",
+        "galleryTitle": "GALERIA REALIZACJI",
+        "companySlogan": "WM-Group — Producent saun i bali na wymiar"
+    }
+}
+
+
+async def get_pdf_template(calculator_type: str = "sauna") -> dict:
+    """Load PDF template from database or return default"""
+    try:
+        template = await db.pdf_templates.find_one(
+            {"calculator_type": calculator_type, "isDefault": True},
+            {"_id": 0}
+        )
+        if template:
+            return template
+    except Exception as e:
+        logger.warning(f"Could not load PDF template: {e}")
+    return DEFAULT_PDF_TEMPLATE
+
+
+def is_block_enabled(template: dict, block_id: str) -> bool:
+    """Check if a block is enabled in the template"""
+    blocks = template.get("blocks", [])
+    for block in blocks:
+        if block.get("id") == block_id:
+            return block.get("enabled", True)
+    return True  # Default to enabled if not found
+
+
 @router.get("/prices")
 async def get_sauna_prices():
     """Get sauna pricing data"""
