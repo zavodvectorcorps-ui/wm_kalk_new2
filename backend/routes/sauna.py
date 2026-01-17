@@ -1445,7 +1445,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 img_data = await load_template_image(img_id)
                 if img_data:
                     try:
-                        gallery_images.append(scale_image_proportionally(img_data, 250, 180))
+                        gallery_images.append(scale_image_proportionally(img_data, 165, 120))
                     except Exception as e:
                         logger.warning(f"Could not load template gallery image {img_id}: {e}")
         
