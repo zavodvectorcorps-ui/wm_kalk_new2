@@ -856,29 +856,30 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         elements.append(Spacer(1, 8))
     
     # ========== CLIENT + OFFER INFO ==========
-    email_line = f"Email: {request.email}<br/>" if hasattr(request, 'email') and request.email else ""
-    client_info = Paragraph(f'''<b>DANE KLIENTA:</b><br/>
-    Imię i nazwisko: {request.fullName}<br/>
-    {email_line}Telefon: {request.phoneNumber}''', 
-    ParagraphStyle('ClientInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR))
-    
-    offer_info = Paragraph(f'''<b>INFORMACJE O OFERCIE:</b><br/>
-    Data wystawienia: {current_date}<br/>
-    Ważność oferty: {valid_until}<br/>
-    <b>Nr oferty: {offer_number}</b>''',
-    ParagraphStyle('OfferInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, alignment=TA_RIGHT))
-    
-    info_table = Table([[client_info, offer_info]], colWidths=[265, 265])
-    info_table.setStyle(TableStyle([
-        ('BOX', (0, 0), (-1, -1), 1, BROWN),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('LEFTPADDING', (0, 0), (-1, -1), 10),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-    ]))
-    elements.append(info_table)
-    elements.append(Spacer(1, 8))
+    if is_block_enabled(pdf_template, 'client_info'):
+        email_line = f"Email: {request.email}<br/>" if hasattr(request, 'email') and request.email else ""
+        client_info = Paragraph(f'''<b>DANE KLIENTA:</b><br/>
+        Imię i nazwisko: {request.fullName}<br/>
+        {email_line}Telefon: {request.phoneNumber}''', 
+        ParagraphStyle('ClientInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR))
+        
+        offer_info = Paragraph(f'''<b>INFORMACJE O OFERCIE:</b><br/>
+        Data wystawienia: {current_date}<br/>
+        Ważność oferty: {valid_until}<br/>
+        <b>Nr oferty: {offer_number}</b>''',
+        ParagraphStyle('OfferInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, alignment=TA_RIGHT))
+        
+        info_table = Table([[client_info, offer_info]], colWidths=[265, 265])
+        info_table.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 1, BROWN),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(info_table)
+        elements.append(Spacer(1, 8))
     
     # ========== DISCOUNT OR PROMO SECTION ==========
     if discount_percent > 0:
