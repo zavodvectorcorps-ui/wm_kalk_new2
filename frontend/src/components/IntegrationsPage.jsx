@@ -1196,24 +1196,51 @@ export const IntegrationsPage = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
-              <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+              <div className="p-4 bg-blue-50 rounded-lg space-y-4">
                 <h3 className="font-semibold">URL для iframe виджета:</h3>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 p-3 bg-white rounded border text-sm break-all">
-                    {widgetInfo?.base_url || 'https://wm-kalkulator.pl'}/api/widget/embed/&#123;lead.id&#125;
-                  </code>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const url = `${widgetInfo?.base_url || 'https://wm-kalkulator.pl'}/api/widget/embed/{lead.id}`;
-                      navigator.clipboard.writeText(url);
-                      toast.success('URL скопирован');
-                    }}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                
+                {/* Dark theme URL (recommended) */}
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-gray-600">🌙 Тёмная тема (рекомендуется для amoCRM):</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 p-3 bg-white rounded border text-sm break-all">
+                      {widgetInfo?.base_url || 'https://wm-kalkulator.pl'}/api/widget/embed/dark/&#123;lead.id&#125;
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const url = `${widgetInfo?.base_url || 'https://wm-kalkulator.pl'}/api/widget/embed/dark/{lead.id}`;
+                        navigator.clipboard.writeText(url);
+                        toast.success('URL скопирован');
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
+                
+                {/* Light theme URL */}
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-gray-600">☀️ Светлая тема:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 p-3 bg-white rounded border text-sm break-all">
+                      {widgetInfo?.base_url || 'https://wm-kalkulator.pl'}/api/widget/embed/light/&#123;lead.id&#125;
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const url = `${widgetInfo?.base_url || 'https://wm-kalkulator.pl'}/api/widget/embed/light/{lead.id}`;
+                        navigator.clipboard.writeText(url);
+                        toast.success('URL скопирован');
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
                 <p className="text-xs text-muted-foreground">
                   Домен: <strong>{widgetInfo?.base_url || 'https://wm-kalkulator.pl'}</strong>
                 </p>
