@@ -1328,7 +1328,63 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     elements.append(Paragraph(template_texts.get('footerText', 'Oferta ważna 30 dni od daty wystawienia.'), 
                              ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)))
     
-    # ========== GALLERY PAGE ==========
+    # ========== GALLERY PROMO PAGE ==========
+    if is_block_enabled(pdf_template, 'gallery_promo'):
+        gallery_promo_title = pdf_template.get('galleryPromoTitle')
+        gallery_promo_text = pdf_template.get('galleryPromoText')
+        gallery_promo_image_id = pdf_template.get('galleryPromoImageId')
+        
+        # Only show if at least title or image is set
+        if gallery_promo_title or gallery_promo_image_id:
+            elements.append(PageBreak())
+            
+            # Title
+            if gallery_promo_title:
+                elements.append(Paragraph(gallery_promo_title, 
+                    ParagraphStyle('GalleryPromoTitle', fontName='DejaVuSans-Bold', fontSize=18, 
+                                  textColor=BROWN, alignment=TA_CENTER, spaceAfter=12)))
+            
+            # Text
+            if gallery_promo_text:
+                # Support line breaks in text
+                text_lines = gallery_promo_text.replace('\n', '<br/>')
+                elements.append(Paragraph(text_lines, 
+                    ParagraphStyle('GalleryPromoText', fontName='DejaVuSans', fontSize=11, 
+                                  textColor=TEXT_COLOR, alignment=TA_CENTER, spaceAfter=15, leading=14)))
+            
+            # Full-width image
+            if gallery_promo_image_id:
+                promo_img_data = await load_template_image(gallery_promo_image_id)
+                if promo_img_data:
+                    try:
+                        from PIL import Image as PILImage
+                        pil_img = PILImage.open(io.BytesIO(promo_img_data))
+                        orig_width, orig_height = pil_img.size
+                        
+                        # Scale to full page width (530px) preserving aspect ratio
+                        max_width = 530
+                        max_height = 600  # Leave some space for text
+                        
+                        width_ratio = max_width / orig_width
+                        height_ratio = max_height / orig_height
+                        scale = min(width_ratio, height_ratio)
+                        
+                        new_width = int(orig_width * scale)
+                        new_height = int(orig_height * scale)
+                        
+                        promo_full_img = RLImage(io.BytesIO(promo_img_data), width=new_width, height=new_height)
+                        
+                        # Center the image in a table
+                        img_table = Table([[promo_full_img]], colWidths=[530])
+                        img_table.setStyle(TableStyle([
+                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ]))
+                        elements.append(img_table)
+                    except Exception as e:
+                        logger.warning(f"Could not load gallery promo image: {e}")
+    
+    # ========== GALLERY COLLAGE PAGE ==========
     if is_block_enabled(pdf_template, 'gallery'):
         # Add a new page with photo collage
         elements.append(PageBreak())
