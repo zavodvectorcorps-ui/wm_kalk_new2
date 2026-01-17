@@ -813,12 +813,26 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             logger.warning(f"Could not load model image: {e}")
     
     # ========== HEADER ==========
-    logo_cell = logo_img if logo_img else Paragraph('<b>WM-SAUNA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BROWN))
+    # Get header title from template
+    header_title = template_texts.get('headerTitle', 'OFERTA HANDLOWA')
+    
+    # Try to load custom logo from template
+    custom_logo_img = None
+    if pdf_template.get('logoImageId'):
+        logo_data = await load_template_image(pdf_template.get('logoImageId'))
+        if logo_data:
+            try:
+                logo_buffer = io.BytesIO(logo_data)
+                custom_logo_img = RLImage(logo_buffer, width=180, height=36)
+            except Exception as e:
+                logger.warning(f"Could not load custom logo: {e}")
+    
+    logo_cell = custom_logo_img or logo_img if logo_img else Paragraph('<b>WM-SAUNA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BROWN))
     
     header_data = [[
         logo_cell,
         '',
-        Paragraph('''<b>OFERTA HANDLOWA</b><br/>
+        Paragraph(f'''<b>{header_title}</b><br/>
         <font size="9" color="#95856e">Tel: +48 732 099 201</font><br/>
         <font size="9" color="#95856e">Email: wmsauna@gmail.com</font><br/>
         <font size="9" color="#95856e">www.wm-sauna.pl</font>''',
@@ -832,12 +846,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ('LEFTPADDING', (0, 0), (0, 0), 10),
     ]))
-    elements.append(header_table)
     
-    # Divider line
-    elements.append(Spacer(1, 4))
-    elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
-    elements.append(Spacer(1, 8))
+    # Only add header if enabled in template
+    if is_block_enabled(pdf_template, 'header'):
+        elements.append(header_table)
+        # Divider line
+        elements.append(Spacer(1, 4))
+        elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+        elements.append(Spacer(1, 8))
     
     # ========== CLIENT + OFFER INFO ==========
     email_line = f"Email: {request.email}<br/>" if hasattr(request, 'email') and request.email else ""
