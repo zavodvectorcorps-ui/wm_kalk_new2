@@ -446,10 +446,19 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
   };
 
   const handleRemoveGalleryImage = (imageId) => {
-    setTemplate(prev => ({
-      ...prev,
-      galleryImageIds: prev.galleryImageIds.filter(id => id !== imageId)
-    }));
+    setTemplate(prev => {
+      const newGalleryIds = prev.galleryImageIds.filter(id => id !== imageId);
+      // Auto-save template after removing gallery image
+      if (prev.id) {
+        axios.put(`${API_URL}/api/pdf-templates/${prev.id}`, {
+          galleryImageIds: newGalleryIds
+        }).catch(err => console.error('Auto-save gallery failed:', err));
+      }
+      return {
+        ...prev,
+        galleryImageIds: newGalleryIds
+      };
+    });
   };
 
   const handleDeleteImage = async (imageId) => {
