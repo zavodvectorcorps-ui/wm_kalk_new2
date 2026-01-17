@@ -119,6 +119,12 @@ export const OptionsTab = ({
                             />
                           )}
                           <span className="text-sm">{option.name}</span>
+                          {option.isDefaultSelected && (
+                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Domyślnie
+                            </Badge>
+                          )}
                           {getTechSpecMappingBadge(option)}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
