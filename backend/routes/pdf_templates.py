@@ -470,7 +470,7 @@ async def generate_preview_pdf(calculator_type: str):
     
     # ========== CLIENT INFO ==========
     if is_block_enabled('client_info'):
-        client_info = Paragraph(f'''<b>DANE KLIENTA:</b><br/>
+        client_info = Paragraph('''<b>DANE KLIENTA:</b><br/>
         Imię i nazwisko: Jan Kowalski<br/>
         Email: jan.kowalski@example.com<br/>
         Telefon: +48 123 456 789''', 
