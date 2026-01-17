@@ -1222,6 +1222,73 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     elements.append(Paragraph('Oferta ważna 30 dni od daty wystawienia.', 
                              ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)))
     
+    # ========== GALLERY PAGE ==========
+    # Add a new page with photo collage
+    elements.append(PageBreak())
+    
+    # Gallery title
+    elements.append(Paragraph('GALERIA REALIZACJI', 
+                             ParagraphStyle('GalleryTitle', fontName='DejaVuSans-Bold', fontSize=16, 
+                                           textColor=BROWN, alignment=TA_CENTER, spaceAfter=15)))
+    
+    # Load gallery images
+    gallery_dir = '/app/assets/gallery'
+    gallery_images = []
+    gallery_files = ['grat-3.jpg', 'f-bg-3.jpg', 'grat-2.jpg', 'photo-4.jpg']
+    
+    for img_file in gallery_files:
+        img_path = os.path.join(gallery_dir, img_file)
+        if os.path.exists(img_path):
+            try:
+                gallery_images.append(RLImage(img_path, width=250, height=180))
+            except Exception as e:
+                logger.warning(f"Could not load gallery image {img_file}: {e}")
+    
+    # Create 2x2 grid of images
+    if gallery_images:
+        # First row
+        if len(gallery_images) >= 2:
+            row1 = Table([[gallery_images[0], gallery_images[1]]], 
+                        colWidths=[265, 265],
+                        rowHeights=[185])
+            row1.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ]))
+            elements.append(row1)
+            elements.append(Spacer(1, 10))
+        
+        # Second row
+        if len(gallery_images) >= 4:
+            row2 = Table([[gallery_images[2], gallery_images[3]]], 
+                        colWidths=[265, 265],
+                        rowHeights=[185])
+            row2.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ]))
+            elements.append(row2)
+        elif len(gallery_images) == 3:
+            # If only 3 images, center the third one
+            row2 = Table([[gallery_images[2]]], 
+                        colWidths=[265],
+                        rowHeights=[185])
+            row2.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            elements.append(row2)
+    
+    # Gallery footer
+    elements.append(Spacer(1, 15))
+    elements.append(Paragraph('WM-Group — Producent saun i bali na wymiar', 
+                             ParagraphStyle('GalleryFooter', fontName='DejaVuSans', fontSize=10, 
+                                           textColor=MUTED, alignment=TA_CENTER)))
+    
     doc.build(elements)
     
     pdf_data = buffer.getvalue()
