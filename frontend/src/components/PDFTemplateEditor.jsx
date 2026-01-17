@@ -26,7 +26,8 @@ import {
   GripVertical,
   Check,
   X,
-  RefreshCw
+  RefreshCw,
+  FileSearch
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -53,6 +54,9 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
   const [images, setImages] = useState([]);
   const [activeTab, setActiveTab] = useState('blocks');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   // Fetch template and images on mount
   useEffect(() => {
