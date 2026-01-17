@@ -617,11 +617,32 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         # Customer name
         customer_name = order.get('fullName') or order.get('customerName') or '-'
         
+        # Check if important order (Allegro)
+        is_important = order.get('isImportant') or order.get('important') or False
+        
+        # Get tags from amoCRM
+        amocrm_tags = order.get('amocrm_tags') or order.get('tags') or []
+        
         html += f"""
         <div class="header">
             <div class="header-title">Информация о заказе</div>
             <div class="header-subtitle">amoCRM ID: {lead_id}</div>
         </div>
+        
+        <!-- Important Order Badge (Allegro) -->
+        {f'''<div class="section">
+            <div class="allegro-badge">
+                <span class="allegro-icon">🛒</span>
+                <span>Заказ Allegro</span>
+            </div>
+        </div>''' if is_important else ''}
+        
+        <!-- Tags Section -->
+        {f'''<div class="section">
+            <div class="tags-row">
+                {''.join([f'<span class="tag-badge">{tag.get("name", tag) if isinstance(tag, dict) else tag}</span>' for tag in amocrm_tags])}
+            </div>
+        </div>''' if amocrm_tags else ''}
         
         <!-- Status Section -->
         <div class="section">
