@@ -508,6 +508,23 @@ export const useSaunaPricing = () => {
     }));
   };
 
+  const handleToggleOptionDefault = (categoryId, optionId, isDefaultSelected) => {
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id === categoryId) {
+          return {
+            ...cat,
+            options: cat.options.map(o => 
+              o.id === optionId ? { ...o, isDefaultSelected } : o
+            ),
+          };
+        }
+        return cat;
+      }),
+    }));
+  };
+
   return {
     loading,
     saving,
@@ -536,6 +553,7 @@ export const useSaunaPricing = () => {
     handleSaveEditOption,
     handleUpdateOptionPrice,
     handleToggleOptionQuantity,
+    handleToggleOptionDefault,
     handleReorderOptions,
   };
 };
