@@ -1617,6 +1617,30 @@ async def send_backup_to_telegram():
                 zip_file.writestr("greenhouse_prices.json", json.dumps(greenhouse_prices, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "greenhouse_prices", "count": len(greenhouse_prices)})
             
+            # FAQ items
+            faq_items = await safe_collect("faq_items", limit=1000)
+            if faq_items:
+                zip_file.writestr("faq_items.json", json.dumps(faq_items, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "faq_items", "count": len(faq_items)})
+            
+            # PDF templates
+            pdf_templates = await safe_collect("pdf_templates", limit=100)
+            if pdf_templates:
+                zip_file.writestr("pdf_templates.json", json.dumps(pdf_templates, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "pdf_templates", "count": len(pdf_templates)})
+            
+            # PDF images (for templates)
+            pdf_images = await safe_collect("pdf_images", limit=500)
+            if pdf_images:
+                zip_file.writestr("pdf_images.json", json.dumps(pdf_images, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "pdf_images", "count": len(pdf_images)})
+            
+            # Sauna CRM leads
+            sauna_leads = await safe_collect("sauna_leads", limit=10000)
+            if sauna_leads:
+                zip_file.writestr("sauna_leads.json", json.dumps(sauna_leads, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_leads", "count": len(sauna_leads)})
+            
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
                 "chat_id": os.environ.get('TELEGRAM_CHAT_ID', ''),
