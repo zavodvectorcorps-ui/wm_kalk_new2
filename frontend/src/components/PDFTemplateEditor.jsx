@@ -510,6 +510,102 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
         </DialogContent>
       </Dialog>
 
+      {/* New/Duplicate Template Dialog */}
+      <Dialog open={showNewTemplateDialog} onOpenChange={setShowNewTemplateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {newTemplateName.includes('kopia') ? 'Duplikuj szablon' : 'Nowy szablon'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nazwa szablonu</Label>
+              <Input
+                value={newTemplateName}
+                onChange={(e) => setNewTemplateName(e.target.value)}
+                placeholder="np. Promocja zimowa, Standard, VIP..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowNewTemplateDialog(false);
+              setNewTemplateName('');
+            }}>
+              Anuluj
+            </Button>
+            <Button 
+              onClick={newTemplateName.includes('kopia') ? handleDuplicateTemplate : handleCreateNewTemplate}
+              disabled={duplicating}
+            >
+              {duplicating ? 'Tworzenie...' : (newTemplateName.includes('kopia') ? 'Duplikuj' : 'Utwórz')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Selector */}
+      {templates.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Wybierz szablon
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {templates.map((tpl) => (
+                <div
+                  key={tpl.id}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                    template?.id === tpl.id 
+                      ? 'border-primary bg-primary/10' 
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                  onClick={() => handleSelectTemplate(tpl)}
+                >
+                  <span className="font-medium">{tpl.name}</span>
+                  {tpl.isDefault && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Star className="h-3 w-3 mr-1" />
+                      Domyślny
+                    </Badge>
+                  )}
+                  {template?.id === tpl.id && !tpl.isDefault && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSetDefault(tpl.id);
+                      }}
+                    >
+                      Ustaw domyślny
+                    </Button>
+                  )}
+                  {template?.id === tpl.id && !tpl.isDefault && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-1 text-destructive hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTemplate(tpl.id);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
