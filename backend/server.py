@@ -184,6 +184,25 @@ async def startup_event():
             logger.info("Created default balia customer fields with phoneNumber")
     except Exception as e:
         logger.error(f"Error in startup event: {e}")
+    
+    # Start backup scheduler in background
+    global backup_scheduler_task
+    backup_scheduler_task = asyncio.create_task(backup_scheduler())
+    logger.info("Backup scheduler task started")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cancel background tasks on shutdown"""
+    global backup_scheduler_task
+    if backup_scheduler_task:
+        backup_scheduler_task.cancel()
+        try:
+            await backup_scheduler_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Backup scheduler stopped")
+
 
 # Health check endpoint for Kubernetes (without /api prefix)
 @app.get("/health")
