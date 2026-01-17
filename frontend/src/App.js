@@ -31,6 +31,7 @@ const SaunaCRMPage = lazy(() => import('./components/SaunaCRMPage'));
 const PdfUploadDebugPage = lazy(() => import('./components/PdfUploadDebugPage'));
 const FAQPage = lazy(() => import('./components/FAQPage'));
 const FAQAdminComponent = lazy(() => import('./components/FAQPage').then(m => ({ default: m.FAQAdmin })));
+const PDFTemplateEditor = lazy(() => import('./components/PDFTemplateEditor'));
 
 // Loading fallback component
 const PageLoader = () => (
