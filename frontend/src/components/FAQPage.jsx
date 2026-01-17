@@ -49,7 +49,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('calculator_guide');
+  const [activeTab, setActiveTab] = useState('products'); // Default to products tab
 
   useEffect(() => {
     fetchItems();
