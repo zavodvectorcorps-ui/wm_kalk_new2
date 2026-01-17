@@ -31,11 +31,11 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
-// Category labels
+// Category labels - products first as requested
 const CATEGORY_LABELS = {
+  products: { label: 'Товары и опции', icon: Package },
   calculator_guide: { label: 'Работа с калькулятором', icon: Book },
-  amocrm_integration: { label: 'Интеграция с amoCRM', icon: Link2 },
-  products: { label: 'Товары и опции', icon: Package }
+  amocrm_integration: { label: 'Интеграция с amoCRM', icon: Link2 }
 };
 
 const CALCULATOR_LABELS = {
