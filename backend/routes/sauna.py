@@ -959,6 +959,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         spaceAfter=6
     )
     elements.append(Paragraph('MODEL I ŁAWKI', model_section_title))
+    elements.append(Spacer(1, 2))
+    # Disclaimer text
+    elements.append(Paragraph(
+        'Zdjęcia mają charakter poglądowy. Twoja sauna zostanie wykonana zgodnie z wybranymi opcjami i wyposażeniem.',
+        ParagraphStyle('ModelDisclaimer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)
+    ))
     elements.append(Spacer(1, 4))
     elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
     elements.append(Spacer(1, 6))
