@@ -30,6 +30,7 @@ const WarehousePage = lazy(() => import('./components/WarehousePage'));
 const SaunaCRMPage = lazy(() => import('./components/SaunaCRMPage'));
 const PdfUploadDebugPage = lazy(() => import('./components/PdfUploadDebugPage'));
 const FAQPage = lazy(() => import('./components/FAQPage'));
+const FAQAdminComponent = lazy(() => import('./components/FAQPage').then(m => ({ default: m.FAQAdmin })));
 
 // Loading fallback component
 const PageLoader = () => (
