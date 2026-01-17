@@ -8,7 +8,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import { SortableList } from '../ui/sortable-list';
-import { Plus, Edit2, Trash2, Package, Link2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, Link2, CheckCircle2 } from 'lucide-react';
 import { AddOptionDialog, EditOptionDialog } from './OptionDialog';
 
 export const OptionsTab = ({
