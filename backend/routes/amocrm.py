@@ -882,6 +882,21 @@ async def receive_webhook_section(
                 break
         logger.info(f"Important field check: field_id={important_field_id}, is_important={is_important}")
     
+    # Extract tags from amoCRM API response
+    amocrm_tags = []
+    if api_data:
+        embedded = api_data.get("_embedded", {})
+        tags_data = embedded.get("tags", [])
+        for tag in tags_data:
+            tag_info = {
+                "id": tag.get("id"),
+                "name": tag.get("name", "")
+            }
+            if tag_info["name"]:
+                amocrm_tags.append(tag_info)
+        if amocrm_tags:
+            logger.info(f"Extracted {len(amocrm_tags)} tags from amoCRM: {[t['name'] for t in amocrm_tags]}")
+    
     order_data = {
         "id": f"AMO-{section_prefix.get(section, 'X')}-{lead_data.get('amocrm_id', int(datetime.now().timestamp()))}",
         "fullName": lead_data.get("fullName", "") or "Без имени",
@@ -901,6 +916,7 @@ async def receive_webhook_section(
         "deliveryStatus": "pending",  # pending, delivering, delivered, cancelled
         "deliveryComment": "",
         "isImportant": is_important,  # Flag from amoCRM
+        "amocrm_tags": amocrm_tags,  # Tags from amoCRM
         "amocrm_id": lead_data.get("amocrm_id"),
         "amocrm_link": amocrm_link,
         "amocrm_data": lead_data,
