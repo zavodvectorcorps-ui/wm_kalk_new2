@@ -417,6 +417,14 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               />
               <Label htmlFor="edit-hasQuantity">{txt.quantityEnabled}</Label>
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-isDefaultSelected"
+                checked={editingOption.isDefaultSelected || false}
+                onCheckedChange={(checked) => setEditingOption(prev => ({ ...prev, isDefaultSelected: checked }))}
+              />
+              <Label htmlFor="edit-isDefaultSelected">{txt.defaultSelected || 'Выбрано по умолчанию'}</Label>
+            </div>
             
             {/* Tech Spec Mapping Section */}
             <div className="border-t pt-4 mt-4">
