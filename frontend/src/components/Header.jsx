@@ -301,17 +301,6 @@ export const Header = ({
                     {i18n.language === 'pl' ? 'Kod' : 'Код'}
                   </Button>
                 )}
-                {calculatorType === 'sauna' && (isAdminAuthenticated || canViewPricing()) && (
-                  <Button
-                    variant={activeTab === 'techspec' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => handleTabChange('techspec')}
-                    className="w-full justify-start gap-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                    {txt.techSpec}
-                  </Button>
-                )}
                 {/* FAQ in mobile menu */}
                 <Button
                   variant={activeTab === 'faq' ? 'default' : 'ghost'}
