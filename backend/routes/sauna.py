@@ -662,6 +662,23 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             logger.warning(f"Could not load image from MongoDB: {e}")
         return None
     
+    async def load_template_image(image_id: str) -> bytes:
+        """Load image from pdf_images collection by ID"""
+        if not image_id:
+            return None
+        try:
+            image_doc = await db.pdf_images.find_one({"id": image_id})
+            if image_doc and image_doc.get("data"):
+                return base64.b64decode(image_doc["data"])
+        except Exception as e:
+            logger.warning(f"Could not load template image {image_id}: {e}")
+        return None
+    
+    # Load PDF template from database
+    pdf_template = await get_pdf_template("sauna")
+    template_colors = pdf_template.get("colors", {})
+    template_texts = pdf_template.get("texts", {})
+    
     buffer = io.BytesIO()
     
     try:
@@ -670,17 +687,17 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     except Exception as e:
         logger.warning(f"Could not register fonts: {e}")
     
-    # Colors
-    BROWN = colors.HexColor('#97724E')
+    # Colors - use template colors or defaults
+    BROWN = colors.HexColor(template_colors.get('primary', '#97724E'))
     BROWN_LIGHT = colors.HexColor('#FAF6F0')
-    BROWN_BORDER = colors.HexColor('#D4C4B0')
-    BROWN_DARK = colors.HexColor('#6B5038')
+    BROWN_BORDER = colors.HexColor(template_colors.get('secondary', '#D4C4B0'))
+    BROWN_DARK = colors.HexColor(template_colors.get('accent', '#6B5038'))
     GREEN = colors.HexColor('#2D7A3E')
     GREEN_LIGHT = colors.HexColor('#F0F9F5')
     RED = colors.HexColor('#C53030')
     RED_LIGHT = colors.HexColor('#FFF5F5')
-    TEXT_COLOR = colors.HexColor('#323232')
-    MUTED = colors.HexColor('#888888')
+    TEXT_COLOR = colors.HexColor(template_colors.get('text', '#323232'))
+    MUTED = colors.HexColor(template_colors.get('muted', '#888888'))
     
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                           rightMargin=20, leftMargin=20,
