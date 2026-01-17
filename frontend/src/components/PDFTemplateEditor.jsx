@@ -209,6 +209,104 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
     };
   }, [previewUrl]);
 
+  const handleSelectTemplate = (selectedTemplate) => {
+    setTemplate(selectedTemplate);
+  };
+
+  const handleDuplicateTemplate = async () => {
+    if (!template?.id) {
+      toast.error('Najpierw zapisz bieżący szablon');
+      return;
+    }
+    
+    try {
+      setDuplicating(true);
+      const response = await axios.post(
+        `${API_URL}/api/pdf-templates/${template.id}/duplicate`,
+        null,
+        { params: { new_name: newTemplateName || undefined } }
+      );
+      
+      // Refresh templates list
+      await fetchTemplates();
+      
+      // Select the new template
+      setTemplate(response.data);
+      setShowNewTemplateDialog(false);
+      setNewTemplateName('');
+      
+      toast.success('Szablon zduplikowany!');
+    } catch (error) {
+      console.error('Error duplicating template:', error);
+      toast.error('Błąd duplikowania szablonu');
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
+  const handleSetDefault = async (templateId) => {
+    try {
+      await axios.put(`${API_URL}/api/pdf-templates/${templateId}`, {
+        isDefault: true
+      });
+      
+      // Refresh templates
+      await fetchTemplates();
+      toast.success('Ustawiono jako domyślny');
+    } catch (error) {
+      console.error('Error setting default:', error);
+      toast.error('Błąd ustawiania domyślnego');
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Czy na pewno chcesz usunąć ten szablon?')) return;
+    
+    try {
+      await axios.delete(`${API_URL}/api/pdf-templates/${templateId}`);
+      
+      // If deleted template was selected, switch to default
+      if (template?.id === templateId) {
+        const remaining = templates.filter(t => t.id !== templateId);
+        const defaultTpl = remaining.find(t => t.isDefault) || remaining[0];
+        setTemplate(defaultTpl || null);
+      }
+      
+      // Refresh templates
+      await fetchTemplates();
+      toast.success('Szablon usunięty');
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error('Błąd usuwania szablonu');
+    }
+  };
+
+  const handleCreateNewTemplate = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/api/pdf-templates`, {
+        name: newTemplateName || `Nowy szablon`,
+        calculator_type: calculatorType,
+        isDefault: false,
+        blocks: template?.blocks || [],
+        colors: template?.colors || {},
+        texts: template?.texts || {},
+        logoImageId: null,
+        promoImageId: null,
+        galleryImageIds: []
+      });
+      
+      await fetchTemplates();
+      setTemplate(response.data);
+      setShowNewTemplateDialog(false);
+      setNewTemplateName('');
+      
+      toast.success('Nowy szablon utworzony!');
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast.error('Błąd tworzenia szablonu');
+    }
+  };
+
   const handleBlockToggle = (blockId) => {
     setTemplate(prev => ({
       ...prev,
