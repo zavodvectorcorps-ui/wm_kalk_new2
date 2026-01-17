@@ -882,55 +882,72 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         elements.append(Spacer(1, 8))
     
     # ========== DISCOUNT OR PROMO SECTION ==========
-    if discount_percent > 0:
-        savings = subtotal - total_after_discount
-        discount_content = Paragraph(f'''<b><font color="#2D7A3E" size="14">ZASTOSOWANA ZNIŻKA</font></b><br/><br/>
-        <font size="12" color="#2D7A3E"><b>Rabat: {discount_percent:.0f}%</b></font><br/>
-        <font size="11">Cena przed rabatem: {subtotal:,.0f} PLN</font><br/>
-        <font size="11" color="#2D7A3E"><b>Cena po rabacie: {total_after_discount:,.0f} PLN</b></font><br/>
-        <font size="10" color="#666666"><i>Oszczędzasz: {savings:,.0f} PLN</i></font>'''.replace(',', ' '),
-        ParagraphStyle('Discount', fontName='DejaVuSans', fontSize=11))
+    if is_block_enabled(pdf_template, 'promo'):
+        # Get promo texts from template
+        promo_title = template_texts.get('promoTitle', 'PROMOCJA')
+        promo_text_content = template_texts.get('promoText', 'Darmowa balia do schłodzenia<br/>lub beczka z sauną!')
         
-        promo_table = Table([[discount_content]], colWidths=[530])
-        promo_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), GREEN_LIGHT),
-            ('BOX', (0, 0), (-1, -1), 2, GREEN),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('LEFTPADDING', (0, 0), (-1, -1), 12),
-        ]))
-        elements.append(promo_table)
-    else:
-        promo_text = Paragraph(f'''<b><font color="#C53030" size="13">PROMOCJA SPECJALNA</font></b><br/><br/>
-        <font size="9">Zamów do {promo_until} i wybierz swój super gratis świąteczny:<br/>
-        Darmowa balia do schłodzenia<br/>
-        albo rabat do 10% od zamówienia</font><br/><br/>
-        <font size="8" color="#888888">Oferta ważna tylko przy zakupie w tym terminie</font>''',
-        ParagraphStyle('PromoText', fontName='DejaVuSans', fontSize=11))
+        # Try to load custom promo image from template
+        custom_promo_img = None
+        if pdf_template.get('promoImageId'):
+            promo_data_bytes = await load_template_image(pdf_template.get('promoImageId'))
+            if promo_data_bytes:
+                try:
+                    promo_buffer = io.BytesIO(promo_data_bytes)
+                    custom_promo_img = RLImage(promo_buffer, width=100, height=100)
+                except Exception as e:
+                    logger.warning(f"Could not load custom promo image: {e}")
         
-        if promo_img:
-            promo_data = [[promo_img, promo_text]]
-            promo_table = Table(promo_data, colWidths=[120, 400])
+        active_promo_img = custom_promo_img or promo_img
+        
+        if discount_percent > 0:
+            savings = subtotal - total_after_discount
+            discount_content = Paragraph(f'''<b><font color="#2D7A3E" size="14">ZASTOSOWANA ZNIŻKA</font></b><br/><br/>
+            <font size="12" color="#2D7A3E"><b>Rabat: {discount_percent:.0f}%</b></font><br/>
+            <font size="11">Cena przed rabatem: {subtotal:,.0f} PLN</font><br/>
+            <font size="11" color="#2D7A3E"><b>Cena po rabacie: {total_after_discount:,.0f} PLN</b></font><br/>
+            <font size="10" color="#666666"><i>Oszczędzasz: {savings:,.0f} PLN</i></font>'''.replace(',', ' '),
+            ParagraphStyle('Discount', fontName='DejaVuSans', fontSize=11))
+            
+            promo_table = Table([[discount_content]], colWidths=[530])
             promo_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), RED_LIGHT),
-                ('BOX', (0, 0), (-1, -1), 1.5, RED),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-                ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            ]))
-        else:
-            promo_table = Table([[promo_text]], colWidths=[530])
-            promo_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), RED_LIGHT),
-                ('BOX', (0, 0), (-1, -1), 1.5, RED),
+                ('BACKGROUND', (0, 0), (-1, -1), GREEN_LIGHT),
+                ('BOX', (0, 0), (-1, -1), 2, GREEN),
                 ('TOPPADDING', (0, 0), (-1, -1), 10),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
                 ('LEFTPADDING', (0, 0), (-1, -1), 12),
             ]))
-        elements.append(promo_table)
-    elements.append(Spacer(1, 10))
+            elements.append(promo_table)
+        else:
+            promo_text = Paragraph(f'''<b><font color="#C53030" size="13">{promo_title}</font></b><br/><br/>
+            <font size="9">Zamów do {promo_until} i wybierz swój super gratis świąteczny:<br/>
+            {promo_text_content.replace('<br/>', '<br/>')}</font><br/><br/>
+            <font size="8" color="#888888">Oferta ważna tylko przy zakupie w tym terminie</font>''',
+            ParagraphStyle('PromoText', fontName='DejaVuSans', fontSize=11))
+            
+            if active_promo_img:
+                promo_data = [[active_promo_img, promo_text]]
+                promo_table = Table(promo_data, colWidths=[120, 400])
+                promo_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), RED_LIGHT),
+                    ('BOX', (0, 0), (-1, -1), 1.5, RED),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ]))
+            else:
+                promo_table = Table([[promo_text]], colWidths=[530])
+                promo_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), RED_LIGHT),
+                    ('BOX', (0, 0), (-1, -1), 1.5, RED),
+                    ('TOPPADDING', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                ]))
+            elements.append(promo_table)
+        elements.append(Spacer(1, 10))
     
     # ========== MODEL SECTION ==========
     # Large section title for MODEL I ŁAWKI
