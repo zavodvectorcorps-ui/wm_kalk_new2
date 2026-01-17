@@ -46,7 +46,8 @@ const BLOCK_NAMES = {
   promo: 'Blok promocyjny',
   benches: 'Informacje o ławkach',
   total: 'Podsumowanie',
-  gallery: 'Galeria',
+  gallery_promo: 'Strona promocyjna galerii',
+  gallery: 'Kolaż zdjęć galerii',
   footer: 'Stopka'
 };
 
