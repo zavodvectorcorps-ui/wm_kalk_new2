@@ -62,6 +62,7 @@ app.include_router(notifications_router)
 app.include_router(warehouse_router, prefix="/api")
 app.include_router(sauna_crm_router, prefix="/api")
 app.include_router(faq_router, prefix="/api")
+app.include_router(pdf_templates_router, prefix="/api")
 
 # Initialize backup database reference
 from database import db
