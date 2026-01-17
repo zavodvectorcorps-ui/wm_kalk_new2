@@ -872,10 +872,76 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
           </Card>
 
           {/* Gallery Images */}
+          {/* Gallery Promo Page */}
           <Card>
             <CardHeader>
-              <CardTitle>Галерея</CardTitle>
-              <CardDescription>Фотографии для страницы галереи (до 6 шт.)</CardDescription>
+              <CardTitle>Промо-страница галереи</CardTitle>
+              <CardDescription>Заголовок, текст и фото на всю ширину (перед коллажем)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Заголовок</Label>
+                <Input
+                  value={template?.galleryPromoTitle || ''}
+                  onChange={(e) => setTemplate(prev => ({ ...prev, galleryPromoTitle: e.target.value }))}
+                  placeholder="np. Nasze realizacje"
+                />
+              </div>
+              <div>
+                <Label>Текст (можно использовать Enter для переноса строки)</Label>
+                <Textarea
+                  value={template?.galleryPromoText || ''}
+                  onChange={(e) => setTemplate(prev => ({ ...prev, galleryPromoText: e.target.value }))}
+                  placeholder="Описание или рекламный текст..."
+                  rows={4}
+                />
+              </div>
+              <div>
+                <Label>Фото на всю ширину</Label>
+                <div className="mt-2">
+                  {template?.galleryPromoImageId ? (
+                    <div className="relative inline-block">
+                      <img 
+                        src={`${API_URL}/api/pdf-templates/images/${template.galleryPromoImageId}/data`}
+                        alt="Gallery Promo"
+                        className="max-w-full h-48 object-contain border rounded"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={() => setTemplate(prev => ({ ...prev, galleryPromoImageId: null }))}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer inline-block">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleImageUpload(e, 'gallery_promo')}
+                        disabled={uploadingImage}
+                      />
+                      <div className="w-48 h-32 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors">
+                        <div className="text-center">
+                          <Upload className="h-6 w-6 mx-auto mb-1" />
+                          <span className="text-xs">Загрузить фото</span>
+                        </div>
+                      </div>
+                    </label>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Gallery Collage */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Коллаж галереи</CardTitle>
+              <CardDescription>Фотографии для коллажа (до 6 шт.)</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4 mb-4">
