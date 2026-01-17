@@ -1,110 +1,69 @@
 <analysis>**original_problem_statement:**
-The user's high-level goal is to build a comprehensive logistics and sales management system.
+The user's high-level goal is to build a comprehensive logistics and sales management system for their sauna and hot tub business.
 
 **Original Product Requirements from previous sessions:**
 *   Integrate a calculator with amoCRM.
-*   Enhance the logistics module with features like dispatch dates, status sync, important order flags, and print functions.
+*   Enhance the logistics module (dispatch dates, status sync, order flags, print functions).
 *   Build a Driver Panel.
 *   Implement a notification system (Push & Telegram).
 *   Provide backup/restore and debugging tools.
-*   Fix a bug where logistics order edits were not saving.
 *   Add order history and timestamps.
-*   Improve the formatting of trip printouts.
-*   Fix a bug where newlines in calculator hints were ignored.
-*   **Sauna CRM Module**: A major feature to manage sauna sales leads in a Kanban board, with full integration into amoCRM.
-*   **PDF Upload to amoCRM**: After an order is created, the generated PDF proposal should be automatically uploaded to that deal in amoCRM.
-*   **Manager Gifts**: Allow managers (users with the  role) to mark order options as gifts.
+*   **Sauna CRM Module**: Manage sauna sales leads in a Kanban board, integrated with amoCRM.
+*   **PDF Upload to amoCRM**: Automatically upload generated PDF proposals to amoCRM deals.
+*   **Manager Gifts**: Allow managers to mark order options as gifts.
 
 **New requirements from this session:**
-*   **Fix PDF Upload**: Resolve the final issues preventing PDF files from being correctly uploaded and opened in amoCRM.
-*   **Order Visibility Bug**: Ensure orders created from the amoCRM widget are visible in the manager's order list, not just the admin's.
-*   **Enhance amoCRM Note**: Add the responsible employee's name and the total order amount to the note created in amoCRM.
-*   **FAQ Section**: Create a new FAQ section for managers, with content editable from an admin panel, to centralize knowledge about the calculator and amoCRM integration.
-*   **UI Improvements**:
-    *   Remove the Tech. Zadanie (Tech Spec) button from the header.
-    *   Add a company logo to the Sauna Calculator page.
-*   **PDF Enhancements**:
-    *   Replace the gift image in the Sauna PDF.
-    *   Add a new page with a collage of photos to the end of the Sauna PDF.
-*   **PDF Template Constructor**: Build a new feature allowing admins to design and customize the structure of generated PDF proposals.
+*   **PDF Template Constructor**: A major new feature allowing admins to fully customize the content, layout, and styling of generated PDF proposals. This includes managing blocks, images, texts, colors, and multiple template variations.
+*   **Default Sauna Options**: Add a feature to mark specific calculator options as selected by default.
+*   **Logistics Status Sync**: When a trip is marked as completed, automatically update the status of all orders within that trip to delivered.
+*   **Backup Fix**: Repair the automatic backup system, which had stopped working, and update it to include all new data collections.
+*   **FAQ Enhancements**: Add detailed instructions for managers on how to use the calculator, apply discounts, and edit orders.
+*   **PDF Generation Improvements**:
+    *   Fix stretched images in the PDF gallery by preserving aspect ratio.
+    *   Add a new promo block (title, text, image) before the main gallery collage.
+    *   Change the gallery collage layout to two rows of three images.
+    *   Add and reposition a disclaimer text in the Model and Benches section.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a full-stack logistics and sales management system. The critical amoCRM PDF upload functionality, which was previously blocked, is now **technically working** after an extensive, multi-iteration debugging process. A comprehensive FAQ system has been built, with a backend, frontend viewer, and admin editor. The UI has been updated with a new logo on the Sauna calculator and a cleaner header. The Sauna PDF generation has been enhanced with an updated image and a new photo collage page. Scaffolding for a new PDF Template Editor has been created.
+The application is a mature logistics and sales management system. The main highlight of this session is the creation of a powerful **PDF Template Constructor**. This new module allows administrators to visually build and customize PDF proposals, with features for managing multiple templates, duplication, and JSON-based export/import.
+
+Additionally, several key enhancements were implemented: the sauna calculator now supports default options, improving workflow for managers. The logistics module was improved to automatically update order statuses when a trip is completed. The automatic backup system, which had failed, has been repaired by adding a scheduler, though the list of backed-up data is still incomplete. The FAQ section was also expanded with more detailed user guides.
 
 **Last working item**:
--   **Last item agent was working**: The agent was starting the implementation of a PDF Template Constructor. It created the initial backend route file (), the frontend component (), and added the necessary routing in  and . However, these files are just placeholders with no functional logic.
+-   **Last item agent was working**: Fixing and updating the automatic backup functionality. The user reported that auto-backups were not running. The agent identified that the scheduler was missing from  and added an  task to trigger the backup periodically. The agent then began adding the newly created database collections (like , ) to the backup script () but did not finish the implementation.
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both
+-   **Which testing method agent to use?**: backend testing agent. The agent should trigger the  endpoint and inspect the logs and the generated backup file to verify all new collections are included.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: **Orders created from amoCRM are not visible to managers.** (P0)
--   **Issue 2**: The employee's name and total sum are not appearing in the amoCRM note. (P1)
--   **Issue 3**: The uploaded PDF in amoCRM downloads instead of opening in a new tab. (P2)
+-   **Issue 1**: **Automatic backup is incomplete.** (P0)
 
   **Issues Detail**:
-  - **Issue 1**: Orders created from amoCRM are not visible to managers.
-     - **Attempted fixes**: The agent correctly identified that orders created via the calculator in amoCRM were being assigned , causing them to be filtered out of the manager's view. The agent changed this to  in  and . However, the user reported the issue persists. This is likely because existing orders in the database still have the old source.
+  - **Issue 1**: Automatic backup is incomplete.
+     - **Attempted fixes**: The agent correctly identified that the scheduler was missing and added it to . The agent then started modifying  to include new collections but did not add all of them.
      - **Next debug checklist**:
-       1.  Create a temporary backend endpoint to migrate existing orders in the database (update documents where  exists and  is  to ).
-       2.  Instruct the user to call this migration endpoint once.
-       3.  Ask the user to create a *new* order from amoCRM to verify that the fix works for future orders.
-       4.  File to create migration endpoint in:  or a new temporary route file.
-     - **Why fix this issue and what will be achieved with the fix?**: This is a critical workflow bug. Managers cannot see or manage orders they create through the primary amoCRM integration channel.
-     - **Status**: IN PROGRESS
-     - **Is recurring issue?**: Y
-     - **Should Test frontend/backend/both after fix?**: frontend
-     - **Blocked on other issue**: No
-
-  - **Issue 2**: Employee name and sum not in amoCRM note.
-     - **Attempted fixes**: The agent added  and  parameters to the backend endpoint and updated the frontend to pass them. When that failed, the agent found that the note was only being sent on upload failure and changed the logic to always send an informational note. The user reports it's still not working.
-     - **Next debug checklist**:
-       1.  Check the backend logs () for the  call when a new order is created.
-       2.  Verify if the  and  query parameters are being received by the backend.
-       3.  In , add logging to print the values of  and  right after they are read from the request.
-       4.  Trace the logic to ensure these variables are correctly formatted into the text of the note sent to amoCRM.
-     - **Why fix this issue and what will be achieved with the fix?**: Fulfills a user request to have more context directly within the amoCRM deal history.
+       1.  Open .
+       2.  Navigate to the  function (or the  function it calls).
+       3.  Add the logic to fetch and include the following collections in the backup zip file and manifest: , , , .
+       4.  Restart the backend server.
+       5.  Manually trigger the backup via .
+       6.  Check the backend logs for success or errors. Confirm the backup file is sent to Telegram (if configured).
+     - **Why fix this issue and what will be achieved with the fix?**: The user's production data is not being fully backed up, posing a significant data loss risk. This fix will ensure complete and regular backups.
      - **Status**: IN PROGRESS
      - **Is recurring issue?**: Y
      - **Should Test frontend/backend/both after fix?**: backend
      - **Blocked on other issue**: No
 
-  - **Issue 3**: Uploaded PDF downloads instead of opening.
-     - **Attempted fixes**: None.
-     - **Next debug checklist**: This is likely a behavior controlled by amoCRM's servers ( header on the download link) and may not be fixable from our side.
-       1.  First, confirm with the user if this is a major issue or a minor inconvenience.
-       2.  If it's important, investigate the Kommo API documentation or do a web search to see if there's a parameter to control inline vs. attachment disposition for file notes.
-     - **Why fix this issue and what will be achieved with the fix?**: Minor user experience improvement.
-     - **Status**: NOT STARTED
-     - **Is recurring issue?**: N
-     - **Should Test frontend/backend/both after fix?**: N/A
-     - **Blocked on other issue**: No
-
 **In progress Task List**:
--   **Task 1**: Complete the PDF Template Editor (P0)
--   **Task 2**: Finalize FAQ implementation (P1)
-
- Task Detail:
-  - **Task 1**: Complete the PDF Template Editor
-     - **Where to resume**: The backend () and frontend () files are just placeholders.
-     - **What will be achieved with this?**: A powerful feature allowing the user to customize PDF layouts without needing new code deployments.
-     - **Status**: IN PROGRESS
-     - **Should Test frontend/backend/both after fix?**: both
-     - **Blocked on something**: The pending bugs should be addressed first.
-  - **Task 2**: Finalize FAQ implementation
-     - **Where to resume**: The backend code is complete, with all FAQ content now in the  function in . The frontend is also complete.
-     - **What will be achieved with this?**: The user will have a fully populated, self-managed FAQ system.
-     - **Status**: IN PROGRESS
-     - **Should Test frontend/backend/both after fix?**: N/A
-     - **Blocked on something**: No, just requires communicating the final step to the user.
+-   None. The backup issue is the only in-progress item.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    - **P1**: Refine Warehouse Module: Verify with the user that the enriched order details now correctly appear in the Trips tab.
-    - **P1**: Add a UI for importing a backup ZIP file.
+    - **P1**: Add a UI for importing a backup ZIP file (the backend is for Telegram, a UI for restore would be useful).
+    - **P1**: Verify with the user that the enriched order details now correctly appear in the Trips tab after the status sync fix.
 - **Future Tasks**:
     - **P2**: Replace the deprecated Google Maps Autocomplete component.
     - **P2**: Refactor  and  to extract shared components.
@@ -114,23 +73,27 @@ The application is a full-stack logistics and sales management system. The criti
     - **P3**: Refactor  and  into smaller components/hooks.
 
 **Completed work in this session**
-- **FIXED: amoCRM PDF Upload**: Successfully debugged and implemented the complex, multi-step chunked file upload to the Kommo API. This involved fixing session parameters (), implementing chunked uploads (), handling  status codes (), fixing the attachment payload (), adding  headers (), and finally correctly parsing and using the  ().
-- **IMPLEMENTED: FAQ System**:
-  - Created backend CRUD API in .
-  - Created frontend viewer and admin editor in .
-  - Added links to the main application header and routing.
-  - Populated the system with comprehensive guides written by the agent.
-  - Created a seeder endpoint () for the user to populate their production database.
-- **IMPLEMENTED: UI & PDF Enhancements**:
-  - Added the company logo to .
-  - Removed the Tech Spec button from .
-  - Replaced the promo image for gifts in the Sauna PDF ().
-  - Added a new page with a photo collage to the Sauna PDF ().
-- **STARTED: PDF Template Editor**: Created placeholder files and routes.
+- **IMPLEMENTED: PDF Template Constructor**:
+    - Built a full-stack module for creating, editing, and managing PDF templates (, ).
+    - Integrated dynamic templates into the PDF generation logic ().
+    - Implemented features for PDF preview, template duplication, and JSON export/import.
+- **IMPLEMENTED: Default Calculator Options**:
+    - Added a checkbox in the admin panel to set sauna options as selected by default.
+    - Updated the calculator to pre-select these options on initial load ().
+- **FIXED: Logistics Status Sync**:
+    - When a trip's status is updated to completed, all associated orders are now automatically updated to delivered ().
+- **IMPLEMENTED: PDF Generation Enhancements**:
+    - Fixed image stretching in the PDF gallery by preserving aspect ratio.
+    - Added a customizable promo block before the gallery collage.
+    - Changed the gallery layout to a 3x2 grid.
+    - Added and correctly positioned a disclaimer text.
+- **UPDATED: FAQ Content**:
+    - Added several new, detailed guides for managers on using the calculator, applying discounts, editing orders, and making options gifts.
+- **FIXED: Confirmed resolution of old bugs**: User confirmed that previously pending issues (order visibility from amoCRM, amoCRM note content) are resolved.
 
 **Earlier issues found/mentioned but not fixed**
    - **Issue 1: Sauna hints not saving on user's hosting.**
-     - **Debug checklist**: Re-verify with the user if this is still a problem now that deployment is confirmed to be working.
+     - **Debug checklist**: Re-verify with the user if this is still a problem.
      - **Why to solve this issue and what will be achieved with this?**: Ensures all admin panel features work correctly on the user's production server.
      - **Should Test frontend/backend/both after fix**: Both.
      - **Is recurring issue?**: N
@@ -141,78 +104,82 @@ The application is a full-stack logistics and sales management system. The criti
      - **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
-  - **CRITICAL DEPLOYMENT FAILURE**: This was the main blocker from the previous fork. **It has been resolved in this session.** The user confirmed deployment is now working.
+  - **Issue recurrence in previous fork**: Automatic backup failure.
+  - **Recurrence count**: 1
+  - **Status**: IN PROGRESS
 
 **Code Architecture**
-
+isDefaultSelected
 
 **Key Technical Concepts**
--   **Kommo/amoCRM Chunked File Upload API**: Deeply engaged with the modern file upload API. Mastered the process: create session (, ), upload chunks with  headers, handle  for intermediate parts, and parse  and  from the final  response to attach the file to a lead.
--   **PDF Generation with ReportLab**: Modified existing PDF generation code to replace static images and dynamically add a new page with a multi-image collage layout.
--   **Full-Stack Feature Development**: Built an entire FAQ system from scratch, including the backend API (FastAPI), database model (MongoDB), and frontend UI (React) with separate views for users and administrators.
--   **Data-Driven UI Filtering**: Debugged an issue where data was incorrectly filtered from a user's view based on a  field, requiring a change in how the source data is set and a plan for data migration.
+-   **Dynamic PDF Generation with ReportLab**: The PDF generation in  was heavily modified to be driven by database templates. This includes dynamic block inclusion, text/color substitution, and loading images via database references.
+-   **Full-Stack Feature Development (React + FastAPI)**: Built the PDF Template Editor from placeholder files into a complete, sophisticated feature with a full backend API and a complex React UI for managing templates, blocks, styles, and images.
+-   **Async Task Scheduling**: Implemented an  based scheduler in  to handle periodic background tasks (specifically, the automatic backups).
+-   **Database Schema Evolution**: Added new collections (, ) and added new fields () to existing models () to support the new features.
 
 **key DB schema**
+  - **pdf_templates**: 
+  - **pdf_images**: 
   - **faq_items**: 
 
 **changes in tech stack**
   - No changes.
 
 **All files of reference**
--    (Correct, working V13 PDF upload logic with debug info)
--    (Complete FAQ backend, including seeder)
--    (Complete FAQ frontend)
--    (Contains fix attempt for order visibility)
--    (Contains the filter causing the order visibility bug)
--    (Contains PDF generation enhancements)
+-    (Core file for the pending issue).
+-    (Location of the new backup scheduler).
+-    (Backend for the new PDF editor).
+-    (Frontend for the new PDF editor).
+-    (PDF generation logic, now template-driven).
+-    (Location of the logistics status sync fix).
+-    (Folder containing UI for setting default options).
+-    (Frontend logic for applying default options).
 
 **Areas that need refactoring**:
--   The PDF generation logic in  is becoming very large and complex. It could be extracted into its own service/module.
+-   The  function in  is still extremely large and complex. It would benefit greatly from being broken down into a dedicated class or smaller helper functions to improve readability and maintainability.
 
 **key api endpoints**
--   : Now fully functional, uploads a PDF to amoCRM and attaches it to a lead.
--   : Fetches all FAQ items.
--   : Creates a new FAQ item.
--   : Updates an FAQ item.
--   : Deletes an FAQ item.
--   : Populates the database with a default set of comprehensive FAQs.
+-   : Triggers an automatic backup. Now scheduled to run periodically.
+-   : Full CRUD API for PDF templates.
+-   : Deletes a PDF template.
+-   : Duplicates an existing template.
+-   , : Endpoints for template migration.
+-   : Updates a trip's status. Now includes logic to sync order statuses.
 
 **Critical Info for New Agent**
 -   You MUST respond in **Russian**.
--   **PRIORITY 1 - BUG FIX**: The most critical issue is that managers cannot see orders created from the amoCRM widget. Your first task is to create a migration script/endpoint to update old orders in the database with  and then verify the fix works for new orders.
--   **PRIORITY 2 - BUG FIX**: Debug why the employee name and total sum are not appearing in the amoCRM note. This is likely a simple parameter passing issue on the backend.
--   **PRIORITY 3 - FINISH FAQ**: Inform the user that the FAQ content is ready and they need to trigger the seeding process by visiting the  endpoint on their server to populate their database.
--   **PRIORITY 4 - CONTINUE NEW FEATURE**: Once the critical bugs are resolved, continue building the PDF Template Editor feature.
+-   **PRIORITY 1 - FIX BACKUP**: The highest priority is to complete the automatic backup fix. The scheduler is running, but you must update the script at  to include all the new data collections (, , , , etc.). After implementing, you must test it by triggering the endpoint and verifying the contents.
+-   The PDF Template Constructor is a brand new, major feature. The user may have follow-up requests or find minor issues. Be prepared to work on this feature.
+-   The user confirmed that critical bugs from the previous session (order visibility, amoCRM note content) are **RESOLVED**. Do not spend time investigating them.
 
 **documents and test reports created in this job**
-  - None.
+  -  was updated multiple times throughout the session.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** Asks to add employee name and sum to the amoCRM note.
-9.  **Agent:** Implements the change on the backend and frontend.
-8.  **User:** Reports the name/sum are not appearing, and the order visibility bug is still present.
-7.  **Agent:** Implements a fix to always send the informational note.
-6.  **User:** Shifts focus and requests a new, large feature: an editable FAQ section for managers.
-5.  **Agent:** Builds the entire FAQ system (backend, frontend, admin panel, seeder).
-4.  **User:** Reports the agent's pre-filled FAQ content is missing and asks for a tab to be reordered.
-3.  **Agent:** Fixes the tab order and moves the FAQ content into a backend seeder function for the user to run on production.
-2.  **User:** Asks to remove the Tech Spec button from the header.
-1.  **User:** Asks to add a logo to the Sauna calculator.
+10. **User**: Add a promo page to the gallery with a title, text, and full-width image. (Status: COMPLETED)
+9.  **User**: Make the promo page and the gallery collage appear on the same PDF page. (Status: COMPLETED)
+8.  **User**: Change the gallery collage layout to have 3 photos per row. (Status: COMPLETED)
+7.  **User**: Add a disclaimer text to the PDF under the Model and Benches title. (Status: COMPLETED, after a correction)
+6.  **User**: Move the disclaimer text to be *after* the model/benches table. (Status: COMPLETED)
+5.  **User**: Add detailed instructions to the FAQ on using the calculator, giving discounts, and editing orders. (Status: COMPLETED)
+4.  **User**: When a logistics trip is marked as completed, all orders in it should also be marked as delivered. (Status: COMPLETED)
+3.  **User**: The automatic backup on production is not working and is outdated. Please fix it and make sure it includes all the new data we've added. (Status: **IN PROGRESS**)
+2.  **Agent**: Acknowledges the request and starts investigation.
+1.  **(No User Message, End of Session)**: Agent has added the scheduler and started modifying the backup script.
 
 **Project Health Check:**
 -   **Broken**:
-    -   Manager's order list is missing orders created via the amoCRM widget.
-    -   The informational note added to amoCRM is missing the employee name and total sum.
+    -   The automatic backup functionality is incomplete. It now runs on a schedule, but does not include all necessary data collections (, , etc.).
 -   **Mocked**: None.
 
 **3rd Party Integrations**
--   **amoCRM/Kommo**: The integration for file uploads is now fully functional and heavily tested. Used for lead creation, status sync, and now file attachments.
+-   **amoCRM/Kommo**: Core integration for CRM functionality, including lead creation, status synchronization, and file attachments.
 
 **Testing status**
   - Testing agent used after significant changes: NO
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: []
-  - Known regressions: None.
+  - Known regressions: None
 
 **Credentials to test flow:**
 -   Admin:  / 
@@ -220,4 +187,4 @@ The application is a full-stack logistics and sales management system. The criti
 -   Driver:  / 
 
 **What agent forgot to execute**
--   The agent identified that a data migration was needed for the  issue but did not create the migration endpoint before getting pulled into the new FAQ feature request. This is the main reason the order visibility bug is still pending.</analysis>
+-   The agent did not finish adding all the new database collections (, , , ) to the backup script in . It added the scheduler but left the backup content itself incomplete.</analysis>
