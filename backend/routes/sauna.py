@@ -1339,6 +1339,39 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                                  ParagraphStyle('GalleryTitle', fontName='DejaVuSans-Bold', fontSize=16, 
                                                textColor=BROWN, alignment=TA_CENTER, spaceAfter=15)))
         
+        # Helper function to scale image preserving aspect ratio
+        def scale_image_proportionally(img_data_or_path, max_width=250, max_height=180):
+            """Scale image to fit within max dimensions while preserving aspect ratio"""
+            from PIL import Image as PILImage
+            try:
+                if isinstance(img_data_or_path, bytes):
+                    pil_img = PILImage.open(io.BytesIO(img_data_or_path))
+                else:
+                    pil_img = PILImage.open(img_data_or_path)
+                
+                orig_width, orig_height = pil_img.size
+                
+                # Calculate scale to fit within max dimensions
+                width_ratio = max_width / orig_width
+                height_ratio = max_height / orig_height
+                scale = min(width_ratio, height_ratio)
+                
+                new_width = int(orig_width * scale)
+                new_height = int(orig_height * scale)
+                
+                # Create ReportLab image with calculated dimensions
+                if isinstance(img_data_or_path, bytes):
+                    return RLImage(io.BytesIO(img_data_or_path), width=new_width, height=new_height)
+                else:
+                    return RLImage(img_data_or_path, width=new_width, height=new_height)
+            except Exception as e:
+                logger.warning(f"Could not scale image: {e}")
+                # Fallback to fixed size
+                if isinstance(img_data_or_path, bytes):
+                    return RLImage(io.BytesIO(img_data_or_path), width=max_width, height=max_height)
+                else:
+                    return RLImage(img_data_or_path, width=max_width, height=max_height)
+        
         # Load gallery images - first try from template, then fall back to default
         gallery_images = []
         template_gallery_ids = pdf_template.get('galleryImageIds', [])
@@ -1349,8 +1382,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 img_data = await load_template_image(img_id)
                 if img_data:
                     try:
-                        img_buffer = io.BytesIO(img_data)
-                        gallery_images.append(RLImage(img_buffer, width=250, height=180))
+                        gallery_images.append(scale_image_proportionally(img_data, 250, 180))
                     except Exception as e:
                         logger.warning(f"Could not load template gallery image {img_id}: {e}")
         
@@ -1363,7 +1395,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 img_path = os.path.join(gallery_dir, img_file)
                 if os.path.exists(img_path):
                     try:
-                        gallery_images.append(RLImage(img_path, width=250, height=180))
+                        gallery_images.append(scale_image_proportionally(img_path, 250, 180))
                     except Exception as e:
                         logger.warning(f"Could not load gallery image {img_file}: {e}")
         
