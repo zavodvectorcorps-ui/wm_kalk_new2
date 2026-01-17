@@ -238,12 +238,14 @@ async def fetch_lead_from_amocrm(lead_id: str, domain: str, token: str) -> Optio
     """Fetch full lead data from amoCRM API.
     
     Rate limit: max 7 requests/sec per integration.
+    Includes contacts and tags via ?with=contacts parameter.
     """
     if not domain or not token or not lead_id:
         logger.warning("Missing amoCRM credentials or lead_id for API fetch")
         return None
     
-    url = f"https://{domain}/api/v4/leads/{lead_id}"
+    # Add ?with=contacts to get embedded contacts and tags
+    url = f"https://{domain}/api/v4/leads/{lead_id}?with=contacts"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
