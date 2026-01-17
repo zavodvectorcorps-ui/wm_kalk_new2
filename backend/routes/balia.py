@@ -589,7 +589,9 @@ async def clear_all_images():
 async def create_order(order: Order):
     """Create a new order"""
     order_dict = order.model_dump()
-    await db.orders.insert_one(order_dict)
+    
+    # Mark that PDF will be generated
+    pdf_generated = False
     
     # Send Telegram notification with PDF for new balia order
     try:
@@ -612,6 +614,7 @@ async def create_order(order: Order):
             currencySymbol=order_dict.get('currencySymbol', 'zł')
         )
         pdf_data = await generate_pdf_bytes(pdf_request)
+        pdf_generated = True
         await notify_new_order(order_dict, order_type='balia', is_web_order=False, pdf_data=pdf_data)
     except Exception as e:
         logger.warning(f"Failed to send Telegram notification with PDF for order: {e}")
@@ -620,6 +623,12 @@ async def create_order(order: Order):
             await notify_new_order(order_dict, order_type='balia', is_web_order=False)
         except:
             pass
+    
+    # Save PDF generation status
+    order_dict['pdfGenerated'] = pdf_generated
+    order_dict['pdfGeneratedAt'] = datetime.now(timezone.utc).isoformat() if pdf_generated else None
+    
+    await db.orders.insert_one(order_dict)
     
     return order
 
