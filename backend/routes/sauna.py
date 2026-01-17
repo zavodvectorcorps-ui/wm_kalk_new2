@@ -1101,6 +1101,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         ('LINEBEFORE', (2, 0), (2, 0), 1, BROWN_BORDER) if len(combined_data[0]) > 2 else ('TOPPADDING', (0,0), (0,0), 10),
     ]))
     elements.append(combined_table)
+    # Disclaimer text under model and bench block
+    elements.append(Spacer(1, 4))
+    elements.append(Paragraph(
+        'Zdjęcia mają charakter poglądowy. Twoja sauna zostanie wykonana zgodnie z wybranymi opcjami i wyposażeniem.',
+        ParagraphStyle('ModelDisclaimer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)
+    ))
     elements.append(Spacer(1, 8))
     
     # ========== COMMENT SECTION ==========
