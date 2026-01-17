@@ -122,7 +122,10 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
           texts: template.texts,
           logoImageId: template.logoImageId,
           promoImageId: template.promoImageId,
-          galleryImageIds: template.galleryImageIds
+          galleryImageIds: template.galleryImageIds,
+          galleryPromoTitle: template.galleryPromoTitle,
+          galleryPromoText: template.galleryPromoText,
+          galleryPromoImageId: template.galleryPromoImageId
         });
       } else {
         // Create new template
@@ -135,7 +138,10 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
           texts: template.texts,
           logoImageId: template.logoImageId,
           promoImageId: template.promoImageId,
-          galleryImageIds: template.galleryImageIds
+          galleryImageIds: template.galleryImageIds,
+          galleryPromoTitle: template.galleryPromoTitle,
+          galleryPromoText: template.galleryPromoText,
+          galleryPromoImageId: template.galleryPromoImageId
         });
         setTemplate(response.data);
       }
