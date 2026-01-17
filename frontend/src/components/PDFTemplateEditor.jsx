@@ -334,32 +334,49 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-4xl h-[90vh]">
+        <DialogContent className="max-w-5xl h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileSearch className="h-5 w-5" />
               Podgląd PDF
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 h-full min-h-0">
+          <div className="flex-1 h-full min-h-0 overflow-hidden">
             {previewUrl && (
-              <iframe
-                src={previewUrl}
-                className="w-full h-[calc(90vh-120px)] border rounded-lg"
-                title="PDF Preview"
-              />
+              <object
+                data={previewUrl}
+                type="application/pdf"
+                className="w-full h-[calc(90vh-140px)] border rounded-lg"
+              >
+                <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
+                  <FileText className="h-16 w-16" />
+                  <p>Twoja przeglądarka nie obsługuje podglądu PDF.</p>
+                  <Button asChild>
+                    <a href={previewUrl} target="_blank" rel="noopener noreferrer">
+                      Otwórz w nowej karcie
+                    </a>
+                  </Button>
+                </div>
+              </object>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setPreviewOpen(false)}>
               Zamknij
             </Button>
             {previewUrl && (
-              <Button asChild>
-                <a href={previewUrl} download="preview.pdf">
-                  Pobierz PDF
-                </a>
-              </Button>
+              <>
+                <Button variant="outline" asChild>
+                  <a href={previewUrl} target="_blank" rel="noopener noreferrer">
+                    Otwórz w nowej karcie
+                  </a>
+                </Button>
+                <Button asChild>
+                  <a href={previewUrl} download="preview.pdf">
+                    Pobierz PDF
+                  </a>
+                </Button>
+              </>
             )}
           </DialogFooter>
         </DialogContent>
