@@ -20,6 +20,7 @@ A full-featured quoting and order management application for Saunas and Balias (
      - `GET /api/pdf-templates/images` - List uploaded images
      - `GET /api/pdf-templates/images/{id}/data` - Get image binary data
      - `DELETE /api/pdf-templates/images/{id}` - Delete image
+     - **NEW** `POST /api/pdf-templates/preview/{calculator_type}` - Generate preview PDF with sample data
      
   2. **Frontend Component** (`/app/frontend/src/components/PDFTemplateEditor.jsx`):
      - 4 tabs: Блоки, Изображения, Тексты, Цвета
@@ -27,6 +28,8 @@ A full-featured quoting and order management application for Saunas and Balias (
      - **Images tab**: Upload logo, promo image, gallery images (up to 6)
      - **Texts tab**: Edit all PDF texts (header title, promo text, warranty, footer, gallery title, company slogan)
      - **Colors tab**: Customize color scheme with live preview (primary, secondary, accent, text, muted)
+     - **NEW** Preview button: Opens modal with generated PDF preview
+     - **NEW** Download and open in new tab options
      
   3. **PDF Generation Integration** (`/app/backend/routes/sauna.py`):
      - `get_pdf_template()` - Loads template from database
@@ -40,7 +43,7 @@ A full-featured quoting and order management application for Saunas and Balias (
   - `pdf_images` - Uploaded images stored as base64
   
 - **Access**: Available via "Szablon PDF" tab in Sauna section (admin only)
-- **Status**: ✅ COMPLETED AND TESTED
+- **Status**: ✅ COMPLETED AND TESTED WITH PREVIEW
 
 ### Session 2026-01-16 - PDF Upload to amoCRM - FIX V4 ✅
 
