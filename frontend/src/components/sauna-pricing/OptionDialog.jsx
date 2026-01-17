@@ -193,6 +193,16 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
               {txt.quantityEnabled}
             </Label>
           </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="isDefaultSelected"
+              checked={newOption.isDefaultSelected}
+              onCheckedChange={(checked) => setNewOption(prev => ({ ...prev, isDefaultSelected: checked }))}
+            />
+            <Label htmlFor="isDefaultSelected" className="cursor-pointer">
+              {txt.defaultSelected || 'Выбрано по умолчанию'}
+            </Label>
+          </div>
           
           {/* Tech Spec Mapping Section */}
           <div className="border-t pt-4 mt-4">
