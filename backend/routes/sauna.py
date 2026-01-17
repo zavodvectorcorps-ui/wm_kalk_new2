@@ -323,10 +323,11 @@ async def create_sauna_order(order: SaunaOrder):
     """Create a new sauna order"""
     order_dict = order.model_dump()
     
-    # Mark that PDF will be generated
-    pdf_generated = False
+    # Save order first
+    await db.sauna_orders.insert_one(order_dict)
     
-    # Send Telegram notification with PDF for new sauna order
+    # Then send Telegram notification with PDF
+    pdf_generated = False
     try:
         pdf_request = SaunaPDFRequest(
             orderId=order_dict.get('id', ''),
@@ -348,17 +349,17 @@ async def create_sauna_order(order: SaunaOrder):
         await notify_new_order(order_dict, order_type='sauna', is_web_order=False, pdf_data=pdf_data)
     except Exception as e:
         logger.warning(f"Failed to send Telegram notification with PDF for sauna order: {e}")
-        # Fallback: try to send without PDF
         try:
             await notify_new_order(order_dict, order_type='sauna', is_web_order=False)
         except:
             pass
     
-    # Save PDF generation status
-    order_dict['pdfGenerated'] = pdf_generated
-    order_dict['pdfGeneratedAt'] = datetime.now(timezone.utc).isoformat() if pdf_generated else None
-    
-    await db.sauna_orders.insert_one(order_dict)
+    # Update order with PDF status
+    if pdf_generated:
+        await db.sauna_orders.update_one(
+            {"id": order_dict.get('id')},
+            {"$set": {"pdfGenerated": True, "pdfGeneratedAt": datetime.now(timezone.utc).isoformat()}}
+        )
     
     return order
 
