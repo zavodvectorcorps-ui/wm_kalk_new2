@@ -381,6 +381,10 @@ const AppContent = () => {
           <Suspense fallback={<PageLoader />}>
             <FAQAdminComponent calculatorType="sauna" />
           </Suspense>
+        ) : activeTab === 'pdf-template' && isAdmin() ? (
+          <Suspense fallback={<PageLoader />}>
+            <PDFTemplateEditor calculatorType="sauna" />
+          </Suspense>
         ) : (
           <Suspense fallback={<PageLoader />}>
             <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} amocrmPrefill={amocrmPrefill} onAmocrmPrefillUsed={() => setAmocrmPrefill(null)} />
