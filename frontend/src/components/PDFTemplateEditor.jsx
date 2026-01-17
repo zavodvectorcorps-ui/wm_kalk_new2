@@ -29,7 +29,9 @@ import {
   RefreshCw,
   FileSearch,
   Copy,
-  Star
+  Star,
+  Download,
+  FileUp
 } from 'lucide-react';
 import axios from 'axios';
 
