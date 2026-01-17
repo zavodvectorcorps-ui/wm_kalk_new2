@@ -1939,6 +1939,17 @@ const TripDetailsCard = ({
                           </div>
                         )}
                         
+                        {/* amoCRM Tags */}
+                        {order.amocrm_tags && order.amocrm_tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {order.amocrm_tags.map((tag, idx) => (
+                              <span key={idx} className="inline-flex items-center px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-medium rounded-full">
+                                {tag.name || tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
                         {order.amocrm_id && (
                           <div className="bg-purple-50 rounded p-2 space-y-1">
                             <div className="flex items-center justify-between">
@@ -1953,7 +1964,11 @@ const TripDetailsCard = ({
                             <div className="grid grid-cols-2 gap-1 text-xs">
                               {order.orderNumber && <div><span className="text-muted-foreground">№:</span> {order.orderNumber}</div>}
                               {order.dealSum && <div className="flex items-center gap-1"><DollarSign className="h-3 w-3 text-green-600" />{order.dealSum}</div>}
-                              {order.debtSum && <div className="text-red-600">Долг: {order.debtSum}</div>}
+                              {order.amocrm_tags?.some(t => (t.name || t) === 'OPŁACONE' || (t.name || t) === 'OPLACONE') ? (
+                                <div className="text-green-600 font-medium">✓ Оплачен на Allegro</div>
+                              ) : (
+                                order.debtSum && <div className="text-red-600">Долг: {order.debtSum}</div>
+                              )}
                             </div>
                             {order.orderContents && (
                               <div className="text-xs">
