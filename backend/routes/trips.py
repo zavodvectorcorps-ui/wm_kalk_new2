@@ -1078,19 +1078,25 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
     }
     
     # Handle status change and sync order statuses
-    if "status" in update_data and sync_order_statuses:
+    # When trip is marked as 'completed', automatically mark all orders as 'delivered'
+    if "status" in update_data:
         new_trip_status = update_data["status"]
         new_order_status = TRIP_TO_ORDER_STATUS.get(new_trip_status, "pending")
         
-        # Update all order statuses (except cancelled ones)
-        existing_statuses = existing.get("orderStatuses", {})
-        for order_id in existing.get("orderIds", []):
-            current_status = existing_statuses.get(order_id, "pending")
-            # Don't change cancelled orders
-            if current_status != "cancelled":
-                existing_statuses[order_id] = new_order_status
+        # For 'completed' status, always update all order statuses to 'delivered'
+        # For other statuses, only sync if syncOrderStatuses flag is set
+        should_sync = (new_trip_status == "completed") or sync_order_statuses
         
-        update_data["orderStatuses"] = existing_statuses
+        if should_sync:
+            existing_statuses = existing.get("orderStatuses", {})
+            for order_id in existing.get("orderIds", []):
+                current_status = existing_statuses.get(order_id, "pending")
+                # Don't change cancelled orders
+                if current_status != "cancelled":
+                    existing_statuses[order_id] = new_order_status
+            
+            update_data["orderStatuses"] = existing_statuses
+            logger.info(f"Auto-synced order statuses to '{new_order_status}' for trip status '{new_trip_status}'")
     
     # Handle orderStatuses update (manual per-order changes)
     elif "orderStatuses" in update_data:
