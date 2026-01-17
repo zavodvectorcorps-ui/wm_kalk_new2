@@ -1,7 +1,7 @@
 <analysis>**original_problem_statement:**
 The user's high-level goal is to build a comprehensive logistics and sales management system.
 
-**Original Product Requirements:**
+**Original Product Requirements from previous sessions:**
 *   Integrate a calculator with amoCRM.
 *   Enhance the logistics module with features like dispatch dates, status sync, important order flags, and print functions.
 *   Build a Driver Panel.
@@ -13,73 +13,124 @@ The user's high-level goal is to build a comprehensive logistics and sales manag
 *   Fix a bug where newlines in calculator hints were ignored.
 *   **Sauna CRM Module**: A major feature to manage sauna sales leads in a Kanban board, with full integration into amoCRM.
 *   **PDF Upload to amoCRM**: After an order is created, the generated PDF proposal should be automatically uploaded to that deal in amoCRM.
-*   **Manager Gifts**: Allow managers (users with the  role) to mark order options as gifts (making them free), similar to the existing functionality for admins.
+*   **Manager Gifts**: Allow managers (users with the  role) to mark order options as gifts.
+
+**New requirements from this session:**
+*   **Fix PDF Upload**: Resolve the final issues preventing PDF files from being correctly uploaded and opened in amoCRM.
+*   **Order Visibility Bug**: Ensure orders created from the amoCRM widget are visible in the manager's order list, not just the admin's.
+*   **Enhance amoCRM Note**: Add the responsible employee's name and the total order amount to the note created in amoCRM.
+*   **FAQ Section**: Create a new FAQ section for managers, with content editable from an admin panel, to centralize knowledge about the calculator and amoCRM integration.
+*   **UI Improvements**:
+    *   Remove the Tech. Zadanie (Tech Spec) button from the header.
+    *   Add a company logo to the Sauna Calculator page.
+*   **PDF Enhancements**:
+    *   Replace the gift image in the Sauna PDF.
+    *   Add a new page with a collage of photos to the end of the Sauna PDF.
+*   **PDF Template Constructor**: Build a new feature allowing admins to design and customize the structure of generated PDF proposals.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a full-stack logistics and sales management system with a React frontend and FastAPI backend.
-*   **Calculators (Balia & Sauna)**: Fully functional with an admin panel for configuration.
-*   **Logistics Module**: Stable, with order editing and change history tracking.
-*   **Sauna CRM Module**: Completed and tested Kanban board for managing sales leads.
-*   **PDF Generation & Workaround**: The system generates PDFs for orders. The direct upload to amoCRM is blocked by a deployment issue, so the current workaround saves the PDF to the database and adds a download link to the amoCRM deal.
-*   **Manager Gift Feature**: Implemented. Managers can now see the Edit button on order lists and, within the edit modal, have access to a button to mark order options as gifts. This functionality is pending user verification.
+The application is a full-stack logistics and sales management system. The critical amoCRM PDF upload functionality, which was previously blocked, is now **technically working** after an extensive, multi-iteration debugging process. A comprehensive FAQ system has been built, with a backend, frontend viewer, and admin editor. The UI has been updated with a new logo on the Sauna calculator and a cleaner header. The Sauna PDF generation has been enhanced with an updated image and a new photo collage page. Scaffolding for a new PDF Template Editor has been created.
 
 **Last working item**:
--   **Last item agent was working**: The agent was enabling managers (role: ) to give gifts when editing an order. The user reported that the initial change didn't work. The agent investigated and found that the Edit buttons on the main order pages (, ) were only visible to admins, preventing managers from accessing the edit modal. The agent fixed this by changing the visibility condition from  to .
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: Frontend testing agent. The agent should log in as a manager (e.g., user , password ), navigate to the orders pages (, ), confirm the Edit button is visible, open the edit modal for an order, and verify that the gift icon is present and functional for order options.
+-   **Last item agent was working**: The agent was starting the implementation of a PDF Template Constructor. It created the initial backend route file (), the frontend component (), and added the necessary routing in  and . However, these files are just placeholders with no functional logic.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: both
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: **CRITICAL DEPLOYMENT FAILURE**: The user's production server () is not being updated with the latest backend code when a deploy is performed via the Emergent platform. (P0)
--   **Issue 2**: Verify that managers can now use the gift feature. (P0)
+-   **Issue 1**: **Orders created from amoCRM are not visible to managers.** (P0)
+-   **Issue 2**: The employee's name and total sum are not appearing in the amoCRM note. (P1)
+-   **Issue 3**: The uploaded PDF in amoCRM downloads instead of opening in a new tab. (P2)
 
   **Issues Detail**:
-  - **Issue 1**: CRITICAL DEPLOYMENT FAILURE
-     -   **Attempted fixes**: The agent correctly implemented the new amoCRM file upload logic (V5-drive). To diagnose why it wasn't working on production, the agent added version markers to API responses () and created a new diagnostic endpoint (). Testing confirmed that the preview server has the new code, but the production server is running old code, causing all new features and fixes to fail. The agent has correctly identified this as an Emergent platform infrastructure issue, not a code issue.
-     -   **Next debug checklist**: **DO NOT ATTEMPT TO FIX THE PDF UPLOAD CODE.** The code is correct. The next agent's top priority is to guide the user to follow up with Emergent Support about the deployment failure. The agent has already provided the user with the necessary information to create a support ticket. The agent should only proceed with other tasks while waiting for the deployment issue to be resolved by the platform team.
-     -   **Why fix this issue and what will be achieved with the fix?**: This is a complete blocker for any new backend features or fixes reaching the user's live application, including the primary goal of attaching PDFs to amoCRM deals.
-     -   **Status**: BLOCKED
-     -   **Is recurring issue?**: Y
-     -   **Should Test frontend/backend/both after fix?**: backend
-     -   **Blocked on other issue**: Blocked by Emergent Platform infrastructure.
+  - **Issue 1**: Orders created from amoCRM are not visible to managers.
+     - **Attempted fixes**: The agent correctly identified that orders created via the calculator in amoCRM were being assigned , causing them to be filtered out of the manager's view. The agent changed this to  in  and . However, the user reported the issue persists. This is likely because existing orders in the database still have the old source.
+     - **Next debug checklist**:
+       1.  Create a temporary backend endpoint to migrate existing orders in the database (update documents where  exists and  is  to ).
+       2.  Instruct the user to call this migration endpoint once.
+       3.  Ask the user to create a *new* order from amoCRM to verify that the fix works for future orders.
+       4.  File to create migration endpoint in:  or a new temporary route file.
+     - **Why fix this issue and what will be achieved with the fix?**: This is a critical workflow bug. Managers cannot see or manage orders they create through the primary amoCRM integration channel.
+     - **Status**: IN PROGRESS
+     - **Is recurring issue?**: Y
+     - **Should Test frontend/backend/both after fix?**: frontend
+     - **Blocked on other issue**: No
 
-  - **Issue 2**: Verify manager gift feature
-     -   **Attempted fixes**: The initial fix only changed the logic inside the edit modal. The second, complete fix also made the edit buttons visible to managers on the order list pages.
-     -   **Next debug checklist**: Ask the user to test the feature again. If it still fails, the agent should log in as a manager (/) and trace the flow from the  page to the  to see where it breaks.
-     -   **Why fix this issue and what will be achieved with the fix?**: Fulfills a direct user feature request.
-     -   **Status**: USER VERIFICATION PENDING
-     -   **Is recurring issue?**: Y
-     -   **Should Test frontend/backend/both after fix?**: frontend
-     -   **Blocked on other issue**: No
+  - **Issue 2**: Employee name and sum not in amoCRM note.
+     - **Attempted fixes**: The agent added  and  parameters to the backend endpoint and updated the frontend to pass them. When that failed, the agent found that the note was only being sent on upload failure and changed the logic to always send an informational note. The user reports it's still not working.
+     - **Next debug checklist**:
+       1.  Check the backend logs () for the  call when a new order is created.
+       2.  Verify if the  and  query parameters are being received by the backend.
+       3.  In , add logging to print the values of  and  right after they are read from the request.
+       4.  Trace the logic to ensure these variables are correctly formatted into the text of the note sent to amoCRM.
+     - **Why fix this issue and what will be achieved with the fix?**: Fulfills a user request to have more context directly within the amoCRM deal history.
+     - **Status**: IN PROGRESS
+     - **Is recurring issue?**: Y
+     - **Should Test frontend/backend/both after fix?**: backend
+     - **Blocked on other issue**: No
+
+  - **Issue 3**: Uploaded PDF downloads instead of opening.
+     - **Attempted fixes**: None.
+     - **Next debug checklist**: This is likely a behavior controlled by amoCRM's servers ( header on the download link) and may not be fixable from our side.
+       1.  First, confirm with the user if this is a major issue or a minor inconvenience.
+       2.  If it's important, investigate the Kommo API documentation or do a web search to see if there's a parameter to control inline vs. attachment disposition for file notes.
+     - **Why fix this issue and what will be achieved with the fix?**: Minor user experience improvement.
+     - **Status**: NOT STARTED
+     - **Is recurring issue?**: N
+     - **Should Test frontend/backend/both after fix?**: N/A
+     - **Blocked on other issue**: No
 
 **In progress Task List**:
-None.
+-   **Task 1**: Complete the PDF Template Editor (P0)
+-   **Task 2**: Finalize FAQ implementation (P1)
+
+ Task Detail:
+  - **Task 1**: Complete the PDF Template Editor
+     - **Where to resume**: The backend () and frontend () files are just placeholders.
+     - **What will be achieved with this?**: A powerful feature allowing the user to customize PDF layouts without needing new code deployments.
+     - **Status**: IN PROGRESS
+     - **Should Test frontend/backend/both after fix?**: both
+     - **Blocked on something**: The pending bugs should be addressed first.
+  - **Task 2**: Finalize FAQ implementation
+     - **Where to resume**: The backend code is complete, with all FAQ content now in the  function in . The frontend is also complete.
+     - **What will be achieved with this?**: The user will have a fully populated, self-managed FAQ system.
+     - **Status**: IN PROGRESS
+     - **Should Test frontend/backend/both after fix?**: N/A
+     - **Blocked on something**: No, just requires communicating the final step to the user.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    -   **P1**: Refine Warehouse Module: Verify with the user that the enriched order details now correctly appear in the Trips tab.
-    -   **P1**: Add a UI for importing a backup ZIP file.
--   **Future Tasks**:
-    -   **P2**: Replace the deprecated Google Maps Autocomplete component.
-    -   **P2**: Refactor  and  to extract shared components.
-    -   **P2**: Refactor the duplicated order card logic between  and .
-    -   **P3**: Finalize strategy for Sauna Lead Statistics.
-    -   **P3**: Investigate and fix unstable user login sessions.
-    -   **P3**: Refactor  and  into smaller components/hooks.
+- **Upcoming Tasks**:
+    - **P1**: Refine Warehouse Module: Verify with the user that the enriched order details now correctly appear in the Trips tab.
+    - **P1**: Add a UI for importing a backup ZIP file.
+- **Future Tasks**:
+    - **P2**: Replace the deprecated Google Maps Autocomplete component.
+    - **P2**: Refactor  and  to extract shared components.
+    - **P2**: Refactor the duplicated order card logic between  and .
+    - **P3**: Finalize strategy for Sauna Lead Statistics.
+    - **P3**: Investigate and fix unstable user login sessions.
+    - **P3**: Refactor  and  into smaller components/hooks.
 
 **Completed work in this session**
--   **amoCRM PDF Upload (Investigation & Correct Implementation)**: Re-wrote the PDF upload logic in  to use amoCRM's modern, multi-step file upload API ( -> session -> upload -> attach). This new logic is versioned as V5-drive.
--   **Deployment Failure Diagnosis**: Diagnosed a critical platform-level deployment issue by adding version markers to the  endpoint and creating a new diagnostic page () and API endpoint (). Proved conclusively that the user's production server is not receiving backend code updates.
--   **Manager Gift Feature**: Implemented the user's request to allow managers ( role) to give gifts.
-    -   Modified  to allow gift functionality for users with  permissions.
-    -   Modified  and  to make the Quick Edit button visible to managers.
+- **FIXED: amoCRM PDF Upload**: Successfully debugged and implemented the complex, multi-step chunked file upload to the Kommo API. This involved fixing session parameters (), implementing chunked uploads (), handling  status codes (), fixing the attachment payload (), adding  headers (), and finally correctly parsing and using the  ().
+- **IMPLEMENTED: FAQ System**:
+  - Created backend CRUD API in .
+  - Created frontend viewer and admin editor in .
+  - Added links to the main application header and routing.
+  - Populated the system with comprehensive guides written by the agent.
+  - Created a seeder endpoint () for the user to populate their production database.
+- **IMPLEMENTED: UI & PDF Enhancements**:
+  - Added the company logo to .
+  - Removed the Tech Spec button from .
+  - Replaced the promo image for gifts in the Sauna PDF ().
+  - Added a new page with a photo collage to the Sauna PDF ().
+- **STARTED: PDF Template Editor**: Created placeholder files and routes.
 
 **Earlier issues found/mentioned but not fixed**
    - **Issue 1: Sauna hints not saving on user's hosting.**
-     - **Debug checklist**: This was marked as a potential environment/caching issue on the user's end. Re-verify with the user if this is still a problem once the main deployment issue is resolved.
+     - **Debug checklist**: Re-verify with the user if this is still a problem now that deployment is confirmed to be working.
      - **Why to solve this issue and what will be achieved with this?**: Ensures all admin panel features work correctly on the user's production server.
      - **Should Test frontend/backend/both after fix**: Both.
      - **Is recurring issue?**: N
@@ -90,79 +141,83 @@ None.
      - **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
-  None.
+  - **CRITICAL DEPLOYMENT FAILURE**: This was the main blocker from the previous fork. **It has been resolved in this session.** The user confirmed deployment is now working.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **External API Debugging (amoCRM/Kommo)**: Discovered and implemented the correct multi-step file upload process for the modern Kommo API, which requires using a separate  for file operations.
--   **Deployment Troubleshooting**: Systematically diagnosed a platform-level deployment failure by instrumenting the code with version markers and creating dedicated diagnostic endpoints to compare behavior between the preview and production environments.
--   **Role-Based Access Control (RBAC)**: Extended an existing feature by modifying UI visibility checks and business logic based on user permissions () derived from their role ().
+-   **Kommo/amoCRM Chunked File Upload API**: Deeply engaged with the modern file upload API. Mastered the process: create session (, ), upload chunks with  headers, handle  for intermediate parts, and parse  and  from the final  response to attach the file to a lead.
+-   **PDF Generation with ReportLab**: Modified existing PDF generation code to replace static images and dynamically add a new page with a multi-image collage layout.
+-   **Full-Stack Feature Development**: Built an entire FAQ system from scratch, including the backend API (FastAPI), database model (MongoDB), and frontend UI (React) with separate views for users and administrators.
+-   **Data-Driven UI Filtering**: Debugged an issue where data was incorrectly filtered from a user's view based on a  field, requiring a change in how the source data is set and a plan for data migration.
 
 **key DB schema**
-  - No changes in this session.
+  - **faq_items**: 
 
 **changes in tech stack**
   - No changes.
 
 **All files of reference**
--    (Contains the correct V5-drive PDF upload logic and the deployment blocker diagnosis tools)
--    (Contains version marker for deployment check)
--    (Contains gift logic for managers)
--    (Contains UI fix for manager edit button)
--    (Contains UI fix for manager edit button)
--    (New diagnostic page)
--    (Routing for the diagnostic page)
+-    (Correct, working V13 PDF upload logic with debug info)
+-    (Complete FAQ backend, including seeder)
+-    (Complete FAQ frontend)
+-    (Contains fix attempt for order visibility)
+-    (Contains the filter causing the order visibility bug)
+-    (Contains PDF generation enhancements)
 
 **Areas that need refactoring**:
--   **Duplicated Order Card Logic**: The UI for an order card is duplicated between  and .
--   **Hint Components**:  and  components are duplicated in  and .
+-   The PDF generation logic in  is becoming very large and complex. It could be extracted into its own service/module.
 
 **key api endpoints**
--   : Endpoint now contains the correct V5-drive logic, which is currently blocked from running on production.
--   : New diagnostic endpoint (returns 404 on production due to the deployment issue).
--   : Now returns a  field on the preview server to help diagnose the deployment issue.
+-   : Now fully functional, uploads a PDF to amoCRM and attaches it to a lead.
+-   : Fetches all FAQ items.
+-   : Creates a new FAQ item.
+-   : Updates an FAQ item.
+-   : Deletes an FAQ item.
+-   : Populates the database with a default set of comprehensive FAQs.
 
 **Critical Info for New Agent**
 -   You MUST respond in **Russian**.
--   **DO NOT RE-IMPLEMENT PDF UPLOAD**: The primary issue, PDF upload to amoCRM, is **BLOCKED** by a platform deployment failure, not a code error. The code in  is correct. Your first priority is to confirm with the user that they are following up with Emergent Support on this infrastructure problem. Do not waste time trying to fix the PDF upload code again.
--   **VERIFY MANAGER GIFTS**: Your first *coding-related* task is to follow up with the user on the manager gift feature. Ask them to re-test. Be prepared to log in as a manager (/) to debug if it's still not working.
+-   **PRIORITY 1 - BUG FIX**: The most critical issue is that managers cannot see orders created from the amoCRM widget. Your first task is to create a migration script/endpoint to update old orders in the database with  and then verify the fix works for new orders.
+-   **PRIORITY 2 - BUG FIX**: Debug why the employee name and total sum are not appearing in the amoCRM note. This is likely a simple parameter passing issue on the backend.
+-   **PRIORITY 3 - FINISH FAQ**: Inform the user that the FAQ content is ready and they need to trigger the seeding process by visiting the  endpoint on their server to populate their database.
+-   **PRIORITY 4 - CONTINUE NEW FEATURE**: Once the critical bugs are resolved, continue building the PDF Template Editor feature.
 
 **documents and test reports created in this job**
   - None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** Says deploy is correct but other things are updated, suggests creating a log page.
-9.  **Agent:** Creates a diagnostic page and API endpoint ().
-8.  **User:** Reports the debug page link just goes to the homepage.
-7.  **Agent:** Explains the page requires admin login and checks the API endpoint directly on production, confirming it returns 404 (Not Found). Concludes the deploy is failing and advises user to contact Emergent support with proof.
-6.  **User:** Ignores the deployment issue and requests a new feature: allow managers to give gifts.
-5.  **Agent:** Implements the gift feature for managers.
-4.  **User:** Reports the gift feature is not working for managers.
-3.  **Agent:** Investigates and finds the Edit button itself is hidden from managers. Fixes the button visibility on  and .
-2.  **User:** Asks how to see the full API response to help debug.
-1.  **Agent:** Explains how to use browser DevTools or  to see the response.
+10. **User:** Asks to add employee name and sum to the amoCRM note.
+9.  **Agent:** Implements the change on the backend and frontend.
+8.  **User:** Reports the name/sum are not appearing, and the order visibility bug is still present.
+7.  **Agent:** Implements a fix to always send the informational note.
+6.  **User:** Shifts focus and requests a new, large feature: an editable FAQ section for managers.
+5.  **Agent:** Builds the entire FAQ system (backend, frontend, admin panel, seeder).
+4.  **User:** Reports the agent's pre-filled FAQ content is missing and asks for a tab to be reordered.
+3.  **Agent:** Fixes the tab order and moves the FAQ content into a backend seeder function for the user to run on production.
+2.  **User:** Asks to remove the Tech Spec button from the header.
+1.  **User:** Asks to add a logo to the Sauna calculator.
 
 **Project Health Check:**
 -   **Broken**:
-    -   Production deployment pipeline (backend code is not updating).
-    -   Direct PDF upload to amoCRM (symptom of the broken deployment).
+    -   Manager's order list is missing orders created via the amoCRM widget.
+    -   The informational note added to amoCRM is missing the employee name and total sum.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
--   **amoCRM**: Heavily used for REST API (lead/status sync), File API (blocked), and UI integrations (Widgets, Salesbots).
+-   **amoCRM/Kommo**: The integration for file uploads is now fully functional and heavily tested. Used for lead creation, status sync, and now file attachments.
 
 **Testing status**
   - Testing agent used after significant changes: NO
-  - Troubleshoot agent used after agent stuck in loop: NO (but Support Agent and Deployment Agent were called)
+  - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: []
   - Known regressions: None.
 
 **Credentials to test flow:**
 -   Admin:  / 
--   Manager (Employee):  /  (or  / )
+-   Manager (Employee):  / 
 -   Driver:  / 
 
 **What agent forgot to execute**
--   The two minor admin panel bugs from the previous handover (Sauna hints not saving and category hint editing dialog bug) were not addressed. This is acceptable given the focus was on the critical deployment blocker and the new user feature request.</analysis>
+-   The agent identified that a data migration was needed for the  issue but did not create the migration endpoint before getting pulled into the new FAQ feature request. This is the main reason the order visibility bug is still pending.</analysis>
