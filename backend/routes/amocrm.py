@@ -1684,24 +1684,24 @@ async def upload_calculator_pdf_to_amocrm(
         upload_error = f"Exception: {str(e)}"
         debug_log["exception"] = str(e)
     
-    # If file upload failed, add text note with link as fallback
+    # Always add info note with order details
+    note_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')
+    info_parts = [
+        f"✅ Коммерческое предложение создано",
+        f"Заказ: {order_id}",
+        f"Калькулятор: {calc_name}",
+    ]
+    if employee_name:
+        info_parts.append(f"Сотрудник: {employee_name}")
+    if total_amount:
+        info_parts.append(f"Сумма: {total_amount} zł")
+    info_parts.append(note_date)
+    
+    info_note = "\n".join(info_parts)
+    await add_note_to_amocrm(amocrm_id, info_note, domain, token)
+    
+    # If file upload failed, also add download link
     if not pdf_uploaded:
-        note_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')
-        # Build note with employee name and total if provided
-        info_parts = [
-            f"✅ Коммерческое предложение создано",
-            f"Заказ: {order_id}",
-            f"Калькулятор: {calc_name}",
-        ]
-        if employee_name:
-            info_parts.append(f"Сотрудник: {employee_name}")
-        if total_amount:
-            info_parts.append(f"Сумма: {total_amount} zł")
-        info_parts.append(note_date)
-        
-        info_note = "\n".join(info_parts)
-        await add_note_to_amocrm(amocrm_id, info_note, domain, token)
-        
         link_note = f"Скачать PDF: {pdf_download_url}"
         await add_note_to_amocrm(amocrm_id, link_note, domain, token)
     
