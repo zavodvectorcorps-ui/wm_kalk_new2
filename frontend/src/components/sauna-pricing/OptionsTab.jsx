@@ -32,6 +32,7 @@ export const OptionsTab = ({
     price: 0,
     imageUrl: '',
     hasQuantity: false,
+    isDefaultSelected: false,
     techSpecId: null,
     techSpecCategoryId: null,
   });
@@ -39,7 +40,7 @@ export const OptionsTab = ({
   const onAddOption = async () => {
     const success = await handleAddOption(newOption);
     if (success) {
-      setNewOption({ categoryId: '', name: '', price: 0, imageUrl: '', hasQuantity: false, techSpecId: null, techSpecCategoryId: null });
+      setNewOption({ categoryId: '', name: '', price: 0, imageUrl: '', hasQuantity: false, isDefaultSelected: false, techSpecId: null, techSpecCategoryId: null });
       setIsOptionDialogOpen(false);
     }
   };
