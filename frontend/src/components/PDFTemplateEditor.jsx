@@ -399,7 +399,7 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
   const handleSeedDefaults = async () => {
     try {
       await axios.post(`${API_URL}/api/pdf-templates/seed-defaults`);
-      fetchTemplate();
+      fetchTemplates();
       toast.success('Domyślny szablon utworzony');
     } catch (error) {
       console.error('Error seeding defaults:', error);
@@ -422,18 +422,31 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold">Konstruktor PDF</h2>
           <p className="text-muted-foreground">
             Настройка шаблона PDF для {calculatorType === 'sauna' ? 'саун' : 'купелей'}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {!template?.id && (
             <Button variant="outline" onClick={handleSeedDefaults}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Создать шаблон
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => setShowNewTemplateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nowy szablon
+          </Button>
+          {template?.id && (
+            <Button variant="outline" onClick={() => {
+              setNewTemplateName(`${template.name || 'Szablon'} (kopia)`);
+              setShowNewTemplateDialog(true);
+            }}>
+              <Copy className="h-4 w-4 mr-2" />
+              Duplikuj
             </Button>
           )}
           <Button variant="outline" onClick={handlePreview} disabled={previewLoading}>
