@@ -16,7 +16,7 @@ import {
   GraduationCap, Play, CheckCircle2, Circle, Lock, Plus, Trash2, 
   Edit, ChevronRight, Award, Clock, Users, BookOpen, Video,
   FileQuestion, Save, X, ArrowLeft, BarChart3, Settings, Grip,
-  ChevronDown, ChevronUp, PlayCircle, CheckCircle, XCircle, RefreshCw
+  ChevronDown, ChevronUp, PlayCircle, CheckCircle, XCircle, RefreshCw, FileImage
 } from 'lucide-react';
 
 const API_URL = (() => { 
