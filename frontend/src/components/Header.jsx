@@ -158,6 +158,18 @@ export const Header = ({
                   FAQ
                 </Button>
               )}
+              {/* Training Button */}
+              {showNavigation && (
+                <Button
+                  variant={activeTab === 'training' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('training')}
+                  className="flex items-center gap-2"
+                >
+                  <GraduationCap className="h-4 w-4" />
+                  Обучение
+                </Button>
+              )}
               {/* FAQ Admin - only for admins */}
               {showNavigation && isAdminAuthenticated && (
                 <Button
