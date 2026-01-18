@@ -149,6 +149,7 @@ async def update_course(course_id: str, course: Course):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Курс не найден")
     
+    course_dict.pop("_id", None)
     return course_dict
 
 
