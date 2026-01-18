@@ -47,6 +47,7 @@ const TrainingPage = ({ user }) => {
   const [showCourseDialog, setShowCourseDialog] = useState(false);
   const [showLessonDialog, setShowLessonDialog] = useState(false);
   const [statistics, setStatistics] = useState(null);
+  const [usersStats, setUsersStats] = useState([]);
   
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
