@@ -276,8 +276,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
               </Card>
             )}
 
-            {/* Sauna CRM Card */}
-            {canAccessSaunaCRM && (
+            {/* Sauna CRM Card - TEMPORARILY HIDDEN */}
+            {false && canAccessSaunaCRM && (
               <Card 
                 className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-rose-500/50"
                 onClick={() => onSelectCalculator('sauna_crm')}
@@ -291,7 +291,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                     <h2 className="text-2xl font-bold text-foreground mb-3">
                       {txt.saunaCrmTitle}
                     </h2>
-                    <p className="text-muted-foreground mb-6">
+                    <p className="text-muted-foreground mb-3">
                       {txt.saunaCrmDesc}
                     </p>
                     <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-rose-500/50 text-rose-600 hover:bg-rose-500/10 hover:text-rose-600">
