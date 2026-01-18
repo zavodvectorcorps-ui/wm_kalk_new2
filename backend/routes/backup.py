@@ -1618,6 +1618,17 @@ async def send_backup_to_telegram():
                 zip_file.writestr("sauna_leads.json", json.dumps(sauna_leads, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "sauna_leads", "count": len(sauna_leads)})
             
+            # Training module
+            training_courses = await safe_collect("training_courses", limit=100)
+            if training_courses:
+                zip_file.writestr("training_courses.json", json.dumps(training_courses, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "training_courses", "count": len(training_courses)})
+            
+            training_progress = await safe_collect("training_progress", limit=10000)
+            if training_progress:
+                zip_file.writestr("training_progress.json", json.dumps(training_progress, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "training_progress", "count": len(training_progress)})
+            
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
                 "chat_id": os.environ.get('TELEGRAM_CHAT_ID', ''),
