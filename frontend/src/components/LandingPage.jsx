@@ -8,9 +8,6 @@ import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, G
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
   const { isAdmin, user } = useAuth();
-  
-  // Debug: log user role
-  console.log('LandingPage - user:', user, 'role:', user?.role);
 
   const texts = {
     ru: {
