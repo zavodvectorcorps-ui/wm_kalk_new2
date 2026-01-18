@@ -85,10 +85,19 @@ const TrainingPage = ({ user }) => {
   const fetchStatistics = useCallback(async () => {
     if (!isAdmin) return;
     try {
-      const response = await fetch(`${API_URL}/api/training/statistics`);
-      if (response.ok) {
-        const data = await response.json();
+      const [statsRes, usersRes] = await Promise.all([
+        fetch(`${API_URL}/api/training/statistics`),
+        fetch(`${API_URL}/api/training/statistics/users`)
+      ]);
+      
+      if (statsRes.ok) {
+        const data = await statsRes.json();
         setStatistics(data);
+      }
+      
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsersStats(usersData);
       }
     } catch (error) {
       console.error('Error fetching statistics:', error);
