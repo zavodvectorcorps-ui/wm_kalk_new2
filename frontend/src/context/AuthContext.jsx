@@ -101,6 +101,11 @@ export const AuthProvider = ({ children }) => {
   const canViewPricing = () => user?.role === 'admin' || user?.role === 'observer';
 
   const hasAccess = (calculator) => {
+    // Debug
+    if (calculator === 'training') {
+      console.log('hasAccess(training) called, user:', user, 'role:', user?.role);
+    }
+    
     if (!user) return false;
     
     // Admins have access to everything including driver panel
@@ -109,7 +114,9 @@ export const AuthProvider = ({ children }) => {
     
     // Training is accessible to all employees (managers) and admins
     if (calculator === 'training') {
-      return user.role === 'admin' || user.role === 'employee' || user.role === 'observer';
+      const result = user.role === 'admin' || user.role === 'employee' || user.role === 'observer';
+      console.log('hasAccess(training) result:', result);
+      return result;
     }
     
     // Driver role automatically has access to driver panel
