@@ -124,11 +124,14 @@ async def create_course(course: Course):
     
     # Get max order
     max_order = await db.training_courses.find_one(
-        {}, {"order": 1}, sort=[("order", -1)]
+        {}, {"order": 1, "_id": 0}, sort=[("order", -1)]
     )
     course_dict["order"] = (max_order.get("order", 0) + 1) if max_order else 0
     
     await db.training_courses.insert_one(course_dict)
+    
+    # Return without _id
+    course_dict.pop("_id", None)
     return course_dict
 
 
