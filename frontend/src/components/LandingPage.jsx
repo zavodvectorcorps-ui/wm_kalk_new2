@@ -7,7 +7,7 @@ import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, G
 
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   const texts = {
     ru: {
