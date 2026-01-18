@@ -171,7 +171,7 @@ async def delete_course(course_id: str):
 @router.post("/courses/{course_id}/lessons")
 async def add_lesson(course_id: str, lesson: Lesson):
     """Add a lesson to a course"""
-    course = await db.training_courses.find_one({"id": course_id})
+    course = await db.training_courses.find_one({"id": course_id}, {"_id": 0})
     if not course:
         raise HTTPException(status_code=404, detail="Курс не найден")
     
