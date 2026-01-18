@@ -1,860 +1,129 @@
-# WM Kalkulator - PRD (Product Requirements Document)
+# WM Kalkulator - Product Requirements Document
 
 ## Original Problem Statement
-A full-featured quoting and order management application for Saunas and Balias (hot tubs). The application allows employees and administrators to configure products, calculate prices, generate PDFs, manage orders, and handle technical specifications.
-
-## Recent Updates (January 2026)
-
-### Session 2026-01-17 - PDF Template Editor & Default Options - COMPLETED ✅
-
-#### Feature 1: PDF Template Constructor (Konstruktor PDF)
-- Template management: create, duplicate, set default, delete
-- Export/Import templates as JSON
-- Preview PDF with sample data
-- **Access**: ADMIN ONLY
-
-#### Feature 2: Default Options for Sauna Calculator ✅ NEW
-- **Request**: Allow setting options as "selected by default" in pricing settings
-- **Implementation**:
-  - Added `isDefaultSelected` field to `SaunaOption` model in `/app/backend/models/sauna.py`
-  - Added checkbox "Выбрано по умолчанию" in Add/Edit option dialogs (`/app/frontend/src/components/sauna-pricing/OptionDialog.jsx`)
-  - Added "Domyślnie" badge for default options in options list (`/app/frontend/src/components/sauna-pricing/OptionsTab.jsx`)
-  - Modified calculator initialization to pre-select default options (`/app/frontend/src/components/sauna/useSaunaCalculator.js`)
-- **Behavior**:
-  - Admin can mark any option as "default selected"
-  - When calculator loads, these options are automatically checked
-  - Manager can change selections as needed
-  - Works for both checkbox (multi-select) and radio (single-select) categories
-- **Status**: ✅ COMPLETED
-
-### Session 2026-01-16 - PDF Upload to amoCRM - FIX V4 ✅
-
-#### Bug Fix: PDF not uploading to amoCRM deal
-- **Problem**: PDF files were not being uploaded to amoCRM deals after creating orders in calculator
-- **Root Cause**: Kommo/amoCRM uses a **separate file service** (`drive-X.kommo.com`), not the main API domain. The old endpoint `/api/v4/files` doesn't exist on the main domain - hence the 404 error.
-- **Solution**: Implemented 4-step upload process per Kommo documentation:
-  1. `GET /api/v4/account?with=drive_url` - get file service URL
-  2. `POST {drive_url}/v1.0/sessions` - create upload session
-  3. `POST {upload_url}` - upload PDF to file service
-  4. `POST /api/v4/leads/{id}/notes` - attach file to lead
-- **File Modified**: `/app/backend/routes/amocrm.py` (lines 1459-1560)
-- **Status**: ✅ FIXED - awaiting user verification after deploy
-
-### Session 2026-01-15 - Sauna CRM Module - COMPLETED ✅
-
-#### Feature: Sauna CRM Kanban Board
-- **Request**: Create a CRM module for managing sauna sales leads with Kanban board and amoCRM integration
-- **Implementation**:
-  1. **Backend API** (`/app/backend/routes/sauna_crm.py`):
-     - `GET /api/sauna-crm/settings` - Get CRM configuration
-     - `POST /api/sauna-crm/settings` - Update CRM configuration
-     - `GET /api/sauna-crm/leads` - Get all leads with stage grouping
-     - `POST /api/sauna-crm/leads` - Create new lead
-     - `PUT /api/sauna-crm/leads/{id}` - Update lead
-     - `PUT /api/sauna-crm/leads/{id}/stage` - Change lead stage (Kanban drag-drop)
-     - `DELETE /api/sauna-crm/leads/{id}` - Delete lead
-     - `POST /api/sauna-crm/leads/{id}/open-calculator` - Get prefill data for calculator
-     - `POST /api/sauna-crm/sync-from-amocrm` - Sync leads from amoCRM
-     
-  2. **Frontend Components** (`/app/frontend/src/components/SaunaCRMPage.jsx`):
-     - Kanban board with drag-and-drop (using @dnd-kit)
-     - Stage columns with color coding and lead counts
-     - Lead cards with client info, phone, custom fields preview
-     - Stage selector dropdown on cards
-     - Edit lead dialog with all fields
-     - Settings dialog with two tabs:
-       - Fields tab: 10 configurable fields with amoCRM ID mapping
-       - Stages tab: Add/remove stages with color picker and amoCRM mapping
-     - Calculator button opens sauna calculator with prefilled data
-     
-  3. **Access Control**:
-     - Added `sauna_crm` to user access rights
-     - Landing page shows CRM card only for users with access
-     - Settings button visible only for admin/canEdit users
-     
-- **Files Modified/Created**:
-  - `/app/backend/routes/sauna_crm.py` - Created (518 lines)
-  - `/app/backend/models/auth.py` - Added 'sauna_crm' to access types
-  - `/app/backend/server.py` - Added sauna_crm_router
-  - `/app/frontend/src/components/SaunaCRMPage.jsx` - Created (670 lines)
-  - `/app/frontend/src/components/LandingPage.jsx` - Added CRM card
-  - `/app/frontend/src/App.js` - Added sauna_crm route handler and URL parameter parsing
-
-- **Database Collections**:
-  - `sauna_crm_settings` - CRM configuration (fields, stages)
-  - `sauna_crm_leads` - Lead documents with stage history
-
-- **Testing**: 15/15 backend tests passed, 100% frontend verification
-  - Test file: `/app/tests/test_sauna_crm.py`
-  
-- **Status**: ✅ COMPLETED AND TESTED
-
-### Session 2026-01-15 - PDF Upload to amoCRM - COMPLETED ✅
-
-#### Feature: Automatic PDF Upload to amoCRM after Order Creation
-- **Request**: After creating order in calculator, PDF should download AND upload to amoCRM deal
-- **Implementation**:
-  1. **Backend endpoint** (`/app/backend/routes/amocrm.py`):
-     - `POST /api/integrations/amocrm/upload-calculator-pdf` - receives PDF blob and uploads to amoCRM
-     - Adds note to amoCRM with order details
-     - Uses amoCRM API v4 `/leads/{id}/files` endpoint
-     
-  2. **Frontend integration**:
-     - Sauna calculator (`useSaunaCalculator.js`): After PDF generation, uploads blob to amoCRM if `amocrm_id` exists
-     - Balia calculator (`CalculatorPage.jsx`): Same logic added
-     - Also saves calculator data back to CRM lead if opened from Sauna CRM (`crmLeadId`)
-     
-- **Flow**:
-  1. User opens calculator from amoCRM widget or Sauna CRM
-  2. User fills order and clicks "Save & Generate PDF"
-  3. PDF downloads to user's computer
-  4. If `amocrm_id` is present, PDF automatically uploads to amoCRM deal
-  5. Note with order info is added to amoCRM timeline
-  6. Toast notification shows "PDF загружен в amoCRM"
-
-- **Files Modified**:
-  - `/app/backend/routes/amocrm.py` - Added `upload-calculator-pdf` endpoint
-  - `/app/frontend/src/components/sauna/useSaunaCalculator.js` - Added PDF upload logic
-  - `/app/frontend/src/components/CalculatorPage.jsx` - Added PDF upload logic for Balia
-
-- **Status**: ✅ COMPLETED AND TESTED
-
----
-
-### Session 2026-01-12 - Logistics Order Editing Fix & History
-
-#### Bug Fix: Order Data Not Saving in Logistics - FIXED ✅
-- **Problem**: Changes to order fields (orderContents, clientName, dealSum, etc.) were not being saved when editing orders in the logistics module
-- **Root Cause**: Backend Pydantic models (Order, SaunaOrder, GreenhouseOrder) didn't have explicit fields for logistics data. Although `extra="allow"` was set, the data wasn't being properly validated and saved.
-- **Solution**: Added all necessary logistics fields to the Order models:
-  - Client info: `clientName`, `phone`
-  - Order contents: `orderContents`
-  - Financial: `dealSum`, `debtSum`, `totalPrice`, `amountDue`
-  - Trip: `tripId`, `tripName`, `tripDriverName`, `tripDepartureDate`, `tripOrderStatus`
-  - Delivery: `deliveryStatus`, `deliveryComment`, `isImportant`
-  - amoCRM: `amocrm_id`, `amocrm_link`, `amocrm_data`, `order_number`, `budget`
-  - Geo: `lat`, `lng`
-  - History: `transferredAt`, `transferredBy`, `source`, `updatedAt`, `updatedBy`, `changeHistory`
-
-- **Files Modified**:
-  - `/app/backend/models/balia.py` - Extended Order model with logistics fields
-  - `/app/backend/models/sauna.py` - Extended SaunaOrder model with logistics fields
-  - `/app/backend/routes/greenhouse.py` - Extended GreenhouseOrder model with logistics fields
-  - `/app/backend/routes/balia.py` - Updated PUT endpoint with change tracking
-  - `/app/backend/routes/sauna.py` - Updated PUT endpoint with change tracking
-  - `/app/backend/routes/amocrm.py` - Added transferredAt and changeHistory initialization
-
-- **Status**: ✅ FIXED AND TESTED
-
-#### Feature: Order Change History - COMPLETED ✅
-- **Request**: Add date/time of order transfer and history of changes
-- **Implementation**:
-  1. Added `transferredAt` field for tracking when order was imported from amoCRM
-  2. Added `changeHistory` array for tracking all field changes
-  3. Backend automatically tracks changes to key fields: fullName, clientName, phoneNumber, fullAddress, orderContents, notes, dealSum, debtSum, deliveryStatus, deliveryComment, isImportant, tripId, etc.
-  4. Each history entry includes: timestamp, list of changes (field, oldValue, newValue), changedBy
-  5. Frontend displays collapsible "История изменений" section in order card
-  6. Frontend shows "Обновлено" timestamp when order was last modified
-
-- **Files Modified**:
-  - `/app/frontend/src/components/logistics/OrdersList.jsx` - Added change history display UI
-  - `/app/frontend/src/components/logistics/constants.js` - Added formatDateTime function
-
-- **How it works**:
-  - Every order update via PUT endpoint compares old vs new values
-  - Changed fields are recorded in `changeHistory` array
-  - UI shows expandable list of all changes with old → new values
-  - Dates shown with time (formatDateTime function)
-
-- **Status**: ✅ COMPLETED AND TESTED
-
----
-
-### Session 2026-01-11 - Global and Category Hints
-
-#### Feature: Global Model Hints and Category Hints - COMPLETED ✅
-- **Request**: Add general hint for entire models section and hints for each option category
-- **Implementation**:
-  1. Added `ModelsGlobalHint` component to display a hint above all models in calculators
-  2. Added `CategoryHint` component to display hints under each option category
-  3. Added admin UI for editing global models hint in Sauna pricing (ModelsTab.jsx)
-  4. Added admin UI for editing global models hint in Balia pricing (SettingsTab)
-  5. Added category hint editing dialog for Sauna categories (CategoriesTab.jsx)
-  6. Added category hint fields in Balia category edit dialog (CategoryEditDialog.jsx)
-  7. Added translations for new UI labels (Russian/Polish)
-
-- **Files Modified**:
-  - `/app/frontend/src/components/CalculatorPage.jsx` - Added ModelsGlobalHint and CategoryHint components
-  - `/app/frontend/src/components/BaliaPricingPage.jsx` - Added ModelsHintSection for global models hint editing
-  - `/app/frontend/src/components/balia-pricing/CategoryEditDialog.jsx` - Added category hint fields (text, image, video)
-  - `/app/frontend/src/components/sauna-pricing/ModelsTab.jsx` - Added global models hint editing section
-  - `/app/frontend/src/components/sauna-pricing/CategoriesTab.jsx` - Added category edit dialog with hint fields
-  - `/app/frontend/src/components/sauna-pricing/useSaunaPricing.js` - Added handleUpdateModelsHint function and translations
-
-- **How it works**:
-  - **Global Models Hint**: Displayed as a blue info box above all models in the calculator. Can contain text, image, and video.
-  - **Category Hints**: Displayed as a subtle info box under each category name. Can contain text, image, and video.
-  - **Admin UI**: Collapsible section in Models tab for global hint; Edit dialog for categories includes hint section.
-  - Direct image upload supported for all hints.
-
-- **Data Fields Added**:
-  - `prices.modelsHint`, `prices.modelsHintPl`, `prices.modelsHintImageUrl`, `prices.modelsHintVideoUrl` - for global models hint
-  - `category.hint`, `category.hintPl`, `category.hintImageUrl`, `category.hintVideoUrl` - for category hints
-
-- **Status**: ✅ COMPLETED AND TESTED
-
----
-
-### Session 2026-01-10 - Sauna Calculator Hints Feature
-
-#### Feature: Hints/Tooltips for Sauna Calculator - COMPLETED ✅
-- **Request**: Add hints (подсказки) to the Sauna calculator similar to Balia calculator
-- **Implementation**:
-  1. Added `hint` field support to Sauna models and options
-  2. Added Tooltip component for displaying hints in the calculator
-  3. Added hint editing fields in admin panel (ModelDialog.jsx, OptionDialog.jsx)
-  4. Added translations for "hint" field (Russian/Polish)
-
-#### Feature: Media Support for Hints (Images/Videos) - COMPLETED ✅
-- **Request**: Add ability to attach photos or videos to hints
-- **Implementation**:
-  1. Added `hintImageUrl` and `hintVideoUrl` fields for models and options
-  2. Created `HintIcon` component that shows (i)+ when media is attached
-  3. Created `HintContent` component for rendering text, images, and videos
-  4. Added modal dialog for viewing hint media in larger format
-  5. YouTube video embed support (auto-detect YouTube URLs)
-  6. Direct video file support (mp4, etc.)
-  7. Added editing fields in admin panel for both image and video URLs
-  8. Added translations for new fields
-
-- **Files Modified**:
-  - `/app/frontend/src/components/SaunaCalculator.jsx` - Added HintIcon, HintContent, DropdownHintBox components
-  - `/app/frontend/src/components/sauna-pricing/ModelDialog.jsx` - Added hintImageUrl, hintVideoUrl fields
-  - `/app/frontend/src/components/sauna-pricing/OptionDialog.jsx` - Added hintImageUrl, hintVideoUrl fields
-  - `/app/frontend/src/components/sauna-pricing/useSaunaPricing.js` - Added translations
-
-- **How it works**:
-  - Models/Options: Info icon (i) appears with "+" if media is attached
-  - Click on icon opens modal with full hint content (text + image + video)
-  - Tooltip on hover shows hint text with "Click for more" indicator
-  - YouTube videos are auto-embedded, direct video files use HTML5 player
-  - Dropdown options show hint box below dropdown when selected
-
-- **Testing**: Verified with test data - modal displays image and YouTube video correctly
-- **Status**: ✅ COMPLETED AND TESTED
-
-#### Feature: Media Hints for Balia Calculator - COMPLETED ✅
-- **Request**: Add media hints (photos/videos) to Balia calculator like Sauna
-- **Implementation**:
-  1. Added `HintIcon` and `HintContent` components to CalculatorPage.jsx
-  2. Added Dialog component for modal media display
-  3. Added `hintImageUrl` and `hintVideoUrl` fields in model and option edit dialogs
-  4. YouTube video auto-embed support
-  5. Direct video file support
-
-- **Files Modified**:
-  - `/app/frontend/src/components/CalculatorPage.jsx` - Added HintIcon, HintContent components, Dialog imports
-  - `/app/frontend/src/components/balia-pricing/ModelEditDialog.jsx` - Added hintImageUrl, hintVideoUrl fields
-  - `/app/frontend/src/components/balia-pricing/OptionEditDialog.jsx` - Added hintImageUrl, hintVideoUrl fields
-
-- **How it works**:
-  - Models/Options: Info icon (i) with "+" indicator if media is attached
-  - Click on icon opens modal with full content (text + image + video)
-  - YouTube links auto-embed, direct videos use HTML5 player
-  - Blue color theme (vs amber for Sauna)
-
-- **Testing**: Verified - modal displays correctly with image and YouTube video
-- **Status**: ✅ COMPLETED AND TESTED
-
-#### Fix: Hint Fields in Sauna Backend Models - COMPLETED ✅
-- **Issue**: Hints not saving/displaying in Sauna calculator on production
-- **Root Cause**: Missing `hint`, `hintImageUrl`, `hintVideoUrl` fields in backend Pydantic models
-- **Solution**: Added optional hint fields to `SaunaModel` and `SaunaOption` classes in `/app/backend/models/sauna.py`
-- **Testing**: Verified via API - hints now save and return correctly
-- **Status**: ✅ FIXED
-
-#### Feature: Direct Image Upload for Hints - COMPLETED ✅
-- **Request**: Add ability to upload images directly to hints (not just URL)
-- **Implementation**:
-  1. Added `handleHintImageUpload` function to all dialog components
-  2. Uses existing `/api/upload/image` endpoint
-  3. Shows upload button next to URL input field
-  4. Added delete button to clear uploaded image
-  5. Preview shows after upload
-
-- **Files Modified**:
-  - `/app/frontend/src/components/balia-pricing/ModelEditDialog.jsx`
-  - `/app/frontend/src/components/balia-pricing/OptionEditDialog.jsx`
-  - `/app/frontend/src/components/sauna-pricing/ModelDialog.jsx`
-  - `/app/frontend/src/components/sauna-pricing/OptionDialog.jsx`
-  - `/app/backend/models/sauna.py` - Added hint fields to Pydantic models
-
-- **Status**: ✅ COMPLETED AND TESTED
-
-#### Feature: Direct Image Upload for Hints - COMPLETED ✅
-- **Request**: Add ability to upload images directly to hints (not just URL)
-- **Implementation**:
-  1. Added `handleHintImageUpload` function to all dialog components
-  2. Added upload button with Loader2 spinner during upload
-  3. Added X button to clear uploaded image
-  4. Uses existing `/api/upload/image` endpoint
-  5. Preview of uploaded image shown below input
-
-- **Files Modified**:
-  - `/app/frontend/src/components/balia-pricing/ModelEditDialog.jsx` - Added hint image upload
-  - `/app/frontend/src/components/balia-pricing/OptionEditDialog.jsx` - Added hint image upload
-  - `/app/frontend/src/components/sauna-pricing/ModelDialog.jsx` - Added hint image upload (Add & Edit)
-  - `/app/frontend/src/components/sauna-pricing/OptionDialog.jsx` - Added hint image upload (Add & Edit)
-
-- **How it works**:
-  - Click upload button → select image → image uploaded to server → URL auto-filled
-  - Preview shown below input field
-  - X button clears the image URL
-  - Can still paste URL manually
-
-- **Testing**: Verified via screenshot - upload button visible in edit dialog
-- **Status**: ✅ COMPLETED AND TESTED
-
-### Session 2026-01-09 - PDF Images Fix
-
-#### P0: Images Not Appearing in Balia Calculator PDF - FIXED ✅
-- **Problem**: Images were not displaying in the generated PDF for the Balia calculator
-- **Root Cause**: Frontend sends images as base64 data strings, but backend was only looking for imageUrl in the database, ignoring the imageUrl sent in the request payload
-- **Solution**:
-  1. Modified `/app/backend/routes/balia.py` - `generate_pdf_bytes` function
-  2. For selected options: Now checks request imageUrl first, then falls back to DB option imageUrl, then DB category imageUrl
-  3. For "not selected" categories: Now loads and displays category images (previously showed blank)
-  4. Added detailed logging for debugging image loading
-- **Code Changes**:
-  ```python
-  # Priority for image URL: request > DB option > DB category
-  request_image_url = opt.get('imageUrl', '')
-  db_opt_image_url = opt_info.get('imageUrl', '')
-  db_cat_image_url = cat_info.get('imageUrl', '')
-  image_url = request_image_url or db_opt_image_url or db_cat_image_url
-  ```
-- **Testing**:
-  - Verified via curl API tests: PDF generates with images (145984 bytes with 12 images)
-  - Logs confirm: "Option image processed: 60x33", "Successfully loaded image for option fiberglass"
-  - Images now appear for both selected and "not selected" options
-- **Status**: ✅ COMPLETED AND TESTED
-
-
-### Session 2026-01-07 - Priority Tasks Completion
-
-#### P0: amoCRM Clearing Bug - Enhanced
-- **Improvement**: Function `clear_order_trip_data_in_amocrm` now returns detailed result object
-- **Response structure**:
-  - `status`: "success" | "error" | "skipped" | "exception"
-  - `message`: Human-readable status message (Russian)
-  - `amocrm_success_count`, `amocrm_error_count`, `amocrm_skipped_count`
-- **Frontend feedback**: Toast messages now show specific errors from amoCRM API
-- **Empty value strategy**: Using empty string `""` for text fields, `"-"` for status field
-- **Status**: ✅ Code improved, requires amoCRM credentials to test live sync
-
-#### P1: Coordinate Bug Fix - Geocoding Feature Added
-- **New endpoint**: `POST /api/driver-panel/geocode-trip/{trip_id}`
-  - Geocodes all orders in trip that don't have lat/lng coordinates
-  - Uses Google Maps Geocoding API
-  - Returns count of geocoded and failed orders
-- **New endpoint**: `POST /api/driver-panel/geocode-order`
-  - Geocodes single order address
-- **Driver Panel UI**: Added "Определить координаты" button when orders lack coordinates
-- **Status**: ✅ Implemented and tested
-
-#### P2: Photo Upload to amoCRM - Frontend Integration
-- **Improved**: `handleConfirmDelivery` in DriverPanel.jsx now syncs photo to amoCRM
-- **Flow**: After successful photo upload, calls `/api/integrations/amocrm/upload-delivery-photo`
-- **Status**: ✅ Implemented, requires amoCRM credentials for live test
-
-#### P2: Push Notifications - Test UI
-- **Already implemented**: Settings → Integrations → Notifications tab
-- **Features**: Select driver, enter message, send test notification
-- **Status**: ✅ Verified working
-
-#### Testing Results
-- **Test file**: `/app/tests/test_driver_logistics_features.py` (15 tests)
-- **All tests passed**: 100% backend, 100% frontend
-- **Fixed bug**: PyMongo collection bool check changed to `is None`
-
-### Driver Panel Improvements (2026-01-07)
-- **Водитель видит только кабинет водителя** - при логине под ролью "driver" автоматически открывается кабинет водителя без возможности перейти к калькуляторам
-- **Карта маршрута на главной** - показывает все точки заказов с нумерацией и построенным маршрутом
-- **Кнопка "Навигация" для каждого заказа** - открывает Google Maps с маршрутом к конкретному адресу
-- **Кнопка "В путь"** - при нажатии:
-  - Статус рейса меняется на "in_transit" (В пути)
-  - Статусы всех заказов меняются на "delivering" (В пути)
-  - Данные синхронизируются с логистикой
-  - Синхронизация с amoCRM (если настроено)
-- **Статус заказа и кнопка "Доставлено"** - отображаются в карточке заказа
-- **Files Modified**:
-  - `/app/frontend/src/App.js` - редирект водителей на кабинет
-  - `/app/frontend/src/components/DriverPanel.jsx` - полностью переработан UI
-  - `/app/backend/routes/driver_panel.py` - добавлен endpoint `POST /start-trip/{trip_id}`
-
-### amoCRM Trip Data Clearing Fix (2026-01-07)
-- **Problem**: При удалении заказа из рейса, данные рейса (номер, водитель, дата отправки) не очищались в amoCRM
-- **Root Cause**: Настройки amoCRM (домен, токен, ID полей) были пустыми в базе данных
-- **Fix**:
-  - Улучшено логирование в `clear_order_trip_data_in_amocrm()` для диагностики
-  - API `POST /api/trips/{trip_id}/remove-orders` теперь возвращает детальный статус:
-    - `amocrm_settings.configured` - найдены ли настройки
-    - `amocrm_settings.domain_set` - заполнен ли домен
-    - `amocrm_settings.token_set` - заполнен ли токен
-    - `amocrm_settings.trip_fields_configured` - заполнены ли ID полей рейса
-  - Frontend показывает информативные предупреждения:
-    - "Настройки amoCRM не найдены"
-    - "Укажите домен и токен amoCRM для очистки данных в CRM"
-    - "Укажите ID полей рейса в настройках amoCRM"
-- **Files Modified**:
-  - `/app/backend/routes/trips.py` - улучшено логирование и возврат статуса
-  - `/app/frontend/src/components/logistics/useLogistics.js` - показ предупреждений
-- **Требуемые настройки** (Интеграции → Синхронизация):
-  - Домен amoCRM (например: `mycompany.amocrm.ru`)
-  - API Token (Long-lived)
-  - ID поля: Номер рейса (`trip_number_field_id`)
-  - ID поля: Водитель (`trip_driver_field_id`)
-  - ID поля: Дата отправки (`trip_departure_field_id`)
-  - ID поля: Статус заказа (`trip_order_status_field_id`)
-- **Debug endpoint**: `GET /api/trips/debug/sync-status` - показывает текущее состояние настроек и логов
-- **Status**: ✅ Код работает корректно. Требуется заполнить настройки amoCRM в UI.
-
-### Driver Panel & Notifications System (2026-01-06)
-- **Driver Panel (P1)**: Complete mobile-friendly UI for drivers
-  - View assigned trips with route map
-  - Order list with delivery status
-  - Confirm delivery with photo upload
-  - Enter received payment amount
-  - One-click navigation to Google Maps
-  - Admin can view all trips from this panel
-- **Notification System**: Added to Integrations page (tab "Уведомления")
-  - Telegram bot integration for driver notifications
-  - Push notifications (Service Worker) for browser
-  - Driver linking via unique codes
-  - Test notification sending
-  - Files: `backend/routes/notifications.py`, `frontend/src/components/NotificationSettings.jsx`, `frontend/public/sw.js`
-- **amoCRM Widget**: Added to Integrations page (tab "Виджет")
-  - Download widget ZIP package
-  - Installation instructions
-  - API endpoint: `/api/widget/download`
-- **amoCRM Delivery Photo Sync**: 
-  - When driver confirms delivery, note is added to amoCRM lead
-  - Endpoint: `/api/integrations/amocrm/upload-delivery-photo`
-- **Bug Fixes**: 
-  - Fixed user creation for "driver" role (auth.py validation)
-  - Changed PWA name to "WM-Group"
-  - Added icons to amoCRM widget package
-
-### Bug Fixes & Enhancements (2026-01-06)
-- **P0 Fix**: Fixed user creation bug for "driver" role
-  - Issue: Backend validation in `update_user` function rejected new access types
-  - Fix: Updated `/app/backend/routes/auth.py` to accept 'driver' and 'logistics' in both create and update
-- **PWA Name Change**: Changed from "WM Kalkulator" to "WM-Group"
-  - Updated `/app/frontend/public/manifest.json`
-- **amoCRM Widget Icons**: Added icons to widget package
-  - Copied existing app icons to `/app/amocrm-widget/images/`
-  - Updated widget manifest with icon references
-  - Rebuilt `amocrm-widget.zip`
-
-### Logistics Module Enhancements (2026-01-06)
-- **Feature**: Enhanced trip management and amoCRM synchronization
-- **New Trip Features**:
-  - **Departure Date Field**: New date picker in TripDetailsCard to set trip departure date (`departureDate`)
-  - **Trip-Order Status Sync**: When trip status changes, all orders in trip are automatically synced:
-    - `planned` → `pending`
-    - `in_transit` → `delivering`
-    - `completed` → `delivered`
-  - Status change text: "При изменении статуса рейса обновятся статусы всех заказов"
-- **Add Orders to Existing Trips**:
-  - **"В рейс" button**: Appears when orders selected AND active trips exist (planned/in_transit)
-  - **AddToTripModal**: Shows list of available trips with status badges and order counts
-  - Filters: Only shows trips with `planned` or `in_transit` status from current section
-  - **Backend endpoint**: `POST /api/trips/{trip_id}/add-orders` - adds orders with trip data sync
-- **Trip Data Stored in Orders** (for amoCRM sync):
-  - Each order now stores: `tripId`, `tripName`, `tripDriverId`, `tripDriverName`, `tripDepartureDate`, `tripStatus`, `tripOrderStatus`
-  - When trip is updated, all orders get updated data
-  - amoCRM sync reads data directly from order, not trip
-- **New Map Filter**: "Свободные + Рейс" mode showing unassigned orders + selected trip's orders
-  - Green markers: Unassigned orders
-  - Purple markers: Orders from selected trip
-  - Dropdown to select trip in Orders tab
-- **New amoCRM Trip Sync Fields** (Integrations → Синхронизация tab):
-  - ID поля: Номер рейса (`trip_number_field_id`)
-  - ID поля: Водитель (`trip_driver_field_id`)
-  - ID поля: Дата отправки (`trip_departure_field_id`)
-  - ID поля: Статус заказа в рейсе (`trip_order_status_field_id`)
-- **Files Modified**:
-  - `/app/frontend/src/components/LogisticsPage.jsx` - TripDetailsCard, OrdersMapCard, AddToTripModal
-  - `/app/frontend/src/components/logistics/useLogistics.js` - updateTripStatus, addOrdersToTrip functions
-  - `/app/frontend/src/components/IntegrationsPage.jsx` - New trip sync fields in Sync tab
-  - `/app/backend/routes/trips.py` - sync_trip_data_to_orders, add_orders_to_trip, amoCRM sync
-  - `/app/backend/routes/amocrm.py` - sync-trip endpoint, trip field settings
-- **Test Files**: 
-  - `/app/tests/test_logistics_enhancements.py` (13 tests)
-  - `/app/tests/test_add_orders_to_trip.py` (12 tests)
-- **Status**: ✅ Implemented and tested
-
-### amoCRM Calculator Integration (2026-01-05)
-- **Feature**: Open calculator from amoCRM lead card with pre-filled customer data
-- **Implementation**:
-  - URL parameter support: `?calc=balia&amocrm_id=123456` or `?calc=sauna&amocrm_id=123456`
-  - New API endpoint: `GET /api/integrations/amocrm/lead/{lead_id}` - fetches lead data for pre-filling
-  - New API endpoint: `POST /api/integrations/amocrm/mark-quote-created` - adds note to amoCRM when quote is created
-  - Both calculators (Balia & Sauna) updated to accept `amocrmPrefill` prop
-  - Orders linked to amoCRM leads with `amocrm_id`, `amocrm_link`, `amocrm_name` fields
-- **Files Modified**:
-  - `/app/backend/routes/amocrm.py` - New endpoints for lead data and quote marking
-  - `/app/frontend/src/App.js` - URL parameter handling and amoCRM data fetching
-  - `/app/frontend/src/components/CalculatorPage.jsx` - Balia calculator with amoCRM support
-  - `/app/frontend/src/components/SaunaCalculator.jsx` - Sauna calculator with amoCRM support
-  - `/app/frontend/src/components/sauna/useSaunaCalculator.js` - Hook updated for amoCRM
-- **Documentation**: `/app/memory/AMOCRM_INTEGRATION.md`
-- **Status**: ✅ Implemented - Ready for testing with real amoCRM credentials
-
-### SaunaCalculator Refactoring (2026-01-05)
-- **Problem**: `SaunaCalculator.jsx` had grown to ~1351 lines
-- **Solution**: Extracted state management to custom hook and translations to constants
-- **Changes**:
-  - Created `useSaunaCalculator.js` hook (~494 lines) with all state and business logic
-  - Created `constants.js` (~187 lines) with translations and helpers
-  - Reduced `SaunaCalculator.jsx` to ~618 lines (54% reduction)
-  - Split into reusable sub-components (CustomerInfoCard, ModelSelectionCard, CategoryCard, etc.)
-- **Files Created/Modified**:
-  - `/app/frontend/src/components/SaunaCalculator.jsx` - Main component (refactored)
-  - `/app/frontend/src/components/sauna/useSaunaCalculator.js` (NEW) - Custom hook
-  - `/app/frontend/src/components/sauna/constants.js` (NEW) - Constants and translations
-  - `/app/frontend/src/components/sauna/index.js` (NEW) - Exports
-- **Status**: ✅ Verified - Calculator working after refactor
-
-### LogisticsPage Refactoring (2026-01-05)
-- **Problem**: `LogisticsPage.jsx` had grown to ~2956 lines, making it difficult to maintain
-- **Solution**: Extracted state management and business logic to a custom hook
-- **Changes**:
-  - Created `useLogistics.js` hook (~1300 lines) containing all state and API logic
-  - Updated `constants.js` with shared constants and helper functions
-  - Reduced `LogisticsPage.jsx` to ~1165 lines (60% reduction)
-  - All existing sub-components in `/logistics/` folder now properly utilized
-- **Files Modified**:
-  - `/app/frontend/src/components/LogisticsPage.jsx` - Main component (refactored)
-  - `/app/frontend/src/components/logistics/useLogistics.js` (NEW) - Custom hook
-  - `/app/frontend/src/components/logistics/constants.js` - Updated constants
-  - `/app/frontend/src/components/logistics/index.js` - Updated exports
-- **Status**: ✅ Verified - All features working after refactor (tested with testing agent)
-
-### Google Maps Autocomplete Improvements (2026-01-05)
-- **Problem**: Legacy `google.maps.places.Autocomplete` API deprecated for new customers (March 2025)
-- **Solution**: 
-  - Created shared `initAutocomplete` helper function in `useLogistics.js`
-  - Extended country restrictions to include 9 countries (PL, DE, CZ, SK, LT, LV, EE, UA, BY)
-  - Improved error handling and cleanup
-  - Updated `AddressAutocomplete.jsx` with better loading states
-- **Note**: Full migration to `PlaceAutocompleteElement` web component deferred - requires significant UI architecture changes. Current legacy API continues to work for existing customers.
-- **Files Modified**:
-  - `/app/frontend/src/components/logistics/useLogistics.js` - Added `initAutocomplete` helper
-  - `/app/frontend/src/components/AddressAutocomplete.jsx` - Improved component
-- **Status**: ✅ Partially complete - Autocomplete working with improved code quality
-
-### Backup System Fix (2026-01-05)
-- **Problem**: Backup was missing critical data:
-  - Drivers were stored in localStorage (not backed up)
-  - amoCRM settings in `integration_settings` collection not exported
-  - `webhook_logs` not exported
-  - Trips collection not showing when empty (normal behavior)
-- **Solution**:
-  - Created new Drivers API (`/api/drivers`) for CRUD operations
-  - Drivers now stored in MongoDB (`drivers` collection)
-  - Updated `LogisticsPage.jsx` to use API instead of localStorage
-  - Updated ALL backup functions (export, auto, telegram) to include:
-    - `integration_settings` - настройки интеграций
-    - `webhook_logs` - логи вебхуков amoCRM
-  - Updated import to restore both collections
-- **Files Modified**:
-  - `/app/backend/routes/drivers.py` (NEW) - Drivers API
-  - `/app/backend/routes/backup.py` - Added missing collections to all export functions
-  - `/app/backend/server.py` - Added drivers router
-  - `/app/frontend/src/components/LogisticsPage.jsx` - Use API for drivers
-- **Backup now includes 18 data types**:
-  - Заказы: `balia_orders`, `sauna_orders`, `greenhouse_orders`, `web_orders`
-  - Логистика: `trips`, `drivers`
-  - Цены: `balia_prices`, `sauna_prices`, `tech_spec_config`, `balia_tech_spec_config`, `customer_fields`
-  - Пользователи: `users`, `settings`, `integration_settings`, `amocrm_settings`
-  - Медиа/логи: `images_collection`, `uploaded_files`, `webhook_logs`, `telegram_config`
-- **Status**: ✅ Verified - ALL data backed up for full system restore
-
-### Рейсы (Trips) Feature (2026-01-05)
-- **Feature**: Trip management for organizing deliveries - group orders into trips for batch delivery
-- **Structure**: Each category (Теплицы, Купели, Сауны) has nested tabs:
-  - **Заказы** - Orders without assigned trip
-  - **Рейсы** - List of trips with their orders
-- **New 3-Column Layout** (2026-01-05):
-  - **Left column**: List of trips for current category
-  - **Middle column**: Trip details (driver, status, orders with reordering)
-  - **Right column**: Interactive map with route visualization
-- **Warehouse Settings** (2026-01-05):
-  - New "Настройки" (Settings) button in header
-  - Configure warehouse address (starting/ending point for all routes)
-  - Warehouse shown as **orange marker "С"** on all maps
-  - Used as origin and destination when optimizing routes
-- **Route Optimization & Reordering**:
-  - **Оптимизировать button** - Uses Google Maps Directions API with `optimizeWaypoints: true` to automatically reorder stops for shortest driving route from warehouse
-  - **Route info display** - Shows total distance (km) and duration (min)
-  - **Arrow buttons (↑↓)** - Move orders up/down in the list one position at a time
-  - **Drag & drop** - Drag orders by the grip handle (⋮⋮) to reorder manually
-  - **Order numbers** - Show current position (1, 2, 3...) in the delivery sequence
-  - **Coordinate indicator** - Shows ✓ (green) for geocoded orders, ? (gray) for orders without map coordinates
-- **Trip Creation**:
-  - Select orders from the list using checkboxes
-  - Click "Создать рейс" button
-  - Fill trip name and optionally assign driver
-  - Orders disappear from general list and appear in trip
-- **Trip Management**:
-  - View trip details: driver, status, list of orders
-  - Change driver assignment
-  - Change status (Активен, Доставлен, Отменён)
-  - Remove individual orders from trip (return to general list)
-  - Delete entire trip (all orders return to general list)
-- **Files**:
-  - `/app/frontend/src/components/LogisticsPage.jsx` - UI with nested tabs, 3-column layout, route visualization
-  - `/app/backend/routes/trips.py` - Trips API (CRUD operations)
-- **API Endpoints**:
-  - `GET /api/trips?section=balia` - Get trips by category
-  - `POST /api/trips` - Create new trip
-  - `PUT /api/trips/{trip_id}` - Update trip (driver, status, orderIds for reordering)
-  - `DELETE /api/trips/{trip_id}` - Delete trip
-  - `POST /api/trips/{trip_id}/remove-orders` - Remove orders from trip
-- **Status**: ✅ Implemented and tested
-
-### Simplified amoCRM Integration (2026-01-05)
-- **Feature**: Simplified webhook URLs — one per section, no complex configuration
-- **3 Separate URLs**:
-  - `/api/integrations/amocrm/webhook/greenhouse` — для Теплиц
-  - `/api/integrations/amocrm/webhook/balia` — для Купелей
-  - `/api/integrations/amocrm/webhook/sauna` — для Саун
-- **Removed**: Secret key, Pipeline ID, Status ID settings (not needed)
-- **How it works**: Copy URL, paste into amoCRM Digital Pipeline on desired stage
-- **Files updated**:
-  - `/app/backend/routes/amocrm.py` - New section-specific endpoints
-  - `/app/frontend/src/components/IntegrationsPage.jsx` - Simplified UI with 3 URL cards
-- **Status**: ✅ Implemented
-
-### Sauna Pricing - Specyfikacja Tab (2026-01-05)
-- **Feature**: Moved "Specyfikacja" from bottom of page to separate tab
-- **Tabs now**: Modele saun, Kategorie opcji, Opcje, Specyfikacja, Klient
-- **Files**: `/app/frontend/src/components/SaunaPricingPage.jsx`
-- **Status**: ✅ Implemented
-
-### Two-Way amoCRM Sync Backend (2026-01-04)
-- **Feature**: Backend logic for syncing delivery status back to amoCRM
-- **Endpoint**: `POST /api/integrations/amocrm/sync-status` - updates lead in amoCRM
-- **Improvements**:
-  - Graceful handling when credentials not configured (returns `skipped` status instead of error)
-  - All sync attempts logged to `webhook_logs` collection for debugging
-  - Frontend handles sync response properly
-- **How it works**: When delivery status changes in Logistics, the system automatically sends the new status to amoCRM custom field if API credentials are configured
-- **Files updated**:
-  - `/app/backend/routes/amocrm.py` - Improved sync-status endpoint
-  - `/app/frontend/src/components/LogisticsPage.jsx` - Better sync response handling
-- **Status**: ✅ Implemented (requires user to configure amoCRM credentials)
-
-### Delivery Status in Logistics (2026-01-04)
-- **Visual Status Badge**: Each order card shows delivery status (Ожидает, Готовится, В пути, Доставлено)
-- **Status Change**: Dropdown in expanded card to change status
-- **Date/Comment Field**: Input for delivery date or notes
-- **amoCRM Sync**: Auto-sync status to amoCRM when changed (if configured)
-- **Address Field Fix**: AddressAutocomplete now always shows input even without Google Maps API key
-- **Files**: `/app/frontend/src/components/LogisticsPage.jsx`, `/app/frontend/src/components/AddressAutocomplete.jsx`
-- **Status**: ✅ Implemented and tested
-
-### amoCRM Integration Enhanced (2026-01-04)
-- **Multiple Pipelines**: Separate webhook configs for Теплицы, Купели, Сауны
-- **Each section**: Own Pipeline ID, Status ID, Enable/Disable toggle, Test button
-- **Sync to amoCRM**: Settings for domain, API token, field IDs for status & comments
-- **Moved TechSpec**: Спецификация moved from main menu to Prices→Sauna section
-- **Files updated**:
-  - `/app/backend/routes/amocrm.py` - Multi-pipeline support, sync API
-  - `/app/frontend/src/components/IntegrationsPage.jsx` - 3 tabs: Settings, Sync, Logs
-  - `/app/frontend/src/components/AdminPanel.jsx` - 7 tabs, TechSpec inside Prices
-- **Status**: ✅ Implemented and tested
-
-### amoCRM Integration (2026-01-04)
-- **Feature**: Webhook integration with amoCRM for automatic order creation
-- **Endpoint**: `POST /api/integrations/amocrm/webhook` - receives webhooks from amoCRM
-- **Settings UI**: New "Интеграции" tab in Admin Panel with:
-  - Enable/disable toggle
-  - Webhook URL (copy to amoCRM)
-  - Secret key for security
-  - Pipeline ID and Status ID filters
-  - Step-by-step instructions
-  - Webhook logs viewer
-  - Test order creation button
-- **How it works**: When a deal moves to the configured stage in amoCRM, it automatically creates an order in Greenhouse section of Logistics
-- **Files**:
-  - `/app/backend/routes/amocrm.py` - API endpoints
-  - `/app/frontend/src/components/IntegrationsPage.jsx` - Settings UI
-  - `/app/frontend/src/components/AdminPanel.jsx` - Added Integrations tab
-- **Status**: ✅ Implemented and tested
-
-### Logistics with Three Sections (2026-01-04)
-- **Feature**: Split Logistics into three independent sections: Теплицы (Greenhouses), Купели (Balia), Сауны (Sauna)
-- **Each section has**: Own orders list, own map markers, own routes
-- **Backend**: Created `/api/greenhouse/orders` endpoint for greenhouse orders
-- **Files**:
-  - `/app/frontend/src/components/LogisticsPage.jsx` - Complete rewrite with tabs
-  - `/app/backend/routes/greenhouse.py` - New API for greenhouse orders
-  - `/app/backend/server.py` - Registered greenhouse router
-- **Google Autocomplete**: Using legacy Autocomplete (still supported, works reliably)
-- **Status**: ✅ Implemented and tested
-
-### Logistics as Standalone Section (2026-01-04)
-- **Feature**: Moved Logistics from Admin Panel tab to a standalone section on the landing page
-- **Access Control**: Added `logistics` as a new access type alongside `balia` and `sauna`
-- **User Management**: Updated UI to use checkboxes for granular access control (Balia, Sauna, Logistics)
-- **Backend Model**: Updated `UserCreate`/`UserUpdate` to support array of access types
-- **Files Modified**:
-  - `/app/frontend/src/components/LandingPage.jsx` - Added Logistics card
-  - `/app/frontend/src/App.js` - Added Logistics route
-  - `/app/frontend/src/components/AdminPanel.jsx` - Removed Logistics tab
-  - `/app/frontend/src/components/UserManagement.jsx` - Checkboxes for access control
-  - `/app/frontend/src/context/AuthContext.jsx` - Support array access in `hasAccess`
-  - `/app/backend/models/auth.py` - Union[str, List[str]] for access field
-- **Status**: ✅ Implemented and tested
-
-### Logistics Page - Create Order Form (2026-01-04)
-- **Feature**: Added "Create Order" form directly in the Logistics page
-- **Fields**: Customer name*, Phone, Address* (with Google Places autocomplete), Order composition, Order type (Balia/Sauna)
-- **File**: `/app/frontend/src/components/LogisticsPage.jsx`
-- **Status**: ✅ Implemented and tested
-
-### Google Maps API Loader Fix (2026-01-04)
-- **Issue**: `AddressAutocomplete` component conflicted with `LogisticsPage` due to different library arrays
-- **Fix**: Unified Google Maps libraries to `['places', 'geometry']` in both components
-- **File**: `/app/frontend/src/components/AddressAutocomplete.jsx`
-- **Status**: ✅ Fixed
-
-### Address Field in Balia Calculator (2026-01-04)
-- **Verification**: Confirmed that `fullAddress` field with Google Places autocomplete is working in Balia calculator
-- **Database**: Field exists with `fieldType: "address"` and `active: true`
-- **Status**: ✅ Working
-
-### BaliaPricingPage Refactoring Complete (2026-01-03)
-- **Refactored**: `BaliaPricingPage.jsx` reduced from **2200 lines to 1086 lines** (~51% reduction)
-- **New Components** in `/app/frontend/src/components/balia-pricing/`:
-  - `ModelCard.jsx` (104 lines) - displays model with image, prices, specs
-  - `CategoryCard.jsx` (99 lines) - displays category with nested options list
-  - `OptionItem.jsx` (47 lines) - displays single option with price and edit buttons
-  - `ModelEditDialog.jsx` (431 lines) - full model editor with heater variants and specs
-  - `CategoryEditDialog.jsx` (110 lines) - category editor with "Bez" labels support
-  - `OptionEditDialog.jsx` (214 lines) - option editor with pricing calculator
-  - `BulkPriceEditDialog.jsx` (162 lines) - bulk price change dialog
-  - `index.js` - exports all components
-- **Benefits**: Better code organization, easier maintenance, improved performance through memoization
-- **Status**: ✅ Tested and working
-
-### Code Optimization & Lazy Loading (2026-01-03)
-- **Lazy Loading**: Implemented React.lazy() and Suspense for all heavy components
-- **Code Splitting**: Main pages are now loaded on demand, reducing initial bundle size
-- **Backend Caching**: Added 60-second in-memory cache for `/api/public/prices` endpoint
-- **LazyImage**: Created `/app/frontend/src/components/ui/lazy-image.jsx` with image preloading
-- **Status**: ✅ Tested and working
-
-### "Bez [category]" Feature for Unselected Options (2026-01-03)
-- **Feature**: Unselected options now show "Bez [category name]" instead of "Nie wybrano"
-- **Database**: Added `withoutLabelPl` and `withoutLabelRu` fields to category schema
-- **Admin UI**: CategoryEditDialog includes editable "Bez..." fields
-- **Display**: Price shows "-" for unselected categories
-- **Status**: ✅ Implemented
-
-### Category Images in Iframe Calculator (2026-01-03)
-- **Feature**: Category images now display in the header of each option section
-- **Location**: `/app/frontend/src/components/EmbedBaliaCalculator.jsx`
-- **Status**: ✅ Implemented
-
-### PDF Image Handling Improvements (2026-01-03)
-- **Base64 Support**: PDF generator now handles Base64-encoded images from web orders
-- **Fallback Logic**: If an option has no image, uses the category's image instead
-- **File**: `/app/backend/routes/balia.py` - `load_option_image()` function
-- **Status**: ⏳ Awaiting user verification
-
-### Critical Bug Fixes (2026-01-03)
-- **403 Forbidden on Admin Delete**: Super-admins can now delete other admin users
-- **Observer Auto-Recreation**: Removed automatic creation of observer user on init
-- **405 Method Not Allowed**: Fixed `/api/auth/verify` by changing frontend to use POST
-- **Status**: ✅ All fixed
-
-## Core Features
-
-### 1. Calculator Pages
-- **Balia Calculator**: Configure hot tubs with models, options, and accessories
-- **Sauna Calculator**: Configure saunas with models, benches, and equipment
-- Both support customer info forms, pricing, discounts, and PDF generation
-
-### 2. Admin Panel (Unified Administration)
-- **Orders Tab**: Unified view of all Balia and Sauna orders
-- **Statistics Tab**: Analytics with filters by project type
-- **Prices Tab**: Manage models, categories, and options pricing
-- **TechSpec Tab**: Manage technical specifications
-- **Employees Tab**: User management with role-based access
-
-### 3. Role-Based Access Control
-- **Super-Admin** (`admin`): Can assign Administrator role to other users
-- **Administrator**: Full access to all features except assigning admin role
-- **Employee**: Access to assigned calculator (Balia or Sauna)
-- **Observer**: Read-only access
-
-### 4. Order Management
-- Full order editing via calculator
-- PDF generation with images
-- Excel export for production
-- Web orders from iframe widget
-
-## Code Architecture
+Comprehensive logistics and sales management system for sauna and hot tub business with calculators, order management, logistics, training modules, and CRM integrations.
+
+## Core Features Implemented
+
+### 1. Calculator Modules
+- **Balia (Hot Tub)**: Configuration and pricing calculator
+- **Sauna**: Configuration and pricing calculator
+- PDF generation for orders
+
+### 2. Logistics & Delivery
+- Route planning with map integration
+- Driver panel for delivery management
+- Warehouse panel for order preparation
+
+### 3. Training Module (NEW - Jan 2025)
+- Course management (admin)
+- Video lessons with Synthesia embeds
+- GIF thumbnails support
+- Multiple-choice quizzes with passing scores
+- Employee progress tracking
+- Statistics dashboard
+
+### 4. amoCRM Widget (Enhanced - Jan 2025)
+- Enlarged design with more order details
+- Debt calculation display
+- Allegro order labels
+- amoCRM tags display
+- "Edit" button for order modification
+
+### 5. Backup System (Fixed - Jan 2025)
+- Manual and automatic backups unified
+- Optimized backup size (~22MB)
+- Excluded logs collection
+
+### 6. Admin Panel
+- User management
+- Pricing configuration
+- Order statistics
+- FAQ management
+- PDF template editor
+
+## Technical Architecture
 
 ```
-/app/frontend/src/components/
-├── balia-pricing/           # Refactored components
-│   ├── ModelCard.jsx
-│   ├── CategoryCard.jsx
-│   ├── OptionItem.jsx
-│   ├── ModelEditDialog.jsx
-│   ├── CategoryEditDialog.jsx
-│   ├── OptionEditDialog.jsx
-│   ├── BulkPriceEditDialog.jsx
-│   └── index.js
-├── BaliaPricingPage.jsx     # Main page (1086 lines)
-├── SaunaCalculator.jsx      # Sauna calculator (1342 lines)
-├── CalculatorPage.jsx       # Balia calculator
-├── EmbedBaliaCalculator.jsx # Iframe widget
-└── ui/                      # UI components
+/app
+├── backend (FastAPI)
+│   ├── routes/
+│   │   ├── amocrm.py      # CRM integration
+│   │   ├── backup.py      # Backup system
+│   │   ├── balia.py       # Balia orders
+│   │   ├── sauna.py       # Sauna orders
+│   │   ├── training.py    # Training module API
+│   │   └── widget.py      # amoCRM widget
+│   └── server.py
+└── frontend (React)
+    └── src/
+        ├── components/
+        │   ├── LandingPage.jsx
+        │   ├── TrainingPage.jsx
+        │   └── ...
+        └── context/
+            └── AuthContext.jsx
 ```
-
-## Upcoming Tasks (Prioritized)
-
-### P1 - High Priority
-1. **PlaceAutocompleteElement Migration (Optional)**: The new Google API is available but requires `Places API (New)` enabled in Google Cloud. Current legacy Autocomplete still works and is supported. Migration can be done when user enables the new API.
-
-### P2 - Medium Priority
-1. **Refactor SaunaCalculator.jsx**: Break down into smaller components (similar to BaliaPricingPage)
-   - CustomerInfoCard, ModelSelectionCard, CategoryOptionCard, OrderSummaryCard
-2. **Finalize Sauna Lead Statistics Strategy**: Track leads from Telegram group where adding bot is not allowed
-
-### P3 - Low Priority
-1. Fix minor dropdown positioning glitch in Balia calculator
-
-## Completed Features (Summary)
-- ✅ Two-way amoCRM integration (webhook receive + status sync back)
-- ✅ Logistics as standalone section with 3 tabs (Greenhouses, Tubs, Saunas)
-- ✅ Advanced order management (status badges, drivers, route numbers, bulk actions)
-- ✅ Role-based access control with array permissions
-- ✅ BaliaPricingPage refactored (2200→1086 lines)
-- ✅ Code optimization with lazy loading
-
-## Test Credentials
-- **Super-Admin**: `admin` / `220066`
-- **Employee (Balia)**: `balia` / `159357`
 
 ## Key API Endpoints
-- `GET /api/prices` - Balia prices with models and categories
-- `POST /api/prices` - Save Balia prices
-- `GET /api/sauna/prices` - Sauna prices
-- `POST /api/auth/verify` - Token verification (POST method)
-- `DELETE /api/auth/users/{user_id}` - Delete user (super-admin only for admins)
+- `POST /api/auth/login` - Authentication
+- `POST /api/backup/auto` - Automatic backup
+- `GET /api/widget/embed/{theme}/{lead_id}` - amoCRM widget
+- `POST /api/training/courses` - Create course
+- `POST /api/training/progress/{user_id}/{course_id}/lessons/{lesson_id}/complete` - Track progress
+
+## Database Collections
+- `users`, `sauna_orders`, `orders` (balia), `greenhouse_orders`
+- `training_courses`, `training_lessons`, `training_progress`
+- `backups`, `logs`
+
+## User Roles
+- `admin` - Full access
+- `employee` - Calculator + Training access
+- `driver` - Driver panel only
+- `warehouse` - Warehouse panel only
+- `observer` - View only
+
+## 3rd Party Integrations
+- **amoCRM/Kommo**: CRM integration with tags
+- **Synthesia.io**: Training video embeds
+- **Google Maps**: Route planning
+- **Telegram**: Backup notifications
+
+---
+
+## Changelog
+
+### January 18, 2025
+- **FIXED**: Training module visibility for `employee` role on landing page
+  - Added `canAccessTraining` to second row render condition in `LandingPage.jsx`
+
+### January 2025 (Previous Sessions)
+- Implemented complete Training Module
+- Enhanced amoCRM widget
+- Fixed backup system
+- Added PDF generation with `pdfGenerated` flag
+
+---
+
+## Backlog
+
+### P1 (High Priority)
+- [ ] Verify automatic backup schedule works correctly
+- [ ] Re-enable "Sauna CRM" module (on user request)
+
+### P2 (Medium Priority)
+- [ ] UI for backup import/restore
+- [ ] Refactor shared components (CalculatorPage, LogisticsPage)
+- [ ] Replace deprecated Google Maps Autocomplete
+
+### P3 (Low Priority)
+- [ ] Sauna Lead Statistics feature
+- [ ] Fix unstable login sessions
+- [ ] Category hint editing dialog fix in sauna pricing admin
+
+---
+
+## Test Credentials
+- Admin: `testuser` / `test123`
+- Employee: `sauna_employee` / `test123`
