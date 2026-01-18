@@ -84,8 +84,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
           </p>
         </div>
 
-        {/* First Row: Balia, Sauna, Admin */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {/* First Row: Balia, Sauna, Training, Admin */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {/* Balia Card */}
           <Card 
             className={`group transition-all duration-300 border-2 ${
@@ -95,23 +95,23 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
             }`}
             onClick={() => canAccessBalia && onSelectCalculator('balia')}
           >
-            <CardContent className="p-8">
+            <CardContent className="p-6">
               <div className="flex flex-col items-center text-center">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors ${
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors ${
                   canAccessBalia 
                     ? 'bg-primary/10 group-hover:bg-primary/20' 
                     : 'bg-muted'
                 }`}>
                   {canAccessBalia ? (
-                    <Waves className="w-10 h-10 text-primary" />
+                    <Waves className="w-8 h-8 text-primary" />
                   ) : (
-                    <Lock className="w-10 h-10 text-muted-foreground" />
+                    <Lock className="w-8 h-8 text-muted-foreground" />
                   )}
                 </div>
-                <h2 className="text-2xl font-bold text-foreground mb-3">
+                <h2 className="text-xl font-bold text-foreground mb-2">
                   {txt.baliaTitle}
                 </h2>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground text-sm mb-4">
                   {txt.baliaDesc}
                 </p>
                 {canAccessBalia ? (
@@ -138,23 +138,23 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
             }`}
             onClick={() => canAccessSauna && onSelectCalculator('sauna')}
           >
-            <CardContent className="p-8">
+            <CardContent className="p-6">
               <div className="flex flex-col items-center text-center">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors ${
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors ${
                   canAccessSauna 
                     ? 'bg-orange-500/10 group-hover:bg-orange-500/20' 
                     : 'bg-muted'
                 }`}>
                   {canAccessSauna ? (
-                    <Flame className="w-10 h-10 text-orange-500" />
+                    <Flame className="w-8 h-8 text-orange-500" />
                   ) : (
-                    <Lock className="w-10 h-10 text-muted-foreground" />
+                    <Lock className="w-8 h-8 text-muted-foreground" />
                   )}
                 </div>
-                <h2 className="text-2xl font-bold text-foreground mb-3">
+                <h2 className="text-xl font-bold text-foreground mb-2">
                   {txt.saunaTitle}
                 </h2>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-muted-foreground text-sm mb-4">
                   {txt.saunaDesc}
                 </p>
                 {canAccessSauna ? (
@@ -172,21 +172,48 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
             </CardContent>
           </Card>
 
+          {/* Training Card */}
+          {canAccessTraining && (
+            <Card 
+              className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-emerald-500/50"
+              onClick={() => onSelectCalculator('training')}
+              data-testid="training-card"
+            >
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors bg-emerald-500/10 group-hover:bg-emerald-500/20">
+                    <GraduationCap className="w-8 h-8 text-emerald-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground mb-2">
+                    {txt.trainingTitle}
+                  </h2>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    {txt.trainingDesc}
+                  </p>
+                  <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600">
+                    {txt.select}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Admin Panel Card - Only visible for admins */}
           {canAccessAdmin && (
             <Card 
               className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-violet-500/50"
               onClick={() => onSelectCalculator('admin')}
             >
-              <CardContent className="p-8">
+              <CardContent className="p-6">
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors bg-violet-500/10 group-hover:bg-violet-500/20">
-                    <Shield className="w-10 h-10 text-violet-500" />
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors bg-violet-500/10 group-hover:bg-violet-500/20">
+                    <Shield className="w-8 h-8 text-violet-500" />
                   </div>
-                  <h2 className="text-2xl font-bold text-foreground mb-3">
+                  <h2 className="text-xl font-bold text-foreground mb-2">
                     {txt.adminTitle}
                   </h2>
-                  <p className="text-muted-foreground mb-6">
+                  <p className="text-muted-foreground text-sm mb-4">
                     {txt.adminDesc}
                   </p>
                   <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-violet-500/50 text-violet-600 hover:bg-violet-500/10 hover:text-violet-600">
