@@ -513,6 +513,44 @@ const AppContent = () => {
     );
   }
 
+  // Training Page
+  if (currentCalculator === 'training') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <Header 
+          activeTab={activeTab} 
+          onTabChange={handleTabChange}
+          isAdminAuthenticated={isAdmin()}
+          onAdminLogout={handleLogout}
+          showNavigation={false}
+          showUsers={false}
+          calculatorType="training"
+        />
+        
+        {/* Back Button */}
+        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleBackToLanding}
+            className="gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {txt.backToSelection}
+          </Button>
+        </div>
+        
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <Suspense fallback={<PageLoader />}>
+            <TrainingPage user={user} />
+          </Suspense>
+        </div>
+        
+        <Toaster position="top-right" richColors />
+      </div>
+    );
+  }
+
   // Sauna CRM Page
   if (currentCalculator === 'sauna_crm') {
     return (
