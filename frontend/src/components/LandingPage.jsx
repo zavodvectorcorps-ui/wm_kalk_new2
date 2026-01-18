@@ -73,6 +73,9 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   // Training is always available for employees (managers) and admins
   const canAccessTraining = user?.role === 'admin' || user?.role === 'employee' || user?.role === 'observer';
   const canAccessAdmin = isAdmin && isAdmin();
+  
+  // Debug
+  console.log('canAccessTraining:', canAccessTraining, 'user.role:', user?.role);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
