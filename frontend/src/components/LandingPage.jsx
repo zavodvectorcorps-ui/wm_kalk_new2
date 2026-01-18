@@ -199,8 +199,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
           )}
         </div>
 
-        {/* Second Row: Logistics, Driver, Warehouse, Sauna CRM */}
-        {(canAccessLogistics || canAccessDriver || canAccessWarehouse || canAccessSaunaCRM) && (
+        {/* Second Row: Logistics, Driver, Warehouse, Training */}
+        {(canAccessLogistics || canAccessDriver || canAccessWarehouse || canAccessSaunaCRM || canAccessTraining) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {/* Logistics Card */}
             {canAccessLogistics && (
