@@ -700,13 +700,56 @@ const TrainingPage = ({ user }) => {
                         {lessonProgress.score}%
                       </Badge>
                     )}
-                    {isUnlocked && <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                    
+                    {/* Admin buttons */}
+                    {isAdmin && (
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => {
+                            setEditingCourse(selectedCourse);
+                            setEditingLesson(lesson);
+                            setShowLessonDialog(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
+                          onClick={() => handleDeleteLesson(selectedCourse.id, lesson.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {isUnlocked && !isAdmin && <ChevronRight className="h-5 w-5 text-muted-foreground" />}
                   </div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
+        
+        {/* Admin: Add lesson button */}
+        {isAdmin && (
+          <Button
+            className="w-full mt-4"
+            variant="outline"
+            onClick={() => {
+              setEditingCourse(selectedCourse);
+              setEditingLesson({ title: '', description: '', isActive: true, passingScore: 100, questions: [] });
+              setShowLessonDialog(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Добавить урок
+          </Button>
+        )}
       </div>
     );
   }
