@@ -32,6 +32,7 @@ const PdfUploadDebugPage = lazy(() => import('./components/PdfUploadDebugPage'))
 const FAQPage = lazy(() => import('./components/FAQPage'));
 const FAQAdminComponent = lazy(() => import('./components/FAQPage').then(m => ({ default: m.FAQAdmin })));
 const PDFTemplateEditor = lazy(() => import('./components/PDFTemplateEditor'));
+const TrainingPage = lazy(() => import('./components/TrainingPage'));
 
 // Loading fallback component
 const PageLoader = () => (
