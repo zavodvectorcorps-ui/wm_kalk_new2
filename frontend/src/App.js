@@ -364,6 +364,7 @@ const AppContent = () => {
             {activeTab === 'users' && isAdmin() && <UserManagement />}
             {activeTab === 'faq' && <FAQPage calculatorType="balia" />}
             {activeTab === 'faq-admin' && isAdmin() && <FAQAdminComponent calculatorType="balia" />}
+            {activeTab === 'training' && <TrainingPage user={user} />}
           </Suspense>
         </main>
         
