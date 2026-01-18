@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban } from 'lucide-react';
+import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, GraduationCap } from 'lucide-react';
 
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
@@ -25,6 +25,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       warehouseDesc: 'Комплектация заказов и подготовка к отправке',
       saunaCrmTitle: 'CRM Сауны',
       saunaCrmDesc: 'Управление заявками на сауны с Kanban-доской и интеграцией с amoCRM',
+      trainingTitle: 'Обучение',
+      trainingDesc: 'Обучающие курсы и видео-уроки для менеджеров',
       adminTitle: 'Админ панель',
       adminDesc: 'Управление всеми заказами, статистика и настройки цен',
       select: 'Выбрать',
@@ -46,6 +48,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       warehouseDesc: 'Kompletacja zamówień i przygotowanie do wysyłki',
       saunaCrmTitle: 'CRM Sauny',
       saunaCrmDesc: 'Zarządzanie leadami saun z tablicą Kanban i integracją amoCRM',
+      trainingTitle: 'Szkolenia',
+      trainingDesc: 'Kursy szkoleniowe i lekcje wideo dla menedżerów',
       adminTitle: 'Panel administracyjny',
       adminDesc: 'Zarządzanie wszystkimi zamówieniami, statystyki i ustawienia cen',
       select: 'Wybierz',
@@ -63,6 +67,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const canAccessDriver = hasAccess ? hasAccess('driver') : false;
   const canAccessWarehouse = hasAccess ? hasAccess('warehouse') : false;
   const canAccessSaunaCRM = hasAccess ? hasAccess('sauna_crm') : false;
+  const canAccessTraining = hasAccess ? (hasAccess('balia') || hasAccess('sauna')) : true; // Managers and admins
   const canAccessAdmin = isAdmin && isAdmin();
 
   return (
