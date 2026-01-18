@@ -67,8 +67,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const canAccessDriver = hasAccess ? hasAccess('driver') : false;
   const canAccessWarehouse = hasAccess ? hasAccess('warehouse') : false;
   const canAccessSaunaCRM = hasAccess ? hasAccess('sauna_crm') : false;
-  // Training is available for all logged-in users except drivers and warehouse
-  const canAccessTraining = user && user.role !== 'driver' && user.role !== 'warehouse';
+  // Training uses hasAccess which checks role in AuthContext
+  const canAccessTraining = hasAccess ? hasAccess('training') : false;
   const canAccessAdmin = isAdmin && isAdmin();
 
   return (
