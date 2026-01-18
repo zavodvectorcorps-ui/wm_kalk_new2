@@ -853,6 +853,68 @@ const TrainingPage = ({ user }) => {
                 </Card>
               </div>
             )}
+            
+            {/* Users progress table */}
+            {usersStats.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Прогресс сотрудников
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4 font-medium">Сотрудник</th>
+                          <th className="text-left py-3 px-4 font-medium">Роль</th>
+                          <th className="text-center py-3 px-4 font-medium">Пройдено курсов</th>
+                          <th className="text-center py-3 px-4 font-medium">В процессе</th>
+                          <th className="text-center py-3 px-4 font-medium">Прогресс</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {usersStats
+                          .filter(u => u.role === 'employee' || u.role === 'admin')
+                          .map(userStat => (
+                          <tr key={userStat.userId} className="border-b last:border-0 hover:bg-muted/50">
+                            <td className="py-3 px-4">
+                              <div className="font-medium">{userStat.username}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <Badge variant="outline">
+                                {userStat.role === 'admin' ? 'Админ' : 'Менеджер'}
+                              </Badge>
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <span className="font-medium text-green-600">{userStat.completedCourses}</span>
+                              <span className="text-muted-foreground"> / {userStat.totalCourses}</span>
+                            </td>
+                            <td className="text-center py-3 px-4">
+                              <span className="text-orange-500">{userStat.inProgressCourses}</span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2">
+                                <Progress value={userStat.completionRate} className="h-2 flex-1" />
+                                <span className="text-sm font-medium w-12 text-right">{userStat.completionRate}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  {usersStats.filter(u => u.role === 'employee' || u.role === 'admin').length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Нет данных о прогрессе сотрудников
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       )}
