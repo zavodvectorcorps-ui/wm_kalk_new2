@@ -646,18 +646,42 @@ const TrainingPage = ({ user }) => {
                 onClick={() => isUnlocked && handleStartLesson(selectedCourse, lesson)}
               >
                 <CardContent className="p-4 flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    isCompleted 
-                      ? 'bg-green-500 text-white' 
-                      : isUnlocked 
-                        ? 'bg-primary/10 text-primary' 
-                        : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {isCompleted ? (
-                      <CheckCircle2 className="h-5 w-5" />
-                    ) : isUnlocked ? (
-                      <PlayCircle className="h-5 w-5" />
-                    ) : (
+                  {/* Thumbnail or status icon */}
+                  {lesson.thumbnailUrl ? (
+                    <div className="w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-muted relative">
+                      <img 
+                        src={lesson.thumbnailUrl} 
+                        alt={lesson.title}
+                        className="w-full h-full object-cover"
+                      />
+                      {isCompleted && (
+                        <div className="absolute inset-0 bg-green-500/80 flex items-center justify-center">
+                          <CheckCircle2 className="h-6 w-6 text-white" />
+                        </div>
+                      )}
+                      {!isUnlocked && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <Lock className="h-5 w-5 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      isCompleted 
+                        ? 'bg-green-500 text-white' 
+                        : isUnlocked 
+                          ? 'bg-primary/10 text-primary' 
+                          : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-5 w-5" />
+                      ) : isUnlocked ? (
+                        <PlayCircle className="h-5 w-5" />
+                      ) : (
+                        <Lock className="h-5 w-5" />
+                      )}
+                    </div>
+                  )}
                       <Lock className="h-5 w-5" />
                     )}
                   </div>
