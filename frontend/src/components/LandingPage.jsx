@@ -67,7 +67,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const canAccessDriver = hasAccess ? hasAccess('driver') : false;
   const canAccessWarehouse = hasAccess ? hasAccess('warehouse') : false;
   const canAccessSaunaCRM = hasAccess ? hasAccess('sauna_crm') : false;
-  const canAccessTraining = hasAccess ? (hasAccess('balia') || hasAccess('sauna')) : true; // Managers and admins
+  const canAccessTraining = hasAccess ? hasAccess('training') : true; // Managers and admins
   const canAccessAdmin = isAdmin && isAdmin();
 
   return (
