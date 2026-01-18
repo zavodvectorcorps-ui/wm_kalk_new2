@@ -1076,8 +1076,8 @@ const TrainingPage = ({ user }) => {
                 <Label>Урок активен</Label>
               </div>
             </div>
-          </ScrollArea>
-          <DialogFooter>
+          </div>
+          <DialogFooter className="flex-shrink-0">
             <Button variant="outline" onClick={() => setShowLessonDialog(false)}>Отмена</Button>
             <Button onClick={handleSaveLesson}>Сохранить урок</Button>
           </DialogFooter>
