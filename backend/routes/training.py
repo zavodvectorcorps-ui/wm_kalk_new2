@@ -37,6 +37,7 @@ class Lesson(BaseModel):
     id: str = Field(default_factory=lambda: str(ObjectId()))
     title: str
     description: Optional[str] = ""
+    thumbnailUrl: Optional[str] = None  # Thumbnail/cover image URL (can be GIF from Synthesia)
     videoEmbed: Optional[str] = None  # Synthesia embed code (iframe)
     videoUrl: Optional[str] = None  # Alternative: direct video URL
     content: Optional[str] = ""  # Additional text content (markdown)
