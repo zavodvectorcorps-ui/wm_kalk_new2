@@ -923,6 +923,32 @@ const TrainingPage = ({ user }) => {
                 </div>
               </div>
 
+              {/* Thumbnail / Cover */}
+              <div className="space-y-4">
+                <h3 className="font-medium flex items-center gap-2">
+                  <FileImage className="h-4 w-4" />
+                  Обложка урока
+                </h3>
+                <div className="space-y-2">
+                  <Label>URL изображения или GIF</Label>
+                  <Input
+                    value={editingLesson?.thumbnailUrl || ''}
+                    onChange={e => setEditingLesson({ ...editingLesson, thumbnailUrl: e.target.value })}
+                    placeholder="https://... (можно вставить GIF из Synthesia)"
+                  />
+                  {editingLesson?.thumbnailUrl && (
+                    <div className="mt-2 rounded-lg overflow-hidden border max-w-xs">
+                      <img 
+                        src={editingLesson.thumbnailUrl} 
+                        alt="Превью" 
+                        className="w-full h-auto"
+                        onError={(e) => e.target.style.display = 'none'}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Video */}
               <div className="space-y-4">
                 <h3 className="font-medium flex items-center gap-2">
