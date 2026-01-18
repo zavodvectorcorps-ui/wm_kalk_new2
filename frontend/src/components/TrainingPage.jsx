@@ -850,6 +850,7 @@ const TrainingPage = ({ user }) => {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingCourse?.id ? 'Редактировать курс' : 'Новый курс'}</DialogTitle>
+            <DialogDescription>Заполните информацию о курсе</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
