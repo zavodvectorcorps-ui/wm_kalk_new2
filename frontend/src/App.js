@@ -432,6 +432,10 @@ const AppContent = () => {
           <Suspense fallback={<PageLoader />}>
             <PDFTemplateEditor calculatorType="sauna" />
           </Suspense>
+        ) : activeTab === 'training' ? (
+          <Suspense fallback={<PageLoader />}>
+            <TrainingPage user={user} />
+          </Suspense>
         ) : (
           <Suspense fallback={<PageLoader />}>
             <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} amocrmPrefill={amocrmPrefill} onAmocrmPrefillUsed={() => setAmocrmPrefill(null)} />
