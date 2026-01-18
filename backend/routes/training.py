@@ -327,6 +327,70 @@ async def start_lesson(user_id: str, course_id: str, lesson_id: str):
     return {"message": "Урок начат"}
 
 
+@router.post("/progress/{user_id}/{course_id}/lessons/{lesson_id}/complete")
+async def complete_lesson(user_id: str, course_id: str, lesson_id: str):
+    """Mark a lesson as completed (for lessons without tests)"""
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Get course to check if completed
+    course = await db.training_courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Курс не найден")
+    
+    # Get or create progress
+    progress = await db.training_progress.find_one(
+        {"userId": user_id, "courseId": course_id}
+    )
+    
+    if not progress:
+        progress = {
+            "userId": user_id,
+            "courseId": course_id,
+            "lessons": {},
+            "startedAt": now,
+            "completedAt": None,
+            "isCompleted": False
+        }
+        await db.training_progress.insert_one(progress)
+    
+    # Update lesson progress
+    lessons_progress = progress.get("lessons", {})
+    lessons_progress[lesson_id] = {
+        "lessonId": lesson_id,
+        "completed": True,
+        "score": 100,  # No test = 100%
+        "attempts": 1,
+        "lastAttemptAt": now,
+        "completedAt": now,
+        "answers": None
+    }
+    
+    # Check if course is completed
+    all_lessons = course.get("lessons", [])
+    active_lessons = [l for l in all_lessons if l.get("isActive", True)]
+    completed_count = sum(
+        1 for l in active_lessons 
+        if lessons_progress.get(l["id"], {}).get("completed", False)
+    )
+    course_completed = completed_count >= len(active_lessons) and len(active_lessons) > 0
+    
+    update_data = {
+        "lessons": lessons_progress,
+        "isCompleted": course_completed
+    }
+    
+    if course_completed and not progress.get("completedAt"):
+        update_data["completedAt"] = now
+    
+    await db.training_progress.update_one(
+        {"userId": user_id, "courseId": course_id},
+        {"$set": update_data},
+        upsert=True
+    )
+    
+    return {"message": "Урок завершён", "courseCompleted": course_completed}
+
+
 @router.post("/progress/{user_id}/{course_id}/lessons/{lesson_id}/submit")
 async def submit_test(
     user_id: str,
