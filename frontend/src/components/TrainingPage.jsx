@@ -916,12 +916,12 @@ const TrainingPage = ({ user }) => {
 
       {/* Lesson Dialog */}
       <Dialog open={showLessonDialog} onOpenChange={setShowLessonDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle>{editingLesson?.id ? 'Редактировать урок' : 'Новый урок'}</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>{editingLesson?.id && courses.find(c => c.id === editingCourse?.id)?.lessons?.some(l => l.id === editingLesson.id) ? 'Редактировать урок' : 'Новый урок'}</DialogTitle>
             <DialogDescription>Курс: {editingCourse?.title}</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-1 pr-4">
+          <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(90vh - 180px)' }}>
             <div className="space-y-6 py-4">
               {/* Basic info */}
               <div className="space-y-4">
