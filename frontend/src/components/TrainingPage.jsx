@@ -199,6 +199,30 @@ const TrainingPage = ({ user }) => {
     setTestResult(null);
   };
 
+  // Complete lesson without test
+  const handleCompleteLesson = async () => {
+    if (!selectedCourse || !selectedLesson) return;
+    
+    try {
+      // Mark lesson as completed on backend
+      const response = await fetch(
+        `${API_URL}/api/training/progress/${userId}/${selectedCourse.id}/lessons/${selectedLesson.id}/complete`,
+        { method: 'POST' }
+      );
+      
+      if (response.ok) {
+        toast.success('Урок завершён!');
+        await fetchProgress();
+        handleNextLesson();
+      } else {
+        toast.error('Ошибка сохранения прогресса');
+      }
+    } catch (error) {
+      console.error('Error completing lesson:', error);
+      toast.error('Ошибка сохранения прогресса');
+    }
+  };
+
   // Go to next lesson
   const handleNextLesson = () => {
     if (!selectedCourse) return;
