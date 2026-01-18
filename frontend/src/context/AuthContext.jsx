@@ -107,6 +107,11 @@ export const AuthProvider = ({ children }) => {
     if (user.role === 'admin') return true;
     if (user.role === 'observer') return true;
     
+    // Training is accessible to all employees (managers) and admins
+    if (calculator === 'training') {
+      return user.role === 'admin' || user.role === 'employee' || user.role === 'observer';
+    }
+    
     // Driver role automatically has access to driver panel
     if (calculator === 'driver' && user.role === 'driver') return true;
     
