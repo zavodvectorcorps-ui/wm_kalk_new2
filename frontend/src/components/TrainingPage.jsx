@@ -486,7 +486,7 @@ const TrainingPage = ({ user }) => {
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
               ) : (
-                <Button onClick={handleNextLesson}>
+                <Button onClick={handleCompleteLesson}>
                   Завершить урок
                   <CheckCircle2 className="h-4 w-4 ml-2" />
                 </Button>
