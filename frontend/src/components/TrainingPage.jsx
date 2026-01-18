@@ -682,9 +682,6 @@ const TrainingPage = ({ user }) => {
                       )}
                     </div>
                   )}
-                      <Lock className="h-5 w-5" />
-                    )}
-                  </div>
                   <div className="flex-1">
                     <h3 className="font-medium">{lesson.title}</h3>
                     {lesson.description && (
