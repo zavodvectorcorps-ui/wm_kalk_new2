@@ -70,12 +70,9 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const canAccessDriver = hasAccess ? hasAccess('driver') : false;
   const canAccessWarehouse = hasAccess ? hasAccess('warehouse') : false;
   const canAccessSaunaCRM = hasAccess ? hasAccess('sauna_crm') : false;
-  // Training is always available for employees (managers) and admins
-  const canAccessTraining = user?.role === 'admin' || user?.role === 'employee' || user?.role === 'observer';
+  // Training is available for all logged-in users except drivers and warehouse
+  const canAccessTraining = user && user.role !== 'driver' && user.role !== 'warehouse';
   const canAccessAdmin = isAdmin && isAdmin();
-  
-  // Debug
-  console.log('canAccessTraining:', canAccessTraining, 'user.role:', user?.role);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
