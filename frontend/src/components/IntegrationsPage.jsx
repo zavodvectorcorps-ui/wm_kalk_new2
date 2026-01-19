@@ -990,6 +990,25 @@ export const IntegrationsPage = () => {
                 <Badge variant="outline" className="h-6 w-6 rounded-full p-0 flex items-center justify-center shrink-0">4</Badge>
                 <p>Переведите тестовую сделку на этот этап — заказ появится в соответствующем разделе Логистики</p>
               </div>
+              
+              {/* Update webhook hint */}
+              <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <h4 className="font-medium text-purple-700 mb-2 flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Автообновление при изменении сделки
+                </h4>
+                <p className="text-sm text-purple-600 mb-2">
+                  Чтобы данные обновлялись автоматически при изменении сделки в amoCRM (без смены этапа), 
+                  настройте дополнительный webhook:
+                </p>
+                <ol className="text-sm text-purple-600 list-decimal ml-4 space-y-1">
+                  <li>В amoCRM перейдите в Настройки → API и интеграции → Webhooks</li>
+                  <li>Создайте новый webhook с тем же URL (например, для Теплиц)</li>
+                  <li>Выберите событие "Изменение сделки" (leads → update)</li>
+                  <li>Теперь при любом изменении сделки данные будут автоматически синхронизироваться</li>
+                </ol>
+              </div>
+              
               <div className="pt-3 border-t">
                 <a 
                   href="https://www.amocrm.ru/developers/content/crm_platform/webhooks-format" 
