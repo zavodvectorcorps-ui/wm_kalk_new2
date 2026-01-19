@@ -862,13 +862,19 @@ async def receive_webhook_section(
     body = await request.body()
     data = parse_amocrm_webhook(body)
     
-    log_entry["raw_data"] = str(body[:1000])  # Truncate for logging
+    log_entry["raw_data"] = str(body[:2000])  # Truncate for logging
+    log_entry["parsed_data_keys"] = list(data.keys()) if data else []
     
     if not data:
         log_entry["status"] = "error"
         log_entry["reason"] = "Failed to parse webhook data"
         webhook_logs.insert_one(log_entry)
         return {"status": "ok", "message": "No data to process"}
+    
+    # Log what type of webhook event this is
+    if "leads" in data:
+        leads_data = data["leads"]
+        log_entry["leads_event_type"] = list(leads_data.keys()) if isinstance(leads_data, dict) else "list"
     
     # Get field mapping for this specific section
     all_mappings = settings.get("field_mapping", {})
