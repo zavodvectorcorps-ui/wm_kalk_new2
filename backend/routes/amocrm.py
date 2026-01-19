@@ -2899,7 +2899,7 @@ async def refresh_all_orders(section: str):
             change_entry = {
                 "timestamp": now,
                 "action": "bulk_refresh_from_amocrm",
-                "changes": "Данные обновлены при массовом обновлении из amoCRM"
+                "changes": [{"field": "Источник", "oldValue": "", "newValue": "Данные обновлены при массовом обновлении из amoCRM"}]
             }
             
             collection.update_one(
