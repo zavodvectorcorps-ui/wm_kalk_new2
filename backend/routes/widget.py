@@ -273,6 +273,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
     # Status config
     status_config = {
         "pending": {"label": "Ожидает", "color": "#6b7280", "bg": "#f3f4f6"},
+        "preparing": {"label": "Готовится", "color": "#eab308", "bg": "#fefce8"},
         "new": {"label": "Новый", "color": "#3b82f6", "bg": "#eff6ff"},
         "planned": {"label": "Запланирован", "color": "#8b5cf6", "bg": "#f5f3ff"},
         "in_transit": {"label": "В пути", "color": "#f59e0b", "bg": "#fffbeb"},
