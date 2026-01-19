@@ -126,7 +126,7 @@ const TrainingPage = ({ user }) => {
   // Fetch objections
   const fetchObjections = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/training/objections`);
+      const response = await fetch(`${API_URL}/api/training/objections?calculator_type=${faqCalculatorType}`);
       if (response.ok) {
         const data = await response.json();
         setObjections(data);
@@ -134,7 +134,7 @@ const TrainingPage = ({ user }) => {
     } catch (error) {
       console.error('Error fetching objections:', error);
     }
-  }, []);
+  }, [faqCalculatorType]);
 
   // Fetch FAQ items
   const fetchFaqItems = useCallback(async () => {
