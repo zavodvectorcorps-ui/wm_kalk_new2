@@ -123,8 +123,8 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 ## Backlog
 
 ### P1 (High Priority)
+- [x] ~~Manual refresh from amoCRM~~ (DONE - Jan 19, 2025)
 - [ ] Verify automatic backup schedule works correctly
-- [ ] Re-enable "Sauna CRM" module (on user request)
 
 ### P2 (Medium Priority)
 - [ ] UI for backup import/restore
@@ -135,6 +135,7 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - [ ] Sauna Lead Statistics feature
 - [ ] Fix unstable login sessions
 - [ ] Category hint editing dialog fix in sauna pricing admin
+- [ ] Sauna hints not saving on user's hosting
 
 ---
 
