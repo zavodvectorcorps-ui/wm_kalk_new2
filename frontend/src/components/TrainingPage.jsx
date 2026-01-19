@@ -11,12 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
 import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
 import { 
   GraduationCap, Play, CheckCircle2, Circle, Lock, Plus, Trash2, 
   Edit, ChevronRight, Award, Clock, Users, BookOpen, Video,
   FileQuestion, Save, X, ArrowLeft, BarChart3, Settings, Grip,
-  ChevronDown, ChevronUp, PlayCircle, CheckCircle, XCircle, RefreshCw, FileImage
+  ChevronDown, ChevronUp, PlayCircle, CheckCircle, XCircle, RefreshCw, FileImage,
+  MessageSquareQuote, HelpCircle, Send, ThumbsUp, Search, Filter
 } from 'lucide-react';
 
 const API_URL = (() => { 
