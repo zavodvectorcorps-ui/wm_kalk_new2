@@ -90,8 +90,8 @@ export const FAQView = ({ calculatorType = 'both' }) => {
 
   const fetchObjections = async () => {
     try {
-      // Fetch all objections - admins need to see pending ones too
-      const response = await axios.get(`${API_URL}/api/training/objections`);
+      // Fetch objections filtered by calculator type
+      const response = await axios.get(`${API_URL}/api/training/objections?calculator_type=${calculatorType || 'all'}`);
       setObjections(response.data);
     } catch (error) {
       console.error('Error fetching objections:', error);
