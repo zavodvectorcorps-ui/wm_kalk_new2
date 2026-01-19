@@ -199,6 +199,7 @@ async def sync_single_order_to_amocrm(order: dict):
     
     STATUS_LABELS = {
         "pending": "Ожидает",
+        "preparing": "Готовится",
         "delivering": "В пути",
         "delivered": "Доставлен",
         "cancelled": "Отменён"
