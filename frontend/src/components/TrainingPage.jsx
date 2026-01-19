@@ -1583,6 +1583,126 @@ const TrainingPage = ({ user }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* New Objection Dialog (for managers) */}
+      <Dialog open={showObjectionDialog} onOpenChange={setShowObjectionDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquareQuote className="h-5 w-5 text-orange-500" />
+              Новое возражение клиента
+            </DialogTitle>
+            <DialogDescription>
+              Опишите возражение клиента. Администратор подготовит ответ и скрипт обработки.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Возражение / Вопрос клиента *</Label>
+              <Textarea
+                value={newObjection.question}
+                onChange={e => setNewObjection({ ...newObjection, question: e.target.value })}
+                placeholder="Например: 'Почему так дорого?' или 'У конкурентов дешевле'"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Контекст (необязательно)</Label>
+              <Textarea
+                value={newObjection.context}
+                onChange={e => setNewObjection({ ...newObjection, context: e.target.value })}
+                placeholder="Дополнительная информация о ситуации..."
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Категория</Label>
+              <Select 
+                value={newObjection.category} 
+                onValueChange={v => setNewObjection({ ...newObjection, category: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">Общее</SelectItem>
+                  <SelectItem value="price">Цена</SelectItem>
+                  <SelectItem value="quality">Качество</SelectItem>
+                  <SelectItem value="delivery">Доставка</SelectItem>
+                  <SelectItem value="warranty">Гарантия</SelectItem>
+                  <SelectItem value="competitors">Конкуренты</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowObjectionDialog(false)}>Отмена</Button>
+            <Button onClick={handleSubmitObjection}>
+              <Send className="h-4 w-4 mr-2" />
+              Отправить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Answer Objection Dialog (for admins) */}
+      <Dialog open={!!editingObjection} onOpenChange={(open) => !open && setEditingObjection(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              {editingObjection?.status === 'answered' ? 'Редактировать ответ' : 'Ответить на возражение'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Question display */}
+            <div className="bg-orange-50 dark:bg-orange-950/20 rounded-lg p-4">
+              <Label className="text-xs text-orange-600 font-medium mb-2 block">Возражение клиента:</Label>
+              <p className="font-medium">{editingObjection?.question}</p>
+              {editingObjection?.context && (
+                <p className="text-sm text-muted-foreground mt-2">{editingObjection?.context}</p>
+              )}
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="outline" className="text-xs">
+                  {OBJECTION_CATEGORIES[editingObjection?.category] || editingObjection?.category}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  От: {editingObjection?.submittedBy}
+                </span>
+              </div>
+            </div>
+
+            {/* Answer */}
+            <div className="space-y-2">
+              <Label>Ответ клиенту *</Label>
+              <Textarea
+                value={editingObjection?.answer || ''}
+                onChange={e => setEditingObjection({ ...editingObjection, answer: e.target.value })}
+                placeholder="Напишите ответ, который менеджер может использовать в разговоре с клиентом..."
+                rows={4}
+              />
+            </div>
+
+            {/* Script */}
+            <div className="space-y-2">
+              <Label>Скрипт обработки (необязательно)</Label>
+              <Textarea
+                value={editingObjection?.script || ''}
+                onChange={e => setEditingObjection({ ...editingObjection, script: e.target.value })}
+                placeholder="Пошаговый скрипт для менеджера:&#10;1. Выслушать клиента&#10;2. Согласиться с его точкой зрения&#10;3. Привести аргументы..."
+                rows={5}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingObjection(null)}>Отмена</Button>
+            <Button onClick={handleAnswerObjection}>
+              <Save className="h-4 w-4 mr-2" />
+              Сохранить ответ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
