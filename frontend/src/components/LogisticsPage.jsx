@@ -830,7 +830,8 @@ const OrdersListCard = ({
   expandedOrder, setExpandedOrder, editingAddressOrderId, editingAddressValue, setEditingAddressValue,
   editAddressInputRef, drivers, toggleOrderSelection, toggleOrderImportant, startEditingAddress,
   saveEditedAddress, cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder,
-  getUnassignedOrders, getFilteredOrders, searchQuery, setShowCreateTripModal, setShowAddToTripModal, trips, formatDate, DELIVERY_STATUSES, API_URL
+  getUnassignedOrders, getFilteredOrders, searchQuery, setShowCreateTripModal, setShowAddToTripModal, trips, formatDate, DELIVERY_STATUSES, API_URL,
+  refreshingOrderId, refreshOrderFromAmocrm
 }) => {
   // Don't render if currentSection is not available (e.g., history tab)
   if (!currentSection) return null;
