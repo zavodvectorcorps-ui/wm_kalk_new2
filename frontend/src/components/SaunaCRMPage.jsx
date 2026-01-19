@@ -597,7 +597,7 @@ const SaunaCRMPage = () => {
     <div className="p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-amber-800">CRM Сауны</h1>
+        <h1 className="text-2xl font-bold text-amber-800">Производство саун</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={syncFromAmoCRM} disabled={syncing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
@@ -605,7 +605,7 @@ const SaunaCRMPage = () => {
           </Button>
           <Button variant="outline" onClick={() => { setEditingLead({}); setEditDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
-            Новая заявка
+            Новый заказ
           </Button>
           {canEdit() && (
             <Button variant="outline" onClick={() => setSettingsDialogOpen(true)}>
