@@ -220,9 +220,17 @@ export const LogisticsPage = () => {
               Создать заказ
             </Button>
           )}
-          <Button variant="outline" onClick={fetchAllOrders} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Обновить
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              await refreshAllOrdersFromAmocrm();
+              await fetchAllOrders();
+            }} 
+            disabled={loading || refreshingAll}
+            data-testid="refresh-all-orders-btn"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${(loading || refreshingAll) ? 'animate-spin' : ''}`} />
+            {refreshingAll ? 'Обновление из amoCRM...' : 'Обновить'}
           </Button>
         </div>
       </div>
