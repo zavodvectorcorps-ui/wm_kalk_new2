@@ -135,6 +135,19 @@ const TrainingPage = ({ user }) => {
     }
   }, []);
 
+  // Fetch FAQ items
+  const fetchFaqItems = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/faq?calculator_type=both`);
+      if (response.ok) {
+        const data = await response.json();
+        setFaqItems(data.filter(item => item.isActive));
+      }
+    } catch (error) {
+      console.error('Error fetching FAQ:', error);
+    }
+  }, []);
+
   // Submit new objection (manager)
   const handleSubmitObjection = async () => {
     if (!newObjection.question.trim()) {
