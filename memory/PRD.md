@@ -94,6 +94,14 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Changelog
 
+### January 19, 2025
+- **ADDED**: Manual refresh from amoCRM feature:
+  - Backend endpoint `POST /api/integrations/amocrm/refresh_lead/{section}/{amocrm_id}` - refresh single order
+  - Backend endpoint `POST /api/integrations/amocrm/refresh_all/{section}` - refresh all orders
+  - "Обновить" button in order card amoCRM block - updates single order
+  - Global "Обновить" button in header - updates all orders from amoCRM
+  - Shows "Обновлено из amoCRM: [date]" when order was last synced
+
 ### January 18, 2025
 - **FIXED**: Training module visibility for `employee` role on landing page
 - **ADDED**: Training card moved to first row on landing page
