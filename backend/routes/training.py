@@ -597,6 +597,7 @@ class ObjectionCreate(BaseModel):
     question: str  # The objection/question from client
     context: Optional[str] = None  # Additional context
     category: Optional[str] = "general"  # Category: general, price, quality, delivery, etc.
+    calculator_type: Optional[str] = "both"  # balia, sauna, or both
 
 
 class ObjectionResponse(BaseModel):
@@ -606,13 +607,20 @@ class ObjectionResponse(BaseModel):
 
 
 @router.get("/objections")
-async def get_objections(status: str = "all", category: str = "all"):
+async def get_objections(status: str = "all", category: str = "all", calculator_type: str = "all"):
     """Get all client objections"""
     query = {}
     if status != "all":
         query["status"] = status
     if category != "all":
         query["category"] = category
+    if calculator_type != "all":
+        # Return objections for specific calculator or "both"
+        query["$or"] = [
+            {"calculator_type": calculator_type},
+            {"calculator_type": "both"},
+            {"calculator_type": {"$exists": False}}  # Legacy objections without type
+        ]
     
     objections = await db.training_objections.find(query, {"_id": 0}).sort("createdAt", -1).to_list(500)
     return objections
