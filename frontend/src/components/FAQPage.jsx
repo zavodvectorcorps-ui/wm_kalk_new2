@@ -106,6 +106,108 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     }
   };
 
+  // Submit new objection
+  const handleSubmitObjection = async () => {
+    if (!newObjection.question.trim()) {
+      toast.error('Введите текст возражения');
+      return;
+    }
+
+    try {
+      await axios.post(`${API_URL}/api/training/objections?user_id=${userId}&username=${username}`, newObjection);
+      toast.success('Возражение отправлено! Администратор скоро ответит.');
+      setNewObjection({ question: '', context: '', category: 'general' });
+      setShowObjectionDialog(false);
+      fetchObjections();
+    } catch (error) {
+      console.error('Error submitting objection:', error);
+      toast.error('Ошибка отправки');
+    }
+  };
+
+  // Print objections as memo
+  const handlePrintObjections = () => {
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Памятка: Возражения клиентов</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { text-align: center; margin-bottom: 30px; font-size: 24px; }
+          .objection { 
+            display: flex; 
+            margin-bottom: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px;
+            overflow: hidden;
+          }
+          .left { 
+            width: 40%; 
+            background: #fff3cd; 
+            padding: 15px;
+            border-right: 2px solid #ddd;
+          }
+          .right { 
+            width: 60%; 
+            background: #d4edda; 
+            padding: 15px;
+          }
+          .label { 
+            font-weight: bold; 
+            font-size: 12px; 
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+          }
+          .question { font-weight: bold; font-size: 14px; }
+          .answer { font-size: 14px; white-space: pre-wrap; }
+          .script { 
+            margin-top: 10px; 
+            padding-top: 10px; 
+            border-top: 1px dashed #aaa;
+            font-size: 13px;
+            color: #555;
+          }
+          .category { 
+            display: inline-block;
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 8px;
+          }
+          @media print {
+            .objection { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>📋 Памятка: Работа с возражениями клиентов</h1>
+        ${objections.map(obj => `
+          <div class="objection">
+            <div class="left">
+              <div class="label">❓ Возражение клиента:</div>
+              <div class="question">${obj.question}</div>
+              <div class="category">${OBJECTION_CATEGORIES[obj.category] || obj.category}</div>
+            </div>
+            <div class="right">
+              <div class="label">✅ Ответ:</div>
+              <div class="answer">${obj.answer || ''}</div>
+              ${obj.script ? `<div class="script"><strong>📝 Скрипт:</strong><br/>${obj.script}</div>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   const filteredItems = items.filter(item => {
     const matchesCategory = item.category === activeTab;
     const matchesSearch = !searchQuery || 
