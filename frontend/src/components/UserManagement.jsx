@@ -111,6 +111,7 @@ export const UserManagement = () => {
       accessSauna: 'Sauna',
       accessLogistics: 'Logistyka',
       accessDriver: 'Panel kierowcy',
+      accessSaunaCrm: 'Produkcja saun',
       accessAll: 'Wszystkie sekcje',
       role: 'Rola',
       admin: 'Administrator',
