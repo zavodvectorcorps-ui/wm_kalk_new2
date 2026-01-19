@@ -372,42 +372,90 @@ export const FAQView = ({ calculatorType = 'both' }) => {
 
         {/* Objections tab */}
         <TabsContent value="objections" className="mt-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquareQuote className="h-5 w-5 text-orange-500" />
-                    Возражения клиентов и ответы на них
+          <div className="space-y-6">
+            {/* Pending objections for admin */}
+            {isAdmin && pendingObjections.length > 0 && (
+              <Card className="border-orange-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-orange-600">
+                    <Clock className="h-5 w-5" />
+                    Ожидают ответа
+                    <Badge variant="secondary">{pendingObjections.length}</Badge>
                   </CardTitle>
-                  <CardDescription>
-                    Готовые скрипты для работы с типичными возражениями
-                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {pendingObjections.map(obj => (
+                    <Card key={obj.id} className="border-orange-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="font-medium">{obj.question}</p>
+                            {obj.context && (
+                              <p className="text-sm text-muted-foreground mt-1">{obj.context}</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                {OBJECTION_CATEGORIES[obj.category] || obj.category}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                От: {obj.submittedBy} • {new Date(obj.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" onClick={() => setEditingObjection({ ...obj, answer: '', script: '' })}>
+                              <Edit className="h-4 w-4 mr-1" />
+                              Ответить
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteObjection(obj.id)}>
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Answered objections */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquareQuote className="h-5 w-5 text-orange-500" />
+                      Возражения клиентов и ответы на них
+                    </CardTitle>
+                    <CardDescription>
+                      Готовые скрипты для работы с типичными возражениями
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    {answeredObjections.length > 0 && (
+                      <Button variant="outline" size="sm" onClick={handlePrintObjections}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Печать памятки
+                      </Button>
+                    )}
+                    {!isAdmin && (
+                      <Button size="sm" onClick={() => setShowObjectionDialog(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Добавить
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {objections.length > 0 && (
-                    <Button variant="outline" size="sm" onClick={handlePrintObjections}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Печать памятки
-                    </Button>
-                  )}
-                  {!isAdmin && (
-                    <Button size="sm" onClick={() => setShowObjectionDialog(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Добавить
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {objections.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageSquareQuote className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>Пока нет ответов на возражения</p>
-                  {!isAdmin && (
-                    <Button className="mt-4" variant="outline" onClick={() => setShowObjectionDialog(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
+              </CardHeader>
+              <CardContent>
+                {answeredObjections.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <MessageSquareQuote className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Пока нет ответов на возражения</p>
+                    {!isAdmin && (
+                      <Button className="mt-4" variant="outline" onClick={() => setShowObjectionDialog(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
                       Добавить первое возражение
                     </Button>
                   )}
