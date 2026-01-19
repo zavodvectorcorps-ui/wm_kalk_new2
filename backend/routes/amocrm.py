@@ -2280,6 +2280,8 @@ async def get_lead_data(lead_id: str, section: str = "balia"):
     
     Used when opening calculator from amoCRM card.
     Returns: fullName, phoneNumber, fullAddress, amocrm_id, amocrm_link
+    
+    Also fetches contact data to get standard phone field.
     """
     settings = get_amocrm_settings()
     
@@ -2315,6 +2317,21 @@ async def get_lead_data(lead_id: str, section: str = "balia"):
     
     # Extract data using mapping
     lead_data = extract_lead_data_from_api(api_data, field_mapping)
+    
+    # If we have a contact_id but no phone, fetch contact data to get phone
+    contact_id = lead_data.get("contact_id")
+    if contact_id and not lead_data.get("phoneNumber"):
+        logger.info(f"Fetching contact {contact_id} to get phone number")
+        contact_data = await fetch_contact_from_amocrm(contact_id, domain, token)
+        if contact_data:
+            contact_phone = extract_contact_phone(contact_data)
+            if contact_phone:
+                lead_data["phoneNumber"] = contact_phone
+                logger.info(f"Got phone from contact: {contact_phone}")
+            
+            # Also get contact name if not set
+            if not lead_data.get("fullName"):
+                lead_data["fullName"] = contact_data.get("name", "")
     
     # Build full amoCRM link
     if domain:
