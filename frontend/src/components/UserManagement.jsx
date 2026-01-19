@@ -773,6 +773,23 @@ export const UserManagement = () => {
                     {txt.accessDriver}
                   </label>
                 </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="edit-access-sauna-crm"
+                    checked={Array.isArray(formData.access) && formData.access.includes('sauna_crm')}
+                    onCheckedChange={(checked) => {
+                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
+                      const newAccess = checked 
+                        ? [...currentAccess.filter(a => a !== 'all'), 'sauna_crm']
+                        : currentAccess.filter(a => a !== 'sauna_crm');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="edit-access-sauna-crm" className="flex items-center gap-2 cursor-pointer">
+                    <Flame className="w-4 h-4 text-rose-500" />
+                    {txt.accessSaunaCrm}
+                  </label>
+                </div>
               </div>
             </div>
           </div>
