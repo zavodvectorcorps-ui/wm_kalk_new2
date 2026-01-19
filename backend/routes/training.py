@@ -588,3 +588,145 @@ async def get_users_training_status():
         })
     
     return result
+
+
+# ============= Client Objections (Возражения клиентов) =============
+
+class ObjectionCreate(BaseModel):
+    """Create objection request"""
+    question: str  # The objection/question from client
+    context: Optional[str] = None  # Additional context
+    category: Optional[str] = "general"  # Category: general, price, quality, delivery, etc.
+
+
+class ObjectionResponse(BaseModel):
+    """Admin response to objection"""
+    answer: str  # The answer/response
+    script: Optional[str] = None  # Script for handling this objection
+
+
+@router.get("/objections")
+async def get_objections(status: str = "all", category: str = "all"):
+    """Get all client objections"""
+    query = {}
+    if status != "all":
+        query["status"] = status
+    if category != "all":
+        query["category"] = category
+    
+    objections = await db.training_objections.find(query, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    return objections
+
+
+@router.get("/objections/{objection_id}")
+async def get_objection(objection_id: str):
+    """Get a single objection"""
+    objection = await db.training_objections.find_one({"id": objection_id}, {"_id": 0})
+    if not objection:
+        raise HTTPException(status_code=404, detail="Возражение не найдено")
+    return objection
+
+
+@router.post("/objections")
+async def create_objection(objection: ObjectionCreate, user_id: str = None, username: str = None):
+    """Create a new objection (manager submits)"""
+    now = datetime.now(timezone.utc).isoformat()
+    
+    objection_data = {
+        "id": str(ObjectId()),
+        "question": objection.question,
+        "context": objection.context,
+        "category": objection.category or "general",
+        "submittedBy": username or user_id or "anonymous",
+        "submittedById": user_id,
+        "status": "pending",  # pending, answered, archived
+        "answer": None,
+        "script": None,
+        "answeredBy": None,
+        "answeredAt": None,
+        "createdAt": now,
+        "updatedAt": now,
+        "isPublished": False,  # Whether to show in FAQ list
+        "views": 0,
+        "helpful": 0
+    }
+    
+    await db.training_objections.insert_one(objection_data)
+    objection_data.pop("_id", None)
+    
+    return objection_data
+
+
+@router.put("/objections/{objection_id}/answer")
+async def answer_objection(objection_id: str, response: ObjectionResponse, admin_username: str = None):
+    """Admin answers an objection"""
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Check objection exists
+    objection = await db.training_objections.find_one({"id": objection_id})
+    if not objection:
+        raise HTTPException(status_code=404, detail="Возражение не найдено")
+    
+    update_data = {
+        "answer": response.answer,
+        "script": response.script,
+        "status": "answered",
+        "answeredBy": admin_username or "admin",
+        "answeredAt": now,
+        "updatedAt": now,
+        "isPublished": True  # Auto-publish when answered
+    }
+    
+    await db.training_objections.update_one(
+        {"id": objection_id},
+        {"$set": update_data}
+    )
+    
+    # Return updated objection
+    updated = await db.training_objections.find_one({"id": objection_id}, {"_id": 0})
+    return updated
+
+
+@router.put("/objections/{objection_id}")
+async def update_objection(objection_id: str, updates: dict):
+    """Update objection (admin)"""
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Check objection exists
+    objection = await db.training_objections.find_one({"id": objection_id})
+    if not objection:
+        raise HTTPException(status_code=404, detail="Возражение не найдено")
+    
+    # Filter allowed fields
+    allowed_fields = ["question", "answer", "script", "category", "status", "isPublished", "context"]
+    update_data = {k: v for k, v in updates.items() if k in allowed_fields}
+    update_data["updatedAt"] = now
+    
+    await db.training_objections.update_one(
+        {"id": objection_id},
+        {"$set": update_data}
+    )
+    
+    updated = await db.training_objections.find_one({"id": objection_id}, {"_id": 0})
+    return updated
+
+
+@router.delete("/objections/{objection_id}")
+async def delete_objection(objection_id: str):
+    """Delete an objection (admin)"""
+    result = await db.training_objections.delete_one({"id": objection_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Возражение не найдено")
+    return {"message": "Возражение удалено"}
+
+
+@router.post("/objections/{objection_id}/helpful")
+async def mark_objection_helpful(objection_id: str):
+    """Mark an objection answer as helpful (any user)"""
+    result = await db.training_objections.update_one(
+        {"id": objection_id},
+        {"$inc": {"helpful": 1}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Возражение не найдено")
+    return {"message": "Спасибо за оценку!"}
