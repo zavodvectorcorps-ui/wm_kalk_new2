@@ -926,18 +926,26 @@ const TrainingPage = ({ user }) => {
       </div>
 
       {/* Admin tabs */}
-      {isAdmin && (
+      {isAdmin ? (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="courses">
               <BookOpen className="h-4 w-4 mr-2" />
               Курсы
             </TabsTrigger>
+            <TabsTrigger value="objections">
+              <MessageSquareQuote className="h-4 w-4 mr-2" />
+              Возражения
+            </TabsTrigger>
             <TabsTrigger value="statistics">
               <BarChart3 className="h-4 w-4 mr-2" />
               Статистика
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="objections" className="mt-6">
+            {renderObjectionsTab()}
+          </TabsContent>
 
           <TabsContent value="statistics" className="mt-6">
             {statistics && (
