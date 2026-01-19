@@ -332,19 +332,43 @@ export const FAQView = ({ calculatorType = 'both' }) => {
         <TabsContent value="objections" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquareQuote className="h-5 w-5 text-orange-500" />
-                Возражения клиентов и ответы на них
-              </CardTitle>
-              <CardDescription>
-                Готовые скрипты для работы с типичными возражениями
-              </CardDescription>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquareQuote className="h-5 w-5 text-orange-500" />
+                    Возражения клиентов и ответы на них
+                  </CardTitle>
+                  <CardDescription>
+                    Готовые скрипты для работы с типичными возражениями
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  {objections.length > 0 && (
+                    <Button variant="outline" size="sm" onClick={handlePrintObjections}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Печать памятки
+                    </Button>
+                  )}
+                  {!isAdmin && (
+                    <Button size="sm" onClick={() => setShowObjectionDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Добавить
+                    </Button>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {objections.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <MessageSquareQuote className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>Пока нет ответов на возражения</p>
+                  {!isAdmin && (
+                    <Button className="mt-4" variant="outline" onClick={() => setShowObjectionDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Добавить первое возражение
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <Accordion type="single" collapsible className="space-y-2">
