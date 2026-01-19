@@ -149,10 +149,11 @@ const TrainingPage = ({ user }) => {
     }
   }, [faqCalculatorType]);
 
-  // Refetch FAQ when calculator type changes
+  // Refetch FAQ and objections when calculator type changes
   useEffect(() => {
     fetchFaqItems();
-  }, [faqCalculatorType, fetchFaqItems]);
+    fetchObjections();
+  }, [faqCalculatorType, fetchFaqItems, fetchObjections]);
 
   // Submit new objection (manager)
   const handleSubmitObjection = async () => {
@@ -160,6 +161,12 @@ const TrainingPage = ({ user }) => {
       toast.error('Введите текст возражения');
       return;
     }
+
+    // Set calculator_type based on current selection
+    const objectionToSubmit = {
+      ...newObjection,
+      calculator_type: faqCalculatorType
+    };
 
     try {
       const response = await fetch(`${API_URL}/api/training/objections?user_id=${userId}&username=${username}`, {
