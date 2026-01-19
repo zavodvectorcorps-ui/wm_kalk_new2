@@ -70,6 +70,12 @@ def sync_trip_data_to_orders(trip: dict, collection):
     
     This stores trip info (name, driver, departure date, status) in each order,
     so that when syncing to amoCRM, each order has its own data to send.
+    
+    Also syncs deliveryStatus based on tripOrderStatus:
+    - pending -> preparing (order in trip, waiting)
+    - delivering -> in_transit (trip is on the way)
+    - delivered -> delivered (order delivered)
+    - cancelled stays cancelled
     """
     logger.info("=== sync_trip_data_to_orders START ===")
     
@@ -83,6 +89,15 @@ def sync_trip_data_to_orders(trip: dict, collection):
         return
     
     order_statuses = trip.get("orderStatuses", {})
+    
+    # Map tripOrderStatus to deliveryStatus
+    TRIP_ORDER_TO_DELIVERY_STATUS = {
+        "pending": "preparing",      # In trip, waiting -> preparing
+        "preparing": "preparing",    # Already preparing
+        "delivering": "in_transit",  # Trip in transit -> in_transit
+        "delivered": "delivered",    # Delivered
+        "cancelled": "cancelled"     # Cancelled stays cancelled
+    }
     
     # Data to store in each order
     trip_data_for_orders = {
@@ -101,7 +116,7 @@ def sync_trip_data_to_orders(trip: dict, collection):
     for order_id in order_ids:
         order_status = order_statuses.get(order_id, "pending")
         
-        # Get current order to check deliveryStatus
+        # Get current order to check current deliveryStatus
         current_order = collection.find_one({"id": order_id})
         current_delivery_status = current_order.get("deliveryStatus", "pending") if current_order else "pending"
         
@@ -110,16 +125,26 @@ def sync_trip_data_to_orders(trip: dict, collection):
             "tripOrderStatus": order_status
         }
         
-        # Set deliveryStatus to "preparing" if it was "pending" (order just added to trip)
-        if current_delivery_status == "pending":
-            update_fields["deliveryStatus"] = "preparing"
-            logger.info(f"Order {order_id}: setting deliveryStatus from 'pending' to 'preparing'")
+        # Map tripOrderStatus to deliveryStatus
+        new_delivery_status = TRIP_ORDER_TO_DELIVERY_STATUS.get(order_status, "preparing")
+        
+        # Don't downgrade status (e.g., don't change delivered back to preparing)
+        # But do allow cancelled to stay
+        status_priority = {"pending": 0, "preparing": 1, "in_transit": 2, "delivered": 3, "cancelled": 4}
+        current_priority = status_priority.get(current_delivery_status, 0)
+        new_priority = status_priority.get(new_delivery_status, 1)
+        
+        # Update deliveryStatus if new status is higher priority or if cancelled
+        if new_priority >= current_priority or new_delivery_status == "cancelled":
+            update_fields["deliveryStatus"] = new_delivery_status
+            if new_delivery_status != current_delivery_status:
+                logger.info(f"Order {order_id}: deliveryStatus '{current_delivery_status}' -> '{new_delivery_status}'")
         
         result = collection.update_one(
             {"id": order_id},
             {"$set": update_fields}
         )
-        logger.info(f"Updated order {order_id}: matched={result.matched_count}, modified={result.modified_count}, tripOrderStatus='{order_status}'")
+        logger.info(f"Updated order {order_id}: matched={result.matched_count}, modified={result.modified_count}, tripOrderStatus='{order_status}', deliveryStatus='{update_fields.get('deliveryStatus', current_delivery_status)}'")
     
     logger.info("=== sync_trip_data_to_orders END ===")
 
