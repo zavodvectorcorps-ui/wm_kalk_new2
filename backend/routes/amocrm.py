@@ -2714,6 +2714,18 @@ async def refresh_single_lead(section: str, amocrm_id: str):
     if not existing_order:
         raise HTTPException(status_code=404, detail=f"Order with amoCRM ID {amocrm_id} not found")
     
+    # Check if order is already in a trip or delivered - skip update
+    trip_id = existing_order.get("tripId")
+    delivery_status = existing_order.get("deliveryStatus", "")
+    
+    if trip_id or delivery_status == "delivered":
+        return {
+            "status": "skipped",
+            "message": "Заказ уже в рейсе или доставлен — обновление пропущено",
+            "order_id": existing_order["id"],
+            "reason": f"tripId={trip_id}, deliveryStatus={delivery_status}"
+        }
+    
     # Get field mapping for this section
     all_mappings = settings.get("field_mapping", {})
     field_mapping = all_mappings.get(section, all_mappings)
