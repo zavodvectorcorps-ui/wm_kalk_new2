@@ -925,6 +925,191 @@ const TrainingPage = ({ user }) => {
     competitors: 'Конкуренты'
   };
 
+  // FAQ categories
+  const FAQ_CATEGORIES = {
+    products: { label: 'Товары и опции', icon: '📦' },
+    calculator_guide: { label: 'Работа с калькулятором', icon: '🧮' },
+    amocrm_integration: { label: 'Интеграция с amoCRM', icon: '🔗' },
+    objections: { label: 'Возражения клиентов', icon: '💬' }
+  };
+
+  // Filter FAQ items
+  const filteredFaqItems = faqItems.filter(item => {
+    const matchesCategory = faqActiveCategory === 'objections' ? false : item.category === faqActiveCategory;
+    const matchesSearch = !faqSearch || 
+      item.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
+      item.answer.toLowerCase().includes(faqSearch.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  // Get answered objections for FAQ display
+  const answeredObjectionsForFaq = objections.filter(obj => 
+    obj.status === 'answered' && 
+    (!faqSearch || 
+      obj.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
+      obj.answer.toLowerCase().includes(faqSearch.toLowerCase()))
+  );
+
+  // Render FAQ tab
+  const renderFAQTab = () => (
+    <div className="space-y-6">
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Поиск по FAQ..."
+          value={faqSearch}
+          onChange={(e) => setFaqSearch(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Category tabs */}
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(FAQ_CATEGORIES).map(([key, { label, icon }]) => (
+          <Button
+            key={key}
+            variant={faqActiveCategory === key ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFaqActiveCategory(key)}
+            className="gap-2"
+          >
+            <span>{icon}</span>
+            {label}
+            {key === 'objections' && answeredObjectionsForFaq.length > 0 && (
+              <Badge variant="secondary" className="ml-1">{answeredObjectionsForFaq.length}</Badge>
+            )}
+          </Button>
+        ))}
+      </div>
+
+      {/* FAQ Content */}
+      {faqActiveCategory === 'objections' ? (
+        /* Objections as FAQ */
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquareQuote className="h-5 w-5 text-orange-500" />
+              Возражения клиентов и ответы на них
+            </CardTitle>
+            <CardDescription>
+              Готовые скрипты для работы с типичными возражениями
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {answeredObjectionsForFaq.length > 0 ? (
+              <Accordion type="single" collapsible className="space-y-2">
+                {answeredObjectionsForFaq.map(obj => (
+                  <AccordionItem key={obj.id} value={obj.id} className="border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-start gap-3 text-left flex-1">
+                        <MessageSquareQuote className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-medium">{obj.question}</p>
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {OBJECTION_CATEGORIES[obj.category] || obj.category}
+                          </Badge>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4">
+                      <div className="space-y-4 pt-2">
+                        <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4">
+                          <Label className="text-xs text-green-600 font-medium mb-2 block">💬 Ответ клиенту:</Label>
+                          <p className="text-sm whitespace-pre-wrap">{obj.answer}</p>
+                        </div>
+                        {obj.script && (
+                          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4">
+                            <Label className="text-xs text-blue-600 font-medium mb-2 block">📋 Скрипт обработки:</Label>
+                            <p className="text-sm whitespace-pre-wrap">{obj.script}</p>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <span className="text-xs text-muted-foreground">
+                            Добавлено: {new Date(obj.answeredAt).toLocaleDateString()}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMarkHelpful(obj.id)}
+                          >
+                            <ThumbsUp className="h-4 w-4 mr-1" />
+                            Полезно {obj.helpful > 0 && `(${obj.helpful})`}
+                          </Button>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <MessageSquareQuote className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Пока нет ответов на возражения</p>
+                <p className="text-sm mt-2">Добавьте возражение во вкладке "Возражения"</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        /* Regular FAQ items */
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-primary" />
+              {FAQ_CATEGORIES[faqActiveCategory]?.label || 'FAQ'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredFaqItems.length > 0 ? (
+              <Accordion type="single" collapsible className="space-y-2">
+                {filteredFaqItems.map(item => (
+                  <AccordionItem key={item.id} value={item.id} className="border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-start gap-3 text-left flex-1">
+                        <HelpCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <p className="font-medium">{item.question}</p>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4">
+                      <div className="space-y-4 pt-2 pl-8">
+                        <p className="text-sm whitespace-pre-wrap">{item.answer}</p>
+                        {item.imageUrl && (
+                          <img 
+                            src={item.imageUrl} 
+                            alt="FAQ illustration" 
+                            className="max-w-md rounded-lg border"
+                          />
+                        )}
+                        {item.videoUrl && (
+                          <div className="aspect-video max-w-lg">
+                            <iframe
+                              src={item.videoUrl.includes('youtube') 
+                                ? `https://www.youtube.com/embed/${item.videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1]}`
+                                : item.videoUrl
+                              }
+                              className="w-full h-full rounded-lg"
+                              allowFullScreen
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <HelpCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Нет статей в этой категории</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
   // Filter objections
   const filteredObjections = objections.filter(obj => {
     const matchesFilter = objectionFilter === 'all' || obj.status === objectionFilter;
