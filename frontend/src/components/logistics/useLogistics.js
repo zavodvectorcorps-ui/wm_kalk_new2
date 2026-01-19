@@ -700,6 +700,128 @@ export const useLogistics = () => {
     syncMissingOrdersRef.current = syncMissingOrders;
   }, [syncMissingOrders]);
 
+  // Refresh single order from amoCRM
+  const refreshOrderFromAmocrm = useCallback(async (orderId, amocrmId) => {
+    if (!amocrmId) {
+      toast.error('Заказ не связан с amoCRM');
+      return;
+    }
+    
+    const sectionMap = {
+      balia: 'balia',
+      greenhouse: 'greenhouse',
+      sauna: 'sauna'
+    };
+    
+    const section = sectionMap[activeSection];
+    if (!section) return;
+    
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      toast.error('Необходима авторизация');
+      return;
+    }
+    
+    setRefreshingOrderId(orderId);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/integrations/amocrm/refresh_lead/${section}/${amocrmId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Failed to refresh order');
+      }
+      
+      const result = await response.json();
+      
+      // Update order in local state
+      if (result.order) {
+        setSectionData(prev => ({
+          ...prev,
+          [activeSection]: {
+            ...prev[activeSection],
+            orders: prev[activeSection].orders.map(o => 
+              o.id === orderId ? { ...o, ...result.order } : o
+            )
+          }
+        }));
+      }
+      
+      toast.success('Данные обновлены из amoCRM');
+      return result;
+    } catch (error) {
+      console.error('Error refreshing order:', error);
+      toast.error(`Ошибка: ${error.message}`);
+      throw error;
+    } finally {
+      setRefreshingOrderId(null);
+    }
+  }, [activeSection]);
+
+  // Refresh all orders from amoCRM
+  const refreshAllOrdersFromAmocrm = useCallback(async () => {
+    const sectionMap = {
+      balia: 'balia',
+      greenhouse: 'greenhouse',
+      sauna: 'sauna'
+    };
+    
+    const section = sectionMap[activeSection];
+    if (!section) return;
+    
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      toast.error('Необходима авторизация');
+      return;
+    }
+    
+    setRefreshingAll(true);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/integrations/amocrm/refresh_all/${section}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Failed to refresh orders');
+      }
+      
+      const result = await response.json();
+      
+      // Reload all orders after sync
+      await fetchAllOrders();
+      
+      if (result.updated > 0) {
+        toast.success(`Обновлено ${result.updated} заказов из amoCRM`);
+      } else {
+        toast.info('Нет заказов из amoCRM для обновления');
+      }
+      
+      if (result.failed > 0) {
+        toast.warning(`${result.failed} заказов не удалось обновить`);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error refreshing all orders:', error);
+      toast.error(`Ошибка: ${error.message}`);
+      throw error;
+    } finally {
+      setRefreshingAll(false);
+    }
+  }, [activeSection, fetchAllOrders]);
+
   // Fetch trips
   const fetchTrips = useCallback(async (section = null) => {
     try {
