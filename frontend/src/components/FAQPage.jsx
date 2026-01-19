@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -25,7 +25,9 @@ import {
   Image as ImageIcon,
   Video,
   ChevronDown,
-  Search
+  Search,
+  MessageSquareQuote,
+  ThumbsUp
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -35,7 +37,17 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 const CATEGORY_LABELS = {
   products: { label: 'Товары и опции', icon: Package },
   calculator_guide: { label: 'Работа с калькулятором', icon: Book },
-  amocrm_integration: { label: 'Интеграция с amoCRM', icon: Link2 }
+  amocrm_integration: { label: 'Интеграция с amoCRM', icon: Link2 },
+  objections: { label: 'Возражения клиентов', icon: MessageSquareQuote }
+};
+
+const OBJECTION_CATEGORIES = {
+  general: 'Общее',
+  price: 'Цена',
+  quality: 'Качество',
+  delivery: 'Доставка',
+  warranty: 'Гарантия',
+  competitors: 'Конкуренты'
 };
 
 const CALCULATOR_LABELS = {
@@ -47,6 +59,7 @@ const CALCULATOR_LABELS = {
 // FAQ View Component (for managers)
 export const FAQView = ({ calculatorType = 'both' }) => {
   const [items, setItems] = useState([]);
+  const [objections, setObjections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('products'); // Default to products tab
