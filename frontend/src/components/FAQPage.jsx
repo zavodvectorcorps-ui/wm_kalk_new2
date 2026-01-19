@@ -138,16 +138,20 @@ export const FAQView = ({ calculatorType = 'both' }) => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           {Object.entries(CATEGORY_LABELS).map(([key, { label, icon: Icon }]) => (
             <TabsTrigger key={key} value={key} className="flex items-center gap-2">
               <Icon className="h-4 w-4" />
               <span className="hidden sm:inline">{label}</span>
+              {key === 'objections' && objections.length > 0 && (
+                <Badge variant="secondary" className="ml-1 hidden sm:inline">{objections.length}</Badge>
+              )}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {Object.keys(CATEGORY_LABELS).map(category => (
+        {/* Regular FAQ categories */}
+        {Object.keys(CATEGORY_LABELS).filter(k => k !== 'objections').map(category => (
           <TabsContent key={category} value={category} className="mt-4">
             {filteredItems.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -214,6 +218,90 @@ export const FAQView = ({ calculatorType = 'both' }) => {
             )}
           </TabsContent>
         ))}
+
+        {/* Objections tab */}
+        <TabsContent value="objections" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquareQuote className="h-5 w-5 text-orange-500" />
+                Возражения клиентов и ответы на них
+              </CardTitle>
+              <CardDescription>
+                Готовые скрипты для работы с типичными возражениями
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {objections.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MessageSquareQuote className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Пока нет ответов на возражения</p>
+                </div>
+              ) : (
+                <Accordion type="single" collapsible className="space-y-2">
+                  {objections.map((obj) => (
+                    <AccordionItem 
+                      key={obj.id} 
+                      value={obj.id}
+                      className="border rounded-lg px-4 bg-card"
+                    >
+                      <AccordionTrigger className="hover:no-underline py-4">
+                        <div className="flex items-start gap-3 text-left flex-1">
+                          <MessageSquareQuote className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-medium">{obj.question}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                {OBJECTION_CATEGORIES[obj.category] || obj.category}
+                              </Badge>
+                              {obj.helpful > 0 && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <ThumbsUp className="h-3 w-3" /> {obj.helpful}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <div className="space-y-4 pt-2">
+                          {/* Answer */}
+                          <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4">
+                            <Label className="text-xs text-green-600 font-medium mb-2 block">💬 Ответ клиенту:</Label>
+                            <p className="text-sm whitespace-pre-wrap">{obj.answer}</p>
+                          </div>
+                          
+                          {/* Script */}
+                          {obj.script && (
+                            <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4">
+                              <Label className="text-xs text-blue-600 font-medium mb-2 block">📋 Скрипт обработки:</Label>
+                              <p className="text-sm whitespace-pre-wrap">{obj.script}</p>
+                            </div>
+                          )}
+                          
+                          {/* Footer */}
+                          <div className="flex items-center justify-between pt-2 border-t">
+                            <span className="text-xs text-muted-foreground">
+                              Добавлено: {new Date(obj.answeredAt).toLocaleDateString()}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleMarkHelpful(obj.id)}
+                            >
+                              <ThumbsUp className="h-4 w-4 mr-1" />
+                              Полезно
+                            </Button>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
