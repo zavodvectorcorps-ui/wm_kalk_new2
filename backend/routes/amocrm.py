@@ -893,13 +893,9 @@ async def receive_webhook_section(
         return {"status": "ok", "message": "Unknown section"}
     
     # Check if order with this amoCRM ID already exists
+    existing_order = None
     if lead_id:
-        existing = collection.find_one({"amocrm_id": lead_id})
-        if existing:
-            log_entry["status"] = "skipped"
-            log_entry["reason"] = "Order already exists"
-            webhook_logs.insert_one(log_entry)
-            return {"status": "ok", "message": "Order already exists"}
+        existing_order = collection.find_one({"amocrm_id": lead_id})
     
     # Try to fetch full lead data from amoCRM API
     domain = settings.get("amocrm_domain", "")
