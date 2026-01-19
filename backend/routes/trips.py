@@ -101,10 +101,19 @@ def sync_trip_data_to_orders(trip: dict, collection):
     for order_id in order_ids:
         order_status = order_statuses.get(order_id, "pending")
         
+        # Get current order to check deliveryStatus
+        current_order = collection.find_one({"id": order_id})
+        current_delivery_status = current_order.get("deliveryStatus", "pending") if current_order else "pending"
+        
         update_fields = {
             **trip_data_for_orders,
             "tripOrderStatus": order_status
         }
+        
+        # Set deliveryStatus to "preparing" if it was "pending" (order just added to trip)
+        if current_delivery_status == "pending":
+            update_fields["deliveryStatus"] = "preparing"
+            logger.info(f"Order {order_id}: setting deliveryStatus from 'pending' to 'preparing'")
         
         result = collection.update_one(
             {"id": order_id},
