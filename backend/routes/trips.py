@@ -59,9 +59,19 @@ TRIP_STATUSES = {
 # Order delivery status within trip
 ORDER_DELIVERY_STATUSES = {
     "pending": "Ожидает",
+    "preparing": "Готовится",
     "delivering": "В доставке",
     "delivered": "Доставлен",
     "cancelled": "Отменён"
+}
+
+# Map tripOrderStatus to deliveryStatus
+TRIP_ORDER_TO_DELIVERY = {
+    "pending": "preparing",      # In trip waiting -> preparing
+    "preparing": "preparing",    # Already preparing
+    "delivering": "in_transit",  # In transit
+    "delivered": "delivered",    # Delivered
+    "cancelled": "cancelled"     # Cancelled
 }
 
 
