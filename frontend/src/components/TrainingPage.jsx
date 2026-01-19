@@ -60,6 +60,11 @@ const TrainingPage = ({ user }) => {
   const [objectionFilter, setObjectionFilter] = useState('all'); // all, pending, answered
   const [objectionSearch, setObjectionSearch] = useState('');
   
+  // FAQ states
+  const [faqItems, setFaqItems] = useState([]);
+  const [faqActiveCategory, setFaqActiveCategory] = useState('products');
+  const [faqSearch, setFaqSearch] = useState('');
+  
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
   const username = user?.username;
