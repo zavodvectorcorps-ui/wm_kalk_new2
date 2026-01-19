@@ -1040,10 +1040,28 @@ const TrainingPage = ({ user }) => {
             )}
           </TabsContent>
         </Tabs>
+      ) : (
+        /* Manager tabs */
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="courses">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Курсы
+            </TabsTrigger>
+            <TabsTrigger value="objections">
+              <MessageSquareQuote className="h-4 w-4 mr-2" />
+              Возражения
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="objections" className="mt-6">
+            {renderObjectionsTab()}
+          </TabsContent>
+        </Tabs>
       )}
 
       {/* Courses grid */}
-      {(activeTab === 'courses' || !isAdmin) && (
+      {activeTab === 'courses' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.filter(c => isAdmin || c.isActive).map(course => {
             const courseProgress = getCourseProgress(course);
