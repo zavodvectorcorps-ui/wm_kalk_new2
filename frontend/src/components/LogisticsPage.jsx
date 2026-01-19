@@ -1177,6 +1177,9 @@ const OrderCard = ({
               updateOrderField={updateOrderField} 
               updateDeliveryStatus={updateDeliveryStatus}
               DELIVERY_STATUSES={DELIVERY_STATUSES}
+              isRefreshing={isRefreshing}
+              refreshOrderFromAmocrm={refreshOrderFromAmocrm}
+              formatDate={formatDate}
             />
           )}
         </div>
@@ -1185,7 +1188,7 @@ const OrderCard = ({
   );
 };
 
-const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDeliveryStatus, DELIVERY_STATUSES }) => (
+const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDeliveryStatus, DELIVERY_STATUSES, isRefreshing, refreshOrderFromAmocrm, formatDate }) => (
   <div className="mt-3 pt-3 border-t space-y-3 text-sm">
     {/* Editable fields */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
