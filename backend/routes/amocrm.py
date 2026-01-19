@@ -991,19 +991,65 @@ async def receive_webhook_section(
         "debtSum": lead_data.get("debtSum", ""),
         "notes": ". ".join(notes_parts),
         "orderDate": now,
-        "createdAt": now,
-        "transferredAt": now,  # Date/time of transfer from amoCRM
         "source": "amocrm",
-        "status": "new",
-        "deliveryStatus": "pending",  # pending, delivering, delivered, cancelled
-        "deliveryComment": "",
         "isImportant": is_important,  # Flag from amoCRM
         "amocrm_tags": amocrm_tags,  # Tags from amoCRM
         "amocrm_id": lead_data.get("amocrm_id"),
         "amocrm_link": amocrm_link,
         "amocrm_data": lead_data,
-        "changeHistory": []  # Initialize empty change history
     }
+    
+    # If order already exists - UPDATE it
+    if existing_order:
+        # Keep original id, createdAt, status, deliveryStatus, etc.
+        update_fields = {
+            "fullName": order_data["fullName"],
+            "phoneNumber": order_data["phoneNumber"],
+            "fullAddress": order_data["fullAddress"],
+            "orderNumber": order_data["orderNumber"],
+            "orderContents": order_data["orderContents"],
+            "orderComment": order_data["orderComment"],
+            "dealSum": order_data["dealSum"],
+            "debtSum": order_data["debtSum"],
+            "notes": order_data["notes"],
+            "isImportant": order_data["isImportant"],
+            "amocrm_tags": order_data["amocrm_tags"],
+            "amocrm_link": order_data["amocrm_link"],
+            "amocrm_data": order_data["amocrm_data"],
+            "updatedAt": now,
+            "updatedFromAmo": now,
+        }
+        
+        # Add to change history
+        change_entry = {
+            "timestamp": now,
+            "action": "updated_from_amocrm",
+            "changes": "Данные обновлены из amoCRM"
+        }
+        
+        collection.update_one(
+            {"amocrm_id": lead_id},
+            {
+                "$set": update_fields,
+                "$push": {"changeHistory": change_entry}
+            }
+        )
+        
+        log_entry["status"] = "updated"
+        log_entry["updated_order_id"] = existing_order["id"]
+        webhook_logs.insert_one(log_entry)
+        
+        logger.info(f"Updated {section} order from amoCRM: {existing_order['id']}")
+        
+        return {"status": "ok", "order_id": existing_order["id"], "section": section, "action": "updated"}
+    
+    # Create new order
+    order_data["createdAt"] = now
+    order_data["transferredAt"] = now  # Date/time of transfer from amoCRM
+    order_data["status"] = "new"
+    order_data["deliveryStatus"] = "pending"  # pending, delivering, delivered, cancelled
+    order_data["deliveryComment"] = ""
+    order_data["changeHistory"] = []  # Initialize empty change history
     
     collection.insert_one(order_data)
     order_data.pop("_id", None)
@@ -1014,7 +1060,7 @@ async def receive_webhook_section(
     
     logger.info(f"Created {section} order from amoCRM: {order_data['id']}")
     
-    return {"status": "ok", "order_id": order_data["id"], "section": section}
+    return {"status": "ok", "order_id": order_data["id"], "section": section, "action": "created"}
 
 
 @router.delete("/orders/{section}")
