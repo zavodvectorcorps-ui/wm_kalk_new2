@@ -1381,10 +1381,6 @@ const TrainingPage = ({ user }) => {
               <HelpCircle className="h-4 w-4 mr-2" />
               FAQ
             </TabsTrigger>
-            <TabsTrigger value="objections">
-              <MessageSquareQuote className="h-4 w-4 mr-2" />
-              Возражения
-            </TabsTrigger>
             <TabsTrigger value="statistics">
               <BarChart3 className="h-4 w-4 mr-2" />
               Статистика
@@ -1393,10 +1389,6 @@ const TrainingPage = ({ user }) => {
 
           <TabsContent value="faq" className="mt-6">
             {renderFAQTab()}
-          </TabsContent>
-
-          <TabsContent value="objections" className="mt-6">
-            {renderObjectionsTab()}
           </TabsContent>
 
           <TabsContent value="statistics" className="mt-6">
