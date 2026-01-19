@@ -2651,3 +2651,257 @@ async def sync_trip_to_amocrm(
         webhook_logs.insert_one(sync_log)
         logger.error(f"amoCRM request error: {e}")
         return {"status": "error", "message": f"Connection error: {str(e)}"}
+
+
+
+@router.post("/refresh_lead/{section}/{amocrm_id}")
+async def refresh_single_lead(section: str, amocrm_id: str):
+    """Refresh a single order from amoCRM by its lead ID.
+    
+    Fetches fresh data from amoCRM API and updates the local order.
+    """
+    if section not in ["greenhouse", "balia", "sauna"]:
+        raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
+    
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        raise HTTPException(status_code=400, detail="amoCRM credentials not configured")
+    
+    collection = get_collection_for_section(section)
+    if collection is None:
+        raise HTTPException(status_code=400, detail=f"Unknown section: {section}")
+    
+    # Find existing order
+    existing_order = collection.find_one({"amocrm_id": str(amocrm_id)})
+    if not existing_order:
+        raise HTTPException(status_code=404, detail=f"Order with amoCRM ID {amocrm_id} not found")
+    
+    # Get field mapping for this section
+    all_mappings = settings.get("field_mapping", {})
+    field_mapping = all_mappings.get(section, all_mappings)
+    
+    # Fetch fresh data from amoCRM
+    api_data = await fetch_lead_from_amocrm(str(amocrm_id), domain, token)
+    
+    if not api_data:
+        raise HTTPException(status_code=502, detail="Failed to fetch data from amoCRM API")
+    
+    # Extract lead data using the same logic as webhook
+    lead_data = extract_lead_data_from_api(api_data, field_mapping)
+    
+    # Fetch contact phone if we have contact_id
+    contact_id = lead_data.get("contact_id")
+    if contact_id and not lead_data.get("phoneNumber"):
+        contact_data = await fetch_contact_from_amocrm(contact_id, domain, token)
+        if contact_data:
+            phone = extract_contact_phone(contact_data)
+            if phone:
+                lead_data["phoneNumber"] = phone
+    
+    # Generate amoCRM link
+    domain_clean = domain.replace("https://", "").replace("http://", "").rstrip("/")
+    amocrm_link = f"https://{domain_clean}/leads/detail/{amocrm_id}"
+    
+    # Extract tags
+    amocrm_tags = []
+    embedded = api_data.get("_embedded", {})
+    tags_data = embedded.get("tags", [])
+    for tag in tags_data:
+        tag_info = {"id": tag.get("id"), "name": tag.get("name", "")}
+        if tag_info["name"]:
+            amocrm_tags.append(tag_info)
+    
+    # Check important flag
+    is_important = existing_order.get("isImportant", False)  # Keep existing value by default
+    important_field_id = settings.get("important_order_field_id", "")
+    if important_field_id:
+        custom_fields = api_data.get("custom_fields_values", [])
+        for field in custom_fields:
+            if str(field.get("field_id", "")) == important_field_id:
+                values = field.get("values", [])
+                if values:
+                    first_val = values[0] if isinstance(values, list) else values
+                    if isinstance(first_val, dict):
+                        val = first_val.get("value", False)
+                    else:
+                        val = first_val
+                    is_important = val in [True, "true", "1", 1, "да", "yes"]
+                break
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Prepare update fields
+    update_fields = {
+        "fullName": lead_data.get("fullName", "") or existing_order.get("fullName", ""),
+        "phoneNumber": lead_data.get("phoneNumber", "") or existing_order.get("phoneNumber", ""),
+        "fullAddress": lead_data.get("fullAddress", "") or existing_order.get("fullAddress", ""),
+        "orderNumber": lead_data.get("orderNumber", "") or existing_order.get("orderNumber", ""),
+        "orderContents": lead_data.get("orderContents", "") or existing_order.get("orderContents", ""),
+        "orderComment": lead_data.get("orderComment", "") or existing_order.get("orderComment", ""),
+        "dealSum": lead_data.get("dealSum", "") or existing_order.get("dealSum", ""),
+        "debtSum": lead_data.get("debtSum", "") or existing_order.get("debtSum", ""),
+        "isImportant": is_important,
+        "amocrm_tags": amocrm_tags,
+        "amocrm_link": amocrm_link,
+        "amocrm_data": lead_data,
+        "updatedAt": now,
+        "updatedFromAmo": now,
+    }
+    
+    # Add to change history
+    change_entry = {
+        "timestamp": now,
+        "action": "manual_refresh_from_amocrm",
+        "changes": "Данные обновлены вручную из amoCRM"
+    }
+    
+    collection.update_one(
+        {"amocrm_id": str(amocrm_id)},
+        {
+            "$set": update_fields,
+            "$push": {"changeHistory": change_entry}
+        }
+    )
+    
+    logger.info(f"Manually refreshed order {existing_order['id']} from amoCRM lead {amocrm_id}")
+    
+    # Return updated order data
+    updated_order = collection.find_one({"amocrm_id": str(amocrm_id)}, {"_id": 0})
+    
+    return {
+        "status": "ok",
+        "message": "Order refreshed from amoCRM",
+        "order_id": existing_order["id"],
+        "order": updated_order
+    }
+
+
+@router.post("/refresh_all/{section}")
+async def refresh_all_orders(section: str):
+    """Refresh ALL amoCRM orders in a section.
+    
+    Fetches fresh data from amoCRM API for each order with an amocrm_id.
+    """
+    if section not in ["greenhouse", "balia", "sauna"]:
+        raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
+    
+    settings = get_amocrm_settings()
+    
+    domain = settings.get("amocrm_domain", "")
+    token = settings.get("amocrm_token", "")
+    
+    if not domain or not token:
+        raise HTTPException(status_code=400, detail="amoCRM credentials not configured")
+    
+    collection = get_collection_for_section(section)
+    if collection is None:
+        raise HTTPException(status_code=400, detail=f"Unknown section: {section}")
+    
+    # Get all orders with amoCRM ID
+    amocrm_orders = list(collection.find({"amocrm_id": {"$exists": True, "$ne": ""}}, {"_id": 0, "amocrm_id": 1, "id": 1}))
+    
+    if not amocrm_orders:
+        return {"status": "ok", "message": "No amoCRM orders found", "updated": 0, "failed": 0}
+    
+    # Get field mapping for this section
+    all_mappings = settings.get("field_mapping", {})
+    field_mapping = all_mappings.get(section, all_mappings)
+    
+    results = {"updated": 0, "failed": 0, "errors": []}
+    
+    for order in amocrm_orders:
+        amocrm_id = order.get("amocrm_id")
+        order_id = order.get("id")
+        
+        try:
+            # Fetch fresh data from amoCRM
+            api_data = await fetch_lead_from_amocrm(str(amocrm_id), domain, token)
+            
+            if not api_data:
+                results["failed"] += 1
+                results["errors"].append({"order_id": order_id, "reason": "API fetch failed"})
+                continue
+            
+            # Extract lead data
+            lead_data = extract_lead_data_from_api(api_data, field_mapping)
+            
+            # Fetch contact phone if needed
+            contact_id = lead_data.get("contact_id")
+            if contact_id and not lead_data.get("phoneNumber"):
+                contact_data = await fetch_contact_from_amocrm(contact_id, domain, token)
+                if contact_data:
+                    phone = extract_contact_phone(contact_data)
+                    if phone:
+                        lead_data["phoneNumber"] = phone
+            
+            # Generate amoCRM link
+            domain_clean = domain.replace("https://", "").replace("http://", "").rstrip("/")
+            amocrm_link = f"https://{domain_clean}/leads/detail/{amocrm_id}"
+            
+            # Extract tags
+            amocrm_tags = []
+            embedded = api_data.get("_embedded", {})
+            tags_data = embedded.get("tags", [])
+            for tag in tags_data:
+                tag_info = {"id": tag.get("id"), "name": tag.get("name", "")}
+                if tag_info["name"]:
+                    amocrm_tags.append(tag_info)
+            
+            now = datetime.now(timezone.utc).isoformat()
+            
+            # Get existing order to preserve some fields
+            existing = collection.find_one({"amocrm_id": str(amocrm_id)})
+            
+            # Update fields
+            update_fields = {
+                "fullName": lead_data.get("fullName", "") or (existing.get("fullName", "") if existing else ""),
+                "phoneNumber": lead_data.get("phoneNumber", "") or (existing.get("phoneNumber", "") if existing else ""),
+                "fullAddress": lead_data.get("fullAddress", "") or (existing.get("fullAddress", "") if existing else ""),
+                "orderNumber": lead_data.get("orderNumber", "") or (existing.get("orderNumber", "") if existing else ""),
+                "orderContents": lead_data.get("orderContents", "") or (existing.get("orderContents", "") if existing else ""),
+                "orderComment": lead_data.get("orderComment", "") or (existing.get("orderComment", "") if existing else ""),
+                "dealSum": lead_data.get("dealSum", "") or (existing.get("dealSum", "") if existing else ""),
+                "debtSum": lead_data.get("debtSum", "") or (existing.get("debtSum", "") if existing else ""),
+                "amocrm_tags": amocrm_tags,
+                "amocrm_link": amocrm_link,
+                "amocrm_data": lead_data,
+                "updatedAt": now,
+                "updatedFromAmo": now,
+            }
+            
+            change_entry = {
+                "timestamp": now,
+                "action": "bulk_refresh_from_amocrm",
+                "changes": "Данные обновлены при массовом обновлении из amoCRM"
+            }
+            
+            collection.update_one(
+                {"amocrm_id": str(amocrm_id)},
+                {
+                    "$set": update_fields,
+                    "$push": {"changeHistory": change_entry}
+                }
+            )
+            
+            results["updated"] += 1
+            
+        except Exception as e:
+            logger.error(f"Error refreshing order {order_id}: {e}")
+            results["failed"] += 1
+            results["errors"].append({"order_id": order_id, "reason": str(e)})
+    
+    logger.info(f"Bulk refresh for {section}: updated={results['updated']}, failed={results['failed']}")
+    
+    return {
+        "status": "ok",
+        "section": section,
+        "total": len(amocrm_orders),
+        "updated": results["updated"],
+        "failed": results["failed"],
+        "errors": results["errors"][:10]  # Limit errors in response
+    }
+
