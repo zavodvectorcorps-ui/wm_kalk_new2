@@ -309,12 +309,12 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
               </Card>
             )}
 
-            {/* Sauna CRM Card - TEMPORARILY HIDDEN */}
-            {false && canAccessSaunaCRM && (
+            {/* Sauna Production Card */}
+            {canAccessSaunaCRM && (
               <Card 
                 className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-rose-500/50"
                 onClick={() => onSelectCalculator('sauna_crm')}
-                data-testid="sauna-crm-card"
+                data-testid="sauna-production-card"
               >
                 <CardContent className="p-8">
                   <div className="flex flex-col items-center text-center">
