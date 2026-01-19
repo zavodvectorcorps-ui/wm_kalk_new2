@@ -89,12 +89,54 @@ export const FAQView = ({ calculatorType = 'both' }) => {
 
   const fetchObjections = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/training/objections?status=answered`);
-      setObjections(response.data.filter(obj => obj.status === 'answered'));
+      // Fetch all objections - admins need to see pending ones too
+      const response = await axios.get(`${API_URL}/api/training/objections`);
+      setObjections(response.data);
     } catch (error) {
       console.error('Error fetching objections:', error);
     }
   };
+
+  // Answer objection (admin)
+  const [editingObjection, setEditingObjection] = useState(null);
+
+  const handleAnswerObjection = async () => {
+    if (!editingObjection?.answer?.trim()) {
+      toast.error('Введите ответ');
+      return;
+    }
+
+    try {
+      await axios.put(`${API_URL}/api/training/objections/${editingObjection.id}/answer?admin_username=${username}`, {
+        answer: editingObjection.answer,
+        script: editingObjection.script
+      });
+      toast.success('Ответ сохранён');
+      setEditingObjection(null);
+      fetchObjections();
+    } catch (error) {
+      console.error('Error answering objection:', error);
+      toast.error('Ошибка сохранения');
+    }
+  };
+
+  // Delete objection (admin)
+  const handleDeleteObjection = async (id) => {
+    if (!window.confirm('Удалить это возражение?')) return;
+
+    try {
+      await axios.delete(`${API_URL}/api/training/objections/${id}`);
+      toast.success('Удалено');
+      fetchObjections();
+    } catch (error) {
+      console.error('Error deleting objection:', error);
+      toast.error('Ошибка удаления');
+    }
+  };
+
+  // Split objections
+  const answeredObjections = objections.filter(obj => obj.status === 'answered');
+  const pendingObjections = objections.filter(obj => obj.status === 'pending');
 
   const handleMarkHelpful = async (id) => {
     try {
