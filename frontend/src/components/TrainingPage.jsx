@@ -52,8 +52,17 @@ const TrainingPage = ({ user }) => {
   const [statistics, setStatistics] = useState(null);
   const [usersStats, setUsersStats] = useState([]);
   
+  // Objections states
+  const [objections, setObjections] = useState([]);
+  const [showObjectionDialog, setShowObjectionDialog] = useState(false);
+  const [newObjection, setNewObjection] = useState({ question: '', context: '', category: 'general' });
+  const [editingObjection, setEditingObjection] = useState(null);
+  const [objectionFilter, setObjectionFilter] = useState('all'); // all, pending, answered
+  const [objectionSearch, setObjectionSearch] = useState('');
+  
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
+  const username = user?.username;
 
   // Fetch courses
   const fetchCourses = useCallback(async () => {
