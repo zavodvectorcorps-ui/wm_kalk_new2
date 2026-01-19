@@ -172,12 +172,12 @@ const TrainingPage = ({ user }) => {
       const response = await fetch(`${API_URL}/api/training/objections?user_id=${userId}&username=${username}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newObjection)
+        body: JSON.stringify(objectionToSubmit)
       });
 
       if (response.ok) {
         toast.success('Возражение отправлено! Администратор скоро ответит.');
-        setNewObjection({ question: '', context: '', category: 'general' });
+        setNewObjection({ question: '', context: '', category: 'general', calculator_type: faqCalculatorType });
         setShowObjectionDialog(false);
         await fetchObjections();
       }
