@@ -324,17 +324,33 @@ export const OrderCard = ({
                 <div className="bg-purple-50 rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-purple-700">Данные из amoCRM</span>
-                    {order.amocrm_link && (
-                      <a
-                        href={order.amocrm_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRefreshFromAmocrm && onRefreshFromAmocrm(order.id, order.amocrm_id);
+                        }}
+                        disabled={isRefreshing}
+                        data-testid={`refresh-order-${order.id}`}
                       >
-                        <ExternalLink className="h-3 w-3" />
-                        Открыть в amoCRM
-                      </a>
-                    )}
+                        <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        {isRefreshing ? 'Обновление...' : 'Обновить'}
+                      </Button>
+                      {order.amocrm_link && (
+                        <a
+                          href={order.amocrm_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Открыть в amoCRM
+                        </a>
+                      )}
+                    </div>
                   </div>
                   {order.order_number && (
                     <div className="flex items-center gap-2 text-xs">
@@ -355,6 +371,13 @@ export const OrderCard = ({
                       <Clock className="h-3 w-3 text-purple-500" />
                       <span className="text-muted-foreground">Перенесён:</span>
                       <span className="font-medium">{formatDate(order.transferredAt)}</span>
+                    </div>
+                  )}
+                  {order.updatedFromAmo && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <RefreshCw className="h-3 w-3 text-purple-500" />
+                      <span className="text-muted-foreground">Обновлено из amoCRM:</span>
+                      <span className="font-medium">{formatDateTime(order.updatedFromAmo)}</span>
                     </div>
                   )}
                 </div>
