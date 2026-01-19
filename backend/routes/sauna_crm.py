@@ -99,9 +99,9 @@ def get_default_settings() -> dict:
             {"id": "field_10", "name": "Поле 10", "amoFieldId": "", "fieldType": "text", "enabled": False, "sortOrder": 10},
         ],
         "stages": [
-            {"id": "new", "name": "Новая заявка", "amoStageId": "", "amoPipelineId": "", "color": "#3b82f6", "sortOrder": 1},
-            {"id": "qualified", "name": "Квалифицированная заявка", "amoStageId": "", "amoPipelineId": "", "color": "#f59e0b", "sortOrder": 2},
-            {"id": "kp_created", "name": "Создано КП", "amoStageId": "", "amoPipelineId": "", "color": "#22c55e", "sortOrder": 3},
+            {"id": "invoice_sent", "name": "Счет отправлен", "amoStageId": "", "amoPipelineId": "", "color": "#3b82f6", "sortOrder": 1},
+            {"id": "prepayment_received", "name": "Предоплата получена", "amoStageId": "", "amoPipelineId": "", "color": "#f59e0b", "sortOrder": 2},
+            {"id": "in_production", "name": "Передан в производство", "amoStageId": "", "amoPipelineId": "", "color": "#22c55e", "sortOrder": 3},
         ],
         "autoSyncEnabled": True,
         "lastSyncAt": None
