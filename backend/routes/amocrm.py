@@ -924,6 +924,15 @@ async def receive_webhook_section(
     if lead_id:
         existing_order = collection.find_one({"amocrm_id": lead_id})
     
+    # For "update" events - only process if order already exists in this section
+    # This prevents orders from other pipelines being created in wrong sections
+    if event_type == "update" and not existing_order:
+        log_entry["status"] = "skipped"
+        log_entry["reason"] = f"Update event for non-existing order in {section} - likely from different pipeline"
+        webhook_logs.insert_one(log_entry)
+        logger.info(f"Skipping update webhook for {section}: order {lead_id} not found in this section")
+        return {"status": "ok", "message": "Order not found in this section, update skipped"}
+    
     # Try to fetch full lead data from amoCRM API
     domain = settings.get("amocrm_domain", "")
     token = settings.get("amocrm_token", "")
