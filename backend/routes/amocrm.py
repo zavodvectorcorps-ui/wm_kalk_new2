@@ -1143,9 +1143,6 @@ async def sync_missing_orders(
         try:
             # Check if order already exists
             existing = collection.find_one({"amocrm_id": str(lead_id)})
-            if existing:
-                results["already_exists"].append(lead_id)
-                continue
             
             # Fetch lead data from amoCRM API
             api_data = await fetch_lead_from_amocrm(str(lead_id), domain, token)
@@ -1194,8 +1191,53 @@ async def sync_missing_orders(
                             is_important = val in [True, "true", "1", 1, "да", "yes"]
                         break
             
-            # Create order with ALL fields (same as webhook)
             now = datetime.now(timezone.utc).isoformat()
+            
+            # If order exists - UPDATE it
+            if existing:
+                update_fields = {
+                    "fullName": lead_data.get("fullName", "") or "Без имени",
+                    "phoneNumber": lead_data.get("phoneNumber", ""),
+                    "fullAddress": lead_data.get("fullAddress", ""),
+                    "addressIndex": lead_data.get("addressIndex", ""),
+                    "addressCity": lead_data.get("addressCity", ""),
+                    "addressStreet": lead_data.get("addressStreet", ""),
+                    "orderNumber": lead_data.get("orderNumber", "") or str(lead_data.get("amocrm_id", "")),
+                    "orderContents": lead_data.get("orderContents", ""),
+                    "orderComment": lead_data.get("orderComment", ""),
+                    "dealSum": lead_data.get("dealSum", ""),
+                    "debtSum": lead_data.get("debtSum", ""),
+                    "notes": ". ".join(notes_parts),
+                    "isImportant": is_important,
+                    "amocrm_link": amocrm_link,
+                    "amocrm_data": lead_data,
+                    "updatedAt": now,
+                    "updatedFromAmo": now,
+                }
+                
+                change_entry = {
+                    "timestamp": now,
+                    "action": "updated_from_amocrm",
+                    "changes": "Данные обновлены из amoCRM (синхронизация)"
+                }
+                
+                collection.update_one(
+                    {"amocrm_id": str(lead_id)},
+                    {
+                        "$set": update_fields,
+                        "$push": {"changeHistory": change_entry}
+                    }
+                )
+                
+                results["already_exists"].append({
+                    "id": existing["id"],
+                    "amocrm_id": lead_id,
+                    "action": "updated"
+                })
+                logger.info(f"Updated order from amoCRM sync: {existing['id']}")
+                continue
+            
+            # Create NEW order with ALL fields
             order_id = f"AMO-{section_prefix.get(section, 'X')}-{lead_data.get('amocrm_id', int(datetime.now().timestamp()))}"
             
             order_data = {
