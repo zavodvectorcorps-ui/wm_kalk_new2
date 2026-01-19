@@ -1080,6 +1080,12 @@ async def create_trip(trip_data: TripCreate):
         # Sync trip data to all orders
         sync_trip_data_to_orders(trip, collection)
         
+        # Sync trip data to amoCRM for orders with amocrm_id
+        try:
+            await sync_trip_orders_to_amocrm(trip, collection)
+        except Exception as e:
+            logger.error(f"Failed to sync trip orders to amoCRM: {e}")
+        
         # If amoCRM pipeline/status is specified, move orders in amoCRM
         if trip_data.amocrmPipelineId and trip_data.amocrmStatusId:
             await move_trip_orders_to_amocrm_stage(
