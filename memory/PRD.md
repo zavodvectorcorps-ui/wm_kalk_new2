@@ -96,7 +96,13 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ### January 18, 2025
 - **FIXED**: Training module visibility for `employee` role on landing page
-  - Added `canAccessTraining` to second row render condition in `LandingPage.jsx`
+- **ADDED**: Training card moved to first row on landing page
+- **ADDED**: FAQ tab in Training module with categories (Products, Calculator, amoCRM, Objections)
+- **ADDED**: Client Objections system:
+  - Managers submit objections with question, context, category
+  - Admins answer with response + handling script
+  - Answered objections appear in FAQ automatically
+  - API: `/api/training/objections`
 
 ### January 2025 (Previous Sessions)
 - Implemented complete Training Module
