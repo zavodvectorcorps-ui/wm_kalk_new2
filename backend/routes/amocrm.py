@@ -872,9 +872,23 @@ async def receive_webhook_section(
         return {"status": "ok", "message": "No data to process"}
     
     # Log what type of webhook event this is
+    event_type = "unknown"
     if "leads" in data:
         leads_data = data["leads"]
-        log_entry["leads_event_type"] = list(leads_data.keys()) if isinstance(leads_data, dict) else "list"
+        if isinstance(leads_data, dict):
+            event_types = list(leads_data.keys())
+            log_entry["leads_event_type"] = event_types
+            if "update" in event_types:
+                event_type = "update"
+            elif "add" in event_types:
+                event_type = "add"
+            elif "status" in event_types:
+                event_type = "status"
+        else:
+            log_entry["leads_event_type"] = "list"
+    
+    log_entry["event_type"] = event_type
+    logger.info(f"Webhook received for {section}: event_type={event_type}")
     
     # Get field mapping for this specific section
     all_mappings = settings.get("field_mapping", {})
