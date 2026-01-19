@@ -29,9 +29,11 @@ export const OrderCard = ({
   onCancelEditAddress,
   onEditAddressChange,
   onUpdateDeliveryStatus,
-  onUpdateOrderField
+  onUpdateOrderField,
+  onRefreshFromAmocrm
 }) => {
   const StatusIcon = DELIVERY_STATUSES[order.deliveryStatus]?.icon || Clock;
+  const isRefreshing = refreshingOrderId === order.id;
   
   return (
     <div
