@@ -884,6 +884,7 @@ async def sync_trip_orders_to_amocrm(trip: dict, collection):
     # Status labels
     STATUS_LABELS = {
         "pending": "Ожидает",
+        "preparing": "Готовится",
         "delivering": "В пути",
         "delivered": "Доставлен",
         "cancelled": "Отменён"
