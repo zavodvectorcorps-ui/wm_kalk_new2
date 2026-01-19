@@ -462,7 +462,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
                 </div>
               ) : (
                 <Accordion type="single" collapsible className="space-y-2">
-                  {objections.map((obj) => (
+                  {answeredObjections.map((obj) => (
                     <AccordionItem 
                       key={obj.id} 
                       value={obj.id}
@@ -507,14 +507,26 @@ export const FAQView = ({ calculatorType = 'both' }) => {
                             <span className="text-xs text-muted-foreground">
                               Добавлено: {new Date(obj.answeredAt).toLocaleDateString()}
                             </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleMarkHelpful(obj.id)}
-                            >
-                              <ThumbsUp className="h-4 w-4 mr-1" />
-                              Полезно
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleMarkHelpful(obj.id)}
+                              >
+                                <ThumbsUp className="h-4 w-4 mr-1" />
+                                Полезно
+                              </Button>
+                              {isAdmin && (
+                                <>
+                                  <Button variant="ghost" size="sm" onClick={() => setEditingObjection(obj)}>
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleDeleteObjection(obj.id)}>
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </AccordionContent>
@@ -522,8 +534,9 @@ export const FAQView = ({ calculatorType = 'both' }) => {
                   ))}
                 </Accordion>
               )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 
