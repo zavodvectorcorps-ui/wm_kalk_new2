@@ -959,15 +959,36 @@ const TrainingPage = ({ user }) => {
   // Render FAQ tab
   const renderFAQTab = () => (
     <div className="space-y-6">
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Поиск по FAQ..."
-          value={faqSearch}
-          onChange={(e) => setFaqSearch(e.target.value)}
-          className="pl-10"
-        />
+      {/* Calculator type selector + Search */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Calculator type buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant={faqCalculatorType === 'balia' ? 'default' : 'outline'}
+            onClick={() => setFaqCalculatorType('balia')}
+            className="gap-2"
+          >
+            🛁 Купели
+          </Button>
+          <Button
+            variant={faqCalculatorType === 'sauna' ? 'default' : 'outline'}
+            onClick={() => setFaqCalculatorType('sauna')}
+            className="gap-2"
+          >
+            🔥 Сауны
+          </Button>
+        </div>
+        
+        {/* Search */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Поиск по FAQ..."
+            value={faqSearch}
+            onChange={(e) => setFaqSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
       </div>
 
       {/* Category tabs */}
