@@ -90,6 +90,10 @@ export const useLogistics = () => {
   const [selectedPipeline, setSelectedPipeline] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
   
+  // amoCRM refresh
+  const [refreshingOrderId, setRefreshingOrderId] = useState(null);
+  const [refreshingAll, setRefreshingAll] = useState(false);
+  
   // Refs
   const mapRef = useRef(null);
   const tripMapRef = useRef(null);
