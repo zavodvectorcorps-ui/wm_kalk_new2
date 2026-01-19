@@ -2281,7 +2281,9 @@ async def get_lead_data(lead_id: str, section: str = "balia"):
     Used when opening calculator from amoCRM card.
     Returns: fullName, phoneNumber, fullAddress, amocrm_id, amocrm_link
     
-    Also fetches contact data to get standard phone field.
+    Priority for name/phone:
+    1. Standard contact fields (name, PHONE) from amoCRM contact
+    2. Custom fields from field mapping
     """
     settings = get_amocrm_settings()
     
@@ -2315,23 +2317,44 @@ async def get_lead_data(lead_id: str, section: str = "balia"):
     else:
         field_mapping = all_mappings
     
-    # Extract data using mapping
+    # First try to get name and phone from standard contact fields
+    contact_name = ""
+    contact_phone = ""
+    
+    # Check if lead has embedded contacts
+    embedded = api_data.get("_embedded", {})
+    contacts = embedded.get("contacts", [])
+    
+    if contacts:
+        main_contact = contacts[0] if isinstance(contacts, list) else contacts
+        contact_name = main_contact.get("name", "")
+        contact_id = main_contact.get("id")
+        
+        # Fetch full contact data to get phone
+        if contact_id:
+            logger.info(f"Fetching contact {contact_id} for standard fields (name, phone)")
+            contact_data = await fetch_contact_from_amocrm(str(contact_id), domain, token)
+            if contact_data:
+                # Get contact name if not already set
+                if not contact_name:
+                    contact_name = contact_data.get("name", "")
+                # Get phone from standard PHONE field
+                contact_phone = extract_contact_phone(contact_data)
+                logger.info(f"Got from contact: name={contact_name}, phone={contact_phone}")
+    
+    # Extract data using mapping (for other fields and fallback)
     lead_data = extract_lead_data_from_api(api_data, field_mapping)
     
-    # If we have a contact_id but no phone, fetch contact data to get phone
-    contact_id = lead_data.get("contact_id")
-    if contact_id and not lead_data.get("phoneNumber"):
-        logger.info(f"Fetching contact {contact_id} to get phone number")
-        contact_data = await fetch_contact_from_amocrm(contact_id, domain, token)
-        if contact_data:
-            contact_phone = extract_contact_phone(contact_data)
-            if contact_phone:
-                lead_data["phoneNumber"] = contact_phone
-                logger.info(f"Got phone from contact: {contact_phone}")
-            
-            # Also get contact name if not set
-            if not lead_data.get("fullName"):
-                lead_data["fullName"] = contact_data.get("name", "")
+    # Apply priority: contact fields first, then mapped fields
+    # Name: contact > mapped > lead name
+    if contact_name:
+        lead_data["fullName"] = contact_name
+    # If still no name, extract_lead_data_from_api already tried mapping and lead name
+    
+    # Phone: contact > mapped
+    if contact_phone:
+        lead_data["phoneNumber"] = contact_phone
+    # If still no phone, extract_lead_data_from_api already tried mapping
     
     # Build full amoCRM link
     if domain:
