@@ -227,7 +227,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
       </head>
       <body>
         <h1>📋 Памятка: Работа с возражениями клиентов</h1>
-        ${objections.map(obj => `
+        ${answeredObjections.map(obj => `
           <div class="objection">
             <div class="left">
               <div class="label">❓ Возражение клиента:</div>
