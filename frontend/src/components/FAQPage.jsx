@@ -66,7 +66,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('products');
   const [showObjectionDialog, setShowObjectionDialog] = useState(false);
-  const [newObjection, setNewObjection] = useState({ question: '', context: '', category: 'general' });
+  const [newObjection, setNewObjection] = useState({ question: '', context: '', category: 'general', calculator_type: calculatorType || 'both' });
 
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
