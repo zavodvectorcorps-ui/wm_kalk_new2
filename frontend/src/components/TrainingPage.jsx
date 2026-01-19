@@ -213,12 +213,6 @@ const TrainingPage = ({ user }) => {
       console.error('Error marking helpful:', error);
     }
   };
-        setUsersStats(usersData);
-      }
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
-    }
-  }, [isAdmin]);
 
   useEffect(() => {
     const loadData = async () => {
