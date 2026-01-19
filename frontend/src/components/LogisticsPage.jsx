@@ -1419,14 +1419,17 @@ const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDelivery
                   {new Date(entry.timestamp).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'})}
                   {entry.changedBy && <span className="ml-1">({entry.changedBy})</span>}
                 </div>
-                {entry.changes?.map((change, cIdx) => (
+                {/* Handle both array and string formats for changes */}
+                {Array.isArray(entry.changes) ? entry.changes.map((change, cIdx) => (
                   <div key={cIdx} className="text-gray-700">
                     <span className="font-medium">{change.field}</span>: {' '}
                     <span className="text-red-500 line-through">{String(change.oldValue || '—').substring(0, 50)}{String(change.oldValue || '').length > 50 ? '...' : ''}</span>
                     {' → '}
                     <span className="text-green-600">{String(change.newValue || '—').substring(0, 50)}{String(change.newValue || '').length > 50 ? '...' : ''}</span>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-gray-700">{String(entry.changes || entry.action || '')}</div>
+                )}
               </div>
             ))}
           </div>
