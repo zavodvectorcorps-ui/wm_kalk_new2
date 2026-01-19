@@ -959,11 +959,13 @@ const OrderCard = ({
   order, sectionKey, currentSection, sectionData, expandedOrder, setExpandedOrder,
   editingAddressOrderId, editingAddressValue, setEditingAddressValue, editAddressInputRef,
   drivers, toggleOrderSelection, toggleOrderImportant, startEditingAddress, saveEditedAddress,
-  cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder, formatDate, DELIVERY_STATUSES, API_URL
+  cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder, formatDate, DELIVERY_STATUSES, API_URL,
+  refreshingOrderId, refreshOrderFromAmocrm
 }) => {
   const status = DELIVERY_STATUSES[order.deliveryStatus] || DELIVERY_STATUSES.pending;
   const StatusIcon = status.icon;
   const isSelected = sectionData[sectionKey].selectedOrders.includes(order.id);
+  const isRefreshing = refreshingOrderId === order.id;
   
   // Check if order has empty name
   const orderName = order.fullName || order.customerName || order.clientName || '';
