@@ -1037,6 +1037,17 @@ async def receive_webhook_section(
     
     # If order already exists - UPDATE it
     if existing_order:
+        # Skip update if order is already in a trip or delivered
+        trip_id = existing_order.get("tripId")
+        delivery_status = existing_order.get("deliveryStatus", "")
+        
+        if trip_id or delivery_status == "delivered":
+            log_entry["status"] = "skipped"
+            log_entry["reason"] = f"Order already in trip or delivered (tripId={trip_id}, status={delivery_status})"
+            webhook_logs.insert_one(log_entry)
+            logger.info(f"Skipping update for {section} order {existing_order['id']}: already in trip or delivered")
+            return {"status": "ok", "order_id": existing_order["id"], "section": section, "action": "skipped", "reason": "Order in trip or delivered"}
+        
         # Keep original id, createdAt, status, deliveryStatus, etc.
         update_fields = {
             "fullName": order_data["fullName"],
