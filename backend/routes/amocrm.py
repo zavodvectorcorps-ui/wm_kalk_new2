@@ -889,6 +889,13 @@ async def receive_webhook_section(
     lead_id = basic_lead_data.get("amocrm_id")
     
     log_entry["webhook_lead_id"] = lead_id
+    log_entry["basic_lead_data"] = {
+        "amocrm_id": basic_lead_data.get("amocrm_id"),
+        "amocrm_name": basic_lead_data.get("amocrm_name"),
+        "orderContents": basic_lead_data.get("orderContents", "")[:100] if basic_lead_data.get("orderContents") else ""
+    }
+    
+    logger.info(f"Webhook for {section}: lead_id={lead_id}, name={basic_lead_data.get('amocrm_name')}")
     
     # Get collection for this section
     collection = get_collection_for_section(section)
