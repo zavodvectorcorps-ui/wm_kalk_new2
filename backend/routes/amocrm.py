@@ -351,6 +351,7 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
     
     API response format is different from webhook format.
     Supports both field_id mapping AND auto-detection by field name keywords.
+    Also extracts contact name and phone from _embedded.contacts.
     """
     lead_data = {}
     field_mapping = field_mapping or {}
@@ -364,6 +365,26 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
     lead_data["pipeline_id"] = str(api_data.get("pipeline_id", ""))
     lead_data["status_id"] = str(api_data.get("status_id", ""))
     lead_data["price"] = api_data.get("price", 0)
+    
+    # Extract contact info from _embedded.contacts (standard amoCRM contact fields)
+    contact_name = ""
+    contact_phone = ""
+    embedded = api_data.get("_embedded", {})
+    contacts = embedded.get("contacts", [])
+    
+    if contacts:
+        # Take the first contact (main contact)
+        main_contact = contacts[0] if isinstance(contacts, list) else contacts
+        contact_name = main_contact.get("name", "")
+        
+        # Phone is in custom_fields_values of the contact
+        # But in the leads API response with ?with=contacts, we only get contact id/name
+        # We need to store contact_id to fetch full contact data later if needed
+        contact_id = main_contact.get("id")
+        if contact_id:
+            lead_data["contact_id"] = str(contact_id)
+        
+        logger.info(f"Found contact in lead: name={contact_name}, id={contact_id}")
     
     # Extract custom_fields_values from API response
     custom_fields = api_data.get("custom_fields_values", [])
@@ -416,8 +437,10 @@ def extract_lead_data_from_api(api_data: Dict[str, Any], field_mapping: Dict[str
     
     # === MAP ALL FIELDS (with auto-keywords like extract_lead_data) ===
     
-    # Имя клиента
+    # Имя клиента - first try custom field, then contact name, then lead name
     lead_data["fullName"] = get_field_value("fullName", ["имя", "name", "контакт", "фио", "клиент"])
+    if not lead_data["fullName"] and contact_name:
+        lead_data["fullName"] = contact_name
     if not lead_data["fullName"]:
         lead_data["fullName"] = lead_data.get("amocrm_name", "")
     
