@@ -2779,7 +2779,7 @@ async def refresh_single_lead(section: str, amocrm_id: str):
     change_entry = {
         "timestamp": now,
         "action": "manual_refresh_from_amocrm",
-        "changes": "Данные обновлены вручную из amoCRM"
+        "changes": [{"field": "Источник", "oldValue": "", "newValue": "Данные обновлены вручную из amoCRM"}]
     }
     
     collection.update_one(
