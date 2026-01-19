@@ -64,6 +64,7 @@ const TrainingPage = ({ user }) => {
   const [faqItems, setFaqItems] = useState([]);
   const [faqActiveCategory, setFaqActiveCategory] = useState('products');
   const [faqSearch, setFaqSearch] = useState('');
+  const [faqCalculatorType, setFaqCalculatorType] = useState('balia'); // balia or sauna
   
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
