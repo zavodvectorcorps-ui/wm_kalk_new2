@@ -86,6 +86,8 @@ async def get_delivery_status(lead_id: str):
     # Status labels
     STATUS_LABELS = {
         "pending": {"label": "Ожидает", "color": "#6b7280"},
+        "preparing": {"label": "Готовится", "color": "#eab308"},
+        "in_transit": {"label": "В пути", "color": "#3b82f6"},
         "delivering": {"label": "В пути", "color": "#3b82f6"},
         "delivered": {"label": "Доставлен", "color": "#22c55e"},
         "cancelled": {"label": "Отменён", "color": "#ef4444"}
