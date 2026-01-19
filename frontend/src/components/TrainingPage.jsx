@@ -1109,12 +1109,20 @@ const TrainingPage = ({ user }) => {
                   Готовые скрипты для работы с типичными возражениями
                 </CardDescription>
               </div>
-              {!isAdmin && (
-                <Button onClick={() => setShowObjectionDialog(true)} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Добавить возражение
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {answeredObjectionsForFaq.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={handlePrintObjections}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Печать памятки
+                  </Button>
+                )}
+                {!isAdmin && (
+                  <Button onClick={() => setShowObjectionDialog(true)} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Добавить возражение
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
