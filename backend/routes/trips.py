@@ -1554,13 +1554,40 @@ async def delete_trip(trip_id: str):
     if not existing:
         raise HTTPException(status_code=404, detail="Trip not found")
     
-    # Release orders
+    # Release orders - reset their delivery status back to pending
     collection = get_section_collection(existing.get("section", ""))
     if collection is not None:
-        collection.update_many(
-            {"tripId": trip_id},
-            {"$unset": {"tripId": "", "tripName": ""}}
-        )
+        # Get all order IDs in this trip
+        order_ids = existing.get("orderIds", [])
+        
+        # Reset trip data and delivery status (but not if already delivered or cancelled)
+        for order_id in order_ids:
+            order = collection.find_one({"id": order_id})
+            if order:
+                current_status = order.get("deliveryStatus", "pending")
+                # Only reset status if not delivered or cancelled
+                if current_status not in ["delivered", "cancelled"]:
+                    collection.update_one(
+                        {"id": order_id},
+                        {
+                            "$set": {"deliveryStatus": "pending"},
+                            "$unset": {
+                                "tripId": "", "tripName": "", "tripDriverId": "",
+                                "tripDriverName": "", "tripDepartureDate": "",
+                                "tripStatus": "", "tripOrderStatus": ""
+                            }
+                        }
+                    )
+                else:
+                    # Just remove trip data for delivered/cancelled orders
+                    collection.update_one(
+                        {"id": order_id},
+                        {"$unset": {
+                            "tripId": "", "tripName": "", "tripDriverId": "",
+                            "tripDriverName": "", "tripDepartureDate": "",
+                            "tripStatus": "", "tripOrderStatus": ""
+                        }}
+                    )
     
     trips_collection.delete_one({"id": trip_id})
     
