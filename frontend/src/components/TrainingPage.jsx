@@ -1015,13 +1015,23 @@ const TrainingPage = ({ user }) => {
         /* Objections as FAQ */
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquareQuote className="h-5 w-5 text-orange-500" />
-              Возражения клиентов и ответы на них
-            </CardTitle>
-            <CardDescription>
-              Готовые скрипты для работы с типичными возражениями
-            </CardDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquareQuote className="h-5 w-5 text-orange-500" />
+                  Возражения клиентов и ответы на них
+                </CardTitle>
+                <CardDescription>
+                  Готовые скрипты для работы с типичными возражениями
+                </CardDescription>
+              </div>
+              {!isAdmin && (
+                <Button onClick={() => setShowObjectionDialog(true)} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить возражение
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {answeredObjectionsForFaq.length > 0 ? (
