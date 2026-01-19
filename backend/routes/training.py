@@ -707,7 +707,7 @@ async def update_objection(objection_id: str, updates: dict):
         raise HTTPException(status_code=404, detail="Возражение не найдено")
     
     # Filter allowed fields
-    allowed_fields = ["question", "answer", "script", "category", "status", "isPublished", "context"]
+    allowed_fields = ["question", "answer", "script", "category", "status", "isPublished", "context", "calculator_type"]
     update_data = {k: v for k, v in updates.items() if k in allowed_fields}
     update_data["updatedAt"] = now
     
