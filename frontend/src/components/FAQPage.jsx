@@ -58,11 +58,18 @@ const CALCULATOR_LABELS = {
 
 // FAQ View Component (for managers)
 export const FAQView = ({ calculatorType = 'both' }) => {
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [objections, setObjections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('products'); // Default to products tab
+  const [activeTab, setActiveTab] = useState('products');
+  const [showObjectionDialog, setShowObjectionDialog] = useState(false);
+  const [newObjection, setNewObjection] = useState({ question: '', context: '', category: 'general' });
+
+  const isAdmin = user?.role === 'admin';
+  const userId = user?.id || user?.username;
+  const username = user?.username;
 
   useEffect(() => {
     fetchItems();
