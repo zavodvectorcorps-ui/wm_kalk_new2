@@ -139,7 +139,7 @@ const TrainingPage = ({ user }) => {
   // Fetch FAQ items
   const fetchFaqItems = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/faq?calculator_type=both`);
+      const response = await fetch(`${API_URL}/api/faq?calculator_type=${faqCalculatorType}`);
       if (response.ok) {
         const data = await response.json();
         setFaqItems(data.filter(item => item.isActive));
@@ -147,7 +147,12 @@ const TrainingPage = ({ user }) => {
     } catch (error) {
       console.error('Error fetching FAQ:', error);
     }
-  }, []);
+  }, [faqCalculatorType]);
+
+  // Refetch FAQ when calculator type changes
+  useEffect(() => {
+    fetchFaqItems();
+  }, [faqCalculatorType, fetchFaqItems]);
 
   // Submit new objection (manager)
   const handleSubmitObjection = async () => {
