@@ -1060,7 +1060,7 @@ async def receive_webhook_section(
         change_entry = {
             "timestamp": now,
             "action": "updated_from_amocrm",
-            "changes": "Данные обновлены из amoCRM"
+            "changes": [{"field": "Источник", "oldValue": "", "newValue": "Данные обновлены из amoCRM"}]
         }
         
         collection.update_one(
