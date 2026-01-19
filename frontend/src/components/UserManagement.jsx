@@ -316,6 +316,12 @@ export const UserManagement = () => {
               Driver
             </Badge>
           )}
+          {access.includes('sauna_crm') && (
+            <Badge variant="secondary" className="gap-1 bg-rose-100 text-rose-700">
+              <Flame className="w-3 h-3" />
+              {txt.accessSaunaCrm}
+            </Badge>
+          )}
         </div>
       );
     }
