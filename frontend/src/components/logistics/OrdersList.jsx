@@ -482,6 +482,7 @@ const OrdersList = ({
   editingAddressValue,
   editAddressInputRef,
   loading,
+  refreshingOrderId,
   onSelectOrder,
   onToggleExpand,
   onToggleImportant,
@@ -490,7 +491,8 @@ const OrdersList = ({
   onCancelEditAddress,
   onEditAddressChange,
   onUpdateDeliveryStatus,
-  onUpdateOrderField
+  onUpdateOrderField,
+  onRefreshFromAmocrm
 }) => {
   // Filter to show only orders without trip
   const unassignedOrders = (orders || []).filter(o => !o.tripId);
@@ -534,6 +536,7 @@ const OrdersList = ({
                 isEditingAddress={editingAddressOrderId === order.id}
                 editingAddressValue={editingAddressValue}
                 editAddressInputRef={editAddressInputRef}
+                refreshingOrderId={refreshingOrderId}
                 onSelect={onSelectOrder}
                 onToggleExpand={onToggleExpand}
                 onToggleImportant={onToggleImportant}
@@ -543,6 +546,7 @@ const OrdersList = ({
                 onEditAddressChange={onEditAddressChange}
                 onUpdateDeliveryStatus={onUpdateDeliveryStatus}
                 onUpdateOrderField={onUpdateOrderField}
+                onRefreshFromAmocrm={onRefreshFromAmocrm}
               />
             ))}
           </div>
