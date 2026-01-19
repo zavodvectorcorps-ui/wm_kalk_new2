@@ -2277,6 +2277,13 @@ export const useLogistics = () => {
     fetchAmocrmStats,
     getAmocrmComparison,
     syncMissingOrders,
+    
+    // amoCRM refresh
+    refreshingOrderId,
+    refreshingAll,
+    refreshOrderFromAmocrm,
+    refreshAllOrdersFromAmocrm,
+    
     API_URL
   };
 };
