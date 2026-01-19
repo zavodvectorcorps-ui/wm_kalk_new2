@@ -270,6 +270,69 @@ async def fetch_lead_from_amocrm(lead_id: str, domain: str, token: str) -> Optio
         return None
 
 
+async def fetch_contact_from_amocrm(contact_id: str, domain: str, token: str) -> Optional[Dict[str, Any]]:
+    """Fetch contact data from amoCRM API to get phone and other contact info.
+    
+    Contact has standard fields like phone, email in custom_fields_values.
+    """
+    if not domain or not token or not contact_id:
+        logger.warning("Missing amoCRM credentials or contact_id for API fetch")
+        return None
+    
+    url = f"https://{domain}/api/v4/contacts/{contact_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"Successfully fetched contact {contact_id} from amoCRM API")
+                return data
+            elif response.status_code == 429:
+                logger.warning(f"amoCRM API rate limit exceeded for contact {contact_id}")
+                return None
+            else:
+                logger.error(f"amoCRM contact API error {response.status_code}: {response.text}")
+                return None
+    except Exception as e:
+        logger.error(f"Failed to fetch contact from amoCRM: {e}")
+        return None
+
+
+def extract_contact_phone(contact_data: Dict[str, Any]) -> str:
+    """Extract phone number from amoCRM contact data.
+    
+    Phone is stored in custom_fields_values with field_code 'PHONE'.
+    """
+    if not contact_data:
+        return ""
+    
+    custom_fields = contact_data.get("custom_fields_values", [])
+    
+    for field in custom_fields:
+        if not isinstance(field, dict):
+            continue
+        
+        field_code = str(field.get("field_code", "")).upper()
+        
+        # Phone field has code 'PHONE'
+        if field_code == "PHONE":
+            values = field.get("values", [])
+            if values and isinstance(values, list):
+                first_val = values[0]
+                if isinstance(first_val, dict):
+                    return first_val.get("value", "")
+                else:
+                    return str(first_val)
+    
+    return ""
+
+
 async def upload_file_to_amocrm(lead_id: str, file_content: bytes, filename: str, domain: str, token: str) -> Optional[str]:
     """Upload a file to amoCRM and attach it to a lead.
     
