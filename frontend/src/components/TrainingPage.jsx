@@ -1147,6 +1147,10 @@ const TrainingPage = ({ user }) => {
               <BookOpen className="h-4 w-4 mr-2" />
               Курсы
             </TabsTrigger>
+            <TabsTrigger value="faq">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              FAQ
+            </TabsTrigger>
             <TabsTrigger value="objections">
               <MessageSquareQuote className="h-4 w-4 mr-2" />
               Возражения
@@ -1156,6 +1160,10 @@ const TrainingPage = ({ user }) => {
               Статистика
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="faq" className="mt-6">
+            {renderFAQTab()}
+          </TabsContent>
 
           <TabsContent value="objections" className="mt-6">
             {renderObjectionsTab()}
