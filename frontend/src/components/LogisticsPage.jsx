@@ -607,6 +607,8 @@ export const LogisticsPage = () => {
                     formatDate={formatDate}
                     DELIVERY_STATUSES={DELIVERY_STATUSES}
                     API_URL={API_URL}
+                    refreshingOrderId={refreshingOrderId}
+                    refreshOrderFromAmocrm={refreshOrderFromAmocrm}
                   />
 
                   {/* Map */}
