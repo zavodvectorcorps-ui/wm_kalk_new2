@@ -55,7 +55,7 @@ const TrainingPage = ({ user }) => {
   // Objections states
   const [objections, setObjections] = useState([]);
   const [showObjectionDialog, setShowObjectionDialog] = useState(false);
-  const [newObjection, setNewObjection] = useState({ question: '', context: '', category: 'general' });
+  const [newObjection, setNewObjection] = useState({ question: '', context: '', category: 'general', calculator_type: 'balia' });
   const [editingObjection, setEditingObjection] = useState(null);
   const [objectionFilter, setObjectionFilter] = useState('all'); // all, pending, answered
   const [objectionSearch, setObjectionSearch] = useState('');
