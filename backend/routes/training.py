@@ -645,6 +645,7 @@ async def create_objection(objection: ObjectionCreate, user_id: str = None, user
         "question": objection.question,
         "context": objection.context,
         "category": objection.category or "general",
+        "calculator_type": objection.calculator_type or "both",
         "submittedBy": username or user_id or "anonymous",
         "submittedById": user_id,
         "status": "pending",  # pending, answered, archived
