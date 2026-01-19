@@ -69,6 +69,7 @@ export const UserManagement = () => {
       accessSauna: 'Sauna (Сауны)',
       accessLogistics: 'Логистика',
       accessDriver: 'Кабинет водителя',
+      accessSaunaCrm: 'Производство саун',
       accessAll: 'Все разделы',
       role: 'Роль',
       admin: 'Администратор',
