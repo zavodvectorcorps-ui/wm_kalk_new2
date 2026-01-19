@@ -159,6 +159,11 @@ export const LogisticsPage = () => {
     fetchAmocrmStats,
     getAmocrmComparison,
     syncMissingOrders,
+    // amoCRM refresh
+    refreshingOrderId,
+    refreshingAll,
+    refreshOrderFromAmocrm,
+    refreshAllOrdersFromAmocrm,
     // Search
     searchQuery,
     setSearchQuery,
