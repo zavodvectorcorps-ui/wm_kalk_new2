@@ -20,6 +20,7 @@ export const OrderCard = ({
   isEditingAddress,
   editingAddressValue,
   editAddressInputRef,
+  refreshingOrderId,
   onSelect, 
   onToggleExpand,
   onToggleImportant,
