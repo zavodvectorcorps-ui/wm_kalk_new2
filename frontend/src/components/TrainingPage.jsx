@@ -19,7 +19,7 @@ import {
   Edit, ChevronRight, Award, Clock, Users, BookOpen, Video,
   FileQuestion, Save, X, ArrowLeft, BarChart3, Settings, Grip,
   ChevronDown, ChevronUp, PlayCircle, CheckCircle, XCircle, RefreshCw, FileImage,
-  MessageSquareQuote, HelpCircle, Send, ThumbsUp, Search, Filter
+  MessageSquareQuote, HelpCircle, Send, ThumbsUp, Search, Filter, Download
 } from 'lucide-react';
 
 const API_URL = (() => { 
