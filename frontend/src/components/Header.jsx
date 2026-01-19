@@ -323,16 +323,6 @@ export const Header = ({
                   <HelpCircle className="h-4 w-4" />
                   FAQ
                 </Button>
-                {/* Training in mobile menu */}
-                <Button
-                  variant={activeTab === 'training' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => handleTabChange('training')}
-                  className="w-full justify-start gap-2"
-                >
-                  <GraduationCap className="h-4 w-4" />
-                  Обучение
-                </Button>
                 {isAdminAuthenticated && (
                   <Button
                     variant={activeTab === 'faq-admin' ? 'default' : 'ghost'}
