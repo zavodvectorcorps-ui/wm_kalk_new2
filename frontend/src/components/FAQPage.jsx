@@ -436,6 +436,64 @@ export const FAQView = ({ calculatorType = 'both' }) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* New Objection Dialog */}
+      <Dialog open={showObjectionDialog} onOpenChange={setShowObjectionDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquareQuote className="h-5 w-5 text-orange-500" />
+              Новое возражение клиента
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Возражение / Вопрос клиента *</Label>
+              <Textarea
+                value={newObjection.question}
+                onChange={e => setNewObjection({ ...newObjection, question: e.target.value })}
+                placeholder="Например: 'Почему так дорого?' или 'У конкурентов дешевле'"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Контекст (необязательно)</Label>
+              <Textarea
+                value={newObjection.context}
+                onChange={e => setNewObjection({ ...newObjection, context: e.target.value })}
+                placeholder="Дополнительная информация о ситуации..."
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Категория</Label>
+              <Select 
+                value={newObjection.category} 
+                onValueChange={v => setNewObjection({ ...newObjection, category: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">Общее</SelectItem>
+                  <SelectItem value="price">Цена</SelectItem>
+                  <SelectItem value="quality">Качество</SelectItem>
+                  <SelectItem value="delivery">Доставка</SelectItem>
+                  <SelectItem value="warranty">Гарантия</SelectItem>
+                  <SelectItem value="competitors">Конкуренты</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowObjectionDialog(false)}>Отмена</Button>
+            <Button onClick={handleSubmitObjection}>
+              <Plus className="h-4 w-4 mr-2" />
+              Отправить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
