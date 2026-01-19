@@ -1525,11 +1525,14 @@ async def update_order_status_in_trip(trip_id: str, order_id: str, status: str):
     # Update the order's tripOrderStatus and deliveryStatus in its collection
     collection = get_section_collection(existing.get("section", ""))
     if collection is not None:
+        # Map tripOrderStatus to deliveryStatus
+        delivery_status = TRIP_ORDER_TO_DELIVERY.get(status, status)
+        
         collection.update_one(
             {"id": order_id},
             {"$set": {
-                "deliveryStatus": status,
-                "tripOrderStatus": status  # Also update trip-related status
+                "deliveryStatus": delivery_status,
+                "tripOrderStatus": status  # Trip-related status uses trip terminology
             }}
         )
         
