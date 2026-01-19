@@ -1046,7 +1046,7 @@ const TrainingPage = ({ user }) => {
               <div className="text-center py-8 text-muted-foreground">
                 <MessageSquareQuote className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Пока нет ответов на возражения</p>
-                <p className="text-sm mt-2">Добавьте возражение во вкладке "Возражения"</p>
+                <p className="text-sm mt-2">Добавьте возражение во вкладке «Возражения»</p>
               </div>
             )}
           </CardContent>
