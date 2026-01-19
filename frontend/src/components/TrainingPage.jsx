@@ -235,11 +235,11 @@ const TrainingPage = ({ user }) => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchCourses(), fetchProgress(), fetchStatistics(), fetchObjections()]);
+      await Promise.all([fetchCourses(), fetchProgress(), fetchStatistics(), fetchObjections(), fetchFaqItems()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchCourses, fetchProgress, fetchStatistics, fetchObjections]);
+  }, [fetchCourses, fetchProgress, fetchStatistics, fetchObjections, fetchFaqItems]);
 
   // Course progress calculation
   const getCourseProgress = (course) => {
