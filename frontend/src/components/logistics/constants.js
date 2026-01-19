@@ -47,6 +47,7 @@ export const TRIP_STATUSES = {
 // Order status within trip - synced with trip statuses
 export const ORDER_TRIP_STATUSES = {
   pending: { label: 'Ожидает', color: 'bg-gray-100 text-gray-700' },
+  preparing: { label: 'Готовится', color: 'bg-yellow-100 text-yellow-700' },
   delivering: { label: 'В пути', color: 'bg-blue-100 text-blue-700' },
   delivered: { label: 'Доставлен', color: 'bg-green-100 text-green-700' },
   cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-700' }
