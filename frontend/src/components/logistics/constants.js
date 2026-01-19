@@ -1,5 +1,5 @@
 // Logistics constants and helpers
-import { Circle, Package, Truck, CheckCircle, Waves, Flame, Warehouse } from 'lucide-react';
+import { Circle, Package, Truck, CheckCircle, XCircle, Waves, Flame, Warehouse } from 'lucide-react';
 
 // Smart API URL detection - use current origin on production
 const getApiUrl = () => {
