@@ -903,6 +903,226 @@ const TrainingPage = ({ user }) => {
     );
   }
 
+  // Objection categories
+  const OBJECTION_CATEGORIES = {
+    general: 'Общее',
+    price: 'Цена',
+    quality: 'Качество',
+    delivery: 'Доставка',
+    warranty: 'Гарантия',
+    competitors: 'Конкуренты'
+  };
+
+  // Filter objections
+  const filteredObjections = objections.filter(obj => {
+    const matchesFilter = objectionFilter === 'all' || obj.status === objectionFilter;
+    const matchesSearch = !objectionSearch || 
+      obj.question.toLowerCase().includes(objectionSearch.toLowerCase()) ||
+      (obj.answer && obj.answer.toLowerCase().includes(objectionSearch.toLowerCase()));
+    return matchesFilter && matchesSearch;
+  });
+
+  // Render objections tab
+  const renderObjectionsTab = () => (
+    <div className="space-y-6">
+      {/* Header with add button */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="flex-1 flex gap-2">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Поиск возражений..."
+              value={objectionSearch}
+              onChange={(e) => setObjectionSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={objectionFilter} onValueChange={setObjectionFilter}>
+            <SelectTrigger className="w-40">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все</SelectItem>
+              <SelectItem value="answered">С ответом</SelectItem>
+              <SelectItem value="pending">Ожидают ответа</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {!isAdmin && (
+          <Button onClick={() => setShowObjectionDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Добавить возражение
+          </Button>
+        )}
+      </div>
+
+      {/* Answered objections (FAQ style) */}
+      {filteredObjections.filter(o => o.status === 'answered').length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              Ответы на возражения клиентов
+            </CardTitle>
+            <CardDescription>
+              Готовые скрипты и ответы для работы с возражениями
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Accordion type="single" collapsible className="space-y-2">
+              {filteredObjections
+                .filter(o => o.status === 'answered')
+                .map(obj => (
+                  <AccordionItem key={obj.id} value={obj.id} className="border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline py-4">
+                      <div className="flex items-start gap-3 text-left flex-1">
+                        <MessageSquareQuote className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-medium">{obj.question}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              {OBJECTION_CATEGORIES[obj.category] || obj.category}
+                            </Badge>
+                            {obj.helpful > 0 && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <ThumbsUp className="h-3 w-3" /> {obj.helpful}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4">
+                      <div className="space-y-4 pt-2">
+                        {/* Answer */}
+                        <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4">
+                          <Label className="text-xs text-green-600 font-medium mb-2 block">💬 Ответ клиенту:</Label>
+                          <p className="text-sm whitespace-pre-wrap">{obj.answer}</p>
+                        </div>
+                        
+                        {/* Script */}
+                        {obj.script && (
+                          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4">
+                            <Label className="text-xs text-blue-600 font-medium mb-2 block">📋 Скрипт обработки:</Label>
+                            <p className="text-sm whitespace-pre-wrap">{obj.script}</p>
+                          </div>
+                        )}
+                        
+                        {/* Footer */}
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <span className="text-xs text-muted-foreground">
+                            Ответил: {obj.answeredBy} • {new Date(obj.answeredAt).toLocaleDateString()}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleMarkHelpful(obj.id); }}
+                            >
+                              <ThumbsUp className="h-4 w-4 mr-1" />
+                              Полезно
+                            </Button>
+                            {isAdmin && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => { e.stopPropagation(); setEditingObjection(obj); }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteObjection(obj.id); }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+            </Accordion>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pending objections (admin view) */}
+      {isAdmin && filteredObjections.filter(o => o.status === 'pending').length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-500" />
+              Ожидают ответа
+              <Badge variant="secondary">{filteredObjections.filter(o => o.status === 'pending').length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {filteredObjections
+              .filter(o => o.status === 'pending')
+              .map(obj => (
+                <Card key={obj.id} className="border-orange-200 dark:border-orange-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <p className="font-medium">{obj.question}</p>
+                        {obj.context && (
+                          <p className="text-sm text-muted-foreground mt-1">{obj.context}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            {OBJECTION_CATEGORIES[obj.category] || obj.category}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            От: {obj.submittedBy} • {new Date(obj.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => setEditingObjection({ ...obj, answer: '', script: '' })}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Ответить
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteObjection(obj.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty state */}
+      {filteredObjections.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <MessageSquareQuote className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>Нет возражений для отображения</p>
+          {!isAdmin && (
+            <Button className="mt-4" variant="outline" onClick={() => setShowObjectionDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить первое возражение
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   // Main view - courses list
   return (
     <div className="space-y-6">
