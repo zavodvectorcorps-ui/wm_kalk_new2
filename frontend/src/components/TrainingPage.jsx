@@ -117,6 +117,109 @@ const TrainingPage = ({ user }) => {
     }
   }, [isAdmin]);
 
+  // Fetch objections
+  const fetchObjections = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/training/objections`);
+      if (response.ok) {
+        const data = await response.json();
+        setObjections(data);
+      }
+    } catch (error) {
+      console.error('Error fetching objections:', error);
+    }
+  }, []);
+
+  // Submit new objection (manager)
+  const handleSubmitObjection = async () => {
+    if (!newObjection.question.trim()) {
+      toast.error('Введите текст возражения');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/training/objections?user_id=${userId}&username=${username}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newObjection)
+      });
+
+      if (response.ok) {
+        toast.success('Возражение отправлено! Администратор скоро ответит.');
+        setNewObjection({ question: '', context: '', category: 'general' });
+        setShowObjectionDialog(false);
+        await fetchObjections();
+      }
+    } catch (error) {
+      console.error('Error submitting objection:', error);
+      toast.error('Ошибка отправки');
+    }
+  };
+
+  // Answer objection (admin)
+  const handleAnswerObjection = async () => {
+    if (!editingObjection?.answer?.trim()) {
+      toast.error('Введите ответ');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/training/objections/${editingObjection.id}/answer?admin_username=${username}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          answer: editingObjection.answer,
+          script: editingObjection.script
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Ответ сохранён');
+        setEditingObjection(null);
+        await fetchObjections();
+      }
+    } catch (error) {
+      console.error('Error answering objection:', error);
+      toast.error('Ошибка сохранения');
+    }
+  };
+
+  // Delete objection (admin)
+  const handleDeleteObjection = async (id) => {
+    if (!confirm('Удалить это возражение?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/training/objections/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast.success('Удалено');
+        await fetchObjections();
+      }
+    } catch (error) {
+      console.error('Error deleting objection:', error);
+      toast.error('Ошибка удаления');
+    }
+  };
+
+  // Mark as helpful
+  const handleMarkHelpful = async (id) => {
+    try {
+      await fetch(`${API_URL}/api/training/objections/${id}/helpful`, { method: 'POST' });
+      toast.success('Спасибо за оценку!');
+      await fetchObjections();
+    } catch (error) {
+      console.error('Error marking helpful:', error);
+    }
+  };
+        setUsersStats(usersData);
+      }
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+    }
+  }, [isAdmin]);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
