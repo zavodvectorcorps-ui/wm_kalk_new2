@@ -1306,18 +1306,40 @@ const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDelivery
       <div className="bg-purple-50 rounded-lg p-3 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-purple-700">Данные из amoCRM</span>
-          {order.amocrm_link && (
-            <a href={order.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1">
-              <ExternalLink className="h-3 w-3" />
-              Открыть в amoCRM
-            </a>
-          )}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                refreshOrderFromAmocrm && refreshOrderFromAmocrm(order.id, order.amocrm_id);
+              }}
+              disabled={isRefreshing}
+              data-testid={`refresh-order-${order.id}`}
+            >
+              <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Обновление...' : 'Обновить'}
+            </Button>
+            {order.amocrm_link && (
+              <a href={order.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1">
+                <ExternalLink className="h-3 w-3" />
+                Открыть в amoCRM
+              </a>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
           {order.orderNumber && <div><span className="text-muted-foreground">№ заказа:</span><span className="ml-1 font-medium">{order.orderNumber}</span></div>}
           {order.budget && <div><span className="text-muted-foreground">Бюджет:</span><span className="ml-1 font-medium">{order.budget} PLN</span></div>}
         </div>
         {order.orderComment && <div className="text-xs"><span className="text-muted-foreground flex items-center gap-1"><MessageSquare className="h-3 w-3" />Комментарий из amoCRM:</span><p className="mt-1 p-2 bg-white rounded border text-xs">{order.orderComment}</p></div>}
+        {order.updatedFromAmo && (
+          <div className="flex items-center gap-2 text-xs text-purple-600">
+            <RefreshCw className="h-3 w-3" />
+            <span>Обновлено из amoCRM: {formatDate(order.updatedFromAmo)}</span>
+          </div>
+        )}
       </div>
     )}
     
