@@ -1051,8 +1051,8 @@ async def create_trip(trip_data: TripCreate):
     prefix = section_prefix.get(trip_data.section, "TRIP")
     trip_id = f"{prefix}-{int(datetime.now().timestamp())}"
     
-    # Initialize order statuses as pending
-    order_statuses = {oid: "pending" for oid in trip_data.orderIds}
+    # Initialize order statuses as preparing (orders in trip are being prepared)
+    order_statuses = {oid: "preparing" for oid in trip_data.orderIds}
     
     trip = {
         "id": trip_id,
