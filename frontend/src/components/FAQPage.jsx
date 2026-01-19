@@ -66,6 +66,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
 
   useEffect(() => {
     fetchItems();
+    fetchObjections();
   }, [calculatorType]);
 
   const fetchItems = async () => {
@@ -76,6 +77,25 @@ export const FAQView = ({ calculatorType = 'both' }) => {
       console.error('Error fetching FAQ:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchObjections = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/training/objections?status=answered`);
+      setObjections(response.data.filter(obj => obj.status === 'answered'));
+    } catch (error) {
+      console.error('Error fetching objections:', error);
+    }
+  };
+
+  const handleMarkHelpful = async (id) => {
+    try {
+      await axios.post(`${API_URL}/api/training/objections/${id}/helpful`);
+      toast.success('Спасибо за оценку!');
+      fetchObjections();
+    } catch (error) {
+      console.error('Error marking helpful:', error);
     }
   };
 
