@@ -1254,7 +1254,7 @@ async def sync_missing_orders(
                 change_entry = {
                     "timestamp": now,
                     "action": "updated_from_amocrm",
-                    "changes": "Данные обновлены из amoCRM (синхронизация)"
+                    "changes": [{"field": "Источник", "oldValue": "", "newValue": "Данные обновлены из amoCRM (синхронизация)"}]
                 }
                 
                 collection.update_one(
