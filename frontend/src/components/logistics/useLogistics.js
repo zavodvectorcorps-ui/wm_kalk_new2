@@ -740,6 +740,12 @@ export const useLogistics = () => {
       
       const result = await response.json();
       
+      // Check if update was skipped (order in trip or delivered)
+      if (result.status === 'skipped') {
+        toast.info(result.message || 'Заказ уже в рейсе или доставлен — обновление пропущено');
+        return result;
+      }
+      
       // Update order in local state
       if (result.order) {
         setSectionData(prev => ({
