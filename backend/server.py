@@ -29,6 +29,7 @@ from routes.sauna_crm import router as sauna_crm_router
 from routes.faq import router as faq_router
 from routes.pdf_templates import router as pdf_templates_router
 from routes.training import router as training_router
+from routes.content import router as content_router
 
 # Configure logging
 logging.basicConfig(
