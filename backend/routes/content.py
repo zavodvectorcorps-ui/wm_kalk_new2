@@ -467,10 +467,23 @@ async def get_public_folder_page(public_id: str, request: Request):
     description = folder.get("description", "")
     folder_id = folder.get("id")
     
-    # Get base URL from request for absolute URLs
-    scheme = request.headers.get('x-forwarded-proto', request.url.scheme)
-    host = request.headers.get('x-forwarded-host', request.url.netloc)
+    # Get base URL - prioritize the Host header which contains the actual domain
+    host_header = request.headers.get('host', '')
+    x_forwarded_host = request.headers.get('x-forwarded-host', '')
+    
+    # Use the actual host from request
+    if 'wm-kalkulator.pl' in host_header:
+        host = 'wm-kalkulator.pl'
+        scheme = 'https'
+    elif x_forwarded_host:
+        host = x_forwarded_host
+        scheme = request.headers.get('x-forwarded-proto', 'https')
+    else:
+        host = host_header or str(request.url.netloc)
+        scheme = request.headers.get('x-forwarded-proto', request.url.scheme)
+    
     base_url = f"{scheme}://{host}"
+    logger.info(f"Public page base_url: {base_url} (host_header={host_header}, x_forwarded_host={x_forwarded_host})")
     
     # Build HTML for this folder's items
     items_html = build_items_html(items, base_url)
