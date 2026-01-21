@@ -2057,15 +2057,86 @@ const TrainingPage = ({ user }) => {
                   <Video className="h-4 w-4" />
                   Видео
                 </h3>
+                
+                {/* Uploaded video */}
+                {editingLesson?.videoFileId && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Video className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-700">Видео загружено</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={handleDeleteVideo}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {editingLesson?.videoUrl && (
+                      <video 
+                        src={`${API_URL}${editingLesson.videoUrl}`}
+                        className="mt-2 w-full max-h-40 rounded"
+                        controls
+                      />
+                    )}
+                  </div>
+                )}
+                
+                {/* Upload video button */}
+                {!editingLesson?.videoFileId && (
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      ref={videoInputRef}
+                      onChange={handleVideoUpload}
+                      className="hidden"
+                      accept="video/*"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => videoInputRef.current?.click()}
+                      disabled={uploadingVideo || !editingLesson?.id || !courses.find(c => c.id === editingCourse?.id)?.lessons?.some(l => l.id === editingLesson?.id)}
+                      className="w-full"
+                    >
+                      {uploadingVideo ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {uploadingVideo ? 'Загрузка видео...' : 'Загрузить своё видео'}
+                    </Button>
+                    {!courses.find(c => c.id === editingCourse?.id)?.lessons?.some(l => l.id === editingLesson?.id) && (
+                      <p className="text-xs text-amber-600">Сначала сохраните урок</p>
+                    )}
+                    <p className="text-xs text-gray-500">MP4, WebM, MOV. Макс. 500MB</p>
+                  </div>
+                )}
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-muted-foreground">или</span>
+                  </div>
+                </div>
+                
                 <div className="space-y-2">
-                  <Label>Embed код (Synthesia)</Label>
+                  <Label>Embed код (Synthesia / YouTube)</Label>
                   <Textarea
                     value={editingLesson?.videoEmbed || ''}
                     onChange={e => setEditingLesson({ ...editingLesson, videoEmbed: e.target.value })}
                     placeholder='<iframe src="..." ...></iframe>'
                     rows={3}
                     className="font-mono text-xs"
+                    disabled={!!editingLesson?.videoFileId}
                   />
+                  {editingLesson?.videoFileId && (
+                    <p className="text-xs text-amber-600">Удалите загруженное видео, чтобы использовать embed</p>
+                  )}
                 </div>
               </div>
 
