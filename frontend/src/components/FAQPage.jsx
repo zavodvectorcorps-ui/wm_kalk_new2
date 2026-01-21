@@ -89,7 +89,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
   const [youtubeName, setYoutubeName] = useState('');
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [uploadingContent, setUploadingContent] = useState(false);
-  const contentFileInputRef = useRef(null);
+  const [uploadingFolderId, setUploadingFolderId] = useState(null);
 
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
