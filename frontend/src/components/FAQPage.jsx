@@ -47,7 +47,8 @@ const CATEGORY_LABELS = {
   products: { label: 'Товары и опции', icon: Package },
   calculator_guide: { label: 'Работа с калькулятором', icon: Book },
   amocrm_integration: { label: 'Интеграция с amoCRM', icon: Link2 },
-  objections: { label: 'Возражения клиентов', icon: MessageSquareQuote }
+  objections: { label: 'Возражения', icon: MessageSquareQuote },
+  content: { label: 'Контент', icon: Folder }
 };
 
 const OBJECTION_CATEGORIES = {
