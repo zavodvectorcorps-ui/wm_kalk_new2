@@ -473,22 +473,56 @@ async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
 
 @router.get("/files/{file_id}")
 async def get_lesson_file(file_id: str):
-    """Get/download a lesson file from GridFS or legacy storage with streaming for large files"""
+    """Get/download a lesson file from GridFS or legacy storage"""
     logger.info(f"=== get_lesson_file called with file_id: {file_id} ===")
     
-    # First try GridFS (new storage)
+    # First try GridFS by metadata.id (new storage)
+    file_doc = None
+    gridfs_id = None
+    
     try:
         cursor = fs_bucket.find({"metadata.id": file_id})
-        file_doc = await cursor.to_list(length=1)
-        logger.info(f"GridFS search result: found={len(file_doc)} documents")
+        file_docs = await cursor.to_list(length=1)
+        logger.info(f"GridFS search by metadata.id: found={len(file_docs)} documents")
+        if file_docs:
+            file_doc = file_docs[0]
     except Exception as e:
-        logger.error(f"Error searching GridFS: {e}")
-        file_doc = []
+        logger.error(f"Error searching GridFS by metadata.id: {e}")
+    
+    # If not found, try by _id directly (in case file_id is the GridFS ObjectId)
+    if not file_doc:
+        try:
+            from bson import ObjectId as BsonObjectId
+            if len(file_id) == 24:  # Valid ObjectId length
+                gridfs_id = BsonObjectId(file_id)
+                stream = await fs_bucket.open_download_stream(gridfs_id)
+                # If we get here, the file exists
+                file_content = await stream.read()
+                # Get file info
+                file_info = await db.fs.files.find_one({"_id": gridfs_id})
+                if file_info:
+                    metadata = file_info.get("metadata", {})
+                    mime_type = metadata.get("mimeType", "application/octet-stream")
+                    filename = metadata.get("name", file_info.get("filename", "file"))
+                    logger.info(f"Found file by GridFS _id: {filename}, size={len(file_content)}")
+                    
+                    headers = {
+                        "Content-Disposition": f"inline; filename=\"{filename}\"",
+                        "Accept-Ranges": "bytes",
+                        "Cache-Control": "public, max-age=3600",
+                        "Content-Length": str(len(file_content))
+                    }
+                    if mime_type == 'application/pdf':
+                        headers["Content-Type"] = "application/pdf"
+                        headers["X-Frame-Options"] = "SAMEORIGIN"
+                    
+                    return Response(content=file_content, media_type=mime_type, headers=headers)
+        except Exception as e:
+            logger.info(f"Not found by GridFS _id: {e}")
     
     if file_doc:
-        # File found in GridFS - use streaming for large files
-        logger.info(f"File found in GridFS")
-        file_doc = file_doc[0]
+        # File found in GridFS by metadata.id
+        logger.info(f"File found in GridFS by metadata.id")
         gridfs_id = file_doc["_id"]
         metadata = file_doc.get("metadata", {})
         mime_type = metadata.get("mimeType", "application/octet-stream")
@@ -508,7 +542,7 @@ async def get_lesson_file(file_id: str):
             headers["Content-Type"] = "application/pdf"
             headers["X-Frame-Options"] = "SAMEORIGIN"
         
-        # Read file content (works for all sizes)
+        # Read file content
         try:
             stream = await fs_bucket.open_download_stream(gridfs_id)
             file_content = await stream.read()
