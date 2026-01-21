@@ -320,8 +320,11 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
     )
     
     if result.matched_count == 0:
-        # Clean up stored file
-        await db.training_files.delete_one({"id": file_id})
+        # Clean up stored file from GridFS
+        try:
+            await fs_bucket.delete(gridfs_id)
+        except:
+            pass
         raise HTTPException(status_code=404, detail="Урок не найден")
     
     return file_record
@@ -344,15 +347,11 @@ async def upload_lesson_video(course_id: str, lesson_id: str, file: UploadFile =
     if len(file_content) > MAX_VIDEO_SIZE:
         raise HTTPException(status_code=400, detail=f"Видео слишком большое. Максимум {MAX_VIDEO_SIZE // (1024*1024)}MB")
     
-    # Generate file ID
+    # Store video in GridFS
     file_id = str(ObjectId())
-    
-    # Store video in MongoDB
-    video_doc = {
+    metadata = {
         "id": file_id,
         "name": file.filename or "video",
-        "data": base64.b64encode(file_content).decode('utf-8'),
-        "size": len(file_content),
         "mimeType": file.content_type,
         "fileType": "video",
         "courseId": course_id,
@@ -360,7 +359,15 @@ async def upload_lesson_video(course_id: str, lesson_id: str, file: UploadFile =
         "uploadedAt": datetime.now(timezone.utc).isoformat()
     }
     
-    await db.training_files.insert_one(video_doc)
+    try:
+        gridfs_id = await fs_bucket.upload_from_stream(
+            file.filename or "video",
+            io.BytesIO(file_content),
+            metadata=metadata
+        )
+    except Exception as e:
+        logger.error(f"Error uploading video to GridFS: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка сохранения видео: {str(e)}")
     
     # Update lesson with video URL
     video_url = f"/api/training/files/{file_id}"
@@ -371,13 +378,17 @@ async def upload_lesson_video(course_id: str, lesson_id: str, file: UploadFile =
             "$set": {
                 "lessons.$.videoUrl": video_url,
                 "lessons.$.videoFileId": file_id,
+                "lessons.$.videoGridfsId": str(gridfs_id),
                 "updatedAt": datetime.now(timezone.utc).isoformat()
             }
         }
     )
     
     if result.matched_count == 0:
-        await db.training_files.delete_one({"id": file_id})
+        try:
+            await fs_bucket.delete(gridfs_id)
+        except:
+            pass
         raise HTTPException(status_code=404, detail="Урок не найден")
     
     return {
