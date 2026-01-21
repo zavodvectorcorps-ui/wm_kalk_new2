@@ -299,7 +299,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           {Object.entries(CATEGORY_LABELS).map(([key, { label, icon: Icon }]) => (
             <TabsTrigger key={key} value={key} className="flex items-center gap-2">
               <Icon className="h-4 w-4" />
