@@ -32,6 +32,16 @@ class Question(BaseModel):
     explanation: Optional[str] = None  # Optional explanation for correct answer
 
 
+class LessonFile(BaseModel):
+    """File attached to a lesson"""
+    id: str = Field(default_factory=lambda: str(ObjectId()))
+    name: str  # Original filename
+    url: str  # Stored file path/URL
+    size: int  # File size in bytes
+    mimeType: str  # MIME type
+    uploadedAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
 class Lesson(BaseModel):
     """Lesson model"""
     id: str = Field(default_factory=lambda: str(ObjectId()))
@@ -41,6 +51,7 @@ class Lesson(BaseModel):
     videoEmbed: Optional[str] = None  # Synthesia embed code (iframe)
     videoUrl: Optional[str] = None  # Alternative: direct video URL
     content: Optional[str] = ""  # Additional text content (markdown)
+    files: List[LessonFile] = []  # Attached files (PDF, documents, etc.)
     questions: List[Question] = []
     passingScore: int = 100  # Minimum % to pass (0-100)
     order: int = 0
