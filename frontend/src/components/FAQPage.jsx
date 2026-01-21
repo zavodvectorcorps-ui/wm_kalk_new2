@@ -217,6 +217,9 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     formData.append('name', newFolderName.trim());
     formData.append('description', newFolderDescription.trim());
     formData.append('calculator_type', calculatorType === 'both' ? 'balia' : calculatorType);
+    if (newFolderParentId) {
+      formData.append('parentId', newFolderParentId);
+    }
 
     try {
       await axios.post(`${API_URL}/api/content/folders`, formData);
@@ -224,6 +227,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
       setShowFolderDialog(false);
       setNewFolderName('');
       setNewFolderDescription('');
+      setNewFolderParentId(null);
       fetchContentFolders();
     } catch (error) {
       console.error('Error creating folder:', error);
