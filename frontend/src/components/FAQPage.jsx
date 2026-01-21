@@ -1167,21 +1167,36 @@ export const FAQView = ({ calculatorType = 'both' }) => {
       </Dialog>
 
       {/* Create Folder Dialog */}
-      <Dialog open={showFolderDialog} onOpenChange={setShowFolderDialog}>
+      <Dialog open={showFolderDialog} onOpenChange={(open) => {
+        setShowFolderDialog(open);
+        if (!open) {
+          setNewFolderParentId(null);
+          setNewFolderName('');
+          setNewFolderDescription('');
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FolderPlus className="h-5 w-5 text-amber-500" />
-              Создать папку
+              {newFolderParentId ? 'Создать подпапку' : 'Создать папку'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {newFolderParentId && (
+              <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <Folder className="h-4 w-4 inline mr-1" />
+                  Подпапка в: <strong>{contentFolders.find(f => f.id === newFolderParentId)?.name}</strong>
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
-              <Label>Название папки *</Label>
+              <Label>Название {newFolderParentId ? 'подпапки' : 'папки'} *</Label>
               <Input
                 value={newFolderName}
                 onChange={e => setNewFolderName(e.target.value)}
-                placeholder="Например: Сауна 4 метра"
+                placeholder={newFolderParentId ? "Например: Внешний вид" : "Например: Сауна 4 метра"}
               />
             </div>
             <div className="space-y-2">
@@ -1195,7 +1210,10 @@ export const FAQView = ({ calculatorType = 'both' }) => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowFolderDialog(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowFolderDialog(false);
+              setNewFolderParentId(null);
+            }}>
               Отмена
             </Button>
             <Button onClick={handleCreateFolder}>
