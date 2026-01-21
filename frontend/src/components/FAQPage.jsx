@@ -312,7 +312,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
         </TabsList>
 
         {/* Regular FAQ categories */}
-        {Object.keys(CATEGORY_LABELS).filter(k => k !== 'objections').map(category => (
+        {Object.keys(CATEGORY_LABELS).filter(k => k !== 'objections' && k !== 'content').map(category => (
           <TabsContent key={category} value={category} className="mt-4">
             {filteredItems.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
