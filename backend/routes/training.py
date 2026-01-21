@@ -571,43 +571,9 @@ async def get_lesson_file(file_id: str):
     
     logger.info(f"Serving file: {filename}, mime={mime_type}, size={len(file_content)}")
     return Response(content=file_content, media_type=mime_type, headers=headers)
-    
-    # Try legacy storage (base64 in training_files collection)
-    logger.info(f"File not found in GridFS, trying legacy storage...")
-    try:
-        legacy_doc = await db.training_files.find_one({"id": file_id})
-        logger.info(f"Legacy search result: found={legacy_doc is not None}")
-    except Exception as e:
-        logger.error(f"Error searching legacy storage: {e}")
-        legacy_doc = None
-    
-    if not legacy_doc:
-        logger.error(f"File {file_id} not found in any storage")
-        raise HTTPException(status_code=404, detail="Файл не найден")
-    
-    logger.info(f"File found in legacy storage: name={legacy_doc.get('name')}, size={legacy_doc.get('size')}")
-    
-    # Decode base64 content
-    try:
-        data = legacy_doc.get("data")
-        if not data:
-            logger.error(f"Legacy file has no 'data' field")
-            raise HTTPException(status_code=500, detail="Файл поврежден - нет данных")
-        
-        file_content = base64.b64decode(data)
-        logger.info(f"Legacy file decoded successfully: {len(file_content)} bytes")
-    except Exception as e:
-        logger.error(f"Error decoding legacy file: {e}")
-        raise HTTPException(status_code=500, detail=f"Ошибка декодирования файла: {str(e)}")
-    
-    mime_type = legacy_doc.get("mimeType", "application/octet-stream")
-    filename = legacy_doc.get("name", "file")
-    
-    logger.info(f"Serving legacy file: mime={mime_type}, name={filename}, size={len(file_content)}")
-    
-    # Build headers for legacy files
-    headers = {
-        "Content-Disposition": f"inline; filename=\"{filename}\"",
+
+
+@router.delete("/courses/{course_id}/lessons/{lesson_id}/files/{file_id}")
         "Accept-Ranges": "bytes",
         "Cache-Control": "public, max-age=3600"
     }
