@@ -425,16 +425,30 @@ def build_items_html(items: list, base_url: str) -> str:
             </div>
             '''
         elif item["type"] == "video":
-            items_html += f'''
-            <div class="item video-item">
-                <video controls preload="metadata" playsinline>
-                    <source src="{item_url}" type="{item.get('mimeType', 'video/mp4')}">
-                    Ваш браузер не поддерживает видео.
-                </video>
-                <p class="item-name">{item['name']}</p>
-                <a href="{item_url}" download class="download-btn">Скачать</a>
-            </div>
-            '''
+            mime_type = item.get('mimeType', 'video/mp4')
+            # MOV/QuickTime files - show download link instead of player (browser compatibility)
+            if mime_type == 'video/quicktime' or item.get('name', '').lower().endswith('.mov'):
+                items_html += f'''
+                <div class="item video-item">
+                    <div class="mov-preview">
+                        <div class="mov-icon">🎬</div>
+                        <p class="mov-label">Видео MOV</p>
+                    </div>
+                    <p class="item-name">{item['name']}</p>
+                    <a href="{item_url}" download class="download-btn">Скачать видео</a>
+                </div>
+                '''
+            else:
+                items_html += f'''
+                <div class="item video-item">
+                    <video controls preload="metadata" playsinline>
+                        <source src="{item_url}" type="{mime_type}">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                    <p class="item-name">{item['name']}</p>
+                    <a href="{item_url}" download class="download-btn">Скачать</a>
+                </div>
+                '''
         elif item["type"] == "youtube":
             video_id = item.get("videoId", "")
             items_html += f'''
