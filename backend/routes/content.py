@@ -581,6 +581,68 @@ async def get_public_folder_page(public_id: str, request: Request):
                 padding: 60px 20px;
                 color: #666;
             }}
+            /* Subfolder tree styles */
+            .subfolder-list {{
+                list-style: none;
+                margin: 20px 0;
+                padding: 0;
+            }}
+            .subfolder-item {{
+                margin-bottom: 10px;
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                overflow: hidden;
+            }}
+            .subfolder-header {{
+                display: flex;
+                align-items: center;
+                padding: 16px 20px;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                cursor: pointer;
+                transition: background 0.3s;
+            }}
+            .subfolder-header:hover {{
+                background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            }}
+            .folder-icon {{
+                font-size: 1.5rem;
+                margin-right: 12px;
+            }}
+            .subfolder-name {{
+                flex: 1;
+                font-size: 1.2rem;
+                font-weight: 600;
+                color: #1a1a2e;
+            }}
+            .toggle-icon {{
+                font-size: 0.9rem;
+                color: #666;
+                transition: transform 0.3s;
+            }}
+            .subfolder-header.collapsed .toggle-icon {{
+                transform: rotate(-90deg);
+            }}
+            .subfolder-content {{
+                padding: 20px;
+                background: white;
+                display: block;
+            }}
+            .subfolder-content.hidden {{
+                display: none;
+            }}
+            .subfolder-description {{
+                color: #666;
+                margin-bottom: 15px;
+                font-size: 0.95rem;
+            }}
+            .subfolder-content .items-grid {{
+                margin-bottom: 15px;
+            }}
+            .subfolder-content .subfolder-list {{
+                margin-left: 10px;
+                border-left: 3px solid #667eea;
+                padding-left: 15px;
+            }}
             .logo {{
                 text-align: center;
                 margin-top: 30px;
@@ -600,15 +662,32 @@ async def get_public_folder_page(public_id: str, request: Request):
                 .items-grid {{
                     grid-template-columns: 1fr;
                 }}
+                .subfolder-header {{
+                    padding: 12px 15px;
+                }}
+                .subfolder-name {{
+                    font-size: 1rem;
+                }}
             }}
         </style>
+        <script>
+            function toggleSubfolder(header) {{
+                header.classList.toggle('collapsed');
+                const content = header.nextElementSibling;
+                content.classList.toggle('hidden');
+            }}
+        </script>
     </head>
     <body>
         <div class="container">
             <h1>{folder_name}</h1>
             {f'<p class="description">{description}</p>' if description else ''}
             
-            {'<div class="items-grid">' + items_html + '</div>' if items else '<div class="empty"><p>В этой папке пока нет материалов</p></div>'}
+            {'<div class="items-grid">' + items_html + '</div>' if items_html else ''}
+            
+            {subfolders_html}
+            
+            {f'<div class="empty"><p>В этой папке пока нет материалов</p></div>' if not items_html and not subfolders_html else ''}
             
             <div class="logo">
                 WM Kalkulator
