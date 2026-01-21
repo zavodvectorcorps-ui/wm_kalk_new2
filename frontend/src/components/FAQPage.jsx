@@ -1032,6 +1032,152 @@ export const FAQView = ({ calculatorType = 'both' }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Folder Dialog */}
+      <Dialog open={showFolderDialog} onOpenChange={setShowFolderDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderPlus className="h-5 w-5 text-amber-500" />
+              Создать папку
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Название папки *</Label>
+              <Input
+                value={newFolderName}
+                onChange={e => setNewFolderName(e.target.value)}
+                placeholder="Например: Сауна 4 метра"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Описание (необязательно)</Label>
+              <Textarea
+                value={newFolderDescription}
+                onChange={e => setNewFolderDescription(e.target.value)}
+                placeholder="Краткое описание содержимого"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFolderDialog(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleCreateFolder}>
+              <Plus className="h-4 w-4 mr-2" />
+              Создать
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Folder Dialog */}
+      <Dialog open={!!editingFolder} onOpenChange={() => setEditingFolder(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-500" />
+              Редактировать папку
+            </DialogTitle>
+          </DialogHeader>
+          {editingFolder && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Название папки *</Label>
+                <Input
+                  value={editingFolder.name}
+                  onChange={e => setEditingFolder({ ...editingFolder, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Описание</Label>
+                <Textarea
+                  value={editingFolder.description || ''}
+                  onChange={e => setEditingFolder({ ...editingFolder, description: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <Label>Публичный доступ</Label>
+                  <p className="text-xs text-muted-foreground">Разрешить просмотр по ссылке</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={editingFolder.isPublic}
+                  onChange={e => setEditingFolder({ ...editingFolder, isPublic: e.target.checked })}
+                  className="h-4 w-4"
+                />
+              </div>
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <Label className="text-xs text-blue-600">Публичная ссылка:</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="text-xs bg-white px-2 py-1 rounded flex-1 overflow-hidden text-ellipsis">
+                    {window.location.origin}/api/content/public/{editingFolder.publicId}
+                  </code>
+                  <Button size="sm" variant="ghost" onClick={() => copyPublicLink(editingFolder)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingFolder(null)}>
+              Отмена
+            </Button>
+            <Button onClick={handleUpdateFolder}>
+              <Save className="h-4 w-4 mr-2" />
+              Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* YouTube Dialog */}
+      <Dialog open={showYoutubeDialog} onOpenChange={setShowYoutubeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Youtube className="h-5 w-5 text-red-500" />
+              Добавить YouTube видео
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Ссылка на YouTube *</Label>
+              <Input
+                value={youtubeUrl}
+                onChange={e => setYoutubeUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Название (необязательно)</Label>
+              <Input
+                value={youtubeName}
+                onChange={e => setYoutubeName(e.target.value)}
+                placeholder="Название видео"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowYoutubeDialog(false);
+              setYoutubeUrl('');
+              setYoutubeName('');
+            }}>
+              Отмена
+            </Button>
+            <Button onClick={handleAddYoutubeLink}>
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
