@@ -546,8 +546,16 @@ async def get_lesson_file(file_id: str):
     
     # If found in GridFS, use streaming response
     if gridfs_id:
+        # RFC 5987 encoding for non-ASCII filenames
+        from urllib.parse import quote
+        ascii_filename = filename.encode('ascii', 'ignore').decode('ascii') or 'file'
+        encoded_filename = quote(filename)
+        
+        # Use both filename (ASCII fallback) and filename* (UTF-8) for compatibility
+        content_disposition = f"inline; filename=\"{ascii_filename}\"; filename*=UTF-8''{encoded_filename}"
+        
         headers = {
-            "Content-Disposition": f"inline; filename=\"{filename}\"",
+            "Content-Disposition": content_disposition,
             "Accept-Ranges": "bytes",
             "Cache-Control": "public, max-age=3600",
         }
