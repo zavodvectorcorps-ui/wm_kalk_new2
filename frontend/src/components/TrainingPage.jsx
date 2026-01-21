@@ -1918,6 +1918,81 @@ const TrainingPage = ({ user }) => {
                 </div>
               </div>
 
+              {/* Files */}
+              <div className="space-y-4">
+                <h3 className="font-medium flex items-center gap-2">
+                  <Paperclip className="h-4 w-4" />
+                  Файлы ({editingLesson?.files?.length || 0})
+                </h3>
+                
+                {/* File list */}
+                {editingLesson?.files?.length > 0 && (
+                  <div className="space-y-2">
+                    {editingLesson.files.map((file) => {
+                      const FileIcon = getFileIcon(file.mimeType);
+                      return (
+                        <div key={file.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <FileIcon className="h-4 w-4 text-gray-500" />
+                            <div>
+                              <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
+                              <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(`${API_URL}${file.url}`, '_blank')}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => handleDeleteFile(file.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {/* Upload button */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFile || !editingLesson?.id || !courses.find(c => c.id === editingCourse?.id)?.lessons?.some(l => l.id === editingLesson?.id)}
+                  >
+                    {uploadingFile ? (
+                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-1" />
+                    )}
+                    {uploadingFile ? 'Загрузка...' : 'Загрузить файл'}
+                  </Button>
+                  {!courses.find(c => c.id === editingCourse?.id)?.lessons?.some(l => l.id === editingLesson?.id) && (
+                    <p className="text-xs text-amber-600">Сначала сохраните урок</p>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">
+                  PDF, Word, Excel, PowerPoint, изображения. Макс. 50MB
+                </p>
+              </div>
+
               {/* Test settings */}
               <div className="space-y-4">
                 <h3 className="font-medium flex items-center gap-2">
