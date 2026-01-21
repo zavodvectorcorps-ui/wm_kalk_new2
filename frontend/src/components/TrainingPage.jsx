@@ -668,6 +668,91 @@ const TrainingPage = ({ user }) => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  // Upload video to lesson
+  const videoInputRef = useRef(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingCourse || !editingLesson?.id) return;
+    
+    // Check if lesson exists in course (was saved)
+    const courseExists = courses.find(c => 
+      c.id === editingCourse.id && c.lessons?.some(l => l.id === editingLesson.id)
+    );
+    
+    if (!courseExists) {
+      toast.error('Сначала сохраните урок');
+      return;
+    }
+    
+    if (!file.type.startsWith('video/')) {
+      toast.error('Файл должен быть видео');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    setUploadingVideo(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/training/courses/${editingCourse.id}/lessons/${editingLesson.id}/video`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      );
+      
+      if (response.ok) {
+        const result = await response.json();
+        setEditingLesson({
+          ...editingLesson,
+          videoUrl: result.url,
+          videoFileId: result.id,
+          videoEmbed: '' // Clear embed if uploading own video
+        });
+        toast.success('Видео загружено');
+        await fetchCourses();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Ошибка загрузки видео');
+      }
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      toast.error('Ошибка загрузки видео');
+    } finally {
+      setUploadingVideo(false);
+      if (videoInputRef.current) {
+        videoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDeleteVideo = async () => {
+    if (!editingCourse || !editingLesson?.id || !editingLesson?.videoFileId) return;
+    
+    try {
+      const response = await fetch(
+        `${API_URL}/api/training/courses/${editingCourse.id}/lessons/${editingLesson.id}/video`,
+        { method: 'DELETE' }
+      );
+      
+      if (response.ok) {
+        setEditingLesson({
+          ...editingLesson,
+          videoUrl: '',
+          videoFileId: null
+        });
+        toast.success('Видео удалено');
+        await fetchCourses();
+      }
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      toast.error('Ошибка удаления видео');
+    }
+  };
+
   // Add question to lesson
   const addQuestion = () => {
     if (!editingLesson) return;
