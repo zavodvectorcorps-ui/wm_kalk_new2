@@ -413,17 +413,20 @@ async def delete_lesson_video(course_id: str, lesson_id: str):
     if not lesson:
         raise HTTPException(status_code=404, detail="Урок не найден")
     
-    video_file_id = lesson.get("videoFileId")
+    video_gridfs_id = lesson.get("videoGridfsId")
     
-    # Delete video file from storage
-    if video_file_id:
-        await db.training_files.delete_one({"id": video_file_id})
+    # Delete video file from GridFS
+    if video_gridfs_id:
+        try:
+            await fs_bucket.delete(ObjectId(video_gridfs_id))
+        except Exception as e:
+            logger.error(f"Error deleting video from GridFS: {e}")
     
     # Remove video from lesson
     await db.training_courses.update_one(
         {"id": course_id, "lessons.id": lesson_id},
         {
-            "$unset": {"lessons.$.videoUrl": "", "lessons.$.videoFileId": ""},
+            "$unset": {"lessons.$.videoUrl": "", "lessons.$.videoFileId": "", "lessons.$.videoGridfsId": ""},
             "$set": {"updatedAt": datetime.now(timezone.utc).isoformat()}
         }
     )
@@ -448,8 +451,13 @@ async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
     if not file_record:
         raise HTTPException(status_code=404, detail="Файл не найден")
     
-    # Delete file from MongoDB storage
-    await db.training_files.delete_one({"id": file_id})
+    # Delete file from GridFS
+    gridfs_id = file_record.get("gridfs_id")
+    if gridfs_id:
+        try:
+            await fs_bucket.delete(ObjectId(gridfs_id))
+        except Exception as e:
+            logger.error(f"Error deleting file from GridFS: {e}")
     
     # Remove from lesson's files array
     result = await db.training_courses.update_one(
@@ -465,17 +473,27 @@ async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
 
 @router.get("/files/{file_id}")
 async def get_lesson_file(file_id: str):
-    """Get/download a lesson file from MongoDB"""
-    # Find file in MongoDB
-    file_doc = await db.training_files.find_one({"id": file_id})
+    """Get/download a lesson file from GridFS"""
+    # Find file metadata in GridFS
+    cursor = fs_bucket.find({"metadata.id": file_id})
+    file_doc = await cursor.to_list(length=1)
     
     if not file_doc:
         raise HTTPException(status_code=404, detail="Файл не найден")
     
-    # Decode file content
-    file_content = base64.b64decode(file_doc["data"])
-    mime_type = file_doc.get("mimeType", "application/octet-stream")
-    filename = file_doc.get("name", "file")
+    file_doc = file_doc[0]
+    gridfs_id = file_doc["_id"]
+    metadata = file_doc.get("metadata", {})
+    mime_type = metadata.get("mimeType", "application/octet-stream")
+    filename = metadata.get("name", "file")
+    
+    # Download file from GridFS
+    try:
+        stream = await fs_bucket.open_download_stream(gridfs_id)
+        file_content = await stream.read()
+    except Exception as e:
+        logger.error(f"Error reading file from GridFS: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка чтения файла")
     
     # For PDFs, images, and videos - serve inline
     if mime_type.startswith('image/') or mime_type == 'application/pdf' or mime_type.startswith('video/'):
@@ -483,7 +501,7 @@ async def get_lesson_file(file_id: str):
             content=file_content,
             media_type=mime_type,
             headers={
-                "Content-Disposition": f"inline; filename={filename}",
+                "Content-Disposition": f"inline; filename=\"{filename}\"",
                 "Accept-Ranges": "bytes"
             }
         )
