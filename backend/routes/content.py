@@ -388,12 +388,12 @@ async def get_subfolders_recursive(folder_id: str, base_url: str):
         
         html += f'''
         <li class="subfolder-item">
-            <div class="subfolder-header" onclick="toggleSubfolder(this)">
+            <div class="subfolder-header collapsed" onclick="toggleSubfolder(this)">
                 <span class="folder-icon">📁</span>
                 <span class="subfolder-name">{subfolder["name"]}</span>
                 <span class="toggle-icon">▼</span>
             </div>
-            <div class="subfolder-content">
+            <div class="subfolder-content hidden">
                 {f'<p class="subfolder-description">{subfolder.get("description", "")}</p>' if subfolder.get("description") else ''}
                 {f'<div class="items-grid">{subfolder_items_html}</div>' if subfolder_items_html else ''}
                 {nested_subfolders}
