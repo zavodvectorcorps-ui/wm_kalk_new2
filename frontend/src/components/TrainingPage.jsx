@@ -579,6 +579,95 @@ const TrainingPage = ({ user }) => {
     }
   };
 
+  // Upload file to lesson
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingCourse || !editingLesson?.id) return;
+    
+    // Check if lesson exists in course (was saved)
+    const courseExists = courses.find(c => 
+      c.id === editingCourse.id && c.lessons?.some(l => l.id === editingLesson.id)
+    );
+    
+    if (!courseExists) {
+      toast.error('Сначала сохраните урок');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    setUploadingFile(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/api/training/courses/${editingCourse.id}/lessons/${editingLesson.id}/files`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      );
+      
+      if (response.ok) {
+        const fileRecord = await response.json();
+        setEditingLesson({
+          ...editingLesson,
+          files: [...(editingLesson.files || []), fileRecord]
+        });
+        toast.success('Файл загружен');
+        await fetchCourses();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Ошибка загрузки файла');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Ошибка загрузки файла');
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Delete file from lesson
+  const handleDeleteFile = async (fileId) => {
+    if (!editingCourse || !editingLesson?.id) return;
+    
+    try {
+      const response = await fetch(
+        `${API_URL}/api/training/courses/${editingCourse.id}/lessons/${editingLesson.id}/files/${fileId}`,
+        { method: 'DELETE' }
+      );
+      
+      if (response.ok) {
+        setEditingLesson({
+          ...editingLesson,
+          files: (editingLesson.files || []).filter(f => f.id !== fileId)
+        });
+        toast.success('Файл удалён');
+        await fetchCourses();
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error('Ошибка удаления файла');
+    }
+  };
+
+  // Get file icon based on mime type
+  const getFileIcon = (mimeType) => {
+    if (mimeType?.startsWith('image/')) return Image;
+    if (mimeType?.includes('pdf')) return FileText;
+    return File;
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   // Add question to lesson
   const addQuestion = () => {
     if (!editingLesson) return;
