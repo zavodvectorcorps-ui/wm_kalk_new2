@@ -572,6 +572,24 @@ async def get_public_folder_page(public_id: str, request: Request):
                 object-fit: cover;
                 background: #000;
             }}
+            .mov-preview {{
+                width: 100%;
+                height: 250px;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: white;
+            }}
+            .mov-icon {{
+                font-size: 4rem;
+                margin-bottom: 10px;
+            }}
+            .mov-label {{
+                font-size: 1.2rem;
+                opacity: 0.9;
+            }}
             .youtube-container {{
                 position: relative;
                 width: 100%;
