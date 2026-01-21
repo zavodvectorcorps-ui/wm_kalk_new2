@@ -574,18 +574,40 @@ async def get_lesson_file(file_id: str):
 
 
 @router.delete("/courses/{course_id}/lessons/{lesson_id}/files/{file_id}")
-        "Accept-Ranges": "bytes",
-        "Cache-Control": "public, max-age=3600"
-    }
-    if mime_type == 'application/pdf':
-        headers["Content-Type"] = "application/pdf"
-        headers["X-Frame-Options"] = "SAMEORIGIN"
+async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
+    """Delete a file from a lesson"""
+    # Find the course and lesson
+    course = await db.training_courses.find_one({"id": course_id, "lessons.id": lesson_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Курс или урок не найден")
     
-    return Response(
-        content=file_content,
-        media_type=mime_type,
-        headers=headers
+    # Find the lesson and file
+    lesson = next((l for l in course.get("lessons", []) if l["id"] == lesson_id), None)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Урок не найден")
+    
+    file_record = next((f for f in lesson.get("files", []) if f["id"] == file_id), None)
+    if not file_record:
+        raise HTTPException(status_code=404, detail="Файл не найден")
+    
+    # Delete from GridFS
+    gridfs_id = file_record.get("gridfs_id")
+    if gridfs_id:
+        try:
+            await fs_bucket.delete(ObjectId(gridfs_id))
+        except Exception as e:
+            logger.error(f"Error deleting file from GridFS: {e}")
+    
+    # Remove from lesson
+    await db.training_courses.update_one(
+        {"id": course_id, "lessons.id": lesson_id},
+        {
+            "$pull": {"lessons.$.files": {"id": file_id}},
+            "$set": {"updatedAt": datetime.now(timezone.utc).isoformat()}
+        }
     )
+    
+    return {"message": "Файл удален"}
 
 
 @router.put("/courses/{course_id}/lessons/reorder")
