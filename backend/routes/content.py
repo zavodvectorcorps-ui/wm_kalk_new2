@@ -73,14 +73,26 @@ async def get_folders(calculator_type: Optional[str] = None):
 
 
 @router.post("/folders")
-async def create_folder(name: str = Form(...), description: str = Form(""), calculator_type: str = Form(...)):
-    """Create a new content folder"""
+async def create_folder(
+    name: str = Form(...), 
+    description: str = Form(""), 
+    calculator_type: str = Form(...),
+    parentId: Optional[str] = Form(None)
+):
+    """Create a new content folder (can be nested under parent)"""
     if calculator_type not in ["balia", "sauna"]:
         raise HTTPException(status_code=400, detail="calculator_type must be 'balia' or 'sauna'")
     
-    # Get max order
+    # If parentId is provided, verify parent exists
+    if parentId:
+        parent = await db.content_folders.find_one({"id": parentId})
+        if not parent:
+            raise HTTPException(status_code=404, detail="Родительская папка не найдена")
+    
+    # Get max order for this level (same parent)
+    query = {"calculator_type": calculator_type, "parentId": parentId}
     max_order_doc = await db.content_folders.find_one(
-        {"calculator_type": calculator_type},
+        query,
         sort=[("order", -1)]
     )
     max_order = max_order_doc["order"] + 1 if max_order_doc else 0
@@ -89,6 +101,7 @@ async def create_folder(name: str = Form(...), description: str = Form(""), calc
         name=name,
         description=description,
         calculator_type=calculator_type,
+        parentId=parentId,
         order=max_order
     )
     
