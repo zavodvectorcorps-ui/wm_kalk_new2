@@ -371,31 +371,45 @@ async def get_content_file(file_id: str):
 
 # ==================== Public Page ====================
 
-@router.get("/public/{public_id}", response_class=HTMLResponse)
-async def get_public_folder_page(public_id: str, request: Request):
-    """Generate a public HTML page for a folder"""
-    folder = await db.content_folders.find_one({"publicId": public_id})
+async def get_subfolders_recursive(folder_id: str, base_url: str):
+    """Recursively get all subfolders and build HTML"""
+    subfolders = await db.content_folders.find(
+        {"parentId": folder_id, "isPublic": True}, 
+        {"_id": 0}
+    ).sort("order", 1).to_list(100)
     
-    if not folder:
-        raise HTTPException(status_code=404, detail="Страница не найдена")
+    if not subfolders:
+        return ""
     
-    if not folder.get("isPublic", True):
-        raise HTTPException(status_code=403, detail="Доступ к странице закрыт")
+    html = '<ul class="subfolder-list">'
+    for subfolder in subfolders:
+        subfolder_items_html = build_items_html(subfolder.get("items", []), base_url)
+        nested_subfolders = await get_subfolders_recursive(subfolder["id"], base_url)
+        
+        html += f'''
+        <li class="subfolder-item">
+            <div class="subfolder-header" onclick="toggleSubfolder(this)">
+                <span class="folder-icon">📁</span>
+                <span class="subfolder-name">{subfolder["name"]}</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="subfolder-content">
+                {f'<p class="subfolder-description">{subfolder.get("description", "")}</p>' if subfolder.get("description") else ''}
+                {f'<div class="items-grid">{subfolder_items_html}</div>' if subfolder_items_html else ''}
+                {nested_subfolders}
+            </div>
+        </li>
+        '''
+    html += '</ul>'
+    return html
+
+def build_items_html(items: list, base_url: str) -> str:
+    """Build HTML for content items"""
+    if not items:
+        return ""
     
-    items = folder.get("items", [])
-    folder_name = folder.get("name", "Контент")
-    description = folder.get("description", "")
-    
-    # Get base URL from request for absolute URLs
-    # Handle X-Forwarded-Proto header for HTTPS behind proxy
-    scheme = request.headers.get('x-forwarded-proto', request.url.scheme)
-    host = request.headers.get('x-forwarded-host', request.url.netloc)
-    base_url = f"{scheme}://{host}"
-    
-    # Build HTML
     items_html = ""
     for item in items:
-        # Convert relative URL to absolute URL
         item_url = item.get('url', '')
         if item_url.startswith('/'):
             item_url = f"{base_url}{item_url}"
@@ -435,6 +449,34 @@ async def get_public_folder_page(public_id: str, request: Request):
                 <p class="item-name">{item['name']}</p>
             </div>
             '''
+    return items_html
+
+@router.get("/public/{public_id}", response_class=HTMLResponse)
+async def get_public_folder_page(public_id: str, request: Request):
+    """Generate a public HTML page for a folder with nested subfolders"""
+    folder = await db.content_folders.find_one({"publicId": public_id})
+    
+    if not folder:
+        raise HTTPException(status_code=404, detail="Страница не найдена")
+    
+    if not folder.get("isPublic", True):
+        raise HTTPException(status_code=403, detail="Доступ к странице закрыт")
+    
+    items = folder.get("items", [])
+    folder_name = folder.get("name", "Контент")
+    description = folder.get("description", "")
+    folder_id = folder.get("id")
+    
+    # Get base URL from request for absolute URLs
+    scheme = request.headers.get('x-forwarded-proto', request.url.scheme)
+    host = request.headers.get('x-forwarded-host', request.url.netloc)
+    base_url = f"{scheme}://{host}"
+    
+    # Build HTML for this folder's items
+    items_html = build_items_html(items, base_url)
+    
+    # Get subfolders recursively
+    subfolders_html = await get_subfolders_recursive(folder_id, base_url)
     
     html = f'''
     <!DOCTYPE html>
