@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
@@ -28,7 +28,15 @@ import {
   Search,
   MessageSquareQuote,
   ThumbsUp,
-  Clock
+  Clock,
+  Folder,
+  FolderPlus,
+  Upload,
+  Youtube,
+  Copy,
+  ExternalLink,
+  RefreshCw,
+  Eye
 } from 'lucide-react';
 import axios from 'axios';
 
