@@ -704,23 +704,23 @@ const TrainingPage = ({ user }) => {
         }
       );
       
+      const data = await response.json();
+      
       if (response.ok) {
-        const result = await response.json();
         setEditingLesson({
           ...editingLesson,
-          videoUrl: result.url,
-          videoFileId: result.id,
+          videoUrl: data.url,
+          videoFileId: data.id,
           videoEmbed: '' // Clear embed if uploading own video
         });
         toast.success('Видео загружено');
         await fetchCourses();
       } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Ошибка загрузки видео');
+        toast.error(data.detail || 'Ошибка загрузки видео');
       }
     } catch (error) {
       console.error('Error uploading video:', error);
-      toast.error('Ошибка загрузки видео');
+      toast.error('Ошибка загрузки видео: ' + error.message);
     } finally {
       setUploadingVideo(false);
       if (videoInputRef.current) {
