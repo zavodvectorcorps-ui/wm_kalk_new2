@@ -52,6 +52,8 @@ const TrainingPage = ({ user }) => {
   const [showLessonDialog, setShowLessonDialog] = useState(false);
   const [statistics, setStatistics] = useState(null);
   const [usersStats, setUsersStats] = useState([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef(null);
   
   // Objections states
   const [objections, setObjections] = useState([]);
