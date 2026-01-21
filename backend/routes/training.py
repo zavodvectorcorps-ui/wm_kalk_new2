@@ -473,27 +473,42 @@ async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
 
 @router.get("/files/{file_id}")
 async def get_lesson_file(file_id: str):
-    """Get/download a lesson file from GridFS"""
-    # Find file metadata in GridFS
+    """Get/download a lesson file from GridFS or legacy storage"""
+    
+    # First try GridFS (new storage)
     cursor = fs_bucket.find({"metadata.id": file_id})
     file_doc = await cursor.to_list(length=1)
     
-    if not file_doc:
-        raise HTTPException(status_code=404, detail="Файл не найден")
-    
-    file_doc = file_doc[0]
-    gridfs_id = file_doc["_id"]
-    metadata = file_doc.get("metadata", {})
-    mime_type = metadata.get("mimeType", "application/octet-stream")
-    filename = metadata.get("name", "file")
-    
-    # Download file from GridFS
-    try:
-        stream = await fs_bucket.open_download_stream(gridfs_id)
-        file_content = await stream.read()
-    except Exception as e:
-        logger.error(f"Error reading file from GridFS: {e}")
-        raise HTTPException(status_code=500, detail="Ошибка чтения файла")
+    if file_doc:
+        # File found in GridFS
+        file_doc = file_doc[0]
+        gridfs_id = file_doc["_id"]
+        metadata = file_doc.get("metadata", {})
+        mime_type = metadata.get("mimeType", "application/octet-stream")
+        filename = metadata.get("name", "file")
+        
+        try:
+            stream = await fs_bucket.open_download_stream(gridfs_id)
+            file_content = await stream.read()
+        except Exception as e:
+            logger.error(f"Error reading file from GridFS: {e}")
+            raise HTTPException(status_code=500, detail="Ошибка чтения файла")
+    else:
+        # Try legacy storage (base64 in training_files collection)
+        legacy_doc = await db.training_files.find_one({"id": file_id})
+        
+        if not legacy_doc:
+            raise HTTPException(status_code=404, detail="Файл не найден")
+        
+        # Decode base64 content
+        try:
+            file_content = base64.b64decode(legacy_doc["data"])
+        except Exception as e:
+            logger.error(f"Error decoding legacy file: {e}")
+            raise HTTPException(status_code=500, detail="Ошибка чтения файла")
+        
+        mime_type = legacy_doc.get("mimeType", "application/octet-stream")
+        filename = legacy_doc.get("name", "file")
     
     # For PDFs, images, and videos - serve inline
     if mime_type.startswith('image/') or mime_type == 'application/pdf' or mime_type.startswith('video/'):
