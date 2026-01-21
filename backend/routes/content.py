@@ -319,7 +319,7 @@ async def get_content_file(file_id: str):
 # ==================== Public Page ====================
 
 @router.get("/public/{public_id}", response_class=HTMLResponse)
-async def get_public_folder_page(public_id: str):
+async def get_public_folder_page(public_id: str, request: Request):
     """Generate a public HTML page for a folder"""
     folder = await db.content_folders.find_one({"publicId": public_id})
     
@@ -333,27 +333,36 @@ async def get_public_folder_page(public_id: str):
     folder_name = folder.get("name", "Контент")
     description = folder.get("description", "")
     
+    # Get base URL from request for absolute URLs
+    base_url = str(request.base_url).rstrip('/')
+    
     # Build HTML
     items_html = ""
     for item in items:
+        # Convert relative URL to absolute URL
+        item_url = item.get('url', '')
+        if item_url.startswith('/'):
+            item_url = f"{base_url}{item_url}"
+        
         if item["type"] == "image":
             items_html += f'''
             <div class="item image-item">
-                <a href="{item['url']}" target="_blank" download>
-                    <img src="{item['url']}" alt="{item['name']}" loading="lazy">
+                <a href="{item_url}" target="_blank" download>
+                    <img src="{item_url}" alt="{item['name']}" loading="lazy">
                 </a>
                 <p class="item-name">{item['name']}</p>
-                <a href="{item['url']}" download class="download-btn">Скачать</a>
+                <a href="{item_url}" download class="download-btn">Скачать</a>
             </div>
             '''
         elif item["type"] == "video":
             items_html += f'''
             <div class="item video-item">
-                <video controls preload="metadata">
-                    <source src="{item['url']}" type="{item.get('mimeType', 'video/mp4')}">
+                <video controls preload="metadata" playsinline>
+                    <source src="{item_url}" type="{item.get('mimeType', 'video/mp4')}">
+                    Ваш браузер не поддерживает видео.
                 </video>
                 <p class="item-name">{item['name']}</p>
-                <a href="{item['url']}" download class="download-btn">Скачать</a>
+                <a href="{item_url}" download class="download-btn">Скачать</a>
             </div>
             '''
         elif item["type"] == "youtube":
