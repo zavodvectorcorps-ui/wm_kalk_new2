@@ -508,36 +508,20 @@ async def get_lesson_file(file_id: str):
             headers["Content-Type"] = "application/pdf"
             headers["X-Frame-Options"] = "SAMEORIGIN"
         
-        # Use streaming response for files > 1MB
-        if file_size > 1024 * 1024:
-            logger.info(f"Using streaming response for large file ({file_size} bytes)")
-            
-            async def stream_file():
-                try:
-                    stream = await fs_bucket.open_download_stream(gridfs_id)
-                    while True:
-                        chunk = await stream.read(256 * 1024)  # 256KB chunks
-                        if not chunk:
-                            break
-                        yield chunk
-                except Exception as e:
-                    logger.error(f"Error streaming file: {e}")
-                    raise
-            
-            return StreamingResponse(
-                stream_file(),
-                media_type=mime_type,
-                headers=headers
-            )
-        else:
-            # Small files - read entirely
-            try:
-                stream = await fs_bucket.open_download_stream(gridfs_id)
-                file_content = await stream.read()
-                logger.info(f"GridFS file read successfully: {len(file_content)} bytes")
-            except Exception as e:
-                logger.error(f"Error reading file from GridFS: {e}")
-                raise HTTPException(status_code=500, detail=f"Ошибка чтения файла из GridFS: {str(e)}")
+        # Read file content (works for all sizes)
+        try:
+            stream = await fs_bucket.open_download_stream(gridfs_id)
+            file_content = await stream.read()
+            logger.info(f"GridFS file read successfully: {len(file_content)} bytes")
+        except Exception as e:
+            logger.error(f"Error reading file from GridFS: {e}")
+            raise HTTPException(status_code=500, detail=f"Ошибка чтения файла из GridFS: {str(e)}")
+        
+        return Response(
+            content=file_content,
+            media_type=mime_type,
+            headers=headers
+        )
             
             return Response(
                 content=file_content,
