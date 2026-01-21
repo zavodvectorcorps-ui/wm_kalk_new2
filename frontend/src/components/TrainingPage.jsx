@@ -853,14 +853,15 @@ const TrainingPage = ({ user }) => {
               </Card>
             )}
 
-            {/* Video URL fallback */}
+            {/* Uploaded video or video URL */}
             {!selectedLesson.videoEmbed && selectedLesson.videoUrl && (
               <Card>
                 <CardContent className="p-0">
                   <video 
-                    src={selectedLesson.videoUrl} 
+                    src={selectedLesson.videoUrl.startsWith('/api') ? `${API_URL}${selectedLesson.videoUrl}` : selectedLesson.videoUrl} 
                     controls 
-                    className="w-full aspect-video"
+                    className="w-full aspect-video bg-black"
+                    controlsList="nodownload"
                   />
                 </CardContent>
               </Card>
