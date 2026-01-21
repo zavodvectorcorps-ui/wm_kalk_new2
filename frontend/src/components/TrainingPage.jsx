@@ -799,30 +799,57 @@ const TrainingPage = ({ user }) => {
                     Материалы к уроку
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-4">
                   {selectedLesson.files.map((file) => {
                     const FileIcon = getFileIcon(file.mimeType);
+                    const isPdf = file.mimeType?.includes('pdf');
+                    const isImage = file.mimeType?.startsWith('image/');
+                    const fileUrl = `${API_URL}${file.url}`;
+                    
                     return (
-                      <a
-                        key={file.id}
-                        href={`${API_URL}${file.url}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white rounded-lg shadow-sm">
-                            <FileIcon className="h-5 w-5 text-primary" />
+                      <div key={file.id} className="space-y-2">
+                        {/* File header */}
+                        <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <FileIcon className="h-4 w-4 text-primary" />
+                            <span className="font-medium">{file.name}</span>
+                            <span className="text-xs text-gray-500">({formatFileSize(file.size)})</span>
                           </div>
-                          <div>
-                            <p className="font-medium">{file.name}</p>
-                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                          </div>
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                          >
+                            <Download className="h-3 w-3" />
+                            Скачать
+                          </a>
                         </div>
-                        <Button variant="ghost" size="sm">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </a>
+                        
+                        {/* PDF Preview */}
+                        {isPdf && (
+                          <div className="border rounded-lg overflow-hidden bg-gray-100">
+                            <iframe
+                              src={`${fileUrl}#toolbar=1&navpanes=0`}
+                              className="w-full"
+                              style={{ height: '80vh', minHeight: '600px' }}
+                              title={file.name}
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Image Preview */}
+                        {isImage && (
+                          <div className="border rounded-lg overflow-hidden bg-gray-50 p-4">
+                            <img
+                              src={fileUrl}
+                              alt={file.name}
+                              className="max-w-full h-auto mx-auto rounded"
+                              style={{ maxHeight: '80vh' }}
+                            />
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </CardContent>
