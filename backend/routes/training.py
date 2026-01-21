@@ -44,9 +44,10 @@ class LessonFile(BaseModel):
     """File attached to a lesson"""
     id: str = Field(default_factory=lambda: str(ObjectId()))
     name: str  # Original filename
-    url: str  # Stored file path/URL
+    url: str  # URL to access the file via API
     size: int  # File size in bytes
     mimeType: str  # MIME type
+    fileType: str = "document"  # document, video, image
     uploadedAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -57,7 +58,8 @@ class Lesson(BaseModel):
     description: Optional[str] = ""
     thumbnailUrl: Optional[str] = None  # Thumbnail/cover image URL (can be GIF from Synthesia)
     videoEmbed: Optional[str] = None  # Synthesia embed code (iframe)
-    videoUrl: Optional[str] = None  # Alternative: direct video URL
+    videoUrl: Optional[str] = None  # Alternative: direct video URL or uploaded video
+    videoFileId: Optional[str] = None  # ID of uploaded video file in training_files collection
     content: Optional[str] = ""  # Additional text content (markdown)
     files: List[LessonFile] = []  # Attached files (PDF, documents, etc.)
     questions: List[Question] = []
