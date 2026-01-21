@@ -473,7 +473,7 @@ async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
 
 @router.get("/files/{file_id}")
 async def get_lesson_file(file_id: str):
-    """Get/download a lesson file from GridFS or legacy storage"""
+    """Get/download a lesson file from GridFS or legacy storage with streaming for large files"""
     logger.info(f"=== get_lesson_file called with file_id: {file_id} ===")
     
     # First try GridFS (new storage)
@@ -486,80 +486,112 @@ async def get_lesson_file(file_id: str):
         file_doc = []
     
     if file_doc:
-        # File found in GridFS
+        # File found in GridFS - use streaming for large files
         logger.info(f"File found in GridFS")
         file_doc = file_doc[0]
         gridfs_id = file_doc["_id"]
         metadata = file_doc.get("metadata", {})
         mime_type = metadata.get("mimeType", "application/octet-stream")
         filename = metadata.get("name", "file")
-        logger.info(f"GridFS file: gridfs_id={gridfs_id}, mime={mime_type}, name={filename}")
+        file_size = file_doc.get("length", 0)
+        logger.info(f"GridFS file: gridfs_id={gridfs_id}, mime={mime_type}, name={filename}, size={file_size}")
         
-        try:
-            stream = await fs_bucket.open_download_stream(gridfs_id)
-            file_content = await stream.read()
-            logger.info(f"GridFS file read successfully: {len(file_content)} bytes")
-        except Exception as e:
-            logger.error(f"Error reading file from GridFS: {e}")
-            raise HTTPException(status_code=500, detail=f"Ошибка чтения файла из GridFS: {str(e)}")
-    else:
-        # Try legacy storage (base64 in training_files collection)
-        logger.info(f"File not found in GridFS, trying legacy storage...")
-        try:
-            legacy_doc = await db.training_files.find_one({"id": file_id})
-            logger.info(f"Legacy search result: found={legacy_doc is not None}")
-        except Exception as e:
-            logger.error(f"Error searching legacy storage: {e}")
-            legacy_doc = None
-        
-        if not legacy_doc:
-            logger.error(f"File {file_id} not found in any storage")
-            raise HTTPException(status_code=404, detail="Файл не найден")
-        
-        logger.info(f"File found in legacy storage: name={legacy_doc.get('name')}, size={legacy_doc.get('size')}")
-        
-        # Decode base64 content
-        try:
-            data = legacy_doc.get("data")
-            if not data:
-                logger.error(f"Legacy file has no 'data' field")
-                raise HTTPException(status_code=500, detail="Файл поврежден - нет данных")
-            
-            file_content = base64.b64decode(data)
-            logger.info(f"Legacy file decoded successfully: {len(file_content)} bytes")
-        except Exception as e:
-            logger.error(f"Error decoding legacy file: {e}")
-            raise HTTPException(status_code=500, detail=f"Ошибка декодирования файла: {str(e)}")
-        
-        mime_type = legacy_doc.get("mimeType", "application/octet-stream")
-        filename = legacy_doc.get("name", "file")
-    
-    logger.info(f"Serving file: mime={mime_type}, name={filename}, size={len(file_content)}")
-    
-    # For PDFs, images, and videos - serve inline
-    if mime_type.startswith('image/') or mime_type == 'application/pdf' or mime_type.startswith('video/'):
+        # Build headers
         headers = {
             "Content-Disposition": f"inline; filename=\"{filename}\"",
             "Accept-Ranges": "bytes",
-            "Cache-Control": "public, max-age=3600"
+            "Cache-Control": "public, max-age=3600",
+            "Content-Length": str(file_size)
         }
-        # Add X-Frame-Options to allow embedding in iframe
+        
         if mime_type == 'application/pdf':
             headers["Content-Type"] = "application/pdf"
-            # Allow iframe embedding
             headers["X-Frame-Options"] = "SAMEORIGIN"
         
-        return Response(
-            content=file_content,
-            media_type=mime_type,
-            headers=headers
-        )
+        # Use streaming response for files > 1MB
+        if file_size > 1024 * 1024:
+            logger.info(f"Using streaming response for large file ({file_size} bytes)")
+            
+            async def stream_file():
+                try:
+                    stream = await fs_bucket.open_download_stream(gridfs_id)
+                    while True:
+                        chunk = await stream.read(256 * 1024)  # 256KB chunks
+                        if not chunk:
+                            break
+                        yield chunk
+                except Exception as e:
+                    logger.error(f"Error streaming file: {e}")
+                    raise
+            
+            return StreamingResponse(
+                stream_file(),
+                media_type=mime_type,
+                headers=headers
+            )
+        else:
+            # Small files - read entirely
+            try:
+                stream = await fs_bucket.open_download_stream(gridfs_id)
+                file_content = await stream.read()
+                logger.info(f"GridFS file read successfully: {len(file_content)} bytes")
+            except Exception as e:
+                logger.error(f"Error reading file from GridFS: {e}")
+                raise HTTPException(status_code=500, detail=f"Ошибка чтения файла из GridFS: {str(e)}")
+            
+            return Response(
+                content=file_content,
+                media_type=mime_type,
+                headers=headers
+            )
     
-    # For other files - serve as download
+    # Try legacy storage (base64 in training_files collection)
+    logger.info(f"File not found in GridFS, trying legacy storage...")
+    try:
+        legacy_doc = await db.training_files.find_one({"id": file_id})
+        logger.info(f"Legacy search result: found={legacy_doc is not None}")
+    except Exception as e:
+        logger.error(f"Error searching legacy storage: {e}")
+        legacy_doc = None
+    
+    if not legacy_doc:
+        logger.error(f"File {file_id} not found in any storage")
+        raise HTTPException(status_code=404, detail="Файл не найден")
+    
+    logger.info(f"File found in legacy storage: name={legacy_doc.get('name')}, size={legacy_doc.get('size')}")
+    
+    # Decode base64 content
+    try:
+        data = legacy_doc.get("data")
+        if not data:
+            logger.error(f"Legacy file has no 'data' field")
+            raise HTTPException(status_code=500, detail="Файл поврежден - нет данных")
+        
+        file_content = base64.b64decode(data)
+        logger.info(f"Legacy file decoded successfully: {len(file_content)} bytes")
+    except Exception as e:
+        logger.error(f"Error decoding legacy file: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка декодирования файла: {str(e)}")
+    
+    mime_type = legacy_doc.get("mimeType", "application/octet-stream")
+    filename = legacy_doc.get("name", "file")
+    
+    logger.info(f"Serving legacy file: mime={mime_type}, name={filename}, size={len(file_content)}")
+    
+    # Build headers for legacy files
+    headers = {
+        "Content-Disposition": f"inline; filename=\"{filename}\"",
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=3600"
+    }
+    if mime_type == 'application/pdf':
+        headers["Content-Type"] = "application/pdf"
+        headers["X-Frame-Options"] = "SAMEORIGIN"
+    
     return Response(
         content=file_content,
         media_type=mime_type,
-        headers={"Content-Disposition": f"attachment; filename=\"{filename}\""}
+        headers=headers
     )
 
 
