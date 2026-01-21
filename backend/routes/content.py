@@ -372,7 +372,10 @@ async def get_public_folder_page(public_id: str, request: Request):
     description = folder.get("description", "")
     
     # Get base URL from request for absolute URLs
-    base_url = str(request.base_url).rstrip('/')
+    # Handle X-Forwarded-Proto header for HTTPS behind proxy
+    scheme = request.headers.get('x-forwarded-proto', request.url.scheme)
+    host = request.headers.get('x-forwarded-host', request.url.netloc)
+    base_url = f"{scheme}://{host}"
     
     # Build HTML
     items_html = ""
