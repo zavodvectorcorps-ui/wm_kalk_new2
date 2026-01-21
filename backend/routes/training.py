@@ -246,6 +246,104 @@ async def delete_lesson(course_id: str, lesson_id: str):
     return {"message": "Урок удалён"}
 
 
+@router.post("/courses/{course_id}/lessons/{lesson_id}/files")
+async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = File(...)):
+    """Upload a file to a lesson"""
+    # Check course and lesson exist
+    course = await db.training_courses.find_one({"id": course_id, "lessons.id": lesson_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Курс или урок не найден")
+    
+    # Check file size
+    file_content = await file.read()
+    if len(file_content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail=f"Файл слишком большой. Максимум {MAX_FILE_SIZE // (1024*1024)}MB")
+    
+    # Generate unique filename
+    file_ext = os.path.splitext(file.filename)[1] if file.filename else ""
+    unique_name = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, unique_name)
+    
+    # Save file
+    with open(file_path, "wb") as f:
+        f.write(file_content)
+    
+    # Create file record
+    file_record = {
+        "id": str(ObjectId()),
+        "name": file.filename or "file",
+        "url": f"/api/training/files/{unique_name}",
+        "size": len(file_content),
+        "mimeType": file.content_type or "application/octet-stream",
+        "uploadedAt": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Add to lesson's files array
+    result = await db.training_courses.update_one(
+        {"id": course_id, "lessons.id": lesson_id},
+        {
+            "$push": {"lessons.$.files": file_record},
+            "$set": {"updatedAt": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    if result.matched_count == 0:
+        # Clean up uploaded file
+        os.remove(file_path)
+        raise HTTPException(status_code=404, detail="Урок не найден")
+    
+    return file_record
+
+
+@router.delete("/courses/{course_id}/lessons/{lesson_id}/files/{file_id}")
+async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
+    """Delete a file from a lesson"""
+    # Find the course and lesson
+    course = await db.training_courses.find_one({"id": course_id, "lessons.id": lesson_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Курс или урок не найден")
+    
+    # Find the lesson and file
+    lesson = next((l for l in course.get("lessons", []) if l["id"] == lesson_id), None)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Урок не найден")
+    
+    file_record = next((f for f in lesson.get("files", []) if f["id"] == file_id), None)
+    if not file_record:
+        raise HTTPException(status_code=404, detail="Файл не найден")
+    
+    # Delete physical file
+    try:
+        file_name = file_record["url"].split("/")[-1]
+        file_path = os.path.join(UPLOAD_DIR, file_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except Exception as e:
+        logger.error(f"Error deleting file: {e}")
+    
+    # Remove from database
+    result = await db.training_courses.update_one(
+        {"id": course_id, "lessons.id": lesson_id},
+        {
+            "$pull": {"lessons.$.files": {"id": file_id}},
+            "$set": {"updatedAt": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    return {"message": "Файл удалён"}
+
+
+@router.get("/files/{filename}")
+async def get_lesson_file(filename: str):
+    """Get/download a lesson file"""
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Файл не найден")
+    
+    return FileResponse(file_path, filename=filename)
+
+
 @router.put("/courses/{course_id}/lessons/reorder")
 async def reorder_lessons(course_id: str, lesson_ids: List[str]):
     """Reorder lessons in a course"""
