@@ -76,6 +76,20 @@ export const FAQView = ({ calculatorType = 'both' }) => {
   const [activeTab, setActiveTab] = useState('products');
   const [showObjectionDialog, setShowObjectionDialog] = useState(false);
   const [newObjection, setNewObjection] = useState({ question: '', context: '', category: 'general', calculator_type: calculatorType || 'both' });
+  
+  // Content states
+  const [contentFolders, setContentFolders] = useState([]);
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [showFolderDialog, setShowFolderDialog] = useState(false);
+  const [editingFolder, setEditingFolder] = useState(null);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderDescription, setNewFolderDescription] = useState('');
+  const [showYoutubeDialog, setShowYoutubeDialog] = useState(false);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [youtubeName, setYoutubeName] = useState('');
+  const [selectedFolderId, setSelectedFolderId] = useState(null);
+  const [uploadingContent, setUploadingContent] = useState(false);
+  const contentFileInputRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
@@ -85,6 +99,12 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     fetchItems();
     fetchObjections();
   }, [calculatorType]);
+
+  useEffect(() => {
+    if (activeTab === 'content') {
+      fetchContentFolders();
+    }
+  }, [activeTab, calculatorType]);
 
   const fetchItems = async () => {
     try {
