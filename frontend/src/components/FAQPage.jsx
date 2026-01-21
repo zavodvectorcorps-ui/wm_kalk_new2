@@ -164,6 +164,166 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     }
   };
 
+  // ==================== Content Functions ====================
+
+  const fetchContentFolders = async () => {
+    setLoadingContent(true);
+    try {
+      const type = calculatorType === 'both' ? '' : calculatorType;
+      const response = await axios.get(`${API_URL}/api/content/folders${type ? `?calculator_type=${type}` : ''}`);
+      setContentFolders(response.data);
+    } catch (error) {
+      console.error('Error fetching content folders:', error);
+      toast.error('Ошибка загрузки контента');
+    } finally {
+      setLoadingContent(false);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      toast.error('Введите название папки');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', newFolderName.trim());
+    formData.append('description', newFolderDescription.trim());
+    formData.append('calculator_type', calculatorType === 'both' ? 'balia' : calculatorType);
+
+    try {
+      await axios.post(`${API_URL}/api/content/folders`, formData);
+      toast.success('Папка создана');
+      setShowFolderDialog(false);
+      setNewFolderName('');
+      setNewFolderDescription('');
+      fetchContentFolders();
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      toast.error('Ошибка создания папки');
+    }
+  };
+
+  const handleUpdateFolder = async () => {
+    if (!editingFolder || !editingFolder.name.trim()) {
+      toast.error('Введите название папки');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', editingFolder.name.trim());
+    formData.append('description', editingFolder.description || '');
+    formData.append('isPublic', editingFolder.isPublic);
+
+    try {
+      await axios.put(`${API_URL}/api/content/folders/${editingFolder.id}`, formData);
+      toast.success('Папка обновлена');
+      setEditingFolder(null);
+      fetchContentFolders();
+    } catch (error) {
+      console.error('Error updating folder:', error);
+      toast.error('Ошибка обновления');
+    }
+  };
+
+  const handleDeleteFolder = async (folderId) => {
+    if (!window.confirm('Удалить эту папку и весь её контент?')) return;
+
+    try {
+      await axios.delete(`${API_URL}/api/content/folders/${folderId}`);
+      toast.success('Папка удалена');
+      fetchContentFolders();
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      toast.error('Ошибка удаления');
+    }
+  };
+
+  const handleUploadContent = async (e, folderId) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingContent(true);
+    let uploaded = 0;
+    let errors = 0;
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        await axios.post(`${API_URL}/api/content/folders/${folderId}/upload`, formData);
+        uploaded++;
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        errors++;
+      }
+    }
+
+    setUploadingContent(false);
+    if (contentFileInputRef.current) {
+      contentFileInputRef.current.value = '';
+    }
+
+    if (uploaded > 0) {
+      toast.success(`Загружено файлов: ${uploaded}`);
+      fetchContentFolders();
+    }
+    if (errors > 0) {
+      toast.error(`Ошибок: ${errors}`);
+    }
+  };
+
+  const handleAddYoutubeLink = async () => {
+    if (!youtubeUrl.trim() || !selectedFolderId) {
+      toast.error('Введите ссылку на YouTube');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('url', youtubeUrl.trim());
+    formData.append('name', youtubeName.trim() || 'YouTube видео');
+
+    try {
+      await axios.post(`${API_URL}/api/content/folders/${selectedFolderId}/youtube`, formData);
+      toast.success('Ссылка добавлена');
+      setShowYoutubeDialog(false);
+      setYoutubeUrl('');
+      setYoutubeName('');
+      setSelectedFolderId(null);
+      fetchContentFolders();
+    } catch (error) {
+      console.error('Error adding YouTube link:', error);
+      toast.error(error.response?.data?.detail || 'Ошибка добавления ссылки');
+    }
+  };
+
+  const handleDeleteContentItem = async (folderId, itemId) => {
+    if (!window.confirm('Удалить этот элемент?')) return;
+
+    try {
+      await axios.delete(`${API_URL}/api/content/folders/${folderId}/items/${itemId}`);
+      toast.success('Удалено');
+      fetchContentFolders();
+    } catch (error) {
+      console.error('Error deleting content item:', error);
+      toast.error('Ошибка удаления');
+    }
+  };
+
+  const copyPublicLink = (folder) => {
+    const link = `${window.location.origin}/api/content/public/${folder.publicId}`;
+    navigator.clipboard.writeText(link);
+    toast.success('Ссылка скопирована');
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   // Split objections
   const answeredObjections = objections.filter(obj => obj.status === 'answered');
   const pendingObjections = objections.filter(obj => obj.status === 'pending');
