@@ -510,7 +510,7 @@ async def get_lesson_file(file_id: str):
     return Response(
         content=file_content,
         media_type=mime_type,
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename=\"{filename}\""}
     )
 
 
