@@ -50,6 +50,7 @@ class ContentFolder(BaseModel):
     name: str
     description: Optional[str] = ""
     calculator_type: str  # balia, sauna
+    parentId: Optional[str] = None  # Parent folder ID for nested folders
     items: List[ContentItem] = []
     publicId: str = Field(default_factory=lambda: str(ObjectId())[:12])  # Short ID for public links
     isPublic: bool = True
