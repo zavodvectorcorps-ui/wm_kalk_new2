@@ -265,9 +265,6 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
     if len(file_content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail=f"Файл слишком большой. Максимум {MAX_FILE_SIZE // (1024*1024)}MB")
     
-    # Generate file ID
-    file_id = str(ObjectId())
-    
     # Determine file type
     mime_type = file.content_type or "application/octet-stream"
     if mime_type.startswith('video/'):
@@ -277,12 +274,11 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
     else:
         file_type = "document"
     
-    # Store file content in MongoDB collection
-    file_doc = {
+    # Store file in GridFS
+    file_id = str(ObjectId())
+    metadata = {
         "id": file_id,
         "name": file.filename or "file",
-        "data": base64.b64encode(file_content).decode('utf-8'),
-        "size": len(file_content),
         "mimeType": mime_type,
         "fileType": file_type,
         "courseId": course_id,
@@ -290,11 +286,22 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
         "uploadedAt": datetime.now(timezone.utc).isoformat()
     }
     
-    await db.training_files.insert_one(file_doc)
+    try:
+        gridfs_id = await fs_bucket.upload_from_stream(
+            file.filename or "file",
+            io.BytesIO(file_content),
+            metadata=metadata
+        )
+        # Store GridFS ObjectId reference
+        metadata["gridfs_id"] = str(gridfs_id)
+    except Exception as e:
+        logger.error(f"Error uploading to GridFS: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка сохранения файла: {str(e)}")
     
     # Create file record for lesson (without the actual data)
     file_record = {
         "id": file_id,
+        "gridfs_id": str(gridfs_id),
         "name": file.filename or "file",
         "url": f"/api/training/files/{file_id}",
         "size": len(file_content),
