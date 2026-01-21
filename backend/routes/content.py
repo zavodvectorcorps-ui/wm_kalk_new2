@@ -4,7 +4,7 @@ Allows uploading photos, videos, and YouTube links organized in folders.
 Generates public pages for sharing with clients.
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import Response, HTMLResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
