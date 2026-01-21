@@ -341,6 +341,19 @@ async def get_lesson_file(filename: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Файл не найден")
     
+    # Determine media type
+    import mimetypes
+    media_type, _ = mimetypes.guess_type(filename)
+    
+    # For PDFs and images, serve inline (display in browser)
+    # For other files, serve as attachment (download)
+    if media_type and (media_type.startswith('image/') or media_type == 'application/pdf'):
+        return FileResponse(
+            file_path, 
+            media_type=media_type,
+            headers={"Content-Disposition": f"inline; filename={filename}"}
+        )
+    
     return FileResponse(file_path, filename=filename)
 
 
