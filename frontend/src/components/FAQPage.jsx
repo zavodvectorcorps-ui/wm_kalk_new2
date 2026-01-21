@@ -728,6 +728,192 @@ export const FAQView = ({ calculatorType = 'both' }) => {
             </Card>
           </div>
         </TabsContent>
+
+        {/* Content Tab */}
+        <TabsContent value="content" className="mt-4">
+          <div className="space-y-4">
+            {/* Header with create button */}
+            {isAdmin && (
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Папки с контентом</h3>
+                <Button onClick={() => setShowFolderDialog(true)}>
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                  Создать папку
+                </Button>
+              </div>
+            )}
+
+            {/* Folders grid */}
+            {loadingContent ? (
+              <div className="flex justify-center py-12">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : contentFolders.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Folder className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">Нет папок с контентом</p>
+                  {isAdmin && (
+                    <Button className="mt-4" onClick={() => setShowFolderDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Создать первую папку
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {contentFolders.map(folder => (
+                  <Card key={folder.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Folder className="h-4 w-4 text-amber-500" />
+                            {folder.name}
+                            <Badge variant="outline" className="ml-2">
+                              {folder.items?.length || 0} файлов
+                            </Badge>
+                          </CardTitle>
+                          {folder.description && (
+                            <CardDescription className="mt-1">{folder.description}</CardDescription>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyPublicLink(folder)}
+                            title="Скопировать публичную ссылку"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(`${API_URL}/api/content/public/${folder.publicId}`, '_blank')}
+                            title="Открыть публичную страницу"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          {isAdmin && (
+                            <>
+                              <Button variant="ghost" size="sm" onClick={() => setEditingFolder(folder)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteFolder(folder.id)}>
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Upload buttons for admin */}
+                      {isAdmin && (
+                        <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b">
+                          <input
+                            type="file"
+                            ref={contentFileInputRef}
+                            onChange={(e) => handleUploadContent(e, folder.id)}
+                            className="hidden"
+                            accept="image/*,video/*"
+                            multiple
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              contentFileInputRef.current?.click();
+                            }}
+                            disabled={uploadingContent}
+                          >
+                            {uploadingContent ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Upload className="h-4 w-4 mr-2" />
+                            )}
+                            Загрузить фото/видео
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedFolderId(folder.id);
+                              setShowYoutubeDialog(true);
+                            }}
+                          >
+                            <Youtube className="h-4 w-4 mr-2 text-red-500" />
+                            Добавить YouTube
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Content items grid */}
+                      {folder.items?.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {folder.items.map(item => (
+                            <div key={item.id} className="relative group bg-gray-50 rounded-lg overflow-hidden">
+                              {item.type === 'image' && (
+                                <a href={`${API_URL}${item.url}`} target="_blank" rel="noopener noreferrer">
+                                  <img
+                                    src={`${API_URL}${item.url}`}
+                                    alt={item.name}
+                                    className="w-full h-32 object-cover"
+                                  />
+                                </a>
+                              )}
+                              {item.type === 'video' && (
+                                <video
+                                  src={`${API_URL}${item.url}`}
+                                  className="w-full h-32 object-cover bg-black"
+                                  controls
+                                />
+                              )}
+                              {item.type === 'youtube' && (
+                                <a href={item.url} target="_blank" rel="noopener noreferrer">
+                                  <img
+                                    src={item.thumbnailUrl}
+                                    alt={item.name}
+                                    className="w-full h-32 object-cover"
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="bg-red-600 rounded-full p-2">
+                                      <Youtube className="h-6 w-6 text-white" />
+                                    </div>
+                                  </div>
+                                </a>
+                              )}
+                              <div className="p-2">
+                                <p className="text-xs truncate" title={item.name}>{item.name}</p>
+                                {item.size && (
+                                  <p className="text-xs text-muted-foreground">{formatFileSize(item.size)}</p>
+                                )}
+                              </div>
+                              {isAdmin && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => handleDeleteContentItem(folder.id, item.id)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-center py-6 text-muted-foreground">В этой папке пока нет контента</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* New Objection Dialog */}
