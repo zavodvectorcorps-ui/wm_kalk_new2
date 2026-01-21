@@ -538,13 +538,21 @@ async def get_lesson_file(file_id: str):
     
     # For PDFs, images, and videos - serve inline
     if mime_type.startswith('image/') or mime_type == 'application/pdf' or mime_type.startswith('video/'):
+        headers = {
+            "Content-Disposition": f"inline; filename=\"{filename}\"",
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=3600"
+        }
+        # Add X-Frame-Options to allow embedding in iframe
+        if mime_type == 'application/pdf':
+            headers["Content-Type"] = "application/pdf"
+            # Allow iframe embedding
+            headers["X-Frame-Options"] = "SAMEORIGIN"
+        
         return Response(
             content=file_content,
             media_type=mime_type,
-            headers={
-                "Content-Disposition": f"inline; filename=\"{filename}\"",
-                "Accept-Ranges": "bytes"
-            }
+            headers=headers
         )
     
     # For other files - serve as download
