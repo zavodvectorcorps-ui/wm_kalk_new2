@@ -3,10 +3,16 @@
 ## Original Problem Statement
 Comprehensive logistics and sales management system for sauna and hot tub business with calculators, order management, logistics, training modules, and CRM integrations.
 
-## Latest Update (Jan 21, 2025)
+## Latest Updates
+
+### Jan 21, 2025 - Content Library Enhancements
 - **Fixed**: Public content page now uses absolute URLs for videos/images - videos should now play correctly
 - **Fixed**: Added improved headers for PDF files in training module (Cache-Control, X-Frame-Options)
-- **Tested**: GridFS file storage working correctly for training files
+- **Fixed**: Streaming for large files (>1MB) in both training and content modules
+- **Fixed**: Upload button now works correctly for individual folders (unique ID per folder)
+- **NEW**: Hierarchical folders (subfolders) support in Content Library
+- **NEW**: Tree view on public content page with expand/collapse functionality
+- **Tested**: GridFS file storage working correctly for training and content files
 
 ## Core Features Implemented
 
