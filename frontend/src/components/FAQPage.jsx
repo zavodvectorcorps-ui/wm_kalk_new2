@@ -40,7 +40,14 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+const API_URL = (() => { 
+  const e = process.env.REACT_APP_BACKEND_URL;
+  if (e) {
+    const o = window.location.origin;
+    if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o; 
+  }
+  return e || '';
+})();
 
 // Category labels - products first as requested
 const CATEGORY_LABELS = {
