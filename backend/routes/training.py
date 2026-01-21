@@ -274,11 +274,21 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
     else:
         file_type = "document"
     
+    # Sanitize filename - handle encoding properly
+    original_filename = file.filename or "file"
+    # Ensure filename is properly decoded
+    try:
+        # Try to handle potential encoding issues
+        if isinstance(original_filename, bytes):
+            original_filename = original_filename.decode('utf-8')
+    except:
+        pass
+    
     # Store file in GridFS
     file_id = str(ObjectId())
     metadata = {
         "id": file_id,
-        "name": file.filename or "file",
+        "name": original_filename,
         "mimeType": mime_type,
         "fileType": file_type,
         "courseId": course_id,
@@ -288,7 +298,7 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
     
     try:
         gridfs_id = await fs_bucket.upload_from_stream(
-            file.filename or "file",
+            original_filename,
             io.BytesIO(file_content),
             metadata=metadata
         )
