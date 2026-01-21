@@ -4,23 +4,23 @@ Supports courses with video lessons (Synthesia embed), files and tests.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
 import logging
 import os
-import shutil
+import base64
 import uuid
+import io
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/training", tags=["training"])
 
 # File upload settings
-UPLOAD_DIR = "/app/backend/uploads/training"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB for videos
+MAX_VIDEO_SIZE = 500 * 1024 * 1024  # 500MB for videos
 
 # Database connection
 from motor.motor_asyncio import AsyncIOMotorClient
