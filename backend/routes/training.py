@@ -1,21 +1,29 @@
 """
 Training module for manager education.
-Supports courses with video lessons (Synthesia embed) and tests.
+Supports courses with video lessons (Synthesia embed), files and tests.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
 import logging
+import os
+import shutil
+import uuid
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/training", tags=["training"])
 
+# File upload settings
+UPLOAD_DIR = "/app/backend/uploads/training"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+
 # Database connection
 from motor.motor_asyncio import AsyncIOMotorClient
-import os
 
 mongo_client = AsyncIOMotorClient(os.environ.get("MONGO_URL"))
 db = mongo_client[os.environ.get("DB_NAME", "wm_kalkulator")]
