@@ -84,16 +84,43 @@ export const FAQView = ({ calculatorType = 'both' }) => {
   const [editingFolder, setEditingFolder] = useState(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderDescription, setNewFolderDescription] = useState('');
+  const [newFolderParentId, setNewFolderParentId] = useState(null);
   const [showYoutubeDialog, setShowYoutubeDialog] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [youtubeName, setYoutubeName] = useState('');
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [uploadingContent, setUploadingContent] = useState(false);
   const [uploadingFolderId, setUploadingFolderId] = useState(null);
+  const [expandedFolders, setExpandedFolders] = useState(new Set());
 
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
   const username = user?.username;
+
+  // Build folder tree from flat list
+  const buildFolderTree = (folders) => {
+    const rootFolders = folders.filter(f => !f.parentId);
+    const getChildren = (parentId) => folders.filter(f => f.parentId === parentId);
+    
+    const addChildren = (folder) => ({
+      ...folder,
+      children: getChildren(folder.id).map(addChildren)
+    });
+    
+    return rootFolders.map(addChildren);
+  };
+
+  const toggleFolderExpand = (folderId) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     fetchItems();
