@@ -522,12 +522,6 @@ async def get_lesson_file(file_id: str):
             media_type=mime_type,
             headers=headers
         )
-            
-            return Response(
-                content=file_content,
-                media_type=mime_type,
-                headers=headers
-            )
     
     # Try legacy storage (base64 in training_files collection)
     logger.info(f"File not found in GridFS, trying legacy storage...")
