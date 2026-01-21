@@ -476,9 +476,10 @@ async def get_lesson_file(file_id: str):
     """Get/download a lesson file from GridFS or legacy storage"""
     logger.info(f"=== get_lesson_file called with file_id: {file_id} ===")
     
-    file_content = None
+    gridfs_id = None
     mime_type = "application/octet-stream"
     filename = "file"
+    file_size = 0
     
     # Method 1: Search GridFS by metadata.id
     try:
@@ -491,33 +492,29 @@ async def get_lesson_file(file_id: str):
             metadata = file_doc.get("metadata", {})
             mime_type = metadata.get("mimeType", "application/octet-stream")
             filename = metadata.get("name", "file")
-            
-            stream = await fs_bucket.open_download_stream(gridfs_id)
-            file_content = await stream.read()
-            logger.info(f"Found by metadata.id: {filename}, size={len(file_content)}")
+            file_size = file_doc.get("length", 0)
+            logger.info(f"Found by metadata.id: {filename}, size={file_size}")
     except Exception as e:
         logger.error(f"Error in method 1 (metadata.id): {e}")
     
     # Method 2: Try direct GridFS ObjectId lookup
-    if file_content is None and len(file_id) == 24:
+    if gridfs_id is None and len(file_id) == 24:
         try:
-            gridfs_id = ObjectId(file_id)
-            stream = await fs_bucket.open_download_stream(gridfs_id)
-            file_content = await stream.read()
-            
-            file_info = await db.fs.files.find_one({"_id": gridfs_id})
+            test_id = ObjectId(file_id)
+            file_info = await db.fs.files.find_one({"_id": test_id})
             if file_info:
+                gridfs_id = test_id
                 metadata = file_info.get("metadata", {})
                 mime_type = metadata.get("mimeType", "application/octet-stream")
                 filename = metadata.get("name", file_info.get("filename", "file"))
-            logger.info(f"Found by direct GridFS _id: {filename}, size={len(file_content)}")
+                file_size = file_info.get("length", 0)
+                logger.info(f"Found by direct GridFS _id: {filename}, size={file_size}")
         except Exception as e:
             logger.info(f"Method 2 (direct _id) failed: {e}")
     
     # Method 3: Look up gridfs_id from lesson's file record
-    if file_content is None:
+    if gridfs_id is None:
         try:
-            # Find the file record in any course's lesson
             course = await db.training_courses.find_one(
                 {"lessons.files.id": file_id},
                 {"lessons.$": 1}
@@ -528,49 +525,76 @@ async def get_lesson_file(file_id: str):
                     if f.get("id") == file_id:
                         stored_gridfs_id = f.get("gridfs_id")
                         if stored_gridfs_id:
-                            logger.info(f"Found gridfs_id in lesson: {stored_gridfs_id}")
-                            stream = await fs_bucket.open_download_stream(ObjectId(stored_gridfs_id))
-                            file_content = await stream.read()
+                            gridfs_id = ObjectId(stored_gridfs_id)
                             mime_type = f.get("mimeType", "application/octet-stream")
                             filename = f.get("name", "file")
-                            logger.info(f"Found by lesson lookup: {filename}, size={len(file_content)}")
+                            file_size = f.get("size", 0)
+                            logger.info(f"Found gridfs_id in lesson: {stored_gridfs_id}, size={file_size}")
                         break
         except Exception as e:
             logger.error(f"Error in method 3 (lesson lookup): {e}")
     
+    # If found in GridFS, use streaming response
+    if gridfs_id:
+        headers = {
+            "Content-Disposition": f"inline; filename=\"{filename}\"",
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=3600",
+        }
+        if file_size > 0:
+            headers["Content-Length"] = str(file_size)
+        if mime_type == 'application/pdf':
+            headers["Content-Type"] = "application/pdf"
+            headers["X-Frame-Options"] = "SAMEORIGIN"
+        
+        logger.info(f"Streaming file: {filename}, mime={mime_type}, size={file_size}")
+        
+        async def stream_from_gridfs():
+            try:
+                stream = await fs_bucket.open_download_stream(gridfs_id)
+                while True:
+                    chunk = await stream.read(512 * 1024)  # 512KB chunks
+                    if not chunk:
+                        break
+                    yield chunk
+            except Exception as e:
+                logger.error(f"Error streaming file: {e}")
+        
+        return StreamingResponse(
+            stream_from_gridfs(),
+            media_type=mime_type,
+            headers=headers
+        )
+    
     # Method 4: Legacy storage (base64 in training_files collection)
-    if file_content is None:
-        try:
-            logger.info(f"Trying legacy storage...")
-            legacy_doc = await db.training_files.find_one({"id": file_id})
-            if legacy_doc:
-                data = legacy_doc.get("data")
-                if data:
-                    file_content = base64.b64decode(data)
-                    mime_type = legacy_doc.get("mimeType", "application/octet-stream")
-                    filename = legacy_doc.get("name", "file")
-                    logger.info(f"Found in legacy storage: {filename}, size={len(file_content)}")
-        except Exception as e:
-            logger.error(f"Error in method 4 (legacy): {e}")
+    try:
+        logger.info(f"Trying legacy storage...")
+        legacy_doc = await db.training_files.find_one({"id": file_id})
+        if legacy_doc:
+            data = legacy_doc.get("data")
+            if data:
+                file_content = base64.b64decode(data)
+                mime_type = legacy_doc.get("mimeType", "application/octet-stream")
+                filename = legacy_doc.get("name", "file")
+                logger.info(f"Found in legacy storage: {filename}, size={len(file_content)}")
+                
+                headers = {
+                    "Content-Disposition": f"inline; filename=\"{filename}\"",
+                    "Accept-Ranges": "bytes",
+                    "Cache-Control": "public, max-age=3600",
+                    "Content-Length": str(len(file_content))
+                }
+                if mime_type == 'application/pdf':
+                    headers["Content-Type"] = "application/pdf"
+                    headers["X-Frame-Options"] = "SAMEORIGIN"
+                
+                return Response(content=file_content, media_type=mime_type, headers=headers)
+    except Exception as e:
+        logger.error(f"Error in method 4 (legacy): {e}")
     
-    # If still not found, return 404
-    if file_content is None:
-        logger.error(f"File {file_id} not found in any storage")
-        raise HTTPException(status_code=404, detail="Файл не найден")
-    
-    # Build response headers
-    headers = {
-        "Content-Disposition": f"inline; filename=\"{filename}\"",
-        "Accept-Ranges": "bytes",
-        "Cache-Control": "public, max-age=3600",
-        "Content-Length": str(len(file_content))
-    }
-    if mime_type == 'application/pdf':
-        headers["Content-Type"] = "application/pdf"
-        headers["X-Frame-Options"] = "SAMEORIGIN"
-    
-    logger.info(f"Serving file: {filename}, mime={mime_type}, size={len(file_content)}")
-    return Response(content=file_content, media_type=mime_type, headers=headers)
+    # Not found
+    logger.error(f"File {file_id} not found in any storage")
+    raise HTTPException(status_code=404, detail="Файл не найден")
 
 
 @router.delete("/courses/{course_id}/lessons/{lesson_id}/files/{file_id}")
