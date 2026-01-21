@@ -313,7 +313,8 @@ async def get_content_file(file_id: str):
     headers = {
         "Content-Disposition": f"inline; filename=\"{filename}\"",
         "Cache-Control": "public, max-age=31536000",
-        "Content-Length": str(file_size)
+        "Content-Length": str(file_size),
+        "Accept-Ranges": "bytes"
     }
     
     # Use streaming for large files (> 1MB)
