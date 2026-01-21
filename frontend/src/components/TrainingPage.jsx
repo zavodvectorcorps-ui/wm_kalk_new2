@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -19,7 +19,8 @@ import {
   Edit, ChevronRight, Award, Clock, Users, BookOpen, Video,
   FileQuestion, Save, X, ArrowLeft, BarChart3, Settings, Grip,
   ChevronDown, ChevronUp, PlayCircle, CheckCircle, XCircle, RefreshCw, FileImage,
-  MessageSquareQuote, HelpCircle, Send, ThumbsUp, Search, Filter, Download
+  MessageSquareQuote, HelpCircle, Send, ThumbsUp, Search, Filter, Download,
+  Upload, File, FileText, Image, Paperclip
 } from 'lucide-react';
 
 const API_URL = (() => { 
