@@ -261,22 +261,41 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
     if len(file_content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail=f"Файл слишком большой. Максимум {MAX_FILE_SIZE // (1024*1024)}MB")
     
-    # Generate unique filename
-    file_ext = os.path.splitext(file.filename)[1] if file.filename else ""
-    unique_name = f"{uuid.uuid4()}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, unique_name)
+    # Generate file ID
+    file_id = str(ObjectId())
     
-    # Save file
-    with open(file_path, "wb") as f:
-        f.write(file_content)
+    # Determine file type
+    mime_type = file.content_type or "application/octet-stream"
+    if mime_type.startswith('video/'):
+        file_type = "video"
+    elif mime_type.startswith('image/'):
+        file_type = "image"
+    else:
+        file_type = "document"
     
-    # Create file record
-    file_record = {
-        "id": str(ObjectId()),
+    # Store file content in MongoDB collection
+    file_doc = {
+        "id": file_id,
         "name": file.filename or "file",
-        "url": f"/api/training/files/{unique_name}",
+        "data": base64.b64encode(file_content).decode('utf-8'),
         "size": len(file_content),
-        "mimeType": file.content_type or "application/octet-stream",
+        "mimeType": mime_type,
+        "fileType": file_type,
+        "courseId": course_id,
+        "lessonId": lesson_id,
+        "uploadedAt": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.training_files.insert_one(file_doc)
+    
+    # Create file record for lesson (without the actual data)
+    file_record = {
+        "id": file_id,
+        "name": file.filename or "file",
+        "url": f"/api/training/files/{file_id}",
+        "size": len(file_content),
+        "mimeType": mime_type,
+        "fileType": file_type,
         "uploadedAt": datetime.now(timezone.utc).isoformat()
     }
     
@@ -290,11 +309,104 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
     )
     
     if result.matched_count == 0:
-        # Clean up uploaded file
-        os.remove(file_path)
+        # Clean up stored file
+        await db.training_files.delete_one({"id": file_id})
         raise HTTPException(status_code=404, detail="Урок не найден")
     
     return file_record
+
+
+@router.post("/courses/{course_id}/lessons/{lesson_id}/video")
+async def upload_lesson_video(course_id: str, lesson_id: str, file: UploadFile = File(...)):
+    """Upload a video file to a lesson"""
+    # Check course and lesson exist
+    course = await db.training_courses.find_one({"id": course_id, "lessons.id": lesson_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Курс или урок не найден")
+    
+    # Check file is video
+    if not file.content_type or not file.content_type.startswith('video/'):
+        raise HTTPException(status_code=400, detail="Файл должен быть видео")
+    
+    # Check file size
+    file_content = await file.read()
+    if len(file_content) > MAX_VIDEO_SIZE:
+        raise HTTPException(status_code=400, detail=f"Видео слишком большое. Максимум {MAX_VIDEO_SIZE // (1024*1024)}MB")
+    
+    # Generate file ID
+    file_id = str(ObjectId())
+    
+    # Store video in MongoDB
+    video_doc = {
+        "id": file_id,
+        "name": file.filename or "video",
+        "data": base64.b64encode(file_content).decode('utf-8'),
+        "size": len(file_content),
+        "mimeType": file.content_type,
+        "fileType": "video",
+        "courseId": course_id,
+        "lessonId": lesson_id,
+        "uploadedAt": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.training_files.insert_one(video_doc)
+    
+    # Update lesson with video URL
+    video_url = f"/api/training/files/{file_id}"
+    
+    result = await db.training_courses.update_one(
+        {"id": course_id, "lessons.id": lesson_id},
+        {
+            "$set": {
+                "lessons.$.videoUrl": video_url,
+                "lessons.$.videoFileId": file_id,
+                "updatedAt": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    if result.matched_count == 0:
+        await db.training_files.delete_one({"id": file_id})
+        raise HTTPException(status_code=404, detail="Урок не найден")
+    
+    return {
+        "id": file_id,
+        "name": file.filename,
+        "url": video_url,
+        "size": len(file_content),
+        "mimeType": file.content_type
+    }
+
+
+@router.delete("/courses/{course_id}/lessons/{lesson_id}/video")
+async def delete_lesson_video(course_id: str, lesson_id: str):
+    """Delete video from a lesson"""
+    # Find the course and lesson
+    course = await db.training_courses.find_one({"id": course_id, "lessons.id": lesson_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Курс или урок не найден")
+    
+    # Find the lesson
+    lesson = next((l for l in course.get("lessons", []) if l["id"] == lesson_id), None)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Урок не найден")
+    
+    video_file_id = lesson.get("videoFileId")
+    
+    # Delete video file from storage
+    if video_file_id:
+        await db.training_files.delete_one({"id": video_file_id})
+    
+    # Remove video from lesson
+    await db.training_courses.update_one(
+        {"id": course_id, "lessons.id": lesson_id},
+        {
+            "$unset": {"lessons.$.videoUrl": "", "lessons.$.videoFileId": ""},
+            "$set": {"updatedAt": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    return {"message": "Видео удалено"}
 
 
 @router.delete("/courses/{course_id}/lessons/{lesson_id}/files/{file_id}")
@@ -314,16 +426,10 @@ async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
     if not file_record:
         raise HTTPException(status_code=404, detail="Файл не найден")
     
-    # Delete physical file
-    try:
-        file_name = file_record["url"].split("/")[-1]
-        file_path = os.path.join(UPLOAD_DIR, file_name)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        logger.error(f"Error deleting file: {e}")
+    # Delete file from MongoDB storage
+    await db.training_files.delete_one({"id": file_id})
     
-    # Remove from database
+    # Remove from lesson's files array
     result = await db.training_courses.update_one(
         {"id": course_id, "lessons.id": lesson_id},
         {
@@ -335,28 +441,37 @@ async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
     return {"message": "Файл удалён"}
 
 
-@router.get("/files/{filename}")
-async def get_lesson_file(filename: str):
-    """Get/download a lesson file"""
-    file_path = os.path.join(UPLOAD_DIR, filename)
+@router.get("/files/{file_id}")
+async def get_lesson_file(file_id: str):
+    """Get/download a lesson file from MongoDB"""
+    # Find file in MongoDB
+    file_doc = await db.training_files.find_one({"id": file_id})
     
-    if not os.path.exists(file_path):
+    if not file_doc:
         raise HTTPException(status_code=404, detail="Файл не найден")
     
-    # Determine media type
-    import mimetypes
-    media_type, _ = mimetypes.guess_type(filename)
+    # Decode file content
+    file_content = base64.b64decode(file_doc["data"])
+    mime_type = file_doc.get("mimeType", "application/octet-stream")
+    filename = file_doc.get("name", "file")
     
-    # For PDFs and images, serve inline (display in browser)
-    # For other files, serve as attachment (download)
-    if media_type and (media_type.startswith('image/') or media_type == 'application/pdf'):
-        return FileResponse(
-            file_path, 
-            media_type=media_type,
-            headers={"Content-Disposition": f"inline; filename={filename}"}
+    # For PDFs, images, and videos - serve inline
+    if mime_type.startswith('image/') or mime_type == 'application/pdf' or mime_type.startswith('video/'):
+        return Response(
+            content=file_content,
+            media_type=mime_type,
+            headers={
+                "Content-Disposition": f"inline; filename={filename}",
+                "Accept-Ranges": "bytes"
+            }
         )
     
-    return FileResponse(file_path, filename=filename)
+    # For other files - serve as download
+    return Response(
+        content=file_content,
+        media_type=mime_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 @router.put("/courses/{course_id}/lessons/reorder")
