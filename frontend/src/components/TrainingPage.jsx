@@ -607,21 +607,21 @@ const TrainingPage = ({ user }) => {
         }
       );
       
+      const data = await response.json();
+      
       if (response.ok) {
-        const fileRecord = await response.json();
         setEditingLesson({
           ...editingLesson,
-          files: [...(editingLesson.files || []), fileRecord]
+          files: [...(editingLesson.files || []), data]
         });
         toast.success('Файл загружен');
         await fetchCourses();
       } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Ошибка загрузки файла');
+        toast.error(data.detail || 'Ошибка загрузки файла');
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error('Ошибка загрузки файла');
+      toast.error('Ошибка загрузки файла: ' + error.message);
     } finally {
       setUploadingFile(false);
       if (fileInputRef.current) {
