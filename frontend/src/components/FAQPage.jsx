@@ -816,7 +816,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
                         <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b">
                           <input
                             type="file"
-                            ref={contentFileInputRef}
+                            id={`file-upload-${folder.id}`}
                             onChange={(e) => handleUploadContent(e, folder.id)}
                             className="hidden"
                             accept="image/*,video/*"
@@ -826,11 +826,11 @@ export const FAQView = ({ calculatorType = 'both' }) => {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              contentFileInputRef.current?.click();
+                              document.getElementById(`file-upload-${folder.id}`)?.click();
                             }}
-                            disabled={uploadingContent}
+                            disabled={uploadingContent && uploadingFolderId === folder.id}
                           >
-                            {uploadingContent ? (
+                            {uploadingContent && uploadingFolderId === folder.id ? (
                               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                             ) : (
                               <Upload className="h-4 w-4 mr-2" />
