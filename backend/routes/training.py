@@ -596,8 +596,14 @@ async def get_lesson_file(file_id: str):
                 filename = legacy_doc.get("name", "file")
                 logger.info(f"Found in legacy storage: {filename}, size={len(file_content)}")
                 
+                # RFC 5987 encoding for non-ASCII filenames
+                from urllib.parse import quote
+                ascii_filename = filename.encode('ascii', 'ignore').decode('ascii') or 'file'
+                encoded_filename = quote(filename)
+                content_disposition = f"inline; filename=\"{ascii_filename}\"; filename*=UTF-8''{encoded_filename}"
+                
                 headers = {
-                    "Content-Disposition": f"inline; filename=\"{filename}\"",
+                    "Content-Disposition": content_disposition,
                     "Accept-Ranges": "bytes",
                     "Cache-Control": "public, max-age=3600",
                     "Content-Length": str(len(file_content))
