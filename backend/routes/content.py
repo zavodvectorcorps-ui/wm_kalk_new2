@@ -285,11 +285,19 @@ async def delete_content_item(folder_id: str, item_id: str):
 @router.get("/files/{file_id}")
 async def get_content_file(file_id: str):
     """Get a content file from GridFS"""
+    logger.info(f"=== get_content_file called with file_id: {file_id} ===")
+    
     # Find file in GridFS
-    cursor = content_fs.find({"metadata.id": file_id})
-    file_doc = await cursor.to_list(length=1)
+    try:
+        cursor = content_fs.find({"metadata.id": file_id})
+        file_doc = await cursor.to_list(length=1)
+        logger.info(f"GridFS search result: found={len(file_doc)} documents")
+    except Exception as e:
+        logger.error(f"Error searching GridFS: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка поиска файла: {str(e)}")
     
     if not file_doc:
+        logger.error(f"File {file_id} not found in GridFS")
         raise HTTPException(status_code=404, detail="Файл не найден")
     
     file_doc = file_doc[0]
@@ -297,23 +305,53 @@ async def get_content_file(file_id: str):
     metadata = file_doc.get("metadata", {})
     mime_type = metadata.get("mimeType", "application/octet-stream")
     filename = metadata.get("name", "file")
+    file_size = file_doc.get("length", 0)
     
-    # Download from GridFS
-    try:
-        stream = await content_fs.open_download_stream(gridfs_id)
-        file_content = await stream.read()
-    except Exception as e:
-        logger.error(f"Error reading from GridFS: {e}")
-        raise HTTPException(status_code=500, detail="Ошибка чтения файла")
+    logger.info(f"File found: gridfs_id={gridfs_id}, mime={mime_type}, name={filename}, size={file_size}")
     
-    return Response(
-        content=file_content,
-        media_type=mime_type,
-        headers={
-            "Content-Disposition": f"inline; filename=\"{filename}\"",
-            "Cache-Control": "public, max-age=31536000"
-        }
-    )
+    # Build headers
+    headers = {
+        "Content-Disposition": f"inline; filename=\"{filename}\"",
+        "Cache-Control": "public, max-age=31536000",
+        "Content-Length": str(file_size)
+    }
+    
+    # Use streaming for large files (> 1MB)
+    if file_size > 1024 * 1024:
+        logger.info(f"Using streaming response for large file ({file_size} bytes)")
+        
+        async def stream_file():
+            try:
+                stream = await content_fs.open_download_stream(gridfs_id)
+                while True:
+                    chunk = await stream.read(256 * 1024)  # 256KB chunks
+                    if not chunk:
+                        break
+                    yield chunk
+            except Exception as e:
+                logger.error(f"Error streaming file: {e}")
+                raise
+        
+        return StreamingResponse(
+            stream_file(),
+            media_type=mime_type,
+            headers=headers
+        )
+    else:
+        # Small files - read entirely
+        try:
+            stream = await content_fs.open_download_stream(gridfs_id)
+            file_content = await stream.read()
+            logger.info(f"File read successfully: {len(file_content)} bytes")
+        except Exception as e:
+            logger.error(f"Error reading from GridFS: {e}")
+            raise HTTPException(status_code=500, detail=f"Ошибка чтения файла: {str(e)}")
+        
+        return Response(
+            content=file_content,
+            media_type=mime_type,
+            headers=headers
+        )
 
 
 # ==================== Public Page ====================
