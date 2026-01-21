@@ -244,6 +244,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     if (!files || files.length === 0) return;
 
     setUploadingContent(true);
+    setUploadingFolderId(folderId);
     let uploaded = 0;
     let errors = 0;
 
@@ -261,9 +262,9 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     }
 
     setUploadingContent(false);
-    if (contentFileInputRef.current) {
-      contentFileInputRef.current.value = '';
-    }
+    setUploadingFolderId(null);
+    // Reset the input
+    e.target.value = '';
 
     if (uploaded > 0) {
       toast.success(`Загружено файлов: ${uploaded}`);
