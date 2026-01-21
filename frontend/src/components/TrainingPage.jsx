@@ -790,6 +790,45 @@ const TrainingPage = ({ user }) => {
               </Card>
             )}
 
+            {/* Files */}
+            {selectedLesson.files?.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" />
+                    Материалы к уроку
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {selectedLesson.files.map((file) => {
+                    const FileIcon = getFileIcon(file.mimeType);
+                    return (
+                      <a
+                        key={file.id}
+                        href={`${API_URL}${file.url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white rounded-lg shadow-sm">
+                            <FileIcon className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{file.name}</p>
+                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </a>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Description */}
             {selectedLesson.description && (
               <Card>
