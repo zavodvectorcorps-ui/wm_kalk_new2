@@ -626,8 +626,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
 
   const handleModelSelect = (modelId) => {
     const model = prices.models?.find(m => m.id === modelId);
-    // Set default heater type based on available variants
-    const defaultHeaterType = model?.heaterVariants?.[0]?.type || 'integrated';
+    // Set default heater type based on available heater types
+    const availableTypes = model?.availableHeaterTypes || ['integrated', 'external'];
+    const defaultHeaterType = model?.heaterVariants?.find(v => availableTypes.includes(v.type))?.type || availableTypes[0] || 'integrated';
     setFormData(prev => ({ 
       ...prev, 
       selectedModel: modelId,
