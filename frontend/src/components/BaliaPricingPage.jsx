@@ -775,6 +775,7 @@ export const BaliaPricingPage = () => {
         onSave={handleSaveModel}
         txt={txt}
         currencySymbol={prices.currencySymbol}
+        categories={prices.categories || []}
       />
 
       <CategoryEditDialog
