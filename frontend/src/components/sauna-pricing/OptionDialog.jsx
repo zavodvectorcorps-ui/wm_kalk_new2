@@ -509,6 +509,103 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 )}
               </div>
             </div>
+            
+            {/* Compatibility Settings Section */}
+            <div className="border-t pt-4 mt-4">
+              <Label className="text-sm font-medium text-green-700 mb-3 block">
+                🔗 Совместимость опции
+              </Label>
+              
+              {/* Compatible Models */}
+              {models && models.length > 0 && (
+                <div className="mb-4">
+                  <Label className="text-xs text-muted-foreground mb-2 block">
+                    Для каких моделей доступна эта опция:
+                  </Label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    (Если не выбрано ни одной — доступна для всех моделей)
+                  </p>
+                  <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-1 bg-gray-50">
+                    {models.map(model => (
+                      <label key={model.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={compatibleModels.includes(model.id)}
+                          onChange={() => toggleCompatibleModel(model.id)}
+                          className="w-4 h-4 rounded border-gray-300"
+                        />
+                        <span className="text-sm">{model.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {compatibleModels.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {compatibleModels.map(modelId => {
+                        const model = models.find(m => m.id === modelId);
+                        return model ? (
+                          <span key={modelId} className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                            {model.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Compatible with other options */}
+              {categories && categories.length > 0 && (
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">
+                    Зависимость от выбора в других категориях:
+                  </Label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    (Опция будет показана только если выбрана указанная опция в другой категории)
+                  </p>
+                  <div className="space-y-3">
+                    {categories
+                      .filter(cat => cat.id !== editingOption.categoryId) // Exclude current category
+                      .map(category => (
+                        <div key={category.id} className="border rounded p-2 bg-gray-50">
+                          <Label className="text-xs font-medium text-gray-700 mb-1 block">
+                            {category.name}
+                          </Label>
+                          <div className="max-h-24 overflow-y-auto space-y-1">
+                            {category.options?.map(option => {
+                              const isSelected = (compatibleWithOptions[category.id] || []).includes(option.id);
+                              return (
+                                <label key={option.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleCompatibleOption(category.id, option.id)}
+                                    className="w-4 h-4 rounded border-gray-300"
+                                  />
+                                  <span className="text-xs">{option.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                  {Object.keys(compatibleWithOptions).length > 0 && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                      <p className="text-xs text-blue-800 font-medium">Активные зависимости:</p>
+                      {Object.entries(compatibleWithOptions).map(([catId, optIds]) => {
+                        const category = categories.find(c => c.id === catId);
+                        const optionNames = optIds.map(optId => category?.options?.find(o => o.id === optId)?.name).filter(Boolean);
+                        return category && optionNames.length > 0 ? (
+                          <p key={catId} className="text-xs text-blue-700 mt-1">
+                            {category.name}: {optionNames.join(' / ')}
+                          </p>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
         <DialogFooter>
