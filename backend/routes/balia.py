@@ -23,6 +23,9 @@ from models.balia import PriceData, Order, PDFRequest
 from data.balia_defaults import default_balia_prices
 from services.telegram_service import notify_new_order
 
+# Import amoCRM functions for notes
+from routes.amocrm import add_note_to_amocrm, get_amocrm_settings
+
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Balia Calculator"])
 
