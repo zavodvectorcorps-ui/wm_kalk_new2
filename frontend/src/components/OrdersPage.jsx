@@ -136,7 +136,13 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
 
   const fetchOrders = async () => {
     try {
-      const endpoint = isSauna ? `${API_URL}/api/sauna/orders` : `${API_URL}/api/orders`;
+      let endpoint = isSauna ? `${API_URL}/api/sauna/orders` : `${API_URL}/api/orders`;
+      
+      // Add user filtering params (managers see only their orders)
+      if (user?.username && user?.role) {
+        endpoint += `?username=${encodeURIComponent(user.username)}&role=${encodeURIComponent(user.role)}`;
+      }
+      
       const response = await axios.get(endpoint);
       // Filter out orders that were IMPORTED from amoCRM via webhook (source === 'amocrm')
       // BUT keep orders that were CREATED in calculator from amoCRM link (they have amocrm_id but no source='amocrm')
