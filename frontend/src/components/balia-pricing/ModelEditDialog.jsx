@@ -387,6 +387,82 @@ export const ModelEditDialog = memo(({
             <p className="text-xs text-purple-600">Выберите, какие типы чаш доступны для этой модели</p>
           </div>
 
+          {/* Available Colors Section */}
+          {colorCategories.length > 0 && (
+            <div className="border rounded-lg p-4 bg-pink-50 space-y-4">
+              <h3 className="font-semibold text-pink-800">🎨 Доступные цвета / Dostępne kolory</h3>
+              <p className="text-xs text-gray-600 mb-2">
+                Выберите, какие цвета доступны для этой модели. Если не выбрано ни одного — доступны все цвета.
+              </p>
+              
+              {colorCategories.map(category => (
+                <div key={category.id} className="border rounded p-3 bg-white">
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                    {category.name}
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                    {category.options?.map(option => {
+                      const availableOptions = formData.availableColorOptions?.[category.id] || [];
+                      const isSelected = availableOptions.includes(option.id);
+                      
+                      return (
+                        <label key={option.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              const currentMap = { ...(formData.availableColorOptions || {}) };
+                              const currentOptions = currentMap[category.id] || [];
+                              
+                              if (e.target.checked) {
+                                currentMap[category.id] = [...new Set([...currentOptions, option.id])];
+                              } else {
+                                currentMap[category.id] = currentOptions.filter(id => id !== option.id);
+                                if (currentMap[category.id].length === 0) {
+                                  delete currentMap[category.id];
+                                }
+                              }
+                              
+                              setFormData(prev => ({ ...prev, availableColorOptions: currentMap }));
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 accent-pink-600"
+                          />
+                          <div className="flex items-center gap-1">
+                            {option.colorPreview && (
+                              <div 
+                                className="w-4 h-4 rounded border border-gray-300"
+                                style={{ backgroundColor: option.colorPreview }}
+                              />
+                            )}
+                            <span className="text-xs">{option.name}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {(formData.availableColorOptions?.[category.id]?.length > 0) && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {formData.availableColorOptions[category.id].map(optId => {
+                        const opt = category.options?.find(o => o.id === optId);
+                        return opt ? (
+                          <span key={optId} className="text-xs bg-pink-100 text-pink-800 px-2 py-0.5 rounded flex items-center gap-1">
+                            {opt.colorPreview && (
+                              <div 
+                                className="w-3 h-3 rounded border"
+                                style={{ backgroundColor: opt.colorPreview }}
+                              />
+                            )}
+                            {opt.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Specifications Section */}
           <div className="border rounded-lg p-4 bg-blue-50 space-y-4">
             <h3 className="font-semibold text-blue-800 flex items-center gap-2">
