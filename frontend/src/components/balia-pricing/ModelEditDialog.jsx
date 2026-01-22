@@ -265,6 +265,46 @@ export const ModelEditDialog = memo(({
               Варианты печки
             </h3>
             
+            {/* Available Heater Types Selection */}
+            <div className="p-3 bg-white rounded border space-y-2">
+              <Label className="text-sm font-medium">Доступные типы печей для этой модели:</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.availableHeaterTypes?.includes('integrated') ?? true}
+                    onChange={(e) => {
+                      const types = formData.availableHeaterTypes || ['integrated', 'external'];
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, availableHeaterTypes: [...new Set([...types, 'integrated'])] }));
+                      } else {
+                        setFormData(prev => ({ ...prev, availableHeaterTypes: types.filter(t => t !== 'integrated') }));
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300"
+                  />
+                  <span className="text-sm">Встроенная (Zintegrowany)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.availableHeaterTypes?.includes('external') ?? true}
+                    onChange={(e) => {
+                      const types = formData.availableHeaterTypes || ['integrated', 'external'];
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, availableHeaterTypes: [...new Set([...types, 'external'])] }));
+                      } else {
+                        setFormData(prev => ({ ...prev, availableHeaterTypes: types.filter(t => t !== 'external') }));
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300"
+                  />
+                  <span className="text-sm">Внешняя (Zewnętrzny)</span>
+                </label>
+              </div>
+              <p className="text-xs text-orange-600">Выберите, какие типы печей можно выбрать для этой модели в калькуляторе</p>
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               {/* Integrated Heater Variant */}
               <VariantEditor 
@@ -292,6 +332,50 @@ export const ModelEditDialog = memo(({
                 onRemoveImage={() => removeVariantImage('external')}
               />
             </div>
+          </div>
+
+          {/* Bowl Types Section */}
+          <div className="border rounded-lg p-4 bg-purple-50 space-y-4">
+            <h3 className="font-semibold text-purple-800 flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Доступные типы чаш
+            </h3>
+            
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.availableBowlTypes?.includes('fiberglass') ?? true}
+                  onChange={(e) => {
+                    const types = formData.availableBowlTypes || ['fiberglass', 'acrylic'];
+                    if (e.target.checked) {
+                      setFormData(prev => ({ ...prev, availableBowlTypes: [...new Set([...types, 'fiberglass'])] }));
+                    } else {
+                      setFormData(prev => ({ ...prev, availableBowlTypes: types.filter(t => t !== 'fiberglass') }));
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className="text-sm">Стекловолокно (Fiberglass)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.availableBowlTypes?.includes('acrylic') ?? true}
+                  onChange={(e) => {
+                    const types = formData.availableBowlTypes || ['fiberglass', 'acrylic'];
+                    if (e.target.checked) {
+                      setFormData(prev => ({ ...prev, availableBowlTypes: [...new Set([...types, 'acrylic'])] }));
+                    } else {
+                      setFormData(prev => ({ ...prev, availableBowlTypes: types.filter(t => t !== 'acrylic') }));
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className="text-sm">Акрил (Acrylic)</span>
+              </label>
+            </div>
+            <p className="text-xs text-purple-600">Выберите, какие типы чаш доступны для этой модели</p>
           </div>
 
           {/* Specifications Section */}
