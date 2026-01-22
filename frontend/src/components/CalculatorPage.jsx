@@ -819,6 +819,11 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         // Manager requested discount
         requestedDiscount: !isAdminUser ? requestedDiscount : 0,
         requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
+        // Edit mode fields
+        ...(isEditMode && {
+          updatedBy: user?.username || 'calculator',
+          updatedAt: new Date().toISOString(),
+        }),
         // amoCRM integration fields - use 'calculator_amocrm' to distinguish from webhook imports
         ...(amocrmData && {
           amocrm_id: amocrmData.amocrm_id,
