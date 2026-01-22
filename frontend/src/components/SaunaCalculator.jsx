@@ -795,9 +795,9 @@ const DropdownHintBox = ({ option }) => {
   );
 };
 
-const RadioOptions = ({ category, formData, handleRadioChange, handleQuantityChange, txt }) => (
+const RadioOptions = ({ category, options, formData, handleRadioChange, handleQuantityChange, txt }) => (
   <RadioGroupOrange value={formData.selections[category.id] || ''} onValueChange={(value) => handleRadioChange(category.id, value)} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-    {category.options?.map((option) => {
+    {options.map((option) => {
       const isSelected = formData.selections[category.id] === option.id;
       const quantity = formData.quantities[option.id] || 1;
       return (
