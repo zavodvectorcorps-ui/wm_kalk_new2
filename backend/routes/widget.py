@@ -782,6 +782,46 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         </div>''' if has_pdf else ''}
 """
         
+        # Change history section
+        change_history = order.get('changeHistory', []) if order else []
+        if change_history and len(change_history) > 0:
+            # Sort by timestamp descending and take last 5
+            sorted_history = sorted(change_history, key=lambda x: x.get('timestamp', ''), reverse=True)[:5]
+            
+            history_html = f"""
+        <!-- Change History -->
+        <div class="section">
+            <div class="section-title">📋 История изменений</div>
+            <div class="info-card" style="max-height: 200px; overflow-y: auto;">
+"""
+            for entry in sorted_history:
+                timestamp = entry.get('timestamp', '')
+                try:
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    timestamp_str = dt.strftime('%d.%m.%Y %H:%M')
+                except:
+                    timestamp_str = timestamp[:16] if timestamp else '-'
+                
+                changed_by = entry.get('changedBy', entry.get('action', 'system'))
+                changes = entry.get('changes', [])
+                
+                changes_text = ', '.join([f"{c.get('field', '?')}" for c in changes[:3]])
+                if len(changes) > 3:
+                    changes_text += f" +{len(changes)-3}"
+                
+                history_html += f"""
+                <div class="info-row">
+                    <span class="info-label" style="font-size: 12px;">{timestamp_str}</span>
+                    <span class="info-value" style="font-size: 12px;">{changed_by}: {changes_text}</span>
+                </div>
+"""
+            
+            history_html += """
+            </div>
+        </div>
+"""
+            html += history_html
+        
         # Trip info section (especially for greenhouse)
         if trip_info:
             departure_date = trip_info.get('departureDate', '')
