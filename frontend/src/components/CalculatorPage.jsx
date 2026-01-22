@@ -1067,6 +1067,20 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
     });
   };
 
+  // Filter color options based on model's availableColorOptions
+  const filterColorOptions = (category, options) => {
+    if (!selectedModel) return options;
+    
+    // Check if model has color restrictions for this category
+    const availableColors = selectedModel.availableColorOptions?.[category.id];
+    
+    // If no restrictions set, show all options
+    if (!availableColors || availableColors.length === 0) return options;
+    
+    // Filter options to only show available colors
+    return options.filter(option => availableColors.includes(option.id));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
