@@ -283,12 +283,45 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
   // Get selected model
   const selectedModel = prices.models?.find(m => m.id === formData.selectedModel);
 
-  // Function to filter options based on compatibility settings
+  // Function to filter options based on incompatibility settings (inverted logic)
+  // Options are shown by default, hidden only when incompatibility rules match
   const filterCompatibleOptions = (category) => {
     if (!category.options) return [];
     
     return category.options.filter(option => {
-      // Check model compatibility
+      // NEW: Check model incompatibility (hide when model is in list)
+      const incompatibleModels = option.incompatibleModels || [];
+      if (incompatibleModels.length > 0 && formData.selectedModel) {
+        if (incompatibleModels.includes(formData.selectedModel)) {
+          return false; // Hide - model is in incompatible list
+        }
+      }
+      
+      // NEW: Check option incompatibility (hide when specific option is selected)
+      const incompatibleWithOptions = option.incompatibleWithOptions || {};
+      for (const [dependentCategoryId, hideWhenOptionIds] of Object.entries(incompatibleWithOptions)) {
+        if (hideWhenOptionIds.length === 0) continue;
+        
+        const selectedInDependentCategory = formData.selections[dependentCategoryId];
+        
+        // For radio/select - direct value
+        if (typeof selectedInDependentCategory === 'string') {
+          if (hideWhenOptionIds.includes(selectedInDependentCategory)) {
+            return false; // Hide - incompatible option is selected
+          }
+        }
+        // For checkbox - check if any incompatible option is selected
+        else if (typeof selectedInDependentCategory === 'object') {
+          const hasIncompatibleSelection = hideWhenOptionIds.some(
+            optId => selectedInDependentCategory[optId] === true
+          );
+          if (hasIncompatibleSelection) {
+            return false; // Hide - incompatible option is selected
+          }
+        }
+      }
+      
+      // LEGACY: Support old compatibleModels/compatibleWithOptions for backward compatibility
       const compatibleModels = option.compatibleModels || [];
       if (compatibleModels.length > 0 && formData.selectedModel) {
         if (!compatibleModels.includes(formData.selectedModel)) {
@@ -296,20 +329,17 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
         }
       }
       
-      // Check dependencies on other category selections
       const compatibleWithOptions = option.compatibleWithOptions || {};
       for (const [dependentCategoryId, allowedOptionIds] of Object.entries(compatibleWithOptions)) {
         if (allowedOptionIds.length === 0) continue;
         
         const selectedInDependentCategory = formData.selections[dependentCategoryId];
         
-        // For radio/select - direct value
         if (typeof selectedInDependentCategory === 'string') {
           if (!allowedOptionIds.includes(selectedInDependentCategory)) {
             return false;
           }
         }
-        // For checkbox - check if any allowed option is selected
         else if (typeof selectedInDependentCategory === 'object') {
           const hasAllowedSelection = allowedOptionIds.some(
             optId => selectedInDependentCategory[optId] === true
@@ -318,7 +348,6 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             return false;
           }
         }
-        // No selection made in dependent category - hide option
         else {
           return false;
         }
