@@ -42,7 +42,7 @@ class BaliaModel(BaseModel):
     name: Optional[str] = ""
     nameRu: Optional[str] = ""
     namePl: Optional[str] = ""
-    type: Optional[str] = "fiberglass"
+    type: Optional[str] = "fiberglass"  # Default bowl type
     shape: Optional[str] = "round"
     size: Optional[str] = ""
     heaterType: Optional[str] = "external"  # Legacy field
@@ -57,8 +57,12 @@ class BaliaModel(BaseModel):
     hintPl: Optional[str] = ""  # Polish hint
     hintImageUrl: Optional[str] = ""  # Image for hint
     hintVideoUrl: Optional[str] = ""  # Video for hint
-    # New: heater variants with individual prices and images
+    # Heater variants with individual prices and images
     heaterVariants: Optional[List[HeaterVariant]] = []
+    # Available heater types for this model (e.g., ["integrated", "external"] or just ["external"])
+    availableHeaterTypes: Optional[List[str]] = ["integrated", "external"]
+    # Available bowl types for this model (e.g., ["fiberglass", "acrylic"] or just ["fiberglass"])
+    availableBowlTypes: Optional[List[str]] = ["fiberglass", "acrylic"]
 
 
 class CategoryOption(BaseModel):
