@@ -326,6 +326,7 @@ class TestAmoCRMNoteSending:
         updated_order["fullName"] = "Updated Sauna Name"
         updated_order["deliveryStatus"] = "in_progress"
         updated_order["updatedBy"] = "sauna_manager"
+        updated_order["selectedModel"] = "test_model"  # Required field
         
         update_response = self.session.put(
             f"{BASE_URL}/api/sauna/orders/{test_order_id}",
