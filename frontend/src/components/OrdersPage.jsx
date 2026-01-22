@@ -132,7 +132,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
 
   useEffect(() => {
     fetchOrders();
-  }, [calculatorType]);
+  }, [calculatorType, user]);
 
   const fetchOrders = async () => {
     try {
