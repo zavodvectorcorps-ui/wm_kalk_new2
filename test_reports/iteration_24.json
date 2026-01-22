@@ -1,0 +1,118 @@
+{
+  "summary": "P0 Blocker Fix Verified - amoCRM widget edit order flow is working correctly. All 13 backend tests passed. Frontend edit flow tested and working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Sauna Calculator",
+        "issues": ["Console warning: Google Maps Places Autocomplete deprecation notice (not blocking)"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/tests/test_amocrm_widget_edit.py",
+    "/app/test_reports/pytest/pytest_results_iteration24.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/tests/test_amocrm_widget_edit.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "username": "admin",
+    "password": "admin123"
+  },
+  "seed_data_creation": "Test order TEST-AMO-001 with amocrm_id=12345678 exists for testing",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "features_tested": {
+    "amocrm_id_preservation_on_create": {
+      "status": "PASS",
+      "details": "POST /api/orders correctly stores amocrm_id, amocrm_link, amocrm_name fields"
+    },
+    "amocrm_id_preservation_on_get": {
+      "status": "PASS",
+      "details": "GET /api/orders/{id} returns amocrm_id correctly"
+    },
+    "amocrm_id_preservation_on_update": {
+      "status": "PASS",
+      "details": "PUT /api/orders/{id} preserves amocrm_id after update"
+    },
+    "change_history_tracking": {
+      "status": "PASS",
+      "details": "Order updates are tracked in changeHistory array with timestamp, changedBy, and changes fields"
+    },
+    "widget_embed_shows_order": {
+      "status": "PASS",
+      "details": "GET /api/widget/embed/light/{amocrm_id} finds order and displays order details"
+    },
+    "widget_edit_button": {
+      "status": "PASS",
+      "details": "Widget shows 'Редактировать заказ' button with correct URL containing amocrm_id and edit=true"
+    },
+    "widget_change_history_section": {
+      "status": "PASS",
+      "details": "Widget displays 'История изменений' section showing last 5 changes"
+    },
+    "orders_endpoint_correct": {
+      "status": "PASS",
+      "details": "App.js uses /api/orders for balia (not /api/balia/orders) - FIX VERIFIED"
+    },
+    "frontend_edit_url_loading": {
+      "status": "PASS",
+      "details": "URL /?calc=balia&amocrm_id=12345678&edit=true loads calculator with order data pre-filled"
+    },
+    "frontend_edit_mode_indicator": {
+      "status": "PASS",
+      "details": "Calculator shows 'Edycja zamówienia: TEST-AMO-001' header and amoCRM badge"
+    },
+    "amocrm_data_restoration_balia": {
+      "status": "PASS",
+      "details": "CalculatorPage.jsx restores amocrmData from editingOrder (lines 436-443) - FIX VERIFIED"
+    },
+    "amocrm_data_restoration_sauna": {
+      "status": "PASS",
+      "details": "useSaunaCalculator.js restores amocrmData from editingOrder (lines 172-179) - FIX VERIFIED"
+    },
+    "sauna_orders_endpoint": {
+      "status": "PASS",
+      "details": "GET /api/sauna/orders endpoint works correctly"
+    }
+  },
+  "p0_blocker_fix_verification": {
+    "issue_1_wrong_endpoint": {
+      "status": "FIXED",
+      "description": "Frontend was using /api/balia/orders instead of /api/orders",
+      "fix_location": "/app/frontend/src/App.js line 107",
+      "verification": "Tested with curl and Playwright - orders load correctly"
+    },
+    "issue_2_amocrm_data_not_restored_balia": {
+      "status": "FIXED",
+      "description": "amocrmData was not being restored from editingOrder in CalculatorPage.jsx",
+      "fix_location": "/app/frontend/src/components/CalculatorPage.jsx lines 436-443",
+      "verification": "Edit mode shows amoCRM badge and link"
+    },
+    "issue_3_amocrm_data_not_restored_sauna": {
+      "status": "FIXED",
+      "description": "amocrmData was not being restored from editingOrder in useSaunaCalculator.js",
+      "fix_location": "/app/frontend/src/components/sauna/useSaunaCalculator.js lines 172-179",
+      "verification": "Code review confirmed fix is in place"
+    },
+    "issue_4_change_history_display": {
+      "status": "FIXED",
+      "description": "Widget now displays change history section",
+      "fix_location": "/app/backend/routes/widget.py lines 785-823",
+      "verification": "Widget shows 'История изменений' section with change entries"
+    }
+  },
+  "context_for_next_testing_agent": "P0 blocker for amoCRM widget edit flow is fully fixed and verified. Test order TEST-AMO-001 with amocrm_id=12345678 exists for testing. Backend test file /app/tests/test_amocrm_widget_edit.py covers 13 test cases for the edit flow. All fixes verified: 1) App.js uses correct /api/orders endpoint, 2) CalculatorPage.jsx restores amocrmData, 3) useSaunaCalculator.js restores amocrmData, 4) Widget displays change history."
+}
