@@ -169,6 +169,15 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       setAdminGifts(editingOrder.adminGifts || []);
       setAdminDiscountApproved(editingOrder.adminDiscountApproved || false);
       
+      // Restore amoCRM data from original order (critical for edit flow from widget)
+      if (editingOrder.amocrm_id) {
+        setAmocrmData({
+          amocrm_id: editingOrder.amocrm_id,
+          amocrm_link: editingOrder.amocrm_link || '',
+          amocrm_name: editingOrder.amocrm_name || '',
+        });
+      }
+      
       toast.info(`${txt.editingOrder}: ${editingOrder.id}`);
     }
   }, [editingOrder, prices.categories, txt.editingOrder]);
