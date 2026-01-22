@@ -994,6 +994,65 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
     return model[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || model.name;
   };
 
+  // Filter options based on model's available bowl types
+  const filterOptionsByBowlType = (category, options) => {
+    if (!selectedModel) return options;
+    
+    // Check if this is a bowl material category (by id or name)
+    const categoryId = (category.id || '').toLowerCase();
+    const categoryName = (category.name || '').toLowerCase();
+    const isBowlMaterialCategory = 
+      categoryId.includes('bowl') || 
+      categoryId.includes('material') ||
+      categoryId.includes('czasz') ||
+      categoryId.includes('чаш') ||
+      categoryName.includes('материал') ||
+      categoryName.includes('чаш') ||
+      categoryName.includes('materiał') ||
+      categoryName.includes('czasza');
+    
+    if (!isBowlMaterialCategory) return options;
+    
+    // Get available bowl types for selected model
+    const availableBowls = selectedModel.availableBowlTypes || ['fiberglass', 'acrylic'];
+    
+    // If both types are available, show all options
+    if (availableBowls.includes('fiberglass') && availableBowls.includes('acrylic')) {
+      return options;
+    }
+    
+    // Filter options based on available bowl types
+    return options.filter(option => {
+      const optId = (option.id || '').toLowerCase();
+      const optName = (option.name || '').toLowerCase();
+      const optNamePl = (option.namePl || '').toLowerCase();
+      
+      // Check if option is fiberglass
+      const isFiberglass = optId.includes('fiberglass') || 
+                           optId.includes('glass') ||
+                           optName.includes('стекло') || 
+                           optName.includes('fiberglass') ||
+                           optNamePl.includes('fiberglass') ||
+                           optNamePl.includes('włókno');
+      
+      // Check if option is acrylic
+      const isAcrylic = optId.includes('acrylic') || 
+                        optId.includes('akryl') ||
+                        optName.includes('акрил') || 
+                        optName.includes('acrylic') ||
+                        optNamePl.includes('akryl');
+      
+      // If we can't determine the type, show it
+      if (!isFiberglass && !isAcrylic) return true;
+      
+      // Show only if the type is available
+      if (isFiberglass && availableBowls.includes('fiberglass')) return true;
+      if (isAcrylic && availableBowls.includes('acrylic')) return true;
+      
+      return false;
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
