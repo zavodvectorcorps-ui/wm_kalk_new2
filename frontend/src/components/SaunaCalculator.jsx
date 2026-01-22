@@ -289,35 +289,61 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     if (!category.options) return [];
     
     return category.options.filter(option => {
-      // NEW: Check model incompatibility (hide when model is in list)
       const incompatibleModels = option.incompatibleModels || [];
-      if (incompatibleModels.length > 0 && formData.selectedModel) {
-        if (incompatibleModels.includes(formData.selectedModel)) {
-          return false; // Hide - model is in incompatible list
+      const incompatibleWithOptions = option.incompatibleWithOptions || {};
+      const hasModelRules = incompatibleModels.length > 0;
+      const hasOptionRules = Object.keys(incompatibleWithOptions).length > 0;
+      
+      // Check if current model is in incompatible list
+      const modelMatches = hasModelRules && formData.selectedModel && 
+        incompatibleModels.includes(formData.selectedModel);
+      
+      // Check if any incompatible option is selected
+      let optionMatches = false;
+      if (hasOptionRules) {
+        for (const [dependentCategoryId, hideWhenOptionIds] of Object.entries(incompatibleWithOptions)) {
+          if (hideWhenOptionIds.length === 0) continue;
+          
+          const selectedInDependentCategory = formData.selections[dependentCategoryId];
+          
+          // For radio/select - direct value
+          if (typeof selectedInDependentCategory === 'string') {
+            if (hideWhenOptionIds.includes(selectedInDependentCategory)) {
+              optionMatches = true;
+              break;
+            }
+          }
+          // For checkbox - check if any incompatible option is selected
+          else if (typeof selectedInDependentCategory === 'object') {
+            const hasIncompatibleSelection = hideWhenOptionIds.some(
+              optId => selectedInDependentCategory[optId] === true
+            );
+            if (hasIncompatibleSelection) {
+              optionMatches = true;
+              break;
+            }
+          }
         }
       }
       
-      // NEW: Check option incompatibility (hide when specific option is selected)
-      const incompatibleWithOptions = option.incompatibleWithOptions || {};
-      for (const [dependentCategoryId, hideWhenOptionIds] of Object.entries(incompatibleWithOptions)) {
-        if (hideWhenOptionIds.length === 0) continue;
-        
-        const selectedInDependentCategory = formData.selections[dependentCategoryId];
-        
-        // For radio/select - direct value
-        if (typeof selectedInDependentCategory === 'string') {
-          if (hideWhenOptionIds.includes(selectedInDependentCategory)) {
-            return false; // Hide - incompatible option is selected
-          }
+      // Decision logic:
+      // - If BOTH model AND option rules are set: hide only when BOTH match
+      // - If ONLY model rules are set: hide when model matches
+      // - If ONLY option rules are set: hide when option matches
+      if (hasModelRules && hasOptionRules) {
+        // Both conditions must be true to hide
+        if (modelMatches && optionMatches) {
+          return false;
         }
-        // For checkbox - check if any incompatible option is selected
-        else if (typeof selectedInDependentCategory === 'object') {
-          const hasIncompatibleSelection = hideWhenOptionIds.some(
-            optId => selectedInDependentCategory[optId] === true
-          );
-          if (hasIncompatibleSelection) {
-            return false; // Hide - incompatible option is selected
-          }
+      } else if (hasModelRules) {
+        // Only model rule - hide if model matches
+        if (modelMatches) {
+          return false;
+        }
+      } else if (hasOptionRules) {
+        // Only option rule - hide if option matches
+        if (optionMatches) {
+          return false;
         }
       }
       
