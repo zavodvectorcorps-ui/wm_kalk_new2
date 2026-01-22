@@ -210,7 +210,8 @@ class TestOrdersFilteringSauna:
             "fullAddress": "Test Sauna Address",
             "createdBy": "sauna_test_manager",
             "orderDate": datetime.now().isoformat(),
-            "total": 2000
+            "total": 2000,
+            "selectedModel": "test_model"  # Required field for sauna orders
         }
         
         create_response = self.session.post(f"{BASE_URL}/api/sauna/orders", json=test_order)
@@ -312,7 +313,8 @@ class TestAmoCRMNoteSending:
             "fullAddress": "Test Sauna Address",
             "amocrm_id": "88888888",  # Fake amoCRM ID
             "orderDate": datetime.now().isoformat(),
-            "total": 3000
+            "total": 3000,
+            "selectedModel": "test_model"  # Required field for sauna orders
         }
         
         create_response = self.session.post(f"{BASE_URL}/api/sauna/orders", json=test_order)
