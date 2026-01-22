@@ -544,7 +544,21 @@ export const useLogistics = () => {
   const fetchSectionOrders = useCallback(async (sectionId) => {
     const section = SECTIONS[sectionId];
     try {
-      const res = await fetch(`${API_URL}${section.endpoint}`);
+      // Get user info for filtering (managers see only their orders)
+      let url = `${API_URL}${section.endpoint}`;
+      const storedUser = localStorage.getItem('authUser');
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          if (user.username && user.role) {
+            url += `?username=${encodeURIComponent(user.username)}&role=${encodeURIComponent(user.role)}`;
+          }
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+        }
+      }
+      
+      const res = await fetch(url);
       if (res.ok) {
         const allOrders = await res.json();
         // Filter to show only amoCRM orders
