@@ -104,7 +104,7 @@ const AppContent = () => {
       const API_URL = getApiUrl();
       
       // Try to find order by amocrm_id
-      const ordersEndpoint = section === 'sauna' ? '/api/sauna/orders' : '/api/balia/orders';
+      const ordersEndpoint = section === 'sauna' ? '/api/sauna/orders' : '/api/orders';
       const response = await fetch(`${API_URL}${ordersEndpoint}`);
       
       if (response.ok) {
