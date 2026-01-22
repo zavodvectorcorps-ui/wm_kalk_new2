@@ -368,9 +368,16 @@ async def create_sauna_order(order: SaunaOrder):
 
 
 @router.get("/orders")
-async def get_sauna_orders():
-    """Get all sauna orders"""
-    orders = await db.sauna_orders.find({}, {"_id": 0}).to_list(1000)
+async def get_sauna_orders(username: str = None, role: str = None):
+    """Get sauna orders - admins see all, managers see only their own"""
+    # Build query filter
+    query = {}
+    
+    # If user is a manager (not admin), filter by createdBy
+    if role and role != 'admin' and username:
+        query['createdBy'] = username
+    
+    orders = await db.sauna_orders.find(query, {"_id": 0}).to_list(1000)
     return orders
 
 
