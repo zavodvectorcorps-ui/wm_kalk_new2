@@ -13,6 +13,14 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **NEW**: Added `amocrm_name` field to Order model
 - **Tested**: All 13 test cases passed for edit flow
 
+### Jan 22, 2025 - Manager Orders Isolation & amoCRM Notifications
+- **NEW**: Managers now see only their own orders (filtered by `createdBy`)
+- **NEW**: Admins continue to see all orders
+- **NEW**: Applies to both Balia (`/api/orders`) and Sauna (`/api/sauna/orders`) endpoints
+- **NEW**: amoCRM note sent automatically when order is edited with changes
+- **Note**: Note format: "✏️ Заказ изменён пользователем {user}\n\nИзменённые поля: {fields}"
+- **Tested**: All 14 test cases passed for filtering and note sending
+
 ### Jan 21, 2025 - Content Library Enhancements
 - **Fixed**: Public content page now uses absolute URLs for videos/images - videos should now play correctly
 - **Fixed**: Added improved headers for PDF files in training module (Cache-Control, X-Frame-Options)
