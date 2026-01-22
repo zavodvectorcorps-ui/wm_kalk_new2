@@ -26,7 +26,7 @@ const API_URL = getApiUrl();
 
 export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => {
   const { t, i18n } = useTranslation();
-  const { isAdmin, canEdit } = useAuth();
+  const { isAdmin, canEdit, user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   
