@@ -280,6 +280,54 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     handleCancelEdit, getCategoryName
   } = useSaunaCalculator(editingOrder, onEditComplete, amocrmPrefill, onAmocrmPrefillUsed);
 
+  // Get selected model
+  const selectedModel = prices.models?.find(m => m.id === formData.selectedModel);
+
+  // Function to filter options based on compatibility settings
+  const filterCompatibleOptions = (category) => {
+    if (!category.options) return [];
+    
+    return category.options.filter(option => {
+      // Check model compatibility
+      const compatibleModels = option.compatibleModels || [];
+      if (compatibleModels.length > 0 && formData.selectedModel) {
+        if (!compatibleModels.includes(formData.selectedModel)) {
+          return false;
+        }
+      }
+      
+      // Check dependencies on other category selections
+      const compatibleWithOptions = option.compatibleWithOptions || {};
+      for (const [dependentCategoryId, allowedOptionIds] of Object.entries(compatibleWithOptions)) {
+        if (allowedOptionIds.length === 0) continue;
+        
+        const selectedInDependentCategory = formData.selections[dependentCategoryId];
+        
+        // For radio/select - direct value
+        if (typeof selectedInDependentCategory === 'string') {
+          if (!allowedOptionIds.includes(selectedInDependentCategory)) {
+            return false;
+          }
+        }
+        // For checkbox - check if any allowed option is selected
+        else if (typeof selectedInDependentCategory === 'object') {
+          const hasAllowedSelection = allowedOptionIds.some(
+            optId => selectedInDependentCategory[optId] === true
+          );
+          if (!hasAllowedSelection) {
+            return false;
+          }
+        }
+        // No selection made in dependent category - hide option
+        else {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  };
+
   if (initialLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
