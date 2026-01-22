@@ -267,9 +267,43 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
   );
 };
 
-export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditingOption, techSpecCategories, onSave, txt }) => {
+export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditingOption, techSpecCategories, categories, models, onSave, txt }) => {
   const selectedTechSpecCategory = techSpecCategories?.find(tc => tc.id === editingOption?.techSpecCategoryId);
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
+  
+  // Get compatible models list
+  const compatibleModels = editingOption?.compatibleModels || [];
+  // Get compatible options map
+  const compatibleWithOptions = editingOption?.compatibleWithOptions || {};
+  
+  const toggleCompatibleModel = (modelId) => {
+    setEditingOption(prev => {
+      const currentModels = prev.compatibleModels || [];
+      if (currentModels.includes(modelId)) {
+        return { ...prev, compatibleModels: currentModels.filter(id => id !== modelId) };
+      } else {
+        return { ...prev, compatibleModels: [...currentModels, modelId] };
+      }
+    });
+  };
+  
+  const toggleCompatibleOption = (categoryId, optionId) => {
+    setEditingOption(prev => {
+      const currentMap = { ...(prev.compatibleWithOptions || {}) };
+      const currentOptions = currentMap[categoryId] || [];
+      
+      if (currentOptions.includes(optionId)) {
+        currentMap[categoryId] = currentOptions.filter(id => id !== optionId);
+        if (currentMap[categoryId].length === 0) {
+          delete currentMap[categoryId];
+        }
+      } else {
+        currentMap[categoryId] = [...currentOptions, optionId];
+      }
+      
+      return { ...prev, compatibleWithOptions: currentMap };
+    });
+  };
   
   const handleHintImageUpload = async (e) => {
     const file = e.target.files?.[0];
