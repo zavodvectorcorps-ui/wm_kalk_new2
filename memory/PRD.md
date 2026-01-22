@@ -5,6 +5,14 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Jan 22, 2025 - P0 Blocker Fixed: amoCRM Widget Edit Order Flow
+- **FIXED**: Order editing from amoCRM widget now preserves `amocrm_id` connection
+- **FIXED**: Frontend now uses correct `/api/orders` endpoint (was `/api/balia/orders`)
+- **FIXED**: `amocrmData` is restored from `editingOrder` in both CalculatorPage.jsx and useSaunaCalculator.js
+- **NEW**: Widget now displays change history section (last 5 changes)
+- **NEW**: Added `amocrm_name` field to Order model
+- **Tested**: All 13 test cases passed for edit flow
+
 ### Jan 21, 2025 - Content Library Enhancements
 - **Fixed**: Public content page now uses absolute URLs for videos/images - videos should now play correctly
 - **Fixed**: Added improved headers for PDF files in training module (Cache-Control, X-Frame-Options)
