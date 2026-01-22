@@ -545,41 +545,41 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               </div>
             </div>
             
-            {/* Compatibility Settings Section */}
+            {/* Incompatibility Settings Section (NEW - inverted logic) */}
             <div className="border-t pt-4 mt-4">
-              <Label className="text-sm font-medium text-green-700 mb-3 block">
-                🔗 Совместимость опции
+              <Label className="text-sm font-medium text-red-700 mb-3 block">
+                🚫 Несовместимость опции
               </Label>
+              <p className="text-xs text-gray-500 mb-3">
+                Укажите, когда эта опция должна быть <strong>скрыта</strong>. Во всех остальных случаях она будет доступна.
+              </p>
               
-              {/* Compatible Models */}
+              {/* Incompatible Models */}
               {models && models.length > 0 && (
                 <div className="mb-4">
                   <Label className="text-xs text-muted-foreground mb-2 block">
-                    Для каких моделей доступна эта опция:
+                    Скрыть опцию при выборе этих моделей:
                   </Label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    (Если не выбрано ни одной — доступна для всех моделей)
-                  </p>
-                  <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-1 bg-gray-50">
+                  <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-1 bg-red-50">
                     {models.map(model => (
                       <label key={model.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-1 rounded">
                         <input
                           type="checkbox"
-                          checked={compatibleModels.includes(model.id)}
-                          onChange={() => toggleCompatibleModel(model.id)}
-                          className="w-4 h-4 rounded border-gray-300"
+                          checked={incompatibleModels.includes(model.id)}
+                          onChange={() => toggleIncompatibleModel(model.id)}
+                          className="w-4 h-4 rounded border-gray-300 accent-red-600"
                         />
                         <span className="text-sm">{model.name}</span>
                       </label>
                     ))}
                   </div>
-                  {compatibleModels.length > 0 && (
+                  {incompatibleModels.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {compatibleModels.map(modelId => {
+                      {incompatibleModels.map(modelId => {
                         const model = models.find(m => m.id === modelId);
                         return model ? (
-                          <span key={modelId} className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
-                            {model.name}
+                          <span key={modelId} className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                            ❌ {model.name}
                           </span>
                         ) : null;
                       })}
@@ -588,33 +588,30 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 </div>
               )}
               
-              {/* Compatible with other options */}
+              {/* Incompatible with other options */}
               {categories && categories.length > 0 && (
                 <div>
                   <Label className="text-xs text-muted-foreground mb-2 block">
-                    Зависимость от выбора в других категориях:
+                    Скрыть опцию при выборе в других категориях:
                   </Label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    (Опция будет показана только если выбрана указанная опция в другой категории)
-                  </p>
                   <div className="space-y-3">
                     {categories
                       .filter(cat => cat.id !== editingOption.categoryId) // Exclude current category
                       .map(category => (
-                        <div key={category.id} className="border rounded p-2 bg-gray-50">
+                        <div key={category.id} className="border rounded p-2 bg-red-50">
                           <Label className="text-xs font-medium text-gray-700 mb-1 block">
                             {category.name}
                           </Label>
                           <div className="max-h-24 overflow-y-auto space-y-1">
                             {category.options?.map(option => {
-                              const isSelected = (compatibleWithOptions[category.id] || []).includes(option.id);
+                              const isSelected = (incompatibleWithOptions[category.id] || []).includes(option.id);
                               return (
                                 <label key={option.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-1 rounded">
                                   <input
                                     type="checkbox"
                                     checked={isSelected}
-                                    onChange={() => toggleCompatibleOption(category.id, option.id)}
-                                    className="w-4 h-4 rounded border-gray-300"
+                                    onChange={() => toggleIncompatibleOption(category.id, option.id)}
+                                    className="w-4 h-4 rounded border-gray-300 accent-red-600"
                                   />
                                   <span className="text-xs">{option.name}</span>
                                 </label>
@@ -624,14 +621,14 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                         </div>
                       ))}
                   </div>
-                  {Object.keys(compatibleWithOptions).length > 0 && (
-                    <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
-                      <p className="text-xs text-blue-800 font-medium">Активные зависимости:</p>
-                      {Object.entries(compatibleWithOptions).map(([catId, optIds]) => {
+                  {Object.keys(incompatibleWithOptions).length > 0 && (
+                    <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
+                      <p className="text-xs text-red-800 font-medium">Опция будет скрыта при:</p>
+                      {Object.entries(incompatibleWithOptions).map(([catId, optIds]) => {
                         const category = categories.find(c => c.id === catId);
                         const optionNames = optIds.map(optId => category?.options?.find(o => o.id === optId)?.name).filter(Boolean);
                         return category && optionNames.length > 0 ? (
-                          <p key={catId} className="text-xs text-blue-700 mt-1">
+                          <p key={catId} className="text-xs text-red-700 mt-1">
                             {category.name}: {optionNames.join(' / ')}
                           </p>
                         ) : null;
