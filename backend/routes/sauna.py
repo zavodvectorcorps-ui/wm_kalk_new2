@@ -20,6 +20,9 @@ from models.sauna import SaunaModel, SaunaOption, SaunaCategory, SaunaPriceData,
 from data.sauna_defaults import default_sauna_prices
 from services.telegram_service import notify_new_order
 
+# Import amoCRM functions for notes
+from routes.amocrm import add_note_to_amocrm, get_amocrm_settings
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/sauna", tags=["Sauna Calculator"])
 
