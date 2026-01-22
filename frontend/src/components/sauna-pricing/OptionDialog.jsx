@@ -271,11 +271,46 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
   const selectedTechSpecCategory = techSpecCategories?.find(tc => tc.id === editingOption?.techSpecCategoryId);
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
   
-  // Get compatible models list
+  // Get incompatible models list (NEW - inverted logic)
+  const incompatibleModels = editingOption?.incompatibleModels || [];
+  // Get incompatible options map (NEW - inverted logic)
+  const incompatibleWithOptions = editingOption?.incompatibleWithOptions || {};
+  
+  // Legacy: Get compatible models list
   const compatibleModels = editingOption?.compatibleModels || [];
-  // Get compatible options map
+  // Legacy: Get compatible options map
   const compatibleWithOptions = editingOption?.compatibleWithOptions || {};
   
+  const toggleIncompatibleModel = (modelId) => {
+    setEditingOption(prev => {
+      const currentModels = prev.incompatibleModels || [];
+      if (currentModels.includes(modelId)) {
+        return { ...prev, incompatibleModels: currentModels.filter(id => id !== modelId) };
+      } else {
+        return { ...prev, incompatibleModels: [...currentModels, modelId] };
+      }
+    });
+  };
+  
+  const toggleIncompatibleOption = (categoryId, optionId) => {
+    setEditingOption(prev => {
+      const currentMap = { ...(prev.incompatibleWithOptions || {}) };
+      const currentOptions = currentMap[categoryId] || [];
+      
+      if (currentOptions.includes(optionId)) {
+        currentMap[categoryId] = currentOptions.filter(id => id !== optionId);
+        if (currentMap[categoryId].length === 0) {
+          delete currentMap[categoryId];
+        }
+      } else {
+        currentMap[categoryId] = [...currentOptions, optionId];
+      }
+      
+      return { ...prev, incompatibleWithOptions: currentMap };
+    });
+  };
+  
+  // Legacy toggle functions (kept for backward compatibility)
   const toggleCompatibleModel = (modelId) => {
     setEditingOption(prev => {
       const currentModels = prev.compatibleModels || [];
