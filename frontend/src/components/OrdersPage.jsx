@@ -322,7 +322,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                     <TableHead>{t('customer')}</TableHead>
                     {isSauna && <TableHead>Model</TableHead>}
                     {isSauna && <TableHead>{txt.promo}</TableHead>}
-                    {isSauna && <TableHead>{txt.createdBy}</TableHead>}
+                    <TableHead>{txt.createdBy}</TableHead>
                     <TableHead>{t('date')}</TableHead>
                     <TableHead className="text-right">{t('total')}</TableHead>
                     <TableHead className="text-right">{t('actions')}</TableHead>
