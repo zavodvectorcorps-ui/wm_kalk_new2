@@ -1208,56 +1208,66 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                 })}
               </div>
 
-              {/* Heater Type Selection - appears when model is selected and has variants */}
-              {selectedModel && selectedModel.heaterVariants?.length > 1 && (
-                <div className="mt-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
-                  <Label className="text-sm font-semibold text-orange-800 mb-3 block">
-                    {lang === 'pl' ? 'Wybierz typ pieca:' : 'Выберите тип печки:'}
-                  </Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {selectedModel.heaterVariants.map(variant => {
-                      const isVariantSelected = formData.selectedHeaterType === variant.type;
-                      const variantLabel = variant.type === 'integrated' 
-                        ? (lang === 'pl' ? 'Zintegrowany piec' : 'Встроенная печь')
-                        : (lang === 'pl' ? 'Zewnętrzny piec' : 'Внешняя печь');
-                      
-                      return (
-                        <div
-                          key={variant.type}
-                          onClick={() => handleHeaterTypeChange(variant.type)}
-                          className={`p-3 border-2 rounded-lg cursor-pointer transition-all flex items-center gap-3 ${
-                            isVariantSelected
-                              ? 'border-orange-500 bg-orange-100 shadow-md'
-                              : 'border-orange-200 bg-white hover:border-orange-400'
-                          }`}
-                        >
-                          {variant.imageUrl && (
-                            <img 
-                              src={getImageUrl(variant.imageUrl)} 
-                              alt={variantLabel}
-                              className="w-16 h-16 object-contain rounded bg-white"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sm">{variantLabel}</span>
-                              {isVariantSelected && (
-                                <Check className="h-4 w-4 text-orange-600" />
+              {/* Heater Type Selection - appears when model is selected and has multiple available heater types */}
+              {selectedModel && (() => {
+                // Get available heater types for this model
+                const availableTypes = selectedModel.availableHeaterTypes || ['integrated', 'external'];
+                // Filter heater variants to only show available types
+                const availableVariants = selectedModel.heaterVariants?.filter(v => availableTypes.includes(v.type)) || [];
+                
+                // Only show selection if more than one type is available
+                if (availableVariants.length <= 1) return null;
+                
+                return (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200">
+                    <Label className="text-sm font-semibold text-orange-800 mb-3 block">
+                      {lang === 'pl' ? 'Wybierz typ pieca:' : 'Выберите тип печки:'}
+                    </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {availableVariants.map(variant => {
+                        const isVariantSelected = formData.selectedHeaterType === variant.type;
+                        const variantLabel = variant.type === 'integrated' 
+                          ? (lang === 'pl' ? 'Zintegrowany piec' : 'Встроенная печь')
+                          : (lang === 'pl' ? 'Zewnętrzny piec' : 'Внешняя печь');
+                        
+                        return (
+                          <div
+                            key={variant.type}
+                            onClick={() => handleHeaterTypeChange(variant.type)}
+                            className={`p-3 border-2 rounded-lg cursor-pointer transition-all flex items-center gap-3 ${
+                              isVariantSelected
+                                ? 'border-orange-500 bg-orange-100 shadow-md'
+                                : 'border-orange-200 bg-white hover:border-orange-400'
+                            }`}
+                          >
+                            {variant.imageUrl && (
+                              <img 
+                                src={getImageUrl(variant.imageUrl)} 
+                                alt={variantLabel}
+                                className="w-16 h-16 object-contain rounded bg-white"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm">{variantLabel}</span>
+                                {isVariantSelected && (
+                                  <Check className="h-4 w-4 text-orange-600" />
+                                )}
+                              </div>
+                              <div className="text-lg font-bold text-orange-600">
+                                {variant.price?.toLocaleString('pl-PL')} {prices.currencySymbol}
+                              </div>
+                              {variant.hint && (
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">{variant.hint}</p>
                               )}
                             </div>
-                            <div className="text-lg font-bold text-orange-600">
-                              {variant.price?.toLocaleString('pl-PL')} {prices.currencySymbol}
-                            </div>
-                            {variant.hint && (
-                              <p className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">{variant.hint}</p>
-                            )}
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Model Specs */}
               {selectedModel && (
