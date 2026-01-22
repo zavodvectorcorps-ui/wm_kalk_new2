@@ -1585,7 +1585,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                     </div>
                   ) : category.inputType === 'checkbox' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {category.options?.filter(option => {
+                      {filterOptionsByBowlType(category, category.options || []).filter(option => {
                         // Hide "Bez..." options
                         const optName = (option.namePl || option.name || '').toLowerCase();
                         return !optName.startsWith('bez ') && !optName.startsWith('без ');
