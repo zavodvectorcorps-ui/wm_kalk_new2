@@ -1,195 +1,193 @@
 <analysis>**original_problem_statement:**
 The user's high-level goal is to build a comprehensive logistics and sales management system for their sauna and hot tub business.
 
-**Recent requirements implemented include:**
-*   Fixing a bug where the new Training Module was not visible to employee roles.
-*   Adding a Client Objections feature where managers can submit questions and admins can provide answers/scripts, integrated into a unified FAQ system.
-*   Re-enabling the Sauna CRM module as Produkcja saun with new stages and access control.
-*   Fixing the amoCRM integration to update existing orders.
-*   Implementing manual refresh buttons (for a single order and for all orders) to sync data from amoCRM.
-*   Enhancing the amoCRM webhook to automatically handle  events, but only for orders that already exist in the system to prevent creating unwanted orders.
-*   Adding logic to prevent updates from amoCRM for orders that are already in a trip or delivered.
-*   Refining the entire order/trip status lifecycle (e.g., adding an order to a trip changes its status to preparing; trip status changes cascade to all orders in it).
-*   Adding the ability for admins to upload files (PDF, images, docs) and custom videos directly to training lessons.
-*   Migrating all file storage to MongoDB's GridFS to solve persistence issues and support large files.
-*   Beginning implementation of a Content library within the FAQ pages for managers to organize and share marketing materials (photos, videos, links) with customers.
+Recent user requests focused on:
+*   Fixing numerous file handling bugs in the Training and Content modules, including failures with large PDFs, files with Cyrillic names, and broken image/video links on the production server.
+*   Implementing a nested folder (sub-category) structure for the Content library, with a collapsible tree view on the public sharing page.
+*   Adding advanced configuration options to the product calculators. For hot tubs, this means specifying which heater/bowl types are available for a given model. For saunas, a more complex system of dependencies is required, where an option's availability can depend on both the selected model and other chosen options (e.g., stove type).
+*   Fixing the amoCRM widget's edit order functionality, which currently loses its connection to the original order, fails to upload the updated PDF, and doesn't track changes.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a logistics and sales system with several key features. It includes a full-featured FAQ and Client Objections module, a revamped Sauna Production Kanban board, and a deeply integrated amoCRM connection. The system now supports both manual (via UI buttons) and automatic (via webhooks) synchronization of order data from amoCRM, with safeguards to prevent updating orders that are already in transit. The entire order and trip status lifecycle has been automated and refined. The Training module was significantly upgraded to allow admins to upload custom video and file attachments directly to lessons, with all files now being stored in MongoDB GridFS for reliability and scalability. The groundwork for a new Content library for sharing marketing materials has been laid, with the basic backend API and frontend UI for folder management in place.
+The application is a logistics and sales system with a full-featured FAQ and Client Objections module, a Sauna Production Kanban board, and amoCRM integration. The Training module allows admins to upload custom videos and files, with all storage now handled by MongoDB GridFS. The system correctly handles large file uploads (>18MB) via streaming and supports filenames with Cyrillic characters.
+
+The new Content library is fully functional, supporting nested folders, a publicly shareable page with a collapsible tree structure, and uploads for YouTube links, videos, and images. The frontend has been made more robust by dynamically determining the backend URL, resolving issues where production pages were making requests to preview server URLs.
+
+The product calculators have been significantly enhanced. The hot tub (Balia) calculator now filters options for bowl and heater types based on constraints set in the admin panel for each model. The groundwork for a more complex dependency system for the sauna calculator has been laid, with backend models and admin UIs updated to support these rules.
 
 **Last working item**:
--   **Last item agent was working**: The user reported a  when trying to access a file in the Training module that was uploaded *before* the migration to GridFS storage. The agent had already implemented backward-compatibility logic to handle both old (base64) and new (GridFS) file formats. The agent's last action was to add more detailed logging to the file-serving endpoint () to help diagnose the issue, as it is only reproducible on the user's production server where the old file data exists.
+-   **Last item agent was working**: The user reported that editing an order from the amoCRM widget breaks the connection to the calculator, prevents the updated PDF from being uploaded, and doesn't log a history of changes. The agent began investigating the responsible files (, , , ) to understand the existing data flow for order creation and editing.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (Cannot be reproduced in the preview environment as the legacy file data is not present).
--   **Which testing method agent to use?**: backend testing agent. The next agent needs to guide the user to provide server logs from their production environment to diagnose the error using the newly added logging.
--   **User Testing Done**: N (User confirmed the issue still persists on their production server).
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: both. The backend agent should be used to test the amoCRM API interaction (PDF upload, history logging). The frontend agent should be used to test the widget's UI flow after the backend is fixed.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: **File access in Training module fails on production for old files.** (P0 - BLOCKER)
+-   **Issue 1**: **amoCRM widget Edit Order flow is broken.** (P0 - BLOCKER)
 
   **Issues Detail**:
   - **Issue 1**:
-     - **Attempted fixes**: The agent migrated file storage to GridFS. To support old files, the  endpoint in  was modified to first try fetching from GridFS, and on failure, fall back to fetching from a legacy  collection. Most recently, detailed logging was added to this function to trace the lookup process.
+     - **Attempted fixes**: None yet. The agent has only started investigating the relevant code files.
      - **Next debug checklist**:
-       1.  Ask the user to trigger the 500 error again on their production server.
-       2.  Request the user provide the latest logs from  on their production machine immediately after the error.
-       3.  Analyze the logs to see which lookup path (GridFS or legacy) was taken and why it failed. The logs should pinpoint if the file ID is not found in either storage system or if another error occurs during file retrieval.
-       4.  File to inspect: , function .
-     - **Why fix this issue and what will be achieved with the fix?**: This is a critical bug as it prevents users from accessing previously uploaded training materials, rendering a key part of the module useless.
+       1.  In the order saving logic (, ), ensure that when an order is edited (), its  is preserved and not overwritten.
+       2.  After an edited order is saved, trigger the amoCRM PDF upload function, passing the  to update the note/file in the correct lead.
+       3.  Modify the  info endpoint to retrieve and display the  array from the order document.
+       4.  Update the HTML template in  to render this change history for the user.
+     - **Why fix this issue and what will be achieved with the fix?**: This is a core part of the workflow for sales managers using amoCRM. Fixing it will allow seamless updates to customer quotes without breaking data integrity or requiring manual work.
+     - **Status**: IN PROGRESS
+     - **Is recurring issue?**: N
+     - **Should Test frontend/backend/both after fix?**: both
+     - **Blocked on other issue**: No
+
+-   **Issue 2**: **Video URLs on the public content page are incorrect on production.** (P2)
+
+  **Issues Detail**:
+  - **Issue 2**:
+     - **Attempted fixes**: The agent modified  to construct the base URL for public assets using the  and  request headers. This fixed the issue for images but not for videos, which still point to a stale preview URL.
+     - **Next debug checklist**:
+       1.  Re-examine the URL generation logic in  and  in .
+       2.  Add logging to see what  is being constructed on the production server when a video is present.
+       3.  Consider creating a  environment variable as a more reliable way to set the base URL during deployment.
+     - **Why fix this issue and what will be achieved with the fix?**: Publicly shared content pages are unusable if the videos don't load.
      - **Status**: IN PROGRESS
      - **Is recurring issue?**: Y
      - **Should Test frontend/backend/both after fix?**: backend
      - **Blocked on other issue**: No
 
--   **Issue 2**: **White screen crash () when expanding an order.** (P2)
-
-  **Issues Detail**:
-  - **Issue 2**:
-     - **Attempted fixes**: The agent identified that the  field for an order was sometimes a string instead of the expected array. The backend was fixed to always save  as an array of objects. The frontend component () was also made more robust to handle cases where the data might still be a string (for old database entries).
-     - **Next debug checklist**:
-       1.  Confirm with the user if they still see this white screen error after the last fix.
-       2.  If the issue persists, inspect the  data for the specific order causing the crash directly in the database to confirm its structure.
-       3.  Review the rendering logic in  around line 1422.
-     - **Why fix this issue and what will be achieved with the fix?**: This crash makes it impossible to view order details, which is a core function of the logistics module.
-     - **Status**: USER VERIFICATION PENDING
-     - **Is recurring issue?**: N
-     - **Should Test frontend/backend/both after fix?**: frontend
-     - **Blocked on other issue**: No
-
 **In progress Task List**:
--   **Task 1**: **Complete the Content Library feature.** (P1)
+-   **Task 1**: **Complete the Sauna Options Dependency System.** (P1)
 
  Task Detail:
   - **Task 1**:
-     - **Where to resume**: The basic UI and folder creation API exist. The next steps are:
-        1.  **Implement File/Link Handling**: In , add endpoints to upload files to folders (using GridFS), and to add/edit/delete YouTube links.
-        2.  **Implement Public Sharing**: Create a mechanism to generate a unique, shareable link for a folder. This requires a new backend endpoint () and a new, unauthenticated frontend page () to display the contents of a shared folder.
-        3.  **Enhance UI**: In , build out the UI for uploading files, adding links, viewing folder contents, and generating the public share link.
-     - **What will be achieved with this?**: This will provide a powerful tool for the sales team to organize and share marketing materials with clients directly from the application.
+     - **Where to resume**: The backend models () and admin UI () have been updated. The filtering logic () has been added to  and applied to the option rendering components. The next step is to perform end-to-end testing:
+        1.  In the admin panel, configure a bench option to be compatible only with a specific sauna model and the electric stove option.
+        2.  Go to the calculator, select that sauna model, and verify the bench option is hidden.
+        3.  Select the electric stove and verify the bench option now appears.
+        4.  Switch to the wood stove and verify the bench option disappears again.
+     - **What will be achieved with this?**: This will enable complex business logic in the sauna configurator, preventing users from selecting incompatible combinations of options.
      - **Status**: IN PROGRESS
      - **Should Test frontend/backend/both after fix?**: both
      - **Blocked on something**: No
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    - **P1**: User needs to verify that the automatic backup runs successfully on its schedule.
+    - **P1**: Refactor  into smaller components to improve maintainability.
+    - **P1**: Refactor  and  as they have grown very large and contain many inline sub-components.
 - **Future Tasks**:
     - **P2**: Add a UI for importing/restoring from a backup ZIP file.
-    - **P2**: Refactor shared components (, ).
     - **P2**: Replace the deprecated Google Maps Autocomplete component.
     - **P3**: Finalize and implement the Sauna Lead Statistics feature.
     - **P3**: Investigate and fix unstable user login sessions.
-    - **P3**: Address the minor bugs: Sauna hints not saving and Category hint editing dialog goes to wrong page.
+    - **P3**: Address minor bugs: Sauna hints not saving and Category hint editing dialog goes to wrong page.
 
 **Completed work in this session**
-- **IMPLEMENTED: Advanced amoCRM Sync**:
-    - Added manual refresh buttons for single and all orders in the logistics view.
-    - Enhanced the amoCRM webhook to automatically process  events, intelligently ignoring irrelevant leads.
-    - Added safeguards to prevent updates on orders already in a trip or delivered.
-- **REFINED: Order & Trip Status Automation**:
-    - Fully automated the status change lifecycle: adding an order to a trip sets its status to , and trip status changes (e.g., ) now cascade to all associated orders.
-    - Added a  status to the workflow.
-- **IMPLEMENTED: File & Video Uploads in Training Module**:
-    - Admins can now upload custom videos (MP4, etc.) and files (PDF, images, docs) directly to training lessons.
-    - Migrated the entire file storage backend to **MongoDB GridFS** to support large files and ensure persistence across deployments.
-    - Implemented an inline viewer for PDFs and images within the lesson page.
-- **STARTED: Content Library Feature**:
-    - Created the new Content tab within the FAQ section.
-    - Implemented the backend API () and frontend UI for creating, viewing, and deleting content folders.
+- **Fixed File Handling (Training & Content Modules)**:
+  - **Large File Support**: Resolved  with large files (>18MB) by implementing streaming responses from GridFS in  and .
+  - **Cyrillic Filename Support**: Fixed a critical bug where files with Russian names failed to upload or display. This was solved by correctly handling filenames on upload and using RFC 5987 encoding in  headers on download.
+- **Enhanced Content Library**:
+  - **Nested Folders**: Implemented full support for sub-folders, including backend API changes (), frontend UI (), and a recursive rendering component.
+  - **Fixed Public Page**: Resolved issues with broken video/image links on the production server by implementing dynamic backend URL detection on the frontend and fixing base URL generation on the backend. Public pages now display a collapsible folder tree that is collapsed by default.
+  - **Fixed UI Bugs**: Corrected a bug where the upload button would trigger for all folders simultaneously. Handled  files gracefully by showing a download link instead of a broken player.
+- **Upgraded Product Configurators**:
+  - **Hot Tub Dependencies**: Admins can now restrict available heater and bowl types for each hot tub model. The calculator UI in  dynamically filters options based on these rules.
+  - **Sauna Dependencies (In Progress)**: Implemented the backend models () and admin UI () for a complex dependency system where an option's visibility can depend on the selected model AND other options. The filtering logic has been added to .
+- **User-Reported Issues Resolved**:
+  - The White screen crash () was confirmed fixed by the user.
+  - The issue of automatic backups not running was confirmed resolved by the user.
 
 **Earlier issues found/mentioned but not fixed**
    - **Issue 1: Sauna hints not saving on user's hosting.**
-     - **Debug checklist**: Re-verify with the user if this is still a problem.
+     - **Debug checklist**: Re-verify with the user if this is still a problem after recent deployments.
      - **Why to solve this issue and what will be achieved with this?**: Ensures all admin panel features work correctly on the user's production server.
      - **Should Test frontend/backend/both after fix**: Both.
      - **Is recurring issue?**: N
    - **Issue 2: Category hint editing dialog in sauna pricing admin goes to the wrong page.**
      - **Debug checklist**: Check the  handler for the edit button in the sauna pricing admin panel.
-     - **Why to solve this issue and what will be achieved with this?**: Fixes a minor bug in the admin panel UI.
+     - **Why to solve this issue and what will be achieved with this?**: Fixes a minor UI bug.
      - **Should Test frontend/backend/both after fix**: Frontend.
      - **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
-  - None.
+  - The issue of  when accessing files in the Training module was a recurring theme. The root cause was multifaceted (large files, then Cyrillic filenames). Both causes have been addressed with specific fixes (streaming and proper encoding).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **MongoDB GridFS**: Adopted for storing large files (videos, PDFs) to overcome the 16MB document size limit and ensure file persistence across deployments. The implementation is in .
--   **FastAPI File Handling**: Used  for uploads and  for serving large files efficiently from GridFS.
--   **Backward Compatibility**: The file-serving endpoint in  was engineered to support both the new GridFS storage and a legacy base64 format to avoid breaking access to old data.
--   **React Custom Hooks**: The state and logic for the logistics page were encapsulated in a custom  hook, improving component readability and logic reuse.
--   **Robust Error Handling**: Implemented  blocks on the frontend around  calls to prevent UI crashes from  errors, making the UI more resilient.
+-   **Streaming Response**: Using  to serve large files from GridFS in chunks, preventing high memory usage and timeouts. Implemented in  and .
+-   **Filename Encoding (RFC 5987)**: Correctly encoding non-ASCII filenames in the  header to ensure browsers display them properly.
+-   **Dynamic Frontend Configuration**: Shifting from a static build-time  to a dynamic one derived from  to make the frontend environment-agnostic.
+-   **Recursive React Components**: Using a recursive  component in  to render an infinitely deep nested folder structure.
+-   **Complex Conditional Rendering**: Implementing advanced filtering logic in the calculator components (, ) to dynamically show/hide options based on a ruleset defined in the database.
 
 **key DB schema**
--   **training_courses**: The  array inside course documents now contains a  array (of file metadata) and a  field (for uploaded videos).
--   **fs.files / fs.chunks**: (New) Collections automatically created and managed by GridFS to store file content and metadata for both the training and content modules.
--   **content_folders**: (New) Collection to store folder metadata for the new Content Library: .
--   **orders** (e.g., ): The  field's format was standardized to an array of objects. The  is now actively managed by trip status changes.
+-   **balia_models**: Added  and  to the model schema.
+-   **sauna_options**: Added  and  to the option schema.
+-   **content_folders**: Added  to the folder schema to enable nesting.
 
 **All files of reference**
--   : Contains the GridFS implementation and the backward-compatibility logic for file access. **This is the location of the P0 bug.**
--   : New file for the in-progress Content Library feature.
--   : Contains all logic for trip and order status changes.
--   : Contains the logic for manual and webhook-based order refreshing.
--   : Contains the UI for the new Content Library feature.
--   : The main UI for logistics, where refresh buttons and status updates are visible.
--   : The hook managing the state for .
+-   : Key file for the next P0 task (amoCRM widget).
+-   : Contains fixes for large files and Cyrillic names.
+-   : Contains logic for nested folders and the public share page.
+-    & : Contain the new schema for option dependencies.
+-   : UI for the content library.
+-   : Hot tub calculator with new dependency logic.
+-   : Sauna calculator with new dependency logic.
+-   : Admin UI for hot tub dependencies.
+-   : Admin UI for sauna dependencies.
 
 **Areas that need refactoring**:
--    has become very large and contains multiple nested component definitions (, , ). These should be extracted into their own files under  to improve code organization and maintainability.
+-    contains multiple large, nested components that should be extracted into their own files.
+-    and  have become very large and now contain complex state management and rendering logic. They should be broken down into smaller, more manageable components and custom hooks.
 
 **key api endpoints**
--   : Refreshes a single order from amoCRM.
--   : Refreshes all orders in a section from amoCRM.
--   : The endpoint for all amoCRM events.
--   : Uploads a file to a lesson (uses GridFS).
--   : Uploads a video to a lesson (uses GridFS).
--   : Serves a file, with backward compatibility.
--   : Endpoints for the new Content Library folder management.
+-   : Now accepts an optional  to create sub-folders.
+-   : Now supports streaming for large files and correctly handles Cyrillic filenames.
+-   : Now supports streaming and has improved URL generation for public pages.
+-   : Endpoint to be modified for the P0 task to include change history.
 
 **Critical Info for New Agent**
 -   You MUST respond in **Russian**.
--   **P0 Blocker**: Your immediate priority is to diagnose and fix the  on the user's production server. A user is unable to access files uploaded to the Training module before the GridFS migration. The code now includes backward compatibility and detailed logging. You must guide the user to provide the relevant production server logs () after they reproduce the error to find the root cause. This issue is not reproducible in the preview environment.
--   **File Storage Standard**: All new features involving file uploads must use the MongoDB GridFS implementation. Refer to  as the canonical example. Do not revert to filesystem or base64-in-document storage.
--   **Content Library Feature**: This is a major new feature that is only partially complete. The next steps involve implementing file/video uploads to folders and the public sharing functionality.
+-   **P0 Blocker**: Your immediate priority is fixing the **amoCRM widget edit order flow**. When a user edits an order from the widget, the link to the original order is lost, the updated PDF is not sent to amoCRM, and changes are not tracked. The investigation has started, but no code has been written.
+-   The new complex dependency system for the **sauna calculator** has been implemented but requires thorough testing to ensure the filtering logic works as expected in all scenarios.
+-   The issue of incorrect video URLs on the public content page persists on the user's production server. The logic for generating the  in  needs to be re-evaluated.
 
 **documents and test reports created in this job**
 -    was updated.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User**: The logistics status changes correctly. But it didn't sync to the amoCRM widget.
-9.  **User**: In training lessons, can files open directly instead of downloading?
-8.  **User**: I'm getting an error uploading a PDF. Also, add a feature to upload our own videos to lessons.
-7.  **User**:  and  error. (Agent fixed the  part).
-6.  **User**: Let's add a Content section to the FAQs to upload photos/videos for managers to share with clients. It needs folders and ideally a shareable link for a folder's contents.
-5.  **User:**  (The current P0 blocker, related to an old file).
-4.  **User**: I deployed, but it's not showing. Add more logs.
-3.  **User:** Okay, the new Content section is visible and works.
-2.  **User:**  on . (A repeat of the P0 blocker).
-1.  **User:** When I expand a new order in logistics, I get a white screen and a  error in the console.
+10. **User**: Requests nested folders in the content library. (Agent implemented this).
+9.  **User**: Confirms automated backups work and the white screen issue is fixed.
+8.  **User**: Reports a 500 error on production when accessing a PDF file. (This begins a long debug thread).
+7.  **User**: Asks how to execute the log-checking command provided by the agent.
+6.  **User**: Provides the file ID causing the 500 error.
+5.  **User**: Reports that on the public page, images are broken and videos don't play because the URL points to a preview server.
+4.  **User**: Explains they deploy via the Emergent button and haven't changed any settings.
+3.  **User**: Reports another 500 error for a different PDF.
+2.  **User**: Reports that on the public page, videos still have the wrong URL and  files don't play.
+1.  **User**: Discovered that PDF uploads fail only when the filename is in Russian. (This was the key finding that led to a fix).
 
 **Project Health Check:**
--   **Broken**: Access to legacy files in the Training module is broken on the user's production server (P0 blocker).
+-   **Broken**:
+    -   The amoCRM widget edit order functionality.
+    -   Video playback on the public content page on the user's production server due to incorrect URL generation.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
--   **amoCRM/Kommo**: Core CRM integration. Heavily modified to support manual and automatic webhook-based updates.
+-   **amoCRM/Kommo**: Core CRM integration. The widget's edit functionality is the current P0 blocker.
 -   **Synthesia.io**: Used for embedding training videos, now supplemented by custom video uploads.
 
 **Testing status**
   - Testing agent used after significant changes: NO
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: []
-  - Known regressions: Accessing old files in the training module is broken on production after the storage migration.
+  - Known regressions: None new. The amoCRM widget issue is a pre-existing bug that has been prioritized.
 
 **Credentials to test flow:**
 -   Admin:  / 
 -   Manager (Employee):  / 
 
 **What agent forgot to execute**
--   The agent did not fully test the backward-compatibility for file access after migrating to GridFS, leading to the current P0 production bug. While it couldn't be fully tested without the production data, a more defensive coding approach or adding more detailed logging initially might have helped.
--   The component structure of  has become overly complex with multiple nested components defined in the same file. This was not refactored and should be addressed to improve maintainability.</analysis>
+-   The agent correctly identified the need to test the new sauna dependency system but did not perform the end-to-end test before concluding the implementation.
+-   The investigation into the P0 amoCRM widget bug was just beginning when the session ended. No implementation was attempted.</analysis>
