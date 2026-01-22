@@ -36,12 +36,13 @@ export const ModelEditDialog = memo(({
   const [uploadingVariant, setUploadingVariant] = useState(null);
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
   
-  // Get color categories (categories with "color" or "цвет" in name)
+  // Get color categories (categories with "color" or "цвет" in name or id)
   const colorCategories = categories.filter(cat => 
     cat.name?.toLowerCase().includes('color') || 
     cat.name?.toLowerCase().includes('цвет') ||
     cat.name?.toLowerCase().includes('kolor') ||
-    cat.id?.toLowerCase().includes('color')
+    cat.id?.toLowerCase().includes('color') ||
+    cat.id?.toLowerCase().includes('kolor')
   );
   
   useEffect(() => {
