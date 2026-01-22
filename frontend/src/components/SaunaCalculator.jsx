@@ -702,8 +702,8 @@ const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, ha
   </div>
 );
 
-const DropdownOptions = ({ category, formData, handleRadioChange, getCategoryName, txt }) => {
-  const selectedOption = category.options?.find(o => o.id === formData.selections[category.id]);
+const DropdownOptions = ({ category, options, formData, handleRadioChange, getCategoryName, txt }) => {
+  const selectedOption = options.find(o => o.id === formData.selections[category.id]);
   const hasMedia = selectedOption?.hintImageUrl || selectedOption?.hintVideoUrl;
   
   return (
@@ -713,7 +713,7 @@ const DropdownOptions = ({ category, formData, handleRadioChange, getCategoryNam
           <SelectValueOrange placeholder={getCategoryName(category)} />
         </SelectTriggerOrange>
         <SelectContentOrange>
-          {category.options?.map((option) => (
+          {options.map((option) => (
             <SelectItemOrange key={option.id} value={option.id}>
               <div className="flex items-center gap-2">
                 {option.imageUrl && <img src={option.imageUrl} alt={option.name} className="w-8 h-6 object-cover rounded" loading="lazy" />}
