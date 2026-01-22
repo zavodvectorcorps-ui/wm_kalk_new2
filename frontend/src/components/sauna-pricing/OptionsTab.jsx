@@ -200,6 +200,8 @@ export const OptionsTab = ({
         editingOption={editingOption}
         setEditingOption={setEditingOption}
         techSpecCategories={techSpecCategories}
+        categories={prices.categories}
+        models={prices.models}
         onSave={onSaveEditOption}
         txt={txt}
       />
