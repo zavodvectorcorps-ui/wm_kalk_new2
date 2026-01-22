@@ -426,6 +426,11 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         adminDiscountApprovedAt: appliedDiscount > 10 && adminDiscountApproved ? new Date().toISOString() : '',
         requestedDiscount: !isAdminUser ? requestedDiscount : 0,
         requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
+        // Edit mode fields
+        ...(isEditMode && editOrderId && {
+          updatedBy: user?.username || 'calculator',
+          updatedAt: new Date().toISOString(),
+        }),
         // amoCRM integration fields - use 'calculator_amocrm' to distinguish from webhook imports
         ...(amocrmData && {
           amocrm_id: amocrmData.amocrm_id,
