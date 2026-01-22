@@ -626,9 +626,17 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
   </Card>
 );
 
-const CategoryCard = ({ category, formData, handleRadioChange, handleCheckboxChange, handleQuantityChange, getCategoryName, txt }) => {
+const CategoryCard = ({ category, filteredOptions, formData, handleRadioChange, handleCheckboxChange, handleQuantityChange, getCategoryName, txt }) => {
   const Icon = categoryIcons[category.name] || Package;
   const isDropdownView = category.displayType === 'dropdown';
+  
+  // Use filtered options if provided, otherwise use category options
+  const options = filteredOptions || category.options || [];
+  
+  // If no options available after filtering, don't render the category
+  if (options.length === 0) {
+    return null;
+  }
   
   return (
     <Card className="shadow-md">
@@ -643,20 +651,20 @@ const CategoryCard = ({ category, formData, handleRadioChange, handleCheckboxCha
         <CategoryHint category={category} />
         
         {category.inputType === 'checkbox' ? (
-          <CheckboxOptions category={category} formData={formData} handleCheckboxChange={handleCheckboxChange} handleQuantityChange={handleQuantityChange} txt={txt} />
+          <CheckboxOptions category={category} options={options} formData={formData} handleCheckboxChange={handleCheckboxChange} handleQuantityChange={handleQuantityChange} txt={txt} />
         ) : isDropdownView ? (
-          <DropdownOptions category={category} formData={formData} handleRadioChange={handleRadioChange} getCategoryName={getCategoryName} txt={txt} />
+          <DropdownOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} getCategoryName={getCategoryName} txt={txt} />
         ) : (
-          <RadioOptions category={category} formData={formData} handleRadioChange={handleRadioChange} handleQuantityChange={handleQuantityChange} txt={txt} />
+          <RadioOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} handleQuantityChange={handleQuantityChange} txt={txt} />
         )}
       </CardContent>
     </Card>
   );
 };
 
-const CheckboxOptions = ({ category, formData, handleCheckboxChange, handleQuantityChange, txt }) => (
+const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, handleQuantityChange, txt }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-    {category.options?.map((option) => {
+    {options.map((option) => {
       const isChecked = formData.selections[category.id]?.[option.id] || false;
       const quantity = formData.quantities[option.id] || 1;
       return (
