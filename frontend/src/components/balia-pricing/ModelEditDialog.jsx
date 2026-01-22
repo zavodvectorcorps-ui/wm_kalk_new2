@@ -29,11 +29,20 @@ export const ModelEditDialog = memo(({
   onClose,
   onSave,
   txt,
-  currencySymbol
+  currencySymbol,
+  categories = []
 }) => {
   const [formData, setFormData] = useState(model || {});
   const [uploadingVariant, setUploadingVariant] = useState(null);
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
+  
+  // Get color categories (categories with "color" or "цвет" in name)
+  const colorCategories = categories.filter(cat => 
+    cat.name?.toLowerCase().includes('color') || 
+    cat.name?.toLowerCase().includes('цвет') ||
+    cat.name?.toLowerCase().includes('kolor') ||
+    cat.id?.toLowerCase().includes('color')
+  );
   
   useEffect(() => {
     if (model) {
