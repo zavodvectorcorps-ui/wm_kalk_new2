@@ -634,9 +634,16 @@ async def create_order(order: Order):
 
 
 @router.get("/orders", response_model=List[Order])
-async def get_orders():
-    """Get all orders"""
-    orders = await db.orders.find({}, {"_id": 0}).to_list(1000)
+async def get_orders(username: str = None, role: str = None):
+    """Get orders - admins see all, managers see only their own"""
+    # Build query filter
+    query = {}
+    
+    # If user is a manager (not admin), filter by createdBy
+    if role and role != 'admin' and username:
+        query['createdBy'] = username
+    
+    orders = await db.orders.find(query, {"_id": 0}).to_list(1000)
     return orders
 
 
