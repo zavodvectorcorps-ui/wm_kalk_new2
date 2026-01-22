@@ -1669,7 +1669,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                           })()}
                         </SelectTrigger>
                         <SelectContent>
-                          {category.options?.filter(option => {
+                          {filterOptionsByBowlType(category, category.options || []).filter(option => {
                             // Hide "Bez..." options
                             const optName = (option.namePl || option.name || '').toLowerCase();
                             return !optName.startsWith('bez ') && !optName.startsWith('без ');
