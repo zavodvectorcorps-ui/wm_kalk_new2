@@ -417,6 +417,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             <CategoryCard
               key={category.id}
               category={category}
+              filteredOptions={filterCompatibleOptions(category)}
               formData={formData}
               handleRadioChange={handleRadioChange}
               handleCheckboxChange={handleCheckboxChange}
