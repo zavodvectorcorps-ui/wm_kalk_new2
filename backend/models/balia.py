@@ -244,6 +244,7 @@ class Order(BaseModel):
     # amoCRM fields
     amocrm_id: Optional[str] = None
     amocrm_link: Optional[str] = None
+    amocrm_name: Optional[str] = None  # amoCRM deal name
     amocrm_data: Optional[Dict[str, Any]] = None
     order_number: Optional[str] = None
     budget: Optional[float] = None
