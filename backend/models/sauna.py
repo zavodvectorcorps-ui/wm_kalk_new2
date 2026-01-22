@@ -32,9 +32,12 @@ class SaunaOption(BaseModel):
     hint: Optional[str] = None
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None
-    # Compatibility settings
-    compatibleModels: Optional[List[str]] = []  # List of model IDs this option works with (empty = all models)
-    compatibleWithOptions: Optional[Dict[str, List[str]]] = {}  # Dependencies: {categoryId: [optionId1, optionId2]}
+    # Incompatibility settings (inverted logic - specify when to HIDE)
+    incompatibleModels: Optional[List[str]] = []  # List of model IDs - hide option when these models selected
+    incompatibleWithOptions: Optional[Dict[str, List[str]]] = {}  # Hide when: {categoryId: [optionId1, optionId2]}
+    # Legacy compatibility settings (kept for backward compatibility)
+    compatibleModels: Optional[List[str]] = []
+    compatibleWithOptions: Optional[Dict[str, List[str]]] = {}
 
 
 class SaunaCategory(BaseModel):
