@@ -32,6 +32,9 @@ class SaunaOption(BaseModel):
     hint: Optional[str] = None
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None
+    # Compatibility settings
+    compatibleModels: Optional[List[str]] = []  # List of model IDs this option works with (empty = all models)
+    compatibleWithOptions: Optional[Dict[str, List[str]]] = {}  # Dependencies: {categoryId: [optionId1, optionId2]}
 
 
 class SaunaCategory(BaseModel):
