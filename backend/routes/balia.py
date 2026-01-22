@@ -715,6 +715,25 @@ async def update_order(order_id: str, order: Order):
     
     # Return updated order
     updated = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    
+    # Send note to amoCRM if order has amocrm_id and there were changes
+    if changes and updated.get('amocrm_id'):
+        try:
+            settings = get_amocrm_settings()
+            domain = settings.get('amocrm_domain')
+            token = settings.get('amocrm_token')
+            
+            if domain and token:
+                # Format change list for note
+                changed_fields = [c['field'] for c in changes]
+                changed_by = order_dict.get('updatedBy', 'система')
+                note_text = f"✏️ Заказ изменён пользователем {changed_by}\n\nИзменённые поля: {', '.join(changed_fields)}"
+                
+                await add_note_to_amocrm(updated['amocrm_id'], note_text, domain, token)
+                logger.info(f"Note sent to amoCRM for order {order_id}")
+        except Exception as e:
+            logger.error(f"Failed to send note to amoCRM: {e}")
+    
     return updated
 
 
