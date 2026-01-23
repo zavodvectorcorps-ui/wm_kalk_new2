@@ -2149,7 +2149,7 @@ async def edit_gifts_page(lead_id: str):
 @router.post("/save-gifts/{lead_id}")
 async def save_gifts(lead_id: str, data: dict):
     """Save gifts and discount for an order, regenerate PDF and upload to amoCRM."""
-    from routes.amocrm import upload_pdf_to_amocrm, add_note_to_amocrm, get_amocrm_settings
+    from routes.amocrm import upload_calculator_pdf_to_amocrm, add_note_to_amocrm, get_amocrm_settings
     
     order, section = get_all_orders_by_amocrm_id(lead_id)
     
