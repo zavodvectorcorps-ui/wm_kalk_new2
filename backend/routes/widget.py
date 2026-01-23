@@ -1241,8 +1241,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             margin-bottom: 8px;
         }}
         .preview-options {{
-            max-height: 250px;
-            overflow-y: auto;
+            /* No height limit - show all options */
             border: 1px solid {'#334155' if is_dark else '#e5e7eb'};
             border-radius: 8px;
         }}
