@@ -694,14 +694,14 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             padding: 20px;
             font-size: 14px;
             line-height: 1.5;
-            min-height: 900px;
-            height: auto;
+            min-height: 1000px;
+            height: 1000px;
             overflow-y: auto;
         }}
         .widget {{
             max-width: 520px;
             margin: 0 auto;
-            min-height: 850px;
+            min-height: 950px;
         }}
         .header {{
             text-align: center;
