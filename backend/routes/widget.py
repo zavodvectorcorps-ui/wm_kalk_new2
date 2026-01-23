@@ -2340,10 +2340,12 @@ async def save_gifts(lead_id: str, data: dict):
     pdf_uploaded = False
     pdf_error = None
     
-    # Only generate PDF for balia orders (they have the PDF generation logic)
-    if section == 'balia':
+    # Generate PDF for balia and sauna orders
+    logger.info(f"Order section: {section}, order_id: {order_id}")
+    
+    if section in ['balia', 'sauna']:
         try:
-            logger.info(f"Generating new PDF for order {order_id} after widget edit")
+            logger.info(f"Starting PDF generation for order {order_id} (section: {section}) after widget edit")
             pdf_result = await generate_and_upload_pdf_to_amocrm(
                 order, 
                 lead_id, 
@@ -2360,7 +2362,7 @@ async def save_gifts(lead_id: str, data: dict):
             logger.error(f"Error generating/uploading PDF: {e}", exc_info=True)
             pdf_error = str(e)
     else:
-        logger.info(f"Skipping PDF generation for non-balia section: {section}")
+        logger.info(f"Skipping PDF generation for section: {section} (only balia/sauna supported)")
     
     # Add note to amoCRM about the changes
     note_sent = False
