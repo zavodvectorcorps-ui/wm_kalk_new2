@@ -47,6 +47,101 @@ def get_all_orders_by_amocrm_id(amocrm_id: str):
     return None, None
 
 
+def build_pdf_request_from_order(order: dict, admin_gifts: list = None, discount_percent: float = None) -> PDFRequest:
+    """Build PDFRequest from order data for PDF generation.
+    
+    Args:
+        order: Order document from database
+        admin_gifts: Optional override for admin gifts (used when saving new values)
+        discount_percent: Optional override for discount (used when saving new values)
+    
+    Returns:
+        PDFRequest object ready for PDF generation
+    """
+    # Use overrides if provided, otherwise get from order
+    gifts = admin_gifts if admin_gifts is not None else order.get('adminGifts', [])
+    discount = discount_percent if discount_percent is not None else order.get('discountPercent', 0)
+    
+    return PDFRequest(
+        orderId=order.get('id'),
+        fullName=order.get('fullName') or order.get('clientName', ''),
+        phoneNumber=order.get('phoneNumber') or order.get('phone', ''),
+        fullAddress=order.get('fullAddress') or order.get('address', ''),
+        orderDate=order.get('orderDate', datetime.now(timezone.utc).strftime('%Y-%m-%d')),
+        modelId=order.get('modelId'),
+        modelName=order.get('modelName'),
+        modelPrice=order.get('modelPrice', 0),
+        modelImageUrl=order.get('modelImageUrl'),
+        modelSpecs=order.get('modelSpecs', {}),
+        heaterType=order.get('heaterType'),
+        heaterTypeName=order.get('heaterTypeName'),
+        selectedHeaterVariantId=order.get('selectedHeaterVariantId'),
+        selections=order.get('selections', {}),
+        selectedOptions=order.get('selectedOptions', []),
+        currency=order.get('currency', 'PLN'),
+        discountPercent=discount,
+        subtotal=order.get('subtotal', 0),
+        adminGifts=gifts,
+        notes=order.get('notes', ''),
+        total=order.get('total', 0),
+        type=order.get('type', 'customer'),
+        language=order.get('language', 'pl')
+    )
+
+
+async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, admin_gifts: list = None, discount_percent: float = None) -> dict:
+    """Generate PDF from order and upload to amoCRM lead.
+    
+    Args:
+        order: Order document from database
+        lead_id: amoCRM lead ID
+        admin_gifts: Optional override for admin gifts
+        discount_percent: Optional override for discount
+    
+    Returns:
+        dict with success status and details
+    """
+    try:
+        # Get amoCRM settings
+        settings = get_amocrm_settings()
+        domain = settings.get('amocrm_domain')
+        token = settings.get('amocrm_token')
+        
+        if not domain or not token:
+            logger.warning("amoCRM credentials not configured for PDF upload")
+            return {"success": False, "error": "amoCRM не настроен"}
+        
+        # Build PDF request from order with overrides
+        pdf_request = build_pdf_request_from_order(order, admin_gifts, discount_percent)
+        
+        # Generate PDF bytes
+        logger.info(f"Generating PDF for order {order.get('id')} (lead {lead_id})")
+        pdf_bytes = await generate_pdf_bytes(pdf_request)
+        
+        if not pdf_bytes:
+            logger.error("PDF generation returned empty result")
+            return {"success": False, "error": "Ошибка генерации PDF"}
+        
+        # Create filename
+        order_id = order.get('id', f"WM-{datetime.now().strftime('%Y%m%d%H%M%S')}")
+        filename = f"Oferta_{order_id}.pdf"
+        
+        # Upload to amoCRM
+        logger.info(f"Uploading PDF to amoCRM lead {lead_id}: {filename} ({len(pdf_bytes)} bytes)")
+        upload_result = await upload_pdf_to_amocrm_drive(lead_id, pdf_bytes, filename, domain, token)
+        
+        if upload_result.get("success"):
+            logger.info(f"PDF successfully uploaded to amoCRM: {upload_result}")
+            return {"success": True, "filename": filename, "file_uuid": upload_result.get("file_uuid")}
+        else:
+            logger.error(f"PDF upload failed: {upload_result}")
+            return {"success": False, "error": upload_result.get("error", "Ошибка загрузки")}
+            
+    except Exception as e:
+        logger.error(f"Error in generate_and_upload_pdf_to_amocrm: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
 def build_preview_panel(order, section):
     """Build inline order preview panel for widget."""
     if not order:
