@@ -1103,13 +1103,13 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         <!-- Edit Button (if order exists and has PDF) -->
         {f'''<div class="section">
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <a href="{base_url}/api/widget/preview/{lead_id}" target="_blank" class="btn btn-view" style="flex: 1; min-width: 140px;">
+                <button type="button" class="btn btn-view" style="flex: 1; min-width: 140px;" onclick="togglePreviewPanel()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                         <circle cx="12" cy="12" r="3"/>
                     </svg>
                     Просмотр заказа
-                </a>
+                </button>
                 <button type="button" class="btn btn-gift" style="flex: 1; min-width: 140px;" onclick="toggleGiftsPanel()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
                         <polyline points="20 12 20 22 4 22 4 12"/>
@@ -1129,6 +1129,9 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 Редактировать заказ полностью
             </a>
         </div>''' if has_selections else ''}
+        
+        <!-- Inline Preview Panel -->
+        {build_preview_panel(order, section) if has_selections else ''}
         
         <!-- Inline Gifts Panel -->
         {build_gifts_panel(order, base_url, lead_id) if has_selections else ''}
