@@ -1128,10 +1128,10 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 </svg>
                 Редактировать заказ полностью
             </a>
-        </div>''' if has_pdf else ''}
+        </div>''' if has_selections else ''}
         
         <!-- Inline Gifts Panel -->
-        {build_gifts_panel(order, base_url, lead_id) if has_pdf else ''}
+        {build_gifts_panel(order, base_url, lead_id) if has_selections else ''}
 """
         
         # Change history section
