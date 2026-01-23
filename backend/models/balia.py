@@ -284,7 +284,8 @@ class PDFRequest(BaseModel):
     selectedHeaterVariantId: Optional[str] = None  # ID for Excel mapping
     selections: Optional[Dict[str, Any]] = {}
     selectedOptions: Optional[List[Dict[str, Any]]] = []
-    currency: Optional[str] = "EUR"
+    currency: Optional[str] = "PLN"
+    currencySymbol: Optional[str] = "zł"  # Currency symbol for display
     discountPercent: Optional[float] = 0.0
     subtotal: Optional[float] = 0.0
     # Admin gifts - list of option IDs that are gifts
