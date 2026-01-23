@@ -13,7 +13,7 @@ import os
 import json
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://saunalogistics.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://heatwave-dash.preview.emergentagent.com').rstrip('/')
 
 class TestAmoCRMWidgetEditFlow:
     """Test amoCRM widget edit order functionality"""
