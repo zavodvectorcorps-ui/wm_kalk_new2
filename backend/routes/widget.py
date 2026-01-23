@@ -62,6 +62,10 @@ def build_pdf_request_from_order(order: dict, admin_gifts: list = None, discount
     gifts = admin_gifts if admin_gifts is not None else order.get('adminGifts', [])
     discount = discount_percent if discount_percent is not None else order.get('discountPercent', 0)
     
+    # Determine currency symbol
+    currency = order.get('currency', 'PLN')
+    currency_symbol = order.get('currencySymbol', 'zł' if currency == 'PLN' else '€')
+    
     return PDFRequest(
         orderId=order.get('id'),
         fullName=order.get('fullName') or order.get('clientName', ''),
@@ -78,7 +82,8 @@ def build_pdf_request_from_order(order: dict, admin_gifts: list = None, discount
         selectedHeaterVariantId=order.get('selectedHeaterVariantId'),
         selections=order.get('selections', {}),
         selectedOptions=order.get('selectedOptions', []),
-        currency=order.get('currency', 'PLN'),
+        currency=currency,
+        currencySymbol=currency_symbol,
         discountPercent=discount,
         subtotal=order.get('subtotal', 0),
         adminGifts=gifts,
