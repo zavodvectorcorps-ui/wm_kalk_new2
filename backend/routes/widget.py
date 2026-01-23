@@ -1290,7 +1290,7 @@ async def preview_order(lead_id: str):
 
 @router.get("/edit-gifts/{lead_id}", response_class=HTMLResponse)
 async def edit_gifts_page(lead_id: str):
-    """Page for editing gifts and discounts for an order."""
+    """Page for editing gifts and discounts - shows order preview with gift toggles."""
     order, section = get_all_orders_by_amocrm_id(lead_id)
     
     if not order:
@@ -1320,37 +1320,46 @@ async def edit_gifts_page(lead_id: str):
     
     order_id = order.get('id', '-')
     client_name = order.get('fullName') or order.get('clientName', '-')
+    phone = order.get('phoneNumber') or order.get('phone', '-')
+    address = order.get('fullAddress') or order.get('address', '-')
     total = order.get('total', 0)
     discount = order.get('discountPercent', 0)
     admin_gifts = order.get('adminGifts', [])
+    model_name = order.get('modelName', '-')
     
-    # Get all available options for gifts
-    if section == 'sauna':
-        prices = db.sauna_prices.find_one({}, {"_id": 0})
-    else:
-        prices = db.prices.find_one({}, {"_id": 0})
-    
-    categories = prices.get('categories', []) if prices else []
-    
-    # Build options checkboxes
+    # Build selected options HTML with gift toggles
     options_html = ""
-    for cat in categories:
-        cat_name = cat.get('name', '')
-        cat_options = cat.get('options', [])
-        if cat_options:
-            options_html += f"<div class='category'><h4>{cat_name}</h4><div class='options-grid'>"
-            for opt in cat_options:
-                opt_id = opt.get('id', '')
-                opt_name = opt.get('name', '')
-                opt_price = opt.get('price', 0)
+    selected_options = order.get('selectedOptions', [])
+    
+    if isinstance(selected_options, list) and selected_options:
+        for sel in selected_options:
+            if isinstance(sel, dict):
+                opt_id = sel.get('optionId', '')
+                cat_name = sel.get('categoryName', '')
+                opt_name = sel.get('optionName', '')
+                opt_price = sel.get('optionPrice', 0)
                 is_gift = opt_id in admin_gifts
-                options_html += f"""
-                <label class="option-item {'selected' if is_gift else ''}">
-                    <input type="checkbox" name="gifts" value="{opt_id}" {'checked' if is_gift else ''}>
-                    <span class="option-name">{opt_name}</span>
-                    <span class="option-price">{opt_price:,.0f} zł</span>
-                </label>"""
-            options_html += "</div></div>"
+                
+                if cat_name and opt_name:
+                    options_html += f"""
+                    <div class="option-row {'is-gift' if is_gift else ''}">
+                        <div class="option-info">
+                            <span class="option-category">{cat_name}</span>
+                            <span class="option-name">{opt_name}</span>
+                        </div>
+                        <div class="option-actions">
+                            <span class="option-price {'gift-price' if is_gift else ''}">{opt_price:,.0f} zł</span>
+                            <label class="gift-toggle">
+                                <input type="checkbox" name="gifts" value="{opt_id}" data-price="{opt_price}" {'checked' if is_gift else ''}>
+                                <span class="toggle-label">🎁</span>
+                            </label>
+                        </div>
+                    </div>"""
+    else:
+        options_html = "<p style='color: #6b7280; text-align: center;'>Нет выбранных опций в заказе</p>"
+    
+    # Current gifts display
+    gifts_total = sum([sel.get('optionPrice', 0) for sel in selected_options if isinstance(sel, dict) and sel.get('optionId') in admin_gifts])
     
     html = f"""
     <!DOCTYPE html>
@@ -1360,70 +1369,193 @@ async def edit_gifts_page(lead_id: str):
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Подарки - {order_id}</title>
         <style>
+            * {{ box-sizing: border-box; }}
             body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f3f4f6; }}
-            .container {{ max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-            h1 {{ color: #1f2937; margin-bottom: 8px; }}
-            .header-info {{ display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb; margin-bottom: 20px; }}
-            .category {{ margin-bottom: 20px; }}
-            .category h4 {{ color: #374151; margin-bottom: 12px; padding: 8px 12px; background: #f3f4f6; border-radius: 6px; }}
-            .options-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }}
-            .option-item {{ display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s; }}
-            .option-item:hover {{ border-color: #10b981; background: #f0fdf4; }}
-            .option-item.selected {{ border-color: #10b981; background: #dcfce7; }}
-            .option-item input {{ width: 18px; height: 18px; accent-color: #10b981; }}
-            .option-name {{ flex: 1; font-size: 14px; }}
-            .option-price {{ font-size: 12px; color: #6b7280; }}
-            .discount-section {{ margin: 20px 0; padding: 16px; background: #fef3c7; border-radius: 8px; }}
-            .discount-section label {{ display: block; margin-bottom: 8px; font-weight: 500; }}
-            .discount-section input {{ width: 100px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; }}
-            .btn {{ display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 8px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }}
+            .container {{ max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }}
+            
+            .header {{ background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 24px; }}
+            .header h1 {{ margin: 0 0 8px 0; font-size: 24px; }}
+            .header-info {{ display: flex; justify-content: space-between; align-items: flex-end; }}
+            .client-info {{ font-size: 14px; opacity: 0.9; }}
+            .total-box {{ text-align: right; }}
+            .total-amount {{ font-size: 28px; font-weight: bold; }}
+            .discount-badge {{ background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-top: 4px; display: inline-block; }}
+            
+            .content {{ padding: 24px; }}
+            
+            .section-title {{ font-size: 16px; font-weight: 600; color: #374151; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }}
+            
+            .discount-section {{ background: #fef3c7; padding: 16px; border-radius: 8px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; }}
+            .discount-section label {{ font-weight: 500; color: #92400e; white-space: nowrap; }}
+            .discount-section input {{ width: 80px; padding: 8px 12px; border: 2px solid #fbbf24; border-radius: 6px; font-size: 18px; font-weight: bold; text-align: center; }}
+            .discount-section input:focus {{ outline: none; border-color: #f59e0b; }}
+            
+            .options-list {{ border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }}
+            
+            .option-row {{ display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; transition: all 0.2s; }}
+            .option-row:last-child {{ border-bottom: none; }}
+            .option-row:hover {{ background: #f9fafb; }}
+            .option-row.is-gift {{ background: #dcfce7; }}
+            
+            .option-info {{ flex: 1; }}
+            .option-category {{ display: block; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }}
+            .option-name {{ font-size: 14px; color: #1f2937; }}
+            
+            .option-actions {{ display: flex; align-items: center; gap: 12px; }}
+            .option-price {{ font-size: 14px; font-weight: 600; color: #374151; min-width: 80px; text-align: right; }}
+            .option-price.gift-price {{ color: #10b981; text-decoration: line-through; }}
+            
+            .gift-toggle {{ cursor: pointer; }}
+            .gift-toggle input {{ display: none; }}
+            .toggle-label {{ display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; background: #f3f4f6; border: 2px solid #e5e7eb; font-size: 18px; transition: all 0.2s; }}
+            .gift-toggle input:checked + .toggle-label {{ background: #dcfce7; border-color: #10b981; }}
+            .gift-toggle:hover .toggle-label {{ border-color: #10b981; }}
+            
+            .summary {{ background: #f9fafb; padding: 16px; border-radius: 8px; margin-top: 24px; }}
+            .summary-row {{ display: flex; justify-content: space-between; padding: 8px 0; }}
+            .summary-row.total {{ font-size: 18px; font-weight: bold; border-top: 2px solid #e5e7eb; margin-top: 8px; padding-top: 16px; }}
+            .gift-value {{ color: #10b981; }}
+            
+            .actions {{ display: flex; gap: 12px; margin-top: 24px; }}
+            .btn {{ flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 24px; border-radius: 8px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; }}
             .btn-save {{ background: #10b981; color: white; }}
             .btn-save:hover {{ background: #059669; }}
             .btn-save:disabled {{ background: #9ca3af; cursor: not-allowed; }}
-            .btn-cancel {{ background: #e5e7eb; color: #374151; text-decoration: none; }}
-            .actions {{ display: flex; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb; }}
-            .status {{ padding: 12px; border-radius: 8px; margin-top: 16px; display: none; }}
+            .btn-cancel {{ background: #e5e7eb; color: #374151; }}
+            .btn-cancel:hover {{ background: #d1d5db; }}
+            
+            .status {{ padding: 12px; border-radius: 8px; margin-top: 16px; text-align: center; display: none; }}
             .status.success {{ display: block; background: #dcfce7; color: #166534; }}
             .status.error {{ display: block; background: #fee2e2; color: #991b1b; }}
+            
             .loading {{ display: none; }}
-            .loading.show {{ display: inline-block; }}
+            .loading.show {{ display: inline-block; animation: spin 1s linear infinite; }}
+            @keyframes spin {{ 100% {{ transform: rotate(360deg); }} }}
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="header-info">
-                <div>
-                    <h1>🎁 Подарки и скидки</h1>
-                    <p style="color: #6b7280; margin: 0;">Заказ: {order_id} • {client_name}</p>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 24px; font-weight: bold; color: #059669;">{total:,.0f} zł</div>
+            <div class="header">
+                <h1>🎁 Редактирование подарков</h1>
+                <div class="header-info">
+                    <div class="client-info">
+                        <div><strong>{order_id}</strong></div>
+                        <div>{client_name}</div>
+                        <div>{model_name}</div>
+                    </div>
+                    <div class="total-box">
+                        <div class="total-amount" id="totalDisplay">{total:,.0f} zł</div>
+                        <div class="discount-badge" id="discountBadge" style="{'display:inline-block' if discount > 0 else 'display:none'}">
+                            Скидка: <span id="discountDisplay">{discount}</span>%
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <form id="giftsForm">
-                <div class="discount-section">
-                    <label>📊 Скидка (%)</label>
-                    <input type="number" id="discount" value="{discount}" min="0" max="100" step="1">
-                    <span style="margin-left: 8px; color: #6b7280;">% от общей суммы</span>
-                </div>
-                
-                <h3 style="margin-top: 24px; color: #374151;">Выберите опции в подарок:</h3>
-                {options_html}
-                
-                <div id="status" class="status"></div>
-                
-                <div class="actions">
-                    <button type="submit" class="btn btn-save" id="saveBtn">
-                        <span class="loading" id="loadingSpinner">⏳</span>
-                        💾 Сохранить и обновить PDF
-                    </button>
-                    <a href="javascript:window.close()" class="btn btn-cancel">Отмена</a>
-                </div>
-            </form>
+            <div class="content">
+                <form id="giftsForm">
+                    <div class="discount-section">
+                        <label>📊 Скидка</label>
+                        <input type="number" id="discount" value="{discount}" min="0" max="100" step="1">
+                        <span style="color: #6b7280;">%</span>
+                    </div>
+                    
+                    <div class="section-title">
+                        <span>Выбранные опции</span>
+                        <span style="font-weight: normal; font-size: 13px; color: #6b7280;">— нажмите 🎁 чтобы сделать подарком</span>
+                    </div>
+                    
+                    <div class="options-list">
+                        {options_html}
+                    </div>
+                    
+                    <div class="summary">
+                        <div class="summary-row">
+                            <span>Стоимость опций:</span>
+                            <span id="optionsTotal">0 zł</span>
+                        </div>
+                        <div class="summary-row gift-value">
+                            <span>🎁 Подарки:</span>
+                            <span id="giftsTotal">-{gifts_total:,.0f} zł</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Скидка:</span>
+                            <span id="discountTotal">0 zł</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Итого:</span>
+                            <span id="finalTotal">{total:,.0f} zł</span>
+                        </div>
+                    </div>
+                    
+                    <div id="status" class="status"></div>
+                    
+                    <div class="actions">
+                        <button type="submit" class="btn btn-save" id="saveBtn">
+                            <span class="loading" id="loadingSpinner">⏳</span>
+                            💾 Сохранить и обновить PDF
+                        </button>
+                        <a href="javascript:window.close()" class="btn btn-cancel">Закрыть</a>
+                    </div>
+                </form>
+            </div>
         </div>
         
         <script>
+            const baseTotal = {total};
+            
+            function updateSummary() {{
+                let optionsTotal = 0;
+                let giftsTotal = 0;
+                
+                document.querySelectorAll('input[name="gifts"]').forEach(cb => {{
+                    const price = parseFloat(cb.dataset.price) || 0;
+                    optionsTotal += price;
+                    if (cb.checked) {{
+                        giftsTotal += price;
+                    }}
+                }});
+                
+                const discount = parseInt(document.getElementById('discount').value) || 0;
+                const discountAmount = Math.round(baseTotal * discount / 100);
+                const finalTotal = baseTotal - discountAmount;
+                
+                document.getElementById('optionsTotal').textContent = optionsTotal.toLocaleString() + ' zł';
+                document.getElementById('giftsTotal').textContent = '-' + giftsTotal.toLocaleString() + ' zł';
+                document.getElementById('discountTotal').textContent = '-' + discountAmount.toLocaleString() + ' zł';
+                document.getElementById('finalTotal').textContent = finalTotal.toLocaleString() + ' zł';
+                document.getElementById('totalDisplay').textContent = finalTotal.toLocaleString() + ' zł';
+                
+                // Update discount badge
+                const badge = document.getElementById('discountBadge');
+                if (discount > 0) {{
+                    badge.style.display = 'inline-block';
+                    document.getElementById('discountDisplay').textContent = discount;
+                }} else {{
+                    badge.style.display = 'none';
+                }}
+            }}
+            
+            // Toggle gift visual
+            document.querySelectorAll('.gift-toggle input').forEach(cb => {{
+                cb.addEventListener('change', function() {{
+                    const row = this.closest('.option-row');
+                    const priceEl = row.querySelector('.option-price');
+                    
+                    row.classList.toggle('is-gift', this.checked);
+                    priceEl.classList.toggle('gift-price', this.checked);
+                    
+                    updateSummary();
+                }});
+            }});
+            
+            // Discount change
+            document.getElementById('discount').addEventListener('input', updateSummary);
+            
+            // Initial calculation
+            updateSummary();
+            
+            // Form submit
             document.getElementById('giftsForm').addEventListener('submit', async (e) => {{
                 e.preventDefault();
                 
@@ -1436,7 +1568,6 @@ async def edit_gifts_page(lead_id: str):
                 status.className = 'status';
                 status.textContent = '';
                 
-                // Collect selected gifts
                 const gifts = [];
                 document.querySelectorAll('input[name="gifts"]:checked').forEach(cb => {{
                     gifts.push(cb.value);
@@ -1458,31 +1589,19 @@ async def edit_gifts_page(lead_id: str):
                     
                     if (response.ok) {{
                         status.className = 'status success';
-                        status.textContent = '✅ ' + (result.message || 'Сохранено успешно!');
-                        
-                        // Close window after 2 seconds
-                        setTimeout(() => {{
-                            window.close();
-                        }}, 2000);
+                        status.textContent = '✅ ' + (result.message || 'Сохранено!');
+                        setTimeout(() => window.close(), 2000);
                     }} else {{
                         status.className = 'status error';
-                        status.textContent = '❌ ' + (result.detail || 'Ошибка сохранения');
+                        status.textContent = '❌ ' + (result.detail || 'Ошибка');
                     }}
                 }} catch (err) {{
                     status.className = 'status error';
-                    status.textContent = '❌ Ошибка: ' + err.message;
+                    status.textContent = '❌ ' + err.message;
                 }} finally {{
                     saveBtn.disabled = false;
                     spinner.classList.remove('show');
                 }}
-            }});
-            
-            // Update UI when checkbox changes
-            document.querySelectorAll('.option-item').forEach(item => {{
-                const checkbox = item.querySelector('input[type="checkbox"]');
-                checkbox.addEventListener('change', () => {{
-                    item.classList.toggle('selected', checkbox.checked);
-                }});
             }});
         </script>
     </body>
