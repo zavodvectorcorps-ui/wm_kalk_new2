@@ -42,6 +42,136 @@ def get_all_orders_by_amocrm_id(amocrm_id: str):
     return None, None
 
 
+def build_gifts_panel(order, base_url, lead_id):
+    """Build inline gifts editing panel for widget."""
+    if not order:
+        return ""
+    
+    admin_gifts = order.get('adminGifts', [])
+    discount = order.get('discountPercent', 0)
+    selected_options = order.get('selectedOptions', [])
+    
+    if not selected_options:
+        return ""
+    
+    # Build options list
+    options_html = ""
+    for opt in selected_options:
+        if isinstance(opt, dict):
+            opt_id = opt.get('optionId') or opt.get('id', '')
+            opt_name = opt.get('optionName') or opt.get('name', '')
+            opt_price = opt.get('price', 0) or opt.get('optionPrice', 0)
+            cat_name = opt.get('categoryName', '')
+            is_gift = opt_id in admin_gifts
+            
+            if opt_name:
+                options_html += f"""
+                <div class="gift-option {'is-gift' if is_gift else ''}" data-id="{opt_id}" data-price="{opt_price}">
+                    <div class="gift-option-info">
+                        <span class="gift-cat">{cat_name}</span>
+                        <span class="gift-name">{opt_name}</span>
+                    </div>
+                    <div class="gift-option-right">
+                        <span class="gift-price {'gift-strike' if is_gift else ''}">{opt_price:,.0f} zł</span>
+                        <label class="gift-check">
+                            <input type="checkbox" {'checked' if is_gift else ''} onchange="toggleGift(this, '{opt_id}')">
+                            <span>🎁</span>
+                        </label>
+                    </div>
+                </div>"""
+    
+    return f"""
+        <div id="giftsPanel" class="gifts-panel" style="display: none;">
+            <div class="gifts-header">
+                <span>🎁 Редактирование подарков</span>
+                <button type="button" class="gifts-close" onclick="toggleGiftsPanel()">✕</button>
+            </div>
+            
+            <div class="gifts-discount">
+                <label>Скидка:</label>
+                <input type="number" id="discountInput" value="{discount}" min="0" max="100" step="1">
+                <span>%</span>
+            </div>
+            
+            <div class="gifts-options">
+                {options_html}
+            </div>
+            
+            <div id="giftsStatus" class="gifts-status"></div>
+            
+            <button type="button" class="btn btn-save-gifts" onclick="saveGifts()" id="saveGiftsBtn">
+                💾 Сохранить изменения
+            </button>
+        </div>
+        
+        <script>
+            let selectedGifts = {list(admin_gifts)};
+            
+            function toggleGiftsPanel() {{
+                const panel = document.getElementById('giftsPanel');
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }}
+            
+            function toggleGift(checkbox, optId) {{
+                const row = checkbox.closest('.gift-option');
+                const priceEl = row.querySelector('.gift-price');
+                
+                if (checkbox.checked) {{
+                    if (!selectedGifts.includes(optId)) selectedGifts.push(optId);
+                    row.classList.add('is-gift');
+                    priceEl.classList.add('gift-strike');
+                }} else {{
+                    selectedGifts = selectedGifts.filter(id => id !== optId);
+                    row.classList.remove('is-gift');
+                    priceEl.classList.remove('gift-strike');
+                }}
+            }}
+            
+            async function saveGifts() {{
+                const btn = document.getElementById('saveGiftsBtn');
+                const status = document.getElementById('giftsStatus');
+                const discount = parseInt(document.getElementById('discountInput').value) || 0;
+                
+                btn.disabled = true;
+                btn.textContent = '⏳ Сохранение...';
+                status.textContent = '';
+                status.className = 'gifts-status';
+                
+                try {{
+                    const response = await fetch('{base_url}/api/widget/save-gifts/{lead_id}', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{
+                            adminGifts: selectedGifts,
+                            discountPercent: discount
+                        }})
+                    }});
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {{
+                        status.textContent = '✅ ' + (result.message || 'Сохранено!');
+                        status.className = 'gifts-status success';
+                        setTimeout(() => {{
+                            toggleGiftsPanel();
+                            location.reload();
+                        }}, 1500);
+                    }} else {{
+                        status.textContent = '❌ ' + (result.detail || 'Ошибка');
+                        status.className = 'gifts-status error';
+                    }}
+                }} catch (err) {{
+                    status.textContent = '❌ ' + err.message;
+                    status.className = 'gifts-status error';
+                }} finally {{
+                    btn.disabled = false;
+                    btn.textContent = '💾 Сохранить изменения';
+                }}
+            }}
+        </script>
+    """
+
+
 @router.get("/delivery-status/{lead_id}")
 async def get_delivery_status(lead_id: str):
     """Get delivery status for amoCRM lead.
