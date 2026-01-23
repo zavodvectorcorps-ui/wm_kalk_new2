@@ -1601,13 +1601,41 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
     </div>
     
     <script>
-        // Send height to parent for auto-resize iframe
+        // Send height to parent for auto-resize iframe (amoCRM widget)
         function sendHeight() {{
-            const height = document.body.scrollHeight;
+            const height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 900);
+            
+            // Method 1: Standard postMessage
             window.parent.postMessage({{ type: 'resize', height: height }}, '*');
+            
+            // Method 2: amoCRM specific resize message
+            window.parent.postMessage({{
+                handler: 'resize',
+                data: {{ height: height, width: 520 }}
+            }}, '*');
+            
+            // Method 3: Try setting iframe height directly if accessible
+            try {{
+                if (window.frameElement) {{
+                    window.frameElement.style.height = height + 'px';
+                    window.frameElement.style.minHeight = '900px';
+                }}
+            }} catch(e) {{}}
         }}
-        window.addEventListener('load', sendHeight);
+        
+        // Send height on load and resize
+        window.addEventListener('load', function() {{
+            sendHeight();
+            // Repeat after short delay to ensure content is rendered
+            setTimeout(sendHeight, 100);
+            setTimeout(sendHeight, 500);
+        }});
         window.addEventListener('resize', sendHeight);
+        
+        // Also send height when panels are toggled
+        document.addEventListener('click', function() {{
+            setTimeout(sendHeight, 100);
+        }});
     </script>
 </body>
 </html>
