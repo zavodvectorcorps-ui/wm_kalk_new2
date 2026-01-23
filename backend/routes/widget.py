@@ -1112,3 +1112,497 @@ async def salesbot_handler_get(lead_id: str = ""):
             }
         ]
     }
+
+
+@router.get("/preview/{lead_id}", response_class=HTMLResponse)
+async def preview_order(lead_id: str):
+    """Preview order details for amoCRM widget."""
+    order, section = get_all_orders_by_amocrm_id(lead_id)
+    
+    if not order:
+        return HTMLResponse(content="""
+        <html>
+        <head><meta charset="UTF-8"><title>Заказ не найден</title></head>
+        <body style="font-family: Arial; padding: 40px; text-align: center;">
+            <h2>⚠️ Заказ не найден</h2>
+            <p>Заказ с amocrm_id={lead_id} не найден в системе.</p>
+        </body>
+        </html>
+        """.replace("{lead_id}", lead_id), status_code=404)
+    
+    # Get base URL
+    app_domain = os.environ.get("APP_DOMAIN", "")
+    if app_domain:
+        base_url = f"https://{app_domain}"
+    else:
+        try:
+            with open("/app/frontend/.env", "r") as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        base_url = line.strip().split("=", 1)[1]
+                        break
+        except:
+            base_url = "https://wm-kalkulator.pl"
+    
+    # Build order details HTML
+    order_id = order.get('id', '-')
+    client_name = order.get('fullName') or order.get('clientName', '-')
+    phone = order.get('phoneNumber') or order.get('phone', '-')
+    address = order.get('fullAddress') or order.get('address', '-')
+    total = order.get('total', 0)
+    discount = order.get('discountPercent', 0)
+    admin_gifts = order.get('adminGifts', [])
+    model_name = order.get('modelName', '-')
+    created_at = order.get('createdAt', '-')
+    
+    # Format created date
+    if created_at and created_at != '-':
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(str(created_at).replace('Z', '+00:00'))
+            created_at = dt.strftime('%d.%m.%Y %H:%M')
+        except:
+            pass
+    
+    # Build selections HTML
+    selections_html = ""
+    selections = order.get('selectedOptions', [])
+    if isinstance(selections, list):
+        for sel in selections:
+            if isinstance(sel, dict):
+                cat_name = sel.get('categoryName', '')
+                opt_name = sel.get('optionName', '')
+                opt_price = sel.get('optionPrice', 0)
+                if cat_name and opt_name:
+                    selections_html += f"""
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">{cat_name}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">{opt_name}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">{opt_price:,.0f} zł</td>
+                    </tr>"""
+    
+    # Build gifts HTML
+    gifts_html = ""
+    if admin_gifts:
+        gifts_html = "<div style='margin-top: 16px; padding: 12px; background: #dcfce7; border-radius: 8px;'>"
+        gifts_html += "<strong style='color: #166534;'>🎁 Подарки:</strong><br>"
+        for gift in admin_gifts:
+            gifts_html += f"<span style='display: inline-block; margin: 4px; padding: 4px 8px; background: #bbf7d0; border-radius: 4px; font-size: 13px;'>{gift}</span>"
+        gifts_html += "</div>"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Заказ {order_id}</title>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f3f4f6; }}
+            .container {{ max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+            h1 {{ color: #1f2937; margin-bottom: 8px; }}
+            .badge {{ display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; }}
+            .badge-sauna {{ background: #fef3c7; color: #92400e; }}
+            .badge-balia {{ background: #dbeafe; color: #1e40af; }}
+            .info-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 20px 0; }}
+            .info-item {{ padding: 12px; background: #f9fafb; border-radius: 8px; }}
+            .info-label {{ font-size: 12px; color: #6b7280; margin-bottom: 4px; }}
+            .info-value {{ font-size: 16px; color: #1f2937; font-weight: 500; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+            th {{ background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; color: #374151; }}
+            .total-row {{ background: #fef3c7; font-weight: bold; }}
+            .discount {{ color: #dc2626; }}
+            .btn {{ display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s; }}
+            .btn-primary {{ background: #2563eb; color: white; }}
+            .btn-primary:hover {{ background: #1d4ed8; }}
+            .btn-secondary {{ background: #e5e7eb; color: #374151; }}
+            .btn-secondary:hover {{ background: #d1d5db; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h1>📋 Заказ {order_id}</h1>
+                    <span class="badge badge-{section}">{section.upper()}</span>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 24px; font-weight: bold; color: #059669;">{total:,.0f} zł</div>
+                    {f'<div class="discount">Скидка: {discount}%</div>' if discount > 0 else ''}
+                </div>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">👤 Клиент</div>
+                    <div class="info-value">{client_name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📞 Телефон</div>
+                    <div class="info-value">{phone}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📍 Адрес</div>
+                    <div class="info-value">{address}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">📅 Создан</div>
+                    <div class="info-value">{created_at}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🏷️ Модель</div>
+                    <div class="info-value">{model_name}</div>
+                </div>
+            </div>
+            
+            {gifts_html}
+            
+            {f'''<table>
+                <thead>
+                    <tr>
+                        <th>Категория</th>
+                        <th>Опция</th>
+                        <th style="text-align: right;">Цена</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {selections_html}
+                </tbody>
+            </table>''' if selections_html else ''}
+            
+            <div style="margin-top: 24px; display: flex; gap: 12px;">
+                <a href="{base_url}/api/widget/edit-gifts/{lead_id}" class="btn btn-primary">
+                    🎁 Редактировать подарки
+                </a>
+                <a href="{base_url}/?calc={section}&amocrm_id={lead_id}&edit=true" class="btn btn-secondary">
+                    ✏️ Редактировать полностью
+                </a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return HTMLResponse(content=html)
+
+
+@router.get("/edit-gifts/{lead_id}", response_class=HTMLResponse)
+async def edit_gifts_page(lead_id: str):
+    """Page for editing gifts and discounts for an order."""
+    order, section = get_all_orders_by_amocrm_id(lead_id)
+    
+    if not order:
+        return HTMLResponse(content=f"""
+        <html>
+        <head><meta charset="UTF-8"><title>Заказ не найден</title></head>
+        <body style="font-family: Arial; padding: 40px; text-align: center;">
+            <h2>⚠️ Заказ не найден</h2>
+            <p>Заказ с amocrm_id={lead_id} не найден в системе.</p>
+        </body>
+        </html>
+        """, status_code=404)
+    
+    # Get base URL
+    app_domain = os.environ.get("APP_DOMAIN", "")
+    if app_domain:
+        base_url = f"https://{app_domain}"
+    else:
+        try:
+            with open("/app/frontend/.env", "r") as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        base_url = line.strip().split("=", 1)[1]
+                        break
+        except:
+            base_url = "https://wm-kalkulator.pl"
+    
+    order_id = order.get('id', '-')
+    client_name = order.get('fullName') or order.get('clientName', '-')
+    total = order.get('total', 0)
+    discount = order.get('discountPercent', 0)
+    admin_gifts = order.get('adminGifts', [])
+    
+    # Get all available options for gifts
+    if section == 'sauna':
+        prices = db.sauna_prices.find_one({}, {"_id": 0})
+    else:
+        prices = db.prices.find_one({}, {"_id": 0})
+    
+    categories = prices.get('categories', []) if prices else []
+    
+    # Build options checkboxes
+    options_html = ""
+    for cat in categories:
+        cat_name = cat.get('name', '')
+        cat_options = cat.get('options', [])
+        if cat_options:
+            options_html += f"<div class='category'><h4>{cat_name}</h4><div class='options-grid'>"
+            for opt in cat_options:
+                opt_id = opt.get('id', '')
+                opt_name = opt.get('name', '')
+                opt_price = opt.get('price', 0)
+                is_gift = opt_id in admin_gifts
+                options_html += f"""
+                <label class="option-item {'selected' if is_gift else ''}">
+                    <input type="checkbox" name="gifts" value="{opt_id}" {'checked' if is_gift else ''}>
+                    <span class="option-name">{opt_name}</span>
+                    <span class="option-price">{opt_price:,.0f} zł</span>
+                </label>"""
+            options_html += "</div></div>"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Подарки - {order_id}</title>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f3f4f6; }}
+            .container {{ max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+            h1 {{ color: #1f2937; margin-bottom: 8px; }}
+            .header-info {{ display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb; margin-bottom: 20px; }}
+            .category {{ margin-bottom: 20px; }}
+            .category h4 {{ color: #374151; margin-bottom: 12px; padding: 8px 12px; background: #f3f4f6; border-radius: 6px; }}
+            .options-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }}
+            .option-item {{ display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s; }}
+            .option-item:hover {{ border-color: #10b981; background: #f0fdf4; }}
+            .option-item.selected {{ border-color: #10b981; background: #dcfce7; }}
+            .option-item input {{ width: 18px; height: 18px; accent-color: #10b981; }}
+            .option-name {{ flex: 1; font-size: 14px; }}
+            .option-price {{ font-size: 12px; color: #6b7280; }}
+            .discount-section {{ margin: 20px 0; padding: 16px; background: #fef3c7; border-radius: 8px; }}
+            .discount-section label {{ display: block; margin-bottom: 8px; font-weight: 500; }}
+            .discount-section input {{ width: 100px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; }}
+            .btn {{ display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 8px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }}
+            .btn-save {{ background: #10b981; color: white; }}
+            .btn-save:hover {{ background: #059669; }}
+            .btn-save:disabled {{ background: #9ca3af; cursor: not-allowed; }}
+            .btn-cancel {{ background: #e5e7eb; color: #374151; text-decoration: none; }}
+            .actions {{ display: flex; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb; }}
+            .status {{ padding: 12px; border-radius: 8px; margin-top: 16px; display: none; }}
+            .status.success {{ display: block; background: #dcfce7; color: #166534; }}
+            .status.error {{ display: block; background: #fee2e2; color: #991b1b; }}
+            .loading {{ display: none; }}
+            .loading.show {{ display: inline-block; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header-info">
+                <div>
+                    <h1>🎁 Подарки и скидки</h1>
+                    <p style="color: #6b7280; margin: 0;">Заказ: {order_id} • {client_name}</p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 24px; font-weight: bold; color: #059669;">{total:,.0f} zł</div>
+                </div>
+            </div>
+            
+            <form id="giftsForm">
+                <div class="discount-section">
+                    <label>📊 Скидка (%)</label>
+                    <input type="number" id="discount" value="{discount}" min="0" max="100" step="1">
+                    <span style="margin-left: 8px; color: #6b7280;">% от общей суммы</span>
+                </div>
+                
+                <h3 style="margin-top: 24px; color: #374151;">Выберите опции в подарок:</h3>
+                {options_html}
+                
+                <div id="status" class="status"></div>
+                
+                <div class="actions">
+                    <button type="submit" class="btn btn-save" id="saveBtn">
+                        <span class="loading" id="loadingSpinner">⏳</span>
+                        💾 Сохранить и обновить PDF
+                    </button>
+                    <a href="javascript:window.close()" class="btn btn-cancel">Отмена</a>
+                </div>
+            </form>
+        </div>
+        
+        <script>
+            document.getElementById('giftsForm').addEventListener('submit', async (e) => {{
+                e.preventDefault();
+                
+                const saveBtn = document.getElementById('saveBtn');
+                const status = document.getElementById('status');
+                const spinner = document.getElementById('loadingSpinner');
+                
+                saveBtn.disabled = true;
+                spinner.classList.add('show');
+                status.className = 'status';
+                status.textContent = '';
+                
+                // Collect selected gifts
+                const gifts = [];
+                document.querySelectorAll('input[name="gifts"]:checked').forEach(cb => {{
+                    gifts.push(cb.value);
+                }});
+                
+                const discount = parseInt(document.getElementById('discount').value) || 0;
+                
+                try {{
+                    const response = await fetch('{base_url}/api/widget/save-gifts/{lead_id}', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{
+                            adminGifts: gifts,
+                            discountPercent: discount
+                        }})
+                    }});
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {{
+                        status.className = 'status success';
+                        status.textContent = '✅ ' + (result.message || 'Сохранено успешно!');
+                        
+                        // Close window after 2 seconds
+                        setTimeout(() => {{
+                            window.close();
+                        }}, 2000);
+                    }} else {{
+                        status.className = 'status error';
+                        status.textContent = '❌ ' + (result.detail || 'Ошибка сохранения');
+                    }}
+                }} catch (err) {{
+                    status.className = 'status error';
+                    status.textContent = '❌ Ошибка: ' + err.message;
+                }} finally {{
+                    saveBtn.disabled = false;
+                    spinner.classList.remove('show');
+                }}
+            }});
+            
+            // Update UI when checkbox changes
+            document.querySelectorAll('.option-item').forEach(item => {{
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                checkbox.addEventListener('change', () => {{
+                    item.classList.toggle('selected', checkbox.checked);
+                }});
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    
+    return HTMLResponse(content=html)
+
+
+@router.post("/save-gifts/{lead_id}")
+async def save_gifts(lead_id: str, data: dict):
+    """Save gifts and discount for an order, regenerate PDF and upload to amoCRM."""
+    from routes.amocrm import upload_pdf_to_amocrm, add_note_to_amocrm, get_amocrm_settings
+    
+    order, section = get_all_orders_by_amocrm_id(lead_id)
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    
+    order_id = order.get('id')
+    admin_gifts = data.get('adminGifts', [])
+    discount_percent = data.get('discountPercent', 0)
+    
+    # Select correct collection
+    if section == 'sauna':
+        collection = sauna_orders
+    elif section == 'balia':
+        collection = balia_orders
+    else:
+        collection = greenhouse_orders
+    
+    # Track changes
+    changes = []
+    old_gifts = order.get('adminGifts', [])
+    old_discount = order.get('discountPercent', 0)
+    
+    if set(admin_gifts) != set(old_gifts):
+        changes.append({'field': 'adminGifts', 'oldValue': old_gifts, 'newValue': admin_gifts})
+    if discount_percent != old_discount:
+        changes.append({'field': 'discountPercent', 'oldValue': old_discount, 'newValue': discount_percent})
+    
+    if not changes:
+        return {"message": "Нет изменений для сохранения", "order_id": order_id}
+    
+    # Update order
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+    
+    history_entry = {
+        'timestamp': now,
+        'changes': changes,
+        'changedBy': 'amoCRM widget'
+    }
+    
+    change_history = order.get('changeHistory', []) or []
+    change_history.append(history_entry)
+    
+    update_data = {
+        'adminGifts': admin_gifts,
+        'discountPercent': discount_percent,
+        'changeHistory': change_history,
+        'updatedAt': now
+    }
+    
+    collection.update_one({'id': order_id}, {'$set': update_data})
+    
+    # Get base URL for PDF generation
+    app_domain = os.environ.get("APP_DOMAIN", "")
+    if app_domain:
+        base_url = f"https://{app_domain}"
+    else:
+        try:
+            with open("/app/frontend/.env", "r") as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        base_url = line.strip().split("=", 1)[1]
+                        break
+        except:
+            base_url = "https://wm-kalkulator.pl"
+    
+    # Try to regenerate PDF and upload to amoCRM
+    pdf_uploaded = False
+    try:
+        import httpx
+        
+        # Get updated order
+        updated_order = collection.find_one({'id': order_id}, {'_id': 0})
+        
+        # Generate PDF
+        pdf_endpoint = f"{base_url}/api/sauna/generate-pdf" if section == 'sauna' else f"{base_url}/api/generate-pdf"
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            pdf_response = await client.post(pdf_endpoint, json=updated_order)
+            
+            if pdf_response.status_code == 200:
+                pdf_bytes = pdf_response.content
+                
+                # Upload to amoCRM
+                settings = get_amocrm_settings()
+                domain = settings.get('amocrm_domain')
+                token = settings.get('amocrm_token')
+                
+                if domain and token:
+                    upload_result = await upload_pdf_to_amocrm(
+                        lead_id=lead_id,
+                        pdf_bytes=pdf_bytes,
+                        filename=f"quote_{order_id}.pdf",
+                        domain=domain,
+                        token=token
+                    )
+                    pdf_uploaded = upload_result.get('success', False)
+                    
+                    # Add note about changes
+                    changed_fields = ', '.join([c['field'] for c in changes])
+                    note_text = f"✏️ Заказ изменён через виджет\n\nИзменения: {changed_fields}"
+                    await add_note_to_amocrm(lead_id, note_text, domain, token)
+                    
+    except Exception as e:
+        logger.error(f"Error regenerating PDF: {e}")
+    
+    return {
+        "message": "Изменения сохранены" + (" и PDF обновлён в amoCRM" if pdf_uploaded else ""),
+        "order_id": order_id,
+        "pdf_uploaded": pdf_uploaded
+    }
