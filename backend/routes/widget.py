@@ -2384,7 +2384,8 @@ async def save_gifts(lead_id: str, data: dict):
             logger.info(f"Starting PDF generation for order {order_id} (section: {section}) after widget edit")
             pdf_result = await generate_and_upload_pdf_to_amocrm(
                 order, 
-                lead_id, 
+                lead_id,
+                section=section,
                 admin_gifts=admin_gifts, 
                 discount_percent=discount_percent
             )
