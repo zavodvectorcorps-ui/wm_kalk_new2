@@ -42,6 +42,106 @@ def get_all_orders_by_amocrm_id(amocrm_id: str):
     return None, None
 
 
+def build_preview_panel(order, section):
+    """Build inline order preview panel for widget."""
+    if not order:
+        return ""
+    
+    order_id = order.get('id', '-')
+    client_name = order.get('fullName') or order.get('clientName', '-')
+    phone = order.get('phoneNumber') or order.get('phone', '-')
+    address = order.get('fullAddress') or order.get('address', '-')
+    total = order.get('total', 0)
+    discount = order.get('discountPercent', 0)
+    model_name = order.get('modelName', '-')
+    admin_gifts = order.get('adminGifts', [])
+    notes = order.get('notes', '')
+    
+    # Build selected options HTML
+    options_html = ""
+    selected_options = order.get('selectedOptions', [])
+    
+    if isinstance(selected_options, list) and selected_options:
+        for opt in selected_options:
+            if isinstance(opt, dict):
+                opt_id = opt.get('optionId') or opt.get('id', '')
+                cat_name = opt.get('categoryName', '')
+                opt_name = opt.get('optionName') or opt.get('name', '')
+                opt_price = opt.get('price', 0) or opt.get('optionPrice', 0)
+                is_gift = opt_id in admin_gifts
+                
+                if opt_name:
+                    gift_badge = '<span class="preview-gift-badge">🎁</span>' if is_gift else ''
+                    price_class = 'preview-price gift-strike' if is_gift else 'preview-price'
+                    options_html += f"""
+                    <div class="preview-option">
+                        <div class="preview-option-info">
+                            <span class="preview-cat">{cat_name}</span>
+                            <span class="preview-name">{opt_name} {gift_badge}</span>
+                        </div>
+                        <span class="{price_class}">{opt_price:,.0f} zł</span>
+                    </div>"""
+    
+    # Calculate totals
+    gifts_total = sum([opt.get('price', 0) or opt.get('optionPrice', 0) 
+                       for opt in selected_options 
+                       if isinstance(opt, dict) and (opt.get('optionId') or opt.get('id', '')) in admin_gifts])
+    discount_amount = round(total * discount / 100) if discount else 0
+    
+    return f"""
+        <div id="previewPanel" class="preview-panel" style="display: none;">
+            <div class="preview-header">
+                <span>📋 Просмотр заказа</span>
+                <button type="button" class="preview-close" onclick="togglePreviewPanel()">✕</button>
+            </div>
+            
+            <div class="preview-info-grid">
+                <div class="preview-info-item">
+                    <span class="preview-label">👤 Клиент</span>
+                    <span class="preview-value">{client_name}</span>
+                </div>
+                <div class="preview-info-item">
+                    <span class="preview-label">📞 Телефон</span>
+                    <span class="preview-value">{phone}</span>
+                </div>
+                <div class="preview-info-item full-width">
+                    <span class="preview-label">📍 Адрес</span>
+                    <span class="preview-value">{address}</span>
+                </div>
+                <div class="preview-info-item">
+                    <span class="preview-label">🏷️ Модель</span>
+                    <span class="preview-value">{model_name}</span>
+                </div>
+            </div>
+            
+            {f'<div class="preview-notes"><strong>📝 Примечания:</strong> {notes}</div>' if notes else ''}
+            
+            <div class="preview-options-title">Выбранные опции:</div>
+            <div class="preview-options">
+                {options_html if options_html else '<p style="color: #6b7280; text-align: center;">Нет опций</p>'}
+            </div>
+            
+            <div class="preview-summary">
+                {f'<div class="preview-summary-row"><span>🎁 Подарки:</span><span class="preview-gift-value">-{gifts_total:,.0f} zł</span></div>' if gifts_total > 0 else ''}
+                {f'<div class="preview-summary-row"><span>📊 Скидка ({discount}%):</span><span>-{discount_amount:,.0f} zł</span></div>' if discount > 0 else ''}
+                <div class="preview-summary-row total">
+                    <span>Итого:</span>
+                    <span>{total:,.0f} zł</span>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            function togglePreviewPanel() {{
+                const panel = document.getElementById('previewPanel');
+                const giftsPanel = document.getElementById('giftsPanel');
+                if (giftsPanel) giftsPanel.style.display = 'none';
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }}
+        </script>
+    """
+
+
 def build_gifts_panel(order, base_url, lead_id):
     """Build inline gifts editing panel for widget."""
     if not order:
