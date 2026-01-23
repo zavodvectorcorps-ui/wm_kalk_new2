@@ -772,12 +772,31 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         
         <!-- Edit Button (if order exists and has PDF) -->
         {f'''<div class="section">
-            <a href="{base_url}/?calc={section}&amocrm_id={lead_id}&edit=true" target="_blank" class="btn btn-edit">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="{base_url}/api/widget/preview/{lead_id}" target="_blank" class="btn btn-view" style="flex: 1; min-width: 140px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Просмотр заказа
+                </a>
+                <a href="{base_url}/api/widget/edit-gifts/{lead_id}" target="_blank" class="btn btn-gift" style="flex: 1; min-width: 140px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                        <polyline points="20 12 20 22 4 22 4 12"/>
+                        <rect x="2" y="7" width="20" height="5"/>
+                        <line x1="12" y1="22" x2="12" y2="7"/>
+                        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+                        <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                    </svg>
+                    Подарки и скидки
+                </a>
+            </div>
+            <a href="{base_url}/?calc={section}&amocrm_id={lead_id}&edit=true" target="_blank" class="btn btn-edit" style="margin-top: 8px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
-                Редактировать заказ
+                Редактировать заказ полностью
             </a>
         </div>''' if has_pdf else ''}
 """
