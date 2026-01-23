@@ -2421,7 +2421,7 @@ async def save_gifts(lead_id: str, data: dict):
     message_parts = ["Изменения сохранены"]
     if pdf_uploaded:
         message_parts.append("PDF обновлён")
-    elif pdf_error and section == 'balia':
+    elif pdf_error and section in ['balia', 'sauna']:
         message_parts.append(f"Ошибка PDF: {pdf_error}")
     if note_sent:
         message_parts.append("примечание добавлено")
