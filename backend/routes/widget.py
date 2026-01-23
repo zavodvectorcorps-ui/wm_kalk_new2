@@ -1028,6 +1028,140 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             background: {'#450a0a' if is_dark else '#fee2e2'};
             color: {'#f87171' if is_dark else '#991b1b'};
         }}
+        
+        /* Preview Panel Styles */
+        .preview-panel {{
+            margin-top: 16px;
+            padding: 16px;
+            background: {'#1e293b' if is_dark else '#f8fafc'};
+            border: 1px solid {'#334155' if is_dark else '#e2e8f0'};
+            border-radius: 12px;
+        }}
+        .preview-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            font-weight: 600;
+            color: {'#60a5fa' if is_dark else '#1e40af'};
+        }}
+        .preview-close {{
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: {'#6b7280' if is_dark else '#9ca3af'};
+            padding: 4px 8px;
+        }}
+        .preview-close:hover {{
+            color: {'#ef4444' if is_dark else '#dc2626'};
+        }}
+        .preview-info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }}
+        .preview-info-item {{
+            background: {'#0f172a' if is_dark else 'white'};
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid {'#334155' if is_dark else '#e5e7eb'};
+        }}
+        .preview-info-item.full-width {{
+            grid-column: 1 / -1;
+        }}
+        .preview-label {{
+            display: block;
+            font-size: 11px;
+            color: {'#9ca3af' if is_dark else '#6b7280'};
+            margin-bottom: 4px;
+        }}
+        .preview-value {{
+            font-size: 13px;
+            color: {'#f3f4f6' if is_dark else '#1f2937'};
+            word-break: break-word;
+        }}
+        .preview-notes {{
+            background: {'#1e3a5f' if is_dark else '#fef3c7'};
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: {'#fbbf24' if is_dark else '#92400e'};
+        }}
+        .preview-options-title {{
+            font-size: 13px;
+            font-weight: 600;
+            color: {'#9ca3af' if is_dark else '#374151'};
+            margin-bottom: 8px;
+        }}
+        .preview-options {{
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid {'#334155' if is_dark else '#e5e7eb'};
+            border-radius: 8px;
+        }}
+        .preview-option {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid {'#334155' if is_dark else '#e5e7eb'};
+        }}
+        .preview-option:last-child {{
+            border-bottom: none;
+        }}
+        .preview-option-info {{
+            flex: 1;
+        }}
+        .preview-cat {{
+            display: block;
+            font-size: 10px;
+            color: {'#6b7280' if is_dark else '#9ca3af'};
+            text-transform: uppercase;
+        }}
+        .preview-name {{
+            font-size: 12px;
+            color: {'#e5e7eb' if is_dark else '#374151'};
+        }}
+        .preview-gift-badge {{
+            font-size: 11px;
+        }}
+        .preview-price {{
+            font-size: 12px;
+            font-weight: 600;
+            color: {'#e5e7eb' if is_dark else '#374151'};
+        }}
+        .preview-price.gift-strike {{
+            text-decoration: line-through;
+            color: {'#10b981' if is_dark else '#059669'};
+        }}
+        .preview-summary {{
+            margin-top: 12px;
+            padding: 12px;
+            background: {'#0f172a' if is_dark else 'white'};
+            border-radius: 8px;
+            border: 1px solid {'#334155' if is_dark else '#e5e7eb'};
+        }}
+        .preview-summary-row {{
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 13px;
+            color: {'#d1d5db' if is_dark else '#4b5563'};
+        }}
+        .preview-summary-row.total {{
+            font-weight: bold;
+            font-size: 15px;
+            border-top: 1px solid {'#334155' if is_dark else '#e5e7eb'};
+            margin-top: 8px;
+            padding-top: 8px;
+            color: {'#f3f4f6' if is_dark else '#1f2937'};
+        }}
+        .preview-gift-value {{
+            color: {'#10b981' if is_dark else '#059669'};
+        }}
     </style>
 </head>
 <body>
