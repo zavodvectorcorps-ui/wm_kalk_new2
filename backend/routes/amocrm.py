@@ -376,9 +376,9 @@ async def upload_file_to_amocrm(lead_id: str, file_content: bytes, filename: str
 
 
 async def upload_pdf_to_amocrm_drive(lead_id: str, pdf_bytes: bytes, filename: str, domain: str, token: str) -> dict:
-    """Upload PDF to amoCRM and attach to lead.
+    """Upload PDF to amoCRM using Kommo Drive API with Content-Range.
     
-    Uses the same method as upload_file_to_amocrm but for PDF files.
+    Uses the same method as upload_calculator_pdf - via Drive service.
     Returns dict with success status and file info.
     """
     if not domain or not token or not lead_id:
@@ -387,48 +387,141 @@ async def upload_pdf_to_amocrm_drive(lead_id: str, pdf_bytes: bytes, filename: s
     
     try:
         file_size = len(pdf_bytes)
-        logger.info(f"Uploading PDF to amoCRM: {filename}, size={file_size}, lead={lead_id}")
+        logger.info(f"Uploading PDF to amoCRM via Drive: {filename}, size={file_size}, lead={lead_id}")
         
-        upload_url = f"https://{domain}/api/v4/files"
-        headers = {
-            "Authorization": f"Bearer {token}"
-        }
+        headers = {"Authorization": f"Bearer {token}"}
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            # Upload file as multipart form data with entity binding
-            files = {
-                "file": (filename, pdf_bytes, "application/pdf")
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http_client:
+            # Step 1: Get drive_url from account
+            account_url = f"https://{domain}/api/v4/account?with=drive_url"
+            account_resp = await http_client.get(account_url, headers=headers)
+            
+            if account_resp.status_code != 200:
+                logger.error(f"Failed to get account: {account_resp.status_code}")
+                return {"success": False, "error": f"Account API failed: {account_resp.status_code}"}
+            
+            account_data = account_resp.json()
+            drive_url = account_data.get("drive_url")
+            
+            if not drive_url:
+                logger.error("No drive_url in account response")
+                return {"success": False, "error": "No drive_url available"}
+            
+            logger.info(f"Got drive_url: {drive_url}")
+            
+            # Step 2: Create upload session
+            session_url = f"{drive_url}/v1.0/sessions"
+            session_data = {
+                "file_name": filename,
+                "file_size": file_size,
+                "content_type": "application/pdf"
             }
-            data = {
-                "entity_type": "leads",
-                "entity_id": str(lead_id)
-            }
             
-            response = await client.post(upload_url, headers=headers, files=files, data=data)
+            session_resp = await http_client.post(
+                session_url,
+                json=session_data,
+                headers={**headers, "Content-Type": "application/json"}
+            )
             
-            logger.info(f"amoCRM upload response: {response.status_code}")
+            if session_resp.status_code not in [200, 201]:
+                logger.error(f"Session creation failed: {session_resp.status_code} - {session_resp.text}")
+                return {"success": False, "error": f"Session failed: {session_resp.status_code}"}
             
-            if response.status_code in [200, 201]:
-                result = response.json()
-                logger.info(f"amoCRM upload result: {result}")
+            session_result = session_resp.json()
+            upload_url = session_result.get("upload_url")
+            max_part_size = session_result.get("max_part_size", 524288)
+            
+            if not upload_url:
+                return {"success": False, "error": "No upload_url in session"}
+            
+            logger.info(f"Got upload_url, max_part_size={max_part_size}")
+            
+            # Step 3: Upload file in chunks with Content-Range
+            current_url = upload_url
+            offset = 0
+            file_uuid = None
+            version_uuid = None
+            
+            while offset < file_size:
+                chunk_end = min(offset + max_part_size, file_size)
+                chunk = pdf_bytes[offset:chunk_end]
+                chunk_size = len(chunk)
+                is_final = (chunk_end >= file_size)
                 
-                # Get file ID from response
-                file_id = None
-                if "_embedded" in result and "files" in result["_embedded"]:
-                    files_list = result["_embedded"]["files"]
-                    if files_list:
-                        file_id = files_list[0].get("id") or files_list[0].get("uuid")
+                content_range = f"bytes {offset}-{chunk_end - 1}/{file_size}"
                 
-                if file_id:
-                    logger.info(f"PDF uploaded to amoCRM lead {lead_id}: {file_id}")
-                    return {"success": True, "file_id": file_id}
+                upload_headers = {
+                    **headers,
+                    "Content-Type": "application/octet-stream",
+                    "Content-Length": str(chunk_size),
+                    "Content-Range": content_range
+                }
+                
+                upload_resp = await http_client.post(
+                    current_url,
+                    content=chunk,
+                    headers=upload_headers
+                )
+                
+                if upload_resp.status_code not in [200, 201, 202]:
+                    logger.error(f"Upload chunk failed: {upload_resp.status_code} - {upload_resp.text}")
+                    return {"success": False, "error": f"Upload failed: {upload_resp.status_code}"}
+                
+                upload_result = upload_resp.json() if upload_resp.text else {}
+                
+                if is_final:
+                    file_uuid = upload_result.get("uuid")
+                    version_uuid = upload_result.get("version_uuid")
+                    
+                    # Try to extract version_uuid from download_version link
+                    if not version_uuid and file_uuid:
+                        download_link = upload_result.get("_links", {}).get("download_version", {}).get("href", "")
+                        if download_link:
+                            parts = download_link.split("/")
+                            try:
+                                idx = parts.index(file_uuid)
+                                if idx + 1 < len(parts):
+                                    version_uuid = parts[idx + 1]
+                            except (ValueError, IndexError):
+                                pass
+                    
+                    logger.info(f"Upload complete: file_uuid={file_uuid}, version_uuid={version_uuid}")
                 else:
-                    logger.info(f"PDF uploaded but no file_id in response")
-                    return {"success": True, "result": result}
+                    next_url = upload_result.get("next_url")
+                    if not next_url:
+                        return {"success": False, "error": "No next_url for chunked upload"}
+                    current_url = next_url
+                
+                offset = chunk_end
+            
+            if not file_uuid:
+                return {"success": False, "error": "No file_uuid after upload"}
+            
+            # Step 4: Attach file to lead via notes
+            actual_version_uuid = version_uuid if version_uuid else file_uuid
+            
+            notes_url = f"https://{domain}/api/v4/leads/{lead_id}/notes"
+            note_data = [{
+                "note_type": "attachment",
+                "params": {
+                    "file_uuid": file_uuid,
+                    "version_uuid": actual_version_uuid,
+                    "file_name": filename
+                }
+            }]
+            
+            attach_resp = await http_client.post(
+                notes_url,
+                json=note_data,
+                headers={**headers, "Content-Type": "application/json"}
+            )
+            
+            if attach_resp.status_code in [200, 201]:
+                logger.info(f"PDF attached to lead {lead_id}: file_uuid={file_uuid}")
+                return {"success": True, "file_uuid": file_uuid, "version_uuid": actual_version_uuid}
             else:
-                error_text = response.text
-                logger.error(f"amoCRM PDF upload error {response.status_code}: {error_text}")
-                return {"success": False, "error": f"Upload failed: {response.status_code} - {error_text[:200]}"}
+                logger.warning(f"File uploaded but attach failed: {attach_resp.status_code} - {attach_resp.text}")
+                return {"success": True, "file_uuid": file_uuid, "attach_warning": attach_resp.text}
                 
     except Exception as e:
         logger.error(f"Failed to upload PDF to amoCRM: {e}", exc_info=True)
