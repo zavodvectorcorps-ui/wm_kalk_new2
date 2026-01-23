@@ -209,6 +209,8 @@ def build_gifts_panel(order, base_url, lead_id):
             
             function toggleGiftsPanel() {{
                 const panel = document.getElementById('giftsPanel');
+                const previewPanel = document.getElementById('previewPanel');
+                if (previewPanel) previewPanel.style.display = 'none';
                 panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
             }}
             
