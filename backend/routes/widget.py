@@ -66,11 +66,16 @@ def build_pdf_request_from_order(order: dict, admin_gifts: list = None, discount
     currency = order.get('currency', 'PLN')
     currency_symbol = order.get('currencySymbol', 'zł' if currency == 'PLN' else '€')
     
+    # Required fields with fallbacks
+    full_name = order.get('fullName') or order.get('clientName') or 'Klient'
+    phone = order.get('phoneNumber') or order.get('phone') or '-'
+    address = order.get('fullAddress') or order.get('address') or '-'
+    
     return PDFRequest(
         orderId=order.get('id'),
-        fullName=order.get('fullName') or order.get('clientName', ''),
-        phoneNumber=order.get('phoneNumber') or order.get('phone', ''),
-        fullAddress=order.get('fullAddress') or order.get('address', ''),
+        fullName=full_name,
+        phoneNumber=phone,
+        fullAddress=address,
         orderDate=order.get('orderDate', datetime.now(timezone.utc).strftime('%Y-%m-%d')),
         modelId=order.get('modelId'),
         modelName=order.get('modelName'),
