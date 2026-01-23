@@ -5,6 +5,15 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Jan 23, 2025 - P0 Blocker Fixed: PDF Generation & Upload to amoCRM from Widget
+- **FIXED**: When gifts/discounts are edited via amoCRM widget, a new PDF is now automatically generated and uploaded to the amoCRM lead
+- **NEW**: Added `generate_and_upload_pdf_to_amocrm()` function in `widget.py`
+- **NEW**: Added `build_pdf_request_from_order()` helper function to construct PDFRequest from order data
+- **NEW**: Added `currencySymbol` field to `PDFRequest` model for proper currency display
+- **ENHANCED**: Save gifts endpoint now includes PDF upload status in response
+- **ENHANCED**: amoCRM note now includes info about PDF update when successful
+- **Note**: PDF upload requires amoCRM credentials (domain + token) to be configured in integration settings
+
 ### Jan 22, 2025 - P0 Blocker Fixed: amoCRM Widget Edit Order Flow
 - **FIXED**: Order editing from amoCRM widget now preserves `amocrm_id` connection
 - **FIXED**: Frontend now uses correct `/api/orders` endpoint (was `/api/balia/orders`)
