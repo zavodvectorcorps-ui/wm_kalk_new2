@@ -818,7 +818,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                     </svg>
                     Просмотр заказа
                 </a>
-                <a href="{base_url}/api/widget/edit-gifts/{lead_id}" target="_blank" class="btn btn-gift" style="flex: 1; min-width: 140px;">
+                <button type="button" class="btn btn-gift" style="flex: 1; min-width: 140px;" onclick="toggleGiftsPanel()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
                         <polyline points="20 12 20 22 4 22 4 12"/>
                         <rect x="2" y="7" width="20" height="5"/>
@@ -827,7 +827,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                         <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
                     </svg>
                     Подарки и скидки
-                </a>
+                </button>
             </div>
             <a href="{base_url}/?calc={section}&amocrm_id={lead_id}&edit=true" target="_blank" class="btn btn-edit" style="margin-top: 8px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -837,6 +837,9 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 Редактировать заказ полностью
             </a>
         </div>''' if has_pdf else ''}
+        
+        <!-- Inline Gifts Panel -->
+        {build_gifts_panel(order, base_url, lead_id) if has_pdf else ''}
 """
         
         # Change history section
