@@ -767,10 +767,169 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             background: {'#1e4f3e' if is_dark else '#bbf7d0'};
             transform: translateY(-1px);
         }}
+        
+        /* Gifts Panel Styles */
+        .gifts-panel {{
+            margin-top: 16px;
+            padding: 16px;
+            background: {'#1a2e1a' if is_dark else '#f0fdf4'};
+            border: 1px solid {'#22c55e' if is_dark else '#86efac'};
+            border-radius: 12px;
+        }}
+        .gifts-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: {'#4ade80' if is_dark else '#166534'};
+        }}
+        .gifts-close {{
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: {'#6b7280' if is_dark else '#9ca3af'};
+            padding: 4px 8px;
+        }}
+        .gifts-close:hover {{
+            color: {'#ef4444' if is_dark else '#dc2626'};
+        }}
+        .gifts-discount {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: {'#1e3a1e' if is_dark else '#fef3c7'};
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }}
+        .gifts-discount label {{
+            font-weight: 500;
+            color: {'#fbbf24' if is_dark else '#92400e'};
+        }}
+        .gifts-discount input {{
+            width: 60px;
+            padding: 6px 10px;
+            border: 1px solid {'#fbbf24' if is_dark else '#d1d5db'};
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            background: {'#1f2937' if is_dark else 'white'};
+            color: {'#f3f4f6' if is_dark else '#1f2937'};
+        }}
+        .gifts-options {{
+            max-height: 300px;
+            overflow-y: auto;
+        }}
+        .gift-option {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            background: {'#1f2937' if is_dark else 'white'};
+            border: 1px solid {'#374151' if is_dark else '#e5e7eb'};
+            border-radius: 8px;
+            transition: all 0.2s;
+        }}
+        .gift-option.is-gift {{
+            background: {'#14532d' if is_dark else '#dcfce7'};
+            border-color: {'#22c55e' if is_dark else '#86efac'};
+        }}
+        .gift-option-info {{
+            flex: 1;
+        }}
+        .gift-cat {{
+            display: block;
+            font-size: 10px;
+            color: {'#9ca3af' if is_dark else '#6b7280'};
+            text-transform: uppercase;
+        }}
+        .gift-name {{
+            font-size: 13px;
+            color: {'#f3f4f6' if is_dark else '#1f2937'};
+        }}
+        .gift-option-right {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        .gift-price {{
+            font-size: 13px;
+            font-weight: 600;
+            color: {'#f3f4f6' if is_dark else '#374151'};
+            min-width: 60px;
+            text-align: right;
+        }}
+        .gift-price.gift-strike {{
+            text-decoration: line-through;
+            color: {'#10b981' if is_dark else '#059669'};
+        }}
+        .gift-check {{
+            cursor: pointer;
+        }}
+        .gift-check input {{
+            display: none;
+        }}
+        .gift-check span {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: {'#374151' if is_dark else '#f3f4f6'};
+            border: 2px solid {'#4b5563' if is_dark else '#d1d5db'};
+            font-size: 16px;
+            transition: all 0.2s;
+        }}
+        .gift-check input:checked + span {{
+            background: {'#14532d' if is_dark else '#dcfce7'};
+            border-color: {'#22c55e' if is_dark else '#10b981'};
+        }}
+        .btn-save-gifts {{
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px;
+            background: {'#22c55e' if is_dark else '#10b981'};
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }}
+        .btn-save-gifts:hover {{
+            background: {'#16a34a' if is_dark else '#059669'};
+        }}
+        .btn-save-gifts:disabled {{
+            background: {'#4b5563' if is_dark else '#9ca3af'};
+            cursor: not-allowed;
+        }}
+        .gifts-status {{
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 13px;
+            display: none;
+        }}
+        .gifts-status.success {{
+            display: block;
+            background: {'#14532d' if is_dark else '#dcfce7'};
+            color: {'#4ade80' if is_dark else '#166534'};
+        }}
+        .gifts-status.error {{
+            display: block;
+            background: {'#450a0a' if is_dark else '#fee2e2'};
+            color: {'#f87171' if is_dark else '#991b1b'};
+        }}
     </style>
 </head>
 <body>
-    <div class="widget">
+    <div class="widget">>
 """
 
     if order:
