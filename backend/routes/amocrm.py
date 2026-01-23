@@ -376,8 +376,9 @@ async def upload_file_to_amocrm(lead_id: str, file_content: bytes, filename: str
 
 
 async def upload_pdf_to_amocrm_drive(lead_id: str, pdf_bytes: bytes, filename: str, domain: str, token: str) -> dict:
-    """Upload PDF to amoCRM using Drive API with Content-Range.
+    """Upload PDF to amoCRM and attach to lead.
     
+    Uses multipart file upload API.
     Returns dict with success status and file info.
     """
     if not domain or not token or not lead_id:
@@ -388,33 +389,84 @@ async def upload_pdf_to_amocrm_drive(lead_id: str, pdf_bytes: bytes, filename: s
         file_size = len(pdf_bytes)
         logger.info(f"Uploading PDF to amoCRM: {filename}, size={file_size}, lead={lead_id}")
         
-        # Create session for file upload
-        session_url = f"https://{domain}/api/v4/files/sessions"
+        # Method 1: Try multipart upload directly to files endpoint
+        upload_url = f"https://{domain}/api/v4/files"
         headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-        
-        session_data = {
-            "file_name": filename,
-            "file_size": file_size,
-            "content_type": "application/pdf"
+            "Authorization": f"Bearer {token}"
         }
         
         async with httpx.AsyncClient(timeout=60.0) as client:
-            # Create upload session
-            session_response = await client.post(session_url, headers=headers, json=session_data)
+            # Upload file as multipart form data
+            files = {
+                "file": (filename, pdf_bytes, "application/pdf")
+            }
+            
+            upload_response = await client.post(upload_url, headers=headers, files=files)
+            
+            logger.info(f"Upload response: {upload_response.status_code}")
+            
+            if upload_response.status_code in [200, 201]:
+                upload_result = upload_response.json()
+                logger.info(f"Upload result: {upload_result}")
+                
+                # Get file UUID from response
+                file_uuid = None
+                if "_embedded" in upload_result and "files" in upload_result["_embedded"]:
+                    files_list = upload_result["_embedded"]["files"]
+                    if files_list:
+                        file_uuid = files_list[0].get("uuid") or files_list[0].get("id")
+                
+                if not file_uuid:
+                    file_uuid = upload_result.get("uuid") or upload_result.get("id")
+                
+                # Attach file to lead
+                if file_uuid:
+                    attach_url = f"https://{domain}/api/v4/leads/{lead_id}/files"
+                    attach_data = [{"file_uuid": file_uuid}]
+                    
+                    attach_response = await client.post(
+                        attach_url, 
+                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"}, 
+                        json=attach_data
+                    )
+                    
+                    if attach_response.status_code in [200, 201]:
+                        logger.info(f"PDF attached to lead {lead_id}: {file_uuid}")
+                        return {"success": True, "file_uuid": file_uuid}
+                    else:
+                        logger.warning(f"File uploaded but attach failed: {attach_response.status_code} - {attach_response.text}")
+                        # Still return success since file was uploaded
+                        return {"success": True, "file_uuid": file_uuid, "attach_warning": attach_response.text}
+                
+                return {"success": True, "result": upload_result}
+            
+            # Method 2: If direct upload fails, try session-based upload
+            logger.info(f"Direct upload failed ({upload_response.status_code}), trying session-based upload")
+            
+            session_url = f"https://{domain}/api/v4/files/sessions"
+            session_data = {
+                "file_name": filename,
+                "file_size": file_size,
+                "content_type": "application/pdf"
+            }
+            
+            session_response = await client.post(
+                session_url, 
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"}, 
+                json=session_data
+            )
             
             if session_response.status_code not in [200, 201]:
-                logger.error(f"Failed to create upload session: {session_response.status_code} - {session_response.text}")
-                return {"success": False, "error": f"Session creation failed: {session_response.status_code}"}
+                # Both methods failed
+                error_msg = f"Upload failed: {upload_response.status_code}, Session failed: {session_response.status_code}"
+                logger.error(error_msg)
+                return {"success": False, "error": error_msg}
             
             session_result = session_response.json()
-            upload_url = session_result.get("upload_url")
+            chunk_upload_url = session_result.get("upload_url")
             
-            if not upload_url:
-                logger.error(f"No upload URL in session response: {session_result}")
-                return {"success": False, "error": "No upload URL"}
+            if not chunk_upload_url:
+                return {"success": False, "error": "No upload URL in session"}
             
             # Upload file with Content-Range header
             upload_headers = {
@@ -423,33 +475,29 @@ async def upload_pdf_to_amocrm_drive(lead_id: str, pdf_bytes: bytes, filename: s
                 "Content-Range": f"bytes 0-{file_size - 1}/{file_size}"
             }
             
-            upload_response = await client.post(upload_url, headers=upload_headers, content=pdf_bytes)
+            chunk_response = await client.post(chunk_upload_url, headers=upload_headers, content=pdf_bytes)
             
-            if upload_response.status_code not in [200, 201]:
-                logger.error(f"Failed to upload file: {upload_response.status_code} - {upload_response.text}")
-                return {"success": False, "error": f"Upload failed: {upload_response.status_code}"}
+            if chunk_response.status_code not in [200, 201]:
+                return {"success": False, "error": f"Chunk upload failed: {chunk_response.status_code}"}
             
-            upload_result = upload_response.json()
-            file_uuid = upload_result.get("uuid") or upload_result.get("id")
+            chunk_result = chunk_response.json()
+            file_uuid = chunk_result.get("uuid") or chunk_result.get("id")
             
-            # Attach file to lead
             if file_uuid:
+                # Attach to lead
                 attach_url = f"https://{domain}/api/v4/leads/{lead_id}/files"
-                attach_data = [{"file_uuid": file_uuid}]
+                attach_response = await client.post(
+                    attach_url,
+                    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                    json=[{"file_uuid": file_uuid}]
+                )
                 
-                attach_response = await client.post(attach_url, headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"}, json=attach_data)
-                
-                if attach_response.status_code in [200, 201]:
-                    logger.info(f"PDF attached to lead {lead_id}: {file_uuid}")
-                    return {"success": True, "file_uuid": file_uuid}
-                else:
-                    logger.warning(f"File uploaded but attach failed: {attach_response.status_code}")
-                    return {"success": True, "file_uuid": file_uuid, "attach_warning": attach_response.text}
+                return {"success": True, "file_uuid": file_uuid}
             
-            return {"success": True, "result": upload_result}
+            return {"success": True, "result": chunk_result}
             
     except Exception as e:
-        logger.error(f"Failed to upload PDF to amoCRM: {e}")
+        logger.error(f"Failed to upload PDF to amoCRM: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
 
 
