@@ -11,7 +11,8 @@ from pymongo import MongoClient
 
 # Import PDF generation and amoCRM upload functions
 from models.balia import PDFRequest
-from routes.balia import generate_pdf_bytes
+from routes.balia import generate_pdf_bytes as generate_balia_pdf_bytes
+from routes.sauna import generate_sauna_pdf_bytes, SaunaPDFRequest
 from routes.amocrm import upload_pdf_to_amocrm_drive, add_note_to_amocrm, get_amocrm_settings
 
 router = APIRouter(prefix="/api/widget", tags=["widget"])
