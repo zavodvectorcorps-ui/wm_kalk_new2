@@ -591,7 +591,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             line-height: 1.5;
         }}
         .widget {{
-            max-width: 420px;
+            max-width: 520px;
             margin: 0 auto;
         }}
         .header {{
