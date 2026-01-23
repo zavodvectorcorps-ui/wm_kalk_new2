@@ -105,6 +105,7 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - `POST /api/auth/login` - Authentication
 - `POST /api/backup/auto` - Automatic backup
 - `GET /api/widget/embed/{theme}/{lead_id}` - amoCRM widget
+- `POST /api/widget/save-gifts/{lead_id}` - Save gifts/discounts and regenerate PDF (NEW)
 - `POST /api/training/courses` - Create course
 - `POST /api/training/progress/{user_id}/{course_id}/lessons/{lesson_id}/complete` - Track progress
 
