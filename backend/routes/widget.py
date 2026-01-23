@@ -2240,7 +2240,7 @@ async def save_gifts(lead_id: str, data: dict):
                 token = settings.get('amocrm_token')
                 
                 if domain and token:
-                    upload_result = await upload_pdf_to_amocrm(
+                    upload_result = await upload_calculator_pdf_to_amocrm(
                         lead_id=lead_id,
                         pdf_bytes=pdf_bytes,
                         filename=f"quote_{order_id}.pdf",
