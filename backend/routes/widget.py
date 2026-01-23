@@ -956,6 +956,9 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         # Check if KP (commercial proposal) was created
         has_pdf = order.get('pdfGenerated') or order.get('hasPdf') or order.get('pdfUrl') or order.get('pdf_url')
         
+        # Check if order has selections (for showing edit buttons)
+        has_selections = bool(order.get('selectedOptions')) or bool(order.get('selections'))
+        
         # Get total and payment info
         # Different collections use different field names:
         # - balia/sauna: total, totalPrice
