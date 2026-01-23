@@ -49,26 +49,14 @@ def get_all_orders_by_amocrm_id(amocrm_id: str):
     return None, None
 
 
-def build_pdf_request_from_order(order: dict, admin_gifts: list = None, discount_percent: float = None) -> PDFRequest:
-    """Build PDFRequest from order data for PDF generation.
-    
-    Args:
-        order: Order document from database
-        admin_gifts: Optional override for admin gifts (used when saving new values)
-        discount_percent: Optional override for discount (used when saving new values)
-    
-    Returns:
-        PDFRequest object ready for PDF generation
-    """
-    # Use overrides if provided, otherwise get from order
+def build_balia_pdf_request(order: dict, admin_gifts: list = None, discount_percent: float = None) -> PDFRequest:
+    """Build PDFRequest for Balia order."""
     gifts = admin_gifts if admin_gifts is not None else order.get('adminGifts', [])
     discount = discount_percent if discount_percent is not None else order.get('discountPercent', 0)
     
-    # Determine currency symbol
     currency = order.get('currency', 'PLN')
     currency_symbol = order.get('currencySymbol', 'zł' if currency == 'PLN' else '€')
     
-    # Required fields with fallbacks
     full_name = order.get('fullName') or order.get('clientName') or 'Klient'
     phone = order.get('phoneNumber') or order.get('phone') or '-'
     address = order.get('fullAddress') or order.get('address') or '-'
@@ -101,12 +89,49 @@ def build_pdf_request_from_order(order: dict, admin_gifts: list = None, discount
     )
 
 
-async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, admin_gifts: list = None, discount_percent: float = None) -> dict:
+def build_sauna_pdf_request(order: dict, admin_gifts: list = None, discount_percent: float = None) -> SaunaPDFRequest:
+    """Build SaunaPDFRequest for Sauna order."""
+    gifts = admin_gifts if admin_gifts is not None else order.get('adminGifts', [])
+    discount = discount_percent if discount_percent is not None else order.get('discountPercent', 0)
+    
+    full_name = order.get('fullName') or order.get('clientName') or 'Klient'
+    phone = order.get('phoneNumber') or order.get('phone') or '-'
+    address = order.get('fullAddress') or order.get('address') or '-'
+    
+    return SaunaPDFRequest(
+        orderId=order.get('id', ''),
+        fullName=full_name,
+        phoneNumber=phone,
+        fullAddress=address,
+        email=order.get('email', ''),
+        orderDate=order.get('orderDate', datetime.now(timezone.utc).strftime('%Y-%m-%d')),
+        selectedModel=order.get('modelId') or order.get('selectedModel', ''),
+        modelName=order.get('modelName', ''),
+        modelImageUrl=order.get('modelImageUrl', ''),
+        basePrice=order.get('basePrice', 0) or order.get('modelPrice', 0),
+        foundationPrice=order.get('foundationPrice', 0),
+        discount=order.get('discount', 0),
+        discountPercent=discount,
+        selections=order.get('selections', {}),
+        quantities=order.get('quantities', {}),
+        notes=order.get('notes', ''),
+        optionsTotal=order.get('optionsTotal', 0),
+        subtotal=order.get('subtotal', 0),
+        total=order.get('total', 0),
+        language=order.get('language', 'pl'),
+        categories=order.get('categories', []),
+        adminGifts=gifts,
+        selectedOptions=order.get('selectedOptions', [])
+    )
+
+
+async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: str, admin_gifts: list = None, discount_percent: float = None) -> dict:
     """Generate PDF from order and upload to amoCRM lead.
     
     Args:
         order: Order document from database
         lead_id: amoCRM lead ID
+        section: Order type - 'balia' or 'sauna'
         admin_gifts: Optional override for admin gifts
         discount_percent: Optional override for discount
     
@@ -123,12 +148,16 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, admin_gif
             logger.warning("amoCRM credentials not configured for PDF upload")
             return {"success": False, "error": "amoCRM не настроен"}
         
-        # Build PDF request from order with overrides
-        pdf_request = build_pdf_request_from_order(order, admin_gifts, discount_percent)
+        # Generate PDF based on section type
+        logger.info(f"Generating PDF for {section} order {order.get('id')} (lead {lead_id})")
         
-        # Generate PDF bytes
-        logger.info(f"Generating PDF for order {order.get('id')} (lead {lead_id})")
-        pdf_bytes = await generate_pdf_bytes(pdf_request)
+        if section == 'sauna':
+            pdf_request = build_sauna_pdf_request(order, admin_gifts, discount_percent)
+            pdf_bytes = await generate_sauna_pdf_bytes(pdf_request)
+        else:
+            # Default to balia
+            pdf_request = build_balia_pdf_request(order, admin_gifts, discount_percent)
+            pdf_bytes = await generate_balia_pdf_bytes(pdf_request)
         
         if not pdf_bytes:
             logger.error("PDF generation returned empty result")
