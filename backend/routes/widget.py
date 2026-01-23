@@ -1066,8 +1066,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             color: {'#f3f4f6' if is_dark else '#1f2937'};
         }}
         .gifts-options {{
-            max-height: 300px;
-            overflow-y: auto;
+            /* No height limit - show all options */
         }}
         .gift-option {{
             display: flex;
