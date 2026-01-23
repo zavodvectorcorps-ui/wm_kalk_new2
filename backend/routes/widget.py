@@ -2148,8 +2148,8 @@ async def edit_gifts_page(lead_id: str):
 
 @router.post("/save-gifts/{lead_id}")
 async def save_gifts(lead_id: str, data: dict):
-    """Save gifts and discount for an order, regenerate PDF and upload to amoCRM."""
-    from routes.amocrm import upload_calculator_pdf_to_amocrm, add_note_to_amocrm, get_amocrm_settings
+    """Save gifts and discount for an order."""
+    from routes.amocrm import add_note_to_amocrm, get_amocrm_settings
     
     order, section = get_all_orders_by_amocrm_id(lead_id)
     
@@ -2182,7 +2182,6 @@ async def save_gifts(lead_id: str, data: dict):
         return {"message": "Нет изменений для сохранения", "order_id": order_id}
     
     # Update order
-    from datetime import datetime, timezone
     now = datetime.now(timezone.utc).isoformat()
     
     history_entry = {
@@ -2203,62 +2202,22 @@ async def save_gifts(lead_id: str, data: dict):
     
     collection.update_one({'id': order_id}, {'$set': update_data})
     
-    # Get base URL for PDF generation
-    app_domain = os.environ.get("APP_DOMAIN", "")
-    if app_domain:
-        base_url = f"https://{app_domain}"
-    else:
-        try:
-            with open("/app/frontend/.env", "r") as f:
-                for line in f:
-                    if line.startswith("REACT_APP_BACKEND_URL="):
-                        base_url = line.strip().split("=", 1)[1]
-                        break
-        except:
-            base_url = "https://wm-kalkulator.pl"
-    
-    # Try to regenerate PDF and upload to amoCRM
-    pdf_uploaded = False
+    # Add note to amoCRM
+    note_sent = False
     try:
-        import httpx
+        settings = get_amocrm_settings()
+        domain = settings.get('amocrm_domain')
+        token = settings.get('amocrm_token')
         
-        # Get updated order
-        updated_order = collection.find_one({'id': order_id}, {'_id': 0})
-        
-        # Generate PDF
-        pdf_endpoint = f"{base_url}/api/sauna/generate-pdf" if section == 'sauna' else f"{base_url}/api/generate-pdf"
-        
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            pdf_response = await client.post(pdf_endpoint, json=updated_order)
-            
-            if pdf_response.status_code == 200:
-                pdf_bytes = pdf_response.content
-                
-                # Upload to amoCRM
-                settings = get_amocrm_settings()
-                domain = settings.get('amocrm_domain')
-                token = settings.get('amocrm_token')
-                
-                if domain and token:
-                    upload_result = await upload_calculator_pdf_to_amocrm(
-                        lead_id=lead_id,
-                        pdf_bytes=pdf_bytes,
-                        filename=f"quote_{order_id}.pdf",
-                        domain=domain,
-                        token=token
-                    )
-                    pdf_uploaded = upload_result.get('success', False)
-                    
-                    # Add note about changes
-                    changed_fields = ', '.join([c['field'] for c in changes])
-                    note_text = f"✏️ Заказ изменён через виджет\n\nИзменения: {changed_fields}"
-                    await add_note_to_amocrm(lead_id, note_text, domain, token)
-                    
+        if domain and token:
+            changed_fields = ', '.join([c['field'] for c in changes])
+            note_text = f"✏️ Заказ изменён через виджет\n\nИзменения: {changed_fields}"
+            note_sent = await add_note_to_amocrm(lead_id, note_text, domain, token)
     except Exception as e:
-        logger.error(f"Error regenerating PDF: {e}")
+        logger.error(f"Error sending note to amoCRM: {e}")
     
     return {
-        "message": "Изменения сохранены" + (" и PDF обновлён в amoCRM" if pdf_uploaded else ""),
+        "message": "Изменения сохранены" + (" (примечание добавлено в amoCRM)" if note_sent else ""),
         "order_id": order_id,
-        "pdf_uploaded": pdf_uploaded
+        "note_sent": note_sent
     }
