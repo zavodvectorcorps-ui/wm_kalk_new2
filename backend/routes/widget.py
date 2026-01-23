@@ -599,6 +599,42 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             width: 18px;
             height: 18px;
         }}
+        .btn-view {{
+            background: {'#1e3a5f' if is_dark else '#dbeafe'};
+            color: {'#60a5fa' if is_dark else '#1e40af'};
+            border: 1px solid {'#3b82f6' if is_dark else '#93c5fd'};
+            padding: 10px 16px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }}
+        .btn-view:hover {{
+            background: {'#1e4a7f' if is_dark else '#bfdbfe'};
+            transform: translateY(-1px);
+        }}
+        .btn-gift {{
+            background: {'#1e3f2e' if is_dark else '#dcfce7'};
+            color: {'#4ade80' if is_dark else '#166534'};
+            border: 1px solid {'#22c55e' if is_dark else '#86efac'};
+            padding: 10px 16px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }}
+        .btn-gift:hover {{
+            background: {'#1e4f3e' if is_dark else '#bbf7d0'};
+            transform: translateY(-1px);
+        }}
     </style>
 </head>
 <body>
