@@ -2249,9 +2249,7 @@ async def edit_gifts_page(lead_id: str):
 
 @router.post("/save-gifts/{lead_id}")
 async def save_gifts(lead_id: str, data: dict):
-    """Save gifts and discount for an order."""
-    from routes.amocrm import add_note_to_amocrm, get_amocrm_settings
-    
+    """Save gifts and discount for an order, regenerate PDF and upload to amoCRM."""
     order, section = get_all_orders_by_amocrm_id(lead_id)
     
     if not order:
@@ -2282,7 +2280,7 @@ async def save_gifts(lead_id: str, data: dict):
     if not changes:
         return {"message": "Нет изменений для сохранения", "order_id": order_id}
     
-    # Update order
+    # Update order in database
     now = datetime.now(timezone.utc).isoformat()
     
     history_entry = {
@@ -2303,7 +2301,33 @@ async def save_gifts(lead_id: str, data: dict):
     
     collection.update_one({'id': order_id}, {'$set': update_data})
     
-    # Add note to amoCRM
+    # Generate and upload new PDF to amoCRM
+    pdf_uploaded = False
+    pdf_error = None
+    
+    # Only generate PDF for balia orders (they have the PDF generation logic)
+    if section == 'balia':
+        try:
+            logger.info(f"Generating new PDF for order {order_id} after widget edit")
+            pdf_result = await generate_and_upload_pdf_to_amocrm(
+                order, 
+                lead_id, 
+                admin_gifts=admin_gifts, 
+                discount_percent=discount_percent
+            )
+            pdf_uploaded = pdf_result.get("success", False)
+            if not pdf_uploaded:
+                pdf_error = pdf_result.get("error", "Unknown error")
+                logger.error(f"PDF upload failed for order {order_id}: {pdf_error}")
+            else:
+                logger.info(f"PDF uploaded successfully for order {order_id}: {pdf_result.get('filename')}")
+        except Exception as e:
+            logger.error(f"Error generating/uploading PDF: {e}", exc_info=True)
+            pdf_error = str(e)
+    else:
+        logger.info(f"Skipping PDF generation for non-balia section: {section}")
+    
+    # Add note to amoCRM about the changes
     note_sent = False
     try:
         settings = get_amocrm_settings()
@@ -2313,12 +2337,26 @@ async def save_gifts(lead_id: str, data: dict):
         if domain and token:
             changed_fields = ', '.join([c['field'] for c in changes])
             note_text = f"✏️ Заказ изменён через виджет\n\nИзменения: {changed_fields}"
+            if pdf_uploaded:
+                note_text += "\n\n📄 Новый PDF загружен в сделку"
             note_sent = await add_note_to_amocrm(lead_id, note_text, domain, token)
     except Exception as e:
         logger.error(f"Error sending note to amoCRM: {e}")
     
+    # Build response message
+    message_parts = ["Изменения сохранены"]
+    if pdf_uploaded:
+        message_parts.append("PDF обновлён")
+    elif pdf_error and section == 'balia':
+        message_parts.append(f"Ошибка PDF: {pdf_error}")
+    if note_sent:
+        message_parts.append("примечание добавлено")
+    
     return {
-        "message": "Изменения сохранены" + (" (примечание добавлено в amoCRM)" if note_sent else ""),
+        "message": " | ".join(message_parts),
         "order_id": order_id,
-        "note_sent": note_sent
+        "note_sent": note_sent,
+        "pdf_uploaded": pdf_uploaded,
+        "pdf_error": pdf_error
     }
+
