@@ -502,77 +502,101 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               </Label>
               <p className="text-xs text-gray-500 mb-3">
                 Варианты - это взаимоисключающие версии опции (например, "лавка без обшивки" vs "лавка с обшивкой"). 
-                Цена варианта ЗАМЕНЯЕТ базовую цену опции.
+                Цена варианта ЗАМЕНЯЕТ базовую цену опции. Фото варианта будет использовано в PDF.
               </p>
               
-              {/* List of existing variants */}
+              {/* List of existing variants - card style like heaters */}
               {(editingOption.variants?.length > 0 || editingOption.subOptions?.length > 0) && (
-                <div className="space-y-2 mb-3">
+                <div className="grid grid-cols-1 gap-3 mb-4">
                   {(editingOption.variants || editingOption.subOptions || []).map((variant, idx) => (
-                    <div key={idx} className="p-2 bg-amber-50 rounded border border-amber-200">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <span className="font-medium text-sm">{variant.name}</span>
-                          {variant.namePl && <span className="text-xs text-gray-500 ml-2">({variant.namePl})</span>}
-                          <span className="text-amber-700 ml-2 font-bold">{variant.price} zł</span>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                          onClick={() => {
-                            setEditingOption(prev => ({
-                              ...prev,
-                              variants: (prev.variants || prev.subOptions || []).filter((_, i) => i !== idx),
-                              subOptions: [] // Clear legacy field
-                            }));
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        {/* Image upload for variant */}
-                        <label className="cursor-pointer">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              
-                              const formData = new FormData();
-                              formData.append('file', file);
-                              
-                              try {
-                                const response = await fetch(`${window.API_URL || ''}/api/sauna/upload-image`, {
-                                  method: 'POST',
-                                  body: formData
-                                });
-                                const result = await response.json();
-                                if (result.url) {
-                                  setEditingOption(prev => ({
-                                    ...prev,
-                                    variants: (prev.variants || prev.subOptions || []).map((v, i) => 
-                                      i === idx ? { ...v, imageUrl: result.url } : v
-                                    ),
-                                    subOptions: []
-                                  }));
+                    <div key={idx} className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border-2 border-amber-200 hover:border-amber-400 transition-colors">
+                      <div className="flex items-start gap-3">
+                        {/* Variant Image */}
+                        <div className="relative">
+                          {variant.imageUrl ? (
+                            <img 
+                              src={variant.imageUrl} 
+                              alt={variant.name} 
+                              className="w-24 h-24 object-cover rounded-lg border-2 border-amber-300"
+                            />
+                          ) : (
+                            <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                              <span className="text-xs text-gray-400 text-center px-1">Нет фото</span>
+                            </div>
+                          )}
+                          {/* Upload button overlay */}
+                          <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity cursor-pointer rounded-lg">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                
+                                try {
+                                  const response = await fetch(`${window.API_URL || ''}/api/sauna/upload-image`, {
+                                    method: 'POST',
+                                    body: formData
+                                  });
+                                  const result = await response.json();
+                                  if (result.url) {
+                                    setEditingOption(prev => ({
+                                      ...prev,
+                                      variants: (prev.variants || prev.subOptions || []).map((v, i) => 
+                                        i === idx ? { ...v, imageUrl: result.url } : v
+                                      ),
+                                      subOptions: []
+                                    }));
+                                  }
+                                } catch (err) {
+                                  console.error('Upload error:', err);
                                 }
-                              } catch (err) {
-                                console.error('Upload error:', err);
-                              }
-                            }}
-                          />
-                          <div className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800">
-                            <Upload className="h-3 w-3" />
-                            {variant.imageUrl ? 'Заменить' : 'Фото'}
+                              }}
+                            />
+                            <div className="flex flex-col items-center text-white">
+                              <Upload className="h-5 w-5 mb-1" />
+                              <span className="text-xs">{variant.imageUrl ? 'Заменить' : 'Загрузить'}</span>
+                            </div>
+                          </label>
+                        </div>
+                        
+                        {/* Variant Info */}
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-semibold text-amber-800">{variant.name}</h4>
+                              {variant.namePl && variant.namePl !== variant.name && (
+                                <p className="text-xs text-gray-500">{variant.namePl}</p>
+                              )}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setEditingOption(prev => ({
+                                  ...prev,
+                                  variants: (prev.variants || prev.subOptions || []).filter((_, i) => i !== idx),
+                                  subOptions: []
+                                }));
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                           </div>
-                        </label>
+                          <div className="text-xl font-bold text-amber-600 mt-1">
+                            {variant.price} zł
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {variant.imageUrl ? '✓ Фото загружено' : '⚠ Добавьте фото для PDF'}
+                          </p>
+                        </div>
                       </div>
-                      {variant.imageUrl && (
-                        <img src={variant.imageUrl} alt={variant.name} className="w-full h-16 object-cover rounded mt-2" />
-                      )}
                     </div>
                   ))}
                 </div>
