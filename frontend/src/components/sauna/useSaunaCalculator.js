@@ -645,6 +645,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     handleRadioChange,
     handleCheckboxChange,
     handleQuantityChange,
+    handleSubOptionChange,
     toggleGift,
     handleSaveAndGeneratePDF,
     handleClearForm,
