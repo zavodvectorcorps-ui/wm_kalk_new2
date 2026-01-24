@@ -1,0 +1,74 @@
+{
+  "summary": "Tested Sauna Calculator foundationPrice and variant features. All tests passed - foundationPrice from model displays correctly for 'Dodaj belki' option (200 PLN), variant selection works with correct price replacement (1480 PLN for 'Z zabudową'), and PDF generation includes variant data.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_foundation_variants.py",
+    "/app/test_reports/pytest/pytest_results_iteration27.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_foundation_variants.py"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 tests passed)",
+    "frontend": "100% - All foundationPrice and variant features working"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"}
+  },
+  "seed_data_creation": "Using existing data: Model 'Sauna Kwadro-Beczka 235x250 cm' (foundationPrice=200), Option 'lawki_2_poziomy_otwarte' with variants 'Bez zabudowy' (480 PLN) and 'Z zabudową' (1480 PLN)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "features_tested": {
+    "foundationPrice_display": {
+      "status": "PASS",
+      "details": "Model cards show 'Fundament: +200 PLN' for Sauna Kwadro-Beczka 235x250 cm"
+    },
+    "belki_dodaj_uses_foundationPrice": {
+      "status": "PASS",
+      "details": "When selecting 'Dodaj do sauny Belki podłużne', price shows +200 PLN (from model's foundationPrice, not option's price=0)"
+    },
+    "variant_selection_ui": {
+      "status": "PASS",
+      "details": "Selecting 'Ławki 2-poziomowe nie są zamknięte 55 cm' shows variant radio buttons: 'Bez zabudowy' (480 PLN) and 'Z zabudową' (1480 PLN)"
+    },
+    "variant_price_replacement": {
+      "status": "PASS",
+      "details": "Selecting 'Z zabudową' variant shows 1480 PLN in summary (replaces base 480 PLN)"
+    },
+    "summary_calculation": {
+      "status": "PASS",
+      "details": "Total correctly calculated: 17980 (model) + 1480 (variant) + 200 (foundation) = 19660 PLN"
+    },
+    "pdf_generation_with_variant": {
+      "status": "PASS",
+      "details": "PDF generation endpoint accepts variant data (selectedVariantId, selectedVariant with imageUrl)"
+    },
+    "order_creation_with_variant": {
+      "status": "PASS",
+      "details": "Orders can be created with variantSelections and selectedVariant data, correctly persisted in database"
+    }
+  },
+  "test_flow_summary": {
+    "step_1": "Login with admin/admin123",
+    "step_2": "Navigate to Sauna calculator (click Wybierz on Sauna card)",
+    "step_3": "Select model 'Sauna Kwadro-Beczka 235×250 cm' (foundationPrice=200)",
+    "step_4": "Scroll to 'Belki podłużne do podstawy ramy sauny' category",
+    "step_5": "Select 'Dodaj do sauny Belki podłużne' - shows +200 PLN (from model's foundationPrice)",
+    "step_6": "Scroll to 'Ławki' category",
+    "step_7": "Select 'Ławki 2-poziomowe nie są zamknięte 55 cm' - variant options appear",
+    "step_8": "Select 'Z zabudową' variant - summary shows +1480 PLN",
+    "step_9": "Verify total: 19 660 PLN (17980 + 1480 + 200)"
+  },
+  "context_for_next_testing_agent": "foundationPrice and variant features are fully implemented and working. Key points: 1) foundationPrice from model is used for 'belki_dodaj' option in 'fundament' category. 2) Variants are mutually exclusive (radio buttons) and variant price REPLACES the base option price. 3) Variant imageUrl is passed to PDF generation via selectedOptions[].imageUrl. 4) The 'Ławki' category has options with variants for testing.",
+  "note_on_model_name": "The test request mentioned 'Sauna Kwadro 150x200 cm' with foundationPrice=200, but this model doesn't exist. Used 'Sauna Kwadro-Beczka 235x250 cm' which has foundationPrice=200."
+}
