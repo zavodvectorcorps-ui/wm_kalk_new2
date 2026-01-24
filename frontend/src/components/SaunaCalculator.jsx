@@ -892,7 +892,7 @@ const DropdownHintBox = ({ option }) => {
   );
 };
 
-const RadioOptions = ({ category, options, formData, handleRadioChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, txt }) => {
+const RadioOptions = ({ category, options, formData, foundationPrice, handleRadioChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, txt }) => {
   const selectedOptionId = formData.selections[category.id] || '';
   const selectedOption = options.find(o => o.id === selectedOptionId);
   // Get variants (support both new 'variants' and legacy 'subOptions' fields)
@@ -900,6 +900,9 @@ const RadioOptions = ({ category, options, formData, handleRadioChange, handleQu
   const hasVariants = variants?.length > 0;
   const selectedVariantId = formData.variantSelections?.[selectedOptionId];
   const selectedVariant = selectedVariantId ? variants?.find(v => v.id === selectedVariantId) : variants?.[0];
+  
+  // Check if this is the foundation/belki category
+  const isBelkiCategory = category.id === 'fundament';
   
   return (
     <div className="space-y-3">
@@ -913,7 +916,12 @@ const RadioOptions = ({ category, options, formData, handleRadioChange, handleQu
           const optionHasVariants = optionVariants?.length > 0;
           const optionSelectedVariantId = formData.variantSelections?.[option.id];
           const optionSelectedVariant = optionSelectedVariantId ? optionVariants?.find(v => v.id === optionSelectedVariantId) : optionVariants?.[0];
-          const displayPrice = optionHasVariants && optionSelectedVariant ? optionSelectedVariant.price : option.price;
+          
+          // For belki "dodaj" option, use foundationPrice from model
+          const isBelkiDodaj = isBelkiCategory && option.id.includes('dodaj');
+          const displayPrice = isBelkiDodaj 
+            ? (foundationPrice || 0)
+            : (optionHasVariants && optionSelectedVariant ? optionSelectedVariant.price : option.price);
           
           return (
             <div key={option.id} className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
@@ -933,7 +941,7 @@ const RadioOptions = ({ category, options, formData, handleRadioChange, handleQu
                       {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${formatPrice(displayPrice * quantity)} PLN`}
                     </span>
                   ) : (
-                    <span className="text-xs text-green-600">{option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis}</span>
+                    <span className="text-xs text-green-600">{txt.gratis}</span>
                   )}
                   {option.hasQuantity && isSelected && (
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
