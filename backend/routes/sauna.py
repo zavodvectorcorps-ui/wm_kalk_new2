@@ -576,14 +576,12 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
         
         for opt in request.selectedOptions:
             opt_name = opt.get('optionName', '')
-            opt_price = opt.get('totalPrice', 0) or opt.get('price', 0)
+            base_price = opt.get('price', 0)
             quantity = opt.get('quantity', 1)
             image_url = opt.get('imageUrl')
             hint_image_url = opt.get('hintImageUrl')
             sub_options = opt.get('selectedSubOptions', [])
-            
-            # Create option row with image if available
-            opt_data = []
+            sub_options_total = opt.get('subOptionsTotal', 0)
             
             # Try to load option image (either from imageUrl or hintImageUrl)
             display_image = image_url or hint_image_url
@@ -603,21 +601,18 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
                 except Exception as e:
                     logger.warning(f"Could not load option image: {e}")
             
-            # Build option display name with sub-options
-            full_name = opt_name
-            if sub_options:
-                sub_names = [s.get('name', '') for s in sub_options]
-                full_name += f" ({', '.join(sub_names)})"
-            
-            price_formatted = f"{opt_price:,.0f}".replace(",", " ") + " zł"
+            # Format base price
+            base_total = base_price * quantity
+            price_formatted = f"{base_total:,.0f}".replace(",", " ") + " zł"
             if quantity > 1:
-                price_formatted = f"{quantity} × {opt.get('price', 0):,.0f}".replace(",", " ") + f" = {opt_price:,.0f}".replace(",", " ") + " zł"
+                price_formatted = f"{quantity} × {base_price:,.0f}".replace(",", " ") + f" = {base_total:,.0f}".replace(",", " ") + " zł"
             
+            # Main option row
             if img_element:
-                opt_data = [[img_element, Paragraph(full_name, ParagraphStyle('OptName', fontName='DejaVuSans-Bold', fontSize=10)), price_formatted]]
+                opt_data = [[img_element, Paragraph(opt_name, ParagraphStyle('OptName', fontName='DejaVuSans-Bold', fontSize=10)), price_formatted]]
                 opt_table = Table(opt_data, colWidths=[45*mm, 95*mm, 35*mm])
             else:
-                opt_data = [[Paragraph(full_name, ParagraphStyle('OptName', fontName='DejaVuSans-Bold', fontSize=10)), price_formatted]]
+                opt_data = [[Paragraph(opt_name, ParagraphStyle('OptName', fontName='DejaVuSans-Bold', fontSize=10)), price_formatted]]
                 opt_table = Table(opt_data, colWidths=[140*mm, 35*mm])
             
             opt_table.setStyle(TableStyle([
@@ -632,6 +627,27 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
                 ('LINEBELOW', (0, 0), (-1, -1), 0.5, ORANGE_BORDER),
             ]))
             elements.append(opt_table)
+            
+            # Sub-options as separate rows with smaller font
+            if sub_options:
+                for sub_opt in sub_options:
+                    sub_name = sub_opt.get('name', '')
+                    sub_price = sub_opt.get('price', 0) * quantity
+                    sub_price_formatted = f"+{sub_price:,.0f}".replace(",", " ") + " zł"
+                    
+                    sub_style = ParagraphStyle('SubOptName', fontName='DejaVuSans', fontSize=9, textColor=colors.HexColor('#6b7280'))
+                    sub_data = [[Paragraph(f"    ↳ {sub_name}", sub_style), sub_price_formatted]]
+                    sub_table = Table(sub_data, colWidths=[140*mm, 35*mm])
+                    sub_table.setStyle(TableStyle([
+                        ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 9),
+                        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#6b7280')),
+                        ('TEXTCOLOR', (-1, 0), (-1, -1), colors.HexColor('#7c3aed')),
+                        ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ]))
+                    elements.append(sub_table)
         
         elements.append(Spacer(1, 6*mm))
     
