@@ -98,6 +98,18 @@ def build_sauna_pdf_request(order: dict, admin_gifts: list = None, discount_perc
     phone = order.get('phoneNumber') or order.get('phone') or '-'
     address = order.get('fullAddress') or order.get('address') or '-'
     
+    # Load categories from pricing if not in order
+    categories = order.get('categories', [])
+    if not categories:
+        try:
+            sauna_pricing = db["sauna_pricing"]
+            pricing_doc = sauna_pricing.find_one({"type": "sauna"}, {"_id": 0})
+            if pricing_doc:
+                categories = pricing_doc.get("categories", [])
+                logger.info(f"Loaded {len(categories)} categories from sauna_pricing")
+        except Exception as e:
+            logger.error(f"Error loading sauna categories: {e}")
+    
     return SaunaPDFRequest(
         orderId=order.get('id', ''),
         fullName=full_name,
@@ -119,7 +131,7 @@ def build_sauna_pdf_request(order: dict, admin_gifts: list = None, discount_perc
         subtotal=order.get('subtotal', 0),
         total=order.get('total', 0),
         language=order.get('language', 'pl'),
-        categories=order.get('categories', []),
+        categories=categories,
         adminGifts=gifts,
         selectedOptions=order.get('selectedOptions', [])
     )
