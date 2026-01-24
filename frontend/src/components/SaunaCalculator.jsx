@@ -1077,20 +1077,23 @@ const SummaryCard = ({
 const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
   // Helper to get sub-options total and names for an option
   const getSubOptionsInfo = (opt) => {
-    if (!opt?.subOptions?.length) return { total: 0, names: [] };
+    if (!opt?.subOptions?.length) return { total: 0, items: [] };
     
     let total = 0;
-    const names = [];
+    const items = [];
     
     opt.subOptions.forEach(subOpt => {
       const subKey = `${opt.id}_${subOpt.id}`;
       if (formData.subSelections?.[subKey]) {
         total += subOpt.price;
-        names.push(subOpt.namePl || subOpt.name);
+        items.push({
+          name: subOpt.namePl || subOpt.name,
+          price: subOpt.price
+        });
       }
     });
     
-    return { total, names };
+    return { total, items };
   };
   
   return (
@@ -1113,17 +1116,23 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
               {selectedOpts.map(opt => {
                 const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
                 const subInfo = getSubOptionsInfo(opt);
+                const basePrice = opt.price * quantity;
                 const totalPrice = (opt.price + subInfo.total) * quantity;
-                const displayName = subInfo.names.length > 0 
-                  ? `${opt.name} (${subInfo.names.join(', ')})`
-                  : opt.name;
                 
                 return (
-                  <div key={opt.id} className="flex justify-between">
-                    <span className="truncate pr-2">{displayName}{opt.hasQuantity && quantity > 1 && ` ×${quantity}`}</span>
-                    <span className="text-amber-700 whitespace-nowrap font-medium">
-                      {opt.price > 0 || subInfo.total > 0 ? `+${formatPrice(totalPrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
-                    </span>
+                  <div key={opt.id}>
+                    <div className="flex justify-between">
+                      <span className="truncate pr-2">{opt.name}{opt.hasQuantity && quantity > 1 && ` ×${quantity}`}</span>
+                      <span className="text-amber-700 whitespace-nowrap font-medium">
+                        {opt.price > 0 ? `+${formatPrice(basePrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                      </span>
+                    </div>
+                    {subInfo.items.map((item, idx) => (
+                      <div key={idx} className="flex justify-between ml-4 text-xs text-muted-foreground">
+                        <span className="truncate pr-2">↳ {item.name}</span>
+                        <span className="text-purple-600 whitespace-nowrap">+{formatPrice(item.price * quantity)} PLN</span>
+                      </div>
+                    ))}
                   </div>
                 );
               })}
@@ -1135,20 +1144,23 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
           
           const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
           const subInfo = getSubOptionsInfo(opt);
-          const totalPrice = (opt.price + subInfo.total) * quantity;
-          const displayName = subInfo.names.length > 0 
-            ? `${opt.name} (${subInfo.names.join(', ')})`
-            : opt.name;
+          const basePrice = opt.price * quantity;
           
           return (
             <div key={category.id} className="text-sm">
               <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
               <div className="flex justify-between">
-                <span className="truncate pr-2">{displayName}{opt.hasQuantity && quantity > 1 && ` ×${quantity}`}</span>
+                <span className="truncate pr-2">{opt.name}{opt.hasQuantity && quantity > 1 && ` ×${quantity}`}</span>
                 <span className="text-amber-700 whitespace-nowrap font-medium">
-                  {opt.price > 0 || subInfo.total > 0 ? `+${formatPrice(totalPrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                  {opt.price > 0 ? `+${formatPrice(basePrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
                 </span>
               </div>
+              {subInfo.items.map((item, idx) => (
+                <div key={idx} className="flex justify-between ml-4 text-xs text-muted-foreground">
+                  <span className="truncate pr-2">↳ {item.name}</span>
+                  <span className="text-purple-600 whitespace-nowrap">+{formatPrice(item.price * quantity)} PLN</span>
+                </div>
+              ))}
             </div>
           );
         }
