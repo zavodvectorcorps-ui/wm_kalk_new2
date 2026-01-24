@@ -879,73 +879,79 @@ const DropdownHintBox = ({ option }) => {
   );
 };
 
-const RadioOptions = ({ category, options, formData, handleRadioChange, handleQuantityChange, handleSubOptionChange, txt }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-    {options.map((option) => {
-      const isSelected = formData.selections[category.id] === option.id;
-      const quantity = formData.quantities[option.id] || 1;
-      const hasSubOptions = option.subOptions?.length > 0;
-      
-      return (
-        <div key={option.id} className="space-y-2">
-          <div className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
-            {/* Hint icon with media support */}
-            <HintIcon 
-              hint={option.hint} 
-              hintImageUrl={option.hintImageUrl} 
-              hintVideoUrl={option.hintVideoUrl}
-            />
-            <RadioGroupItemOrange value={option.id} id={`${category.id}-${option.id}`} />
-            <div className="flex-1">
-              <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block">{option.name}</Label>
-              <div className="flex items-center gap-2 flex-wrap">
-                {option.price > 0 ? (
-                  <span className="text-xs text-amber-700 font-medium">
-                    +{formatPrice(option.price)} PLN
-                    {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${formatPrice(option.price * quantity)} PLN`}
-                  </span>
-                ) : (
-                  <span className="text-xs text-green-600">{option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis}</span>
-                )}
-                {option.hasQuantity && isSelected && (
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Label className="text-xs text-muted-foreground">{txt.quantity}:</Label>
-                    <InputOrange type="number" min="1" value={quantity} onChange={(e) => handleQuantityChange(option.id, e.target.value)} className="w-16 h-6 text-xs" />
-                  </div>
-                )}
-              </div>
-            </div>
-            {option.imageUrl && <img src={option.imageUrl} alt={option.name} className="w-16 h-12 object-cover rounded" loading="lazy" decoding="async" />}
-          </div>
+const RadioOptions = ({ category, options, formData, handleRadioChange, handleQuantityChange, handleSubOptionChange, txt }) => {
+  const selectedOptionId = formData.selections[category.id] || '';
+  const selectedOption = options.find(o => o.id === selectedOptionId);
+  const hasSubOptions = selectedOption?.subOptions?.length > 0;
+  
+  return (
+    <div className="space-y-3">
+      <RadioGroupOrange value={selectedOptionId} onValueChange={(value) => handleRadioChange(category.id, value)} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {options.map((option) => {
+          const isSelected = selectedOptionId === option.id;
+          const quantity = formData.quantities[option.id] || 1;
           
-          {/* Sub-options - show only when main option is selected */}
-          {isSelected && hasSubOptions && (
-            <div className="ml-8 pl-3 border-l-2 border-purple-300 space-y-1">
-              {option.subOptions.map((subOpt) => {
-                const subOptKey = `${option.id}_${subOpt.id}`;
-                const isSubChecked = formData.subSelections?.[subOptKey] || false;
-                return (
-                  <div key={subOpt.id} className={`flex items-center gap-2 p-2 rounded ${isSubChecked ? 'bg-purple-50' : 'bg-gray-50'}`} onClick={(e) => e.stopPropagation()}>
-                    <CheckboxOrange 
-                      id={subOptKey}
-                      checked={isSubChecked}
-                      onCheckedChange={(checked) => handleSubOptionChange(option.id, subOpt.id, checked)}
-                      className="border-purple-400 data-[state=checked]:bg-purple-600"
-                    />
-                    <Label htmlFor={subOptKey} className="cursor-pointer text-sm flex-1">
-                      {subOpt.namePl || subOpt.name}
-                    </Label>
-                    <span className="text-xs text-purple-700 font-medium">+{formatPrice(subOpt.price)} PLN</span>
-                  </div>
-                );
-              })}
+          return (
+            <div key={option.id} className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
+              {/* Hint icon with media support */}
+              <HintIcon 
+                hint={option.hint} 
+                hintImageUrl={option.hintImageUrl} 
+                hintVideoUrl={option.hintVideoUrl}
+              />
+              <RadioGroupItemOrange value={option.id} id={`${category.id}-${option.id}`} />
+              <div className="flex-1">
+                <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block">{option.name}</Label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {option.price > 0 ? (
+                    <span className="text-xs text-amber-700 font-medium">
+                      +{formatPrice(option.price)} PLN
+                      {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${formatPrice(option.price * quantity)} PLN`}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-green-600">{option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis}</span>
+                  )}
+                  {option.hasQuantity && isSelected && (
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Label className="text-xs text-muted-foreground">{txt.quantity}:</Label>
+                      <InputOrange type="number" min="1" value={quantity} onChange={(e) => handleQuantityChange(option.id, e.target.value)} className="w-16 h-6 text-xs" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              {option.imageUrl && <img src={option.imageUrl} alt={option.name} className="w-16 h-12 object-cover rounded" loading="lazy" decoding="async" />}
             </div>
-          )}
+          );
+        })}
+      </RadioGroupOrange>
+      
+      {/* Sub-options - show outside RadioGroup when main option is selected */}
+      {hasSubOptions && (
+        <div className="ml-8 pl-3 border-l-2 border-purple-300 space-y-1">
+          <p className="text-xs text-purple-600 mb-2">Дополнительные опции для "{selectedOption.name}":</p>
+          {selectedOption.subOptions.map((subOpt) => {
+            const subOptKey = `${selectedOptionId}_${subOpt.id}`;
+            const isSubChecked = formData.subSelections?.[subOptKey] || false;
+            return (
+              <div key={subOpt.id} className={`flex items-center gap-2 p-2 rounded ${isSubChecked ? 'bg-purple-50' : 'bg-gray-50'}`}>
+                <CheckboxOrange 
+                  id={subOptKey}
+                  checked={isSubChecked}
+                  onCheckedChange={(checked) => handleSubOptionChange(selectedOptionId, subOpt.id, checked)}
+                  className="border-purple-400 data-[state=checked]:bg-purple-600"
+                />
+                <Label htmlFor={subOptKey} className="cursor-pointer text-sm flex-1">
+                  {subOpt.namePl || subOpt.name}
+                </Label>
+                <span className="text-xs text-purple-700 font-medium">+{formatPrice(subOpt.price)} PLN</span>
+              </div>
+            );
+          })}
         </div>
-      );
-    })}
-  </div>
-);
+      )}
+    </div>
+  );
+};
 
 const SummaryCard = ({
   model, prices, formData, appliedDiscount, subtotal, discountAmount, foundationPrice, total,
