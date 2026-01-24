@@ -162,7 +162,11 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             if (opt.quantity && opt.quantity > 1) {
               rebuiltQuantities[optionId] = opt.quantity;
             }
-            // Rebuild sub-selections
+            // Rebuild variant selections (new system)
+            if (opt.selectedVariantId) {
+              rebuiltVariantSelections[optionId] = opt.selectedVariantId;
+            }
+            // Rebuild sub-selections (legacy system)
             if (opt.selectedSubOptions?.length > 0) {
               opt.selectedSubOptions.forEach(subOpt => {
                 rebuiltSubSelections[`${optionId}_${subOpt.id}`] = true;
@@ -175,6 +179,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           ...prev, 
           selections: rebuiltSelections, 
           quantities: rebuiltQuantities,
+          variantSelections: rebuiltVariantSelections,
           subSelections: rebuiltSubSelections 
         }));
       }
