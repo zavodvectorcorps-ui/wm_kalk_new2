@@ -508,71 +508,72 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               {editingOption.subOptions?.length > 0 && (
                 <div className="space-y-2 mb-3">
                   {editingOption.subOptions.map((subOpt, idx) => (
-                    <div key={idx} className="flex items-center gap-2 p-2 bg-purple-50 rounded border border-purple-200">
-                      <div className="flex-1">
-                        <span className="font-medium text-sm">{subOpt.name}</span>
-                        {subOpt.namePl && <span className="text-xs text-gray-500 ml-2">({subOpt.namePl})</span>}
-                        <span className="text-purple-600 ml-2">+{subOpt.price} zł</span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                        onClick={() => {
-                          setEditingOption(prev => ({
-                            ...prev,
-                            subOptions: prev.subOptions.filter((_, i) => i !== idx)
-                          }));
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      {/* Image upload for sub-option */}
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            
-                            const formData = new FormData();
-                            formData.append('file', file);
-                            
-                            try {
-                              const response = await fetch(`${window.API_URL || ''}/api/sauna/upload-image`, {
-                                method: 'POST',
-                                body: formData
-                              });
-                              const result = await response.json();
-                              if (result.url) {
-                                setEditingOption(prev => ({
-                                  ...prev,
-                                  subOptions: prev.subOptions.map((s, i) => 
-                                    i === idx ? { ...s, imageUrl: result.url } : s
-                                  )
-                                }));
-                              }
-                            } catch (err) {
-                              console.error('Upload error:', err);
-                            }
-                          }}
-                        />
-                        <div className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800">
-                          <Upload className="h-3 w-3" />
-                          {subOpt.imageUrl ? 'Заменить' : 'Фото'}
+                    <div key={idx} className="p-2 bg-purple-50 rounded border border-purple-200">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <span className="font-medium text-sm">{subOpt.name}</span>
+                          {subOpt.namePl && <span className="text-xs text-gray-500 ml-2">({subOpt.namePl})</span>}
+                          <span className="text-purple-600 ml-2">+{subOpt.price} zł</span>
                         </div>
-                      </label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          onClick={() => {
+                            setEditingOption(prev => ({
+                              ...prev,
+                              subOptions: prev.subOptions.filter((_, i) => i !== idx)
+                            }));
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        {/* Image upload for sub-option */}
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              
+                              try {
+                                const response = await fetch(`${window.API_URL || ''}/api/sauna/upload-image`, {
+                                  method: 'POST',
+                                  body: formData
+                                });
+                                const result = await response.json();
+                                if (result.url) {
+                                  setEditingOption(prev => ({
+                                    ...prev,
+                                    subOptions: prev.subOptions.map((s, i) => 
+                                      i === idx ? { ...s, imageUrl: result.url } : s
+                                    )
+                                  }));
+                                }
+                              } catch (err) {
+                                console.error('Upload error:', err);
+                              }
+                            }}
+                          />
+                          <div className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800">
+                            <Upload className="h-3 w-3" />
+                            {subOpt.imageUrl ? 'Заменить' : 'Фото'}
+                          </div>
+                        </label>
+                      </div>
+                      {subOpt.imageUrl && (
+                        <img src={subOpt.imageUrl} alt={subOpt.name} className="w-full h-16 object-cover rounded mt-2" />
+                      )}
                     </div>
-                    {subOpt.imageUrl && (
-                      <img src={subOpt.imageUrl} alt={subOpt.name} className="w-full h-16 object-cover rounded mt-1" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
             
             {/* Add new sub-option */}
               <div className="space-y-2 p-3 bg-gray-50 rounded border">
