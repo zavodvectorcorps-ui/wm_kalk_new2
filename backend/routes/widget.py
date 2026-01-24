@@ -352,27 +352,6 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
     except Exception as e:
         logger.error(f"Error in generate_and_upload_pdf_to_amocrm: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
-            logger.error("PDF generation returned empty result")
-            return {"success": False, "error": "Ошибка генерации PDF"}
-        
-        # Create filename
-        order_id = order.get('id', f"WM-{datetime.now().strftime('%Y%m%d%H%M%S')}")
-        filename = f"Oferta_{order_id}.pdf"
-        
-        # Upload to amoCRM
-        logger.info(f"Uploading PDF to amoCRM lead {lead_id}: {filename} ({len(pdf_bytes)} bytes)")
-        upload_result = await upload_pdf_to_amocrm_drive(lead_id, pdf_bytes, filename, domain, token)
-        
-        if upload_result.get("success"):
-            logger.info(f"PDF successfully uploaded to amoCRM: {upload_result}")
-            return {"success": True, "filename": filename, "file_uuid": upload_result.get("file_uuid")}
-        else:
-            logger.error(f"PDF upload failed: {upload_result}")
-            return {"success": False, "error": upload_result.get("error", "Ошибка загрузки")}
-            
-    except Exception as e:
-        logger.error(f"Error in generate_and_upload_pdf_to_amocrm: {e}", exc_info=True)
-        return {"success": False, "error": str(e)}
 
 
 def build_preview_panel(order, section):
