@@ -582,7 +582,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         discountPercent: appliedDiscount,
         selections: formData.selections,
         quantities: formData.quantities || {},
-        subSelections: formData.subSelections || {},
+        variantSelections: formData.variantSelections || {},
+        subSelections: formData.subSelections || {}, // Legacy compatibility
         selectedOptions,
         notes: formData.notes || '',
         optionsTotal: calculateOptionsTotal(),
