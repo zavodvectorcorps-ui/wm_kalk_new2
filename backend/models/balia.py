@@ -63,10 +63,10 @@ class BaliaModel(BaseModel):
     availableHeaterTypes: Optional[List[str]] = ["integrated", "external"]
     # Available bowl types for this model (e.g., ["fiberglass", "acrylic"] or just ["fiberglass"])
     availableBowlTypes: Optional[List[str]] = ["fiberglass", "acrylic"]
-    # Available color options for this model - map of categoryId to list of optionIds
+    # Available color options by heater type - nested map of heaterType -> categoryId -> list of optionIds
     # If empty or not set, all colors are available
-    # Example: {"shellColors": ["white", "blue"], "woodColors": ["pine"]}
-    availableColorOptions: Optional[Dict[str, List[str]]] = {}
+    # Example: {"integrated": {"shellColors": ["white", "blue"]}, "external": {"shellColors": ["gray"]}}
+    availableColorOptions: Optional[Dict[str, Dict[str, List[str]]]] = {}
 
 
 class CategoryOption(BaseModel):
