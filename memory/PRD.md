@@ -171,12 +171,14 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ### P1 (High Priority)
 - [x] ~~Manual refresh from amoCRM~~ (DONE - Jan 19, 2025)
+- [x] ~~Sauna option variants system~~ (DONE - Jan 24, 2025)
 - [ ] Verify automatic backup schedule works correctly
 
 ### P2 (Medium Priority)
 - [ ] UI for backup import/restore
-- [ ] Refactor shared components (CalculatorPage, LogisticsPage)
+- [ ] Refactor shared components (CalculatorPage, LogisticsPage, SaunaCalculator)
 - [ ] Replace deprecated Google Maps Autocomplete
+- [ ] Widget height issue (limited by amoCRM iframe constraints)
 
 ### P3 (Low Priority)
 - [ ] Sauna Lead Statistics feature
