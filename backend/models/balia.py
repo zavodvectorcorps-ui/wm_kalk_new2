@@ -65,8 +65,38 @@ class BaliaModel(BaseModel):
     availableBowlTypes: Optional[List[str]] = ["fiberglass", "acrylic"]
     # Available color options by heater type - nested map of heaterType -> categoryId -> list of optionIds
     # If empty or not set, all colors are available
-    # Example: {"integrated": {"shellColors": ["white", "blue"]}, "external": {"shellColors": ["gray"]}}
-    availableColorOptions: Optional[Dict[str, Dict[str, List[str]]]] = {}
+    # New format: {"integrated": {"shellColors": ["white", "blue"]}, "external": {"shellColors": ["gray"]}}
+    # Old format (auto-converted): {"shellColors": ["white", "blue"]} -> applies to all heater types
+    availableColorOptions: Optional[Dict[str, Any]] = {}
+    
+    @field_validator('availableColorOptions', mode='before')
+    @classmethod
+    def convert_old_color_format(cls, v):
+        """Convert old flat format to new heater-type-based format."""
+        if not v or not isinstance(v, dict):
+            return {}
+        
+        # Check if it's already in new format (keys are heater types)
+        if 'integrated' in v or 'external' in v:
+            return v
+        
+        # Check if it's old format (keys are category IDs with list values)
+        # Old format: {"shellColors": ["white", "blue"]}
+        # Convert to: {"integrated": {"shellColors": ["white", "blue"]}, "external": {"shellColors": ["white", "blue"]}}
+        is_old_format = False
+        for key, value in v.items():
+            if isinstance(value, list):
+                is_old_format = True
+                break
+        
+        if is_old_format:
+            # Apply same restrictions to both heater types
+            return {
+                "integrated": v,
+                "external": v
+            }
+        
+        return v
 
 
 class CategoryOption(BaseModel):
