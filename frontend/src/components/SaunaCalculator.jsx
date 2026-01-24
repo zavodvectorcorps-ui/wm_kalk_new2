@@ -477,6 +477,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
               handleRadioChange={handleRadioChange}
               handleCheckboxChange={handleCheckboxChange}
               handleQuantityChange={handleQuantityChange}
+              handleVariantChange={handleVariantChange}
               handleSubOptionChange={handleSubOptionChange}
               getCategoryName={getCategoryName}
               txt={txt}
