@@ -646,7 +646,30 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
   };
   
   const handleHeaterTypeChange = (heaterType) => {
-    setFormData(prev => ({ ...prev, selectedHeaterType: heaterType }));
+    // Get color categories IDs
+    const colorCategoryIds = prices.categories
+      ?.filter(cat => 
+        cat.name?.toLowerCase().includes('color') || 
+        cat.name?.toLowerCase().includes('цвет') ||
+        cat.name?.toLowerCase().includes('kolor') ||
+        cat.id?.toLowerCase().includes('color') ||
+        cat.id?.toLowerCase().includes('kolor')
+      )
+      .map(cat => cat.id) || [];
+    
+    setFormData(prev => {
+      // Clear color selections when heater type changes
+      const newSelections = { ...prev.selections };
+      colorCategoryIds.forEach(catId => {
+        delete newSelections[catId];
+      });
+      
+      return { 
+        ...prev, 
+        selectedHeaterType: heaterType,
+        selections: newSelections
+      };
+    });
   };
 
   const handleSelectionChange = (categoryId, value) => {
