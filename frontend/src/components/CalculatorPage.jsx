@@ -1067,14 +1067,19 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
     });
   };
 
-  // Filter color options based on model's availableColorOptions
+  // Filter color options based on model's availableColorOptions and selected heater type
   const filterColorOptions = (category, options) => {
     if (!selectedModel) return options;
     
-    // Check if model has color restrictions for this category
-    const availableColors = selectedModel.availableColorOptions?.[category.id];
+    // Get selected heater type
+    const heaterType = formData.selectedHeaterType || 'integrated';
     
-    // If no restrictions set, show all options
+    // Check if model has color restrictions for this heater type and category
+    // New structure: availableColorOptions[heaterType][categoryId] = [optionIds]
+    const heaterColorOptions = selectedModel.availableColorOptions?.[heaterType];
+    const availableColors = heaterColorOptions?.[category.id];
+    
+    // If no restrictions set for this heater type, show all options
     if (!availableColors || availableColors.length === 0) return options;
     
     // Filter options to only show available colors
