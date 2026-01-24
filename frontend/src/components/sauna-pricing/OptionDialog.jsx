@@ -573,8 +573,8 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 ))}
               </div>
             )}
-              
-              {/* Add new sub-option */}
+            
+            {/* Add new sub-option */}
               <div className="space-y-2 p-3 bg-gray-50 rounded border">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
