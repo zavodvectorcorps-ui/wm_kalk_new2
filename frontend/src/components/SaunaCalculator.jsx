@@ -276,7 +276,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     setFormData, setAdminDiscountApproved, setRequestedDiscount, setRequestedDiscountNote,
     handleInputChange, handleDiscountChange, handleModelChange,
     handleApplyStandardDiscount, handleRadioChange, handleCheckboxChange,
-    handleQuantityChange, handleSubOptionChange, handleSaveAndGeneratePDF, handleClearForm,
+    handleQuantityChange, handleVariantChange, handleSubOptionChange, handleSaveAndGeneratePDF, handleClearForm,
     handleCancelEdit, getCategoryName
   } = useSaunaCalculator(editingOrder, onEditComplete, amocrmPrefill, onAmocrmPrefillUsed);
 
