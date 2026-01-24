@@ -891,10 +891,14 @@ const DropdownHintBox = ({ option }) => {
   );
 };
 
-const RadioOptions = ({ category, options, formData, handleRadioChange, handleQuantityChange, handleSubOptionChange, txt }) => {
+const RadioOptions = ({ category, options, formData, handleRadioChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, txt }) => {
   const selectedOptionId = formData.selections[category.id] || '';
   const selectedOption = options.find(o => o.id === selectedOptionId);
-  const hasSubOptions = selectedOption?.subOptions?.length > 0;
+  // Get variants (support both new 'variants' and legacy 'subOptions' fields)
+  const variants = selectedOption?.variants?.length > 0 ? selectedOption.variants : selectedOption?.subOptions;
+  const hasVariants = variants?.length > 0;
+  const selectedVariantId = formData.variantSelections?.[selectedOptionId];
+  const selectedVariant = selectedVariantId ? variants?.find(v => v.id === selectedVariantId) : variants?.[0];
   
   return (
     <div className="space-y-3">
@@ -902,6 +906,13 @@ const RadioOptions = ({ category, options, formData, handleRadioChange, handleQu
         {options.map((option) => {
           const isSelected = selectedOptionId === option.id;
           const quantity = formData.quantities[option.id] || 1;
+          
+          // For display: show variant price if option has variants and one is selected
+          const optionVariants = option.variants?.length > 0 ? option.variants : option.subOptions;
+          const optionHasVariants = optionVariants?.length > 0;
+          const optionSelectedVariantId = formData.variantSelections?.[option.id];
+          const optionSelectedVariant = optionSelectedVariantId ? optionVariants?.find(v => v.id === optionSelectedVariantId) : optionVariants?.[0];
+          const displayPrice = optionHasVariants && optionSelectedVariant ? optionSelectedVariant.price : option.price;
           
           return (
             <div key={option.id} className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
@@ -915,10 +926,10 @@ const RadioOptions = ({ category, options, formData, handleRadioChange, handleQu
               <div className="flex-1">
                 <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block">{option.name}</Label>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {option.price > 0 ? (
+                  {displayPrice > 0 ? (
                     <span className="text-xs text-amber-700 font-medium">
-                      +{formatPrice(option.price)} PLN
-                      {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${formatPrice(option.price * quantity)} PLN`}
+                      {optionHasVariants ? '' : '+'}{formatPrice(displayPrice)} PLN
+                      {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${formatPrice(displayPrice * quantity)} PLN`}
                     </span>
                   ) : (
                     <span className="text-xs text-green-600">{option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis}</span>
@@ -937,28 +948,31 @@ const RadioOptions = ({ category, options, formData, handleRadioChange, handleQu
         })}
       </RadioGroupOrange>
       
-      {/* Sub-options - show outside RadioGroup when main option is selected */}
-      {hasSubOptions && (
-        <div className="ml-8 pl-3 border-l-2 border-purple-300 space-y-1">
-          <p className="text-xs text-purple-600 mb-2">Дополнительные опции для "{selectedOption.name}":</p>
-          {selectedOption.subOptions.map((subOpt) => {
-            const subOptKey = `${selectedOptionId}_${subOpt.id}`;
-            const isSubChecked = formData.subSelections?.[subOptKey] || false;
-            return (
-              <div key={subOpt.id} className={`flex items-center gap-2 p-2 rounded ${isSubChecked ? 'bg-purple-50' : 'bg-gray-50'}`}>
-                <CheckboxOrange 
-                  id={subOptKey}
-                  checked={isSubChecked}
-                  onCheckedChange={(checked) => handleSubOptionChange(selectedOptionId, subOpt.id, checked)}
-                  className="border-purple-400 data-[state=checked]:bg-purple-600"
-                />
-                <Label htmlFor={subOptKey} className="cursor-pointer text-sm flex-1">
-                  {subOpt.namePl || subOpt.name}
-                </Label>
-                <span className="text-xs text-purple-700 font-medium">+{formatPrice(subOpt.price)} PLN</span>
-              </div>
-            );
-          })}
+      {/* Variants - show as radio group when option is selected */}
+      {hasVariants && (
+        <div className="ml-8 pl-3 border-l-2 border-amber-300 space-y-1">
+          <p className="text-xs text-amber-600 mb-2">Выберите вариант для "{selectedOption.name}":</p>
+          <RadioGroupOrange 
+            value={selectedVariantId || variants[0]?.id || ''} 
+            onValueChange={(variantId) => handleVariantChange(selectedOptionId, variantId)}
+            className="space-y-1"
+          >
+            {variants.map((variant) => {
+              const isVariantSelected = (selectedVariantId || variants[0]?.id) === variant.id;
+              return (
+                <div key={variant.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${isVariantSelected ? 'bg-amber-100' : 'bg-gray-50 hover:bg-amber-50'}`}>
+                  <RadioGroupItemOrange value={variant.id} id={`${selectedOptionId}-${variant.id}`} />
+                  <Label htmlFor={`${selectedOptionId}-${variant.id}`} className="cursor-pointer text-sm flex-1">
+                    {variant.namePl || variant.name}
+                  </Label>
+                  <span className="text-xs text-amber-700 font-medium">{formatPrice(variant.price)} PLN</span>
+                  {variant.imageUrl && (
+                    <img src={variant.imageUrl} alt={variant.name} className="w-10 h-8 object-cover rounded" />
+                  )}
+                </div>
+              );
+            })}
+          </RadioGroupOrange>
         </div>
       )}
     </div>
