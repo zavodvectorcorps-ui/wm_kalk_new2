@@ -495,25 +495,26 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               <Label htmlFor="edit-isDefaultSelected">{txt.defaultSelected || 'Выбрано по умолчанию'}</Label>
             </div>
             
-            {/* Sub-Options Section */}
+            {/* Variants Section (formerly Sub-Options) */}
             <div className="border-t pt-4 mt-4">
-              <Label className="text-sm font-medium text-purple-700 mb-3 block">
-                ➕ Дополнительные опции / Opcje dodatkowe
+              <Label className="text-sm font-medium text-amber-700 mb-3 block">
+                🔄 Варианты исполнения / Warianty
               </Label>
               <p className="text-xs text-gray-500 mb-3">
-                Добавьте дополнительные опции к этой основной опции (например, "с зашивкой" для лавки)
+                Варианты - это взаимоисключающие версии опции (например, "лавка без обшивки" vs "лавка с обшивкой"). 
+                Цена варианта ЗАМЕНЯЕТ базовую цену опции.
               </p>
               
-              {/* List of existing sub-options */}
-              {editingOption.subOptions?.length > 0 && (
+              {/* List of existing variants */}
+              {(editingOption.variants?.length > 0 || editingOption.subOptions?.length > 0) && (
                 <div className="space-y-2 mb-3">
-                  {editingOption.subOptions.map((subOpt, idx) => (
-                    <div key={idx} className="p-2 bg-purple-50 rounded border border-purple-200">
+                  {(editingOption.variants || editingOption.subOptions || []).map((variant, idx) => (
+                    <div key={idx} className="p-2 bg-amber-50 rounded border border-amber-200">
                       <div className="flex items-center gap-2">
                         <div className="flex-1">
-                          <span className="font-medium text-sm">{subOpt.name}</span>
-                          {subOpt.namePl && <span className="text-xs text-gray-500 ml-2">({subOpt.namePl})</span>}
-                          <span className="text-purple-600 ml-2">+{subOpt.price} zł</span>
+                          <span className="font-medium text-sm">{variant.name}</span>
+                          {variant.namePl && <span className="text-xs text-gray-500 ml-2">({variant.namePl})</span>}
+                          <span className="text-amber-700 ml-2 font-bold">{variant.price} zł</span>
                         </div>
                         <Button
                           type="button"
@@ -523,13 +524,14 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                           onClick={() => {
                             setEditingOption(prev => ({
                               ...prev,
-                              subOptions: prev.subOptions.filter((_, i) => i !== idx)
+                              variants: (prev.variants || prev.subOptions || []).filter((_, i) => i !== idx),
+                              subOptions: [] // Clear legacy field
                             }));
                           }}
                         >
                           <X className="h-4 w-4" />
                         </Button>
-                        {/* Image upload for sub-option */}
+                        {/* Image upload for variant */}
                         <label className="cursor-pointer">
                           <input
                             type="file"
@@ -551,9 +553,10 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                                 if (result.url) {
                                   setEditingOption(prev => ({
                                     ...prev,
-                                    subOptions: prev.subOptions.map((s, i) => 
-                                      i === idx ? { ...s, imageUrl: result.url } : s
-                                    )
+                                    variants: (prev.variants || prev.subOptions || []).map((v, i) => 
+                                      i === idx ? { ...v, imageUrl: result.url } : v
+                                    ),
+                                    subOptions: []
                                   }));
                                 }
                               } catch (err) {
@@ -561,27 +564,27 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                               }
                             }}
                           />
-                          <div className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800">
+                          <div className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800">
                             <Upload className="h-3 w-3" />
-                            {subOpt.imageUrl ? 'Заменить' : 'Фото'}
+                            {variant.imageUrl ? 'Заменить' : 'Фото'}
                           </div>
                         </label>
                       </div>
-                      {subOpt.imageUrl && (
-                        <img src={subOpt.imageUrl} alt={subOpt.name} className="w-full h-16 object-cover rounded mt-2" />
+                      {variant.imageUrl && (
+                        <img src={variant.imageUrl} alt={variant.name} className="w-full h-16 object-cover rounded mt-2" />
                       )}
                     </div>
                   ))}
                 </div>
               )}
             
-            {/* Add new sub-option */}
+            {/* Add new variant */}
               <div className="space-y-2 p-3 bg-gray-50 rounded border">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">Название (RU)</Label>
                     <Input
-                      id="new-suboption-name"
+                      id="new-variant-name"
                       placeholder="С зашивкой"
                       className="h-8 text-sm"
                     />
@@ -589,7 +592,7 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                   <div>
                     <Label className="text-xs">Название (PL)</Label>
                     <Input
-                      id="new-suboption-namePl"
+                      id="new-variant-namePl"
                       placeholder="Z zabudową"
                       className="h-8 text-sm"
                     />
@@ -597,11 +600,11 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <Label className="text-xs">Цена (zł)</Label>
+                    <Label className="text-xs">Цена варианта (zł)</Label>
                     <Input
-                      id="new-suboption-price"
+                      id="new-variant-price"
                       type="number"
-                      placeholder="2000"
+                      placeholder="2480"
                       className="h-8 text-sm"
                     />
                   </div>
@@ -609,11 +612,11 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                     <Button
                       type="button"
                       size="sm"
-                      className="bg-purple-600 hover:bg-purple-700"
+                      className="bg-amber-600 hover:bg-amber-700"
                       onClick={() => {
-                        const nameInput = document.getElementById('new-suboption-name');
-                        const namePlInput = document.getElementById('new-suboption-namePl');
-                        const priceInput = document.getElementById('new-suboption-price');
+                        const nameInput = document.getElementById('new-variant-name');
+                        const namePlInput = document.getElementById('new-variant-namePl');
+                        const priceInput = document.getElementById('new-variant-price');
                         
                         const name = nameInput?.value?.trim();
                         const namePl = namePlInput?.value?.trim();
@@ -621,8 +624,8 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                         
                         if (!name) return;
                         
-                        const newSubOption = {
-                          id: `sub-${Date.now()}`,
+                        const newVariant = {
+                          id: `var-${Date.now()}`,
                           name: name,
                           nameRu: name,
                           namePl: namePl || name,
@@ -631,7 +634,8 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                         
                         setEditingOption(prev => ({
                           ...prev,
-                          subOptions: [...(prev.subOptions || []), newSubOption]
+                          variants: [...(prev.variants || prev.subOptions || []), newVariant],
+                          subOptions: [] // Clear legacy field
                         }));
                         
                         // Clear inputs
@@ -640,7 +644,7 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                         if (priceInput) priceInput.value = '';
                       }}
                     >
-                      Добавить
+                      Добавить вариант
                     </Button>
                   </div>
                 </div>
