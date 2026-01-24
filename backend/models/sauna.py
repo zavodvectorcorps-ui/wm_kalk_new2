@@ -27,6 +27,7 @@ class SubOption(BaseModel):
     nameRu: Optional[str] = ""  # Russian name
     namePl: Optional[str] = ""  # Polish name
     price: int = 0  # Additional price when selected
+    imageUrl: Optional[str] = None  # Image that replaces main option image when selected
 
 
 class SaunaOption(BaseModel):
