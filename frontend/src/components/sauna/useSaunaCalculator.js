@@ -302,10 +302,26 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   };
 
   const handleRadioChange = (categoryId, optionId) => {
-    setFormData(prev => ({
-      ...prev,
-      selections: { ...prev.selections, [categoryId]: optionId },
-    }));
+    setFormData(prev => {
+      // Clear sub-selections for the previous option in this category
+      const previousOptionId = prev.selections[categoryId];
+      let newSubSelections = { ...prev.subSelections };
+      
+      if (previousOptionId && previousOptionId !== optionId) {
+        // Remove all sub-selections for the previous option
+        Object.keys(newSubSelections).forEach(key => {
+          if (key.startsWith(`${previousOptionId}_`)) {
+            delete newSubSelections[key];
+          }
+        });
+      }
+      
+      return {
+        ...prev,
+        selections: { ...prev.selections, [categoryId]: optionId },
+        subSelections: newSubSelections,
+      };
+    });
   };
 
   const handleCheckboxChange = (categoryId, optionId, checked) => {
