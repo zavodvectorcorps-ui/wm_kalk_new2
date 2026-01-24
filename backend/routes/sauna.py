@@ -6,6 +6,7 @@ from urllib.parse import quote
 import io
 import os
 import logging
+import requests
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
