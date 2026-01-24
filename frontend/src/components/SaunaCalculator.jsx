@@ -720,7 +720,11 @@ const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, ha
   );
 };
 
-const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, txt }) => (
+const CheckboxOptions = ({ category, options, formData, foundationPrice, handleCheckboxChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, txt }) => {
+  // Check if this is the foundation/belki category
+  const isBelkiCategory = category.id === 'fundament';
+  
+  return (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
     {options.map((option) => {
       const isChecked = formData.selections[category.id]?.[option.id] || false;
@@ -731,8 +735,13 @@ const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, ha
       const selectedVariantId = formData.variantSelections?.[option.id];
       const selectedVariant = selectedVariantId ? variants?.find(v => v.id === selectedVariantId) : variants?.[0];
       
-      // Calculate display price based on selected variant
-      const displayPrice = hasVariants && selectedVariant ? selectedVariant.price : option.price;
+      // For belki "dodaj" option, use foundationPrice from model
+      const isBelkiDodaj = isBelkiCategory && option.id.includes('dodaj');
+      
+      // Calculate display price based on selected variant or belki special case
+      const displayPrice = isBelkiDodaj 
+        ? (foundationPrice || 0)
+        : (hasVariants && selectedVariant ? selectedVariant.price : option.price);
       
       return (
         <div key={option.id} className="space-y-2">
@@ -753,7 +762,7 @@ const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, ha
                     {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${formatPrice(displayPrice * quantity)} PLN`}
                   </span>
                 ) : (
-                  <span className="text-xs text-green-600">{option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis}</span>
+                  <span className="text-xs text-green-600">{txt.gratis}</span>
                 )}
                 {option.hasQuantity && isChecked && (
                   <div className="flex items-center gap-1">
@@ -797,7 +806,7 @@ const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, ha
       );
     })}
   </div>
-);
+);};
 
 const DropdownOptions = ({ category, options, formData, handleRadioChange, getCategoryName, txt }) => {
   const selectedOption = options.find(o => o.id === formData.selections[category.id]);
