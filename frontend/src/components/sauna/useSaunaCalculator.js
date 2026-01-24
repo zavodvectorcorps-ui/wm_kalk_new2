@@ -130,6 +130,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         notes: editingOrder.notes || '',
         selections: editingOrder.selections || prev.selections,
         quantities: editingOrder.quantities || {},
+        subSelections: editingOrder.subSelections || {},
       }));
       
       setRequestedDiscount(editingOrder.requestedDiscount || 0);
@@ -139,6 +140,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       if ((!editingOrder.selections || Object.keys(editingOrder.selections).length === 0) && editingOrder.selectedOptions?.length > 0) {
         const rebuiltSelections = {};
         const rebuiltQuantities = {};
+        const rebuiltSubSelections = {};
         
         prices.categories.forEach(cat => {
           rebuiltSelections[cat.id] = cat.inputType === 'checkbox' ? {} : '';
@@ -159,10 +161,21 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             if (opt.quantity && opt.quantity > 1) {
               rebuiltQuantities[optionId] = opt.quantity;
             }
+            // Rebuild sub-selections
+            if (opt.selectedSubOptions?.length > 0) {
+              opt.selectedSubOptions.forEach(subOpt => {
+                rebuiltSubSelections[`${optionId}_${subOpt.id}`] = true;
+              });
+            }
           }
         });
         
-        setFormData(prev => ({ ...prev, selections: rebuiltSelections, quantities: rebuiltQuantities }));
+        setFormData(prev => ({ 
+          ...prev, 
+          selections: rebuiltSelections, 
+          quantities: rebuiltQuantities,
+          subSelections: rebuiltSubSelections 
+        }));
       }
       
       setAppliedDiscount(editingOrder.discountPercent || 0);
