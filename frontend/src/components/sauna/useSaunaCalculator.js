@@ -130,7 +130,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         notes: editingOrder.notes || '',
         selections: editingOrder.selections || prev.selections,
         quantities: editingOrder.quantities || {},
-        subSelections: editingOrder.subSelections || {},
+        variantSelections: editingOrder.variantSelections || {},
+        subSelections: editingOrder.subSelections || {}, // Legacy compatibility
       }));
       
       setRequestedDiscount(editingOrder.requestedDiscount || 0);
