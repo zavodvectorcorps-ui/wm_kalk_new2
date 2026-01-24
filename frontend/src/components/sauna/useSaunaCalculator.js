@@ -380,7 +380,15 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     }));
   };
   
-  // Handle sub-option selection
+  // Handle variant selection (mutually exclusive - like radio button)
+  const handleVariantChange = (optionId, variantId) => {
+    setFormData(prev => ({
+      ...prev,
+      variantSelections: { ...prev.variantSelections, [optionId]: variantId },
+    }));
+  };
+  
+  // Legacy: Handle sub-option selection (checkbox style - kept for backward compatibility)
   const handleSubOptionChange = (optionId, subOptionId, checked) => {
     const key = `${optionId}_${subOptionId}`;
     setFormData(prev => ({
