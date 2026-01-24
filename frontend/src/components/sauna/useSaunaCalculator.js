@@ -421,10 +421,15 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const getSelectedOptions = useCallback(() => {
     const options = [];
     const categories = prices.categories || [];
+    const model = getSelectedModel();
+    const modelFoundationPrice = model?.foundationPrice || 0;
     
     categories.forEach(category => {
       const selection = formData.selections[category.id];
       if (!selection) return;
+      
+      // Check if this is the foundation/belki category
+      const isBelkiCategory = category.id === 'fundament';
       
       if (category.inputType === 'checkbox') {
         Object.entries(selection).forEach(([optId, isSelected]) => {
@@ -436,14 +441,17 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
               // Get variants (check both new 'variants' and legacy 'subOptions' fields)
               const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
               
+              // For belki "dodaj" option, use foundationPrice from model
+              const isBelkiDodaj = isBelkiCategory && optId.includes('dodaj');
+              
               // Determine final price and image based on selected variant
-              let finalPrice = option.price;
+              let finalPrice = isBelkiDodaj ? modelFoundationPrice : option.price;
               let finalImageUrl = option.imageUrl || null;
               let selectedVariantId = formData.variantSelections?.[optId];
               let selectedVariant = null;
               let variantName = '';
               
-              if (variants?.length > 0) {
+              if (variants?.length > 0 && !isBelkiDodaj) {
                 if (selectedVariantId) {
                   selectedVariant = variants.find(v => v.id === selectedVariantId);
                 } else {
@@ -492,16 +500,19 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         if (option) {
           const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
           
+          // For belki "dodaj" option, use foundationPrice from model
+          const isBelkiDodaj = isBelkiCategory && selection.includes('dodaj');
+          
           // Get variants
           const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
           
-          let finalPrice = option.price;
+          let finalPrice = isBelkiDodaj ? modelFoundationPrice : option.price;
           let finalImageUrl = option.imageUrl || null;
           let selectedVariantId = formData.variantSelections?.[selection];
           let selectedVariant = null;
           let variantName = '';
           
-          if (variants?.length > 0) {
+          if (variants?.length > 0 && !isBelkiDodaj) {
             if (selectedVariantId) {
               selectedVariant = variants.find(v => v.id === selectedVariantId);
             } else {
@@ -545,7 +556,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     });
     
     return options;
-  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, getSelectedModel]);
 
   // Save and generate PDF
   const handleSaveAndGeneratePDF = async () => {
