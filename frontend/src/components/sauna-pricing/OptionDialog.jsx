@@ -528,10 +528,51 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                       >
                         <X className="h-4 w-4" />
                       </Button>
+                      {/* Image upload for sub-option */}
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            
+                            try {
+                              const response = await fetch(`${window.API_URL || ''}/api/sauna/upload-image`, {
+                                method: 'POST',
+                                body: formData
+                              });
+                              const result = await response.json();
+                              if (result.url) {
+                                setEditingOption(prev => ({
+                                  ...prev,
+                                  subOptions: prev.subOptions.map((s, i) => 
+                                    i === idx ? { ...s, imageUrl: result.url } : s
+                                  )
+                                }));
+                              }
+                            } catch (err) {
+                              console.error('Upload error:', err);
+                            }
+                          }}
+                        />
+                        <div className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800">
+                          <Upload className="h-3 w-3" />
+                          {subOpt.imageUrl ? 'Заменить' : 'Фото'}
+                        </div>
+                      </label>
                     </div>
-                  ))}
-                </div>
-              )}
+                    {subOpt.imageUrl && (
+                      <img src={subOpt.imageUrl} alt={subOpt.name} className="w-full h-16 object-cover rounded mt-1" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
               
               {/* Add new sub-option */}
               <div className="space-y-2 p-3 bg-gray-50 rounded border">
