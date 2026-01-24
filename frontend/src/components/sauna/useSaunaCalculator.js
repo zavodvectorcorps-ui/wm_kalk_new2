@@ -370,6 +370,31 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             const option = category.options?.find(o => o.id === optId);
             if (option) {
               const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
+              
+              // Check for selected sub-options and their images
+              let finalImageUrl = option.imageUrl || null;
+              let selectedSubOptions = [];
+              let subOptionsTotal = 0;
+              
+              if (option.subOptions?.length > 0) {
+                option.subOptions.forEach(subOpt => {
+                  const subKey = `${optId}_${subOpt.id}`;
+                  if (formData.subSelections?.[subKey]) {
+                    selectedSubOptions.push({
+                      id: subOpt.id,
+                      name: subOpt.namePl || subOpt.name,
+                      price: subOpt.price,
+                      imageUrl: subOpt.imageUrl || null
+                    });
+                    subOptionsTotal += subOpt.price;
+                    // Use sub-option image if available
+                    if (subOpt.imageUrl) {
+                      finalImageUrl = subOpt.imageUrl;
+                    }
+                  }
+                });
+              }
+              
               options.push({
                 categoryId: category.id,
                 categoryName: category.name,
@@ -377,10 +402,13 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
                 optionName: option.name,
                 price: option.price,
                 quantity,
-                totalPrice: option.price * quantity,
-                imageUrl: option.imageUrl || null,
+                totalPrice: (option.price + subOptionsTotal) * quantity,
+                imageUrl: finalImageUrl,
+                hintImageUrl: option.hintImageUrl || null,  // Include hint image for PDF
                 techSpecId: option.techSpecId || null,
                 techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
+                selectedSubOptions,
+                subOptionsTotal: subOptionsTotal * quantity,
               });
             }
           }
@@ -389,6 +417,30 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         const option = category.options?.find(o => o.id === selection);
         if (option) {
           const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
+          
+          // Check for selected sub-options
+          let finalImageUrl = option.imageUrl || null;
+          let selectedSubOptions = [];
+          let subOptionsTotal = 0;
+          
+          if (option.subOptions?.length > 0) {
+            option.subOptions.forEach(subOpt => {
+              const subKey = `${selection}_${subOpt.id}`;
+              if (formData.subSelections?.[subKey]) {
+                selectedSubOptions.push({
+                  id: subOpt.id,
+                  name: subOpt.namePl || subOpt.name,
+                  price: subOpt.price,
+                  imageUrl: subOpt.imageUrl || null
+                });
+                subOptionsTotal += subOpt.price;
+                if (subOpt.imageUrl) {
+                  finalImageUrl = subOpt.imageUrl;
+                }
+              }
+            });
+          }
+          
           options.push({
             categoryId: category.id,
             categoryName: category.name,
@@ -396,17 +448,20 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             optionName: option.name,
             price: option.price,
             quantity,
-            totalPrice: option.price * quantity,
-            imageUrl: option.imageUrl || null,
+            totalPrice: (option.price + subOptionsTotal) * quantity,
+            imageUrl: finalImageUrl,
+            hintImageUrl: option.hintImageUrl || null,
             techSpecId: option.techSpecId || null,
             techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
+            selectedSubOptions,
+            subOptionsTotal: subOptionsTotal * quantity,
           });
         }
       }
     });
     
     return options;
-  }, [prices.categories, formData.selections, formData.quantities]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.subSelections]);
 
   // Save and generate PDF
   const handleSaveAndGeneratePDF = async () => {
