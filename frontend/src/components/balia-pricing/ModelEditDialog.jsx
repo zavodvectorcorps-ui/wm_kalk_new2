@@ -388,79 +388,105 @@ export const ModelEditDialog = memo(({
             <p className="text-xs text-purple-600">Выберите, какие типы чаш доступны для этой модели</p>
           </div>
 
-          {/* Available Colors Section */}
+          {/* Available Colors Section - by heater type */}
           {colorCategories.length > 0 && (
             <div className="border rounded-lg p-4 bg-pink-50 space-y-4">
-              <h3 className="font-semibold text-pink-800">🎨 Доступные цвета / Dostępne kolory</h3>
+              <h3 className="font-semibold text-pink-800">🎨 Доступные цвета по типу печки / Dostępne kolory wg pieca</h3>
               <p className="text-xs text-gray-600 mb-2">
-                Выберите, какие цвета доступны для этой модели. Если не выбрано ни одного — доступны все цвета.
+                Выберите, какие цвета доступны для каждого типа печки. Если не выбрано ни одного — доступны все цвета.
               </p>
               
-              {colorCategories.map(category => (
-                <div key={category.id} className="border rounded p-3 bg-white">
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                    {category.name}
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                    {category.options?.map(option => {
-                      const availableOptions = formData.availableColorOptions?.[category.id] || [];
-                      const isSelected = availableOptions.includes(option.id);
+              {/* Tabs for heater types */}
+              {['integrated', 'external'].map(heaterType => {
+                const heaterLabel = heaterType === 'integrated' ? '🔥 Встроенная печь (Piec zintegrowany)' : '🏠 Внешняя печь (Piec zewnętrzny)';
+                const isAvailable = formData.availableHeaterTypes?.includes(heaterType) ?? true;
+                
+                if (!isAvailable) return null;
+                
+                return (
+                  <div key={heaterType} className="border-2 border-pink-200 rounded-lg p-3 bg-white">
+                    <h4 className="font-medium text-pink-700 mb-3">{heaterLabel}</h4>
+                    
+                    {colorCategories.map(category => {
+                      const heaterColors = formData.availableColorOptions?.[heaterType] || {};
+                      const availableOptions = heaterColors[category.id] || [];
                       
                       return (
-                        <label key={option.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              const currentMap = { ...(formData.availableColorOptions || {}) };
-                              const currentOptions = currentMap[category.id] || [];
+                        <div key={category.id} className="border rounded p-2 bg-gray-50 mb-2">
+                          <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                            {category.name}
+                          </Label>
+                          <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                            {category.options?.map(option => {
+                              const isSelected = availableOptions.includes(option.id);
                               
-                              if (e.target.checked) {
-                                currentMap[category.id] = [...new Set([...currentOptions, option.id])];
-                              } else {
-                                currentMap[category.id] = currentOptions.filter(id => id !== option.id);
-                                if (currentMap[category.id].length === 0) {
-                                  delete currentMap[category.id];
-                                }
-                              }
-                              
-                              setFormData(prev => ({ ...prev, availableColorOptions: currentMap }));
-                            }}
-                            className="w-4 h-4 rounded border-gray-300 accent-pink-600"
-                          />
-                          <div className="flex items-center gap-1">
-                            {option.colorPreview && (
-                              <div 
-                                className="w-4 h-4 rounded border border-gray-300"
-                                style={{ backgroundColor: option.colorPreview }}
-                              />
-                            )}
-                            <span className="text-xs">{option.name}</span>
+                              return (
+                                <label key={option.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      const currentMap = { ...(formData.availableColorOptions || {}) };
+                                      const currentHeaterMap = currentMap[heaterType] || {};
+                                      const currentOptions = currentHeaterMap[category.id] || [];
+                                      
+                                      if (e.target.checked) {
+                                        currentHeaterMap[category.id] = [...new Set([...currentOptions, option.id])];
+                                      } else {
+                                        currentHeaterMap[category.id] = currentOptions.filter(id => id !== option.id);
+                                        if (currentHeaterMap[category.id].length === 0) {
+                                          delete currentHeaterMap[category.id];
+                                        }
+                                      }
+                                      
+                                      currentMap[heaterType] = currentHeaterMap;
+                                      
+                                      // Clean up empty heater type
+                                      if (Object.keys(currentHeaterMap).length === 0) {
+                                        delete currentMap[heaterType];
+                                      }
+                                      
+                                      setFormData(prev => ({ ...prev, availableColorOptions: currentMap }));
+                                    }}
+                                    className="w-4 h-4 rounded border-gray-300 accent-pink-600"
+                                  />
+                                  <div className="flex items-center gap-1">
+                                    {option.colorPreview && (
+                                      <div 
+                                        className="w-4 h-4 rounded border border-gray-300"
+                                        style={{ backgroundColor: option.colorPreview }}
+                                      />
+                                    )}
+                                    <span className="text-xs">{option.name}</span>
+                                  </div>
+                                </label>
+                              );
+                            })}
                           </div>
-                        </label>
+                          {availableOptions.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {availableOptions.map(optId => {
+                                const opt = category.options?.find(o => o.id === optId);
+                                return opt ? (
+                                  <span key={optId} className="text-xs bg-pink-100 text-pink-800 px-2 py-0.5 rounded flex items-center gap-1">
+                                    {opt.colorPreview && (
+                                      <div 
+                                        className="w-3 h-3 rounded border"
+                                        style={{ backgroundColor: opt.colorPreview }}
+                                      />
+                                    )}
+                                    {opt.name}
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
-                  {(formData.availableColorOptions?.[category.id]?.length > 0) && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {formData.availableColorOptions[category.id].map(optId => {
-                        const opt = category.options?.find(o => o.id === optId);
-                        return opt ? (
-                          <span key={optId} className="text-xs bg-pink-100 text-pink-800 px-2 py-0.5 rounded flex items-center gap-1">
-                            {opt.colorPreview && (
-                              <div 
-                                className="w-3 h-3 rounded border"
-                                style={{ backgroundColor: opt.colorPreview }}
-                              />
-                            )}
-                            {opt.name}
-                          </span>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
