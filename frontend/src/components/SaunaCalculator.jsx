@@ -711,7 +711,7 @@ const CategoryCard = ({ category, filteredOptions, formData, handleRadioChange, 
         ) : isDropdownView ? (
           <DropdownOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} getCategoryName={getCategoryName} txt={txt} />
         ) : (
-          <RadioOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} handleQuantityChange={handleQuantityChange} txt={txt} />
+          <RadioOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} handleQuantityChange={handleQuantityChange} handleSubOptionChange={handleSubOptionChange} txt={txt} />
         )}
       </CardContent>
     </Card>
