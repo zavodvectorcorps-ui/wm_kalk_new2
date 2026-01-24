@@ -683,7 +683,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
   </Card>
 );
 
-const CategoryCard = ({ category, filteredOptions, formData, handleRadioChange, handleCheckboxChange, handleQuantityChange, handleSubOptionChange, getCategoryName, txt }) => {
+const CategoryCard = ({ category, filteredOptions, formData, handleRadioChange, handleCheckboxChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, getCategoryName, txt }) => {
   const Icon = categoryIcons[category.name] || Package;
   const isDropdownView = category.displayType === 'dropdown';
   
