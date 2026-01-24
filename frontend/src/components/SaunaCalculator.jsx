@@ -719,12 +719,19 @@ const CategoryCard = ({ category, filteredOptions, formData, handleRadioChange, 
   );
 };
 
-const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, handleQuantityChange, handleSubOptionChange, txt }) => (
+const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, txt }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
     {options.map((option) => {
       const isChecked = formData.selections[category.id]?.[option.id] || false;
       const quantity = formData.quantities[option.id] || 1;
-      const hasSubOptions = option.subOptions?.length > 0;
+      // Get variants (support both new 'variants' and legacy 'subOptions' fields)
+      const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
+      const hasVariants = variants?.length > 0;
+      const selectedVariantId = formData.variantSelections?.[option.id];
+      const selectedVariant = selectedVariantId ? variants?.find(v => v.id === selectedVariantId) : variants?.[0];
+      
+      // Calculate display price based on selected variant
+      const displayPrice = hasVariants && selectedVariant ? selectedVariant.price : option.price;
       
       return (
         <div key={option.id} className="space-y-2">
@@ -739,10 +746,10 @@ const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, ha
             <div className="flex-1">
               <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block">{option.name}</Label>
               <div className="flex items-center gap-2 flex-wrap">
-                {option.price > 0 ? (
+                {displayPrice > 0 ? (
                   <span className="text-xs text-amber-700 font-medium">
-                    +{formatPrice(option.price)} PLN
-                    {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${formatPrice(option.price * quantity)} PLN`}
+                    +{formatPrice(displayPrice)} PLN
+                    {option.hasQuantity && quantity > 1 && ` × ${quantity} = ${formatPrice(displayPrice * quantity)} PLN`}
                   </span>
                 ) : (
                   <span className="text-xs text-green-600">{option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis}</span>
@@ -758,27 +765,31 @@ const CheckboxOptions = ({ category, options, formData, handleCheckboxChange, ha
             {option.imageUrl && <img src={option.imageUrl} alt={option.name} className="w-16 h-12 object-cover rounded" loading="lazy" decoding="async" />}
           </div>
           
-          {/* Sub-options - show only when main option is checked */}
-          {isChecked && hasSubOptions && (
-            <div className="ml-8 pl-3 border-l-2 border-purple-300 space-y-1">
-              {option.subOptions.map((subOpt) => {
-                const subOptKey = `${option.id}_${subOpt.id}`;
-                const isSubChecked = formData.subSelections?.[subOptKey] || false;
-                return (
-                  <div key={subOpt.id} className={`flex items-center gap-2 p-2 rounded ${isSubChecked ? 'bg-purple-50' : 'bg-gray-50'}`}>
-                    <CheckboxOrange 
-                      id={subOptKey}
-                      checked={isSubChecked}
-                      onCheckedChange={(checked) => handleSubOptionChange(option.id, subOpt.id, checked)}
-                      className="border-purple-400 data-[state=checked]:bg-purple-600"
-                    />
-                    <Label htmlFor={subOptKey} className="cursor-pointer text-sm flex-1">
-                      {subOpt.namePl || subOpt.name}
-                    </Label>
-                    <span className="text-xs text-purple-700 font-medium">+{formatPrice(subOpt.price)} PLN</span>
-                  </div>
-                );
-              })}
+          {/* Variants - show as radio group when option is checked */}
+          {isChecked && hasVariants && (
+            <div className="ml-8 pl-3 border-l-2 border-amber-300 space-y-1">
+              <p className="text-xs text-amber-600 mb-2">Выберите вариант:</p>
+              <RadioGroupOrange 
+                value={selectedVariantId || variants[0]?.id || ''} 
+                onValueChange={(variantId) => handleVariantChange(option.id, variantId)}
+                className="space-y-1"
+              >
+                {variants.map((variant) => {
+                  const isVariantSelected = (selectedVariantId || variants[0]?.id) === variant.id;
+                  return (
+                    <div key={variant.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${isVariantSelected ? 'bg-amber-100' : 'bg-gray-50 hover:bg-amber-50'}`}>
+                      <RadioGroupItemOrange value={variant.id} id={`${option.id}-${variant.id}`} />
+                      <Label htmlFor={`${option.id}-${variant.id}`} className="cursor-pointer text-sm flex-1">
+                        {variant.namePl || variant.name}
+                      </Label>
+                      <span className="text-xs text-amber-700 font-medium">{formatPrice(variant.price)} PLN</span>
+                      {variant.imageUrl && (
+                        <img src={variant.imageUrl} alt={variant.name} className="w-10 h-8 object-cover rounded" />
+                      )}
+                    </div>
+                  );
+                })}
+              </RadioGroupOrange>
             </div>
           )}
         </div>
