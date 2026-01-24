@@ -5,6 +5,16 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Jan 24, 2025 - Sauna Option Variants System (COMPLETED)
+- **NEW**: Implemented variant system for sauna options - mutually exclusive choices within an option
+- **Feature**: Variants replace base option price (not add to it)
+- **Example**: "Ławki 2-poziomowe" option now has variants: "Bez zabudowy" (480 PLN) vs "Z zabudową" (1480 PLN)
+- **Backend**: Added `OptionVariant` model in `sauna.py`, kept `SubOption` as alias for backward compatibility
+- **Frontend**: Variants display as radio buttons under selected option in `SaunaCalculator.jsx`
+- **Admin UI**: Updated `OptionDialog.jsx` with "🔄 Варианты исполнения" section
+- **Calculator Logic**: `useSaunaCalculator.js` updated with `handleVariantChange` and `variantSelections` state
+- **Tested**: All 6 backend tests passed, frontend flows verified
+
 ### Jan 23, 2025 - P0 Blocker Fixed: PDF Generation & Upload to amoCRM from Widget
 - **FIXED**: When gifts/discounts are edited via amoCRM widget, a new PDF is now automatically generated and uploaded to the amoCRM lead
 - **NEW**: Added `generate_and_upload_pdf_to_amocrm()` function in `widget.py`
