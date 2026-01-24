@@ -951,7 +951,7 @@ const RadioOptions = ({ category, options, formData, handleRadioChange, handleQu
       {/* Variants - show as radio group when option is selected */}
       {hasVariants && (
         <div className="ml-8 pl-3 border-l-2 border-amber-300 space-y-1">
-          <p className="text-xs text-amber-600 mb-2">Выберите вариант для "{selectedOption.name}":</p>
+          <p className="text-xs text-amber-600 mb-2">Выберите вариант для &quot;{selectedOption.name}&quot;:</p>
           <RadioGroupOrange 
             value={selectedVariantId || variants[0]?.id || ''} 
             onValueChange={(variantId) => handleVariantChange(selectedOptionId, variantId)}
