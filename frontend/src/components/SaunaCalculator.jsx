@@ -1138,6 +1138,9 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
   return (
     <>
       {prices.categories?.map((category) => {
+        // Skip fundament category - it's displayed separately as foundationPrice
+        if (category.id === 'fundament') return null;
+        
         const selection = formData.selections[category.id];
         if (!selection) return null;
         
@@ -1167,7 +1170,7 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
                         {opt.hasQuantity && quantity > 1 && ` ×${quantity}`}
                       </span>
                       <span className="text-amber-700 whitespace-nowrap font-medium">
-                        {displayPrice > 0 ? `+${formatPrice(totalPrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                        {displayPrice > 0 ? `+${formatPrice(totalPrice)} PLN` : txt.gratis}
                       </span>
                     </div>
                   </div>
@@ -1194,7 +1197,7 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
                   {opt.hasQuantity && quantity > 1 && ` ×${quantity}`}
                 </span>
                 <span className="text-amber-700 whitespace-nowrap font-medium">
-                  {displayPrice > 0 ? `+${formatPrice(totalPrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                  {displayPrice > 0 ? `+${formatPrice(totalPrice)} PLN` : txt.gratis}
                 </span>
               </div>
             </div>
