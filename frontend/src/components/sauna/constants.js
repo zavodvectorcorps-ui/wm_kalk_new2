@@ -191,6 +191,7 @@ export const getInitialFormData = () => ({
   selectedModel: '',
   selections: {},
   quantities: {},
-  subSelections: {}, // For sub-options: { "optionId_subOptionId": true/false }
+  variantSelections: {}, // For option variants: { "optionId": "variantId" } - only one variant per option
+  subSelections: {}, // Legacy - kept for backward compatibility
   notes: '',
 });
