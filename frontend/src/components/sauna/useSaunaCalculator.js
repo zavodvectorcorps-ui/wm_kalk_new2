@@ -141,6 +141,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       if ((!editingOrder.selections || Object.keys(editingOrder.selections).length === 0) && editingOrder.selectedOptions?.length > 0) {
         const rebuiltSelections = {};
         const rebuiltQuantities = {};
+        const rebuiltVariantSelections = {};
         const rebuiltSubSelections = {};
         
         prices.categories.forEach(cat => {
