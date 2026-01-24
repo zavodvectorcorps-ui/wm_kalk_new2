@@ -176,6 +176,8 @@ def build_sauna_pdf_request(order: dict, admin_gifts: list = None, discount_perc
 async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: str, admin_gifts: list = None, discount_percent: float = None) -> dict:
     """Generate PDF from order and upload to amoCRM lead.
     
+    Uses the same method as calculator - generates PDF via endpoint and uploads via upload-calculator-pdf.
+    
     Args:
         order: Order document from database
         lead_id: amoCRM lead ID
@@ -187,27 +189,169 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
         dict with success status and details
     """
     try:
-        # Get amoCRM settings
-        settings = get_amocrm_settings()
-        domain = settings.get('amocrm_domain')
-        token = settings.get('amocrm_token')
+        order_id = order.get('id', '')
         
-        if not domain or not token:
-            logger.warning("amoCRM credentials not configured for PDF upload")
-            return {"success": False, "error": "amoCRM не настроен"}
+        # Get base URL for internal API calls
+        try:
+            with open("/app/frontend/.env", "r") as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        base_url = line.strip().split("=", 1)[1]
+                        break
+                else:
+                    base_url = "http://localhost:8001"
+        except:
+            base_url = "http://localhost:8001"
         
-        # Generate PDF based on section type
-        logger.info(f"Generating PDF for {section} order {order.get('id')} (lead {lead_id})")
+        # Use internal URL for server-to-server calls
+        internal_url = "http://localhost:8001"
         
-        if section == 'sauna':
-            pdf_request = build_sauna_pdf_request(order, admin_gifts, discount_percent)
-            pdf_bytes = await generate_sauna_pdf_bytes(pdf_request)
-        else:
-            # Default to balia
-            pdf_request = build_balia_pdf_request(order, admin_gifts, discount_percent)
-            pdf_bytes = await generate_balia_pdf_bytes(pdf_request)
+        logger.info(f"Generating PDF for {section} order {order_id} (lead {lead_id})")
         
-        if not pdf_bytes:
+        # Build PDF request data - same as calculator does
+        gifts = admin_gifts if admin_gifts is not None else order.get('adminGifts', [])
+        discount = discount_percent if discount_percent is not None else order.get('discountPercent', 0)
+        
+        # Recalculate total
+        subtotal = order.get('subtotal', 0)
+        selected_options = order.get('selectedOptions', [])
+        
+        gifts_total = 0
+        for opt in selected_options:
+            opt_id = opt.get('optionId') or opt.get('id', '')
+            if opt_id in gifts:
+                gifts_total += opt.get('price', 0) or opt.get('totalPrice', 0)
+        
+        discountable = subtotal - gifts_total
+        discount_amount = discountable * (discount / 100)
+        new_total = discountable - discount_amount
+        
+        full_name = order.get('fullName') or order.get('clientName') or 'Klient'
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            if section == 'sauna':
+                # Load categories from pricing
+                categories = []
+                try:
+                    sauna_pricing = db["sauna_pricing"]
+                    pricing_doc = sauna_pricing.find_one({"type": "sauna"}, {"_id": 0})
+                    if pricing_doc:
+                        categories = pricing_doc.get("categories", [])
+                except Exception as e:
+                    logger.error(f"Error loading sauna categories: {e}")
+                
+                # Build request exactly like calculator
+                pdf_data = {
+                    "orderId": order_id,
+                    "fullName": full_name,
+                    "phoneNumber": order.get('phoneNumber') or order.get('phone', '-'),
+                    "fullAddress": order.get('fullAddress') or order.get('address', ''),
+                    "email": order.get('email', ''),
+                    "orderDate": order.get('orderDate', datetime.now(timezone.utc).strftime('%Y-%m-%d')),
+                    "selectedModel": order.get('selectedModel') or order.get('modelId', ''),
+                    "modelName": order.get('modelName', ''),
+                    "modelImageUrl": order.get('modelImageUrl', ''),
+                    "basePrice": order.get('basePrice', 0) or order.get('modelPrice', 0),
+                    "foundationPrice": order.get('foundationPrice', 0),
+                    "discountPercent": discount,
+                    "selections": order.get('selections', {}),
+                    "quantities": order.get('quantities', {}),
+                    "selectedOptions": selected_options,
+                    "notes": order.get('notes', ''),
+                    "optionsTotal": order.get('optionsTotal', 0),
+                    "subtotal": subtotal,
+                    "total": new_total,
+                    "language": "pl",
+                    "categories": categories,
+                    "adminGifts": gifts
+                }
+                
+                pdf_endpoint = f"{internal_url}/api/sauna/generate-pdf"
+                calculator_type = "sauna"
+            else:
+                # Balia
+                pdf_data = {
+                    "orderId": order_id,
+                    "fullName": full_name,
+                    "phoneNumber": order.get('phoneNumber') or order.get('phone', '-'),
+                    "fullAddress": order.get('fullAddress') or order.get('address', ''),
+                    "orderDate": order.get('orderDate', datetime.now(timezone.utc).strftime('%Y-%m-%d')),
+                    "modelId": order.get('modelId'),
+                    "modelName": order.get('modelName'),
+                    "modelPrice": order.get('modelPrice', 0),
+                    "modelImageUrl": order.get('modelImageUrl'),
+                    "modelSpecs": order.get('modelSpecs', {}),
+                    "heaterType": order.get('heaterType'),
+                    "heaterTypeName": order.get('heaterTypeName'),
+                    "selectedHeaterVariantId": order.get('selectedHeaterVariantId'),
+                    "selections": order.get('selections', {}),
+                    "selectedOptions": selected_options,
+                    "currency": order.get('currency', 'PLN'),
+                    "discountPercent": discount,
+                    "subtotal": subtotal,
+                    "adminGifts": gifts,
+                    "notes": order.get('notes', ''),
+                    "total": new_total,
+                    "type": order.get('type', 'customer'),
+                    "language": "pl"
+                }
+                
+                pdf_endpoint = f"{internal_url}/api/generate-pdf"
+                calculator_type = "balia"
+            
+            # Step 1: Generate PDF via the same endpoint as calculator
+            logger.info(f"Calling PDF endpoint: {pdf_endpoint}")
+            pdf_response = await client.post(pdf_endpoint, json=pdf_data)
+            
+            if pdf_response.status_code != 200:
+                logger.error(f"PDF generation failed: {pdf_response.status_code} - {pdf_response.text[:500]}")
+                return {"success": False, "error": f"PDF generation failed: {pdf_response.status_code}"}
+            
+            pdf_bytes = pdf_response.content
+            logger.info(f"PDF generated: {len(pdf_bytes)} bytes")
+            
+            if not pdf_bytes or len(pdf_bytes) < 100:
+                return {"success": False, "error": "PDF generation returned empty result"}
+            
+            # Step 2: Upload to amoCRM via upload-calculator-pdf endpoint (same as calculator)
+            safe_name = full_name.replace(' ', '_')
+            safe_name = ''.join(c for c in safe_name if c.isalnum() or c in '_-')
+            if not safe_name:
+                safe_name = 'Klient'
+            
+            upload_url = f"{internal_url}/api/integrations/amocrm/upload-calculator-pdf"
+            upload_params = {
+                "amocrm_id": lead_id,
+                "order_id": order_id,
+                "calculator_type": calculator_type,
+                "client_name": full_name,
+                "employee_name": "widget",
+                "total_amount": str(new_total)
+            }
+            
+            logger.info(f"Uploading PDF to amoCRM via: {upload_url}")
+            upload_response = await client.post(
+                upload_url,
+                params=upload_params,
+                content=pdf_bytes,
+                headers={"Content-Type": "application/pdf"}
+            )
+            
+            if upload_response.status_code == 200:
+                upload_result = upload_response.json()
+                logger.info(f"PDF upload result: {upload_result}")
+                
+                if upload_result.get("pdf_uploaded"):
+                    return {"success": True, "file_uuid": upload_result.get("file_uuid")}
+                else:
+                    return {"success": False, "error": upload_result.get("message", "Upload failed")}
+            else:
+                logger.error(f"PDF upload failed: {upload_response.status_code} - {upload_response.text[:500]}")
+                return {"success": False, "error": f"Upload failed: {upload_response.status_code}"}
+            
+    except Exception as e:
+        logger.error(f"Error in generate_and_upload_pdf_to_amocrm: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
             logger.error("PDF generation returned empty result")
             return {"success": False, "error": "Ошибка генерации PDF"}
         
