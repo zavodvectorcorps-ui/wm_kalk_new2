@@ -433,44 +433,56 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             if (option) {
               const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
               
-              // Check for selected sub-options and their images
-              let finalImageUrl = option.imageUrl || null;
-              let selectedSubOptions = [];
-              let subOptionsTotal = 0;
+              // Get variants (check both new 'variants' and legacy 'subOptions' fields)
+              const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
               
-              if (option.subOptions?.length > 0) {
-                option.subOptions.forEach(subOpt => {
-                  const subKey = `${optId}_${subOpt.id}`;
-                  if (formData.subSelections?.[subKey]) {
-                    selectedSubOptions.push({
-                      id: subOpt.id,
-                      name: subOpt.namePl || subOpt.name,
-                      price: subOpt.price,
-                      imageUrl: subOpt.imageUrl || null
-                    });
-                    subOptionsTotal += subOpt.price;
-                    // Use sub-option image if available
-                    if (subOpt.imageUrl) {
-                      finalImageUrl = subOpt.imageUrl;
-                    }
+              // Determine final price and image based on selected variant
+              let finalPrice = option.price;
+              let finalImageUrl = option.imageUrl || null;
+              let selectedVariantId = formData.variantSelections?.[optId];
+              let selectedVariant = null;
+              let variantName = '';
+              
+              if (variants?.length > 0) {
+                if (selectedVariantId) {
+                  selectedVariant = variants.find(v => v.id === selectedVariantId);
+                } else {
+                  // Auto-select first variant if none selected
+                  selectedVariant = variants[0];
+                  selectedVariantId = selectedVariant?.id;
+                }
+                
+                if (selectedVariant) {
+                  finalPrice = selectedVariant.price;
+                  variantName = selectedVariant.namePl || selectedVariant.name;
+                  if (selectedVariant.imageUrl) {
+                    finalImageUrl = selectedVariant.imageUrl;
                   }
-                });
+                }
               }
               
               options.push({
                 categoryId: category.id,
                 categoryName: category.name,
                 optionId: option.id,
-                optionName: option.name,
-                price: option.price,
+                optionName: variantName ? `${option.name} (${variantName})` : option.name,
+                price: finalPrice,
                 quantity,
-                totalPrice: (option.price + subOptionsTotal) * quantity,
+                totalPrice: finalPrice * quantity,
                 imageUrl: finalImageUrl,
-                hintImageUrl: option.hintImageUrl || null,  // Include hint image for PDF
+                hintImageUrl: option.hintImageUrl || null,
                 techSpecId: option.techSpecId || null,
                 techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
-                selectedSubOptions,
-                subOptionsTotal: subOptionsTotal * quantity,
+                selectedVariantId,
+                selectedVariant: selectedVariant ? {
+                  id: selectedVariant.id,
+                  name: selectedVariant.namePl || selectedVariant.name,
+                  price: selectedVariant.price,
+                  imageUrl: selectedVariant.imageUrl || null
+                } : null,
+                // Legacy compatibility
+                selectedSubOptions: [],
+                subOptionsTotal: 0,
               });
             }
           }
@@ -480,50 +492,60 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         if (option) {
           const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
           
-          // Check for selected sub-options
-          let finalImageUrl = option.imageUrl || null;
-          let selectedSubOptions = [];
-          let subOptionsTotal = 0;
+          // Get variants
+          const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
           
-          if (option.subOptions?.length > 0) {
-            option.subOptions.forEach(subOpt => {
-              const subKey = `${selection}_${subOpt.id}`;
-              if (formData.subSelections?.[subKey]) {
-                selectedSubOptions.push({
-                  id: subOpt.id,
-                  name: subOpt.namePl || subOpt.name,
-                  price: subOpt.price,
-                  imageUrl: subOpt.imageUrl || null
-                });
-                subOptionsTotal += subOpt.price;
-                if (subOpt.imageUrl) {
-                  finalImageUrl = subOpt.imageUrl;
-                }
+          let finalPrice = option.price;
+          let finalImageUrl = option.imageUrl || null;
+          let selectedVariantId = formData.variantSelections?.[selection];
+          let selectedVariant = null;
+          let variantName = '';
+          
+          if (variants?.length > 0) {
+            if (selectedVariantId) {
+              selectedVariant = variants.find(v => v.id === selectedVariantId);
+            } else {
+              selectedVariant = variants[0];
+              selectedVariantId = selectedVariant?.id;
+            }
+            
+            if (selectedVariant) {
+              finalPrice = selectedVariant.price;
+              variantName = selectedVariant.namePl || selectedVariant.name;
+              if (selectedVariant.imageUrl) {
+                finalImageUrl = selectedVariant.imageUrl;
               }
-            });
+            }
           }
           
           options.push({
             categoryId: category.id,
             categoryName: category.name,
             optionId: option.id,
-            optionName: option.name,
-            price: option.price,
+            optionName: variantName ? `${option.name} (${variantName})` : option.name,
+            price: finalPrice,
             quantity,
-            totalPrice: (option.price + subOptionsTotal) * quantity,
+            totalPrice: finalPrice * quantity,
             imageUrl: finalImageUrl,
             hintImageUrl: option.hintImageUrl || null,
             techSpecId: option.techSpecId || null,
             techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
-            selectedSubOptions,
-            subOptionsTotal: subOptionsTotal * quantity,
+            selectedVariantId,
+            selectedVariant: selectedVariant ? {
+              id: selectedVariant.id,
+              name: selectedVariant.namePl || selectedVariant.name,
+              price: selectedVariant.price,
+              imageUrl: selectedVariant.imageUrl || null
+            } : null,
+            selectedSubOptions: [],
+            subOptionsTotal: 0,
           });
         }
       }
     });
     
     return options;
-  }, [prices.categories, formData.selections, formData.quantities, formData.subSelections]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections]);
 
   // Save and generate PDF
   const handleSaveAndGeneratePDF = async () => {
