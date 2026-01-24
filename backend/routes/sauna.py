@@ -569,8 +569,73 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
     elements.append(model_table)
     elements.append(Spacer(1, 6*mm))
     
-    # Options section - from selections
-    if request.selections:
+    # Options section - from selectedOptions with images
+    if request.selectedOptions:
+        elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))
+        
+        for opt in request.selectedOptions:
+            opt_name = opt.get('optionName', '')
+            opt_price = opt.get('totalPrice', 0) or opt.get('price', 0)
+            quantity = opt.get('quantity', 1)
+            image_url = opt.get('imageUrl')
+            hint_image_url = opt.get('hintImageUrl')
+            sub_options = opt.get('selectedSubOptions', [])
+            
+            # Create option row with image if available
+            opt_data = []
+            
+            # Try to load option image (either from imageUrl or hintImageUrl)
+            display_image = image_url or hint_image_url
+            img_element = None
+            if display_image:
+                try:
+                    if display_image.startswith('http'):
+                        img_response = requests.get(display_image, timeout=5)
+                        if img_response.status_code == 200:
+                            img_data = io.BytesIO(img_response.content)
+                            img_element = Image(img_data, width=40*mm, height=30*mm)
+                    elif display_image.startswith('/api/uploads/'):
+                        # Local file
+                        file_path = display_image.replace('/api/uploads/', '/app/backend/uploads/')
+                        if os.path.exists(file_path):
+                            img_element = Image(file_path, width=40*mm, height=30*mm)
+                except Exception as e:
+                    logger.warning(f"Could not load option image: {e}")
+            
+            # Build option display name with sub-options
+            full_name = opt_name
+            if sub_options:
+                sub_names = [s.get('name', '') for s in sub_options]
+                full_name += f" ({', '.join(sub_names)})"
+            
+            price_formatted = f"{opt_price:,.0f}".replace(",", " ") + " zł"
+            if quantity > 1:
+                price_formatted = f"{quantity} × {opt.get('price', 0):,.0f}".replace(",", " ") + f" = {opt_price:,.0f}".replace(",", " ") + " zł"
+            
+            if img_element:
+                opt_data = [[img_element, Paragraph(full_name, ParagraphStyle('OptName', fontName='DejaVuSans-Bold', fontSize=10)), price_formatted]]
+                opt_table = Table(opt_data, colWidths=[45*mm, 95*mm, 35*mm])
+            else:
+                opt_data = [[Paragraph(full_name, ParagraphStyle('OptName', fontName='DejaVuSans-Bold', fontSize=10)), price_formatted]]
+                opt_table = Table(opt_data, colWidths=[140*mm, 35*mm])
+            
+            opt_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('TEXTCOLOR', (0, 0), (-1, -1), TEXT_COLOR),
+                ('TEXTCOLOR', (-1, 0), (-1, -1), ORANGE_DARK),
+                ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('LINEBELOW', (0, 0), (-1, -1), 0.5, ORANGE_BORDER),
+            ]))
+            elements.append(opt_table)
+        
+        elements.append(Spacer(1, 6*mm))
+    
+    # Fallback to old selections format if no selectedOptions
+    elif request.selections:
         elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))
         options_data = [["Opcja", "Wartość"]]
         
