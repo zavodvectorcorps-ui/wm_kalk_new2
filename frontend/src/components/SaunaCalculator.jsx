@@ -966,31 +966,54 @@ const RadioOptions = ({ category, options, formData, foundationPrice, handleRadi
         })}
       </RadioGroupOrange>
       
-      {/* Variants - show as radio group when option is selected */}
+      {/* Variants - show as cards like heater selection in hot tubs */}
       {hasVariants && (
-        <div className="ml-8 pl-3 border-l-2 border-amber-300 space-y-1">
-          <p className="text-xs text-amber-600 mb-2">Выберите вариант для &quot;{selectedOption.name}&quot;:</p>
-          <RadioGroupOrange 
-            value={selectedVariantId || variants[0]?.id || ''} 
-            onValueChange={(variantId) => handleVariantChange(selectedOptionId, variantId)}
-            className="space-y-1"
-          >
+        <div className="mt-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+          <Label className="text-sm font-semibold text-amber-800 mb-3 block">
+            Выберите вариант для &quot;{selectedOption.name}&quot;:
+          </Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {variants.map((variant) => {
               const isVariantSelected = (selectedVariantId || variants[0]?.id) === variant.id;
+              
               return (
-                <div key={variant.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer ${isVariantSelected ? 'bg-amber-100' : 'bg-gray-50 hover:bg-amber-50'}`}>
-                  <RadioGroupItemOrange value={variant.id} id={`${selectedOptionId}-${variant.id}`} />
-                  <Label htmlFor={`${selectedOptionId}-${variant.id}`} className="cursor-pointer text-sm flex-1">
-                    {variant.namePl || variant.name}
-                  </Label>
-                  <span className="text-xs text-amber-700 font-medium">{formatPrice(variant.price)} PLN</span>
-                  {variant.imageUrl && (
-                    <img src={variant.imageUrl} alt={variant.name} className="w-10 h-8 object-cover rounded" />
-                  )}
+                <div
+                  key={variant.id}
+                  onClick={() => handleVariantChange(selectedOptionId, variant.id)}
+                  className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    isVariantSelected
+                      ? 'border-amber-500 bg-amber-100 shadow-md'
+                      : 'border-amber-200 bg-white hover:border-amber-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {variant.imageUrl ? (
+                      <img 
+                        src={variant.imageUrl} 
+                        alt={variant.namePl || variant.name}
+                        className="w-20 h-20 object-cover rounded bg-white border"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center border">
+                        <Package className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm">{variant.namePl || variant.name}</span>
+                        {isVariantSelected && (
+                          <Check className="h-4 w-4 text-amber-600" />
+                        )}
+                      </div>
+                      <div className="text-lg font-bold text-amber-600">
+                        {formatPrice(variant.price)} PLN
+                      </div>
+                    </div>
+                  </div>
                 </div>
               );
             })}
-          </RadioGroupOrange>
+          </div>
         </div>
       )}
     </div>
