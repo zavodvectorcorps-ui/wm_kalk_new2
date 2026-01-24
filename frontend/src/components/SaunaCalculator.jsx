@@ -1074,59 +1074,88 @@ const SummaryCard = ({
   </Card>
 );
 
-const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => (
-  <>
-    {prices.categories?.map((category) => {
-      const selection = formData.selections[category.id];
-      if (!selection) return null;
-      
-      if (category.inputType === 'checkbox') {
-        const selectedOpts = Object.entries(selection)
-          .filter(([_, isSelected]) => isSelected)
-          .map(([optId]) => category.options?.find(o => o.id === optId))
-          .filter(Boolean);
-        
-        if (selectedOpts.length === 0) return null;
-        
-        return (
-          <div key={category.id} className="text-sm">
-            <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
-            {selectedOpts.map(opt => {
-              const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
-              const totalPrice = opt.price * quantity;
-              return (
-                <div key={opt.id} className="flex justify-between">
-                  <span className="truncate pr-2">{opt.name}{opt.hasQuantity && quantity > 1 && ` (×${quantity})`}</span>
-                  <span className="text-amber-700 whitespace-nowrap font-medium">
-                    {opt.price > 0 ? `+${formatPrice(totalPrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        );
-      } else {
-        const opt = category.options?.find(o => o.id === selection);
-        if (!opt) return null;
-        
-        const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
-        const totalPrice = opt.price * quantity;
-        
-        return (
-          <div key={category.id} className="text-sm">
-            <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
-            <div className="flex justify-between">
-              <span className="truncate pr-2">{opt.name}{opt.hasQuantity && quantity > 1 && ` (×${quantity})`}</span>
-              <span className="text-amber-700 whitespace-nowrap font-medium">
-                {opt.price > 0 ? `+${formatPrice(totalPrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
-              </span>
-            </div>
-          </div>
-        );
+const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
+  // Helper to get sub-options total and names for an option
+  const getSubOptionsInfo = (opt) => {
+    if (!opt?.subOptions?.length) return { total: 0, names: [] };
+    
+    let total = 0;
+    const names = [];
+    
+    opt.subOptions.forEach(subOpt => {
+      const subKey = `${opt.id}_${subOpt.id}`;
+      if (formData.subSelections?.[subKey]) {
+        total += subOpt.price;
+        names.push(subOpt.namePl || subOpt.name);
       }
-    })}
-  </>
-);
+    });
+    
+    return { total, names };
+  };
+  
+  return (
+    <>
+      {prices.categories?.map((category) => {
+        const selection = formData.selections[category.id];
+        if (!selection) return null;
+        
+        if (category.inputType === 'checkbox') {
+          const selectedOpts = Object.entries(selection)
+            .filter(([_, isSelected]) => isSelected)
+            .map(([optId]) => category.options?.find(o => o.id === optId))
+            .filter(Boolean);
+          
+          if (selectedOpts.length === 0) return null;
+          
+          return (
+            <div key={category.id} className="text-sm">
+              <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
+              {selectedOpts.map(opt => {
+                const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
+                const subInfo = getSubOptionsInfo(opt);
+                const totalPrice = (opt.price + subInfo.total) * quantity;
+                const displayName = subInfo.names.length > 0 
+                  ? `${opt.name} (${subInfo.names.join(', ')})`
+                  : opt.name;
+                
+                return (
+                  <div key={opt.id} className="flex justify-between">
+                    <span className="truncate pr-2">{displayName}{opt.hasQuantity && quantity > 1 && ` ×${quantity}`}</span>
+                    <span className="text-amber-700 whitespace-nowrap font-medium">
+                      {opt.price > 0 || subInfo.total > 0 ? `+${formatPrice(totalPrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        } else {
+          const opt = category.options?.find(o => o.id === selection);
+          if (!opt) return null;
+          
+          const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
+          const subInfo = getSubOptionsInfo(opt);
+          const totalPrice = (opt.price + subInfo.total) * quantity;
+          const displayName = subInfo.names.length > 0 
+            ? `${opt.name} (${subInfo.names.join(', ')})`
+            : opt.name;
+          
+          return (
+            <div key={category.id} className="text-sm">
+              <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
+              <div className="flex justify-between">
+                <span className="truncate pr-2">{displayName}{opt.hasQuantity && quantity > 1 && ` ×${quantity}`}</span>
+                <span className="text-amber-700 whitespace-nowrap font-medium">
+                  {opt.price > 0 || subInfo.total > 0 ? `+${formatPrice(totalPrice)} PLN` : (opt.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                </span>
+              </div>
+            </div>
+          );
+        }
+      })}
+    </>
+  );
+};
 
 const DiscountSection = ({ appliedDiscount, discountAmount, isAdminUser, adminDiscountApproved, setAdminDiscountApproved, handleDiscountChange, handleApplyStandardDiscount, lang, txt }) => (
   <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-3">
