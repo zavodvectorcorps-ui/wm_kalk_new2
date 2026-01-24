@@ -222,16 +222,26 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             const option = category.options?.find(o => o.id === optId);
             if (option) {
               const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
-              total += option.price * quantity;
               
-              // Add sub-options prices
-              if (option.subOptions?.length > 0) {
-                option.subOptions.forEach(subOpt => {
-                  const subKey = `${optId}_${subOpt.id}`;
-                  if (formData.subSelections?.[subKey]) {
-                    total += subOpt.price * quantity;
-                  }
-                });
+              // Get variants (check both new 'variants' and legacy 'subOptions' fields)
+              const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
+              
+              // Check if variant is selected - variant price REPLACES option price
+              const selectedVariantId = formData.variantSelections?.[optId];
+              if (selectedVariantId && variants?.length > 0) {
+                const selectedVariant = variants.find(v => v.id === selectedVariantId);
+                if (selectedVariant) {
+                  total += selectedVariant.price * quantity;
+                } else {
+                  // Fallback to option price if variant not found
+                  total += option.price * quantity;
+                }
+              } else if (variants?.length > 0) {
+                // Option has variants but none selected - use first variant as default price
+                total += (variants[0]?.price || option.price) * quantity;
+              } else {
+                // No variants - use option price
+                total += option.price * quantity;
               }
             }
           }
@@ -240,23 +250,31 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         const option = category.options?.find(o => o.id === selection);
         if (option) {
           const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
-          total += option.price * quantity;
           
-          // Add sub-options prices for radio/dropdown
-          if (option.subOptions?.length > 0) {
-            option.subOptions.forEach(subOpt => {
-              const subKey = `${selection}_${subOpt.id}`;
-              if (formData.subSelections?.[subKey]) {
-                total += subOpt.price * quantity;
-              }
-            });
+          // Get variants (check both new 'variants' and legacy 'subOptions' fields)
+          const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
+          
+          // Check if variant is selected - variant price REPLACES option price
+          const selectedVariantId = formData.variantSelections?.[selection];
+          if (selectedVariantId && variants?.length > 0) {
+            const selectedVariant = variants.find(v => v.id === selectedVariantId);
+            if (selectedVariant) {
+              total += selectedVariant.price * quantity;
+            } else {
+              total += option.price * quantity;
+            }
+          } else if (variants?.length > 0) {
+            // Option has variants but none selected - use first variant as default
+            total += (variants[0]?.price || option.price) * quantity;
+          } else {
+            total += option.price * quantity;
           }
         }
       }
     });
     
     return total;
-  }, [prices.categories, formData.selections, formData.quantities, formData.subSelections]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections]);
 
   // Calculate foundation price
   const calculateFoundationPrice = useCallback(() => {
