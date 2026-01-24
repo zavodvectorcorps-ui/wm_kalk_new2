@@ -1,0 +1,68 @@
+{
+  "summary": "Tested Sauna Calculator variant selection feature. All tests passed - variants display correctly in calculator, prices replace base option price, and admin panel shows variant management UI.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_variants.py",
+    "/app/test_reports/pytest/pytest_results_iteration26.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_variants.py"
+  ],
+  "success_rate": {
+    "backend": "100% (6/6 tests passed)",
+    "frontend": "100% - All variant selection flows working"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"}
+  },
+  "seed_data_creation": "Variants already exist in database for option 'lawki_2_poziomy_otwarte': 'Bez zabudowy' (480 PLN) and 'Z zabudową' (1480 PLN)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "features_tested": {
+    "variant_api_structure": {
+      "status": "PASS",
+      "details": "GET /api/sauna/prices returns options with variants array containing id, name, namePl, price fields"
+    },
+    "variant_prices_correct": {
+      "status": "PASS",
+      "details": "Bez zabudowy = 480 PLN, Z zabudową = 1480 PLN"
+    },
+    "calculator_variant_display": {
+      "status": "PASS",
+      "details": "When selecting 'Ławki 2-poziomowe nie są zamknięte 55 cm', radio buttons appear for variant selection"
+    },
+    "variant_price_replacement": {
+      "status": "PASS",
+      "details": "Selecting 'Z zabudową' shows 1480 PLN in summary (replaces base 480 PLN)"
+    },
+    "admin_panel_variant_ui": {
+      "status": "PASS",
+      "details": "Edit dialog shows '🔄 Варианты исполнения / Warianty' section with existing variants and add new variant form"
+    },
+    "order_creation_with_variant": {
+      "status": "PASS",
+      "details": "Orders can be created with variantSelections and selectedVariant data"
+    }
+  },
+  "test_flow_summary": {
+    "step_1": "Login with admin/admin123",
+    "step_2": "Navigate to Sauna calculator (click Wybierz on Sauna card)",
+    "step_3": "Select a model (e.g., Sauna Kwadro-Beczka)",
+    "step_4": "Scroll to Ławki section",
+    "step_5": "Select 'Ławki 2-poziomowe nie są zamknięte 55 cm' option",
+    "step_6": "Variant radio buttons appear: 'Bez zabudowy' (480 PLN) and 'Z zabudową' (1480 PLN)",
+    "step_7": "Select 'Z zabudową' - summary shows 1480 PLN for this option",
+    "step_8": "Admin panel: Ceny > Sauny > Opcje > Edit 'Ławki 2-poziomowe' shows variants section"
+  },
+  "context_for_next_testing_agent": "Variant selection feature is fully implemented and working. Variants are mutually exclusive (radio buttons), and variant price REPLACES the base option price. The feature is only for 'Ławki' category options. Admin can manage variants via the edit dialog in Ceny > Sauny > Opcje."
+}
