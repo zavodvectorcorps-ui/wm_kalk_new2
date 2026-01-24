@@ -191,5 +191,6 @@ export const getInitialFormData = () => ({
   selectedModel: '',
   selections: {},
   quantities: {},
+  subSelections: {}, // For sub-options: { "optionId_subOptionId": true/false }
   notes: '',
 });
