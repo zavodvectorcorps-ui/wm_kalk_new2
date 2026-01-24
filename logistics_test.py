@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://heatwave-dash.preview.emergentagent.com/api"
+BACKEND_URL = "https://sauna-variant.preview.emergentagent.com/api"
 
 def test_admin_login():
     """Test admin login with correct credentials"""
