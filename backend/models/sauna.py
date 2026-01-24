@@ -48,8 +48,12 @@ class SaunaOption(BaseModel):
     hint: Optional[str] = None
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None
-    # Sub-options (additional checkbox options within this option)
-    subOptions: Optional[List[SubOption]] = []
+    # Variants - mutually exclusive choices within this option (e.g., "with cladding" vs "without cladding")
+    # When variants exist, user must select exactly one variant
+    # The variant's price REPLACES the option's base price
+    variants: Optional[List[OptionVariant]] = []
+    # Legacy field name - kept for backward compatibility, maps to variants
+    subOptions: Optional[List[OptionVariant]] = []
     # Incompatibility settings (inverted logic - specify when to HIDE)
     incompatibleModels: Optional[List[str]] = []  # List of model IDs - hide option when these models selected
     incompatibleWithOptions: Optional[Dict[str, List[str]]] = {}  # Hide when: {categoryId: [optionId1, optionId2]}
