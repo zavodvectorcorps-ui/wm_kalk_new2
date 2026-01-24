@@ -474,6 +474,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
               category={category}
               filteredOptions={filterCompatibleOptions(category)}
               formData={formData}
+              foundationPrice={foundationPrice}
               handleRadioChange={handleRadioChange}
               handleCheckboxChange={handleCheckboxChange}
               handleQuantityChange={handleQuantityChange}
