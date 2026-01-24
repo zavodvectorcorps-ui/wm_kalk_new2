@@ -538,16 +538,18 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                                 formData.append('file', file);
                                 
                                 try {
-                                  const response = await fetch(`${window.API_URL || ''}/api/sauna/upload-image`, {
+                                  const response = await fetch(`${API_URL}/api/upload/image`, {
                                     method: 'POST',
                                     body: formData
                                   });
                                   const result = await response.json();
                                   if (result.url) {
+                                    // Construct full URL for the image
+                                    const fullUrl = result.url.startsWith('http') ? result.url : `${API_URL}${result.url}`;
                                     setEditingOption(prev => ({
                                       ...prev,
                                       variants: (prev.variants || prev.subOptions || []).map((v, i) => 
-                                        i === idx ? { ...v, imageUrl: result.url } : v
+                                        i === idx ? { ...v, imageUrl: fullUrl } : v
                                       ),
                                       subOptions: []
                                     }));
