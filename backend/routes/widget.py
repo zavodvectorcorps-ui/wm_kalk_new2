@@ -61,6 +61,24 @@ def build_balia_pdf_request(order: dict, admin_gifts: list = None, discount_perc
     phone = order.get('phoneNumber') or order.get('phone') or '-'
     address = order.get('fullAddress') or order.get('address') or '-'
     
+    # Recalculate total with new gifts and discount
+    subtotal = order.get('subtotal', 0)
+    selected_options = order.get('selectedOptions', [])
+    
+    # Calculate gifts total
+    gifts_total = 0
+    for opt in selected_options:
+        opt_id = opt.get('optionId') or opt.get('id', '')
+        if opt_id in gifts:
+            gifts_total += opt.get('price', 0) or opt.get('totalPrice', 0)
+    
+    # Calculate new total: (subtotal - gifts) * (1 - discount/100)
+    discountable = subtotal - gifts_total
+    discount_amount = discountable * (discount / 100)
+    new_total = discountable - discount_amount
+    
+    logger.info(f"Balia PDF: subtotal={subtotal}, gifts_total={gifts_total}, discount={discount}%, new_total={new_total}")
+    
     return PDFRequest(
         orderId=order.get('id'),
         fullName=full_name,
@@ -76,14 +94,14 @@ def build_balia_pdf_request(order: dict, admin_gifts: list = None, discount_perc
         heaterTypeName=order.get('heaterTypeName'),
         selectedHeaterVariantId=order.get('selectedHeaterVariantId'),
         selections=order.get('selections', {}),
-        selectedOptions=order.get('selectedOptions', []),
+        selectedOptions=selected_options,
         currency=currency,
         currencySymbol=currency_symbol,
         discountPercent=discount,
-        subtotal=order.get('subtotal', 0),
+        subtotal=subtotal,
         adminGifts=gifts,
         notes=order.get('notes', ''),
-        total=order.get('total', 0),
+        total=new_total,
         type=order.get('type', 'customer'),
         language=order.get('language', 'pl')
     )
