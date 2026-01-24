@@ -78,9 +78,9 @@ class TestSaunaVariants:
         variants = option_with_variants.get('variants', [])
         assert len(variants) >= 2, f"Expected at least 2 variants, got {len(variants)}"
         
-        # Verify variant prices
-        bez_zabudowy = next((v for v in variants if 'bez' in v.get('id', '').lower()), None)
-        z_zabudowa = next((v for v in variants if 'zabudow' in v.get('id', '').lower()), None)
+        # Verify variant prices - use exact IDs
+        bez_zabudowy = next((v for v in variants if v.get('id') == 'var_bez_zabudowy'), None)
+        z_zabudowa = next((v for v in variants if v.get('id') == 'var_z_zabudowa'), None)
         
         assert bez_zabudowy is not None, "Variant 'Bez zabudowy' not found"
         assert z_zabudowa is not None, "Variant 'Z zabudową' not found"
