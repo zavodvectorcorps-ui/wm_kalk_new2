@@ -1,6 +1,6 @@
 """Balia calculator models."""
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Dict, Any, List, Optional
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import Dict, Any, List, Optional, Union
 from datetime import datetime, timezone
 import uuid
 
