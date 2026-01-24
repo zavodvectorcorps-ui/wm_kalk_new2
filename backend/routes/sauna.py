@@ -594,12 +594,12 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
                         img_response = requests.get(display_image, timeout=5)
                         if img_response.status_code == 200:
                             img_data = io.BytesIO(img_response.content)
-                            img_element = Image(img_data, width=40*mm, height=30*mm)
+                            img_element = RLImage(img_data, width=40*mm, height=30*mm)
                     elif display_image.startswith('/api/uploads/'):
                         # Local file
                         file_path = display_image.replace('/api/uploads/', '/app/backend/uploads/')
                         if os.path.exists(file_path):
-                            img_element = Image(file_path, width=40*mm, height=30*mm)
+                            img_element = RLImage(file_path, width=40*mm, height=30*mm)
                 except Exception as e:
                     logger.warning(f"Could not load option image: {e}")
             
