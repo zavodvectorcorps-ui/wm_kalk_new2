@@ -305,6 +305,15 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       quantities: { ...prev.quantities, [optionId]: qty },
     }));
   };
+  
+  // Handle sub-option selection
+  const handleSubOptionChange = (optionId, subOptionId, checked) => {
+    const key = `${optionId}_${subOptionId}`;
+    setFormData(prev => ({
+      ...prev,
+      subSelections: { ...prev.subSelections, [key]: checked },
+    }));
+  };
 
   // Toggle gift
   const toggleGift = (optionId) => {
