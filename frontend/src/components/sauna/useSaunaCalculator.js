@@ -203,6 +203,16 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             if (option) {
               const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
               total += option.price * quantity;
+              
+              // Add sub-options prices
+              if (option.subOptions?.length > 0) {
+                option.subOptions.forEach(subOpt => {
+                  const subKey = `${optId}_${subOpt.id}`;
+                  if (formData.subSelections?.[subKey]) {
+                    total += subOpt.price * quantity;
+                  }
+                });
+              }
             }
           }
         });
@@ -211,12 +221,22 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         if (option) {
           const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
           total += option.price * quantity;
+          
+          // Add sub-options prices for radio/dropdown
+          if (option.subOptions?.length > 0) {
+            option.subOptions.forEach(subOpt => {
+              const subKey = `${selection}_${subOpt.id}`;
+              if (formData.subSelections?.[subKey]) {
+                total += subOpt.price * quantity;
+              }
+            });
+          }
         }
       }
     });
     
     return total;
-  }, [prices.categories, formData.selections, formData.quantities]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.subSelections]);
 
   // Calculate foundation price
   const calculateFoundationPrice = useCallback(() => {
