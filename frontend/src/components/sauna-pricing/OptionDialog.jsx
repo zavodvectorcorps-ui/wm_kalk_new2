@@ -495,6 +495,116 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               <Label htmlFor="edit-isDefaultSelected">{txt.defaultSelected || 'Выбрано по умолчанию'}</Label>
             </div>
             
+            {/* Sub-Options Section */}
+            <div className="border-t pt-4 mt-4">
+              <Label className="text-sm font-medium text-purple-700 mb-3 block">
+                ➕ Дополнительные опции / Opcje dodatkowe
+              </Label>
+              <p className="text-xs text-gray-500 mb-3">
+                Добавьте дополнительные опции к этой основной опции (например, "с зашивкой" для лавки)
+              </p>
+              
+              {/* List of existing sub-options */}
+              {editingOption.subOptions?.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  {editingOption.subOptions.map((subOpt, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 bg-purple-50 rounded border border-purple-200">
+                      <div className="flex-1">
+                        <span className="font-medium text-sm">{subOpt.name}</span>
+                        {subOpt.namePl && <span className="text-xs text-gray-500 ml-2">({subOpt.namePl})</span>}
+                        <span className="text-purple-600 ml-2">+{subOpt.price} zł</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                        onClick={() => {
+                          setEditingOption(prev => ({
+                            ...prev,
+                            subOptions: prev.subOptions.filter((_, i) => i !== idx)
+                          }));
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Add new sub-option */}
+              <div className="space-y-2 p-3 bg-gray-50 rounded border">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Название (RU)</Label>
+                    <Input
+                      id="new-suboption-name"
+                      placeholder="С зашивкой"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Название (PL)</Label>
+                    <Input
+                      id="new-suboption-namePl"
+                      placeholder="Z zabudową"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Label className="text-xs">Цена (zł)</Label>
+                    <Input
+                      id="new-suboption-price"
+                      type="number"
+                      placeholder="2000"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="bg-purple-600 hover:bg-purple-700"
+                      onClick={() => {
+                        const nameInput = document.getElementById('new-suboption-name');
+                        const namePlInput = document.getElementById('new-suboption-namePl');
+                        const priceInput = document.getElementById('new-suboption-price');
+                        
+                        const name = nameInput?.value?.trim();
+                        const namePl = namePlInput?.value?.trim();
+                        const price = parseInt(priceInput?.value) || 0;
+                        
+                        if (!name) return;
+                        
+                        const newSubOption = {
+                          id: `sub-${Date.now()}`,
+                          name: name,
+                          nameRu: name,
+                          namePl: namePl || name,
+                          price: price
+                        };
+                        
+                        setEditingOption(prev => ({
+                          ...prev,
+                          subOptions: [...(prev.subOptions || []), newSubOption]
+                        }));
+                        
+                        // Clear inputs
+                        if (nameInput) nameInput.value = '';
+                        if (namePlInput) namePlInput.value = '';
+                        if (priceInput) priceInput.value = '';
+                      }}
+                    >
+                      Добавить
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             {/* Tech Spec Mapping Section */}
             <div className="border-t pt-4 mt-4">
               <Label className="text-sm font-medium text-amber-700">{txt.techSpecMapping || 'Маппинг на Тех.Задание'}</Label>
