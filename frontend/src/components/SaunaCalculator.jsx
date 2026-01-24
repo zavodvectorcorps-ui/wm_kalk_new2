@@ -706,7 +706,7 @@ const CategoryCard = ({ category, filteredOptions, formData, handleRadioChange, 
         <CategoryHint category={category} />
         
         {category.inputType === 'checkbox' ? (
-          <CheckboxOptions category={category} options={options} formData={formData} handleCheckboxChange={handleCheckboxChange} handleQuantityChange={handleQuantityChange} txt={txt} />
+          <CheckboxOptions category={category} options={options} formData={formData} handleCheckboxChange={handleCheckboxChange} handleQuantityChange={handleQuantityChange} handleSubOptionChange={handleSubOptionChange} txt={txt} />
         ) : isDropdownView ? (
           <DropdownOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} getCategoryName={getCategoryName} txt={txt} />
         ) : (
