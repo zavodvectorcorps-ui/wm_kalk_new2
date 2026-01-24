@@ -18,16 +18,20 @@ class SaunaModel(BaseModel):
     hintVideoUrl: Optional[str] = None
 
 
-class SubOption(BaseModel):
-    """Sub-option that can be added to any option (e.g., 'with cladding' for bench)."""
+class OptionVariant(BaseModel):
+    """Variant of an option - mutually exclusive choice (e.g., 'Bench without cladding' vs 'Bench with cladding')."""
     model_config = ConfigDict(extra="allow")
     
     id: str
-    name: str  # Default name
+    name: str  # Default name (Polish)
     nameRu: Optional[str] = ""  # Russian name
-    namePl: Optional[str] = ""  # Polish name
-    price: int = 0  # Additional price when selected
-    imageUrl: Optional[str] = None  # Image that replaces main option image when selected
+    namePl: Optional[str] = ""  # Polish name (same as name)
+    price: int = 0  # Full price for this variant (replaces option base price)
+    imageUrl: Optional[str] = None  # Image for this variant
+
+
+# Keep SubOption as alias for backward compatibility during migration
+SubOption = OptionVariant
 
 
 class SaunaOption(BaseModel):
