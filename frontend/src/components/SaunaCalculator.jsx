@@ -684,7 +684,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
   </Card>
 );
 
-const CategoryCard = ({ category, filteredOptions, formData, handleRadioChange, handleCheckboxChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, getCategoryName, txt }) => {
+const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, handleRadioChange, handleCheckboxChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, getCategoryName, txt }) => {
   const Icon = categoryIcons[category.name] || Package;
   const isDropdownView = category.displayType === 'dropdown';
   
@@ -709,11 +709,11 @@ const CategoryCard = ({ category, filteredOptions, formData, handleRadioChange, 
         <CategoryHint category={category} />
         
         {category.inputType === 'checkbox' ? (
-          <CheckboxOptions category={category} options={options} formData={formData} handleCheckboxChange={handleCheckboxChange} handleQuantityChange={handleQuantityChange} handleVariantChange={handleVariantChange} handleSubOptionChange={handleSubOptionChange} txt={txt} />
+          <CheckboxOptions category={category} options={options} formData={formData} foundationPrice={foundationPrice} handleCheckboxChange={handleCheckboxChange} handleQuantityChange={handleQuantityChange} handleVariantChange={handleVariantChange} handleSubOptionChange={handleSubOptionChange} txt={txt} />
         ) : isDropdownView ? (
           <DropdownOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} getCategoryName={getCategoryName} txt={txt} />
         ) : (
-          <RadioOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} handleQuantityChange={handleQuantityChange} handleVariantChange={handleVariantChange} handleSubOptionChange={handleSubOptionChange} txt={txt} />
+          <RadioOptions category={category} options={options} formData={formData} foundationPrice={foundationPrice} handleRadioChange={handleRadioChange} handleQuantityChange={handleQuantityChange} handleVariantChange={handleVariantChange} handleSubOptionChange={handleSubOptionChange} txt={txt} />
         )}
       </CardContent>
     </Card>
