@@ -18,6 +18,17 @@ class SaunaModel(BaseModel):
     hintVideoUrl: Optional[str] = None
 
 
+class SubOption(BaseModel):
+    """Sub-option that can be added to any option (e.g., 'with cladding' for bench)."""
+    model_config = ConfigDict(extra="allow")
+    
+    id: str
+    name: str  # Default name
+    nameRu: Optional[str] = ""  # Russian name
+    namePl: Optional[str] = ""  # Polish name
+    price: int = 0  # Additional price when selected
+
+
 class SaunaOption(BaseModel):
     id: str
     name: str
@@ -32,6 +43,8 @@ class SaunaOption(BaseModel):
     hint: Optional[str] = None
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None
+    # Sub-options (additional checkbox options within this option)
+    subOptions: Optional[List[SubOption]] = []
     # Incompatibility settings (inverted logic - specify when to HIDE)
     incompatibleModels: Optional[List[str]] = []  # List of model IDs - hide option when these models selected
     incompatibleWithOptions: Optional[Dict[str, List[str]]] = {}  # Hide when: {categoryId: [optionId1, optionId2]}
