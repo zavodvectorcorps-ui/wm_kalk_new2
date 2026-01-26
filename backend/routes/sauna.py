@@ -1251,8 +1251,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     steam_room_size = getattr(request, 'steamRoomSize', None)
     has_terrace = getattr(request, 'hasTerrace', False)
     
-    logger.info(f"Room sizes: relaxRoomSize={relax_room_size}, steamRoomSize={steam_room_size}, hasTerrace={has_terrace}")
-    
     if relax_room_size or steam_room_size:
         room_sizes_title = ParagraphStyle(
             'RoomSizesTitle',
