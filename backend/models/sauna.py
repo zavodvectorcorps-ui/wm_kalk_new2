@@ -191,3 +191,7 @@ class SaunaPDFRequest(BaseModel):
     # Admin gifts - list of option IDs that are gifts
     adminGifts: List[str] = []
     selectedOptions: List[Dict[str, Any]] = []
+    # Room sizes
+    relaxRoomSize: Optional[str] = None  # e.g., "2.5 x 3.0 m"
+    steamRoomSize: Optional[str] = None  # e.g., "2.0 x 2.0 m"
+    hasTerrace: Optional[bool] = False  # Whether terrace option is selected
