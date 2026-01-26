@@ -785,6 +785,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const subtotal = calculateSubtotal();
   const discountAmount = subtotal * (appliedDiscount / 100);
   const total = calculateTotal();
+  const roomSizes = getRoomSizes();
 
   return {
     // State
