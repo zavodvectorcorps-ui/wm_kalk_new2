@@ -813,6 +813,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     subtotal,
     discountAmount,
     total,
+    roomSizes,
     
     // Setters
     setFormData,
