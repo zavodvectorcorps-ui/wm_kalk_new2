@@ -207,6 +207,35 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return prices.models?.find(m => m.id === formData.selectedModel);
   }, [prices.models, formData.selectedModel]);
 
+  // Check if terrace option is selected
+  const isTerraceSelected = useCallback(() => {
+    const tarasSelection = formData.selections['opcje_dodatkowe'];
+    if (typeof tarasSelection === 'object') {
+      // Checkbox category - check if taras_zewnetrzny is selected
+      return tarasSelection['taras_zewnetrzny'] === true;
+    }
+    // For other input types
+    return tarasSelection === 'taras_zewnetrzny';
+  }, [formData.selections]);
+
+  // Get room sizes based on terrace selection
+  const getRoomSizes = useCallback(() => {
+    const model = getSelectedModel();
+    if (!model) return { relaxRoomSize: null, steamRoomSize: null };
+    
+    const hasTerrace = isTerraceSelected();
+    
+    return {
+      relaxRoomSize: hasTerrace && model.relaxRoomSizeWithTerrace 
+        ? model.relaxRoomSizeWithTerrace 
+        : model.relaxRoomSize,
+      steamRoomSize: hasTerrace && model.steamRoomSizeWithTerrace 
+        ? model.steamRoomSizeWithTerrace 
+        : model.steamRoomSize,
+      hasTerrace
+    };
+  }, [getSelectedModel, isTerraceSelected]);
+
   // Calculate options total
   const calculateOptionsTotal = useCallback(() => {
     let total = 0;
