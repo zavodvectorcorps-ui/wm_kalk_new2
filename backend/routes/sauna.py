@@ -1246,6 +1246,50 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     ))
     elements.append(Spacer(1, 8))
     
+    # ========== ROOM SIZES SECTION ==========
+    relax_room_size = getattr(request, 'relaxRoomSize', None)
+    steam_room_size = getattr(request, 'steamRoomSize', None)
+    has_terrace = getattr(request, 'hasTerrace', False)
+    
+    if relax_room_size or steam_room_size:
+        room_sizes_title = ParagraphStyle(
+            'RoomSizesTitle',
+            fontName='DejaVuSans-Bold',
+            fontSize=12,
+            textColor=BROWN_DARK,
+            spaceAfter=6
+        )
+        elements.append(Paragraph('WYMIARY POMIESZCZEŃ', room_sizes_title))
+        elements.append(Spacer(1, 4))
+        elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+        elements.append(Spacer(1, 6))
+        
+        room_data = []
+        if relax_room_size:
+            room_data.append(['Pokój wypoczynkowy / Комната отдыха:', relax_room_size])
+        if steam_room_size:
+            room_data.append(['Sauna parowa / Парная:', steam_room_size])
+        if has_terrace:
+            room_data.append(['', 'Z dodatkowym tarasem / С дополнительной террасой ✓'])
+        
+        if room_data:
+            room_table = Table(room_data, colWidths=[200, 330])
+            room_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
+                ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans'),
+                ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('TEXTCOLOR', (0, 0), (0, -1), TEXT_COLOR),
+                ('TEXTCOLOR', (1, 0), (1, -1), BROWN_DARK),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            elements.append(room_table)
+            elements.append(Spacer(1, 8))
+    
     # ========== COMMENT SECTION ==========
     if request.notes:
         elements.append(Paragraph('KOMENTARZ DO ZAMÓWIENIA', section_title_style))
