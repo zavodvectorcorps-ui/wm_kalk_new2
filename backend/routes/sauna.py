@@ -1266,11 +1266,11 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         
         room_data = []
         if relax_room_size:
-            room_data.append(['Pokój wypoczynkowy / Комната отдыха:', relax_room_size])
+            room_data.append(['Przebieralnia:', relax_room_size])
         if steam_room_size:
-            room_data.append(['Sauna parowa / Парная:', steam_room_size])
+            room_data.append(['Łaźnia:', steam_room_size])
         if has_terrace:
-            room_data.append(['', 'Z dodatkowym tarasem / С дополнительной террасой ✓'])
+            room_data.append(['', 'Z dodatkowym tarasem ✓'])
         
         if room_data:
             room_table = Table(room_data, colWidths=[200, 330])
