@@ -1082,6 +1082,28 @@ const SummaryCard = ({
             <div className="text-sm text-amber-700 font-medium">{txt.model}</div>
             <div className="font-medium">{model.name}</div>
             <div className="text-amber-700 font-bold">{formatPrice(model.basePrice)} PLN</div>
+            {/* Room sizes */}
+            {(roomSizes?.relaxRoomSize || roomSizes?.steamRoomSize) && (
+              <div className="mt-2 pt-2 border-t border-amber-200 text-xs space-y-1">
+                {roomSizes.relaxRoomSize && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">🛋️ Комната отдыха:</span>
+                    <span className="font-medium text-amber-800">{roomSizes.relaxRoomSize}</span>
+                  </div>
+                )}
+                {roomSizes.steamRoomSize && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">🔥 Парная:</span>
+                    <span className="font-medium text-amber-800">{roomSizes.steamRoomSize}</span>
+                  </div>
+                )}
+                {roomSizes.hasTerrace && (
+                  <div className="text-xs text-green-600 mt-1">
+                    ✓ С дополнительной террасой
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Selected Options */}
