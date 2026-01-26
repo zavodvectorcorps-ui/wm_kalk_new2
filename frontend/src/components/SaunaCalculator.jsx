@@ -513,6 +513,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             discountAmount={discountAmount}
             foundationPrice={foundationPrice}
             total={total}
+            roomSizes={roomSizes}
             isAdminUser={isAdminUser}
             isEditMode={isEditMode}
             adminGifts={adminGifts}
