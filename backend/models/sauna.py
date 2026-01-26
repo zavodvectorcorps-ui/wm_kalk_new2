@@ -162,6 +162,10 @@ class SaunaOrder(BaseModel):
     updatedBy: Optional[str] = None  # Кто обновил
     # History of changes
     changeHistory: Optional[List[Dict[str, Any]]] = []  # История изменений
+    # Room sizes (based on terrace selection)
+    relaxRoomSize: Optional[str] = None  # e.g., "2.5 x 3.0 m"
+    steamRoomSize: Optional[str] = None  # e.g., "2.0 x 2.0 m"
+    hasTerrace: Optional[bool] = False  # Whether terrace option is selected
 
 
 class SaunaPDFRequest(BaseModel):
