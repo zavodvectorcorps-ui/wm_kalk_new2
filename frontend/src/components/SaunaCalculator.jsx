@@ -682,13 +682,13 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
                 <div className="mt-2 pt-2 border-t border-amber-200 text-xs space-y-1">
                   {m.relaxRoomSize && (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>🛋️ Комната отдыха:</span>
+                      <span>Przebieralnia:</span>
                       <span className="font-medium text-amber-800">{m.relaxRoomSize}</span>
                     </div>
                   )}
                   {m.steamRoomSize && (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>🔥 Парная:</span>
+                      <span>Łaźnia:</span>
                       <span className="font-medium text-amber-800">{m.steamRoomSize}</span>
                     </div>
                   )}
