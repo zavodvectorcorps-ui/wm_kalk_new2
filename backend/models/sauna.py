@@ -16,6 +16,12 @@ class SaunaModel(BaseModel):
     hint: Optional[str] = None
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None
+    # Room sizes (standard configuration)
+    relaxRoomSize: Optional[str] = None  # e.g., "2.5 x 3.0 m"
+    steamRoomSize: Optional[str] = None  # e.g., "2.0 x 2.0 m"
+    # Room sizes when "additional terrace" option is selected
+    relaxRoomSizeWithTerrace: Optional[str] = None
+    steamRoomSizeWithTerrace: Optional[str] = None
 
 
 class OptionVariant(BaseModel):
