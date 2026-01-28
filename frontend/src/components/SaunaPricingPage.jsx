@@ -91,6 +91,32 @@ export const SaunaPricingPage = () => {
         )}
       </div>
 
+      {/* Settings Section */}
+      {canEdit() && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-3 text-amber-800 font-medium">
+            <Settings className="h-4 w-4" />
+            {txt.maxManagerDiscount}
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={prices.maxManagerDiscount || 10}
+                onChange={(e) => handleUpdateMaxManagerDiscount(e.target.value)}
+                className="w-20 h-9"
+              />
+              <Percent className="h-4 w-4 text-amber-600" />
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {txt.maxManagerDiscountDescription}
+            </span>
+          </div>
+        </div>
+      )}
+
       <Tabs defaultValue="models" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="models">{txt.models}</TabsTrigger>
