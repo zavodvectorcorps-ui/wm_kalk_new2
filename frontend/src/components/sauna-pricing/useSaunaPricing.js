@@ -529,6 +529,12 @@ export const useSaunaPricing = () => {
     }));
   };
 
+  // ========== SETTINGS ==========
+  const handleUpdateMaxManagerDiscount = (value) => {
+    const numValue = Math.max(0, Math.min(100, parseInt(value) || 10));
+    setPrices(prev => ({ ...prev, maxManagerDiscount: numValue }));
+  };
+
   return {
     loading,
     saving,
