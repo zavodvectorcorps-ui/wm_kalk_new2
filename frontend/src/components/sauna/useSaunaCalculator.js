@@ -915,6 +915,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     discountAmount,
     total,
     roomSizes,
+    maxManagerDiscount: prices.maxManagerDiscount || 10,
     
     // Setters
     setFormData,
