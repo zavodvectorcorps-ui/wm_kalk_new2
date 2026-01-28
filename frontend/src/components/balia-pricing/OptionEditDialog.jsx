@@ -165,7 +165,10 @@ export const OptionEditDialog = memo(({
           
           {/* Purchase Price Section */}
           <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
-            <h4 className="text-sm font-medium text-amber-800">Ценообразование / Kalkulacja</h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-amber-800">Ценообразование / Kalkulacja</h4>
+              <span className="text-xs text-amber-600">Курс: 1 EUR = {eurRate} PLN</span>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
@@ -190,9 +193,21 @@ export const OptionEditDialog = memo(({
               </div>
             </div>
             {formData.purchasePriceEur > 0 && (
-              <p className="text-xs text-amber-600">
-                Расчёт: {formData.purchasePriceEur} EUR × курс × {(1 + (formData.markupPercent ?? 30)/100).toFixed(2)}
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-amber-600">
+                  {formData.purchasePriceEur} EUR × {eurRate} × {(1 + (formData.markupPercent ?? 30)/100).toFixed(2)} = {Math.round(formData.purchasePriceEur * eurRate * (1 + (formData.markupPercent ?? 30)/100))} PLN
+                </p>
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-7 text-xs border-amber-400 text-amber-700 hover:bg-amber-100"
+                  onClick={calculateRetailPrice}
+                >
+                  <Calculator className="h-3 w-3 mr-1" />
+                  Применить
+                </Button>
+              </div>
             )}
           </div>
           
