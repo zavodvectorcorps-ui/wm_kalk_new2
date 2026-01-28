@@ -5,6 +5,27 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Jan 28, 2025 - Hidden Options Filtering & Model Capacity Field (COMPLETED)
+- **NEW**: Hidden options (based on incompatibility rules) are now excluded from order summary and PDF
+- **Feature**: `isOptionVisible` helper function checks `incompatibleModels` and `incompatibleWithOptions` rules
+- **Feature**: `calculateOptionsTotal` now filters hidden options from price calculation
+- **Feature**: `getSelectedOptions` excludes hidden options from PDF generation
+- **Feature**: `SelectedOptionsList` hides incompatible options in order summary
+- **NEW**: Added `capacity` field to SaunaModel for number of people (e.g., "4-6")
+- **Feature**: Capacity displayed in model cards as "👥 X osób" when set
+- **Feature**: Capacity editable in admin panel (AddModelDialog, EditModelDialog)
+- **Backend**: Updated `SaunaModel` in `sauna.py` with `capacity: Optional[str]`
+- **Frontend**: Updated `SaunaCalculator.jsx` and `useSaunaCalculator.js`
+- **Admin UI**: Updated `ModelDialog.jsx` with capacity field
+- **Tested**: All code correctly implemented (iteration 30)
+
+### Jan 24, 2025 - Room Sizes for Sauna Models (COMPLETED)
+- **NEW**: Added room size fields to sauna models: `relaxRoomSize`, `steamRoomSize`
+- **Feature**: Alternative sizes for terrace option: `relaxRoomSizeWithTerrace`, `steamRoomSizeWithTerrace`
+- **Feature**: Room sizes displayed in model cards in calculator
+- **Feature**: Room sizes included in PDF with Polish labels (Przebieralnia, Łaźnia)
+- **Tested**: All features working correctly
+
 ### Jan 24, 2025 - Sauna Option Variants System (COMPLETED)
 - **NEW**: Implemented variant system for sauna options - mutually exclusive choices within an option
 - **Feature**: Variants replace base option price (not add to it)
