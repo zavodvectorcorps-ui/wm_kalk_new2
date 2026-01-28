@@ -19,6 +19,10 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **Feature**: Admin can set maximum discount % for managers (non-admin users)
 - **Feature**: Default value is 10%, can be changed in Ceny > Sauny admin page
 - **Feature**: Discount limit applied in calculator UI and validation
+- **NEW**: Added bulk price change functionality in admin panel
+- **Feature**: Separate % inputs for models and options prices
+- **Feature**: Applies to basePrice, foundationPrice (models) and option/variant prices
+- **Feature**: Supports both positive (increase) and negative (decrease) percentages
 - **Backend**: Updated `SaunaModel`, `SaunaPDFRequest`, `SaunaPriceData` in `sauna.py`
 - **Backend**: PDF generation includes capacity in WYMIARY POMIESZCZEŃ section
 - **Frontend**: Updated `SaunaCalculator.jsx`, `useSaunaCalculator.js`, `SaunaPricingPage.jsx`
