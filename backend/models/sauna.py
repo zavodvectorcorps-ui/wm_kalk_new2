@@ -16,6 +16,8 @@ class SaunaModel(BaseModel):
     hint: Optional[str] = None
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None
+    # Capacity - number of people
+    capacity: Optional[str] = None  # e.g., "4-6" or "8"
     # Room sizes (standard configuration)
     relaxRoomSize: Optional[str] = None  # e.g., "2.5 x 3.0 m"
     steamRoomSize: Optional[str] = None  # e.g., "2.0 x 2.0 m"
