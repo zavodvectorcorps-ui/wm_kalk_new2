@@ -935,6 +935,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     handleCancelEdit,
     getCategoryName,
     getSelectedOptions,
+    isOptionVisible,
   };
 };
 
