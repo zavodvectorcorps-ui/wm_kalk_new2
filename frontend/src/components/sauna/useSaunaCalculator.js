@@ -436,7 +436,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   };
 
   const handleDiscountChange = (e) => {
-    const maxDiscount = isAdminUser ? 100 : 10;
+    const maxManagerDiscount = prices.maxManagerDiscount || 10;
+    const maxDiscount = isAdminUser ? 100 : maxManagerDiscount;
     const value = Math.max(0, Math.min(maxDiscount, parseFloat(e.target.value) || 0));
     setAppliedDiscount(value);
   };
@@ -453,7 +454,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       return;
     }
     
-    const maxDiscount = isAdminUser ? 100 : 10;
+    const maxManagerDiscount = prices.maxManagerDiscount || 10;
+    const maxDiscount = isAdminUser ? 100 : maxManagerDiscount;
     const modelDiscount = Math.min(model.discount || 0, maxDiscount);
     if (modelDiscount > 0) {
       setAppliedDiscount(modelDiscount);
