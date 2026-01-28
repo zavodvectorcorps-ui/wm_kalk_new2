@@ -1304,22 +1304,22 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
   );
 };
 
-const DiscountSection = ({ appliedDiscount, discountAmount, isAdminUser, adminDiscountApproved, setAdminDiscountApproved, handleDiscountChange, handleApplyStandardDiscount, lang, txt }) => (
+const DiscountSection = ({ appliedDiscount, discountAmount, isAdminUser, adminDiscountApproved, setAdminDiscountApproved, handleDiscountChange, handleApplyStandardDiscount, maxManagerDiscount, lang, txt }) => (
   <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-3">
     <div className="flex items-center gap-2 text-green-700 font-medium">
       <Percent className="h-4 w-4" />
       {txt.discount}
     </div>
     <div className="flex items-center gap-2">
-      <InputOrange id="discountPercent" type="number" min="0" max={isAdminUser ? 100 : 10} value={appliedDiscount} onChange={handleDiscountChange} className="w-20 h-8" />
-      <span className="text-sm text-muted-foreground">% (max {isAdminUser ? '100' : '10'})</span>
+      <InputOrange id="discountPercent" type="number" min="0" max={isAdminUser ? 100 : maxManagerDiscount} value={appliedDiscount} onChange={handleDiscountChange} className="w-20 h-8" />
+      <span className="text-sm text-muted-foreground">% (max {isAdminUser ? '100' : maxManagerDiscount})</span>
     </div>
     <Button type="button" variant="outline" size="sm" onClick={handleApplyStandardDiscount} className="w-full border-green-300 text-green-700 hover:bg-green-100">
       <Tag className="h-4 w-4 mr-2" />
       {txt.applyStandardDiscount}
     </Button>
     
-    {isAdminUser && appliedDiscount > 10 && (
+    {isAdminUser && appliedDiscount > maxManagerDiscount && (
       <div className="flex items-center gap-2 pt-2 border-t border-green-200">
         <CheckboxOrange id="adminDiscountApproval" checked={adminDiscountApproved} onCheckedChange={setAdminDiscountApproved} />
         <Label htmlFor="adminDiscountApproval" className="text-sm text-green-700 cursor-pointer flex items-center gap-1">
