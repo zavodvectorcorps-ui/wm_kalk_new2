@@ -107,26 +107,77 @@ export const SaunaPricingPage = () => {
 
       {/* Settings Section */}
       {canEdit() && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-3 text-amber-800 font-medium">
-            <Settings className="h-4 w-4" />
-            {txt.maxManagerDiscount}
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={prices.maxManagerDiscount || 10}
-                onChange={(e) => handleUpdateMaxManagerDiscount(e.target.value)}
-                className="w-20 h-9"
-              />
-              <Percent className="h-4 w-4 text-amber-600" />
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-4">
+          {/* Max Manager Discount */}
+          <div>
+            <div className="flex items-center gap-2 mb-3 text-amber-800 font-medium">
+              <Settings className="h-4 w-4" />
+              {txt.maxManagerDiscount}
             </div>
-            <span className="text-sm text-muted-foreground">
-              {txt.maxManagerDiscountDescription}
-            </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={prices.maxManagerDiscount || 10}
+                  onChange={(e) => handleUpdateMaxManagerDiscount(e.target.value)}
+                  className="w-20 h-9"
+                />
+                <Percent className="h-4 w-4 text-amber-600" />
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {txt.maxManagerDiscountDescription}
+              </span>
+            </div>
+          </div>
+
+          {/* Bulk Price Change */}
+          <div className="pt-4 border-t border-amber-200">
+            <div className="flex items-center gap-2 mb-3 text-amber-800 font-medium">
+              <TrendingUp className="h-4 w-4" />
+              {txt.bulkPriceChange}
+            </div>
+            <div className="flex flex-wrap items-end gap-4">
+              <div>
+                <Label className="text-sm text-muted-foreground mb-1 block">{txt.modelsPercent}</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={modelsPercent}
+                    onChange={(e) => setModelsPercent(e.target.value)}
+                    className="w-24 h-9"
+                  />
+                  <Percent className="h-4 w-4 text-amber-600" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground mb-1 block">{txt.optionsPercent}</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={optionsPercent}
+                    onChange={(e) => setOptionsPercent(e.target.value)}
+                    className="w-24 h-9"
+                  />
+                  <Percent className="h-4 w-4 text-amber-600" />
+                </div>
+              </div>
+              <Button
+                onClick={handleApplyBulkPriceChange}
+                variant="outline"
+                className="border-amber-400 text-amber-700 hover:bg-amber-100 h-9"
+                disabled={!modelsPercent && !optionsPercent}
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                {txt.applyPriceChange}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {txt.enterPercent}
+            </p>
           </div>
         </div>
       )}
