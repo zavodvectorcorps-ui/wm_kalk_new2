@@ -51,7 +51,21 @@ export const SaunaPricingPage = () => {
     handleReorderOptions,
     // Settings
     handleUpdateMaxManagerDiscount,
+    // Bulk price change
+    handleBulkPriceChange,
   } = useSaunaPricing();
+
+  // Local state for bulk price change
+  const [modelsPercent, setModelsPercent] = useState('');
+  const [optionsPercent, setOptionsPercent] = useState('');
+
+  const handleApplyBulkPriceChange = async () => {
+    const success = await handleBulkPriceChange(modelsPercent, optionsPercent);
+    if (success) {
+      setModelsPercent('');
+      setOptionsPercent('');
+    }
+  };
 
   if (loading) {
     return (
