@@ -323,6 +323,7 @@ export const ModelEditDialog = memo(({
                 variantType="integrated"
                 label="Встроенная печь (Zintegrowany)"
                 currencySymbol={currencySymbol}
+                eurRate={eurRate}
                 uploadingVariant={uploadingVariant}
                 onPriceChange={(price) => updateVariantPrice('integrated', price)}
                 onFieldChange={(field, value) => updateVariantField('integrated', field, value)}
@@ -336,6 +337,7 @@ export const ModelEditDialog = memo(({
                 variantType="external"
                 label="Внешняя печь (Zewnętrzny)"
                 currencySymbol={currencySymbol}
+                eurRate={eurRate}
                 uploadingVariant={uploadingVariant}
                 onPriceChange={(price) => updateVariantPrice('external', price)}
                 onFieldChange={(field, value) => updateVariantField('external', field, value)}
