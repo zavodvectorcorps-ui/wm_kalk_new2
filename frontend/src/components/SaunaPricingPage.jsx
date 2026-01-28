@@ -47,6 +47,8 @@ export const SaunaPricingPage = () => {
     handleToggleOptionQuantity,
     handleToggleOptionDefault,
     handleReorderOptions,
+    // Settings
+    handleUpdateMaxManagerDiscount,
   } = useSaunaPricing();
 
   if (loading) {
