@@ -15,11 +15,15 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **Feature**: Capacity displayed in model cards as "👥 X osób" when set
 - **Feature**: Capacity editable in admin panel (AddModelDialog, EditModelDialog)
 - **Feature**: Capacity included in PDF as "Orientacyjna liczba osób: X" (Polish)
-- **Backend**: Updated `SaunaModel` and `SaunaPDFRequest` in `sauna.py` with `capacity: Optional[str]`
-- **Backend**: PDF generation (`sauna.py`) includes capacity in WYMIARY POMIESZCZEŃ section
-- **Frontend**: Updated `SaunaCalculator.jsx` and `useSaunaCalculator.js`
-- **Admin UI**: Updated `ModelDialog.jsx` with capacity field
-- **Tested**: All code correctly implemented (iteration 30, curl PDF test)
+- **NEW**: Added configurable `maxManagerDiscount` setting in admin panel
+- **Feature**: Admin can set maximum discount % for managers (non-admin users)
+- **Feature**: Default value is 10%, can be changed in Ceny > Sauny admin page
+- **Feature**: Discount limit applied in calculator UI and validation
+- **Backend**: Updated `SaunaModel`, `SaunaPDFRequest`, `SaunaPriceData` in `sauna.py`
+- **Backend**: PDF generation includes capacity in WYMIARY POMIESZCZEŃ section
+- **Frontend**: Updated `SaunaCalculator.jsx`, `useSaunaCalculator.js`, `SaunaPricingPage.jsx`
+- **Admin UI**: Updated `ModelDialog.jsx` with capacity field, added maxManagerDiscount in pricing page
+- **Tested**: All code correctly implemented (iteration 30, curl PDF test, UI screenshots)
 
 ### Jan 24, 2025 - Room Sizes for Sauna Models (COMPLETED)
 - **NEW**: Added room size fields to sauna models: `relaxRoomSize`, `steamRoomSize`
