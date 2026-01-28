@@ -39,6 +39,8 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **Frontend**: Updated `CalculatorPage.jsx` with model card tags
 - **Frontend**: Updated `balia-pricing/OptionEditDialog.jsx` with price calculation button
 - **Frontend**: Updated `BaliaPricingPage.jsx` to pass eurRate to dialog
+- **Frontend**: Updated `balia-pricing/ModelEditDialog.jsx` with price calculation for heater variants
+- **Feature**: Each heater variant (integrated/external) has its own Apply button for price calculation
 
 ### Jan 24, 2025 - Room Sizes for Sauna Models (COMPLETED)
 - **NEW**: Added room size fields to sauna models: `relaxRoomSize`, `steamRoomSize`
