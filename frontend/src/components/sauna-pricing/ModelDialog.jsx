@@ -303,13 +303,23 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
               />
             </div>
           </div>
-          <div>
-            <Label>{txt.discount}</Label>
-            <Input
-              type="number"
-              value={editingModel.discount}
-              onChange={(e) => setEditingModel(prev => ({ ...prev, discount: parseInt(e.target.value) || 0 }))}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>{txt.discount}</Label>
+              <Input
+                type="number"
+                value={editingModel.discount}
+                onChange={(e) => setEditingModel(prev => ({ ...prev, discount: parseInt(e.target.value) || 0 }))}
+              />
+            </div>
+            <div>
+              <Label>👥 Количество человек</Label>
+              <Input
+                value={editingModel.capacity || ''}
+                onChange={(e) => setEditingModel(prev => ({ ...prev, capacity: e.target.value }))}
+                placeholder="4-6"
+              />
+            </div>
           </div>
           
           {/* Room Sizes Section */}
