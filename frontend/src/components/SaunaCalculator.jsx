@@ -1074,7 +1074,7 @@ const SummaryCard = ({
   roomSizes, isAdminUser, isEditMode, adminGifts, adminDiscountApproved, setAdminDiscountApproved,
   requestedDiscount, setRequestedDiscount, requestedDiscountNote, setRequestedDiscountNote,
   handleDiscountChange, handleApplyStandardDiscount, handleSaveAndGeneratePDF,
-  handleClearForm, handleCancelEdit, getCategoryName, loading, lang, txt
+  handleClearForm, handleCancelEdit, getCategoryName, isOptionVisible, loading, lang, txt
 }) => (
   <Card className="shadow-lg sticky top-4 border-amber-200">
     <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100">
