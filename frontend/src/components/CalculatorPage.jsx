@@ -1269,8 +1269,13 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                   const isSelected = formData.selectedModel === model.id;
                   // Get preview image (first variant or model image)
                   const previewImage = model.heaterVariants?.[0]?.imageUrl || model.imageUrl;
-                  // Check if model has multiple heater options
-                  const hasHeaterOptions = model.heaterVariants?.length > 1;
+                  // Get available heater types for this model
+                  const availableTypes = model.availableHeaterTypes || ['integrated', 'external'];
+                  // Check if model has multiple heater options (based on AVAILABLE types, not all variants)
+                  const availableVariants = model.heaterVariants?.filter(v => availableTypes.includes(v.type)) || [];
+                  const hasMultipleHeaters = availableVariants.length > 1;
+                  // Get available bowl types
+                  const availableBowls = model.availableBowlTypes || ['fiberglass', 'acrylic'];
                   
                   return (
                     <div
@@ -1314,9 +1319,29 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                           <Check className="h-4 w-4 text-blue-500 flex-shrink-0" />
                         )}
                       </div>
-                      {hasHeaterOptions && (
+                      {/* Tags for bowl material and heater types */}
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {/* Bowl material tags */}
+                        {availableBowls.map(bowl => (
+                          <Badge key={bowl} variant="outline" className="text-[10px] px-1 py-0">
+                            {bowl === 'acrylic' 
+                              ? (lang === 'pl' ? 'Akryl' : 'Акрил') 
+                              : (lang === 'pl' ? 'Fiberglass' : 'Стеклопластик')}
+                          </Badge>
+                        ))}
+                        {/* Heater type tag - only show when single type */}
+                        {availableTypes.length === 1 && (
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                            {availableTypes[0] === 'integrated' 
+                              ? (lang === 'pl' ? 'Zintegr.' : 'Встр.') 
+                              : (lang === 'pl' ? 'Zewn.' : 'Внеш.')}
+                          </Badge>
+                        )}
+                      </div>
+                      {/* Show heater options info - dynamic based on available types */}
+                      {hasMultipleHeaters && (
                         <div className="text-xs text-muted-foreground">
-                          {lang === 'pl' ? '2 warianty pieca' : '2 варианта печи'}
+                          {lang === 'pl' ? `${availableVariants.length} warianty pieca` : `${availableVariants.length} варианта печи`}
                         </div>
                       )}
                     </div>
