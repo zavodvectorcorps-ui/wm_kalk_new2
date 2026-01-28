@@ -31,11 +31,23 @@ export const OptionEditDialog = memo(({
   onClose,
   onSave,
   txt,
-  currencySymbol
+  currencySymbol,
+  eurRate = 4.30
 }) => {
   const [formData, setFormData] = useState(() => option || {});
   const [uploading, setUploading] = useState(false);
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
+
+  // Calculate retail price from purchase price and markup
+  const calculateRetailPrice = () => {
+    const purchaseEur = parseFloat(formData.purchasePriceEur) || 0;
+    const markup = parseFloat(formData.markupPercent ?? 30);
+    if (purchaseEur <= 0) return;
+    
+    const purchasePln = purchaseEur * eurRate;
+    const retailPrice = Math.round(purchasePln * (1 + markup / 100));
+    setFormData(prev => ({ ...prev, price: retailPrice }));
+  };
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
