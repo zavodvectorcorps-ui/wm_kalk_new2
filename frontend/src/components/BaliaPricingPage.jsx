@@ -776,6 +776,7 @@ export const BaliaPricingPage = () => {
         txt={txt}
         currencySymbol={prices.currencySymbol}
         categories={prices.categories || []}
+        eurRate={prices.eurRate || 4.30}
       />
 
       <CategoryEditDialog
