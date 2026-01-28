@@ -636,106 +636,136 @@ const VariantEditor = memo(({
   variantType, 
   label, 
   currencySymbol, 
+  eurRate = 4.30,
   uploadingVariant,
   onPriceChange, 
   onFieldChange, 
   onImageUpload, 
   onRemoveImage 
-}) => (
-  <div className="border rounded-lg p-3 bg-white space-y-3">
-    <h4 className="font-medium text-sm">{label}</h4>
+}) => {
+  // Calculate retail price from purchase price and markup
+  const calculateRetailPrice = () => {
+    const purchaseEur = parseFloat(variant.purchasePriceEur) || 0;
+    const markup = parseFloat(variant.markupPercent ?? 30);
+    if (purchaseEur <= 0) return;
     
-    {/* Purchase Price Section */}
-    <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-2">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
-          <Input 
-            type="number"
-            step="0.01"
-            value={variant.purchasePriceEur || ''} 
-            onChange={(e) => onFieldChange('purchasePriceEur', parseFloat(e.target.value) || 0)}
-            placeholder="300"
-            className="h-8 text-sm"
-          />
+    const purchasePln = purchaseEur * eurRate;
+    const retailPrice = Math.round(purchasePln * (1 + markup / 100));
+    onPriceChange(retailPrice);
+  };
+
+  return (
+    <div className="border rounded-lg p-3 bg-white space-y-3">
+      <h4 className="font-medium text-sm">{label}</h4>
+      
+      {/* Purchase Price Section */}
+      <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-2">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs text-amber-700 font-medium">Ценообразование</span>
+          <span className="text-xs text-amber-600">1 EUR = {eurRate} PLN</span>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-amber-700">Наценка (%)</Label>
-          <Input 
-            type="number"
-            value={variant.markupPercent ?? 30} 
-            onChange={(e) => onFieldChange('markupPercent', parseFloat(e.target.value) || 0)}
-            placeholder="30"
-            className="h-8 text-sm"
-          />
-        </div>
-      </div>
-      {variant.purchasePriceEur > 0 && (
-        <p className="text-xs text-amber-600">
-          Расчёт: {variant.purchasePriceEur} EUR × курс × {1 + (variant.markupPercent ?? 30)/100}
-        </p>
-      )}
-    </div>
-    
-    <div className="space-y-2">
-      <Label className="text-xs">Розничная цена ({currencySymbol})</Label>
-      <Input 
-        type="number"
-        value={variant.price || 0} 
-        onChange={(e) => onPriceChange(e.target.value)}
-      />
-    </div>
-    
-    <div className="space-y-2">
-      <Label className="text-xs">Подсказка для этого варианта</Label>
-      <Input 
-        value={variant.hint || ''} 
-        onChange={(e) => onFieldChange('hint', e.target.value)}
-        placeholder="Описание модели с этой печью..."
-      />
-    </div>
-    
-    <div className="space-y-2">
-      <Label className="text-xs">Фото</Label>
-      {variant.imageUrl ? (
-        <div className="relative">
-          <img 
-            src={variant.imageUrl} 
-            alt={variantType} 
-            className="w-full h-24 object-contain rounded border"
-          />
-          <Button
-            variant="destructive"
-            size="sm"
-            className="absolute top-1 right-1 h-6 w-6 p-0"
-            onClick={onRemoveImage}
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      ) : (
-        <label className="block">
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onImageUpload}
-          />
-          <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50">
-            {uploadingVariant === variantType ? (
-              <Loader2 className="h-6 w-6 animate-spin mx-auto text-orange-500" />
-            ) : (
-              <>
-                <Upload className="h-6 w-6 mx-auto text-gray-400" />
-                <span className="text-xs text-gray-500">Загрузить фото</span>
-              </>
-            )}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label className="text-xs text-amber-700">Закупка (EUR)</Label>
+            <Input 
+              type="number"
+              step="0.01"
+              value={variant.purchasePriceEur || ''} 
+              onChange={(e) => onFieldChange('purchasePriceEur', parseFloat(e.target.value) || 0)}
+              placeholder="300"
+              className="h-8 text-sm"
+            />
           </div>
-        </label>
-      )}
+          <div className="space-y-1">
+            <Label className="text-xs text-amber-700">Наценка (%)</Label>
+            <Input 
+              type="number"
+              value={variant.markupPercent ?? 30} 
+              onChange={(e) => onFieldChange('markupPercent', parseFloat(e.target.value) || 0)}
+              placeholder="30"
+              className="h-8 text-sm"
+            />
+          </div>
+        </div>
+        {variant.purchasePriceEur > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-amber-600">
+              {variant.purchasePriceEur} × {eurRate} × {(1 + (variant.markupPercent ?? 30)/100).toFixed(2)} = {Math.round(variant.purchasePriceEur * eurRate * (1 + (variant.markupPercent ?? 30)/100))} PLN
+            </p>
+            <Button 
+              type="button" 
+              size="sm" 
+              variant="outline" 
+              className="h-6 text-xs border-amber-400 text-amber-700 hover:bg-amber-100 px-2"
+              onClick={calculateRetailPrice}
+            >
+              <Calculator className="h-3 w-3 mr-1" />
+              Применить
+            </Button>
+          </div>
+        )}
+      </div>
+      
+      <div className="space-y-2">
+        <Label className="text-xs">Розничная цена ({currencySymbol})</Label>
+        <Input 
+          type="number"
+          value={variant.price || 0} 
+          onChange={(e) => onPriceChange(e.target.value)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label className="text-xs">Подсказка для этого варианта</Label>
+        <Input 
+          value={variant.hint || ''} 
+          onChange={(e) => onFieldChange('hint', e.target.value)}
+          placeholder="Описание модели с этой печью..."
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label className="text-xs">Фото</Label>
+        {variant.imageUrl ? (
+          <div className="relative">
+            <img 
+              src={variant.imageUrl} 
+              alt={variantType} 
+              className="w-full h-24 object-contain rounded border"
+            />
+            <Button
+              variant="destructive"
+              size="sm"
+              className="absolute top-1 right-1 h-6 w-6 p-0"
+              onClick={onRemoveImage}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        ) : (
+          <label className="block">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onImageUpload}
+            />
+            <div className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50">
+              {uploadingVariant === variantType ? (
+                <Loader2 className="h-6 w-6 animate-spin mx-auto text-orange-500" />
+              ) : (
+                <>
+                  <Upload className="h-6 w-6 mx-auto text-gray-400" />
+                  <span className="text-xs text-gray-500">Загрузить фото</span>
+                </>
+              )}
+            </div>
+          </label>
+        )}
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 ModelEditDialog.displayName = 'ModelEditDialog';
 VariantEditor.displayName = 'VariantEditor';
