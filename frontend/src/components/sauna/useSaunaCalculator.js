@@ -541,7 +541,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return true;
   };
 
-  // Get selected options for PDF
+  // Get selected options for PDF (only visible options)
   const getSelectedOptions = useCallback(() => {
     const options = [];
     const categories = prices.categories || [];
@@ -559,128 +559,130 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         Object.entries(selection).forEach(([optId, isSelected]) => {
           if (isSelected) {
             const option = category.options?.find(o => o.id === optId);
-            if (option) {
-              const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
-              
-              // Get variants (check both new 'variants' and legacy 'subOptions' fields)
-              const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
-              
-              // For belki "dodaj" option, use foundationPrice from model
-              const isBelkiDodaj = isBelkiCategory && optId.includes('dodaj');
-              
-              // Determine final price and image based on selected variant
-              let finalPrice = isBelkiDodaj ? modelFoundationPrice : option.price;
-              let finalImageUrl = option.imageUrl || null;
-              let selectedVariantId = formData.variantSelections?.[optId];
-              let selectedVariant = null;
-              let variantName = '';
-              
-              if (variants?.length > 0 && !isBelkiDodaj) {
-                if (selectedVariantId) {
-                  selectedVariant = variants.find(v => v.id === selectedVariantId);
-                } else {
-                  // Auto-select first variant if none selected
-                  selectedVariant = variants[0];
-                  selectedVariantId = selectedVariant?.id;
-                }
-                
-                if (selectedVariant) {
-                  finalPrice = selectedVariant.price;
-                  variantName = selectedVariant.namePl || selectedVariant.name;
-                  if (selectedVariant.imageUrl) {
-                    finalImageUrl = selectedVariant.imageUrl;
-                  }
-                }
+            // Skip hidden options
+            if (!option || !isOptionVisible(option)) return;
+            
+            const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
+            
+            // Get variants (check both new 'variants' and legacy 'subOptions' fields)
+            const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
+            
+            // For belki "dodaj" option, use foundationPrice from model
+            const isBelkiDodaj = isBelkiCategory && optId.includes('dodaj');
+            
+            // Determine final price and image based on selected variant
+            let finalPrice = isBelkiDodaj ? modelFoundationPrice : option.price;
+            let finalImageUrl = option.imageUrl || null;
+            let selectedVariantId = formData.variantSelections?.[optId];
+            let selectedVariant = null;
+            let variantName = '';
+            
+            if (variants?.length > 0 && !isBelkiDodaj) {
+              if (selectedVariantId) {
+                selectedVariant = variants.find(v => v.id === selectedVariantId);
+              } else {
+                // Auto-select first variant if none selected
+                selectedVariant = variants[0];
+                selectedVariantId = selectedVariant?.id;
               }
               
-              options.push({
-                categoryId: category.id,
-                categoryName: category.name,
-                optionId: option.id,
-                optionName: variantName ? `${option.name} (${variantName})` : option.name,
-                price: finalPrice,
-                quantity,
-                totalPrice: finalPrice * quantity,
-                imageUrl: finalImageUrl,
-                hintImageUrl: option.hintImageUrl || null,
-                techSpecId: option.techSpecId || null,
-                techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
-                selectedVariantId,
-                selectedVariant: selectedVariant ? {
-                  id: selectedVariant.id,
-                  name: selectedVariant.namePl || selectedVariant.name,
-                  price: selectedVariant.price,
-                  imageUrl: selectedVariant.imageUrl || null
-                } : null,
-                // Legacy compatibility
-                selectedSubOptions: [],
-                subOptionsTotal: 0,
-              });
+              if (selectedVariant) {
+                finalPrice = selectedVariant.price;
+                variantName = selectedVariant.namePl || selectedVariant.name;
+                if (selectedVariant.imageUrl) {
+                  finalImageUrl = selectedVariant.imageUrl;
+                }
+              }
             }
+            
+            options.push({
+              categoryId: category.id,
+              categoryName: category.name,
+              optionId: option.id,
+              optionName: variantName ? `${option.name} (${variantName})` : option.name,
+              price: finalPrice,
+              quantity,
+              totalPrice: finalPrice * quantity,
+              imageUrl: finalImageUrl,
+              hintImageUrl: option.hintImageUrl || null,
+              techSpecId: option.techSpecId || null,
+              techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
+              selectedVariantId,
+              selectedVariant: selectedVariant ? {
+                id: selectedVariant.id,
+                name: selectedVariant.namePl || selectedVariant.name,
+                price: selectedVariant.price,
+                imageUrl: selectedVariant.imageUrl || null
+              } : null,
+              // Legacy compatibility
+              selectedSubOptions: [],
+              subOptionsTotal: 0,
+            });
           }
         });
       } else {
         const option = category.options?.find(o => o.id === selection);
-        if (option) {
-          const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
-          
-          // For belki "dodaj" option, use foundationPrice from model
-          const isBelkiDodaj = isBelkiCategory && selection.includes('dodaj');
-          
-          // Get variants
-          const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
-          
-          let finalPrice = isBelkiDodaj ? modelFoundationPrice : option.price;
-          let finalImageUrl = option.imageUrl || null;
-          let selectedVariantId = formData.variantSelections?.[selection];
-          let selectedVariant = null;
-          let variantName = '';
-          
-          if (variants?.length > 0 && !isBelkiDodaj) {
-            if (selectedVariantId) {
-              selectedVariant = variants.find(v => v.id === selectedVariantId);
-            } else {
-              selectedVariant = variants[0];
-              selectedVariantId = selectedVariant?.id;
-            }
-            
-            if (selectedVariant) {
-              finalPrice = selectedVariant.price;
-              variantName = selectedVariant.namePl || selectedVariant.name;
-              if (selectedVariant.imageUrl) {
-                finalImageUrl = selectedVariant.imageUrl;
-              }
-            }
+        // Skip hidden options
+        if (!option || !isOptionVisible(option)) return;
+        
+        const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
+        
+        // For belki "dodaj" option, use foundationPrice from model
+        const isBelkiDodaj = isBelkiCategory && selection.includes('dodaj');
+        
+        // Get variants
+        const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
+        
+        let finalPrice = isBelkiDodaj ? modelFoundationPrice : option.price;
+        let finalImageUrl = option.imageUrl || null;
+        let selectedVariantId = formData.variantSelections?.[selection];
+        let selectedVariant = null;
+        let variantName = '';
+        
+        if (variants?.length > 0 && !isBelkiDodaj) {
+          if (selectedVariantId) {
+            selectedVariant = variants.find(v => v.id === selectedVariantId);
+          } else {
+            selectedVariant = variants[0];
+            selectedVariantId = selectedVariant?.id;
           }
           
-          options.push({
-            categoryId: category.id,
-            categoryName: category.name,
-            optionId: option.id,
-            optionName: variantName ? `${option.name} (${variantName})` : option.name,
-            price: finalPrice,
-            quantity,
-            totalPrice: finalPrice * quantity,
-            imageUrl: finalImageUrl,
-            hintImageUrl: option.hintImageUrl || null,
-            techSpecId: option.techSpecId || null,
-            techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
-            selectedVariantId,
-            selectedVariant: selectedVariant ? {
-              id: selectedVariant.id,
-              name: selectedVariant.namePl || selectedVariant.name,
-              price: selectedVariant.price,
-              imageUrl: selectedVariant.imageUrl || null
-            } : null,
-            selectedSubOptions: [],
-            subOptionsTotal: 0,
-          });
+          if (selectedVariant) {
+            finalPrice = selectedVariant.price;
+            variantName = selectedVariant.namePl || selectedVariant.name;
+            if (selectedVariant.imageUrl) {
+              finalImageUrl = selectedVariant.imageUrl;
+            }
+          }
         }
+        
+        options.push({
+          categoryId: category.id,
+          categoryName: category.name,
+          optionId: option.id,
+          optionName: variantName ? `${option.name} (${variantName})` : option.name,
+          price: finalPrice,
+          quantity,
+          totalPrice: finalPrice * quantity,
+          imageUrl: finalImageUrl,
+          hintImageUrl: option.hintImageUrl || null,
+          techSpecId: option.techSpecId || null,
+          techSpecCategoryId: option.techSpecCategoryId || category.techSpecCategoryId || null,
+          selectedVariantId,
+          selectedVariant: selectedVariant ? {
+            id: selectedVariant.id,
+            name: selectedVariant.namePl || selectedVariant.name,
+            price: selectedVariant.price,
+            imageUrl: selectedVariant.imageUrl || null
+          } : null,
+          selectedSubOptions: [],
+          subOptionsTotal: 0,
+        });
       }
     });
     
     return options;
-  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, getSelectedModel]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, getSelectedModel, isOptionVisible]);
 
   // Save and generate PDF
   const handleSaveAndGeneratePDF = async () => {
