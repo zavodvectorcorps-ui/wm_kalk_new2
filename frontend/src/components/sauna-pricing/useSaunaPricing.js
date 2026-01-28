@@ -79,6 +79,12 @@ export const useSaunaPricing = () => {
       categoryHintDescription: 'Подсказка будет отображаться под названием категории в калькуляторе',
       maxManagerDiscount: 'Макс. скидка менеджера',
       maxManagerDiscountDescription: 'Максимальный % скидки, который может применить менеджер (не админ)',
+      bulkPriceChange: 'Массовое изменение цен',
+      modelsPercent: 'Модели',
+      optionsPercent: 'Опции',
+      applyPriceChange: 'Применить',
+      priceChangeApplied: 'Цены изменены!',
+      enterPercent: 'Введите % (например: 10 для +10%, -5 для -5%)',
     },
     pl: {
       saunaPricing: 'Zarządzanie cenami saun',
