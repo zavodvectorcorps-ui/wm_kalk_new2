@@ -277,7 +277,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     handleInputChange, handleDiscountChange, handleModelChange,
     handleApplyStandardDiscount, handleRadioChange, handleCheckboxChange,
     handleQuantityChange, handleVariantChange, handleSubOptionChange, handleSaveAndGeneratePDF, handleClearForm,
-    handleCancelEdit, getCategoryName
+    handleCancelEdit, getCategoryName, isOptionVisible
   } = useSaunaCalculator(editingOrder, onEditComplete, amocrmPrefill, onAmocrmPrefillUsed);
 
   // Get selected model
