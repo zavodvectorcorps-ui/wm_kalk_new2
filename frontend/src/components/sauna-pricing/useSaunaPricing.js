@@ -136,6 +136,8 @@ export const useSaunaPricing = () => {
       globalModelsHintDescription: 'Ta podpowiedź będzie wyświetlana nad wszystkimi modelami w kalkulatorze',
       categoryHint: 'Podpowiedź kategorii',
       categoryHintDescription: 'Podpowiedź będzie wyświetlana pod nazwą kategorii w kalkulatorze',
+      maxManagerDiscount: 'Maks. rabat menedżera',
+      maxManagerDiscountDescription: 'Maksymalny % rabatu, który może zastosować menedżer (nie admin)',
     },
   };
 
