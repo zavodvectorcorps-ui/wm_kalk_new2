@@ -677,6 +677,13 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
                   {txt.foundation}: +{m.foundationPrice} PLN
                 </div>
               )}
+              {/* Capacity display */}
+              {m.capacity && (
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span>👥</span>
+                  <span>{m.capacity} osób</span>
+                </div>
+              )}
               {/* Room sizes display */}
               {(m.relaxRoomSize || m.steamRoomSize) && (
                 <div className="mt-2 pt-2 border-t border-amber-200 text-xs space-y-1">
