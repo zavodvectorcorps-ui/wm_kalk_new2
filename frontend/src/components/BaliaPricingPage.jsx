@@ -798,6 +798,7 @@ export const BaliaPricingPage = () => {
         onSave={handleSaveOption}
         txt={txt}
         currencySymbol={prices.currencySymbol}
+        eurRate={prices.eurRate || 4.30}
       />
 
       <BulkPriceEditDialog
