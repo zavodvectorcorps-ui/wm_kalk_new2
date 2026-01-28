@@ -329,7 +329,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return true;
   }, [formData.selectedModel, formData.selections]);
 
-  // Calculate options total
+  // Calculate options total (only visible options)
   const calculateOptionsTotal = useCallback(() => {
     let total = 0;
     const categories = prices.categories || [];
@@ -342,61 +342,63 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         Object.entries(selection).forEach(([optId, isSelected]) => {
           if (isSelected) {
             const option = category.options?.find(o => o.id === optId);
-            if (option) {
-              const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
-              
-              // Get variants (check both new 'variants' and legacy 'subOptions' fields)
-              const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
-              
-              // Check if variant is selected - variant price REPLACES option price
-              const selectedVariantId = formData.variantSelections?.[optId];
-              if (selectedVariantId && variants?.length > 0) {
-                const selectedVariant = variants.find(v => v.id === selectedVariantId);
-                if (selectedVariant) {
-                  total += selectedVariant.price * quantity;
-                } else {
-                  // Fallback to option price if variant not found
-                  total += option.price * quantity;
-                }
-              } else if (variants?.length > 0) {
-                // Option has variants but none selected - use first variant as default price
-                total += (variants[0]?.price || option.price) * quantity;
+            // Skip hidden options
+            if (!option || !isOptionVisible(option)) return;
+            
+            const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
+            
+            // Get variants (check both new 'variants' and legacy 'subOptions' fields)
+            const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
+            
+            // Check if variant is selected - variant price REPLACES option price
+            const selectedVariantId = formData.variantSelections?.[optId];
+            if (selectedVariantId && variants?.length > 0) {
+              const selectedVariant = variants.find(v => v.id === selectedVariantId);
+              if (selectedVariant) {
+                total += selectedVariant.price * quantity;
               } else {
-                // No variants - use option price
+                // Fallback to option price if variant not found
                 total += option.price * quantity;
               }
+            } else if (variants?.length > 0) {
+              // Option has variants but none selected - use first variant as default price
+              total += (variants[0]?.price || option.price) * quantity;
+            } else {
+              // No variants - use option price
+              total += option.price * quantity;
             }
           }
         });
       } else {
         const option = category.options?.find(o => o.id === selection);
-        if (option) {
-          const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
-          
-          // Get variants (check both new 'variants' and legacy 'subOptions' fields)
-          const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
-          
-          // Check if variant is selected - variant price REPLACES option price
-          const selectedVariantId = formData.variantSelections?.[selection];
-          if (selectedVariantId && variants?.length > 0) {
-            const selectedVariant = variants.find(v => v.id === selectedVariantId);
-            if (selectedVariant) {
-              total += selectedVariant.price * quantity;
-            } else {
-              total += option.price * quantity;
-            }
-          } else if (variants?.length > 0) {
-            // Option has variants but none selected - use first variant as default
-            total += (variants[0]?.price || option.price) * quantity;
+        // Skip hidden options
+        if (!option || !isOptionVisible(option)) return;
+        
+        const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
+        
+        // Get variants (check both new 'variants' and legacy 'subOptions' fields)
+        const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
+        
+        // Check if variant is selected - variant price REPLACES option price
+        const selectedVariantId = formData.variantSelections?.[selection];
+        if (selectedVariantId && variants?.length > 0) {
+          const selectedVariant = variants.find(v => v.id === selectedVariantId);
+          if (selectedVariant) {
+            total += selectedVariant.price * quantity;
           } else {
             total += option.price * quantity;
           }
+        } else if (variants?.length > 0) {
+          // Option has variants but none selected - use first variant as default
+          total += (variants[0]?.price || option.price) * quantity;
+        } else {
+          total += option.price * quantity;
         }
       }
     });
     
     return total;
-  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, isOptionVisible]);
 
   // Calculate foundation price
   const calculateFoundationPrice = useCallback(() => {
