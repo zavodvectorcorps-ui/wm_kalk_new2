@@ -1146,6 +1146,7 @@ const SummaryCard = ({
             setAdminDiscountApproved={setAdminDiscountApproved}
             handleDiscountChange={handleDiscountChange}
             handleApplyStandardDiscount={handleApplyStandardDiscount}
+            maxManagerDiscount={maxManagerDiscount}
             lang={lang}
             txt={txt}
           />
