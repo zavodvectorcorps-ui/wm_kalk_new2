@@ -547,6 +547,55 @@ export const useSaunaPricing = () => {
     setPrices(prev => ({ ...prev, maxManagerDiscount: numValue }));
   };
 
+  // ========== BULK PRICE CHANGE ==========
+  const handleBulkPriceChange = async (modelsPercent, optionsPercent) => {
+    const modelsChange = parseFloat(modelsPercent) || 0;
+    const optionsChange = parseFloat(optionsPercent) || 0;
+    
+    if (modelsChange === 0 && optionsChange === 0) {
+      return false;
+    }
+
+    setPrices(prev => {
+      const newPrices = { ...prev };
+      
+      // Update models basePrice and foundationPrice
+      if (modelsChange !== 0 && newPrices.models) {
+        newPrices.models = newPrices.models.map(model => ({
+          ...model,
+          basePrice: Math.round(model.basePrice * (1 + modelsChange / 100)),
+          foundationPrice: model.foundationPrice ? Math.round(model.foundationPrice * (1 + modelsChange / 100)) : 0,
+        }));
+      }
+      
+      // Update options prices (including variant prices)
+      if (optionsChange !== 0 && newPrices.categories) {
+        newPrices.categories = newPrices.categories.map(category => ({
+          ...category,
+          options: (category.options || []).map(option => ({
+            ...option,
+            price: Math.round(option.price * (1 + optionsChange / 100)),
+            // Also update variant prices if they exist
+            variants: (option.variants || []).map(variant => ({
+              ...variant,
+              price: Math.round(variant.price * (1 + optionsChange / 100)),
+            })),
+            // Legacy: update subOptions prices if they exist
+            subOptions: (option.subOptions || []).map(subOpt => ({
+              ...subOpt,
+              price: Math.round(subOpt.price * (1 + optionsChange / 100)),
+            })),
+          })),
+        }));
+      }
+      
+      return newPrices;
+    });
+    
+    toast.success(txt.priceChangeApplied);
+    return true;
+  };
+
   return {
     loading,
     saving,
@@ -579,5 +628,7 @@ export const useSaunaPricing = () => {
     handleReorderOptions,
     // Settings
     handleUpdateMaxManagerDiscount,
+    // Bulk price change
+    handleBulkPriceChange,
   };
 };
