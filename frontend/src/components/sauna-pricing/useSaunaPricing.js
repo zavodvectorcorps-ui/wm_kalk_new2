@@ -144,6 +144,12 @@ export const useSaunaPricing = () => {
       categoryHintDescription: 'Podpowiedź będzie wyświetlana pod nazwą kategorii w kalkulatorze',
       maxManagerDiscount: 'Maks. rabat menedżera',
       maxManagerDiscountDescription: 'Maksymalny % rabatu, który może zastosować menedżer (nie admin)',
+      bulkPriceChange: 'Masowa zmiana cen',
+      modelsPercent: 'Modele',
+      optionsPercent: 'Opcje',
+      applyPriceChange: 'Zastosuj',
+      priceChangeApplied: 'Ceny zmienione!',
+      enterPercent: 'Wpisz % (np: 10 dla +10%, -5 dla -5%)',
     },
   };
 
