@@ -89,6 +89,7 @@ class SaunaPriceData(BaseModel):
     modelsHint: Optional[str] = None  # General hint for models section
     modelsHintImageUrl: Optional[str] = None
     modelsHintVideoUrl: Optional[str] = None
+    maxManagerDiscount: int = 10  # Maximum discount % for managers (non-admin users)
 
 
 class SaunaOrder(BaseModel):
