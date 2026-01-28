@@ -1212,7 +1212,7 @@ const SummaryCard = ({
   </Card>
 );
 
-const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
+const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisible, txt }) => {
   // Helper to get variant info for an option
   const getVariantInfo = (opt, optId) => {
     const variants = opt?.variants?.length > 0 ? opt.variants : opt?.subOptions;
@@ -1242,7 +1242,7 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
           const selectedOpts = Object.entries(selection)
             .filter(([_, isSelected]) => isSelected)
             .map(([optId]) => category.options?.find(o => o.id === optId))
-            .filter(Boolean);
+            .filter(opt => opt && isOptionVisible(opt)); // Filter out hidden options
           
           if (selectedOpts.length === 0) return null;
           
@@ -1274,7 +1274,8 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, txt }) => {
           );
         } else {
           const opt = category.options?.find(o => o.id === selection);
-          if (!opt) return null;
+          // Skip hidden options
+          if (!opt || !isOptionVisible(opt)) return null;
           
           const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
           const variantInfo = getVariantInfo(opt, selection);
