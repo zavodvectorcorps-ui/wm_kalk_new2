@@ -530,6 +530,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             handleCancelEdit={handleCancelEdit}
             getCategoryName={getCategoryName}
             isOptionVisible={isOptionVisible}
+            maxManagerDiscount={maxManagerDiscount}
             loading={loading}
             lang={lang}
             txt={txt}
