@@ -1250,8 +1250,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     relax_room_size = getattr(request, 'relaxRoomSize', None)
     steam_room_size = getattr(request, 'steamRoomSize', None)
     has_terrace = getattr(request, 'hasTerrace', False)
+    capacity = getattr(request, 'capacity', None)
     
-    if relax_room_size or steam_room_size:
+    if relax_room_size or steam_room_size or capacity:
         room_sizes_title = ParagraphStyle(
             'RoomSizesTitle',
             fontName='DejaVuSans-Bold',
@@ -1265,6 +1266,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         elements.append(Spacer(1, 6))
         
         room_data = []
+        if capacity:
+            room_data.append(['Orientacyjna liczba osób:', capacity])
         if relax_room_size:
             room_data.append(['Przebieralnia:', relax_room_size])
         if steam_room_size:
