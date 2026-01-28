@@ -565,5 +565,7 @@ export const useSaunaPricing = () => {
     handleToggleOptionQuantity,
     handleToggleOptionDefault,
     handleReorderOptions,
+    // Settings
+    handleUpdateMaxManagerDiscount,
   };
 };
