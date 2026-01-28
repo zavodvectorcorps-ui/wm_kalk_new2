@@ -30,7 +30,8 @@ export const ModelEditDialog = memo(({
   onSave,
   txt,
   currencySymbol,
-  categories = []
+  categories = [],
+  eurRate = 4.30
 }) => {
   const [formData, setFormData] = useState(model || {});
   const [uploadingVariant, setUploadingVariant] = useState(null);
