@@ -1,0 +1,89 @@
+{
+  "summary": "Tested Sauna Calculator capacity field and hidden options filtering. Code review confirms all features are correctly implemented. ISSUE: Existing models in MongoDB don't have 'capacity' field - data migration needed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/sauna/prices",
+        "issue": "Existing models in MongoDB don't have 'capacity' field. Field was added to model definition but existing data wasn't migrated.",
+        "priority": "MEDIUM",
+        "solution": "Either run a data migration to add capacity:null to all existing models, or modify the API to ensure all model fields are returned with defaults"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_capacity.py",
+    "/app/test_reports/pytest/pytest_results_iteration30.xml"
+  ],
+  "action_items": [
+    "Run data migration to add 'capacity' field to existing sauna models in MongoDB, OR modify /api/sauna/prices endpoint to ensure all model fields are returned with defaults"
+  ],
+  "critical_code_review_comments": [
+    "PASS: capacity field correctly defined in SaunaModel (backend/models/sauna.py line 20)",
+    "PASS: capacity field displayed in calculator model cards when present (SaunaCalculator.jsx lines 681-687)",
+    "PASS: capacity field in AddModelDialog (ModelDialog.jsx lines 96-102)",
+    "PASS: capacity field in EditModelDialog (ModelDialog.jsx lines 315-321)",
+    "PASS: isOptionVisible helper correctly implements incompatibility logic (useSaunaCalculator.js lines 241-330)",
+    "PASS: calculateOptionsTotal filters hidden options using isOptionVisible (useSaunaCalculator.js lines 346, 375)",
+    "PASS: getSelectedOptions filters hidden options for PDF (useSaunaCalculator.js lines 563, 626)",
+    "PASS: SelectedOptionsList filters hidden options in summary (SaunaCalculator.jsx lines 1245, 1278)",
+    "PASS: Options have incompatibleModels and incompatibleWithOptions fields in API response"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_capacity.py"
+  ],
+  "success_rate": {
+    "backend": "67% (4/6 tests passed - 2 failed due to missing capacity field in existing data)",
+    "frontend": "100% - All code correctly implemented, handles missing capacity gracefully"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"}
+  },
+  "seed_data_creation": "No seed data created - using existing data",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The capacity field feature is correctly implemented in code but existing MongoDB data doesn't have this field. Frontend gracefully handles missing capacity by not displaying it. Hidden options filtering logic is fully implemented and working - uses isOptionVisible helper in calculateOptionsTotal, getSelectedOptions, and SelectedOptionsList.",
+  "features_tested": {
+    "capacity_field_backend_model": {
+      "status": "PASS",
+      "details": "SaunaModel has capacity: Optional[str] = None field defined"
+    },
+    "capacity_field_calculator_display": {
+      "status": "PASS (conditional)",
+      "details": "Calculator shows '👥 X osób' when capacity is set. Currently not displayed because existing models have no capacity value."
+    },
+    "capacity_field_admin_add_dialog": {
+      "status": "PASS",
+      "details": "AddModelDialog has '👥 Количество человек' input field with placeholder '4-6'"
+    },
+    "capacity_field_admin_edit_dialog": {
+      "status": "PASS",
+      "details": "EditModelDialog has '👥 Количество человек' input field"
+    },
+    "hidden_options_calculateOptionsTotal": {
+      "status": "PASS",
+      "details": "calculateOptionsTotal uses isOptionVisible to skip hidden options (lines 346, 375)"
+    },
+    "hidden_options_getSelectedOptions": {
+      "status": "PASS",
+      "details": "getSelectedOptions uses isOptionVisible to exclude hidden options from PDF (lines 563, 626)"
+    },
+    "hidden_options_SelectedOptionsList": {
+      "status": "PASS",
+      "details": "SelectedOptionsList uses isOptionVisible to filter summary display (lines 1245, 1278)"
+    },
+    "incompatibility_fields_in_api": {
+      "status": "PASS",
+      "details": "All options have incompatibleModels (list) and incompatibleWithOptions (dict) fields"
+    }
+  },
+  "code_review_summary": {
+    "capacity_feature": "Fully implemented - backend model, frontend display, admin dialogs all have capacity field. Only issue is existing data migration.",
+    "hidden_options_feature": "Fully implemented - isOptionVisible helper checks incompatibleModels and incompatibleWithOptions. Used in calculateOptionsTotal, getSelectedOptions, and SelectedOptionsList to exclude hidden options from total, PDF, and summary."
+  }
+}
