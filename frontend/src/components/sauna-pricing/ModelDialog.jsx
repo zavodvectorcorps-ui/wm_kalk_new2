@@ -83,13 +83,23 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
             />
           </div>
         </div>
-        <div>
-          <Label>{txt.discount}</Label>
-          <Input
-            type="number"
-            value={newModel.discount}
-            onChange={(e) => setNewModel(prev => ({ ...prev, discount: e.target.value }))}
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>{txt.discount}</Label>
+            <Input
+              type="number"
+              value={newModel.discount}
+              onChange={(e) => setNewModel(prev => ({ ...prev, discount: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label>👥 Количество человек</Label>
+            <Input
+              value={newModel.capacity || ''}
+              onChange={(e) => setNewModel(prev => ({ ...prev, capacity: e.target.value }))}
+              placeholder="4-6"
+            />
+          </div>
         </div>
         
         {/* Room Sizes Section */}
