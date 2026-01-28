@@ -730,9 +730,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         total,
         createdBy: user?.username || '',
         adminGifts,
-        adminDiscountApproved: appliedDiscount > 10 && isAdminUser ? adminDiscountApproved : false,
-        adminDiscountApprovedBy: appliedDiscount > 10 && adminDiscountApproved ? user?.username : '',
-        adminDiscountApprovedAt: appliedDiscount > 10 && adminDiscountApproved ? new Date().toISOString() : '',
+        adminDiscountApproved: appliedDiscount > (prices.maxManagerDiscount || 10) && isAdminUser ? adminDiscountApproved : false,
+        adminDiscountApprovedBy: appliedDiscount > (prices.maxManagerDiscount || 10) && adminDiscountApproved ? user?.username : '',
+        adminDiscountApprovedAt: appliedDiscount > (prices.maxManagerDiscount || 10) && adminDiscountApproved ? new Date().toISOString() : '',
         requestedDiscount: !isAdminUser ? requestedDiscount : 0,
         requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
         // Room sizes (based on terrace selection)
