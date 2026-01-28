@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Save, Loader2, Flame, Eye, User, FileText, Settings, Percent } from 'lucide-react';
+import { Save, Loader2, Flame, Eye, User, FileText, Settings, Percent, TrendingUp } from 'lucide-react';
 import { CustomerFieldsManager } from './CustomerFieldsManager';
 import { TechSpecAdminPage } from './TechSpecAdminPage';
 
