@@ -195,6 +195,9 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 ### P1 (High Priority)
 - [x] ~~Manual refresh from amoCRM~~ (DONE - Jan 19, 2025)
 - [x] ~~Sauna option variants system~~ (DONE - Jan 24, 2025)
+- [x] ~~Room sizes for sauna models~~ (DONE - Jan 24, 2025)
+- [x] ~~Hidden options filtering from summary/PDF~~ (DONE - Jan 28, 2025)
+- [x] ~~Model capacity field~~ (DONE - Jan 28, 2025)
 - [ ] Verify automatic backup schedule works correctly
 
 ### P2 (Medium Priority)
