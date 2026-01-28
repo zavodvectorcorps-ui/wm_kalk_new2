@@ -735,6 +735,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
         // Room sizes (based on terrace selection)
         ...getRoomSizes(),
+        // Capacity (number of people)
+        capacity: model?.capacity || null,
         // Edit mode fields
         ...(isEditMode && editOrderId && {
           updatedBy: user?.username || 'calculator',
