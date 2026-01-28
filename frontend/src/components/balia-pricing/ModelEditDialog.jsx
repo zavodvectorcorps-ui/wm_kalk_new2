@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Settings, Upload, X, Loader2, Package } from 'lucide-react';
+import { Settings, Upload, X, Loader2, Package, Calculator } from 'lucide-react';
 
 // Smart API URL - auto-detect on production
 const getApiUrl = () => { 
