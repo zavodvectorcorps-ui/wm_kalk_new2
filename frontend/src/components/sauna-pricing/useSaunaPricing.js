@@ -77,6 +77,8 @@ export const useSaunaPricing = () => {
       globalModelsHintDescription: 'Эта подсказка будет отображаться над всеми моделями в калькуляторе',
       categoryHint: 'Подсказка категории',
       categoryHintDescription: 'Подсказка будет отображаться под названием категории в калькуляторе',
+      maxManagerDiscount: 'Макс. скидка менеджера',
+      maxManagerDiscountDescription: 'Максимальный % скидки, который может применить менеджер (не админ)',
     },
     pl: {
       saunaPricing: 'Zarządzanie cenami saun',
