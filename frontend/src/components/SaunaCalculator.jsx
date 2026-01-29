@@ -1106,7 +1106,7 @@ const DropdownHintBox = ({ option }) => {
   );
 };
 
-const RadioOptions = ({ category, options, formData, foundationPrice, handleRadioChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, txt }) => {
+const RadioOptions = ({ category, options, formData, foundationPrice, handleRadioChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, getOptionBasePrice, txt }) => {
   const selectedOptionId = formData.selections[category.id] || '';
   const selectedOption = options.find(o => o.id === selectedOptionId);
   // Get variants (support both new 'variants' and legacy 'subOptions' fields)
@@ -1133,9 +1133,13 @@ const RadioOptions = ({ category, options, formData, foundationPrice, handleRadi
           
           // For belki "dodaj" option, use foundationPrice from model
           const isBelkiDodaj = isBelkiCategory && option.id.includes('dodaj');
+          
+          // Get base price considering model-specific pricing
+          const optionBasePrice = getOptionBasePrice ? getOptionBasePrice(option) : option.price;
+          
           const displayPrice = isBelkiDodaj 
             ? (foundationPrice || 0)
-            : (optionHasVariants && optionSelectedVariant ? optionSelectedVariant.price : option.price);
+            : (optionHasVariants && optionSelectedVariant ? optionSelectedVariant.price : optionBasePrice);
           
           return (
             <div key={option.id} className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
