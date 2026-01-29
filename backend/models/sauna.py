@@ -75,6 +75,11 @@ class SaunaOption(BaseModel):
     showInPdf: bool = True  # If true, option will be shown in PDF catalog (page 2)
     # Model-specific pricing: {modelId: price} - overrides base price for specific models
     priceByModel: Optional[Dict[str, int]] = {}
+    # Plus variant card details (displayed on option card in calculator)
+    terraceSize: Optional[str] = None  # Rozmiar Tarasu
+    relaxRoomSize: Optional[str] = None  # Rozmiar Pokoju wypoczynkowego  
+    steamRoomSize: Optional[str] = None  # Rozmiar Sauny parowej
+    entranceSide: Optional[str] = None  # Strona Wejścia
     # Variants - mutually exclusive choices within this option (e.g., "with cladding" vs "without cladding")
     # When variants exist, user must select exactly one variant
     # The variant's price REPLACES the option's base price
