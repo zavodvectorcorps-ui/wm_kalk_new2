@@ -72,6 +72,7 @@ class SaunaOption(BaseModel):
     hint: Optional[str] = None
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None
+    showInPdf: bool = True  # If true, option will be shown in PDF catalog (page 2)
     # Variants - mutually exclusive choices within this option (e.g., "with cladding" vs "without cladding")
     # When variants exist, user must select exactly one variant
     # The variant's price REPLACES the option's base price
