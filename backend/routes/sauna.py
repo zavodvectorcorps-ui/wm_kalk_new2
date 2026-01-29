@@ -1348,11 +1348,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 room_table = Table(room_data, colWidths=[140, 170])
                 room_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
-                    ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans'),
-                    ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 9),
-                    ('TEXTCOLOR', (0, 0), (0, -1), TEXT_COLOR),
-                    ('TEXTCOLOR', (1, 0), (1, -1), BROWN_DARK),
                     ('TOPPADDING', (0, 0), (-1, -1), 5),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
                     ('LEFTPADDING', (0, 0), (-1, -1), 6),
