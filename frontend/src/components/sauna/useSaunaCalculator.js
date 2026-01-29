@@ -451,8 +451,11 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const calculateSubtotal = useCallback(() => {
     const model = getSelectedModel();
     if (!model) return 0;
-    return (model.basePrice || 0) + calculateOptionsTotal() + calculateFoundationPrice();
-  }, [getSelectedModel, calculateOptionsTotal, calculateFoundationPrice]);
+    
+    // Use variant price if available, otherwise use base price
+    const modelPrice = getModelPrice();
+    return modelPrice + calculateOptionsTotal() + calculateFoundationPrice();
+  }, [getSelectedModel, getModelPrice, calculateOptionsTotal, calculateFoundationPrice]);
 
   // Calculate total
   const calculateTotal = useCallback(() => {
