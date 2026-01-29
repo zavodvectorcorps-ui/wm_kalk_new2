@@ -1799,14 +1799,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             opt_name = opt.get('name', '')
                             opt_image = opt.get('imageUrl', '')
                             
-                            # Load image
-                            opt_img = await load_card_image(opt_image, 40, 30)
+                            # Load image (BIGGER: 60x45 instead of 40x30)
+                            opt_img = await load_card_image(opt_image, 60, 45)
                             
                             # Create cell with image on left, text on right
                             if opt_img:
                                 cell_table = Table(
-                                    [[opt_img, Paragraph(opt_name, ParagraphStyle('ListOptName2', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, leading=10))]],
-                                    colWidths=[45, 205]
+                                    [[opt_img, Paragraph(opt_name, ParagraphStyle('ListOptName2', fontName='DejaVuSans', fontSize=10, textColor=TEXT_COLOR, leading=12))]],
+                                    colWidths=[65, 185]
                                 )
                                 cell_table.setStyle(TableStyle([
                                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -1815,8 +1815,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                                 ]))
                                 row_cells.append(cell_table)
                             else:
-                                # No image - just text with bullet
-                                row_cells.append(Paragraph(f'• {opt_name}', ParagraphStyle('ListOptNameBullet', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, leading=10)))
+                                # No image - just text with bullet (BIGGER font)
+                                row_cells.append(Paragraph(f'• {opt_name}', ParagraphStyle('ListOptNameBullet', fontName='DejaVuSans', fontSize=10, textColor=TEXT_COLOR, leading=12)))
                         else:
                             row_cells.append('')
                     
@@ -1826,8 +1826,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     list_table = Table(list_rows, colWidths=[260, 260])
                     list_table.setStyle(TableStyle([
                         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                        ('TOPPADDING', (0, 0), (-1, -1), 3),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                         ('LEFTPADDING', (0, 0), (-1, -1), 3),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 3),
                     ]))
