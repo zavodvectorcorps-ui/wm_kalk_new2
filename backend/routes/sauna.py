@@ -1404,11 +1404,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 ]))
                 elements.append(room_table_full)
             elements.append(Spacer(1, 8))
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ]))
-                elements.append(room_table_full)
-            elements.append(Spacer(1, 8))
     
     # ========== COMMENT SECTION ==========
     if request.notes:
