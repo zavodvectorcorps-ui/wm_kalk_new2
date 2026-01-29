@@ -281,6 +281,12 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
           </div>
         </div>
         
+        {/* Model Variants Section */}
+        <ModelVariantsEditor
+          variants={newModel.variants || []}
+          onChange={(variants) => setNewModel(prev => ({ ...prev, variants }))}
+        />
+        
         {/* Room Sizes Section */}
         <div className="border-t pt-4 mt-4">
           <Label className="text-sm font-medium text-blue-700 mb-2 block">📐 Размеры комнат (стандарт)</Label>
