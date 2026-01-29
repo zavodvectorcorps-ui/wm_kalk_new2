@@ -1349,7 +1349,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                         max_w, max_h = 200, 140
                         ratio = min(max_w / orig_w, max_h / orig_h)
                         new_w, new_h = int(orig_w * ratio), int(orig_h * ratio)
+                        # Create NEW BytesIO for RLImage (important!)
                         plus_option_img = RLImage(io.BytesIO(img_data), width=new_w, height=new_h)
+                        logger.info(f"Loaded plus option image: {new_w}x{new_h}")
                 except Exception as e:
                     logger.warning(f"Could not load plus option image: {e}")
             
