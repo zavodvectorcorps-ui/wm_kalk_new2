@@ -1506,9 +1506,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift, 'original_price': total_price})
     
     if options_items:
-        # Start DODATKOWE OPCJE on a new page
+        # Start WYBRANE OPCJE on a new page
         elements.append(PageBreak())
-        elements.append(Paragraph('DODATKOWE OPCJE', section_title_style))
+        elements.append(Paragraph('WYBRANE OPCJE', section_title_style))
         elements.append(Spacer(1, 4))
         elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
         elements.append(Spacer(1, 4))
