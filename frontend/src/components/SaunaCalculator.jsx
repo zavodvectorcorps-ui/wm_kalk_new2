@@ -488,10 +488,17 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
               if (!visibleFor || visibleFor.length === 0) return true;
               // If model has no variants, show all categories
               if (!selectedModel?.variants?.length) return true;
-              // Get currently selected variant ID (default to first variant)
+              // Get currently selected variant ID and object (default to first variant)
               const currentVariantId = formData.selectedModelVariant || selectedModel.variants[0]?.id;
-              // Show category only if current variant is in the visibility list
-              return visibleFor.includes(currentVariantId);
+              const currentVariant = selectedModel.variants.find(v => v.id === currentVariantId);
+              // Check if any of: variant ID, name, namePl (case-insensitive) matches visibleFor list
+              const variantMatches = visibleFor.some(allowedVariant => {
+                const lowerAllowed = allowedVariant.toLowerCase();
+                return currentVariantId === allowedVariant ||
+                       currentVariant?.name?.toLowerCase() === lowerAllowed ||
+                       currentVariant?.namePl?.toLowerCase() === lowerAllowed;
+              });
+              return variantMatches;
             })
             .map((category) => (
             <CategoryCard
