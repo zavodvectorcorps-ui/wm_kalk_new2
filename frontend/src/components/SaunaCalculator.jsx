@@ -272,9 +272,9 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     isEditMode, editOrderId, adminGifts, adminDiscountApproved,
     requestedDiscount, requestedDiscountNote, isAdminUser, lang, txt,
     model, optionsTotal, foundationPrice, subtotal, discountAmount, total,
-    roomSizes, amocrmData, maxManagerDiscount,
+    roomSizes, amocrmData, maxManagerDiscount, modelVariant, modelPrice,
     setFormData, setAdminDiscountApproved, setRequestedDiscount, setRequestedDiscountNote,
-    handleInputChange, handleDiscountChange, handleModelChange,
+    handleInputChange, handleDiscountChange, handleModelChange, handleModelVariantChange,
     handleApplyStandardDiscount, handleRadioChange, handleCheckboxChange,
     handleQuantityChange, handleVariantChange, handleSubOptionChange, handleSaveAndGeneratePDF, handleClearForm,
     handleCancelEdit, getCategoryName, isOptionVisible
