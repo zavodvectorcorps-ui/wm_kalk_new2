@@ -725,12 +725,15 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
 );
 
 // Model Variant Selector Component (like heater selection in hot tubs)
-const ModelVariantSelector = ({ model, formData, handleModelVariantChange, lang, txt }) => {
+const ModelVariantSelector = ({ model, formData, handleModelVariantChange, prices, lang, txt }) => {
   const variants = model?.variants || [];
   if (variants.length === 0) return null;
   
   // Get selected variant or default to first
   const selectedVariantId = formData.selectedModelVariant || variants[0]?.id;
+  
+  // Get comparison table data
+  const comparisonRows = prices?.variantComparisonRows || [];
   
   return (
     <Card className="shadow-md border-purple-200">
@@ -741,6 +744,34 @@ const ModelVariantSelector = ({ model, formData, handleModelVariantChange, lang,
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
+        {/* Comparison Table */}
+        {comparisonRows.length > 0 && (
+          <div className="mb-6 overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-purple-100">
+                  <th className="text-left p-2 border border-purple-200 font-medium text-purple-800">
+                    {lang === 'pl' ? 'Różnice modeli' : 'Отличия моделей'}
+                  </th>
+                  <th className="text-center p-2 border border-purple-200 font-medium text-purple-800">Standard</th>
+                  <th className="text-center p-2 border border-purple-200 font-medium text-purple-800">Plus</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map((row, index) => (
+                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-purple-50/50'}>
+                    <td className="p-2 border border-purple-200 text-gray-700">
+                      {lang === 'pl' ? row.option : (row.optionRu || row.option)}
+                    </td>
+                    <td className="p-2 border border-purple-200 text-center text-gray-600">{row.standard}</td>
+                    <td className="p-2 border border-purple-200 text-center text-gray-600">{row.plus}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {variants.map(variant => {
             const isSelected = selectedVariantId === variant.id;
