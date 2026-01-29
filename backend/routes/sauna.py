@@ -1816,7 +1816,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             opt_name = opt.get('name', '')
                             opt_image = opt.get('imageUrl', '')
                             
-                            # Load image (BIGGER: 70x55 instead of 45x35)
+                            # Load image (70x55 for all option cards)
                             opt_img = await load_card_image(opt_image, 70, 55)
                             
                             # Create cell with image on left, text on right
