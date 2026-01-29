@@ -475,7 +475,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   };
 
   const handleModelChange = (modelId) => {
-    setFormData(prev => ({ ...prev, selectedModel: modelId }));
+    // Reset model variant selection when changing model
+    setFormData(prev => ({ ...prev, selectedModel: modelId, selectedModelVariant: '' }));
     setAppliedDiscount(0);
   };
 
