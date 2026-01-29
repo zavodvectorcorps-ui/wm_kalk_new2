@@ -1009,7 +1009,7 @@ const CheckboxOptions = ({ category, options, formData, foundationPrice, handleC
   </div>
 );};
 
-const DropdownOptions = ({ category, options, formData, handleRadioChange, getCategoryName, txt }) => {
+const DropdownOptions = ({ category, options, formData, handleRadioChange, getCategoryName, getOptionBasePrice, txt }) => {
   const selectedOption = options.find(o => o.id === formData.selections[category.id]);
   const hasMedia = selectedOption?.hintImageUrl || selectedOption?.hintVideoUrl;
   
@@ -1020,7 +1020,11 @@ const DropdownOptions = ({ category, options, formData, handleRadioChange, getCa
           <SelectValueOrange placeholder={getCategoryName(category)} />
         </SelectTriggerOrange>
         <SelectContentOrange>
-          {options.map((option) => (
+          {options.map((option) => {
+            // Get base price considering model-specific pricing
+            const optionPrice = getOptionBasePrice ? getOptionBasePrice(option) : option.price;
+            
+            return (
             <SelectItemOrange key={option.id} value={option.id}>
               <div className="flex items-center gap-2">
                 {option.imageUrl && <img src={option.imageUrl} alt={option.name} className="w-8 h-6 object-cover rounded" loading="lazy" />}
@@ -1032,11 +1036,11 @@ const DropdownOptions = ({ category, options, formData, handleRadioChange, getCa
                   </div>
                 )}
                 <span className="text-amber-700 font-medium ml-2">
-                  {option.price > 0 ? `+${formatPrice(option.price)} PLN` : (option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
+                  {optionPrice > 0 ? `+${formatPrice(optionPrice)} PLN` : (option.name.toLowerCase().includes('belki') ? txt.priceDepends : txt.gratis)}
                 </span>
               </div>
             </SelectItemOrange>
-          ))}
+          )})}
         </SelectContentOrange>
       </SelectOrange>
       {/* Show hint with media below dropdown for selected option */}
