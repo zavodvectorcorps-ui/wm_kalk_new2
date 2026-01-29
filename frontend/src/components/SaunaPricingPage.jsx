@@ -179,6 +179,101 @@ export const SaunaPricingPage = () => {
               {txt.enterPercent}
             </p>
           </div>
+
+          {/* Variant Comparison Table Editor */}
+          <div className="pt-4 border-t border-amber-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-amber-800 font-medium">
+                <Table className="h-4 w-4" />
+                Таблица сравнения вариантов
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newRow = { option: '', optionRu: '', standard: '', plus: '' };
+                  const currentRows = prices.variantComparisonRows || [];
+                  handleUpdateVariantComparison([...currentRows, newRow]);
+                }}
+                className="h-7 text-xs border-amber-400 text-amber-700 hover:bg-amber-100"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Добавить строку
+              </Button>
+            </div>
+            
+            {/* Comparison table header */}
+            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_40px] gap-2 mb-2 text-xs font-medium text-amber-700">
+              <span>Опция (PL)</span>
+              <span>Опция (RU)</span>
+              <span>Standard</span>
+              <span>Plus</span>
+              <span></span>
+            </div>
+            
+            {/* Comparison table rows */}
+            {(prices.variantComparisonRows || []).map((row, index) => (
+              <div key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr_40px] gap-2 mb-2">
+                <Input
+                  value={row.option || ''}
+                  onChange={(e) => {
+                    const newRows = [...(prices.variantComparisonRows || [])];
+                    newRows[index] = { ...newRows[index], option: e.target.value };
+                    handleUpdateVariantComparison(newRows);
+                  }}
+                  placeholder="Drewno"
+                  className="h-8 text-sm"
+                />
+                <Input
+                  value={row.optionRu || ''}
+                  onChange={(e) => {
+                    const newRows = [...(prices.variantComparisonRows || [])];
+                    newRows[index] = { ...newRows[index], optionRu: e.target.value };
+                    handleUpdateVariantComparison(newRows);
+                  }}
+                  placeholder="Древесина"
+                  className="h-8 text-sm"
+                />
+                <Input
+                  value={row.standard || ''}
+                  onChange={(e) => {
+                    const newRows = [...(prices.variantComparisonRows || [])];
+                    newRows[index] = { ...newRows[index], standard: e.target.value };
+                    handleUpdateVariantComparison(newRows);
+                  }}
+                  placeholder="Klasa B"
+                  className="h-8 text-sm"
+                />
+                <Input
+                  value={row.plus || ''}
+                  onChange={(e) => {
+                    const newRows = [...(prices.variantComparisonRows || [])];
+                    newRows[index] = { ...newRows[index], plus: e.target.value };
+                    handleUpdateVariantComparison(newRows);
+                  }}
+                  placeholder="Klasa A"
+                  className="h-8 text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newRows = (prices.variantComparisonRows || []).filter((_, i) => i !== index);
+                    handleUpdateVariantComparison(newRows);
+                  }}
+                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            
+            {(!prices.variantComparisonRows || prices.variantComparisonRows.length === 0) && (
+              <p className="text-xs text-gray-400 italic">Нет строк сравнения. Добавьте строки для отображения таблицы в калькуляторе.</p>
+            )}
+          </div>
         </div>
       )}
 
