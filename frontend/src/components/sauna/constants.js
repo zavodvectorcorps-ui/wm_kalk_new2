@@ -189,6 +189,7 @@ export const getInitialFormData = () => ({
   fullAddress: '',
   orderDate: new Date().toISOString().split('T')[0],
   selectedModel: '',
+  selectedModelVariant: '', // For model variants (sub-models)
   selections: {},
   quantities: {},
   variantSelections: {}, // For option variants: { "optionId": "variantId" } - only one variant per option
