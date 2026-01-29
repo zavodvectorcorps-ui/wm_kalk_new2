@@ -596,6 +596,11 @@ export const useSaunaPricing = () => {
     return true;
   };
 
+  // Update variant comparison table
+  const handleUpdateVariantComparison = (rows) => {
+    setPrices(prev => ({ ...prev, variantComparisonRows: rows }));
+  };
+
   return {
     loading,
     saving,
