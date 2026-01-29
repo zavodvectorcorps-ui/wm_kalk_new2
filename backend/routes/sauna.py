@@ -1740,12 +1740,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         
         # ===== SECTION 3: All Available Options (List format, NO PRICES) =====
         if all_available_options and page2_show_all_opts:
-            elements.append(Spacer(1, 10))
+            elements.append(Spacer(1, 8))
             elements.append(Paragraph(page2_options_title.upper(), 
-                ParagraphStyle('AllOptTitle', fontName='DejaVuSans-Bold', fontSize=13, 
-                              textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=10)))
+                ParagraphStyle('AllOptTitle', fontName='DejaVuSans-Bold', fontSize=12, 
+                              textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=8)))
             elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
-            elements.append(Spacer(1, 10))
+            elements.append(Spacer(1, 8))
             
             # Group options by category
             options_by_category = {}
@@ -1757,47 +1757,52 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             
             for cat_name, cat_opts in options_by_category.items():
                 elements.append(Paragraph(f'<b>{cat_name}</b>', 
-                    ParagraphStyle('OptCatName', fontName='DejaVuSans-Bold', fontSize=10, textColor=BROWN_DARK, spaceBefore=8, spaceAfter=5)))
+                    ParagraphStyle('OptCatName', fontName='DejaVuSans-Bold', fontSize=10, textColor=BROWN_DARK, spaceBefore=6, spaceAfter=4)))
                 
-                # Determine optimal columns based on option count
-                num_cols, col_width = get_optimal_columns(len(cat_opts))
-                
-                # Options grid (adaptive columns, NO PRICES)
-                opt_cells = []
-                for opt in cat_opts[:16]:  # Max 16 per category
-                    opt_name = opt.get('name', '')
-                    opt_image = opt.get('imageUrl', '')
+                # Build two-column list: [img + name | img + name]
+                list_rows = []
+                for i in range(0, len(cat_opts), 2):
+                    row_cells = []
                     
-                    cell_content = []
-                    opt_img = await load_card_image(opt_image, 70, 50)
-                    if opt_img:
-                        cell_content.append(opt_img)
+                    for j in range(2):
+                        if i + j < len(cat_opts):
+                            opt = cat_opts[i + j]
+                            opt_name = opt.get('name', '')
+                            opt_image = opt.get('imageUrl', '')
+                            
+                            # Load image
+                            opt_img = await load_card_image(opt_image, 40, 30)
+                            
+                            # Create cell with image on left, text on right
+                            if opt_img:
+                                cell_table = Table(
+                                    [[opt_img, Paragraph(opt_name, ParagraphStyle('ListOptName2', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, leading=10))]],
+                                    colWidths=[45, 205]
+                                )
+                                cell_table.setStyle(TableStyle([
+                                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                                ]))
+                                row_cells.append(cell_table)
+                            else:
+                                # No image - just text with bullet
+                                row_cells.append(Paragraph(f'• {opt_name}', ParagraphStyle('ListOptNameBullet', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, leading=10)))
+                        else:
+                            row_cells.append('')
                     
-                    # Truncate long names
-                    name_short = opt_name[:30] + '...' if len(opt_name) > 30 else opt_name
-                    cell_content.append(Paragraph(name_short, 
-                        ParagraphStyle('SmallOptName', fontName='DejaVuSans', fontSize=7, textColor=TEXT_COLOR, alignment=TA_CENTER, leading=8)))
-                    
-                    opt_cells.append(Table([[el] for el in cell_content], colWidths=[col_width - 10]))
+                    list_rows.append(row_cells)
                 
-                # Arrange in rows with optimal column count
-                opt_rows = []
-                for i in range(0, len(opt_cells), num_cols):
-                    row = opt_cells[i:i+num_cols]
-                    while len(row) < num_cols:
-                        row.append('')
-                    opt_rows.append(row)
-                
-                if opt_rows:
-                    opt_grid = Table(opt_rows, colWidths=[col_width] * num_cols)
-                    opt_grid.setStyle(TableStyle([
-                        ('BOX', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
-                        ('INNERGRID', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('TOPPADDING', (0, 0), (-1, -1), 5),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                if list_rows:
+                    list_table = Table(list_rows, colWidths=[260, 260])
+                    list_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 3),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
                     ]))
-                    elements.append(opt_grid)
+                    elements.append(list_table)
     
     # ========== GALLERY PROMO PAGE ==========
     if is_block_enabled(pdf_template, 'gallery_promo'):
