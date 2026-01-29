@@ -1518,6 +1518,267 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     elements.append(Paragraph(template_texts.get('footerText', 'Oferta ważna 30 dni od daty wystawienia.'), 
                              ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)))
     
+    # ========== PAGE 2: VARIANTS AND OPTIONS ==========
+    model_variants = getattr(request, 'modelVariants', []) or []
+    variant_comparison_rows = getattr(request, 'variantComparisonRows', []) or []
+    plus_only_categories = getattr(request, 'plusOnlyCategories', []) or []
+    all_available_options = getattr(request, 'allAvailableOptions', []) or []
+    
+    # Only add Page 2 if we have variants or options to show
+    if model_variants or all_available_options:
+        elements.append(PageBreak())
+        
+        # Helper function to load image for PDF card
+        async def load_card_image(image_url: str, max_width: int = 120, max_height: int = 90) -> RLImage:
+            """Load and scale image for variant/option card"""
+            if not image_url:
+                return None
+            try:
+                img_data = None
+                if '/api/uploads/' in image_url:
+                    img_data = await load_image_from_mongodb(image_url)
+                elif image_url.startswith('http'):
+                    try:
+                        req = urllib.request.Request(image_url, headers={
+                            'User-Agent': 'Mozilla/5.0',
+                            'Accept': 'image/*',
+                        })
+                        with urllib.request.urlopen(req, timeout=10) as response:
+                            img_data = response.read()
+                    except Exception as e:
+                        logger.warning(f"Could not download card image: {e}")
+                
+                if img_data:
+                    img_data = optimize_image_for_pdf(img_data, max_size=400, quality=70)
+                    pil_img = PILImage.open(io.BytesIO(img_data))
+                    orig_w, orig_h = pil_img.size
+                    ratio = min(max_width / orig_w, max_height / orig_h)
+                    new_w, new_h = int(orig_w * ratio), int(orig_h * ratio)
+                    return RLImage(io.BytesIO(img_data), width=new_w, height=new_h)
+            except Exception as e:
+                logger.warning(f"Could not load card image: {e}")
+            return None
+        
+        # ===== SECTION 1: Model Variants =====
+        if model_variants:
+            elements.append(Paragraph('MOŻLIWE WARIANTY WYKONANIA W WYBRANYM ROZMIARZE', 
+                ParagraphStyle('Page2Title', fontName='DejaVuSans-Bold', fontSize=14, 
+                              textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=12)))
+            elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+            elements.append(Spacer(1, 12))
+            
+            # Comparison table (if available)
+            if variant_comparison_rows:
+                comparison_data = [[
+                    Paragraph('<b>Różnice modeli</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white)),
+                    Paragraph('<b>Standard</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
+                    Paragraph('<b>Plus</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
+                ]]
+                for row in variant_comparison_rows:
+                    comparison_data.append([
+                        Paragraph(row.get('option', ''), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR)),
+                        Paragraph(row.get('standard', ''), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                        Paragraph(row.get('plus', ''), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                    ])
+                
+                comp_table = Table(comparison_data, colWidths=[220, 145, 145])
+                comp_style = [
+                    ('BACKGROUND', (0, 0), (-1, 0), BROWN),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('GRID', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]
+                for i in range(1, len(comparison_data)):
+                    if i % 2 == 0:
+                        comp_style.append(('BACKGROUND', (0, i), (-1, i), BROWN_LIGHT))
+                comp_table.setStyle(TableStyle(comp_style))
+                elements.append(comp_table)
+                elements.append(Spacer(1, 15))
+            
+            # Variant cards (side by side)
+            variant_cards = []
+            for variant in model_variants[:2]:  # Max 2 variants (Standard/Plus)
+                v_name = variant.get('namePl') or variant.get('name', '')
+                v_price = variant.get('price', 0)
+                v_hint = variant.get('hintPl') or variant.get('hint', '')
+                v_image_url = variant.get('imageUrl', '')
+                
+                # Build card content
+                card_elements = []
+                
+                # Try to load variant image
+                v_img = await load_card_image(v_image_url, 110, 80)
+                if v_img:
+                    card_elements.append(v_img)
+                    card_elements.append(Spacer(1, 5))
+                
+                card_elements.append(Paragraph(f'<b>{v_name}</b>', 
+                    ParagraphStyle('VarName', fontName='DejaVuSans-Bold', fontSize=11, textColor=BROWN_DARK, alignment=TA_CENTER)))
+                card_elements.append(Paragraph(f'{v_price:,} PLN'.replace(',', ' '), 
+                    ParagraphStyle('VarPrice', fontName='DejaVuSans-Bold', fontSize=12, textColor=BROWN, alignment=TA_CENTER)))
+                
+                if v_hint:
+                    # Truncate long descriptions
+                    hint_short = v_hint[:150] + '...' if len(v_hint) > 150 else v_hint
+                    card_elements.append(Spacer(1, 3))
+                    card_elements.append(Paragraph(hint_short, 
+                        ParagraphStyle('VarHint', fontName='DejaVuSans', fontSize=7, textColor=MUTED, alignment=TA_CENTER, leading=9)))
+                
+                variant_cards.append(card_elements)
+            
+            # Create side-by-side table for variant cards
+            if len(variant_cards) == 2:
+                card_table_data = [[
+                    Table([[el] for el in variant_cards[0]], colWidths=[240]),
+                    Table([[el] for el in variant_cards[1]], colWidths=[240])
+                ]]
+            elif len(variant_cards) == 1:
+                card_table_data = [[
+                    Table([[el] for el in variant_cards[0]], colWidths=[260]),
+                    ''
+                ]]
+            else:
+                card_table_data = []
+            
+            if card_table_data:
+                cards_table = Table(card_table_data, colWidths=[260, 260])
+                cards_table.setStyle(TableStyle([
+                    ('BOX', (0, 0), (0, 0), 1, BROWN_BORDER),
+                    ('BOX', (1, 0), (1, 0), 1, BROWN_BORDER),
+                    ('BACKGROUND', (0, 0), (0, 0), BROWN_LIGHT),
+                    ('BACKGROUND', (1, 0), (1, 0), BROWN_LIGHT),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ]))
+                elements.append(cards_table)
+                elements.append(Spacer(1, 20))
+        
+        # ===== SECTION 2: Plus-only categories =====
+        if plus_only_categories:
+            for category in plus_only_categories:
+                cat_name = category.get('name', '')
+                cat_options = category.get('options', [])
+                
+                if not cat_options:
+                    continue
+                
+                elements.append(Paragraph(f'<b>{cat_name}</b> <font size="8" color="#888888">(dostępne w wersji Plus)</font>', 
+                    ParagraphStyle('PlusCatTitle', fontName='DejaVuSans-Bold', fontSize=11, textColor=BROWN_DARK, spaceAfter=8)))
+                elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
+                elements.append(Spacer(1, 8))
+                
+                # Options grid (3 columns)
+                opt_cells = []
+                for opt in cat_options[:9]:  # Max 9 options
+                    opt_name = opt.get('name', '')
+                    opt_price = opt.get('price', 0)
+                    opt_image = opt.get('imageUrl', '')
+                    opt_hint = opt.get('hint', '')
+                    
+                    cell_content = []
+                    opt_img = await load_card_image(opt_image, 80, 60)
+                    if opt_img:
+                        cell_content.append(opt_img)
+                    
+                    cell_content.append(Paragraph(opt_name, 
+                        ParagraphStyle('OptCardName', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)))
+                    
+                    price_str = f'+{opt_price:,} PLN'.replace(',', ' ') if opt_price > 0 else 'gratis'
+                    cell_content.append(Paragraph(price_str, 
+                        ParagraphStyle('OptCardPrice', fontName='DejaVuSans-Bold', fontSize=8, textColor=BROWN if opt_price > 0 else GREEN, alignment=TA_CENTER)))
+                    
+                    opt_cells.append(Table([[el] for el in cell_content], colWidths=[160]))
+                
+                # Arrange in rows of 3
+                opt_rows = []
+                for i in range(0, len(opt_cells), 3):
+                    row = opt_cells[i:i+3]
+                    while len(row) < 3:
+                        row.append('')
+                    opt_rows.append(row)
+                
+                if opt_rows:
+                    opt_grid = Table(opt_rows, colWidths=[170, 170, 170])
+                    opt_grid.setStyle(TableStyle([
+                        ('BOX', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
+                        ('INNERGRID', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
+                        ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ]))
+                    elements.append(opt_grid)
+                    elements.append(Spacer(1, 15))
+        
+        # ===== SECTION 3: All Available Options =====
+        if all_available_options:
+            elements.append(Spacer(1, 10))
+            elements.append(Paragraph('OPCJE, KTÓRE MOŻNA DODAĆ DO SAUNY', 
+                ParagraphStyle('AllOptTitle', fontName='DejaVuSans-Bold', fontSize=13, 
+                              textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=10)))
+            elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+            elements.append(Spacer(1, 10))
+            
+            # Group options by category
+            options_by_category = {}
+            for opt in all_available_options:
+                cat_name = opt.get('categoryName', 'Inne')
+                if cat_name not in options_by_category:
+                    options_by_category[cat_name] = []
+                options_by_category[cat_name].append(opt)
+            
+            for cat_name, cat_opts in options_by_category.items():
+                elements.append(Paragraph(f'<b>{cat_name}</b>', 
+                    ParagraphStyle('OptCatName', fontName='DejaVuSans-Bold', fontSize=10, textColor=BROWN_DARK, spaceBefore=8, spaceAfter=5)))
+                
+                # Options grid (4 columns for compact display)
+                opt_cells = []
+                for opt in cat_opts[:12]:  # Max 12 per category
+                    opt_name = opt.get('name', '')
+                    opt_price = opt.get('price', 0)
+                    opt_image = opt.get('imageUrl', '')
+                    
+                    cell_content = []
+                    opt_img = await load_card_image(opt_image, 60, 45)
+                    if opt_img:
+                        cell_content.append(opt_img)
+                    
+                    # Truncate long names
+                    name_short = opt_name[:25] + '...' if len(opt_name) > 25 else opt_name
+                    cell_content.append(Paragraph(name_short, 
+                        ParagraphStyle('SmallOptName', fontName='DejaVuSans', fontSize=7, textColor=TEXT_COLOR, alignment=TA_CENTER, leading=8)))
+                    
+                    price_str = f'+{opt_price:,}'.replace(',', ' ') if opt_price > 0 else 'gratis'
+                    cell_content.append(Paragraph(price_str, 
+                        ParagraphStyle('SmallOptPrice', fontName='DejaVuSans-Bold', fontSize=7, textColor=BROWN if opt_price > 0 else GREEN, alignment=TA_CENTER)))
+                    
+                    opt_cells.append(Table([[el] for el in cell_content], colWidths=[120]))
+                
+                # Arrange in rows of 4
+                opt_rows = []
+                for i in range(0, len(opt_cells), 4):
+                    row = opt_cells[i:i+4]
+                    while len(row) < 4:
+                        row.append('')
+                    opt_rows.append(row)
+                
+                if opt_rows:
+                    opt_grid = Table(opt_rows, colWidths=[130, 130, 130, 130])
+                    opt_grid.setStyle(TableStyle([
+                        ('BOX', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
+                        ('INNERGRID', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 5),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ]))
+                    elements.append(opt_grid)
+    
     # ========== GALLERY PROMO PAGE ==========
     if is_block_enabled(pdf_template, 'gallery_promo'):
         gallery_promo_title = pdf_template.get('galleryPromoTitle')
