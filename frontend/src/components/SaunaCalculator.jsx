@@ -1166,7 +1166,7 @@ const RadioOptions = ({ category, options, formData, foundationPrice, handleRadi
 };
 
 const SummaryCard = ({
-  model, prices, formData, appliedDiscount, subtotal, discountAmount, foundationPrice, total,
+  model, modelVariant, modelPrice, prices, formData, appliedDiscount, subtotal, discountAmount, foundationPrice, total,
   roomSizes, isAdminUser, isEditMode, adminGifts, adminDiscountApproved, setAdminDiscountApproved,
   requestedDiscount, setRequestedDiscount, requestedDiscountNote, setRequestedDiscountNote,
   handleDiscountChange, handleApplyStandardDiscount, handleSaveAndGeneratePDF,
