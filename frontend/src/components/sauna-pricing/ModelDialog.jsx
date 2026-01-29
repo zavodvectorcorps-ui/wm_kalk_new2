@@ -507,6 +507,12 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
             </div>
           </div>
           
+          {/* Model Variants Section */}
+          <ModelVariantsEditor
+            variants={editingModel.variants || []}
+            onChange={(variants) => setEditingModel(prev => ({ ...prev, variants }))}
+          />
+          
           {/* Room Sizes Section */}
           <div className="border-t pt-4 mt-4">
             <Label className="text-sm font-medium text-blue-700 mb-2 block">📐 Размеры комнат (стандарт)</Label>
