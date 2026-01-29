@@ -42,6 +42,19 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **Frontend**: Updated `balia-pricing/ModelEditDialog.jsx` with price calculation for heater variants
 - **Feature**: Each heater variant (integrated/external) has its own Apply button for price calculation
 
+### Jan 29, 2025 - Sauna Model Variants (Sub-models) (COMPLETED)
+- **NEW**: Added model variants for saunas (like heater variants in hot tubs)
+- **Feature**: Each model can have multiple variants with different prices, images, and descriptions
+- **Feature**: Variant selector displayed as large cards after model selection
+- **Feature**: Price taken from selected variant instead of base model price
+- **Backend**: Added `SaunaModelVariant` class and `variants` field to `SaunaModel`
+- **Backend**: Added `selectedModelVariant` to `SaunaOrder` and `SaunaPDFRequest`
+- **Frontend**: Added `ModelVariantsEditor` component in `ModelDialog.jsx` for admin UI
+- **Frontend**: Added `ModelVariantSelector` component in `SaunaCalculator.jsx`
+- **Frontend**: Updated `useSaunaCalculator.js` with `getSelectedModelVariant`, `getModelPrice`, `handleModelVariantChange`
+- **Frontend**: Updated `SummaryCard` to show variant name and price
+- **Frontend**: Added `selectedModelVariant` to `constants.js` initial form data
+
 ### Jan 24, 2025 - Room Sizes for Sauna Models (COMPLETED)
 - **NEW**: Added room size fields to sauna models: `relaxRoomSize`, `steamRoomSize`
 - **Feature**: Alternative sizes for terrace option: `relaxRoomSizeWithTerrace`, `steamRoomSizeWithTerrace`
