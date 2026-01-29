@@ -1,0 +1,89 @@
+{
+  "summary": "Tested Sauna Calculator model variants (Standard/Plus) and conditional category visibility feature. All features working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "Admin UI - visibleForModelVariants",
+        "issue": "The admin UI placeholder shows 'plus, premium' as example variant IDs, but actual variant IDs are like 'variant_1769693350803'. Users need to know the actual variant IDs to configure visibility correctly.",
+        "priority": "LOW",
+        "suggestion": "Consider adding a dropdown/multi-select with actual variant IDs from the selected model instead of free text input"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_31.json"
+  ],
+  "action_items": [
+    "Consider improving the admin UI for visibleForModelVariants to show actual variant IDs from models instead of requiring manual input"
+  ],
+  "critical_code_review_comments": [
+    "PASS: Model variant selector (Standard/Plus) displays correctly when model has variants (SaunaCalculator.jsx lines 471-480)",
+    "PASS: Variant switching updates price correctly in summary (700 PLN for standart, 1000 PLN for Plus)",
+    "PASS: Category filtering by visibleForModelVariants works correctly (SaunaCalculator.jsx lines 483-495)",
+    "PASS: Admin panel has UI for configuring visibleForModelVariants (CategoriesTab.jsx lines 307-330)",
+    "PASS: Backend saves and returns visibleForModelVariants field correctly (routes/sauna.py line 210)",
+    "PASS: SaunaCategory model has visibleForModelVariants field (models/sauna.py line 100)"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"}
+  },
+  "seed_data_creation": "Temporarily set visibleForModelVariants=['variant_1769693350803'] for 'Montaż fabryczny' category to test conditional visibility, then reset to empty array",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Model variants feature is fully working. Variant IDs are auto-generated like 'variant_1769693332535' (standart) and 'variant_1769693350803' (Plus). The visibleForModelVariants field accepts these IDs to control category visibility based on selected variant.",
+  "features_tested": {
+    "model_variant_selector": {
+      "status": "PASS",
+      "details": "When a model has variants, the 'Wybierz wariant' section appears with Standard/Plus options. Clicking on a variant updates the selection and price."
+    },
+    "variant_price_update": {
+      "status": "PASS",
+      "details": "Selecting 'standart' shows 700 PLN, selecting 'Plus' shows 1000 PLN in the summary"
+    },
+    "conditional_category_visibility": {
+      "status": "PASS",
+      "details": "When category has visibleForModelVariants=['variant_1769693350803'] (Plus), the category is hidden when Standard is selected and visible when Plus is selected"
+    },
+    "admin_panel_visibleForModelVariants_ui": {
+      "status": "PASS",
+      "details": "Edit category dialog has 'Видимость для вариантов модели' section with input field for variant IDs"
+    },
+    "api_save_visibleForModelVariants": {
+      "status": "PASS",
+      "details": "PUT /api/sauna/categories/{id} correctly saves and returns visibleForModelVariants field"
+    }
+  },
+  "test_scenarios_executed": [
+    {
+      "scenario": "Select model with variants",
+      "steps": ["Login as admin", "Navigate to Sauna calculator", "Click on first model (Sauna Kwadro-Beczka 235×200 cm)"],
+      "result": "PASS - Variant selector appeared with standart (700 PLN) and Plus (1000 PLN) options"
+    },
+    {
+      "scenario": "Switch between variants",
+      "steps": ["With model selected", "Click on Plus variant"],
+      "result": "PASS - Price updated from 700 PLN to 1000 PLN, Plus variant shows checkmark"
+    },
+    {
+      "scenario": "Conditional category visibility",
+      "steps": ["Set visibleForModelVariants=['variant_1769693350803'] for 'Montaż fabryczny' category via API", "Select Standard variant", "Verify category hidden", "Select Plus variant", "Verify category visible"],
+      "result": "PASS - Category correctly hidden for Standard, visible for Plus"
+    },
+    {
+      "scenario": "Admin panel category edit",
+      "steps": ["Navigate to Admin Panel > Ceny > Sauny > Kategorie opcji", "Click edit on category", "Verify visibleForModelVariants input field exists"],
+      "result": "PASS - Input field present with placeholder 'plus, premium'"
+    }
+  ]
+}
