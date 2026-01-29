@@ -1186,7 +1186,13 @@ const SummaryCard = ({
           <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
             <div className="text-sm text-amber-700 font-medium">{txt.model}</div>
             <div className="font-medium">{model.name}</div>
-            <div className="text-amber-700 font-bold">{formatPrice(model.basePrice)} PLN</div>
+            {/* Show variant if selected */}
+            {modelVariant && (
+              <div className="text-sm text-purple-600 font-medium">
+                {lang === 'pl' ? (modelVariant.namePl || modelVariant.name) : (modelVariant.nameRu || modelVariant.name)}
+              </div>
+            )}
+            <div className="text-amber-700 font-bold">{formatPrice(modelPrice)} PLN</div>
             {/* Room sizes */}
             {(roomSizes?.relaxRoomSize || roomSizes?.steamRoomSize) && (
               <div className="mt-2 pt-2 border-t border-amber-200 text-xs space-y-1">
