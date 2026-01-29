@@ -632,7 +632,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             const isBelkiDodaj = isBelkiCategory && optId.includes('dodaj');
             
             // Determine final price and image based on selected variant
-            let finalPrice = isBelkiDodaj ? modelFoundationPrice : option.price;
+            // Use model-specific price if available
+            const optionBasePrice = getOptionBasePrice(option);
+            let finalPrice = isBelkiDodaj ? modelFoundationPrice : optionBasePrice;
             let finalImageUrl = option.imageUrl || null;
             let selectedVariantId = formData.variantSelections?.[optId];
             let selectedVariant = null;
@@ -694,7 +696,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         // Get variants
         const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
         
-        let finalPrice = isBelkiDodaj ? modelFoundationPrice : option.price;
+        // Use model-specific price if available
+        const optionBasePrice = getOptionBasePrice(option);
+        let finalPrice = isBelkiDodaj ? modelFoundationPrice : optionBasePrice;
         let finalImageUrl = option.imageUrl || null;
         let selectedVariantId = formData.variantSelections?.[selection];
         let selectedVariant = null;
