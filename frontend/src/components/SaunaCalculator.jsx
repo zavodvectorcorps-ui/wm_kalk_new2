@@ -473,6 +473,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
               model={model}
               formData={formData}
               handleModelVariantChange={handleModelVariantChange}
+              prices={prices}
               lang={lang}
               txt={txt}
             />
