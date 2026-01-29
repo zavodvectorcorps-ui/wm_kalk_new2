@@ -1883,14 +1883,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             opt_name = opt.get('name', '')
                             opt_image = opt.get('imageUrl', '')
                             
-                            # Load image (70x55 for consistent sizing)
-                            opt_img = await load_card_image(opt_image, 70, 55)
+                            # Load image (65x50 for options catalog)
+                            opt_img = await load_card_image(opt_image, 65, 50)
                             
                             # Create cell with image on left, text on right
                             if opt_img:
                                 cell_table = Table(
                                     [[opt_img, Paragraph(opt_name, ParagraphStyle('ListOptName2', fontName='DejaVuSans', fontSize=10, textColor=TEXT_COLOR, leading=12))]],
-                                    colWidths=[65, 185]
+                                    colWidths=[70, 180]
                                 )
                                 cell_table.setStyle(TableStyle([
                                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
