@@ -118,6 +118,7 @@ class SaunaOrder(BaseModel):
     email: str = ""
     orderDate: str = Field(default_factory=lambda: datetime.now().strftime('%Y-%m-%d'))
     selectedModel: str
+    selectedModelVariant: Optional[str] = None  # Selected sub-model variant ID
     modelName: str = ""
     modelImageUrl: str = ""  # Store model image URL
     basePrice: int = 0
