@@ -822,8 +822,69 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         }
       }
 
-      // Generate PDF
-      const pdfData = { ...orderData, orderId: finalOrderId, language: 'pl', categories: prices.categories };
+      // Generate PDF with additional page 2 data
+      // Collect model variants
+      const modelVariantsData = model?.variants?.map(v => ({
+        id: v.id,
+        name: v.name,
+        namePl: v.namePl,
+        price: v.price,
+        imageUrl: v.imageUrl,
+        hint: v.hint,
+        hintPl: v.hintPl,
+      })) || [];
+      
+      // Get comparison table rows from prices
+      const variantComparisonRows = prices?.variantComparisonRows || [];
+      
+      // Get categories that are visible only for Plus variant
+      const plusOnlyCategories = (prices.categories || [])
+        .filter(cat => {
+          const visibleFor = cat.visibleForModelVariants || [];
+          if (visibleFor.length === 0) return false;
+          // Check if category is for Plus only
+          return visibleFor.some(v => v.toLowerCase() === 'plus' || v.includes('plus'));
+        })
+        .map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          options: (cat.options || []).map(opt => ({
+            id: opt.id,
+            name: opt.name,
+            price: opt.price,
+            imageUrl: opt.imageUrl,
+            hint: opt.hint,
+          }))
+        }));
+      
+      // Get all available additional options with images
+      const allAvailableOptions = (prices.categories || [])
+        .filter(cat => {
+          // Exclude categories that are Plus-only or foundation
+          const visibleFor = cat.visibleForModelVariants || [];
+          if (visibleFor.length > 0) return false;
+          if (cat.id === 'fundament') return false;
+          return true;
+        })
+        .flatMap(cat => (cat.options || []).map(opt => ({
+          id: opt.id,
+          name: opt.name,
+          price: opt.price,
+          imageUrl: opt.imageUrl,
+          categoryName: cat.name,
+        })));
+      
+      const pdfData = { 
+        ...orderData, 
+        orderId: finalOrderId, 
+        language: 'pl', 
+        categories: prices.categories,
+        // Page 2 data
+        modelVariants: modelVariantsData,
+        variantComparisonRows: variantComparisonRows,
+        plusOnlyCategories: plusOnlyCategories,
+        allAvailableOptions: allAvailableOptions,
+      };
       const response = await axios.post(`${API_URL}/api/sauna/generate-pdf`, pdfData, { responseType: 'blob' });
 
       const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
