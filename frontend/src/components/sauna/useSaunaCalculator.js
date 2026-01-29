@@ -848,16 +848,19 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         .map(cat => ({
           id: cat.id,
           name: cat.name,
-          options: (cat.options || []).map(opt => ({
-            id: opt.id,
-            name: opt.name,
-            price: opt.price,
-            imageUrl: opt.imageUrl,
-            hint: opt.hint,
-          }))
+          // Filter options by showInPdf flag
+          options: (cat.options || [])
+            .filter(opt => opt.showInPdf !== false)
+            .map(opt => ({
+              id: opt.id,
+              name: opt.name,
+              price: opt.price,
+              imageUrl: opt.imageUrl,
+              hint: opt.hint,
+            }))
         }));
       
-      // Get all available additional options with images
+      // Get all available additional options with images (filter by showInPdf)
       const allAvailableOptions = (prices.categories || [])
         .filter(cat => {
           // Exclude categories that are Plus-only or foundation
@@ -866,13 +869,26 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           if (cat.id === 'fundament') return false;
           return true;
         })
-        .flatMap(cat => (cat.options || []).map(opt => ({
-          id: opt.id,
-          name: opt.name,
-          price: opt.price,
-          imageUrl: opt.imageUrl,
-          categoryName: cat.name,
-        })));
+        .flatMap(cat => (cat.options || [])
+          .filter(opt => opt.showInPdf !== false)  // Only include options with showInPdf=true or undefined
+          .map(opt => ({
+            id: opt.id,
+            name: opt.name,
+            price: opt.price,
+            imageUrl: opt.imageUrl,
+            categoryName: cat.name,
+          })));
+      
+      // Get PDF Page 2 settings from prices
+      const pdfPage2Settings = {
+        pdfPage2Enabled: prices.pdfPage2Enabled !== false,
+        pdfPage2VariantsTitle: prices.pdfPage2VariantsTitle || 'Możliwe warianty wykonania w wybranym rozmiarze',
+        pdfPage2OptionsTitle: prices.pdfPage2OptionsTitle || 'Opcje, które można dodać do sauny',
+        pdfPage2ShowVariants: prices.pdfPage2ShowVariants !== false,
+        pdfPage2ShowComparisonTable: prices.pdfPage2ShowComparisonTable !== false,
+        pdfPage2ShowPlusCategories: prices.pdfPage2ShowPlusCategories !== false,
+        pdfPage2ShowAllOptions: prices.pdfPage2ShowAllOptions !== false,
+      };
       
       const pdfData = { 
         ...orderData, 
