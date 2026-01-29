@@ -1678,7 +1678,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 elements.append(cards_table)
                 elements.append(Spacer(1, 20))
         
-        # ===== SECTION 2: Plus-only categories =====
+        # ===== SECTION 2: Plus-only categories (List format) =====
         if plus_only_categories and page2_show_plus_cats:
             for category in plus_only_categories:
                 cat_name = category.get('name', '')
@@ -1688,51 +1688,57 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     continue
                 
                 elements.append(Paragraph(f'<b>{cat_name}</b> <font size="8" color="#888888">(dostępne w wersji Plus)</font>', 
-                    ParagraphStyle('PlusCatTitle', fontName='DejaVuSans-Bold', fontSize=11, textColor=BROWN_DARK, spaceAfter=8)))
+                    ParagraphStyle('PlusCatTitle', fontName='DejaVuSans-Bold', fontSize=11, textColor=BROWN_DARK, spaceAfter=6)))
                 elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
-                elements.append(Spacer(1, 8))
+                elements.append(Spacer(1, 6))
                 
-                # Determine optimal columns based on option count
-                num_cols, col_width = get_optimal_columns(len(cat_options))
-                
-                # Options grid (adaptive columns, NO PRICES)
-                opt_cells = []
-                for opt in cat_options[:12]:  # Max 12 options
-                    opt_name = opt.get('name', '')
-                    opt_image = opt.get('imageUrl', '')
+                # Build two-column list: [img + name | img + name]
+                list_rows = []
+                for i in range(0, len(cat_options), 2):
+                    row_cells = []
                     
-                    cell_content = []
-                    opt_img = await load_card_image(opt_image, 80, 60)
-                    if opt_img:
-                        cell_content.append(opt_img)
+                    for j in range(2):
+                        if i + j < len(cat_options):
+                            opt = cat_options[i + j]
+                            opt_name = opt.get('name', '')
+                            opt_image = opt.get('imageUrl', '')
+                            
+                            # Load image
+                            opt_img = await load_card_image(opt_image, 45, 35)
+                            
+                            # Create cell with image on left, text on right
+                            if opt_img:
+                                cell_table = Table(
+                                    [[opt_img, Paragraph(opt_name, ParagraphStyle('ListOptName', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, leading=11))]],
+                                    colWidths=[50, 200]
+                                )
+                                cell_table.setStyle(TableStyle([
+                                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                                ]))
+                                row_cells.append(cell_table)
+                            else:
+                                # No image - just text with bullet
+                                row_cells.append(Paragraph(f'• {opt_name}', ParagraphStyle('ListOptNameNoBullet', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, leading=11)))
+                        else:
+                            row_cells.append('')
                     
-                    cell_content.append(Paragraph(opt_name, 
-                        ParagraphStyle('OptCardName', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)))
-                    
-                    opt_cells.append(Table([[el] for el in cell_content], colWidths=[col_width - 10]))
+                    list_rows.append(row_cells)
                 
-                # Arrange in rows with optimal column count
-                opt_rows = []
-                for i in range(0, len(opt_cells), num_cols):
-                    row = opt_cells[i:i+num_cols]
-                    while len(row) < num_cols:
-                        row.append('')
-                    opt_rows.append(row)
-                
-                if opt_rows:
-                    opt_grid = Table(opt_rows, colWidths=[col_width] * num_cols)
-                    opt_grid.setStyle(TableStyle([
-                        ('BOX', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
-                        ('INNERGRID', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
-                        ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('TOPPADDING', (0, 0), (-1, -1), 8),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                if list_rows:
+                    list_table = Table(list_rows, colWidths=[260, 260])
+                    list_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
                     ]))
-                    elements.append(opt_grid)
-                    elements.append(Spacer(1, 15))
+                    elements.append(list_table)
+                    elements.append(Spacer(1, 12))
         
-        # ===== SECTION 3: All Available Options (NO PRICES) =====
+        # ===== SECTION 3: All Available Options (List format, NO PRICES) =====
         if all_available_options and page2_show_all_opts:
             elements.append(Spacer(1, 10))
             elements.append(Paragraph(page2_options_title.upper(), 
