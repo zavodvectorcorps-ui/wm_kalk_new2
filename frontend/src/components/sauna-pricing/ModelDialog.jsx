@@ -3,7 +3,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, Plus, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,185 @@ const getApiUrl = () => {
   return process.env.REACT_APP_BACKEND_URL || ''; 
 };
 const API_URL = getApiUrl();
+
+// Model Variants Editor Component
+const ModelVariantsEditor = ({ variants = [], onChange }) => {
+  const [uploadingImage, setUploadingImage] = useState(null);
+  
+  const handleAddVariant = () => {
+    const newVariant = {
+      id: `variant_${Date.now()}`,
+      name: '',
+      nameRu: '',
+      namePl: '',
+      price: 0,
+      imageUrl: '',
+      hint: '',
+      hintPl: ''
+    };
+    onChange([...variants, newVariant]);
+  };
+  
+  const handleRemoveVariant = (index) => {
+    const newVariants = variants.filter((_, i) => i !== index);
+    onChange(newVariants);
+  };
+  
+  const handleVariantChange = (index, field, value) => {
+    const newVariants = [...variants];
+    newVariants[index] = { ...newVariants[index], [field]: value };
+    onChange(newVariants);
+  };
+  
+  const handleImageUpload = async (e, index) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingImage(index);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      const fullUrl = `${API_URL}${data.url}`;
+      handleVariantChange(index, 'imageUrl', fullUrl);
+    } catch (error) {
+      console.error('Image upload error:', error);
+    } finally {
+      setUploadingImage(null);
+    }
+  };
+  
+  return (
+    <div className="border-t pt-4 mt-4">
+      <div className="flex items-center justify-between mb-3">
+        <Label className="text-sm font-medium text-purple-700">🏠 Варианты модели (под-модели)</Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleAddVariant}
+          className="h-7 text-xs border-purple-300 text-purple-700 hover:bg-purple-50"
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Добавить вариант
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Добавьте варианты модели с разной ценой и фото (например: Стандарт и Премиум)
+      </p>
+      
+      {variants.length === 0 ? (
+        <p className="text-xs text-gray-400 italic">Нет вариантов. Будет использоваться базовая цена модели.</p>
+      ) : (
+        <div className="space-y-4">
+          {variants.map((variant, index) => (
+            <div key={variant.id || index} className="border rounded-lg p-3 bg-purple-50 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-purple-800">Вариант {index + 1}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemoveVariant(index)}
+                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Название (PL)</Label>
+                  <Input
+                    value={variant.namePl || variant.name || ''}
+                    onChange={(e) => handleVariantChange(index, 'namePl', e.target.value)}
+                    placeholder="Standardowy"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Название (RU)</Label>
+                  <Input
+                    value={variant.nameRu || ''}
+                    onChange={(e) => handleVariantChange(index, 'nameRu', e.target.value)}
+                    placeholder="Стандартный"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-xs">Цена (PLN)</Label>
+                <Input
+                  type="number"
+                  value={variant.price || 0}
+                  onChange={(e) => handleVariantChange(index, 'price', parseInt(e.target.value) || 0)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div>
+                <Label className="text-xs">Описание (PL)</Label>
+                <Input
+                  value={variant.hintPl || ''}
+                  onChange={(e) => handleVariantChange(index, 'hintPl', e.target.value)}
+                  placeholder="Opis wariantu..."
+                  className="h-8 text-sm"
+                />
+              </div>
+              
+              <div>
+                <Label className="text-xs">Фото варианта</Label>
+                {variant.imageUrl ? (
+                  <div className="relative mt-1">
+                    <img 
+                      src={variant.imageUrl} 
+                      alt={variant.namePl || 'Variant'} 
+                      className="w-full h-24 object-contain rounded border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-1 right-1 h-6 w-6 p-0"
+                      onClick={() => handleVariantChange(index, 'imageUrl', '')}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="block mt-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleImageUpload(e, index)}
+                    />
+                    <div className="border-2 border-dashed rounded-lg p-3 text-center cursor-pointer hover:bg-white">
+                      {uploadingImage === index ? (
+                        <Loader2 className="h-5 w-5 animate-spin mx-auto text-purple-500" />
+                      ) : (
+                        <>
+                          <Upload className="h-5 w-5 mx-auto text-gray-400" />
+                          <span className="text-xs text-gray-500">Загрузить</span>
+                        </>
+                      )}
+                    </div>
+                  </label>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAdd, txt }) => {
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
