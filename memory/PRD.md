@@ -42,7 +42,7 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **Frontend**: Updated `balia-pricing/ModelEditDialog.jsx` with price calculation for heater variants
 - **Feature**: Each heater variant (integrated/external) has its own Apply button for price calculation
 
-### Jan 29, 2025 - Sauna Model Variants (Sub-models) + Conditional Category Visibility (COMPLETED)
+### Jan 29, 2025 - Sauna Model Variants (Sub-models) + Conditional Category Visibility + PDF Page 2 (COMPLETED)
 - **NEW**: Added model variants for saunas (like heater variants in hot tubs)
 - **Feature**: Each model can have multiple variants with different prices, images, and descriptions
 - **Feature**: Variant selector displayed as large cards after model selection
@@ -50,17 +50,21 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **NEW**: Conditional category visibility based on selected model variant
 - **Feature**: Categories can be configured to show only for specific variants (e.g., "Plus" only)
 - **Feature**: Admin UI for setting `visibleForModelVariants` in category edit dialog
+- **NEW**: PDF Page 2 with variants and options catalog
+- **Feature**: "Możliwe warianty wykonania w wybranym rozmiarze" - comparison table and variant cards
+- **Feature**: Plus-only categories section (if applicable)
+- **Feature**: "Opcje, które można dodać do sauny" - all available options with images grouped by category
 - **Backend**: Added `SaunaModelVariant` class and `variants` field to `SaunaModel`
 - **Backend**: Added `selectedModelVariant` to `SaunaOrder` and `SaunaPDFRequest`
 - **Backend**: Added `visibleForModelVariants` field to `SaunaCategory` model
+- **Backend**: Added Page 2 generation in `generate_sauna_pdf` with variants, comparison table, and options
+- **Backend**: Added `modelVariants`, `variantComparisonRows`, `plusOnlyCategories`, `allAvailableOptions` to `SaunaPDFRequest`
 - **Frontend**: Added `ModelVariantsEditor` component in `ModelDialog.jsx` for admin UI
 - **Frontend**: Added `ModelVariantSelector` component in `SaunaCalculator.jsx`
-- **Frontend**: Updated `useSaunaCalculator.js` with `getSelectedModelVariant`, `getModelPrice`, `handleModelVariantChange`
-- **Frontend**: Updated `SummaryCard` to show variant name and price
+- **Frontend**: Updated `useSaunaCalculator.js` with PDF data collection for Page 2
 - **Frontend**: Added category filtering by `visibleForModelVariants` in `SaunaCalculator.jsx`
-- **Frontend**: Added `selectedModelVariant` to `constants.js` initial form data
 - **Admin UI**: Added "Видимость для вариантов модели" input in `CategoriesTab.jsx`
-- **Tested**: All features working (iteration 31)
+- **Tested**: All features working (iteration 31, PDF generation test)
 
 ### Jan 24, 2025 - Room Sizes for Sauna Models (COMPLETED)
 - **NEW**: Added room size fields to sauna models: `relaxRoomSize`, `steamRoomSize`
