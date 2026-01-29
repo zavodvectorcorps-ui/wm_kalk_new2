@@ -1259,12 +1259,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     plus_steam_room_size = selected_plus_option.get('steamRoomSize')
     plus_entrance_side = selected_plus_option.get('entranceSide')
     plus_option_name = selected_plus_option.get('name')
+    plus_option_image_url = selected_plus_option.get('imageUrl')
     
     # Determine if we should use Plus option data or standard room sizes
     has_plus_data = plus_terrace_size or plus_relax_room_size or plus_steam_room_size or plus_entrance_side
+    has_plus_image = bool(plus_option_image_url)
     has_standard_data = relax_room_size or steam_room_size or capacity
     
-    if has_plus_data or has_standard_data:
+    if has_plus_data or has_plus_image or has_standard_data:
         room_sizes_title = ParagraphStyle(
             'RoomSizesTitle',
             fontName='DejaVuSans-Bold',
