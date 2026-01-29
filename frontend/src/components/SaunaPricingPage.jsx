@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Checkbox } from './ui/checkbox';
 import { Save, Loader2, Flame, Eye, User, FileText, Settings, Percent, TrendingUp, Table, Plus, Trash2 } from 'lucide-react';
 import { CustomerFieldsManager } from './CustomerFieldsManager';
 import { TechSpecAdminPage } from './TechSpecAdminPage';
