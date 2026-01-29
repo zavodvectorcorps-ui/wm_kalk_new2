@@ -1524,8 +1524,27 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     plus_only_categories = getattr(request, 'plusOnlyCategories', []) or []
     all_available_options = getattr(request, 'allAvailableOptions', []) or []
     
-    # Only add Page 2 if we have variants or options to show
-    if model_variants or all_available_options:
+    # PDF Page 2 settings from request
+    page2_enabled = getattr(request, 'pdfPage2Enabled', True)
+    page2_variants_title = getattr(request, 'pdfPage2VariantsTitle', 'Możliwe warianty wykonania w wybranym rozmiarze') or 'Możliwe warianty wykonania w wybranym rozmiarze'
+    page2_options_title = getattr(request, 'pdfPage2OptionsTitle', 'Opcje, które można dodać do sauny') or 'Opcje, które można dodać do sauny'
+    page2_show_variants = getattr(request, 'pdfPage2ShowVariants', True)
+    page2_show_comparison = getattr(request, 'pdfPage2ShowComparisonTable', True)
+    page2_show_plus_cats = getattr(request, 'pdfPage2ShowPlusCategories', True)
+    page2_show_all_opts = getattr(request, 'pdfPage2ShowAllOptions', True)
+    
+    # Helper function to determine optimal column count
+    def get_optimal_columns(item_count: int) -> tuple:
+        """Return (num_columns, column_width) based on item count"""
+        if item_count <= 2:
+            return (2, 255)
+        elif item_count <= 3:
+            return (3, 168)
+        else:
+            return (4, 125)
+    
+    # Only add Page 2 if enabled and we have content to show
+    if page2_enabled and (model_variants or all_available_options):
         elements.append(PageBreak())
         
         # Helper function to load image for PDF card
@@ -1560,15 +1579,15 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             return None
         
         # ===== SECTION 1: Model Variants =====
-        if model_variants:
-            elements.append(Paragraph('MOŻLIWE WARIANTY WYKONANIA W WYBRANYM ROZMIARZE', 
+        if model_variants and page2_show_variants:
+            elements.append(Paragraph(page2_variants_title.upper(), 
                 ParagraphStyle('Page2Title', fontName='DejaVuSans-Bold', fontSize=14, 
                               textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=12)))
             elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
             elements.append(Spacer(1, 12))
             
-            # Comparison table (if available)
-            if variant_comparison_rows:
+            # Comparison table (if available and enabled)
+            if variant_comparison_rows and page2_show_comparison:
                 comparison_data = [[
                     Paragraph('<b>Różnice modeli</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white)),
                     Paragraph('<b>Standard</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
@@ -1660,7 +1679,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 elements.append(Spacer(1, 20))
         
         # ===== SECTION 2: Plus-only categories =====
-        if plus_only_categories:
+        if plus_only_categories and page2_show_plus_cats:
             for category in plus_only_categories:
                 cat_name = category.get('name', '')
                 cat_options = category.get('options', [])
@@ -1673,13 +1692,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
                 elements.append(Spacer(1, 8))
                 
-                # Options grid (3 columns)
+                # Determine optimal columns based on option count
+                num_cols, col_width = get_optimal_columns(len(cat_options))
+                
+                # Options grid (adaptive columns, NO PRICES)
                 opt_cells = []
-                for opt in cat_options[:9]:  # Max 9 options
+                for opt in cat_options[:12]:  # Max 12 options
                     opt_name = opt.get('name', '')
-                    opt_price = opt.get('price', 0)
                     opt_image = opt.get('imageUrl', '')
-                    opt_hint = opt.get('hint', '')
                     
                     cell_content = []
                     opt_img = await load_card_image(opt_image, 80, 60)
@@ -1689,22 +1709,18 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     cell_content.append(Paragraph(opt_name, 
                         ParagraphStyle('OptCardName', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)))
                     
-                    price_str = f'+{opt_price:,} PLN'.replace(',', ' ') if opt_price > 0 else 'gratis'
-                    cell_content.append(Paragraph(price_str, 
-                        ParagraphStyle('OptCardPrice', fontName='DejaVuSans-Bold', fontSize=8, textColor=BROWN if opt_price > 0 else GREEN, alignment=TA_CENTER)))
-                    
-                    opt_cells.append(Table([[el] for el in cell_content], colWidths=[160]))
+                    opt_cells.append(Table([[el] for el in cell_content], colWidths=[col_width - 10]))
                 
-                # Arrange in rows of 3
+                # Arrange in rows with optimal column count
                 opt_rows = []
-                for i in range(0, len(opt_cells), 3):
-                    row = opt_cells[i:i+3]
-                    while len(row) < 3:
+                for i in range(0, len(opt_cells), num_cols):
+                    row = opt_cells[i:i+num_cols]
+                    while len(row) < num_cols:
                         row.append('')
                     opt_rows.append(row)
                 
                 if opt_rows:
-                    opt_grid = Table(opt_rows, colWidths=[170, 170, 170])
+                    opt_grid = Table(opt_rows, colWidths=[col_width] * num_cols)
                     opt_grid.setStyle(TableStyle([
                         ('BOX', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
                         ('INNERGRID', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
@@ -1716,10 +1732,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     elements.append(opt_grid)
                     elements.append(Spacer(1, 15))
         
-        # ===== SECTION 3: All Available Options =====
-        if all_available_options:
+        # ===== SECTION 3: All Available Options (NO PRICES) =====
+        if all_available_options and page2_show_all_opts:
             elements.append(Spacer(1, 10))
-            elements.append(Paragraph('OPCJE, KTÓRE MOŻNA DODAĆ DO SAUNY', 
+            elements.append(Paragraph(page2_options_title.upper(), 
                 ParagraphStyle('AllOptTitle', fontName='DejaVuSans-Bold', fontSize=13, 
                               textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=10)))
             elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
@@ -1737,39 +1753,37 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 elements.append(Paragraph(f'<b>{cat_name}</b>', 
                     ParagraphStyle('OptCatName', fontName='DejaVuSans-Bold', fontSize=10, textColor=BROWN_DARK, spaceBefore=8, spaceAfter=5)))
                 
-                # Options grid (4 columns for compact display)
+                # Determine optimal columns based on option count
+                num_cols, col_width = get_optimal_columns(len(cat_opts))
+                
+                # Options grid (adaptive columns, NO PRICES)
                 opt_cells = []
-                for opt in cat_opts[:12]:  # Max 12 per category
+                for opt in cat_opts[:16]:  # Max 16 per category
                     opt_name = opt.get('name', '')
-                    opt_price = opt.get('price', 0)
                     opt_image = opt.get('imageUrl', '')
                     
                     cell_content = []
-                    opt_img = await load_card_image(opt_image, 60, 45)
+                    opt_img = await load_card_image(opt_image, 70, 50)
                     if opt_img:
                         cell_content.append(opt_img)
                     
                     # Truncate long names
-                    name_short = opt_name[:25] + '...' if len(opt_name) > 25 else opt_name
+                    name_short = opt_name[:30] + '...' if len(opt_name) > 30 else opt_name
                     cell_content.append(Paragraph(name_short, 
                         ParagraphStyle('SmallOptName', fontName='DejaVuSans', fontSize=7, textColor=TEXT_COLOR, alignment=TA_CENTER, leading=8)))
                     
-                    price_str = f'+{opt_price:,}'.replace(',', ' ') if opt_price > 0 else 'gratis'
-                    cell_content.append(Paragraph(price_str, 
-                        ParagraphStyle('SmallOptPrice', fontName='DejaVuSans-Bold', fontSize=7, textColor=BROWN if opt_price > 0 else GREEN, alignment=TA_CENTER)))
-                    
-                    opt_cells.append(Table([[el] for el in cell_content], colWidths=[120]))
+                    opt_cells.append(Table([[el] for el in cell_content], colWidths=[col_width - 10]))
                 
-                # Arrange in rows of 4
+                # Arrange in rows with optimal column count
                 opt_rows = []
-                for i in range(0, len(opt_cells), 4):
-                    row = opt_cells[i:i+4]
-                    while len(row) < 4:
+                for i in range(0, len(opt_cells), num_cols):
+                    row = opt_cells[i:i+num_cols]
+                    while len(row) < num_cols:
                         row.append('')
                     opt_rows.append(row)
                 
                 if opt_rows:
-                    opt_grid = Table(opt_rows, colWidths=[130, 130, 130, 130])
+                    opt_grid = Table(opt_rows, colWidths=[col_width] * num_cols)
                     opt_grid.setStyle(TableStyle([
                         ('BOX', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
                         ('INNERGRID', (0, 0), (-1, -1), 0.5, BROWN_BORDER),
