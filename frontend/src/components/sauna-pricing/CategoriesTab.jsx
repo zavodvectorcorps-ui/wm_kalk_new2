@@ -303,6 +303,32 @@ export const CategoriesTab = ({
                   </div>
                 </div>
               </div>
+
+              {/* Visibility for Model Variants */}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <LayoutGrid className="h-4 w-4 text-purple-500" />
+                  <Label className="font-semibold">Видимость для вариантов модели</Label>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Если выбраны варианты, категория будет видна только когда выбран один из них. Оставьте пустым для показа всегда.
+                </p>
+                <div className="space-y-2">
+                  <Label className="text-sm">ID вариантов (через запятую)</Label>
+                  <Input 
+                    value={(editingCategory.visibleForModelVariants || []).join(', ')} 
+                    onChange={(e) => {
+                      const variants = e.target.value.split(',').map(v => v.trim()).filter(v => v);
+                      setEditingCategory(prev => ({ ...prev, visibleForModelVariants: variants }));
+                    }}
+                    placeholder="plus, premium"
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Например: "plus" — категория будет видна только при выборе варианта "Plus"
+                  </p>
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
