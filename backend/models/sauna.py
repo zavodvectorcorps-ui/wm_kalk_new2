@@ -120,6 +120,14 @@ class SaunaPriceData(BaseModel):
     # Variant comparison table
     variantComparisonTitle: Optional[str] = "Różnice modeli"  # Title for comparison table
     variantComparisonRows: Optional[List[SaunaVariantComparisonRow]] = []  # Comparison rows
+    # PDF Page 2 settings
+    pdfPage2Enabled: bool = True  # Enable/disable page 2 in PDF
+    pdfPage2VariantsTitle: Optional[str] = "Możliwe warianty wykonania w wybranym rozmiarze"
+    pdfPage2OptionsTitle: Optional[str] = "Opcje, które można dodać do sauny"
+    pdfPage2ShowVariants: bool = True  # Show variants section
+    pdfPage2ShowComparisonTable: bool = True  # Show comparison table
+    pdfPage2ShowPlusCategories: bool = True  # Show Plus-only categories
+    pdfPage2ShowAllOptions: bool = True  # Show all available options catalog
 
 
 class SaunaOrder(BaseModel):
