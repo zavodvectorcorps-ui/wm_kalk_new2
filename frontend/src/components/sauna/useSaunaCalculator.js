@@ -361,6 +361,23 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return true;
   }, [formData.selectedModel, formData.selections]);
 
+  // Get option base price considering model-specific pricing
+  const getOptionBasePrice = useCallback((option) => {
+    if (!option) return 0;
+    
+    // Check if option has model-specific pricing
+    const priceByModel = option.priceByModel || {};
+    const selectedModelId = formData.selectedModel;
+    
+    // If model-specific price exists, use it
+    if (selectedModelId && priceByModel[selectedModelId] !== undefined) {
+      return priceByModel[selectedModelId];
+    }
+    
+    // Otherwise use default option price
+    return option.price || 0;
+  }, [formData.selectedModel]);
+
   // Calculate options total (only visible options)
   const calculateOptionsTotal = useCallback(() => {
     let total = 0;
