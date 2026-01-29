@@ -96,6 +96,16 @@ class SaunaCategory(BaseModel):
     hint: Optional[str] = None  # General hint for category (shown under category name)
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None
+    # Category visibility based on model variant
+    visibleForModelVariants: Optional[List[str]] = []  # e.g., ["plus"] - show only when Plus variant is selected
+
+
+class SaunaVariantComparisonRow(BaseModel):
+    """Row in variant comparison table."""
+    option: str  # Option name in Polish
+    optionRu: Optional[str] = ""  # Option name in Russian
+    standard: str  # Value for Standard variant
+    plus: str  # Value for Plus variant
 
 
 class SaunaPriceData(BaseModel):
@@ -106,6 +116,9 @@ class SaunaPriceData(BaseModel):
     modelsHintImageUrl: Optional[str] = None
     modelsHintVideoUrl: Optional[str] = None
     maxManagerDiscount: int = 10  # Maximum discount % for managers (non-admin users)
+    # Variant comparison table
+    variantComparisonTitle: Optional[str] = "Różnice modeli"  # Title for comparison table
+    variantComparisonRows: Optional[List[SaunaVariantComparisonRow]] = []  # Comparison rows
 
 
 class SaunaOrder(BaseModel):
