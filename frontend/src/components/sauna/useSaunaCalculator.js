@@ -726,6 +726,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     setLoading(true);
     try {
       const model = getSelectedModel();
+      const modelVariant = getSelectedModelVariant();
       const subtotal = calculateSubtotal();
       const selectedOptions = getSelectedOptions();
       
@@ -739,6 +740,15 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       
       const orderId = isEditMode && editOrderId ? editOrderId : undefined;
       
+      // Get effective price (from variant or base price)
+      const effectivePrice = modelVariant ? modelVariant.price : (model?.basePrice || 0);
+      // Get effective image (from variant or model)
+      const effectiveImage = modelVariant?.imageUrl || model?.imageUrl || '';
+      // Get model name with variant
+      const effectiveModelName = modelVariant 
+        ? `${model?.name || ''} (${modelVariant.namePl || modelVariant.name || ''})` 
+        : (model?.name || '');
+      
       const orderData = {
         ...(orderId && { id: orderId }),
         fullName: formData.fullName,
@@ -747,9 +757,11 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         fullAddress: formData.fullAddress || '',
         orderDate: formData.orderDate,
         selectedModel: formData.selectedModel,
-        modelName: model?.name || '',
-        modelImageUrl: getImageUrl(model?.imageUrl) || '',
-        basePrice: model?.basePrice || 0,
+        selectedModelVariant: formData.selectedModelVariant || null,
+        modelVariantName: modelVariant?.namePl || modelVariant?.name || null,
+        modelName: effectiveModelName,
+        modelImageUrl: getImageUrl(effectiveImage) || '',
+        basePrice: effectivePrice,
         foundationPrice: calculateFoundationPrice(),
         discountPercent: appliedDiscount,
         selections: formData.selections,
