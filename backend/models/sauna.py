@@ -250,3 +250,11 @@ class SaunaPDFRequest(BaseModel):
     variantComparisonRows: Optional[List[Dict[str, Any]]] = []  # Comparison table rows
     plusOnlyCategories: Optional[List[Dict[str, Any]]] = []  # Categories visible only for Plus variant
     allAvailableOptions: Optional[List[Dict[str, Any]]] = []  # All available additional options with images
+    # PDF Page 2 settings
+    pdfPage2Enabled: bool = True
+    pdfPage2VariantsTitle: Optional[str] = "Możliwe warianty wykonania w wybranym rozmiarze"
+    pdfPage2OptionsTitle: Optional[str] = "Opcje, które można dodać do sauny"
+    pdfPage2ShowVariants: bool = True
+    pdfPage2ShowComparisonTable: bool = True
+    pdfPage2ShowPlusCategories: bool = True
+    pdfPage2ShowAllOptions: bool = True
