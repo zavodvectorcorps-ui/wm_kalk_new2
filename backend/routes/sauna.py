@@ -1252,7 +1252,19 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     has_terrace = getattr(request, 'hasTerrace', False)
     capacity = getattr(request, 'capacity', None)
     
-    if relax_room_size or steam_room_size or capacity:
+    # Get selected Plus option data (from Warianty układu category)
+    selected_plus_option = getattr(request, 'selectedPlusOption', None) or {}
+    plus_terrace_size = selected_plus_option.get('terraceSize')
+    plus_relax_room_size = selected_plus_option.get('relaxRoomSize')
+    plus_steam_room_size = selected_plus_option.get('steamRoomSize')
+    plus_entrance_side = selected_plus_option.get('entranceSide')
+    plus_option_name = selected_plus_option.get('name')
+    
+    # Determine if we should use Plus option data or standard room sizes
+    has_plus_data = plus_terrace_size or plus_relax_room_size or plus_steam_room_size or plus_entrance_side
+    has_standard_data = relax_room_size or steam_room_size or capacity
+    
+    if has_plus_data or has_standard_data:
         room_sizes_title = ParagraphStyle(
             'RoomSizesTitle',
             fontName='DejaVuSans-Bold',
@@ -1266,14 +1278,31 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         elements.append(Spacer(1, 6))
         
         room_data = []
-        if capacity:
-            room_data.append(['Orientacyjna liczba osób:', capacity])
-        if relax_room_size:
-            room_data.append(['Przebieralnia:', relax_room_size])
-        if steam_room_size:
-            room_data.append(['Łaźnia:', steam_room_size])
-        if has_terrace:
-            room_data.append(['', 'Z dodatkowym tarasem ✓'])
+        
+        # If Plus option is selected, use its data
+        if has_plus_data:
+            if plus_option_name:
+                room_data.append(['Wariant układu:', plus_option_name])
+            if capacity:
+                room_data.append(['Orientacyjna liczba osób:', capacity])
+            if plus_terrace_size:
+                room_data.append(['Taras:', plus_terrace_size])
+            if plus_relax_room_size:
+                room_data.append(['Pokój wypoczynkowy:', plus_relax_room_size])
+            if plus_steam_room_size:
+                room_data.append(['Sauna parowa:', plus_steam_room_size])
+            if plus_entrance_side:
+                room_data.append(['Strona wejścia:', plus_entrance_side])
+        else:
+            # Use standard room sizes
+            if capacity:
+                room_data.append(['Orientacyjna liczba osób:', capacity])
+            if relax_room_size:
+                room_data.append(['Przebieralnia:', relax_room_size])
+            if steam_room_size:
+                room_data.append(['Łaźnia:', steam_room_size])
+            if has_terrace:
+                room_data.append(['', 'Z dodatkowym tarasem ✓'])
         
         if room_data:
             room_table = Table(room_data, colWidths=[200, 330])
