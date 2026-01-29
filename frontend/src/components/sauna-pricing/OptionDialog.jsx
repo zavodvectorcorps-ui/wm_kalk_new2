@@ -503,6 +503,65 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               <Label htmlFor="edit-showInPdf">{txt.showInPdf || 'Показывать в PDF (каталог опций)'}</Label>
             </div>
             
+            {/* Price by Model Section */}
+            {models && models.length > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <Label className="text-sm font-medium text-blue-700 mb-3 block">
+                  💰 Цена в зависимости от модели
+                </Label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Укажите разные цены для разных моделей саун. Если цена не указана — используется базовая цена опции ({editingOption.price || 0} PLN).
+                </p>
+                
+                <div className="max-h-48 overflow-y-auto border rounded p-2 space-y-2 bg-blue-50">
+                  {models.map(model => {
+                    const priceByModel = editingOption.priceByModel || {};
+                    const modelPrice = priceByModel[model.id];
+                    const hasCustomPrice = modelPrice !== undefined && modelPrice !== null && modelPrice !== '';
+                    
+                    return (
+                      <div key={model.id} className="flex items-center gap-2 p-2 bg-white rounded border">
+                        <span className="text-sm flex-1 truncate" title={model.name}>{model.name}</span>
+                        <Input
+                          type="number"
+                          placeholder={`${editingOption.price || 0}`}
+                          value={hasCustomPrice ? modelPrice : ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setEditingOption(prev => {
+                              const newPriceByModel = { ...(prev.priceByModel || {}) };
+                              if (value === '' || value === null) {
+                                delete newPriceByModel[model.id];
+                              } else {
+                                newPriceByModel[model.id] = parseInt(value) || 0;
+                              }
+                              return { ...prev, priceByModel: newPriceByModel };
+                            });
+                          }}
+                          className="w-28 h-8 text-sm"
+                        />
+                        <span className="text-xs text-gray-500">PLN</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Show configured prices */}
+                {editingOption.priceByModel && Object.keys(editingOption.priceByModel).length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {Object.entries(editingOption.priceByModel).map(([modelId, price]) => {
+                      const model = models.find(m => m.id === modelId);
+                      return model ? (
+                        <span key={modelId} className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                          {model.name}: {price} PLN
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            
             {/* Variants Section (formerly Sub-Options) */}
             <div className="border-t pt-4 mt-4">
               <Label className="text-sm font-medium text-amber-700 mb-3 block">
