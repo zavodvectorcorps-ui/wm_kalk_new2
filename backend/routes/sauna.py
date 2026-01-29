@@ -1283,18 +1283,22 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         
         # If Plus option is selected, use its data
         if has_plus_data or has_plus_image:
+            # Use Paragraph for long text to enable word wrap
+            label_style = ParagraphStyle('RoomLabel', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, leading=11)
+            value_style = ParagraphStyle('RoomValue', fontName='DejaVuSans-Bold', fontSize=9, textColor=BROWN_DARK, leading=11)
+            
             if plus_option_name:
-                room_data.append(['Wariant układu:', plus_option_name])
+                room_data.append([Paragraph('Wariant układu:', label_style), Paragraph(plus_option_name, value_style)])
             if capacity:
-                room_data.append(['Orientacyjna liczba osób:', capacity])
+                room_data.append([Paragraph('Orientacyjna liczba osób:', label_style), Paragraph(capacity, value_style)])
             if plus_terrace_size:
-                room_data.append(['Taras:', plus_terrace_size])
+                room_data.append([Paragraph('Taras:', label_style), Paragraph(plus_terrace_size, value_style)])
             if plus_relax_room_size:
-                room_data.append(['Pokój wypoczynkowy:', plus_relax_room_size])
+                room_data.append([Paragraph('Pokój wypoczynkowy:', label_style), Paragraph(plus_relax_room_size, value_style)])
             if plus_steam_room_size:
-                room_data.append(['Sauna parowa:', plus_steam_room_size])
+                room_data.append([Paragraph('Sauna parowa:', label_style), Paragraph(plus_steam_room_size, value_style)])
             if plus_entrance_side:
-                room_data.append(['Strona wejścia:', plus_entrance_side])
+                room_data.append([Paragraph('Strona wejścia:', label_style), Paragraph(plus_entrance_side, value_style)])
         else:
             # Use standard room sizes
             if capacity:
