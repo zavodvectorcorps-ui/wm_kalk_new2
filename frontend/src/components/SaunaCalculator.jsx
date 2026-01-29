@@ -480,7 +480,20 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
           )}
 
           {/* Option Categories */}
-          {prices.categories?.map((category) => (
+          {prices.categories
+            ?.filter((category) => {
+              // Filter categories by model variant visibility
+              const visibleFor = category.visibleForModelVariants;
+              // If no visibility restriction set, show category
+              if (!visibleFor || visibleFor.length === 0) return true;
+              // If model has no variants, show all categories
+              if (!selectedModel?.variants?.length) return true;
+              // Get currently selected variant ID (default to first variant)
+              const currentVariantId = formData.selectedModelVariant || selectedModel.variants[0]?.id;
+              // Show category only if current variant is in the visibility list
+              return visibleFor.includes(currentVariantId);
+            })
+            .map((category) => (
             <CategoryCard
               key={category.id}
               category={category}
