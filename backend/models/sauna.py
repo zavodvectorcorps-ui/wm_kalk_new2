@@ -257,6 +257,8 @@ class SaunaPDFRequest(BaseModel):
     variantComparisonRows: Optional[List[Dict[str, Any]]] = []  # Comparison table rows
     plusOnlyCategories: Optional[List[Dict[str, Any]]] = []  # Categories visible only for Plus variant
     allAvailableOptions: Optional[List[Dict[str, Any]]] = []  # All available additional options with images
+    # Selected Plus variant option data (for WYMIARY POMIESZCZEŃ section)
+    selectedPlusOption: Optional[Dict[str, Any]] = None  # Contains terraceSize, relaxRoomSize, steamRoomSize, entranceSide
     # PDF Page 2 settings
     pdfPage2Enabled: bool = True
     pdfPage2VariantsTitle: Optional[str] = "Możliwe warianty wykonania w wybranym rozmiarze"
