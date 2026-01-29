@@ -279,6 +279,114 @@ export const SaunaPricingPage = () => {
         </div>
       )}
 
+      {/* PDF Page 2 Settings */}
+      <div className="bg-white rounded-lg border p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium text-amber-800">📄 Настройки PDF (Страница 2)</h3>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="pdfPage2Enabled"
+              checked={prices.pdfPage2Enabled !== false}
+              onCheckedChange={(checked) => {
+                const newPrices = { ...prices, pdfPage2Enabled: checked };
+                setPrices(newPrices);
+                savePrices(newPrices);
+              }}
+            />
+            <Label htmlFor="pdfPage2Enabled" className="text-sm">Включить страницу 2</Label>
+          </div>
+        </div>
+        
+        {prices.pdfPage2Enabled !== false && (
+          <div className="space-y-4 pt-2 border-t">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Заголовок секции вариантов</Label>
+                <Input
+                  value={prices.pdfPage2VariantsTitle || 'Możliwe warianty wykonania w wybranym rozmiarze'}
+                  onChange={(e) => {
+                    const newPrices = { ...prices, pdfPage2VariantsTitle: e.target.value };
+                    setPrices(newPrices);
+                  }}
+                  onBlur={() => savePrices(prices)}
+                  placeholder="Możliwe warianty wykonania..."
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Заголовок секции опций</Label>
+                <Input
+                  value={prices.pdfPage2OptionsTitle || 'Opcje, które można dodać do sauny'}
+                  onChange={(e) => {
+                    const newPrices = { ...prices, pdfPage2OptionsTitle: e.target.value };
+                    setPrices(newPrices);
+                  }}
+                  onBlur={() => savePrices(prices)}
+                  placeholder="Opcje, które można dodać..."
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="pdfPage2ShowVariants"
+                    checked={prices.pdfPage2ShowVariants !== false}
+                    onCheckedChange={(checked) => {
+                      const newPrices = { ...prices, pdfPage2ShowVariants: checked };
+                      setPrices(newPrices);
+                      savePrices(newPrices);
+                    }}
+                  />
+                  <Label htmlFor="pdfPage2ShowVariants" className="text-sm">Показывать варианты модели</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="pdfPage2ShowComparisonTable"
+                    checked={prices.pdfPage2ShowComparisonTable !== false}
+                    onCheckedChange={(checked) => {
+                      const newPrices = { ...prices, pdfPage2ShowComparisonTable: checked };
+                      setPrices(newPrices);
+                      savePrices(newPrices);
+                    }}
+                  />
+                  <Label htmlFor="pdfPage2ShowComparisonTable" className="text-sm">Показывать таблицу сравнения</Label>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="pdfPage2ShowPlusCategories"
+                    checked={prices.pdfPage2ShowPlusCategories !== false}
+                    onCheckedChange={(checked) => {
+                      const newPrices = { ...prices, pdfPage2ShowPlusCategories: checked };
+                      setPrices(newPrices);
+                      savePrices(newPrices);
+                    }}
+                  />
+                  <Label htmlFor="pdfPage2ShowPlusCategories" className="text-sm">Показывать Plus-категории</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="pdfPage2ShowAllOptions"
+                    checked={prices.pdfPage2ShowAllOptions !== false}
+                    onCheckedChange={(checked) => {
+                      const newPrices = { ...prices, pdfPage2ShowAllOptions: checked };
+                      setPrices(newPrices);
+                      savePrices(newPrices);
+                    }}
+                  />
+                  <Label htmlFor="pdfPage2ShowAllOptions" className="text-sm">Показывать каталог опций</Label>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              💡 Для управления отображением отдельных опций в PDF, используйте галочку "Показывать в PDF" в настройках каждой опции.
+            </p>
+          </div>
+        )}
+      </div>
+
       <Tabs defaultValue="models" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="models">{txt.models}</TabsTrigger>
