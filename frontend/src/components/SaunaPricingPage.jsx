@@ -53,6 +53,8 @@ export const SaunaPricingPage = () => {
     handleUpdateMaxManagerDiscount,
     // Bulk price change
     handleBulkPriceChange,
+    // Variant comparison
+    handleUpdateVariantComparison,
   } = useSaunaPricing();
 
   // Local state for bulk price change
