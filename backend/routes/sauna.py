@@ -1732,14 +1732,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             opt_name = opt.get('name', '')
                             opt_image = opt.get('imageUrl', '')
                             
-                            # Load image
-                            opt_img = await load_card_image(opt_image, 45, 35)
+                            # Load image (BIGGER: 70x55 instead of 45x35)
+                            opt_img = await load_card_image(opt_image, 70, 55)
                             
                             # Create cell with image on left, text on right
                             if opt_img:
                                 cell_table = Table(
-                                    [[opt_img, Paragraph(opt_name, ParagraphStyle('ListOptName', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, leading=11))]],
-                                    colWidths=[50, 200]
+                                    [[opt_img, Paragraph(opt_name, ParagraphStyle('ListOptName', fontName='DejaVuSans', fontSize=11, textColor=TEXT_COLOR, leading=13))]],
+                                    colWidths=[75, 175]
                                 )
                                 cell_table.setStyle(TableStyle([
                                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -1748,8 +1748,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                                 ]))
                                 row_cells.append(cell_table)
                             else:
-                                # No image - just text with bullet
-                                row_cells.append(Paragraph(f'• {opt_name}', ParagraphStyle('ListOptNameNoBullet', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, leading=11)))
+                                # No image - just text with bullet (BIGGER font)
+                                row_cells.append(Paragraph(f'• {opt_name}', ParagraphStyle('ListOptNameNoBullet', fontName='DejaVuSans', fontSize=11, textColor=TEXT_COLOR, leading=13)))
                         else:
                             row_cells.append('')
                     
