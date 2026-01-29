@@ -50,6 +50,29 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **NEW**: Conditional category visibility based on selected model variant
 - **Feature**: Categories can be configured to show only for specific variants (e.g., "Plus" only)
 - **Feature**: Admin UI for setting `visibleForModelVariants` in category edit dialog
+- **NEW**: PDF Page 2 with variants and options catalog (ENHANCED)
+- **Feature**: "Możliwe warianty wykonania w wybranym rozmiarze" - comparison table and variant cards with prices
+- **Feature**: Plus-only categories section (if applicable) - options WITHOUT prices
+- **Feature**: "Opcje, które można dodać do sauny" - all available options WITHOUT prices grouped by category
+- **Feature**: Adaptive layout - 2/3/4 columns based on number of options (no empty spaces)
+- **NEW**: `showInPdf` field for options - control which options appear in PDF catalog
+- **Feature**: Checkbox "Показывать в PDF (каталог опций)" in option edit dialog
+- **NEW**: PDF Page 2 settings in admin panel
+- **Feature**: Enable/disable entire page 2
+- **Feature**: Custom titles for variants and options sections (Polish text)
+- **Feature**: Toggle visibility of: variants, comparison table, Plus-categories, all options catalog
+- **Backend**: Added `SaunaModelVariant` class and `variants` field to `SaunaModel`
+- **Backend**: Added `showInPdf` field to `SaunaOption` model (default: true)
+- **Backend**: Added PDF Page 2 settings to `SaunaPriceData` and `SaunaPDFRequest`
+- **Backend**: Page 2 generation with adaptive columns and NO PRICES for options
+- **Frontend**: Added `ModelVariantsEditor` component in `ModelDialog.jsx` for admin UI
+- **Frontend**: Added `ModelVariantSelector` component in `SaunaCalculator.jsx`
+- **Frontend**: Updated `useSaunaCalculator.js` with PDF data collection (filters by showInPdf)
+- **Frontend**: Added PDF Page 2 settings UI in `SaunaPricingPage.jsx`
+- **Frontend**: Added `showInPdf` checkbox in `OptionDialog.jsx`
+- **Tested**: PDF generation verified with 3 pages (iteration 31, curl tests)
+- **Feature**: Categories can be configured to show only for specific variants (e.g., "Plus" only)
+- **Feature**: Admin UI for setting `visibleForModelVariants` in category edit dialog
 - **NEW**: PDF Page 2 with variants and options catalog
 - **Feature**: "Możliwe warianty wykonania w wybranym rozmiarze" - comparison table and variant cards
 - **Feature**: Plus-only categories section (if applicable)
