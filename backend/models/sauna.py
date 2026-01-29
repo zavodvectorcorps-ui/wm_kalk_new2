@@ -4,6 +4,20 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 
 
+class SaunaModelVariant(BaseModel):
+    """Variant of a sauna model with its own price, image and description."""
+    model_config = ConfigDict(extra="allow")
+    
+    id: str  # e.g., "standard", "premium"
+    name: str  # Default name (Polish)
+    nameRu: Optional[str] = ""  # Russian name
+    namePl: Optional[str] = ""  # Polish name
+    price: int = 0  # Price for this variant
+    imageUrl: Optional[str] = ""  # Image for this variant
+    hint: Optional[str] = ""  # Description (RU)
+    hintPl: Optional[str] = ""  # Description (PL)
+
+
 class SaunaModel(BaseModel):
     id: str
     name: str
@@ -24,6 +38,8 @@ class SaunaModel(BaseModel):
     # Room sizes when "additional terrace" option is selected
     relaxRoomSizeWithTerrace: Optional[str] = None
     steamRoomSizeWithTerrace: Optional[str] = None
+    # Model variants (sub-models) with different prices and images
+    variants: Optional[List[SaunaModelVariant]] = []
 
 
 class OptionVariant(BaseModel):
