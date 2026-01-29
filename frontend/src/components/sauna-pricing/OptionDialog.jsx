@@ -562,6 +562,55 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               </div>
             )}
             
+            {/* Plus variant card details */}
+            <div className="border-t pt-4 mt-4">
+              <Label className="text-sm font-medium text-purple-700 mb-3 block">
+                🏠 Детали карточки (для Plus-категорий)
+              </Label>
+              <p className="text-xs text-gray-500 mb-3">
+                Эти поля отображаются на карточке опции в калькуляторе для категорий Plus-версии.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-gray-600">Rozmiar Tarasu (Размер террасы)</Label>
+                  <Input
+                    placeholder="np. 2.0 x 1.5 m"
+                    value={editingOption.terraceSize || ''}
+                    onChange={(e) => setEditingOption(prev => ({ ...prev, terraceSize: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-600">Rozmiar Pokoju wypoczynkowego (Комната отдыха)</Label>
+                  <Input
+                    placeholder="np. 2.5 x 2.0 m"
+                    value={editingOption.relaxRoomSize || ''}
+                    onChange={(e) => setEditingOption(prev => ({ ...prev, relaxRoomSize: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-600">Rozmiar Sauny parowej (Размер парной)</Label>
+                  <Input
+                    placeholder="np. 2.0 x 2.0 m"
+                    value={editingOption.steamRoomSize || ''}
+                    onChange={(e) => setEditingOption(prev => ({ ...prev, steamRoomSize: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-600">Strona Wejścia (Сторона входа)</Label>
+                  <Input
+                    placeholder="np. Lewa / Prawa"
+                    value={editingOption.entranceSide || ''}
+                    onChange={(e) => setEditingOption(prev => ({ ...prev, entranceSide: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            
             {/* Variants Section (formerly Sub-Options) */}
             <div className="border-t pt-4 mt-4">
               <Label className="text-sm font-medium text-amber-700 mb-3 block">
