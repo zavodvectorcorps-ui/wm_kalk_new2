@@ -198,6 +198,8 @@ class SaunaPDFRequest(BaseModel):
     email: str = ""
     orderDate: Optional[str] = Field(default_factory=lambda: datetime.now().strftime('%Y-%m-%d'))
     selectedModel: str
+    selectedModelVariant: Optional[str] = None  # Selected sub-model variant ID
+    modelVariantName: Optional[str] = None  # Name of selected variant
     modelName: str = ""
     modelImageUrl: str = ""  # Model image URL for PDF
     basePrice: int = 0
