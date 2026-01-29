@@ -513,6 +513,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
               handleVariantChange={handleVariantChange}
               handleSubOptionChange={handleSubOptionChange}
               getCategoryName={getCategoryName}
+              getOptionBasePrice={getOptionBasePrice}
               txt={txt}
             />
           ))}
