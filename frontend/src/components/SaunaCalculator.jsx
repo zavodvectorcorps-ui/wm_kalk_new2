@@ -722,6 +722,88 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
   </Card>
 );
 
+// Model Variant Selector Component (like heater selection in hot tubs)
+const ModelVariantSelector = ({ model, formData, handleModelVariantChange, lang, txt }) => {
+  const variants = model?.variants || [];
+  if (variants.length === 0) return null;
+  
+  // Get selected variant or default to first
+  const selectedVariantId = formData.selectedModelVariant || variants[0]?.id;
+  
+  return (
+    <Card className="shadow-md border-purple-200">
+      <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+        <CardTitle className="flex items-center gap-2 text-lg text-purple-800">
+          <Home className="h-5 w-5" />
+          {lang === 'pl' ? 'Wybierz wariant' : 'Выберите вариант'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {variants.map(variant => {
+            const isSelected = selectedVariantId === variant.id;
+            const variantName = lang === 'pl' 
+              ? (variant.namePl || variant.name) 
+              : (variant.nameRu || variant.name);
+            const variantHint = lang === 'pl' 
+              ? (variant.hintPl || variant.hint) 
+              : variant.hint;
+            
+            return (
+              <div
+                key={variant.id}
+                onClick={() => handleModelVariantChange(variant.id)}
+                className={`relative p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                  isSelected
+                    ? 'border-purple-500 bg-purple-50 shadow-lg'
+                    : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50'
+                }`}
+              >
+                {/* Selection indicator */}
+                {isSelected && (
+                  <div className="absolute top-2 right-2">
+                    <div className="bg-purple-500 text-white rounded-full p-1">
+                      <Check className="h-4 w-4" />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Variant image */}
+                {variant.imageUrl && (
+                  <div className="w-full h-32 rounded-lg mb-3 bg-gray-100 overflow-hidden">
+                    <img 
+                      src={variant.imageUrl} 
+                      alt={variantName}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                
+                {/* Variant name */}
+                <h4 className={`font-semibold text-base mb-1 ${isSelected ? 'text-purple-800' : 'text-gray-800'}`}>
+                  {variantName}
+                </h4>
+                
+                {/* Variant hint/description */}
+                {variantHint && (
+                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                    {variantHint}
+                  </p>
+                )}
+                
+                {/* Variant price */}
+                <div className={`text-lg font-bold ${isSelected ? 'text-purple-600' : 'text-amber-600'}`}>
+                  {formatPrice(variant.price)} PLN
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, handleRadioChange, handleCheckboxChange, handleQuantityChange, handleVariantChange, handleSubOptionChange, getCategoryName, txt }) => {
   const Icon = categoryIcons[category.name] || Package;
   const isDropdownView = category.displayType === 'dropdown';
