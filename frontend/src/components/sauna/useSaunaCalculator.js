@@ -747,7 +747,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     });
     
     return options;
-  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, getSelectedModel, isOptionVisible]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, getSelectedModel, isOptionVisible, getOptionBasePrice]);
 
   // Save and generate PDF
   const handleSaveAndGeneratePDF = async () => {
