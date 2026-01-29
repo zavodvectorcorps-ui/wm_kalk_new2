@@ -236,3 +236,8 @@ class SaunaPDFRequest(BaseModel):
     hasTerrace: Optional[bool] = False  # Whether terrace option is selected
     # Capacity - number of people
     capacity: Optional[str] = None  # e.g., "4-6"
+    # Model variants data for Page 2
+    modelVariants: Optional[List[Dict[str, Any]]] = []  # All variants of selected model
+    variantComparisonRows: Optional[List[Dict[str, Any]]] = []  # Comparison table rows
+    plusOnlyCategories: Optional[List[Dict[str, Any]]] = []  # Categories visible only for Plus variant
+    allAvailableOptions: Optional[List[Dict[str, Any]]] = []  # All available additional options with images
