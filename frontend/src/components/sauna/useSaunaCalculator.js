@@ -900,6 +900,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         variantComparisonRows: variantComparisonRows,
         plusOnlyCategories: plusOnlyCategories,
         allAvailableOptions: allAvailableOptions,
+        // Page 2 settings
+        ...pdfPage2Settings,
       };
       const response = await axios.post(`${API_URL}/api/sauna/generate-pdf`, pdfData, { responseType: 'blob' });
 
