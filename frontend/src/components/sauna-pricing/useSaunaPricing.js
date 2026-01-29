@@ -635,5 +635,7 @@ export const useSaunaPricing = () => {
     handleUpdateMaxManagerDiscount,
     // Bulk price change
     handleBulkPriceChange,
+    // Variant comparison
+    handleUpdateVariantComparison,
   };
 };
