@@ -912,6 +912,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           if (selectedOpt && (selectedOpt.terraceSize || selectedOpt.relaxRoomSize || selectedOpt.steamRoomSize || selectedOpt.entranceSide)) {
             selectedPlusOption = {
               name: selectedOpt.name,
+              imageUrl: selectedOpt.imageUrl || null,  // Include image URL
               terraceSize: selectedOpt.terraceSize,
               relaxRoomSize: selectedOpt.relaxRoomSize,
               steamRoomSize: selectedOpt.steamRoomSize,
