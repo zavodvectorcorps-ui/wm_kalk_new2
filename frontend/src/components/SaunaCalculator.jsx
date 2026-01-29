@@ -467,6 +467,17 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             txt={txt}
           />
 
+          {/* Model Variant Selection (if model has variants) */}
+          {model?.variants?.length > 0 && (
+            <ModelVariantSelector
+              model={model}
+              formData={formData}
+              handleModelVariantChange={handleModelVariantChange}
+              lang={lang}
+              txt={txt}
+            />
+          )}
+
           {/* Option Categories */}
           {prices.categories?.map((category) => (
             <CategoryCard
