@@ -1305,21 +1305,87 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 room_data.append(['', 'Z dodatkowym tarasem ✓'])
         
         if room_data:
-            room_table = Table(room_data, colWidths=[200, 330])
+            # Create room sizes table (left side)
+            room_table = Table(room_data, colWidths=[140, 170])
             room_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
                 ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans'),
                 ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
                 ('TEXTCOLOR', (0, 0), (0, -1), TEXT_COLOR),
                 ('TEXTCOLOR', (1, 0), (1, -1), BROWN_DARK),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]))
-            elements.append(room_table)
+            
+            # Try to load Plus option image (right side)
+            plus_option_image_url = selected_plus_option.get('imageUrl') if selected_plus_option else None
+            plus_option_img = None
+            
+            if plus_option_image_url and has_plus_data:
+                try:
+                    img_data = None
+                    if '/api/uploads/' in plus_option_image_url:
+                        img_data = await load_image_from_mongodb(plus_option_image_url)
+                    elif plus_option_image_url.startswith('http'):
+                        try:
+                            req = urllib.request.Request(plus_option_image_url, headers={
+                                'User-Agent': 'Mozilla/5.0',
+                                'Accept': 'image/*',
+                            })
+                            with urllib.request.urlopen(req, timeout=10) as response:
+                                img_data = response.read()
+                        except Exception as e:
+                            logger.warning(f"Could not download plus option image: {e}")
+                    
+                    if img_data:
+                        img_data = optimize_image_for_pdf(img_data, max_size=600, quality=80)
+                        pil_img = PILImage.open(io.BytesIO(img_data))
+                        orig_w, orig_h = pil_img.size
+                        # Scale to fit in right column (max 200x140)
+                        max_w, max_h = 200, 140
+                        ratio = min(max_w / orig_w, max_h / orig_h)
+                        new_w, new_h = int(orig_w * ratio), int(orig_h * ratio)
+                        plus_option_img = RLImage(io.BytesIO(img_data), width=new_w, height=new_h)
+                except Exception as e:
+                    logger.warning(f"Could not load plus option image: {e}")
+            
+            # Create layout: left = room sizes, right = image
+            if plus_option_img:
+                # Two column layout with image
+                layout_table = Table(
+                    [[room_table, plus_option_img]],
+                    colWidths=[320, 210]
+                )
+                layout_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('TOPPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                ]))
+                elements.append(layout_table)
+            else:
+                # No image - just the room table (full width)
+                room_table_full = Table(room_data, colWidths=[200, 330])
+                room_table_full.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
+                    ('FONTNAME', (0, 0), (0, -1), 'DejaVuSans'),
+                    ('FONTNAME', (1, 0), (1, -1), 'DejaVuSans-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('TEXTCOLOR', (0, 0), (0, -1), TEXT_COLOR),
+                    ('TEXTCOLOR', (1, 0), (1, -1), BROWN_DARK),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                elements.append(room_table_full)
             elements.append(Spacer(1, 8))
     
     # ========== COMMENT SECTION ==========
