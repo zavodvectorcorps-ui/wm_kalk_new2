@@ -494,6 +494,14 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               />
               <Label htmlFor="edit-isDefaultSelected">{txt.defaultSelected || 'Выбрано по умолчанию'}</Label>
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-showInPdf"
+                checked={editingOption.showInPdf !== false}
+                onCheckedChange={(checked) => setEditingOption(prev => ({ ...prev, showInPdf: checked }))}
+              />
+              <Label htmlFor="edit-showInPdf">{txt.showInPdf || 'Показывать в PDF (каталог опций)'}</Label>
+            </div>
             
             {/* Variants Section (formerly Sub-Options) */}
             <div className="border-t pt-4 mt-4">
