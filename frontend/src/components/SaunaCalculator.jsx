@@ -517,6 +517,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
         <div className="lg:col-span-1">
           <SummaryCard
             model={model}
+            modelVariant={modelVariant}
+            modelPrice={modelPrice}
             prices={prices}
             formData={formData}
             appliedDiscount={appliedDiscount}
