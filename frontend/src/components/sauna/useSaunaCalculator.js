@@ -207,6 +207,38 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return prices.models?.find(m => m.id === formData.selectedModel);
   }, [prices.models, formData.selectedModel]);
 
+  // Get selected model variant
+  const getSelectedModelVariant = useCallback(() => {
+    const model = getSelectedModel();
+    if (!model || !model.variants?.length) return null;
+    
+    // If variant is selected, return it
+    if (formData.selectedModelVariant) {
+      return model.variants.find(v => v.id === formData.selectedModelVariant);
+    }
+    
+    // Default to first variant if model has variants but none selected
+    return model.variants[0];
+  }, [getSelectedModel, formData.selectedModelVariant]);
+
+  // Get effective model price (from variant or base price)
+  const getModelPrice = useCallback(() => {
+    const model = getSelectedModel();
+    if (!model) return 0;
+    
+    const variant = getSelectedModelVariant();
+    if (variant) {
+      return variant.price;
+    }
+    
+    return model.basePrice;
+  }, [getSelectedModel, getSelectedModelVariant]);
+
+  // Handle model variant change
+  const handleModelVariantChange = (variantId) => {
+    setFormData(prev => ({ ...prev, selectedModelVariant: variantId }));
+  };
+
   // Check if terrace option is selected
   const isTerraceSelected = useCallback(() => {
     const tarasSelection = formData.selections['opcje_dodatkowe'];
