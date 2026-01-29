@@ -399,6 +399,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             // Get variants (check both new 'variants' and legacy 'subOptions' fields)
             const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
             
+            // Get base price considering model-specific pricing
+            const basePrice = getOptionBasePrice(option);
+            
             // Check if variant is selected - variant price REPLACES option price
             const selectedVariantId = formData.variantSelections?.[optId];
             if (selectedVariantId && variants?.length > 0) {
@@ -407,14 +410,14 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
                 total += selectedVariant.price * quantity;
               } else {
                 // Fallback to option price if variant not found
-                total += option.price * quantity;
+                total += basePrice * quantity;
               }
             } else if (variants?.length > 0) {
               // Option has variants but none selected - use first variant as default price
-              total += (variants[0]?.price || option.price) * quantity;
+              total += (variants[0]?.price || basePrice) * quantity;
             } else {
-              // No variants - use option price
-              total += option.price * quantity;
+              // No variants - use option price (with model-specific pricing)
+              total += basePrice * quantity;
             }
           }
         });
@@ -428,6 +431,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         // Get variants (check both new 'variants' and legacy 'subOptions' fields)
         const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
         
+        // Get base price considering model-specific pricing
+        const basePrice = getOptionBasePrice(option);
+        
         // Check if variant is selected - variant price REPLACES option price
         const selectedVariantId = formData.variantSelections?.[selection];
         if (selectedVariantId && variants?.length > 0) {
@@ -435,19 +441,19 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           if (selectedVariant) {
             total += selectedVariant.price * quantity;
           } else {
-            total += option.price * quantity;
+            total += basePrice * quantity;
           }
         } else if (variants?.length > 0) {
           // Option has variants but none selected - use first variant as default
-          total += (variants[0]?.price || option.price) * quantity;
+          total += (variants[0]?.price || basePrice) * quantity;
         } else {
-          total += option.price * quantity;
+          total += basePrice * quantity;
         }
       }
     });
     
     return total;
-  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, isOptionVisible]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, isOptionVisible, getOptionBasePrice]);
 
   // Calculate foundation price
   const calculateFoundationPrice = useCallback(() => {
