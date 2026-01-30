@@ -759,6 +759,21 @@ const ModelVariantSelector = ({ model, formData, handleModelVariantChange, price
     v.relaxRoomSize || v.steamRoomSize || v.terraceSize || v.entranceSide
   );
   
+  // Group variants by category
+  const groupedVariants = variants.reduce((groups, variant) => {
+    const category = lang === 'pl' 
+      ? (variant.categoryPl || variant.category || '')
+      : (variant.category || variant.categoryPl || '');
+    const groupKey = category || '__uncategorized__';
+    if (!groups[groupKey]) {
+      groups[groupKey] = [];
+    }
+    groups[groupKey].push(variant);
+    return groups;
+  }, {});
+  
+  const hasCategories = Object.keys(groupedVariants).some(k => k !== '__uncategorized__');
+  
   return (
     <Card className="shadow-md border-purple-200">
       <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
@@ -826,66 +841,131 @@ const ModelVariantSelector = ({ model, formData, handleModelVariantChange, price
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {variants.map(variant => {
-            const isSelected = selectedVariantId === variant.id;
-            const variantName = lang === 'pl' 
-              ? (variant.namePl || variant.name) 
-              : (variant.nameRu || variant.name);
-            const variantHint = lang === 'pl' 
-              ? (variant.hintPl || variant.hint) 
-              : variant.hint;
-            
-            return (
-              <div
-                key={variant.id}
-                onClick={() => handleModelVariantChange(variant.id)}
-                className={`relative p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                  isSelected
-                    ? 'border-purple-500 bg-purple-50 shadow-lg'
-                    : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50'
-                }`}
-              >
-                {/* Selection indicator */}
-                {isSelected && (
-                  <div className="absolute top-2 right-2">
-                    <div className="bg-purple-500 text-white rounded-full p-1">
-                      <Check className="h-4 w-4" />
-                    </div>
-                  </div>
+        {/* Variants grouped by category */}
+        {hasCategories ? (
+          <div className="space-y-6">
+            {Object.entries(groupedVariants).map(([categoryName, categoryVariants]) => (
+              <div key={categoryName}>
+                {categoryName !== '__uncategorized__' && (
+                  <h3 className="text-sm font-semibold text-purple-700 mb-3 pb-2 border-b border-purple-200">
+                    {categoryName}
+                  </h3>
                 )}
-                
-                {/* Variant image */}
-                {variant.imageUrl && (
-                  <div className="w-full h-32 rounded-lg mb-3 bg-gray-100 overflow-hidden">
-                    <img 
-                      src={variant.imageUrl} 
-                      alt={variantName}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                )}
-                
-                {/* Variant name */}
-                <h4 className={`font-semibold text-base mb-1 ${isSelected ? 'text-purple-800' : 'text-gray-800'}`}>
-                  {variantName}
-                </h4>
-                
-                {/* Variant hint/description */}
-                {variantHint && (
-                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                    {variantHint}
-                  </p>
-                )}
-                
-                {/* Variant price - shown as additional cost */}
-                <div className={`text-lg font-bold ${isSelected ? 'text-purple-600' : 'text-amber-600'}`}>
-                  {variant.price > 0 ? `+${formatPrice(variant.price)} PLN` : (lang === 'pl' ? 'W cenie' : 'В цене')}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {categoryVariants.map(variant => {
+                    const isSelected = selectedVariantId === variant.id;
+                    const variantName = lang === 'pl' 
+                      ? (variant.namePl || variant.name) 
+                      : (variant.nameRu || variant.name);
+                    const variantHint = lang === 'pl' 
+                      ? (variant.hintPl || variant.hint) 
+                      : variant.hint;
+                    
+                    return (
+                      <div
+                        key={variant.id}
+                        onClick={() => handleModelVariantChange(variant.id)}
+                        className={`relative p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-purple-500 bg-purple-50 shadow-lg'
+                            : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50'
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="absolute top-2 right-2">
+                            <div className="bg-purple-500 text-white rounded-full p-1">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          </div>
+                        )}
+                        
+                        {variant.imageUrl && (
+                          <div className="w-full h-32 rounded-lg mb-3 bg-gray-100 overflow-hidden">
+                            <img 
+                              src={variant.imageUrl} 
+                              alt={variantName}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        )}
+                        
+                        <h4 className={`font-semibold text-base mb-1 ${isSelected ? 'text-purple-800' : 'text-gray-800'}`}>
+                          {variantName}
+                        </h4>
+                        
+                        {variantHint && (
+                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                            {variantHint}
+                          </p>
+                        )}
+                        
+                        <div className={`text-lg font-bold ${isSelected ? 'text-purple-600' : 'text-amber-600'}`}>
+                          {variant.price > 0 ? `+${formatPrice(variant.price)} PLN` : (lang === 'pl' ? 'W cenie' : 'В цене')}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {variants.map(variant => {
+              const isSelected = selectedVariantId === variant.id;
+              const variantName = lang === 'pl' 
+                ? (variant.namePl || variant.name) 
+                : (variant.nameRu || variant.name);
+              const variantHint = lang === 'pl' 
+                ? (variant.hintPl || variant.hint) 
+                : variant.hint;
+              
+              return (
+                <div
+                  key={variant.id}
+                  onClick={() => handleModelVariantChange(variant.id)}
+                  className={`relative p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                    isSelected
+                      ? 'border-purple-500 bg-purple-50 shadow-lg'
+                      : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50'
+                  }`}
+                >
+                  {isSelected && (
+                    <div className="absolute top-2 right-2">
+                      <div className="bg-purple-500 text-white rounded-full p-1">
+                        <Check className="h-4 w-4" />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {variant.imageUrl && (
+                    <div className="w-full h-32 rounded-lg mb-3 bg-gray-100 overflow-hidden">
+                      <img 
+                        src={variant.imageUrl} 
+                        alt={variantName}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  )}
+                  
+                  <h4 className={`font-semibold text-base mb-1 ${isSelected ? 'text-purple-800' : 'text-gray-800'}`}>
+                    {variantName}
+                  </h4>
+                  
+                  {variantHint && (
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                      {variantHint}
+                    </p>
+                  )}
+                  
+                  <div className={`text-lg font-bold ${isSelected ? 'text-purple-600' : 'text-amber-600'}`}>
+                    {variant.price > 0 ? `+${formatPrice(variant.price)} PLN` : (lang === 'pl' ? 'W cenie' : 'В цене')}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
