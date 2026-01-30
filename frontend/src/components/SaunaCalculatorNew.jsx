@@ -487,6 +487,61 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
 
   // ============ END WIZARD CONFIGURATION ============
 
+  // ============ SELECTION PREVIEW ============
+  // Get preview of selections for completed steps
+  const getSelectionPreview = useCallback(() => {
+    const preview = [];
+    
+    // Model selection
+    if (formData.selectedModel && selectedModel) {
+      preview.push({
+        step: lang === 'pl' ? 'Model' : 'Модель',
+        value: selectedModel.name,
+        price: selectedModel.basePrice
+      });
+    }
+    
+    // Variant selection
+    if (formData.selectedModelVariant && selectedModel?.variants?.length > 0) {
+      const variant = selectedModel.variants.find(v => v.id === formData.selectedModelVariant);
+      if (variant) {
+        const variantName = lang === 'pl' ? (variant.namePl || variant.name) : (variant.nameRu || variant.name);
+        preview.push({
+          step: lang === 'pl' ? 'Wariant' : 'Вариант',
+          value: variantName,
+          price: variant.price || 0
+        });
+      }
+    }
+    
+    // Category selections
+    for (const [categoryId, selection] of Object.entries(formData.selections)) {
+      if (!selection) continue;
+      
+      const category = prices.categories?.find(c => c.id === categoryId);
+      if (!category) continue;
+      
+      const categoryName = lang === 'pl' ? (category.namePl || category.name) : (category.nameRu || category.name);
+      
+      if (typeof selection === 'string') {
+        const option = category.options?.find(o => o.id === selection);
+        if (option) {
+          const optionName = lang === 'pl' ? (option.namePl || option.name) : (option.nameRu || option.name);
+          preview.push({
+            step: categoryName,
+            value: optionName,
+            price: option.basePrice || 0
+          });
+        }
+      }
+    }
+    
+    return preview;
+  }, [formData, selectedModel, prices.categories, lang]);
+
+  const selectionPreview = getSelectionPreview();
+  // ============ END SELECTION PREVIEW ============
+
   // Function to filter options based on incompatibility settings (inverted logic)
   // Options are shown by default, hidden only when incompatibility rules match
   const filterCompatibleOptions = (category) => {
