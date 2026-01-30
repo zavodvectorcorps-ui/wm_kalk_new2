@@ -887,41 +887,19 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             }))
         }));
       
-      // Find selected option from Plus-only categories (Warianty układu)
-      let selectedPlusOption = null;
-      const plusCategories = (prices.categories || []).filter(cat => {
-        const visibleFor = cat.visibleForModelVariants || [];
-        return visibleFor.some(v => v.toLowerCase() === 'plus' || v.includes('plus'));
-      });
-      
-      for (const cat of plusCategories) {
-        const selection = formData.selections[cat.id];
-        if (selection) {
-          let selectedOpt = null;
-          if (cat.inputType === 'checkbox') {
-            // For checkbox, find first selected option
-            const selectedIds = Object.keys(selection).filter(k => selection[k]);
-            if (selectedIds.length > 0) {
-              selectedOpt = (cat.options || []).find(o => o.id === selectedIds[0]);
-            }
-          } else {
-            // For radio, selection is the option ID
-            selectedOpt = (cat.options || []).find(o => o.id === selection);
-          }
-          
-          // Include option if it has any detail fields OR imageUrl
-          if (selectedOpt && (selectedOpt.terraceSize || selectedOpt.relaxRoomSize || selectedOpt.steamRoomSize || selectedOpt.entranceSide || selectedOpt.imageUrl)) {
-            selectedPlusOption = {
-              name: selectedOpt.name,
-              imageUrl: selectedOpt.imageUrl || null,
-              terraceSize: selectedOpt.terraceSize,
-              relaxRoomSize: selectedOpt.relaxRoomSize,
-              steamRoomSize: selectedOpt.steamRoomSize,
-              entranceSide: selectedOpt.entranceSide,
-            };
-            break;
-          }
-        }
+      // Get room dimensions from selected model variant (for WYMIARY POMIESZCZEŃ section)
+      const selectedVariant = getSelectedModelVariant();
+      let selectedModelVariantData = null;
+      if (selectedVariant && (selectedVariant.terraceSize || selectedVariant.relaxRoomSize || selectedVariant.steamRoomSize || selectedVariant.entranceSide || selectedVariant.imageUrl)) {
+        selectedModelVariantData = {
+          name: selectedVariant.namePl || selectedVariant.name,
+          imageUrl: selectedVariant.imageUrl || null,
+          capacity: selectedVariant.capacity || null,
+          terraceSize: selectedVariant.terraceSize || null,
+          relaxRoomSize: selectedVariant.relaxRoomSize || null,
+          steamRoomSize: selectedVariant.steamRoomSize || null,
+          entranceSide: selectedVariant.entranceSide || null,
+        };
       }
       
       // Get all available additional options with images (filter by showInPdf)
