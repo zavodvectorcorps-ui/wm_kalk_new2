@@ -334,16 +334,16 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
       // Decision logic:
       // - If model OR variant matches incompatibility, hide the option
       // - If any incompatible option is selected, hide the option
-      // - If ONLY model rules are set: hide when model matches
-      // - If ONLY option rules are set: hide when option matches
+      const modelOrVariantMatches = modelMatches || variantMatches;
+      
       if (hasModelRules && hasOptionRules) {
         // Both conditions must be true to hide
-        if (modelMatches && optionMatches) {
+        if (modelOrVariantMatches && optionMatches) {
           return false;
         }
       } else if (hasModelRules) {
-        // Only model rule - hide if model matches
-        if (modelMatches) {
+        // Only model rule - hide if model or variant matches
+        if (modelOrVariantMatches) {
           return false;
         }
       } else if (hasOptionRules) {
