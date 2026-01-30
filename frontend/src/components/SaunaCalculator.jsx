@@ -298,6 +298,11 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
       const modelMatches = hasModelRules && formData.selectedModel && 
         incompatibleModels.includes(formData.selectedModel);
       
+      // Check if current model variant (sub-model) is in incompatible list
+      const selectedVariantId = formData.selectedModelVariant || selectedModel?.variants?.[0]?.id;
+      const variantMatches = hasModelRules && selectedVariantId && 
+        incompatibleModels.includes(selectedVariantId);
+      
       // Check if any incompatible option is selected
       let optionMatches = false;
       if (hasOptionRules) {
@@ -327,7 +332,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
       }
       
       // Decision logic:
-      // - If BOTH model AND option rules are set: hide only when BOTH match
+      // - If model OR variant matches incompatibility, hide the option
+      // - If any incompatible option is selected, hide the option
       // - If ONLY model rules are set: hide when model matches
       // - If ONLY option rules are set: hide when option matches
       if (hasModelRules && hasOptionRules) {
