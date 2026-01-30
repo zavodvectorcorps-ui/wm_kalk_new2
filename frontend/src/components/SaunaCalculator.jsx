@@ -807,13 +807,13 @@ const ModelVariantSelector = ({ model, formData, handleModelVariantChange, price
                         {variantName || `Вариант ${index + 1}`}
                       </td>
                       <td className="p-2 border border-purple-200 text-center text-gray-600">
-                        {variant.relaxRoomSize || '-'}
+                        {variant.relaxRoomSize && variant.relaxRoomSize !== '0' ? variant.relaxRoomSize : '-'}
                       </td>
                       <td className="p-2 border border-purple-200 text-center text-gray-600">
-                        {variant.steamRoomSize || '-'}
+                        {variant.steamRoomSize && variant.steamRoomSize !== '0' ? variant.steamRoomSize : '-'}
                       </td>
                       <td className="p-2 border border-purple-200 text-center text-gray-600">
-                        {variant.terraceSize || '-'}
+                        {variant.terraceSize && variant.terraceSize !== '0' ? variant.terraceSize : '-'}
                       </td>
                       <td className="p-2 border border-purple-200 text-center text-gray-600">
                         {variant.entranceSide || '-'}
