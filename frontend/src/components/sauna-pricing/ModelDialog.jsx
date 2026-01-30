@@ -154,6 +154,58 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
                   className="h-8 text-sm"
                 />
               </div>
+
+              {/* Room dimensions section */}
+              <div className="border-t pt-3 mt-3">
+                <Label className="text-xs font-medium text-amber-700 mb-2 block">📐 Размеры помещений (для PDF)</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs text-gray-500">Liczba osób</Label>
+                    <Input
+                      value={variant.capacity || ''}
+                      onChange={(e) => handleVariantChange(index, 'capacity', e.target.value)}
+                      placeholder="4-6"
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Strona wejścia</Label>
+                    <Input
+                      value={variant.entranceSide || ''}
+                      onChange={(e) => handleVariantChange(index, 'entranceSide', e.target.value)}
+                      placeholder="Prawa / Lewa"
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-green-600">Taras</Label>
+                    <Input
+                      value={variant.terraceSize || ''}
+                      onChange={(e) => handleVariantChange(index, 'terraceSize', e.target.value)}
+                      placeholder="185 cm"
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-blue-600">Pokój wypoczynkowy</Label>
+                    <Input
+                      value={variant.relaxRoomSize || ''}
+                      onChange={(e) => handleVariantChange(index, 'relaxRoomSize', e.target.value)}
+                      placeholder="185 cm"
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs text-orange-600">Sauna parowa</Label>
+                    <Input
+                      value={variant.steamRoomSize || ''}
+                      onChange={(e) => handleVariantChange(index, 'steamRoomSize', e.target.value)}
+                      placeholder="200 cm"
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
               
               <div>
                 <Label className="text-xs">Фото варианта</Label>
