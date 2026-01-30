@@ -738,6 +738,12 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
             urlPlaceholder={txt.imageUrlHint}
             themeColor="amber"
           />
+          
+          {/* Gallery Images */}
+          <GalleryImagesEditor
+            images={editingModel.galleryImages || []}
+            onChange={(images) => setEditingModel(prev => ({ ...prev, galleryImages: images }))}
+          />
         </div>
       )}
       <DialogFooter>
