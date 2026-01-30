@@ -16,6 +16,12 @@ class SaunaModelVariant(BaseModel):
     imageUrl: Optional[str] = ""  # Image for this variant
     hint: Optional[str] = ""  # Description (RU)
     hintPl: Optional[str] = ""  # Description (PL)
+    # Room dimensions for this variant (used in PDF WYMIARY POMIESZCZEŃ)
+    capacity: Optional[str] = ""  # Orientacyjna liczba osób
+    terraceSize: Optional[str] = ""  # Taras
+    relaxRoomSize: Optional[str] = ""  # Pokój wypoczynkowy
+    steamRoomSize: Optional[str] = ""  # Sauna parowa
+    entranceSide: Optional[str] = ""  # Strona wejścia
 
 
 class SaunaModel(BaseModel):
