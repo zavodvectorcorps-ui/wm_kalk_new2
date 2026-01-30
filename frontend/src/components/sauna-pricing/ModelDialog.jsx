@@ -163,6 +163,28 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
                 </div>
               </div>
               
+              {/* Category/Group */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-indigo-600">Категория (PL)</Label>
+                  <Input
+                    value={variant.categoryPl || ''}
+                    onChange={(e) => handleVariantChange(index, 'categoryPl', e.target.value)}
+                    placeholder="Wejście proste / Wejście boczne"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-indigo-600">Категория (RU)</Label>
+                  <Input
+                    value={variant.category || ''}
+                    onChange={(e) => handleVariantChange(index, 'category', e.target.value)}
+                    placeholder="Прямой вход / Боковой вход"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              
               <div>
                 <Label className="text-xs">Цена (PLN)</Label>
                 <Input
