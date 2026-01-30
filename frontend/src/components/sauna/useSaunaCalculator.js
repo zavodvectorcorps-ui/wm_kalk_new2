@@ -859,10 +859,15 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         imageUrl: v.imageUrl,
         hint: v.hint,
         hintPl: v.hintPl,
+        // Room dimensions for comparison table
+        capacity: v.capacity,
+        terraceSize: v.terraceSize,
+        relaxRoomSize: v.relaxRoomSize,
+        steamRoomSize: v.steamRoomSize,
+        entranceSide: v.entranceSide,
       })) || [];
       
-      // Get comparison table rows from prices
-      const variantComparisonRows = prices?.variantComparisonRows || [];
+      // Note: variantComparisonRows is no longer used - comparison table is now generated from variant data
       
       // Get categories that are visible only for Plus variant
       const plusOnlyCategories = (prices.categories || [])
