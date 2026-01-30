@@ -774,8 +774,10 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       
       const orderId = isEditMode && editOrderId ? editOrderId : undefined;
       
-      // Get effective price (from variant or base price)
-      const effectivePrice = modelVariant ? modelVariant.price : (model?.basePrice || 0);
+      // Get effective price (base price + variant price)
+      const baseModelPrice = model?.basePrice || 0;
+      const variantPrice = modelVariant?.price || 0;
+      const effectivePrice = baseModelPrice + variantPrice;
       // Get effective image (from variant or model)
       const effectiveImage = modelVariant?.imageUrl || model?.imageUrl || '';
       // Get model name with variant
