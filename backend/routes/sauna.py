@@ -17,7 +17,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 
 from database import db
-from models.sauna import SaunaModel, SaunaOption, SaunaCategory, SaunaPriceData, SaunaOrder, SaunaPDFRequest
+from models.sauna import SaunaModel, SaunaOption, SaunaCategory, SaunaPriceData, SaunaOrder, SaunaPDFRequest, WizardStep
 from data.sauna_defaults import default_sauna_prices
 from services.telegram_service import notify_new_order
 
