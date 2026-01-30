@@ -878,9 +878,9 @@ const ModelVariantSelector = ({ model, formData, handleModelVariantChange, price
                   </p>
                 )}
                 
-                {/* Variant price */}
+                {/* Variant price - shown as additional cost */}
                 <div className={`text-lg font-bold ${isSelected ? 'text-purple-600' : 'text-amber-600'}`}>
-                  {formatPrice(variant.price)} PLN
+                  {variant.price > 0 ? `+${formatPrice(variant.price)} PLN` : (lang === 'pl' ? 'W cenie' : 'В цене')}
                 </div>
               </div>
             );
