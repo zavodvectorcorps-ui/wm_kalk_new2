@@ -195,14 +195,28 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
                 />
               </div>
               
-              <div>
-                <Label className="text-xs">Описание (PL)</Label>
-                <Input
-                  value={variant.hintPl || ''}
-                  onChange={(e) => handleVariantChange(index, 'hintPl', e.target.value)}
-                  placeholder="Opis wariantu..."
-                  className="h-8 text-sm"
-                />
+              {/* Descriptions as multiline textareas */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Описание / Что входит (PL)</Label>
+                  <Textarea
+                    value={variant.hintPl || ''}
+                    onChange={(e) => handleVariantChange(index, 'hintPl', e.target.value)}
+                    placeholder="• Wejście proste&#10;• Standardowa sauna&#10;• Taras 95cm"
+                    className="text-sm min-h-[80px]"
+                    rows={4}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Описание / Что входит (RU)</Label>
+                  <Textarea
+                    value={variant.hint || ''}
+                    onChange={(e) => handleVariantChange(index, 'hint', e.target.value)}
+                    placeholder="• Прямой вход&#10;• Стандартная сауна&#10;• Терраса 95см"
+                    className="text-sm min-h-[80px]"
+                    rows={4}
+                  />
+                </div>
               </div>
 
               {/* Room dimensions section */}
