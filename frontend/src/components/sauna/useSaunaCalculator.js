@@ -226,12 +226,16 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     const model = getSelectedModel();
     if (!model) return 0;
     
+    // Base price of the model
+    let totalPrice = model.basePrice;
+    
+    // Add variant price (variant price is additional, not replacement)
     const variant = getSelectedModelVariant();
-    if (variant) {
-      return variant.price;
+    if (variant && variant.price) {
+      totalPrice += variant.price;
     }
     
-    return model.basePrice;
+    return totalPrice;
   }, [getSelectedModel, getSelectedModelVariant]);
 
   // Handle model variant change
