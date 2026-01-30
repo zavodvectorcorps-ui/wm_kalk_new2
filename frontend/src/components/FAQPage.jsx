@@ -37,7 +37,8 @@ import {
   ExternalLink,
   RefreshCw,
   Eye,
-  Table2
+  Table2,
+  Zap
 } from 'lucide-react';
 import axios from 'axios';
 
