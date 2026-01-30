@@ -914,7 +914,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       // Get room dimensions from selected model variant (for WYMIARY POMIESZCZEŃ section)
       const selectedVariant = getSelectedModelVariant();
       let selectedModelVariantData = null;
-      if (selectedVariant && (selectedVariant.terraceSize || selectedVariant.relaxRoomSize || selectedVariant.steamRoomSize || selectedVariant.entranceSide || selectedVariant.imageUrl)) {
+      if (selectedVariant && (selectedVariant.terraceSize || selectedVariant.relaxRoomSize || selectedVariant.steamRoomSize || selectedVariant.entranceSide || selectedVariant.imageUrl || selectedVariant.hint || selectedVariant.hintPl)) {
         selectedModelVariantData = {
           name: selectedVariant.namePl || selectedVariant.name,
           imageUrl: selectedVariant.imageUrl || null,
@@ -923,6 +923,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           relaxRoomSize: selectedVariant.relaxRoomSize || null,
           steamRoomSize: selectedVariant.steamRoomSize || null,
           entranceSide: selectedVariant.entranceSide || null,
+          hint: selectedVariant.hintPl || selectedVariant.hint || null,  // Description / what's included
         };
       }
       
