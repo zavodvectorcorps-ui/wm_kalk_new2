@@ -36,7 +36,8 @@ import {
   Copy,
   ExternalLink,
   RefreshCw,
-  Eye
+  Eye,
+  Table2
 } from 'lucide-react';
 import axios from 'axios';
 
