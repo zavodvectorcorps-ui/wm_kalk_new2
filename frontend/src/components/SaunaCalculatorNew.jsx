@@ -578,103 +578,262 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
           )}
         </div>
       )}
+
+      {/* ============ WIZARD PROGRESS BAR ============ */}
+      <Card className="mb-6 shadow-lg border-2 border-amber-200">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between overflow-x-auto gap-2">
+            {WIZARD_STEPS.map((step, index) => {
+              const StepIcon = step.icon;
+              const isActive = index === currentStepIndex;
+              const isComplete = step.isComplete();
+              const isUnlocked = step.isUnlocked();
+              
+              return (
+                <React.Fragment key={step.id}>
+                  <button
+                    onClick={() => isUnlocked && setManualStep(step.id)}
+                    disabled={!isUnlocked}
+                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all min-w-[80px] ${
+                      isActive 
+                        ? 'bg-amber-500 text-white shadow-lg scale-105' 
+                        : isComplete 
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                          : isUnlocked 
+                            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer' 
+                            : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="relative">
+                      <StepIcon className="h-5 w-5" />
+                      {isComplete && !isActive && (
+                        <CheckCircle2 className="h-3 w-3 absolute -top-1 -right-1 text-green-600" />
+                      )}
+                      {!isUnlocked && (
+                        <Lock className="h-3 w-3 absolute -top-1 -right-1 text-gray-400" />
+                      )}
+                    </div>
+                    <span className="text-xs font-medium whitespace-nowrap">{step.name}</span>
+                  </button>
+                  {index < WIZARD_STEPS.length - 1 && (
+                    <ChevronRight className={`h-4 w-4 flex-shrink-0 ${
+                      WIZARD_STEPS[index + 1].isUnlocked() ? 'text-amber-400' : 'text-gray-200'
+                    }`} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Current Step Title */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-amber-800 flex items-center gap-2">
+            {React.createElement(currentStep.icon, { className: "h-6 w-6" })}
+            {currentStep.name}
+          </h2>
+          <p className="text-muted-foreground">{currentStep.description}</p>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {lang === 'pl' ? 'Krok' : 'Шаг'} {currentStepIndex + 1} / {WIZARD_STEPS.length}
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Form */}
+        {/* Left Column - Current Step Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Customer Info */}
-          <CustomerInfoCard 
-            formData={formData} 
-            setFormData={setFormData}
-            handleInputChange={handleInputChange} 
-            txt={txt} 
-          />
+          {/* Customer Info - Always visible at top when on first step */}
+          {currentStep.id === 'model' && (
+            <CustomerInfoCard 
+              formData={formData} 
+              setFormData={setFormData}
+              handleInputChange={handleInputChange} 
+              txt={txt} 
+            />
+          )}
 
-          {/* Model Selection */}
-          <ModelSelectionCard 
-            prices={prices}
-            formData={formData}
-            handleModelChange={handleModelChange}
-            txt={txt}
-          />
+          {/* STEP: Model Selection */}
+          {currentStep.id === 'model' && (
+            <ModelSelectionCard 
+              prices={prices}
+              formData={formData}
+              handleModelChange={(modelId) => {
+                handleModelChange(modelId);
+                // Auto-advance after selection
+                setTimeout(() => setManualStep(null), 100);
+              }}
+              txt={txt}
+            />
+          )}
 
-          {/* Model Variant Selection (if model has variants) */}
-          {model?.variants?.length > 0 && (
+          {/* STEP: Variant Selection */}
+          {currentStep.id === 'variant' && model?.variants?.length > 0 && (
             <ModelVariantSelector
               model={model}
               formData={formData}
-              handleModelVariantChange={handleModelVariantChange}
+              handleModelVariantChange={(variantId) => {
+                handleModelVariantChange(variantId);
+                setTimeout(() => setManualStep(null), 100);
+              }}
               prices={prices}
               lang={lang}
               txt={txt}
             />
           )}
+          {currentStep.id === 'variant' && (!model?.variants || model?.variants?.length === 0) && (
+            <Card className="shadow-md border-amber-200">
+              <CardContent className="py-8 text-center">
+                <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                <p className="text-lg text-muted-foreground">
+                  {lang === 'pl' ? 'Ten model nie ma wariantów układu' : 'У этой модели нет вариантов планировки'}
+                </p>
+                <Button 
+                  className="mt-4 bg-amber-500 hover:bg-amber-600"
+                  onClick={() => setManualStep(null)}
+                >
+                  {lang === 'pl' ? 'Dalej' : 'Далее'} <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Option Categories */}
-          {prices.categories
-            ?.filter((category) => {
-              // Filter categories by model/variant visibility
-              const visibleFor = category.visibleForModelVariants;
-              // If no visibility restriction set, show category
-              if (!visibleFor || visibleFor.length === 0) return true;
-              
-              // Check if selected model ID matches
-              if (visibleFor.includes(selectedModel?.id)) return true;
-              
-              // If model has variants, check variant match
-              if (selectedModel?.variants?.length) {
-                // Get currently selected variant ID and object (default to first variant)
-                const currentVariantId = formData.selectedModelVariant || selectedModel.variants[0]?.id;
-                const currentVariant = selectedModel.variants.find(v => v.id === currentVariantId);
-                // Check if any of: variant ID, name, namePl (case-insensitive) matches visibleFor list
-                const variantMatches = visibleFor.some(allowedVariant => {
-                  const lowerAllowed = allowedVariant.toLowerCase();
-                  return currentVariantId === allowedVariant ||
-                         currentVariant?.name?.toLowerCase() === lowerAllowed ||
-                         currentVariant?.namePl?.toLowerCase() === lowerAllowed ||
-                         currentVariant?.id === allowedVariant;
-                });
-                if (variantMatches) return true;
-              }
-              
-              return false;
-            })
-            .map((category) => (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              filteredOptions={filterCompatibleOptions(category)}
-              formData={formData}
-              foundationPrice={foundationPrice}
-              handleRadioChange={handleRadioChange}
-              handleCheckboxChange={handleCheckboxChange}
-              handleQuantityChange={handleQuantityChange}
-              handleVariantChange={handleVariantChange}
-              handleSubOptionChange={handleSubOptionChange}
-              getCategoryName={getCategoryName}
-              getOptionBasePrice={getOptionBasePrice}
-              txt={txt}
-            />
-          ))}
+          {/* STEP: Stove, Stove Position, Benches (specific categories) */}
+          {['stove', 'stove-position', 'benches'].includes(currentStep.id) && (
+            <>
+              {(() => {
+                const category = getCategoryForStep(currentStep);
+                if (!category) {
+                  return (
+                    <Card className="shadow-md">
+                      <CardContent className="py-8 text-center">
+                        <p className="text-muted-foreground">
+                          {lang === 'pl' ? 'Kategoria nie znaleziona' : 'Категория не найдена'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+                return (
+                  <CategoryCard
+                    key={category.id}
+                    category={category}
+                    filteredOptions={filterCompatibleOptions(category)}
+                    formData={formData}
+                    foundationPrice={foundationPrice}
+                    handleRadioChange={(catId, optId) => {
+                      handleRadioChange(catId, optId);
+                      setTimeout(() => setManualStep(null), 300);
+                    }}
+                    handleCheckboxChange={handleCheckboxChange}
+                    handleQuantityChange={handleQuantityChange}
+                    handleVariantChange={handleVariantChange}
+                    handleSubOptionChange={handleSubOptionChange}
+                    getCategoryName={getCategoryName}
+                    getOptionBasePrice={getOptionBasePrice}
+                    txt={txt}
+                  />
+                );
+              })()}
+            </>
+          )}
 
-          {/* Notes */}
-          <Card className="shadow-md">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
-              <CardTitle className="text-lg text-amber-800">{txt.notes}</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <Textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleInputChange}
-                placeholder={txt.notesPlaceholder}
-                rows={4}
-              />
-            </CardContent>
-          </Card>
+          {/* STEP: Other Options (all remaining categories) */}
+          {currentStep.id === 'other' && (
+            <>
+              {otherCategories
+                .filter((category) => {
+                  const visibleFor = category.visibleForModelVariants;
+                  if (!visibleFor || visibleFor.length === 0) return true;
+                  if (visibleFor.includes(selectedModel?.id)) return true;
+                  if (selectedModel?.variants?.length) {
+                    const currentVariantId = formData.selectedModelVariant || selectedModel.variants[0]?.id;
+                    const currentVariant = selectedModel.variants.find(v => v.id === currentVariantId);
+                    const variantMatches = visibleFor.some(allowedVariant => {
+                      const lowerAllowed = allowedVariant.toLowerCase();
+                      return currentVariantId === allowedVariant ||
+                             currentVariant?.name?.toLowerCase() === lowerAllowed ||
+                             currentVariant?.namePl?.toLowerCase() === lowerAllowed;
+                    });
+                    if (variantMatches) return true;
+                  }
+                  return false;
+                })
+                .map((category) => (
+                  <CategoryCard
+                    key={category.id}
+                    category={category}
+                    filteredOptions={filterCompatibleOptions(category)}
+                    formData={formData}
+                    foundationPrice={foundationPrice}
+                    handleRadioChange={handleRadioChange}
+                    handleCheckboxChange={handleCheckboxChange}
+                    handleQuantityChange={handleQuantityChange}
+                    handleVariantChange={handleVariantChange}
+                    handleSubOptionChange={handleSubOptionChange}
+                    getCategoryName={getCategoryName}
+                    getOptionBasePrice={getOptionBasePrice}
+                    txt={txt}
+                  />
+                ))}
+              
+              {/* Notes */}
+              <Card className="shadow-md">
+                <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
+                  <CardTitle className="text-lg text-amber-800">{txt.notes}</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <Textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleInputChange}
+                    placeholder={txt.notesPlaceholder}
+                    rows={4}
+                  />
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const prevIndex = Math.max(0, currentStepIndex - 1);
+                setManualStep(WIZARD_STEPS[prevIndex].id);
+              }}
+              disabled={currentStepIndex === 0}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {lang === 'pl' ? 'Wstecz' : 'Назад'}
+            </Button>
+            
+            {currentStepIndex < WIZARD_STEPS.length - 1 ? (
+              <Button
+                onClick={() => setManualStep(null)}
+                disabled={!currentStep.isComplete()}
+                className="gap-2 bg-amber-500 hover:bg-amber-600"
+              >
+                {lang === 'pl' ? 'Dalej' : 'Далее'}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSaveAndGeneratePDF}
+                disabled={loading || !formData.fullName || !formData.selectedModel}
+                className="gap-2 bg-green-600 hover:bg-green-700"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                {txt.generatePdf}
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Right Column - Summary */}
+        {/* Right Column - Summary (always visible) */}
         <div className="lg:col-span-1">
           <SummaryCard
             model={model}
