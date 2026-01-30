@@ -5,6 +5,21 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Jan 30, 2025 - Sub-model Description in PDF & Room Sizes from Variant (COMPLETED)
+- **NEW**: Variant description (hint) now displayed in PDF's "WYMIARY POMIESZCZEŃ" section as "Co zawiera wariant:"
+- **NEW**: Calculator summary card now shows all room dimensions from selected sub-model:
+  - Liczba osób (capacity)
+  - Taras (terrace size)
+  - Pokój wyp. (relax room size)
+  - Sauna (steam room size)
+  - Wejście (entrance side)
+- **REMOVED**: Old "Размеры комнат (стандарт)" and "Размеры с доп. террасой" blocks from model editor
+- **Backend**: Updated `sauna.py` PDF generation to include variant hint with proper formatting
+- **Frontend**: Updated `useSaunaCalculator.js` - `getRoomSizes()` now prioritizes variant data
+- **Frontend**: Updated `SaunaCalculator.jsx` - SummaryCard shows all variant dimension fields
+- **Frontend**: Updated `ModelDialog.jsx` - removed deprecated room size sections, kept only variant-level sizes
+- **Tested**: PDF generation confirmed with variant description, curl test successful
+
 ### Jan 30, 2025 - FAQ Layout Variants Section & Model Gallery Images (COMPLETED)
 - **NEW**: Added "Варианты планировок" (Layout Variants) category to sauna FAQ
 - **NEW**: Structured layout variants with grouping by model size (2m, 2.5m, 3m, etc.)
