@@ -758,6 +758,45 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
               );
             })}
           </div>
+          
+          {/* Selection Preview - show what was selected in previous steps */}
+          {selectionPreview.length > 0 && currentStepIndex > 0 && (
+            <div className="mt-4 pt-4 border-t border-amber-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-amber-700">
+                  {lang === 'pl' ? 'Wybrane opcje:' : 'Выбранные опции:'}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSavedProgress}
+                  className="h-6 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  {lang === 'pl' ? 'Wyczyść' : 'Очистить'}
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectionPreview.slice(0, 5).map((item, idx) => (
+                  <div 
+                    key={idx}
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg text-xs"
+                  >
+                    <span className="font-medium text-amber-700">{item.step}:</span>
+                    <span className="text-amber-900 max-w-[120px] truncate">{item.value}</span>
+                    {item.price > 0 && (
+                      <span className="text-amber-600">+{formatPrice(item.price)}</span>
+                    )}
+                  </div>
+                ))}
+                {selectionPreview.length > 5 && (
+                  <span className="text-xs text-amber-600">
+                    +{selectionPreview.length - 5} {lang === 'pl' ? 'więcej' : 'ещё'}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
