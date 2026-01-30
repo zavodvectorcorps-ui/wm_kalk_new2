@@ -1615,6 +1615,184 @@ export const FAQView = ({ calculatorType = 'both' }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Layout Variant Dialog */}
+      <Dialog open={showLayoutVariantDialog} onOpenChange={setShowLayoutVariantDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Table2 className="h-5 w-5 text-amber-500" />
+              {editingLayoutVariant ? 'Редактировать вариант планировки' : 'Добавить вариант планировки'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Размер сауны *</Label>
+                <Select 
+                  value={newLayoutVariant.modelSize} 
+                  onValueChange={v => setNewLayoutVariant({ ...newLayoutVariant, modelSize: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['2m', '2.5m', '3m', '3.5m', '4m', '5m', '6m'].map(size => (
+                      <SelectItem key={size} value={size}>{size}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Номер варианта *</Label>
+                <Select 
+                  value={String(newLayoutVariant.variantNumber)} 
+                  onValueChange={v => setNewLayoutVariant({ ...newLayoutVariant, variantNumber: parseInt(v) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map(num => (
+                      <SelectItem key={num} value={String(num)}>Вариант {num}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Название (RU)</Label>
+                <Input
+                  value={newLayoutVariant.variantName}
+                  onChange={e => setNewLayoutVariant({ ...newLayoutVariant, variantName: e.target.value })}
+                  placeholder="Стандарт / Увеличенная парная"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Название (PL)</Label>
+                <Input
+                  value={newLayoutVariant.variantNamePl}
+                  onChange={e => setNewLayoutVariant({ ...newLayoutVariant, variantNamePl: e.target.value })}
+                  placeholder="Standard / Powiększona sauna"
+                />
+              </div>
+            </div>
+
+            {/* Image upload */}
+            <div className="space-y-2">
+              <Label>Фотография планировки</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newLayoutVariant.imageUrl}
+                  onChange={e => setNewLayoutVariant({ ...newLayoutVariant, imageUrl: e.target.value })}
+                  placeholder="URL изображения"
+                  className="flex-1"
+                />
+                <label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      try {
+                        const response = await axios.post(`${API_URL}/api/upload/image`, formData);
+                        setNewLayoutVariant({ ...newLayoutVariant, imageUrl: `${API_URL}${response.data.url}` });
+                      } catch (error) {
+                        toast.error('Ошибка загрузки');
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                  <Button type="button" variant="outline" asChild>
+                    <span><Upload className="h-4 w-4 mr-1" /> Загрузить</span>
+                  </Button>
+                </label>
+              </div>
+              {newLayoutVariant.imageUrl && (
+                <img 
+                  src={newLayoutVariant.imageUrl} 
+                  alt="Preview" 
+                  className="mt-2 max-h-48 object-contain rounded border"
+                />
+              )}
+            </div>
+
+            {/* Room sizes */}
+            <div className="border-t pt-4 mt-4">
+              <Label className="text-amber-700 font-medium mb-3 block">Размеры помещений</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-green-600">Терраса</Label>
+                  <Input
+                    value={newLayoutVariant.terraceSize}
+                    onChange={e => setNewLayoutVariant({ ...newLayoutVariant, terraceSize: e.target.value })}
+                    placeholder="95 см"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-blue-600">Комната отдыха</Label>
+                  <Input
+                    value={newLayoutVariant.relaxRoomSize}
+                    onChange={e => setNewLayoutVariant({ ...newLayoutVariant, relaxRoomSize: e.target.value })}
+                    placeholder="175 см"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-orange-600">Парная</Label>
+                  <Input
+                    value={newLayoutVariant.steamRoomSize}
+                    onChange={e => setNewLayoutVariant({ ...newLayoutVariant, steamRoomSize: e.target.value })}
+                    placeholder="200 см или 'стандарт'"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-purple-600">Тип входа</Label>
+                  <Input
+                    value={newLayoutVariant.entranceType}
+                    onChange={e => setNewLayoutVariant({ ...newLayoutVariant, entranceType: e.target.value })}
+                    placeholder="Прямой / Боковой"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label>Описание (RU)</Label>
+              <Textarea
+                value={newLayoutVariant.description}
+                onChange={e => setNewLayoutVariant({ ...newLayoutVariant, description: e.target.value })}
+                placeholder="Подробное описание варианта планировки..."
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Описание (PL)</Label>
+              <Textarea
+                value={newLayoutVariant.descriptionPl}
+                onChange={e => setNewLayoutVariant({ ...newLayoutVariant, descriptionPl: e.target.value })}
+                placeholder="Opis wariantu planowania..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLayoutVariantDialog(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleSaveLayoutVariant} className="bg-amber-600 hover:bg-amber-700">
+              <Save className="h-4 w-4 mr-2" />
+              {editingLayoutVariant ? 'Сохранить' : 'Добавить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
