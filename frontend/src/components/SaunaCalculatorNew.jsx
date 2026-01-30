@@ -266,7 +266,10 @@ const CategoryHint = ({ category }) => {
   );
 };
 
-export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPrefill = null, onAmocrmPrefillUsed = null }) => {
+// NEW EXPERIMENTAL CALCULATOR - Copy for improvements
+// Original calculator remains at SaunaCalculator.jsx
+
+export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrmPrefill = null, onAmocrmPrefillUsed = null }) => {
   const {
     loading, initialLoading, prices, formData, appliedDiscount,
     isEditMode, editOrderId, adminGifts, adminDiscountApproved,
