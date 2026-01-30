@@ -1724,12 +1724,16 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 ]]
                 for variant in model_variants:
                     v_name = variant.get('namePl') or variant.get('name', '')
+                    relax = variant.get('relaxRoomSize', '')
+                    steam = variant.get('steamRoomSize', '')
+                    terrace = variant.get('terraceSize', '')
+                    entrance = variant.get('entranceSide', '')
                     comparison_data.append([
                         Paragraph(v_name, ParagraphStyle('CompCell', fontName='DejaVuSans-Bold', fontSize=8, textColor=BROWN_DARK)),
-                        Paragraph(variant.get('relaxRoomSize', '-'), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
-                        Paragraph(variant.get('steamRoomSize', '-'), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
-                        Paragraph(variant.get('terraceSize', '-'), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
-                        Paragraph(variant.get('entranceSide', '-'), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                        Paragraph(relax if relax and relax != '0' else '-', ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                        Paragraph(steam if steam and steam != '0' else '-', ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                        Paragraph(terrace if terrace and terrace != '0' else '-', ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                        Paragraph(entrance if entrance else '-', ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
                     ])
                 
                 comp_table = Table(comparison_data, colWidths=[130, 100, 100, 100, 100])
