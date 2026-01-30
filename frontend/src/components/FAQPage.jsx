@@ -385,6 +385,9 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     if (activeTab === 'content') {
       fetchContentFolders();
     }
+    if (activeTab === 'layout_variants') {
+      fetchLayoutVariants();
+    }
   }, [activeTab, calculatorType]);
 
   const fetchItems = async () => {
@@ -406,6 +409,74 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     } catch (error) {
       console.error('Error fetching objections:', error);
     }
+  };
+
+  // Layout variants functions
+  const fetchLayoutVariants = async () => {
+    setLoadingLayoutVariants(true);
+    try {
+      const response = await axios.get(`${API_URL}/api/faq/layout-variants/grouped`);
+      setLayoutVariants(response.data);
+    } catch (error) {
+      console.error('Error fetching layout variants:', error);
+    } finally {
+      setLoadingLayoutVariants(false);
+    }
+  };
+
+  const handleSaveLayoutVariant = async () => {
+    try {
+      if (editingLayoutVariant) {
+        await axios.put(`${API_URL}/api/faq/layout-variants/${editingLayoutVariant.id}`, newLayoutVariant);
+        toast.success('Вариант планировки обновлён');
+      } else {
+        await axios.post(`${API_URL}/api/faq/layout-variants`, newLayoutVariant);
+        toast.success('Вариант планировки добавлен');
+      }
+      setShowLayoutVariantDialog(false);
+      setEditingLayoutVariant(null);
+      setNewLayoutVariant({
+        modelSize: '2m',
+        variantNumber: 1,
+        variantName: '',
+        variantNamePl: '',
+        description: '',
+        descriptionPl: '',
+        imageUrl: '',
+        terraceSize: '',
+        relaxRoomSize: '',
+        steamRoomSize: '',
+        entranceType: ''
+      });
+      fetchLayoutVariants();
+    } catch (error) {
+      console.error('Error saving layout variant:', error);
+      toast.error('Ошибка сохранения');
+    }
+  };
+
+  const handleDeleteLayoutVariant = async (variantId) => {
+    if (!confirm('Удалить этот вариант планировки?')) return;
+    try {
+      await axios.delete(`${API_URL}/api/faq/layout-variants/${variantId}`);
+      toast.success('Вариант удалён');
+      fetchLayoutVariants();
+    } catch (error) {
+      console.error('Error deleting layout variant:', error);
+      toast.error('Ошибка удаления');
+    }
+  };
+
+  const toggleModelExpand = (modelSize) => {
+    setExpandedModels(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(modelSize)) {
+        newSet.delete(modelSize);
+      } else {
+        newSet.add(modelSize);
+      }
+      return newSet;
+    });
   };
 
   // Answer objection (admin)
