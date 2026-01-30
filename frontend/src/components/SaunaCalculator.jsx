@@ -754,8 +754,10 @@ const ModelVariantSelector = ({ model, formData, handleModelVariantChange, price
   // Get selected variant or default to first
   const selectedVariantId = formData.selectedModelVariant || variants[0]?.id;
   
-  // Get comparison table data
-  const comparisonRows = prices?.variantComparisonRows || [];
+  // Check if variants have room size data for comparison table
+  const hasComparisonData = variants.some(v => 
+    v.relaxRoomSize || v.steamRoomSize || v.terraceSize || v.entranceSide
+  );
   
   return (
     <Card className="shadow-md border-purple-200">
@@ -766,29 +768,59 @@ const ModelVariantSelector = ({ model, formData, handleModelVariantChange, price
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
-        {/* Comparison Table */}
-        {comparisonRows.length > 0 && (
+        {/* Comparison Table - generated from variant room sizes */}
+        {hasComparisonData && variants.length > 1 && (
           <div className="mb-6 overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-purple-100">
                   <th className="text-left p-2 border border-purple-200 font-medium text-purple-800">
-                    {lang === 'pl' ? 'Różnice modeli' : 'Отличия моделей'}
+                    {lang === 'pl' ? 'Wariant' : 'Вариант'}
                   </th>
-                  <th className="text-center p-2 border border-purple-200 font-medium text-purple-800">Standard</th>
-                  <th className="text-center p-2 border border-purple-200 font-medium text-purple-800">Plus</th>
+                  <th className="text-center p-2 border border-purple-200 font-medium text-purple-800">
+                    {lang === 'pl' ? 'Pokój wyp.' : 'К. отдыха'}
+                  </th>
+                  <th className="text-center p-2 border border-purple-200 font-medium text-purple-800">
+                    {lang === 'pl' ? 'Sauna' : 'Парная'}
+                  </th>
+                  <th className="text-center p-2 border border-purple-200 font-medium text-purple-800">
+                    {lang === 'pl' ? 'Taras' : 'Терраса'}
+                  </th>
+                  <th className="text-center p-2 border border-purple-200 font-medium text-purple-800">
+                    {lang === 'pl' ? 'Wejście' : 'Вход'}
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {comparisonRows.map((row, index) => (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-purple-50/50'}>
-                    <td className="p-2 border border-purple-200 text-gray-700">
-                      {lang === 'pl' ? row.option : (row.optionRu || row.option)}
-                    </td>
-                    <td className="p-2 border border-purple-200 text-center text-gray-600">{row.standard}</td>
-                    <td className="p-2 border border-purple-200 text-center text-gray-600">{row.plus}</td>
-                  </tr>
-                ))}
+                {variants.map((variant, index) => {
+                  const variantName = lang === 'pl' 
+                    ? (variant.namePl || variant.name) 
+                    : (variant.nameRu || variant.name);
+                  const isSelected = selectedVariantId === variant.id;
+                  return (
+                    <tr 
+                      key={variant.id} 
+                      className={`${isSelected ? 'bg-purple-100' : index % 2 === 0 ? 'bg-white' : 'bg-purple-50/50'} cursor-pointer hover:bg-purple-100/70`}
+                      onClick={() => handleModelVariantChange(variant.id)}
+                    >
+                      <td className={`p-2 border border-purple-200 font-medium ${isSelected ? 'text-purple-800' : 'text-gray-700'}`}>
+                        {variantName || `Вариант ${index + 1}`}
+                      </td>
+                      <td className="p-2 border border-purple-200 text-center text-gray-600">
+                        {variant.relaxRoomSize || '-'}
+                      </td>
+                      <td className="p-2 border border-purple-200 text-center text-gray-600">
+                        {variant.steamRoomSize || '-'}
+                      </td>
+                      <td className="p-2 border border-purple-200 text-center text-gray-600">
+                        {variant.terraceSize || '-'}
+                      </td>
+                      <td className="p-2 border border-purple-200 text-center text-gray-600">
+                        {variant.entranceSide || '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
