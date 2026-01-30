@@ -76,6 +76,21 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
     }
   };
   
+  // Duplicate variant
+  const handleDuplicateVariant = (index) => {
+    const variantToDuplicate = variants[index];
+    const newVariant = {
+      ...variantToDuplicate,
+      id: `variant-${Date.now()}`,
+      name: variantToDuplicate.name ? `${variantToDuplicate.name} (копия)` : '',
+      namePl: variantToDuplicate.namePl ? `${variantToDuplicate.namePl} (kopia)` : '',
+      nameRu: variantToDuplicate.nameRu ? `${variantToDuplicate.nameRu} (копия)` : '',
+    };
+    const newVariants = [...variants];
+    newVariants.splice(index + 1, 0, newVariant);
+    onChange(newVariants);
+  };
+  
   return (
     <div className="border-t pt-4 mt-4">
       <div className="flex items-center justify-between mb-3">
