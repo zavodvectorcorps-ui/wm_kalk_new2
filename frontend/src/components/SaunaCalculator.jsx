@@ -1503,40 +1503,22 @@ const SummaryCard = ({
               </div>
             )}
             <div className="text-amber-700 font-bold">{formatPrice(modelPrice)} PLN</div>
-            {/* Room sizes from selected variant */}
-            {(roomSizes?.relaxRoomSize || roomSizes?.steamRoomSize || roomSizes?.terraceSize || roomSizes?.entranceSide || roomSizes?.capacity) && (
+            {/* Room sizes */}
+            {(roomSizes?.relaxRoomSize || roomSizes?.steamRoomSize) && (
               <div className="mt-2 pt-2 border-t border-amber-200 text-xs space-y-1">
-                {roomSizes.capacity && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Liczba osób:</span>
-                    <span className="font-medium text-amber-800">{roomSizes.capacity}</span>
-                  </div>
-                )}
-                {roomSizes.terraceSize && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Taras:</span>
-                    <span className="font-medium text-amber-800">{roomSizes.terraceSize}</span>
-                  </div>
-                )}
                 {roomSizes.relaxRoomSize && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Pokój wyp.:</span>
+                    <span className="text-muted-foreground">Przebieralnia:</span>
                     <span className="font-medium text-amber-800">{roomSizes.relaxRoomSize}</span>
                   </div>
                 )}
                 {roomSizes.steamRoomSize && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sauna:</span>
+                    <span className="text-muted-foreground">Łaźnia:</span>
                     <span className="font-medium text-amber-800">{roomSizes.steamRoomSize}</span>
                   </div>
                 )}
-                {roomSizes.entranceSide && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Wejście:</span>
-                    <span className="font-medium text-amber-800">{roomSizes.entranceSide}</span>
-                  </div>
-                )}
-                {roomSizes.hasTerrace && !roomSizes.terraceSize && (
+                {roomSizes.hasTerrace && (
                   <div className="text-xs text-green-600 mt-1">
                     ✓ Z dodatkowym tarasem
                   </div>
