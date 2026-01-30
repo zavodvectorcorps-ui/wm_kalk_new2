@@ -118,15 +118,28 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
             <div key={variant.id || index} className="border rounded-lg p-3 bg-purple-50 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-purple-800">Вариант {index + 1}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemoveVariant(index)}
-                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDuplicateVariant(index)}
+                    className="h-7 w-7 p-0 text-purple-500 hover:text-purple-700 hover:bg-purple-100"
+                    title="Дублировать вариант"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveVariant(index)}
+                    className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                    title="Удалить вариант"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
