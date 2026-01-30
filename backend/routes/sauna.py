@@ -1773,35 +1773,45 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 
                 variant_cards.append(card_elements)
             
-            # Create side-by-side table for variant cards
-            if len(variant_cards) == 2:
-                card_table_data = [[
-                    Table([[el] for el in variant_cards[0]], colWidths=[240]),
-                    Table([[el] for el in variant_cards[1]], colWidths=[240])
-                ]]
-            elif len(variant_cards) == 1:
-                card_table_data = [[
-                    Table([[el] for el in variant_cards[0]], colWidths=[260]),
-                    ''
-                ]]
-            else:
-                card_table_data = []
-            
-            if card_table_data:
-                cards_table = Table(card_table_data, colWidths=[260, 260])
-                cards_table.setStyle(TableStyle([
-                    ('BOX', (0, 0), (0, 0), 1, BROWN_BORDER),
-                    ('BOX', (1, 0), (1, 0), 1, BROWN_BORDER),
-                    ('BACKGROUND', (0, 0), (0, 0), BROWN_LIGHT),
-                    ('BACKGROUND', (1, 0), (1, 0), BROWN_LIGHT),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('TOPPADDING', (0, 0), (-1, -1), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                ]))
-                elements.append(cards_table)
-                elements.append(Spacer(1, 20))
+            # Create grid layout for variant cards (2 or 3 per row)
+            if variant_cards:
+                num_variants = len(variant_cards)
+                if num_variants <= 2:
+                    cols = 2
+                    col_width = 260
+                else:
+                    cols = 3
+                    col_width = 170
+                
+                # Build rows of cards
+                card_rows = []
+                for i in range(0, num_variants, cols):
+                    row = []
+                    for j in range(cols):
+                        if i + j < num_variants:
+                            row.append(Table([[el] for el in variant_cards[i + j]], colWidths=[col_width - 20]))
+                        else:
+                            row.append('')
+                    card_rows.append(row)
+                
+                if card_rows:
+                    cards_table = Table(card_rows, colWidths=[col_width] * cols)
+                    card_style = [
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('TOPPADDING', (0, 0), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                    ]
+                    # Add borders and backgrounds for each card
+                    for row_idx in range(len(card_rows)):
+                        for col_idx in range(cols):
+                            if row_idx * cols + col_idx < num_variants:
+                                card_style.append(('BOX', (col_idx, row_idx), (col_idx, row_idx), 1, BROWN_BORDER))
+                                card_style.append(('BACKGROUND', (col_idx, row_idx), (col_idx, row_idx), BROWN_LIGHT))
+                    cards_table.setStyle(TableStyle(card_style))
+                    elements.append(cards_table)
+                    elements.append(Spacer(1, 20))
         
         # ===== SECTION 2: Plus-only categories (List format) =====
         if plus_only_categories and page2_show_plus_cats:
