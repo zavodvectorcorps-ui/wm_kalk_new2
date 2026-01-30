@@ -745,13 +745,13 @@ export const FAQView = ({ calculatorType = 'both' }) => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           {Object.entries(CATEGORY_LABELS).map(([key, { label, icon: Icon }]) => (
-            <TabsTrigger key={key} value={key} className="flex items-center gap-2">
+            <TabsTrigger key={key} value={key} className="flex items-center gap-2 text-xs sm:text-sm px-1 sm:px-3">
               <Icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{label}</span>
+              <span className="hidden md:inline">{label}</span>
               {key === 'objections' && objections.length > 0 && (
-                <Badge variant="secondary" className="ml-1 hidden sm:inline">{objections.length}</Badge>
+                <Badge variant="secondary" className="ml-1 hidden md:inline">{objections.length}</Badge>
               )}
             </TabsTrigger>
           ))}
