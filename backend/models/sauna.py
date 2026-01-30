@@ -40,6 +40,8 @@ class SaunaModel(BaseModel):
     steamRoomSizeWithTerrace: Optional[str] = None
     # Model variants (sub-models) with different prices and images
     variants: Optional[List[SaunaModelVariant]] = []
+    # Gallery images - multiple photos for this model
+    galleryImages: Optional[List[str]] = []
 
 
 class OptionVariant(BaseModel):
