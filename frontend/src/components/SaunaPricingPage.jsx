@@ -365,6 +365,10 @@ export const SaunaPricingPage = () => {
           />
         </TabsContent>
 
+        <TabsContent value="wizard">
+          <WizardStepsAdmin lang={lang} />
+        </TabsContent>
+
         <TabsContent value="techspec">
           <TechSpecAdminPage projectType="sauna" />
         </TabsContent>
