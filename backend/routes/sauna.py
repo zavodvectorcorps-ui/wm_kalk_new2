@@ -1432,21 +1432,20 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ]))
                 elements.append(room_table_full)
-            
-            # Add variant description (hint) below the room sizes
-            if variant_hint:
-                elements.append(Spacer(1, 6))
-                hint_style = ParagraphStyle(
-                    'VariantHint',
-                    fontName='DejaVuSans',
-                    fontSize=9,
-                    textColor=TEXT_COLOR,
-                    leading=12,
-                    spaceAfter=4
-                )
-                # Process multiline hint - convert newlines to <br/>
-                hint_html = variant_hint.replace('\n', '<br/>')
-                elements.append(Paragraph(f'<b>Co zawiera wariant:</b><br/>{hint_html}', hint_style))
+                
+                # Add variant description (hint) below room sizes table (no image case)
+                if variant_hint:
+                    elements.append(Spacer(1, 6))
+                    hint_style = ParagraphStyle(
+                        'VariantHint',
+                        fontName='DejaVuSans',
+                        fontSize=9,
+                        textColor=TEXT_COLOR,
+                        leading=12,
+                        spaceAfter=4
+                    )
+                    hint_html = variant_hint.replace('\n', '<br/>')
+                    elements.append(Paragraph(f'<b>Co zawiera wariant:</b><br/>{hint_html}', hint_style))
             
             elements.append(Spacer(1, 8))
     
