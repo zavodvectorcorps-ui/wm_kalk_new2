@@ -287,6 +287,127 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
   // Get selected model
   const selectedModel = prices.models?.find(m => m.id === formData.selectedModel);
 
+  // ============ WIZARD CONFIGURATION ============
+  // Define step-by-step flow with category mappings
+  const WIZARD_STEPS = useMemo(() => [
+    { 
+      id: 'model', 
+      name: lang === 'pl' ? 'Model' : 'Модель',
+      icon: Home,
+      description: lang === 'pl' ? 'Wybierz model sauny' : 'Выберите модель сауны',
+      isComplete: () => !!formData.selectedModel,
+      isUnlocked: () => true, // Always available
+    },
+    { 
+      id: 'variant', 
+      name: lang === 'pl' ? 'Wariant' : 'Вариант планировки',
+      icon: LayoutGrid,
+      description: lang === 'pl' ? 'Wybierz wariant układu' : 'Выберите вариант планировки',
+      isComplete: () => !!formData.selectedModelVariant || (selectedModel?.variants?.length === 0),
+      isUnlocked: () => !!formData.selectedModel,
+    },
+    { 
+      id: 'stove', 
+      name: lang === 'pl' ? 'Piec' : 'Печь',
+      icon: Flame,
+      categoryNames: ['Piece', 'piece', 'piec'],
+      description: lang === 'pl' ? 'Wybierz rodzaj pieca' : 'Выберите тип печи',
+      isComplete: () => {
+        const stoveCat = prices.categories?.find(c => 
+          ['Piece', 'piece', 'piec'].some(n => c.name?.toLowerCase().includes(n.toLowerCase()))
+        );
+        return stoveCat ? !!formData.selections[stoveCat.id] : true;
+      },
+      isUnlocked: () => !!formData.selectedModel && (!!formData.selectedModelVariant || selectedModel?.variants?.length === 0),
+    },
+    { 
+      id: 'stove-position', 
+      name: lang === 'pl' ? 'Strona pieca' : 'Расположение печи',
+      icon: ArrowRight,
+      categoryNames: ['Strona Pieca', 'strona pieca', 'pozycja pieca'],
+      description: lang === 'pl' ? 'Wybierz stronę pieca' : 'Выберите сторону печи',
+      isComplete: () => {
+        const posCat = prices.categories?.find(c => 
+          c.name?.toLowerCase().includes('strona pieca')
+        );
+        return posCat ? !!formData.selections[posCat.id] : true;
+      },
+      isUnlocked: () => {
+        const stoveCat = prices.categories?.find(c => 
+          ['Piece', 'piece', 'piec'].some(n => c.name?.toLowerCase().includes(n.toLowerCase()))
+        );
+        return stoveCat ? !!formData.selections[stoveCat.id] : true;
+      },
+    },
+    { 
+      id: 'benches', 
+      name: lang === 'pl' ? 'Ławki' : 'Лавки',
+      icon: Sofa,
+      categoryNames: ['Ławki', 'lawki', 'ławka'],
+      description: lang === 'pl' ? 'Wybierz rodzaj ławek' : 'Выберите тип лавок',
+      isComplete: () => {
+        const benchCat = prices.categories?.find(c => 
+          c.name?.toLowerCase().includes('ławki') || c.name?.toLowerCase().includes('lawki')
+        );
+        return benchCat ? !!formData.selections[benchCat.id] : true;
+      },
+      isUnlocked: () => {
+        const posCat = prices.categories?.find(c => 
+          c.name?.toLowerCase().includes('strona pieca')
+        );
+        return posCat ? !!formData.selections[posCat.id] : true;
+      },
+    },
+    { 
+      id: 'other', 
+      name: lang === 'pl' ? 'Dodatkowe opcje' : 'Доп. опции',
+      icon: Package,
+      description: lang === 'pl' ? 'Wybierz dodatkowe opcje' : 'Выберите дополнительные опции',
+      isComplete: () => true, // Optional step
+      isUnlocked: () => {
+        const benchCat = prices.categories?.find(c => 
+          c.name?.toLowerCase().includes('ławki') || c.name?.toLowerCase().includes('lawki')
+        );
+        return benchCat ? !!formData.selections[benchCat.id] : true;
+      },
+    },
+  ], [formData, selectedModel, prices.categories, lang]);
+
+  // Current active step (auto-advance to first incomplete unlocked step)
+  const [manualStep, setManualStep] = useState(null);
+  
+  const currentStepIndex = useMemo(() => {
+    if (manualStep !== null) {
+      const idx = WIZARD_STEPS.findIndex(s => s.id === manualStep);
+      if (idx >= 0 && WIZARD_STEPS[idx].isUnlocked()) return idx;
+    }
+    // Auto-advance to first incomplete unlocked step
+    for (let i = 0; i < WIZARD_STEPS.length; i++) {
+      if (WIZARD_STEPS[i].isUnlocked() && !WIZARD_STEPS[i].isComplete()) {
+        return i;
+      }
+    }
+    return WIZARD_STEPS.length - 1; // All complete, show last step
+  }, [WIZARD_STEPS, manualStep]);
+
+  const currentStep = WIZARD_STEPS[currentStepIndex];
+
+  // Helper to get category by step
+  const getCategoryForStep = (step) => {
+    if (!step.categoryNames) return null;
+    return prices.categories?.find(c => 
+      step.categoryNames.some(n => c.name?.toLowerCase().includes(n.toLowerCase()))
+    );
+  };
+
+  // Categories NOT in wizard steps (for "other" step)
+  const wizardCategoryNames = WIZARD_STEPS.flatMap(s => s.categoryNames || []);
+  const otherCategories = prices.categories?.filter(c => 
+    !wizardCategoryNames.some(n => c.name?.toLowerCase().includes(n.toLowerCase()))
+  ) || [];
+
+  // ============ END WIZARD CONFIGURATION ============
+
   // Function to filter options based on incompatibility settings (inverted logic)
   // Options are shown by default, hidden only when incompatibility rules match
   const filterCompatibleOptions = (category) => {
