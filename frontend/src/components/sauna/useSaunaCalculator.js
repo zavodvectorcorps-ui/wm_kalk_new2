@@ -254,25 +254,12 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return tarasSelection === 'taras_zewnetrzny';
   }, [formData.selections]);
 
-  // Get room sizes based on selected variant or model
+  // Get room sizes based on terrace selection
   const getRoomSizes = useCallback(() => {
     const model = getSelectedModel();
     if (!model) return { relaxRoomSize: null, steamRoomSize: null };
     
-    const variant = getSelectedModelVariant();
     const hasTerrace = isTerraceSelected();
-    
-    // Priority: variant data > model data with terrace > model data without terrace
-    if (variant) {
-      return {
-        relaxRoomSize: variant.relaxRoomSize || null,
-        steamRoomSize: variant.steamRoomSize || null,
-        terraceSize: variant.terraceSize || null,
-        entranceSide: variant.entranceSide || null,
-        capacity: variant.capacity || model.capacity || null,
-        hasTerrace: !!variant.terraceSize
-      };
-    }
     
     return {
       relaxRoomSize: hasTerrace && model.relaxRoomSizeWithTerrace 
@@ -283,7 +270,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         : model.steamRoomSize,
       hasTerrace
     };
-  }, [getSelectedModel, getSelectedModelVariant, isTerraceSelected]);
+  }, [getSelectedModel, isTerraceSelected]);
 
   // Check if option is visible based on incompatibility rules
   // Returns true if option should be visible/included, false if hidden
