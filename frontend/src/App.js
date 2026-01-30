@@ -437,6 +437,10 @@ const AppContent = () => {
           <Suspense fallback={<PageLoader />}>
             <TrainingPage user={user} />
           </Suspense>
+        ) : activeTab === 'calculator-new' ? (
+          <Suspense fallback={<PageLoader />}>
+            <SaunaCalculatorNew editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} amocrmPrefill={amocrmPrefill} onAmocrmPrefillUsed={() => setAmocrmPrefill(null)} />
+          </Suspense>
         ) : (
           <Suspense fallback={<PageLoader />}>
             <SaunaCalculator editingOrder={editingOrder} onEditComplete={() => setEditingOrder(null)} amocrmPrefill={amocrmPrefill} onAmocrmPrefillUsed={() => setAmocrmPrefill(null)} />
