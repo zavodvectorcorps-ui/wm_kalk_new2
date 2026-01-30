@@ -506,6 +506,12 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
           urlPlaceholder={txt.imageUrlHint}
           themeColor="amber"
         />
+        
+        {/* Gallery Images */}
+        <GalleryImagesEditor
+          images={newModel.galleryImages || []}
+          onChange={(images) => setNewModel(prev => ({ ...prev, galleryImages: images }))}
+        />
       </div>
       <DialogFooter>
         <DialogClose asChild>
