@@ -273,6 +273,17 @@ export const Header = ({
                   <Calculator className="h-4 w-4" />
                   {t('calculator')}
                 </Button>
+                {calculatorType === 'sauna' && isAdminAuthenticated && (
+                  <Button
+                    variant={activeTab === 'calculator-new' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleTabChange('calculator-new')}
+                    className="w-full justify-start gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
+                  >
+                    <Calculator className="h-4 w-4" />
+                    NEW ✨
+                  </Button>
+                )}
                 <Button
                   variant={activeTab === 'orders' ? 'default' : 'ghost'}
                   size="sm"
