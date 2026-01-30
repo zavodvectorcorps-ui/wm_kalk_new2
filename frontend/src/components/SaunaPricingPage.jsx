@@ -183,36 +183,18 @@ export const SaunaPricingPage = () => {
             </p>
           </div>
 
-          {/* Variant Comparison Table Editor */}
+          {/* Info about comparison table */}
           <div className="pt-4 border-t border-amber-200">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-amber-800 font-medium">
-                <Table className="h-4 w-4" />
-                Таблица сравнения вариантов
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const newRow = { option: '', optionRu: '', standard: '', plus: '' };
-                  const currentRows = prices.variantComparisonRows || [];
-                  handleUpdateVariantComparison([...currentRows, newRow]);
-                }}
-                className="h-7 text-xs border-amber-400 text-amber-700 hover:bg-amber-100"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Добавить строку
-              </Button>
+            <div className="flex items-center gap-2 text-amber-800 font-medium mb-2">
+              <Table className="h-4 w-4" />
+              Таблица сравнения вариантов
             </div>
-            
-            {/* Comparison table header */}
-            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_40px] gap-2 mb-2 text-xs font-medium text-amber-700">
-              <span>Опция (PL)</span>
-              <span>Опция (RU)</span>
-              <span>Standard</span>
-              <span>Plus</span>
-              <span></span>
+            <p className="text-xs text-muted-foreground bg-amber-50 p-3 rounded-lg">
+              📊 Таблица сравнения вариантов теперь генерируется автоматически из данных под-моделей. 
+              Добавьте размеры помещений (Taras, Pokój wypoczynkowy, Sauna parowa, Strona wejścia) 
+              в каждый вариант модели на вкладке "Modele".
+            </p>
+          </div>
             </div>
             
             {/* Comparison table rows */}
