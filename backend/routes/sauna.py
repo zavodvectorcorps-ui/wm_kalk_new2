@@ -1915,25 +1915,52 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             opt = cat_opts[i + j]
                             opt_name = opt.get('name', '')
                             opt_image = opt.get('imageUrl', '')
+                            opt_price = opt.get('price', 0)
+                            opt_hint = opt.get('hint', '')
                             
                             # Load image (65x50 for options catalog)
                             opt_img = await load_card_image(opt_image, 65, 50)
                             
+                            # Build text content: name, price, description
+                            name_style = ParagraphStyle('ListOptName2', fontName='DejaVuSans-Bold', fontSize=9, textColor=TEXT_COLOR, leading=11)
+                            price_style = ParagraphStyle('ListOptPrice', fontName='DejaVuSans-Bold', fontSize=8, textColor=BROWN, leading=10)
+                            hint_style = ParagraphStyle('ListOptHint', fontName='DejaVuSans', fontSize=7, textColor=MUTED, leading=9)
+                            
+                            # Create text elements
+                            text_elements = [[Paragraph(opt_name, name_style)]]
+                            if opt_price:
+                                text_elements.append([Paragraph(f'{opt_price:,} PLN'.replace(',', ' '), price_style)])
+                            if opt_hint:
+                                # Truncate long hints
+                                hint_short = opt_hint[:80] + '...' if len(opt_hint) > 80 else opt_hint
+                                text_elements.append([Paragraph(hint_short, hint_style)])
+                            
+                            text_table = Table(text_elements, colWidths=[175])
+                            text_table.setStyle(TableStyle([
+                                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                            ]))
+                            
                             # Create cell with image on left, text on right
                             if opt_img:
                                 cell_table = Table(
-                                    [[opt_img, Paragraph(opt_name, ParagraphStyle('ListOptName2', fontName='DejaVuSans', fontSize=10, textColor=TEXT_COLOR, leading=12))]],
+                                    [[opt_img, text_table]],
                                     colWidths=[70, 180]
                                 )
                                 cell_table.setStyle(TableStyle([
-                                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                                     ('LEFTPADDING', (0, 0), (-1, -1), 0),
                                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                                 ]))
                                 row_cells.append(cell_table)
                             else:
-                                # No image - just text with bullet (BIGGER font)
-                                row_cells.append(Paragraph(f'• {opt_name}', ParagraphStyle('ListOptNameBullet', fontName='DejaVuSans', fontSize=10, textColor=TEXT_COLOR, leading=12)))
+                                # No image - just text with bullet
+                                text_with_price = f'• {opt_name}'
+                                if opt_price:
+                                    text_with_price += f' - {opt_price:,} PLN'.replace(',', ' ')
+                                row_cells.append(Paragraph(text_with_price, ParagraphStyle('ListOptNameBullet', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, leading=11)))
                         else:
                             row_cells.append('')
                     
