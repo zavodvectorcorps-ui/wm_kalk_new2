@@ -118,6 +118,26 @@ class SaunaVariantComparisonRow(BaseModel):
     plus: str  # Value for Plus variant
 
 
+class SaunaLayoutVariant(BaseModel):
+    """Layout variant for a specific sauna size - used in FAQ section."""
+    model_config = ConfigDict(extra="allow")
+    
+    id: Optional[str] = None
+    modelSize: str  # "2m", "2.5m", "3m", "3.5m", "4m", "5m", "6m"
+    variantNumber: int = 1  # 1, 2, 3
+    variantName: str = ""  # "Стандарт", "Увеличенная парная", "Экстра терраса"
+    variantNamePl: str = ""  # Polish name
+    description: str = ""  # Description in Russian
+    descriptionPl: str = ""  # Description in Polish
+    imageUrl: str = ""  # Photo of layout
+    terraceSize: Optional[str] = None  # e.g., "95 cm"
+    relaxRoomSize: Optional[str] = None  # e.g., "175 cm"
+    steamRoomSize: Optional[str] = None  # e.g., "парная"
+    entranceType: Optional[str] = None  # "Прямой", "Боковой", "П или Б"
+    sortOrder: int = 0
+    isActive: bool = True
+
+
 class SaunaPriceData(BaseModel):
     models: List[SaunaModel] = []
     categories: List[SaunaCategory] = []
