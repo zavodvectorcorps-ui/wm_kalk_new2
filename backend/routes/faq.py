@@ -979,3 +979,138 @@ PDF генерируется заново с актуальными данным
             created_count += 1
     
     return {"status": "ok", "created_count": created_count}
+
+
+# ============ SAUNA LAYOUT VARIANTS ============
+# Separate collection for structured layout variants with images
+
+layout_variants_collection = db["sauna_layout_variants"]
+
+
+class LayoutVariantCreate(BaseModel):
+    modelSize: str  # "2m", "2.5m", "3m", etc.
+    variantNumber: int = 1
+    variantName: str = ""
+    variantNamePl: str = ""
+    description: str = ""
+    descriptionPl: str = ""
+    imageUrl: str = ""
+    terraceSize: Optional[str] = None
+    relaxRoomSize: Optional[str] = None
+    steamRoomSize: Optional[str] = None
+    entranceType: Optional[str] = None
+    sortOrder: int = 0
+    isActive: bool = True
+
+
+class LayoutVariantUpdate(BaseModel):
+    modelSize: Optional[str] = None
+    variantNumber: Optional[int] = None
+    variantName: Optional[str] = None
+    variantNamePl: Optional[str] = None
+    description: Optional[str] = None
+    descriptionPl: Optional[str] = None
+    imageUrl: Optional[str] = None
+    terraceSize: Optional[str] = None
+    relaxRoomSize: Optional[str] = None
+    steamRoomSize: Optional[str] = None
+    entranceType: Optional[str] = None
+    sortOrder: Optional[int] = None
+    isActive: Optional[bool] = None
+
+
+@router.get("/layout-variants")
+async def get_layout_variants(model_size: Optional[str] = None, include_inactive: bool = False):
+    """Get all layout variants, optionally filtered by model size."""
+    query = {}
+    if model_size:
+        query["modelSize"] = model_size
+    if not include_inactive:
+        query["isActive"] = {"$ne": False}
+    
+    variants = list(layout_variants_collection.find(query, {"_id": 0}).sort([("modelSize", 1), ("variantNumber", 1), ("sortOrder", 1)]))
+    return variants
+
+
+@router.post("/layout-variants")
+async def create_layout_variant(variant: LayoutVariantCreate):
+    """Create a new layout variant."""
+    variant_dict = variant.model_dump()
+    variant_dict["id"] = f"lv-{ObjectId()}"
+    variant_dict["createdAt"] = datetime.now(timezone.utc).isoformat()
+    variant_dict["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    
+    layout_variants_collection.insert_one(variant_dict)
+    
+    # Return without _id
+    result = layout_variants_collection.find_one({"id": variant_dict["id"]}, {"_id": 0})
+    return result
+
+
+@router.put("/layout-variants/{variant_id}")
+async def update_layout_variant(variant_id: str, update_data: LayoutVariantUpdate):
+    """Update a layout variant."""
+    update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
+    if not update_dict:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    update_dict["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    
+    result = layout_variants_collection.update_one(
+        {"id": variant_id},
+        {"$set": update_dict}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Layout variant not found")
+    
+    updated = layout_variants_collection.find_one({"id": variant_id}, {"_id": 0})
+    return updated
+
+
+@router.delete("/layout-variants/{variant_id}")
+async def delete_layout_variant(variant_id: str):
+    """Delete a layout variant."""
+    result = layout_variants_collection.delete_one({"id": variant_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Layout variant not found")
+    return {"status": "deleted"}
+
+
+@router.get("/layout-variants/grouped")
+async def get_layout_variants_grouped():
+    """Get layout variants grouped by model size for FAQ display."""
+    variants = list(layout_variants_collection.find(
+        {"isActive": {"$ne": False}}, 
+        {"_id": 0}
+    ).sort([("modelSize", 1), ("variantNumber", 1), ("sortOrder", 1)]))
+    
+    # Group by model size
+    grouped = {}
+    model_order = ["2m", "2.5m", "3m", "3.5m", "4m", "5m", "6m"]
+    
+    for variant in variants:
+        size = variant.get("modelSize", "unknown")
+        if size not in grouped:
+            grouped[size] = []
+        grouped[size].append(variant)
+    
+    # Return as ordered list
+    result = []
+    for size in model_order:
+        if size in grouped:
+            result.append({
+                "modelSize": size,
+                "variants": grouped[size]
+            })
+    
+    # Add any remaining sizes not in model_order
+    for size in grouped:
+        if size not in model_order:
+            result.append({
+                "modelSize": size,
+                "variants": grouped[size]
+            })
+    
+    return result
+
