@@ -308,26 +308,78 @@ export const CategoriesTab = ({
               <div className="border-t pt-4 mt-4">
                 <div className="flex items-center gap-2 mb-3">
                   <LayoutGrid className="h-4 w-4 text-purple-500" />
-                  <Label className="font-semibold">Видимость для вариантов модели</Label>
+                  <Label className="font-semibold">Видимость для моделей и вариантов</Label>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Если выбраны варианты, категория будет видна только когда выбран один из них. Оставьте пустым для показа всегда.
+                  Выберите модели и/или варианты (под-модели), для которых эта категория будет видна. Оставьте пустым для показа всегда.
                 </p>
-                <div className="space-y-2">
-                  <Label className="text-sm">ID вариантов (через запятую)</Label>
-                  <Input 
-                    value={(editingCategory.visibleForModelVariants || []).join(', ')} 
-                    onChange={(e) => {
-                      const variants = e.target.value.split(',').map(v => v.trim()).filter(v => v);
-                      setEditingCategory(prev => ({ ...prev, visibleForModelVariants: variants }));
-                    }}
-                    placeholder="plus, premium"
-                    className="text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Например: "plus" — категория будет видна только при выборе варианта "Plus"
-                  </p>
+                <div className="space-y-3 max-h-60 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                  {/* Models */}
+                  <div>
+                    <Label className="text-xs text-amber-700 font-medium mb-2 block">📦 Модели</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {prices.models?.map(model => (
+                        <label key={`model-${model.id}`} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-amber-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={(editingCategory.visibleForModelVariants || []).includes(model.id)}
+                            onChange={(e) => {
+                              const current = editingCategory.visibleForModelVariants || [];
+                              if (e.target.checked) {
+                                setEditingCategory(prev => ({ ...prev, visibleForModelVariants: [...current, model.id] }));
+                              } else {
+                                setEditingCategory(prev => ({ ...prev, visibleForModelVariants: current.filter(v => v !== model.id) }));
+                              }
+                            }}
+                            className="rounded border-amber-300"
+                          />
+                          <span className="truncate">{model.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Model Variants (sub-models) */}
+                  {prices.models?.some(m => m.variants?.length > 0) && (
+                    <div className="border-t pt-3">
+                      <Label className="text-xs text-purple-700 font-medium mb-2 block">🏠 Под-модели (варианты)</Label>
+                      {prices.models?.map(model => (
+                        model.variants?.length > 0 && (
+                          <div key={`variants-${model.id}`} className="mb-3">
+                            <span className="text-xs text-gray-500 font-medium">{model.name}:</span>
+                            <div className="grid grid-cols-2 gap-1 mt-1 ml-2">
+                              {model.variants.map(variant => (
+                                <label key={`variant-${variant.id}`} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-purple-50 p-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={(editingCategory.visibleForModelVariants || []).includes(variant.id)}
+                                    onChange={(e) => {
+                                      const current = editingCategory.visibleForModelVariants || [];
+                                      if (e.target.checked) {
+                                        setEditingCategory(prev => ({ ...prev, visibleForModelVariants: [...current, variant.id] }));
+                                      } else {
+                                        setEditingCategory(prev => ({ ...prev, visibleForModelVariants: current.filter(v => v !== variant.id) }));
+                                      }
+                                    }}
+                                    className="rounded border-purple-300"
+                                  />
+                                  <span className="truncate text-xs">{variant.namePl || variant.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
                 </div>
+                
+                {/* Selected items display */}
+                {(editingCategory.visibleForModelVariants || []).length > 0 && (
+                  <div className="mt-2 text-xs text-gray-500">
+                    <span className="font-medium">Выбрано:</span> {(editingCategory.visibleForModelVariants || []).join(', ')}
+                  </div>
+                )}
               </div>
             </div>
           )}
