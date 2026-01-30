@@ -1373,6 +1373,20 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
                 ]))
                 elements.append(layout_table)
+                
+                # Add variant description (hint) below both columns
+                if variant_hint:
+                    elements.append(Spacer(1, 6))
+                    hint_style = ParagraphStyle(
+                        'VariantHint',
+                        fontName='DejaVuSans',
+                        fontSize=9,
+                        textColor=TEXT_COLOR,
+                        leading=12,
+                        spaceAfter=4
+                    )
+                    hint_html = variant_hint.replace('\n', '<br/>')
+                    elements.append(Paragraph(f'<b>Co zawiera wariant:</b><br/>{hint_html}', hint_style))
             elif variant_img:
                 # Only image, no room data - show image with name
                 img_with_name = Table(
@@ -1387,6 +1401,20 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                 ]))
                 elements.append(img_with_name)
+                
+                # Add variant description (hint) below image
+                if variant_hint:
+                    elements.append(Spacer(1, 6))
+                    hint_style = ParagraphStyle(
+                        'VariantHint',
+                        fontName='DejaVuSans',
+                        fontSize=9,
+                        textColor=TEXT_COLOR,
+                        leading=12,
+                        spaceAfter=4
+                    )
+                    hint_html = variant_hint.replace('\n', '<br/>')
+                    elements.append(Paragraph(f'<b>Co zawiera wariant:</b><br/>{hint_html}', hint_style))
             elif room_table:
                 # Only room data, no image - full width table
                 room_table_full = Table(room_data, colWidths=[200, 330])
