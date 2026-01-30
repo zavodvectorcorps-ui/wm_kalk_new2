@@ -297,37 +297,160 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
   // Get selected model
   const selectedModel = prices.models?.find(m => m.id === formData.selectedModel);
 
+  // ============ WIZARD STEPS FROM API + LOCALSTORAGE ============
+  const [wizardStepsConfig, setWizardStepsConfig] = useState([]);
+  const [stepsLoading, setStepsLoading] = useState(true);
+  
+  // Load wizard steps configuration from API
+  useEffect(() => {
+    const loadWizardSteps = async () => {
+      try {
+        const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+        const response = await fetch(`${API_URL}/api/sauna/wizard-steps`);
+        if (response.ok) {
+          const steps = await response.json();
+          setWizardStepsConfig(steps);
+        }
+      } catch (error) {
+        console.error('Failed to load wizard steps:', error);
+      } finally {
+        setStepsLoading(false);
+      }
+    };
+    loadWizardSteps();
+  }, []);
+
+  // Save progress to localStorage
+  useEffect(() => {
+    if (!initialLoading && formData.selectedModel) {
+      const dataToSave = {
+        formData: {
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber,
+          email: formData.email,
+          selectedModel: formData.selectedModel,
+          selectedModelVariant: formData.selectedModelVariant,
+          selections: formData.selections,
+          quantities: formData.quantities,
+          notes: formData.notes,
+        },
+        timestamp: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    }
+  }, [formData, initialLoading]);
+
+  // Restore progress from localStorage on mount
+  useEffect(() => {
+    if (!initialLoading && !editingOrder && !amocrmPrefill) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const { formData: savedData, timestamp } = JSON.parse(saved);
+          // Only restore if saved within last 24 hours
+          if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+            setFormData(prev => ({
+              ...prev,
+              ...savedData
+            }));
+          } else {
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to restore progress:', error);
+      }
+    }
+  }, [initialLoading, editingOrder, amocrmPrefill, setFormData]);
+
+  // Clear localStorage progress
+  const clearSavedProgress = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    handleClearForm();
+  }, [handleClearForm]);
+
   // ============ WIZARD CONFIGURATION ============
-  // Define step-by-step flow with category mappings
-  const WIZARD_STEPS = useMemo(() => [
-    { 
-      id: 'model', 
-      name: lang === 'pl' ? 'Model' : 'Модель',
-      icon: Home,
-      description: lang === 'pl' ? 'Wybierz model sauny' : 'Выберите модель сауны',
-      isComplete: () => !!formData.selectedModel,
-      isUnlocked: () => true, // Always available
-    },
-    { 
-      id: 'variant', 
-      name: lang === 'pl' ? 'Wariant' : 'Вариант планировки',
-      icon: LayoutGrid,
-      description: lang === 'pl' ? 'Wybierz wariant układu' : 'Выберите вариант планировки',
-      isComplete: () => !!formData.selectedModelVariant || (selectedModel?.variants?.length === 0),
-      isUnlocked: () => !!formData.selectedModel,
-    },
-    { 
-      id: 'stove', 
-      name: lang === 'pl' ? 'Piec' : 'Печь',
-      icon: Flame,
-      categoryNames: ['Piece', 'piece', 'piec'],
-      description: lang === 'pl' ? 'Wybierz rodzaj pieca' : 'Выберите тип печи',
-      isComplete: () => {
-        const stoveCat = prices.categories?.find(c => 
-          ['Piece', 'piece', 'piec'].some(n => c.name?.toLowerCase().includes(n.toLowerCase()))
-        );
-        return stoveCat ? !!formData.selections[stoveCat.id] : true;
-      },
+  // Build dynamic wizard steps from API config
+  const WIZARD_STEPS = useMemo(() => {
+    const defaultSteps = [
+      { id: 'model', name: 'Model', nameRu: 'Модель', icon: 'Home', categoryNames: [], sortOrder: 0 },
+      { id: 'variant', name: 'Wariant', nameRu: 'Вариант планировки', icon: 'LayoutGrid', categoryNames: [], sortOrder: 1 },
+      { id: 'stove', name: 'Piec', nameRu: 'Печь', icon: 'Flame', categoryNames: ['Piece', 'piece', 'piec'], sortOrder: 2 },
+      { id: 'stove-position', name: 'Strona pieca', nameRu: 'Расположение печи', icon: 'ArrowRight', categoryNames: ['Strona Pieca', 'strona pieca'], sortOrder: 3 },
+      { id: 'benches', name: 'Ławki', nameRu: 'Лавки', icon: 'Sofa', categoryNames: ['Ławki', 'lawki', 'ławka'], sortOrder: 4 },
+      { id: 'other', name: 'Dodatkowe opcje', nameRu: 'Доп. опции', icon: 'Package', categoryNames: [], sortOrder: 5 },
+    ];
+    
+    const stepsConfig = wizardStepsConfig.length > 0 ? wizardStepsConfig : defaultSteps;
+    
+    return stepsConfig
+      .filter(s => s.isActive !== false)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+      .map(step => {
+        const IconComponent = ICON_MAP[step.icon] || Package;
+        const stepName = lang === 'pl' ? step.name : (step.nameRu || step.name);
+        const stepDescription = lang === 'pl' ? (step.description || '') : (step.descriptionRu || step.description || '');
+        
+        // Dynamic isComplete and isUnlocked based on step type
+        let isComplete, isUnlocked;
+        
+        if (step.id === 'model') {
+          isComplete = () => !!formData.selectedModel;
+          isUnlocked = () => true;
+        } else if (step.id === 'variant') {
+          isComplete = () => !!formData.selectedModelVariant || (selectedModel?.variants?.length === 0);
+          isUnlocked = () => !!formData.selectedModel;
+        } else if (step.categoryNames?.length > 0) {
+          // Category-based step
+          const getCat = () => prices.categories?.find(c => 
+            step.categoryNames.some(n => c.name?.toLowerCase().includes(n.toLowerCase()))
+          );
+          isComplete = () => {
+            const cat = getCat();
+            return cat ? !!formData.selections[cat.id] : true;
+          };
+          // Find previous step to determine unlock
+          const stepIndex = stepsConfig.findIndex(s => s.id === step.id);
+          const prevStep = stepIndex > 0 ? stepsConfig[stepIndex - 1] : null;
+          isUnlocked = () => {
+            if (!prevStep) return !!formData.selectedModel;
+            if (prevStep.id === 'model') return !!formData.selectedModel;
+            if (prevStep.id === 'variant') return !!formData.selectedModelVariant || (selectedModel?.variants?.length === 0);
+            if (prevStep.categoryNames?.length > 0) {
+              const prevCat = prices.categories?.find(c => 
+                prevStep.categoryNames.some(n => c.name?.toLowerCase().includes(n.toLowerCase()))
+              );
+              return prevCat ? !!formData.selections[prevCat.id] : true;
+            }
+            return true;
+          };
+        } else {
+          // Other/final step
+          isComplete = () => true;
+          const stepIndex = stepsConfig.findIndex(s => s.id === step.id);
+          const prevStep = stepIndex > 0 ? stepsConfig[stepIndex - 1] : null;
+          isUnlocked = () => {
+            if (!prevStep) return true;
+            if (prevStep.categoryNames?.length > 0) {
+              const prevCat = prices.categories?.find(c => 
+                prevStep.categoryNames.some(n => c.name?.toLowerCase().includes(n.toLowerCase()))
+              );
+              return prevCat ? !!formData.selections[prevCat.id] : true;
+            }
+            return true;
+          };
+        }
+        
+        return {
+          ...step,
+          name: stepName,
+          description: stepDescription,
+          icon: IconComponent,
+          isComplete,
+          isUnlocked,
+        };
+      });
+  }, [wizardStepsConfig, formData, selectedModel, prices.categories, lang]);
       isUnlocked: () => !!formData.selectedModel && (!!formData.selectedModelVariant || selectedModel?.variants?.length === 0),
     },
     { 
