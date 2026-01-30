@@ -929,6 +929,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             name: opt.name,
             price: opt.price,
             imageUrl: opt.imageUrl,
+            hint: opt.hint,  // Description for PDF
             categoryName: cat.name,
           })));
       
