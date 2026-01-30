@@ -7,18 +7,16 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ### Jan 30, 2025 - Sub-model Description in PDF & Room Sizes from Variant (COMPLETED)
 - **NEW**: Variant description (hint) now displayed in PDF's "WYMIARY POMIESZCZEŃ" section as "Co zawiera wariant:"
-- **NEW**: Calculator summary card now shows all room dimensions from selected sub-model:
-  - Liczba osób (capacity)
-  - Taras (terrace size)
-  - Pokój wyp. (relax room size)
-  - Sauna (steam room size)
-  - Wejście (entrance side)
+- **FIX**: Removed duplicate variant description in PDF (was appearing twice)
+- **NEW**: Calculator variant cards now show room dimension badges:
+  - 👥 capacity, 🌿 terraceSize, 🛋️ relaxRoomSize, 🔥 steamRoomSize, 🚪 entranceSide
+- **NEW**: Calculator summary card shows all room dimensions from selected sub-model
 - **REMOVED**: Old "Размеры комнат (стандарт)" and "Размеры с доп. террасой" blocks from model editor
-- **Backend**: Updated `sauna.py` PDF generation to include variant hint with proper formatting
+- **Backend**: Updated `sauna.py` PDF generation - fixed duplicate hint, proper formatting
 - **Frontend**: Updated `useSaunaCalculator.js` - `getRoomSizes()` now prioritizes variant data
-- **Frontend**: Updated `SaunaCalculator.jsx` - SummaryCard shows all variant dimension fields
-- **Frontend**: Updated `ModelDialog.jsx` - removed deprecated room size sections, kept only variant-level sizes
-- **Tested**: PDF generation confirmed with variant description, curl test successful
+- **Frontend**: Updated `SaunaCalculator.jsx` - SummaryCard shows all variant fields, variant cards show dimension badges
+- **Frontend**: Updated `ModelDialog.jsx` - removed deprecated room size sections
+- **Tested**: PDF generation (curl test), UI screenshots confirmed
 
 ### Jan 30, 2025 - FAQ Layout Variants Section & Model Gallery Images (COMPLETED)
 - **NEW**: Added "Варианты планировок" (Layout Variants) category to sauna FAQ
