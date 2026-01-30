@@ -886,6 +886,52 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 </div>
               )}
               
+              {/* Incompatible Model Variants (sub-models) */}
+              {models && models.some(m => m.variants?.length > 0) && (
+                <div className="mb-4">
+                  <Label className="text-xs text-muted-foreground mb-2 block">
+                    Скрыть опцию при выборе этих под-моделей (вариантов):
+                  </Label>
+                  <div className="max-h-48 overflow-y-auto border rounded p-2 space-y-2 bg-purple-50">
+                    {models.filter(m => m.variants?.length > 0).map(model => (
+                      <div key={`variants-${model.id}`}>
+                        <span className="text-xs font-medium text-gray-600">{model.name}:</span>
+                        <div className="ml-2 mt-1 space-y-1">
+                          {model.variants.map(variant => (
+                            <label key={variant.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={incompatibleModels.includes(variant.id)}
+                                onChange={() => toggleIncompatibleModel(variant.id)}
+                                className="w-4 h-4 rounded border-gray-300 accent-purple-600"
+                              />
+                              <span className="text-sm">{variant.namePl || variant.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {incompatibleModels.filter(id => models.some(m => m.variants?.some(v => v.id === id))).length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {incompatibleModels.map(variantId => {
+                        for (const model of models) {
+                          const variant = model.variants?.find(v => v.id === variantId);
+                          if (variant) {
+                            return (
+                              <span key={variantId} className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                                ❌ {variant.namePl || variant.name}
+                              </span>
+                            );
+                          }
+                        }
+                        return null;
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              
               {/* Incompatible with other options */}
               {categories && categories.length > 0 && (
                 <div>
