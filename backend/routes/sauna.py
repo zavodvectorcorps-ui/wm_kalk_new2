@@ -1700,21 +1700,32 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
             elements.append(Spacer(1, 12))
             
-            # Comparison table (if available and enabled)
-            if variant_comparison_rows and page2_show_comparison:
+            # Generate comparison table from model variants data
+            # New structure: Variant name | Relax room | Steam room | Terrace | Entrance side
+            has_comparison_data = any(
+                v.get('relaxRoomSize') or v.get('steamRoomSize') or v.get('terraceSize') or v.get('entranceSide')
+                for v in model_variants
+            )
+            
+            if has_comparison_data and page2_show_comparison:
                 comparison_data = [[
-                    Paragraph('<b>Różnice modeli</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white)),
-                    Paragraph('<b>Standard</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
-                    Paragraph('<b>Plus</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
+                    Paragraph('<b>Wariant</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white)),
+                    Paragraph('<b>Pokój wyp.</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
+                    Paragraph('<b>Sauna</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
+                    Paragraph('<b>Taras</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
+                    Paragraph('<b>Wejście</b>', ParagraphStyle('CompHeader', fontName='DejaVuSans-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
                 ]]
-                for row in variant_comparison_rows:
+                for variant in model_variants:
+                    v_name = variant.get('namePl') or variant.get('name', '')
                     comparison_data.append([
-                        Paragraph(row.get('option', ''), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR)),
-                        Paragraph(row.get('standard', ''), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
-                        Paragraph(row.get('plus', ''), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                        Paragraph(v_name, ParagraphStyle('CompCell', fontName='DejaVuSans-Bold', fontSize=8, textColor=BROWN_DARK)),
+                        Paragraph(variant.get('relaxRoomSize', '-'), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                        Paragraph(variant.get('steamRoomSize', '-'), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                        Paragraph(variant.get('terraceSize', '-'), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
+                        Paragraph(variant.get('entranceSide', '-'), ParagraphStyle('CompCell', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, alignment=TA_CENTER)),
                     ])
                 
-                comp_table = Table(comparison_data, colWidths=[220, 145, 145])
+                comp_table = Table(comparison_data, colWidths=[130, 100, 100, 100, 100])
                 comp_style = [
                     ('BACKGROUND', (0, 0), (-1, 0), BROWN),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -1731,9 +1742,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 elements.append(comp_table)
                 elements.append(Spacer(1, 15))
             
-            # Variant cards (side by side)
+            # Variant cards - show all variants in a grid
             variant_cards = []
-            for variant in model_variants[:2]:  # Max 2 variants (Standard/Plus)
+            for variant in model_variants:
                 v_name = variant.get('namePl') or variant.get('name', '')
                 v_price = variant.get('price', 0)
                 v_hint = variant.get('hintPl') or variant.get('hint', '')
