@@ -326,6 +326,26 @@ export const FAQView = ({ calculatorType = 'both' }) => {
   const [uploadingContent, setUploadingContent] = useState(false);
   const [uploadingFolderId, setUploadingFolderId] = useState(null);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
+  
+  // Layout variants state
+  const [layoutVariants, setLayoutVariants] = useState([]);
+  const [loadingLayoutVariants, setLoadingLayoutVariants] = useState(false);
+  const [showLayoutVariantDialog, setShowLayoutVariantDialog] = useState(false);
+  const [editingLayoutVariant, setEditingLayoutVariant] = useState(null);
+  const [newLayoutVariant, setNewLayoutVariant] = useState({
+    modelSize: '2m',
+    variantNumber: 1,
+    variantName: '',
+    variantNamePl: '',
+    description: '',
+    descriptionPl: '',
+    imageUrl: '',
+    terraceSize: '',
+    relaxRoomSize: '',
+    steamRoomSize: '',
+    entranceType: ''
+  });
+  const [expandedModels, setExpandedModels] = useState(new Set());
 
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
