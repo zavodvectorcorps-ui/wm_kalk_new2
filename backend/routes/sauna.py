@@ -1320,14 +1320,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     img_data = await load_image_from_mongodb(variant_image_url)
                 elif variant_image_url.startswith('http'):
                     try:
-                        req = urllib.request.Request(plus_option_image_url, headers={
+                        req = urllib.request.Request(variant_image_url, headers={
                             'User-Agent': 'Mozilla/5.0',
                             'Accept': 'image/*',
                         })
                         with urllib.request.urlopen(req, timeout=10) as response:
                             img_data = response.read()
                     except Exception as e:
-                        logger.warning(f"Could not download plus option image: {e}")
+                        logger.warning(f"Could not download variant image: {e}")
                 
                 if img_data:
                     img_data = optimize_image_for_pdf(img_data, max_size=600, quality=80)
@@ -1337,12 +1337,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     max_w, max_h = 200, 140
                     ratio = min(max_w / orig_w, max_h / orig_h)
                     new_w, new_h = int(orig_w * ratio), int(orig_h * ratio)
-                    plus_option_img = RLImage(io.BytesIO(img_data), width=new_w, height=new_h)
-                    logger.info(f"Loaded plus option image: {new_w}x{new_h}")
+                    variant_img = RLImage(io.BytesIO(img_data), width=new_w, height=new_h)
+                    logger.info(f"Loaded variant image: {new_w}x{new_h}")
             except Exception as e:
-                logger.warning(f"Could not load plus option image: {e}")
+                logger.warning(f"Could not load variant image: {e}")
         
-        if room_data or plus_option_img:
+        if room_data or variant_img:
             room_table = None
             if room_data:
                 # Create room sizes table (left side)
@@ -1357,10 +1357,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 ]))
             
             # Create layout: left = room sizes (if any), right = image (if any)
-            if plus_option_img and room_table:
+            if variant_img and room_table:
                 # Two column layout with both
                 layout_table = Table(
-                    [[room_table, plus_option_img]],
+                    [[room_table, variant_img]],
                     colWidths=[320, 210]
                 )
                 layout_table.setStyle(TableStyle([
@@ -1372,12 +1372,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
                 ]))
                 elements.append(layout_table)
-            elif plus_option_img:
+            elif variant_img:
                 # Only image, no room data - show image with name
                 img_with_name = Table(
-                    [[Paragraph(f'<b>Wariant układu:</b> {plus_option_name}' if plus_option_name else '', 
-                               ParagraphStyle('PlusOptName', fontName='DejaVuSans', fontSize=10, textColor=BROWN_DARK))],
-                     [plus_option_img]],
+                    [[Paragraph(f'<b>Wariant układu:</b> {variant_name}' if variant_name else '', 
+                               ParagraphStyle('VariantName', fontName='DejaVuSans', fontSize=10, textColor=BROWN_DARK))],
+                     [variant_img]],
                     colWidths=[530]
                 )
                 img_with_name.setStyle(TableStyle([
