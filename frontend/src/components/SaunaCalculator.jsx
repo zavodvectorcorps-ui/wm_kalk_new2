@@ -482,23 +482,31 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
           {/* Option Categories */}
           {prices.categories
             ?.filter((category) => {
-              // Filter categories by model variant visibility
+              // Filter categories by model/variant visibility
               const visibleFor = category.visibleForModelVariants;
               // If no visibility restriction set, show category
               if (!visibleFor || visibleFor.length === 0) return true;
-              // If model has no variants, show all categories
-              if (!selectedModel?.variants?.length) return true;
-              // Get currently selected variant ID and object (default to first variant)
-              const currentVariantId = formData.selectedModelVariant || selectedModel.variants[0]?.id;
-              const currentVariant = selectedModel.variants.find(v => v.id === currentVariantId);
-              // Check if any of: variant ID, name, namePl (case-insensitive) matches visibleFor list
-              const variantMatches = visibleFor.some(allowedVariant => {
-                const lowerAllowed = allowedVariant.toLowerCase();
-                return currentVariantId === allowedVariant ||
-                       currentVariant?.name?.toLowerCase() === lowerAllowed ||
-                       currentVariant?.namePl?.toLowerCase() === lowerAllowed;
-              });
-              return variantMatches;
+              
+              // Check if selected model ID matches
+              if (visibleFor.includes(selectedModel?.id)) return true;
+              
+              // If model has variants, check variant match
+              if (selectedModel?.variants?.length) {
+                // Get currently selected variant ID and object (default to first variant)
+                const currentVariantId = formData.selectedModelVariant || selectedModel.variants[0]?.id;
+                const currentVariant = selectedModel.variants.find(v => v.id === currentVariantId);
+                // Check if any of: variant ID, name, namePl (case-insensitive) matches visibleFor list
+                const variantMatches = visibleFor.some(allowedVariant => {
+                  const lowerAllowed = allowedVariant.toLowerCase();
+                  return currentVariantId === allowedVariant ||
+                         currentVariant?.name?.toLowerCase() === lowerAllowed ||
+                         currentVariant?.namePl?.toLowerCase() === lowerAllowed ||
+                         currentVariant?.id === allowedVariant;
+                });
+                if (variantMatches) return true;
+              }
+              
+              return false;
             })
             .map((category) => (
             <CategoryCard
