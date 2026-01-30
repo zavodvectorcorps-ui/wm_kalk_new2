@@ -451,60 +451,6 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
         };
       });
   }, [wizardStepsConfig, formData, selectedModel, prices.categories, lang]);
-      isUnlocked: () => !!formData.selectedModel && (!!formData.selectedModelVariant || selectedModel?.variants?.length === 0),
-    },
-    { 
-      id: 'stove-position', 
-      name: lang === 'pl' ? 'Strona pieca' : 'Расположение печи',
-      icon: ArrowRight,
-      categoryNames: ['Strona Pieca', 'strona pieca', 'pozycja pieca'],
-      description: lang === 'pl' ? 'Wybierz stronę pieca' : 'Выберите сторону печи',
-      isComplete: () => {
-        const posCat = prices.categories?.find(c => 
-          c.name?.toLowerCase().includes('strona pieca')
-        );
-        return posCat ? !!formData.selections[posCat.id] : true;
-      },
-      isUnlocked: () => {
-        const stoveCat = prices.categories?.find(c => 
-          ['Piece', 'piece', 'piec'].some(n => c.name?.toLowerCase().includes(n.toLowerCase()))
-        );
-        return stoveCat ? !!formData.selections[stoveCat.id] : true;
-      },
-    },
-    { 
-      id: 'benches', 
-      name: lang === 'pl' ? 'Ławki' : 'Лавки',
-      icon: Sofa,
-      categoryNames: ['Ławki', 'lawki', 'ławka'],
-      description: lang === 'pl' ? 'Wybierz rodzaj ławek' : 'Выберите тип лавок',
-      isComplete: () => {
-        const benchCat = prices.categories?.find(c => 
-          c.name?.toLowerCase().includes('ławki') || c.name?.toLowerCase().includes('lawki')
-        );
-        return benchCat ? !!formData.selections[benchCat.id] : true;
-      },
-      isUnlocked: () => {
-        const posCat = prices.categories?.find(c => 
-          c.name?.toLowerCase().includes('strona pieca')
-        );
-        return posCat ? !!formData.selections[posCat.id] : true;
-      },
-    },
-    { 
-      id: 'other', 
-      name: lang === 'pl' ? 'Dodatkowe opcje' : 'Доп. опции',
-      icon: Package,
-      description: lang === 'pl' ? 'Wybierz dodatkowe opcje' : 'Выберите дополнительные опции',
-      isComplete: () => true, // Optional step
-      isUnlocked: () => {
-        const benchCat = prices.categories?.find(c => 
-          c.name?.toLowerCase().includes('ławki') || c.name?.toLowerCase().includes('lawki')
-        );
-        return benchCat ? !!formData.selections[benchCat.id] : true;
-      },
-    },
-  ], [formData, selectedModel, prices.categories, lang]);
 
   // Current active step (auto-advance to first incomplete unlocked step)
   const [manualStep, setManualStep] = useState(null);
