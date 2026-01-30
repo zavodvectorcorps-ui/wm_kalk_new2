@@ -1891,6 +1891,56 @@ export const FAQAdmin = ({ calculatorType = null }) => {
 
   return (
     <div className="space-y-4">
+      {/* Wizard Calculator Documentation */}
+      <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2 text-purple-800">
+            <Zap className="h-5 w-5" />
+            Калькулятор NEW (Wizard) - Документация
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm space-y-3">
+          <p className="text-purple-700">
+            Новый пошаговый калькулятор с wizard-интерфейсом. Пока скрыт от пользователей, но готов к активации.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white/70 rounded-lg p-3">
+              <h4 className="font-medium text-purple-800 mb-2">✨ Возможности:</h4>
+              <ul className="list-disc list-inside space-y-1 text-gray-700">
+                <li>Пошаговый выбор: Модель → Вариант → Печь → Расположение → Лавки → Опции</li>
+                <li>Автоматическое сохранение прогресса в браузере</li>
+                <li>Preview выбранных опций под progress bar</li>
+                <li>Блокировка следующих шагов пока не выбран предыдущий</li>
+              </ul>
+            </div>
+            
+            <div className="bg-white/70 rounded-lg p-3">
+              <h4 className="font-medium text-purple-800 mb-2">⚙️ Настройка шагов:</h4>
+              <ul className="list-disc list-inside space-y-1 text-gray-700">
+                <li><strong>Cennik → Wizard</strong> - управление шагами</li>
+                <li>Изменение порядка (↑↓), названий, иконок</li>
+                <li>Привязка шагов к категориям опций</li>
+                <li>Флаги: Активен / Обязательный</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
+            <h4 className="font-medium text-yellow-800 mb-1">📁 Файлы:</h4>
+            <code className="text-xs text-gray-600 block">
+              /frontend/src/components/SaunaCalculatorNew.jsx<br/>
+              /frontend/src/components/sauna-pricing/WizardStepsAdmin.jsx<br/>
+              API: /api/sauna/wizard-steps (GET, PUT, POST/reset)
+            </code>
+          </div>
+          
+          <p className="text-purple-600 italic">
+            Для активации: в Header.jsx раскомментировать кнопку "NEW ✨" во вкладках навигации.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-xl font-semibold">Управление FAQ</h2>
