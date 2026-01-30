@@ -944,7 +944,6 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         categories: prices.categories,
         // Page 2 data
         modelVariants: modelVariantsData,
-        variantComparisonRows: variantComparisonRows,
         plusOnlyCategories: plusOnlyCategories,
         allAvailableOptions: allAvailableOptions,
         // Selected model variant data (for WYMIARY POMIESZCZEŃ section)
