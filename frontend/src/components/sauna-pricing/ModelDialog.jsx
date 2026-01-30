@@ -203,6 +203,97 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
   );
 };
 
+// Gallery Images Editor Component
+const GalleryImagesEditor = ({ images = [], onChange }) => {
+  const [uploading, setUploading] = useState(false);
+  
+  const handleUploadImages = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setUploading(true);
+    const newImages = [...images];
+    
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const response = await fetch(`${API_URL}/api/upload/image`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await response.json();
+        const fullUrl = `${API_URL}${data.url}`;
+        newImages.push(fullUrl);
+      } catch (error) {
+        console.error('Gallery image upload error:', error);
+      }
+    }
+    
+    onChange(newImages);
+    setUploading(false);
+    e.target.value = ''; // Reset input
+  };
+  
+  const handleRemoveImage = (index) => {
+    const newImages = images.filter((_, i) => i !== index);
+    onChange(newImages);
+  };
+  
+  return (
+    <div className="border-t pt-4 mt-4">
+      <div className="flex items-center justify-between mb-3">
+        <Label className="text-sm font-medium text-indigo-700">📸 Галерея фотографий</Label>
+        <label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleUploadImages}
+            disabled={uploading}
+          />
+          <Button type="button" variant="outline" size="sm" asChild disabled={uploading} className="h-7 text-xs border-indigo-300 text-indigo-700 hover:bg-indigo-50">
+            <span>
+              {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+              Добавить фото
+            </span>
+          </Button>
+        </label>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Добавьте несколько фотографий для этого размера сауны
+      </p>
+      
+      {images.length === 0 ? (
+        <p className="text-xs text-gray-400 italic">Нет дополнительных фотографий</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-2">
+          {images.map((imageUrl, index) => (
+            <div key={index} className="relative group">
+              <img 
+                src={imageUrl} 
+                alt={`Gallery ${index + 1}`} 
+                className="w-full h-20 object-cover rounded border"
+              />
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="absolute top-1 right-1 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => handleRemoveImage(index)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAdd, txt }) => {
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
   
