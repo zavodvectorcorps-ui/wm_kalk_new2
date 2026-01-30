@@ -7,20 +7,18 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ### Jan 30, 2025 - FAQ Layout Variants Section & Model Gallery Images (COMPLETED)
 - **NEW**: Added "Варианты планировок" (Layout Variants) category to sauna FAQ
-- **Feature**: Pre-populated with 5 detailed FAQ items covering:
-  - Standard vs Plus comparison table (equipment differences)
-  - Room sizes by sauna length and variant
-  - Variant 2: Enlarged steam room specifications
-  - Variant 3: Extra terrace specifications  
-  - Recommendations for choosing the right variant
-- **NEW**: Added `galleryImages` field to `SaunaModel` for multiple photos per model
-- **Feature**: GalleryImagesEditor component allows uploading/managing multiple photos
-- **Feature**: Gallery visible in both Add and Edit model dialogs in admin panel
-- **Backend**: Updated `SaunaModel` with `galleryImages: Optional[List[str]]` field
-- **Backend**: Added 5 new FAQ default items in `layout_variants` category
-- **Frontend**: Added `Table2` icon import and new FAQ category
-- **Frontend**: Added `GalleryImagesEditor` component in `ModelDialog.jsx`
-- **Frontend**: Updated FAQ tabs to 6 columns layout
+- **NEW**: Structured layout variants with grouping by model size (2m, 2.5m, 3m, etc.)
+- **Feature**: Each model size expands to show all available layout variants
+- **Feature**: Each variant has: name, image, room sizes (terrace, relax room, steam room), entrance type, description
+- **Feature**: Color-coded room size badges (green=terrace, blue=relax, orange=steam, purple=entrance)
+- **Feature**: Admin can add/edit/delete layout variants via dialog with image upload
+- **NEW**: Backend API for layout variants (`/api/faq/layout-variants`, `/api/faq/layout-variants/grouped`)
+- **NEW**: MongoDB collection `sauna_layout_variants` for structured storage
+- **Backend**: Added `SaunaLayoutVariant` model in `sauna.py`
+- **Backend**: CRUD endpoints in `faq.py` with grouped query support
+- **Frontend**: New structured TabsContent for layout_variants in `FAQPage.jsx`
+- **Frontend**: Expandable cards per model size with variant grid
+- **Frontend**: Dialog for adding/editing layout variants with all fields
 - **PDF**: Updated image sizes per user specification:
   - Model variants: 110×80
   - Plus categories: 70×55
