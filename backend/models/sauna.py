@@ -147,6 +147,22 @@ class SaunaLayoutVariant(BaseModel):
     isActive: bool = True
 
 
+class WizardStep(BaseModel):
+    """Configuration for a wizard step in the new calculator."""
+    model_config = ConfigDict(extra="allow")
+    
+    id: str  # Unique identifier (e.g., "model", "variant", "stove")
+    name: str  # Display name (Polish)
+    nameRu: Optional[str] = ""  # Russian name
+    icon: str = "Package"  # Icon name from lucide-react
+    description: Optional[str] = ""  # Description (Polish)
+    descriptionRu: Optional[str] = ""  # Description (Russian)
+    categoryNames: List[str] = []  # Category names to show in this step (for option steps)
+    sortOrder: int = 0  # Order in the wizard
+    isActive: bool = True  # Whether this step is active
+    isRequired: bool = True  # Whether user must complete this step
+
+
 class SaunaPriceData(BaseModel):
     models: List[SaunaModel] = []
     categories: List[SaunaCategory] = []
