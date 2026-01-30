@@ -848,8 +848,194 @@ export const FAQView = ({ calculatorType = 'both' }) => {
           ))}
         </TabsList>
 
-        {/* Regular FAQ categories */}
-        {Object.keys(CATEGORY_LABELS).filter(k => k !== 'objections' && k !== 'content').map(category => (
+        {/* Layout Variants - Special structured tab */}
+        <TabsContent value="layout_variants" className="mt-4">
+          <div className="space-y-4">
+            {/* Add button for admin */}
+            {isAdmin && (
+              <div className="flex justify-end mb-4">
+                <Button 
+                  onClick={() => {
+                    setEditingLayoutVariant(null);
+                    setNewLayoutVariant({
+                      modelSize: '2m',
+                      variantNumber: 1,
+                      variantName: '',
+                      variantNamePl: '',
+                      description: '',
+                      descriptionPl: '',
+                      imageUrl: '',
+                      terraceSize: '',
+                      relaxRoomSize: '',
+                      steamRoomSize: '',
+                      entranceType: ''
+                    });
+                    setShowLayoutVariantDialog(true);
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить планировку
+                </Button>
+              </div>
+            )}
+
+            {loadingLayoutVariants ? (
+              <div className="text-center py-8">
+                <div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto"></div>
+                <p className="mt-2 text-muted-foreground">Загрузка...</p>
+              </div>
+            ) : layoutVariants.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Table2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>Нет вариантов планировок</p>
+                {isAdmin && <p className="text-sm mt-2">Нажмите "Добавить планировку" чтобы создать первую</p>}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {layoutVariants.map(({ modelSize, variants }) => (
+                  <Card key={modelSize} className="border-amber-200">
+                    <CardHeader 
+                      className="cursor-pointer hover:bg-amber-50/50 transition-colors"
+                      onClick={() => toggleModelExpand(modelSize)}
+                    >
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold text-lg">
+                            {modelSize}
+                          </div>
+                          <span className="text-base font-medium text-gray-700">
+                            Сауна {modelSize}
+                          </span>
+                          <Badge variant="secondary" className="ml-2">
+                            {variants.length} {variants.length === 1 ? 'вариант' : variants.length < 5 ? 'варианта' : 'вариантов'}
+                          </Badge>
+                        </div>
+                        <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${expandedModels.has(modelSize) ? 'rotate-180' : ''}`} />
+                      </CardTitle>
+                    </CardHeader>
+                    
+                    {expandedModels.has(modelSize) && (
+                      <CardContent className="pt-0">
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {variants.map((variant) => (
+                            <Card key={variant.id} className="border shadow-sm hover:shadow-md transition-shadow">
+                              {/* Image */}
+                              {variant.imageUrl && (
+                                <div className="relative h-48 bg-gray-100 rounded-t-lg overflow-hidden">
+                                  <img 
+                                    src={variant.imageUrl} 
+                                    alt={variant.variantName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute top-2 left-2 bg-amber-600 text-white px-2 py-1 rounded text-sm font-medium">
+                                    Вариант {variant.variantNumber}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <CardHeader className={!variant.imageUrl ? 'pt-4' : 'pt-3'}>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  {!variant.imageUrl && (
+                                    <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-sm">
+                                      В{variant.variantNumber}
+                                    </span>
+                                  )}
+                                  {variant.variantName || `Вариант ${variant.variantNumber}`}
+                                </CardTitle>
+                                {variant.variantNamePl && (
+                                  <CardDescription className="text-xs">{variant.variantNamePl}</CardDescription>
+                                )}
+                              </CardHeader>
+                              
+                              <CardContent className="pt-0 space-y-3">
+                                {/* Room sizes */}
+                                {(variant.terraceSize || variant.relaxRoomSize || variant.steamRoomSize) && (
+                                  <div className="grid grid-cols-2 gap-2 text-sm">
+                                    {variant.terraceSize && (
+                                      <div className="bg-green-50 p-2 rounded">
+                                        <span className="text-green-600 font-medium">Терраса:</span>
+                                        <div className="text-gray-700">{variant.terraceSize}</div>
+                                      </div>
+                                    )}
+                                    {variant.relaxRoomSize && (
+                                      <div className="bg-blue-50 p-2 rounded">
+                                        <span className="text-blue-600 font-medium">К. отдыха:</span>
+                                        <div className="text-gray-700">{variant.relaxRoomSize}</div>
+                                      </div>
+                                    )}
+                                    {variant.steamRoomSize && (
+                                      <div className="bg-orange-50 p-2 rounded">
+                                        <span className="text-orange-600 font-medium">Парная:</span>
+                                        <div className="text-gray-700">{variant.steamRoomSize}</div>
+                                      </div>
+                                    )}
+                                    {variant.entranceType && (
+                                      <div className="bg-purple-50 p-2 rounded">
+                                        <span className="text-purple-600 font-medium">Вход:</span>
+                                        <div className="text-gray-700">{variant.entranceType}</div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Description */}
+                                {variant.description && (
+                                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{variant.description}</p>
+                                )}
+                                
+                                {/* Admin actions */}
+                                {isAdmin && (
+                                  <div className="flex gap-2 pt-2 border-t">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingLayoutVariant(variant);
+                                        setNewLayoutVariant({
+                                          modelSize: variant.modelSize,
+                                          variantNumber: variant.variantNumber,
+                                          variantName: variant.variantName || '',
+                                          variantNamePl: variant.variantNamePl || '',
+                                          description: variant.description || '',
+                                          descriptionPl: variant.descriptionPl || '',
+                                          imageUrl: variant.imageUrl || '',
+                                          terraceSize: variant.terraceSize || '',
+                                          relaxRoomSize: variant.relaxRoomSize || '',
+                                          steamRoomSize: variant.steamRoomSize || '',
+                                          entranceType: variant.entranceType || ''
+                                        });
+                                        setShowLayoutVariantDialog(true);
+                                      }}
+                                      className="flex-1"
+                                    >
+                                      <Edit className="h-3 w-3 mr-1" />
+                                      Изменить
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleDeleteLayoutVariant(variant.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Regular FAQ categories (excluding layout_variants) */}
+        {Object.keys(CATEGORY_LABELS).filter(k => k !== 'objections' && k !== 'content' && k !== 'layout_variants').map(category => (
           <TabsContent key={category} value={category} className="mt-4">
             {filteredItems.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
