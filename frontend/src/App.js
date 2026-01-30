@@ -17,6 +17,7 @@ const OrdersPage = lazy(() => import('./components/OrdersPage').then(m => ({ def
 const BaliaPricingPage = lazy(() => import('./components/BaliaPricingPage').then(m => ({ default: m.BaliaPricingPage })));
 const UserManagement = lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
 const SaunaCalculator = lazy(() => import('./components/SaunaCalculator').then(m => ({ default: m.SaunaCalculator })));
+const SaunaCalculatorNew = lazy(() => import('./components/SaunaCalculatorNew').then(m => ({ default: m.SaunaCalculatorNew })));
 const SaunaPricingPage = lazy(() => import('./components/SaunaPricingPage').then(m => ({ default: m.SaunaPricingPage })));
 const TechSpecAdminPage = lazy(() => import('./components/TechSpecAdminPage').then(m => ({ default: m.TechSpecAdminPage })));
 const StatisticsPage = lazy(() => import('./components/StatisticsPage').then(m => ({ default: m.StatisticsPage })));
