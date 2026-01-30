@@ -1,148 +1,214 @@
 <analysis>**original_problem_statement:**
-The user is building a logistics and sales management system for their sauna and hot tub business. The project's scope has evolved significantly from bug fixes to major feature development.
+The user is building a logistics and sales management system for their sauna and hot tub business.
 
-Initial user requests included:
-1.  Fixing PDF generation from an amoCRM widget.
-2.  Implementing conditional color options for hot tubs based on the model and heater type.
-3.  Adding a sub-option system for saunas. This was later clarified and refactored into a variant system, allowing for mutually exclusive choices (e.g., Bench - Style A vs. Bench - Style B) with their own prices and images.
-4.  Ensuring the selected variant's image appears in the generated PDF.
-5.  Making the price of Foundation Beams dynamic, based on a price set in the main sauna model.
-6.  Adding fields for Relax Room Size and Steam Room Size to sauna models, including alternative sizes to be used when an external terrace option is selected. This information must be visible in the calculator UI, the order summary, and the final PDF document.
-7.  Updating Polish translations for room size labels in the UI and PDF.
+The user's initial high-level requests included:
+*   Implementing a sub-model or variant system for saunas.
+*   Adding conditional visibility for option categories based on the selected variant.
+*   Improving the layout and content of the generated PDF offer.
+
+During the last sessions, the focus has been on evolving the sub-model concept into a full-fledged layout variant system and integrating it deeply into the calculator, admin panel, and PDF generation.
+
+Recent user requests included:
+1.  **Evolve Sub-Models to Layout Variants**: The concept of Standard and Plus sub-models has been replaced by a more flexible system where each main model can have multiple categorized layout variants (e.g., Side Entrance, Direct Entrance).
+2.  **Structured Variant Data**: Add specific fields to each layout variant for its category, description, image, price, and detailed room dimensions (, , , , ).
+3.  **Dynamic Comparison Table**: In the calculator and the PDF, automatically generate a comparison table that shows the different room dimensions for all available layout variants of a selected model.
+4.  **PDF Data Sourcing**: The main Room Dimensions () block in the PDF should pull its image and dimensional data directly from the user's selected layout variant.
+5.  **Variant Price Calculation**: A variant's price should be an additional charge added on top of the main model's base price.
+6.  **Variant Incompatibility**: Allow admins to hide a specific option in the calculator if a particular layout variant is selected.
+7.  **Admin UI Improvements**: Add a duplicate button for variants and change the description field to a multi-line  for better formatting.
+8.  **PDF Catalog Details**: Add the price and description for each option into the available options catalog section of the PDF.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a full-stack system using React, FastAPI, and MongoDB. It features calculators for saunas and hot tubs, integrated with an amoCRM widget for lead management.
+The application is a full-stack system (React/FastAPI/MongoDB) for calculating sauna prices and generating sales offers. It has an extensive admin panel for managing all aspects of pricing.
 
-Key functionalities implemented:
-*   **Sauna Option Variants:** A robust system allowing sauna options (like benches) to have multiple, mutually exclusive variants. Each variant can have its own name, price, and image. The UI was specifically designed to mirror the hot tub calculator's heater selection, displaying variants as large, selectable cards with images.
-*   **Variant Image in PDF:** The image upload feature for variants is fully functional. The system correctly identifies when a selected variant has an image and includes that image in the Benches section of the generated PDF.
-*   **Dynamic Foundation Pricing:** The Foundation Beams option now dynamically pulls its price from the  field of the selected sauna model.
-*   **Sauna Model Room Sizes:** Sauna models now have fields for  and . The system also supports alternative sizes () that are automatically applied when the external terrace option is selected. This information is displayed on the model card in the calculator, in the order summary, and in a dedicated section in the generated PDF.
-*   **Admin Panel Enhancements:** The admin UIs for managing sauna options and models have been updated to support the creation and editing of variants and room sizes.
+The key features implemented in this session are:
+*   **Layout Variant System**: A full CRUD system for managing layout variants has been built. This includes a new backend model (), API endpoints, and a dedicated UI within the FAQ page for admins to create, view, update, and delete variants, which are visually grouped by sauna size.
+*   **Deep Integration of Variants**:
+    *   **Calculator**: The sauna calculator now groups variants by category and displays a dynamic comparison table of their dimensions. It correctly calculates the total price by adding the selected variant's price to the base model's price.
+    *   **Admin Panel**: The model editor now includes a comprehensive UI for managing a model's variants, including their category, price, multi-line description, room dimensions, and image. A duplicate button has been added for convenience.
+    *   **Option Incompatibility**: The option editor now allows an admin to make an option incompatible with specific layout variants.
+*   **Enhanced PDF Generation**:
+    *   The Room Dimensions section is now fully dynamic, pulling data from the selected variant.
+    *   The second page of the PDF now includes a dynamically generated comparison table of all available variants for the chosen model.
+    *   The option catalog on the PDF now includes the price and description for each available option.
 
 **Last working item**:
--   **Last item agent was working**: The user requested a final adjustment to the room size feature: to use specific Polish terms (, ) for the room labels and to ensure only the Polish version appears in the PDF. The agent implemented these translation changes in both the frontend () and backend ().
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: both. If the user finds an issue, use the backend testing agent to verify the PDF content and the frontend testing agent (or screenshot tool) to check the UI labels in the calculator and order summary.
+-   **Last item agent was working**: Adding the multi-line description of the selected layout variant to the main Room Dimensions () section on the first page of the generated PDF.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. The agent should be instructed to generate a PDF for a sauna model with a selected layout variant. Then, it must verify that the multi-line description associated with that variant appears correctly formatted within the Room Dimensions block on the first page.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: **amoCRM widget height is not increasing on user's hosting.** (P2)
-    **Issues Detail**:
-    - **Issue 1**:
-        - **Attempted fixes**: The agent set a fixed CSS height and used  to request a resize, but the user reported it did not work.
-        - **Next debug checklist**:
-            1.  Explain to the user that iframe resizing is controlled by the host page (amoCRM) and may not be possible to force from within the widget.
-            2.  Confirm if the current state (with internal panel scrollbars removed) is an acceptable workaround.
-        - **Why fix this issue and what will be achieved with the fix?**: Improves UX by reducing scrolling within the widget.
-        - **Status**: NOT STARTED
-        - **Is recurring issue?**: Y
-        - **Should Test frontend/backend/both after fix?**: Frontend (screenshot on user's environment if possible).
-        - **Blocked on other issue**: No
+-   **Issue 1: Add variant description to PDF's main dimension block.** (P0)
+-   **Issue 2: amoCRM widget height is not increasing on user's hosting.** (P2)
+-   **Issue 3: Unstable user login sessions.** (P3)
+-   **Issue 4: Minor admin UI bugs.** (P3)
+
+Issues Detail:
+-   **Issue 1: Add variant description to PDF's main dimension block.**
+    -   **Attempted fixes**: The agent modified  to get the  and  fields from the  and prepared to add them as a  to the PDF .
+    -   **Next debug checklist**:
+        1.  Generate a PDF via the UI or a  command.
+        2.  Check the backend logs for any errors during PDF generation.
+        3.  Inspect the generated PDF to confirm the description appears as expected in the  section.
+    -   **Why fix this issue and what will be achieved with the fix?**: This will complete the feature of making the PDF's dimension block fully dynamic based on the selected variant, providing the customer with all necessary details about their chosen layout.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on other issue**: None
+
+-   **Issue 2: amoCRM widget height is not increasing on user's hosting.**
+    -   **Attempted fixes**: Previous attempts included setting a fixed CSS height and using , which were unsuccessful on the user's hosting environment.
+    -   **Next debug checklist**:
+        1.  Explain to the user the technical limitations of resizing an iframe from within, as it's controlled by the parent page (amoCRM).
+        2.  Propose alternative solutions, such as optimizing the internal layout to require less space or confirming if the current state is acceptable.
+    -   **Why fix this issue and what will be achieved with the fix?**: Improves user experience within the amoCRM integration by eliminating internal scrollbars.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
+
+-   **Issue 3: Unstable user login sessions.**
+    -   **Attempted fixes**: None in this session.
+    -   **Next debug checklist**:
+        1.  Investigate JWT expiration and refresh token logic.
+        2.  Check server-side session management and client-side token storage.
+        3.  Review logs for any authentication-related errors.
+    -   **Why fix this issue and what will be achieved with the fix?**: Prevents users from being unexpectedly logged out, improving usability.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on other issue**: None
+
+-   **Issue 4: Minor admin UI bugs.**
+    -   **Attempted fixes**: None.
+    -   **Next debug checklist**: Address the Sauna hints not saving and Category hint editing dialog goes to wrong page bugs mentioned in the previous handoff.
+    -   **Why fix this issue and what will be achieved with the fix?**: Improves admin panel stability and user experience.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
-(None - All active work was completed, pending user verification).
+-   **Task 1: Complete PDF Description Feature**
+    -   **Where to resume**: The backend code in  has been modified. The next step is to test the PDF generation.
+    -   **What will be achieved with this?**: The selected variant's full description will appear on the generated PDF.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on something**: No
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    *   **P1**: Refactor large React components: , , . These have grown in complexity with new features.
+    *   **P1**: Refactor the PDF generation logic in . The  function is critically oversized and complex and should be extracted into a dedicated module.
+    *   **P1**: Refactor large React components that have grown in complexity, such as , , and , by breaking them into smaller, more focused components and hooks.
 -   **Future Tasks**:
     *   **P2**: Add UI for importing/restoring from a backup ZIP file.
     *   **P2**: Replace the deprecated Google Maps Autocomplete component.
     *   **P3**: Finalize and implement the Sauna Lead Statistics feature.
-    *   **P3**: Investigate and fix unstable user login sessions.
-    *   **P3**: Address minor bugs: Sauna hints not saving and Category hint editing dialog goes to wrong page.
 
 **Completed work in this session**
--   **Sauna Option Variants Refactor**: The sub-option feature was completely refactored into a variant system to meet user requirements for mutually exclusive choices. This involved changes to backend models, admin UI, and calculator logic.
--   **Variant UI Enhancement**: The UI for selecting variants was redesigned from a simple radio group to large, selectable cards with images, matching the style of the hot tub calculator's heater selection.
--   **Variant Image Upload & PDF Integration**: Fixed the image upload endpoint in the admin panel and corrected the backend logic to ensure that locally uploaded variant images are correctly fetched from MongoDB and embedded into the generated PDF.
--   **Dynamic Pricing for Foundation Beams**: Implemented logic for the Foundation Beams option to derive its price from the selected sauna model's .
--   **Room Size Feature for Sauna Models**: Implemented the full feature to add, manage, and display  and  for sauna models, including logic for alternative sizes with the terrace option, and inclusion in the final PDF.
--   **Translation Updates**: Updated Polish translations for room size labels in the UI and PDF as per the user's final request.
+-   **Layout Variant Management System**: Created a full CRUD system (backend models/API, frontend UI) for managing structured layout variants for saunas, displayed in the FAQ section and grouped by size.
+-   **Variant Integration in Calculator**: Updated the calculator to group variants by category, display a dynamic comparison table of dimensions, and correctly calculate price by adding the variant's cost to the base model's cost.
+-   **Variant Integration in Admin**: Enhanced the model editor to manage variant properties (category, dimensions, multi-line description) and added a duplicate function.
+-   **Variant-Based Incompatibility**: Implemented a system in the option editor to hide options based on the selected layout variant.
+-   **PDF Enhancements**:
+    -   The PDF's main Room Dimensions block now sources its data and image from the selected layout variant.
+    -   A dynamic comparison table of variants is now generated on page 2 of the PDF.
+    -   The PDF's option catalog now includes prices and descriptions.
+-   **UI/UX Improvements**:
+    -   Changed the variant description field from a single-line input to a multi-line .
+    -   Adjusted image sizes in the PDF as per user specifications.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Sauna hints not saving on user's hosting.**
-    -   **Why to solve this issue and what will be achieved with this?**: Ensures all admin panel features work correctly on the user's production server.
 -   **Issue 2: Category hint editing dialog in sauna pricing admin goes to the wrong page.**
-    -   **Why to solve this issue and what will be achieved with this?**: Fixes a minor UI bug in the admin panel.
 
 **Known issue recurrence from previous fork**
--   The issue of unstable user login sessions remains unresolved. The agent in this session noted issues with Playwright's session handling, which may or may not be related to the underlying user-reported problem.
+-   The issue of unstable user login sessions remains unresolved.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Data Model Refactoring**: Evolving the data model ( -> ) to accurately represent the business requirement for mutually exclusive product choices.
--   **Conditional State Logic**: Extensive use of React hooks () to manage complex, interconnected state. This includes replacing a parent option's properties with a selected variant's, and dynamically changing data (room sizes) based on the selection of another option (terrace).
--   **Backend PDF Generation**: Enhanced the ReportLab-based PDF generation to handle complex image sourcing. A bug was fixed where  could not fetch local API-served images () by implementing a  helper function to read image data directly from the database.
--   **Component-Driven UI**: Building features by creating or modifying a hierarchy of React components, from the data source (hook) to the interactive UI elements (cards, dialogs) and the summary display.
+-   **Full-Stack Feature Development**: The session involved tightly coordinated changes across the Pydantic models, FastAPI backend, and React frontend to build the layout variant system.
+-   **Data Model Evolution**: The initial sub-model concept was organically refactored into a more robust and flexible layout variant system with structured data, driven by user feedback.
+-   **Dynamic UI Generation**: The calculator and PDF now dynamically generate comparison tables based on the variant data associated with a model, rather than relying on static configurations.
+-   **Complex State Logic (React Hooks)**:  was updated to handle more complex pricing logic (base + variant) and advanced filtering rules (incompatibility with model AND variant).
 
 **key DB schema**
--   **sauna_models**: Added , , , .
--   **sauna_options**: The  field was fully replaced by .
--   **SaunaOptionVariant** (new model within ): 
+-   **sauna_model_variants** (nested within  document):
+    -    (new): Category for grouping variants (e.g., Боковой вход).
+    -   ,  (new): Multi-line description for the variant.
+    -   , , , ,  (new): Dimension fields for comparison tables and PDF.
+-   **sauna_layout_variants** (new collection):
+    -   Stores structured data for layout variants used in the FAQ page, including , , , , and all dimension fields.
+-   **sauna_options**:
+    -   : This field is now used to store IDs of both main models and layout variants to determine incompatibility.
 
 **All files of reference**
--   **/app/backend/models/sauna.py**: Defines the core data structures for sauna models, options, and variants.
--   **/app/backend/routes/sauna.py**: Contains the PDF generation logic.
--   **/app/frontend/src/components/sauna/useSaunaCalculator.js**: The central React hook for all sauna calculator business logic.
--   **/app/frontend/src/components/SaunaCalculator.jsx**: The main component for the sauna calculator UI.
--   **/app/frontend/src/components/sauna-pricing/OptionDialog.jsx**: Admin UI for managing option variants.
--   **/app/frontend/src/components/sauna-pricing/ModelDialog.jsx**: Admin UI for managing sauna models, including room sizes.
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--    and  have become very large and complex. They should be broken down into smaller, more manageable modules to improve maintainability.
+-   **CRITICAL**: The  function in  is now extremely large and handles too many distinct logic blocks. It urgently needs to be broken down into smaller, single-responsibility helper functions or classes.
+-    now contains a full sub-application for managing layout variants. This logic should be extracted into its own dedicated folder of components and hooks for better separation of concerns.
+-    and  have also become very large and would benefit from being decomposed into smaller child components.
 
 **key api endpoints**
--   : Saves all pricing data, including models with new room sizes and options with variants.
--   : The correct endpoint for uploading images, fixed in the admin panel.
--   : Serves uploaded images from MongoDB.
--   : Generates the PDF for a sauna order, now including variant images and room sizes.
+-   : New CRUD endpoints for managing the standalone layout variant data for the FAQ section.
+-   : The request payload was modified to include , which is now the primary source for the Room Dimensions block. The  data is used to dynamically generate a comparison table.
+-   : The data structure for model variants within this endpoint's payload was updated to include all the new fields (category, dimensions, etc.).
 
 **Critical Info for New Agent**
 -   You MUST respond in **Russian**.
--   The variant system is the final, user-approved architecture for sauna options that have multiple styles. Do not re-implement or suggest sub-options.
--   When dealing with images in PDFs, remember that local URLs starting with  must be loaded using the  function in , as standard HTTP requests will fail.
--   The user prefers UIs to be consistent. The variant selection was explicitly changed to match the card-based UI of the hot tub calculator. Maintain this pattern for similar features.
--   The external terrace option is identified by the ID  in the  category. This is used to trigger the alternative room size logic in .
+-   The core concept of sub-models has been replaced by layout variants. These are managed in two places: 1) as variants nested under a main model in the pricing page, and 2) as a separate, structured catalog of layouts in the FAQ section. The user may use the terms interchangeably.
+-   The price logic is now **Base Model Price + Selected Variant Price**.
+-   The data source for the PDF's main dimension block () is the  object sent from the frontend.
+-   Comparison tables (in calculator and PDF) are generated dynamically from the list of variants associated with a model.
+-   The option incompatibility system now checks against both the selected main model ID and the selected variant ID.
 
 **documents and test reports created in this job**
--   /app/memory/PRD.md (updated)
--   /app/test_reports/iteration_26.json
--   /app/test_reports/iteration_27.json
--   /app/test_reports/iteration_28.json
--   /app/test_reports/iteration_29.json
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **User**: Requested to add Polish translations  and  and show only Polish in the PDF. (Implemented)
--   **User**: Confirmed the agent can proceed after seeing the testing agent found and fixed a bug. (Acknowledged)
--   **User**: Requested to add  and  to sauna models, with alternate sizes for the terrace option, and to include this data in the UI and PDF. (Implemented)
--   **User**: Confirmed that the new card-based UI for variants is correct, but noted that image upload doesn't work and the image doesn't appear in the PDF. (This was the bug that was fixed)
--   **User**: Stated that the variant UI needs to be like the hot tub heater selection (separate cards with photos), not a small box below the option. (Implemented)
--   **User**: Confirmed the two new tasks: 1. Get the variant's photo into the PDF. 2. Make the Foundation Beams option price equal to the model's . (Implemented)
--   **User**: Confirmed the plan to refactor sub-options into variants for the Benches category, with the variant price replacing the base price. (Implemented)
+1.  **User**: Add the multi-line description to the PDF. (Status: IN PROGRESS - Last working item)
+2.  **User**: Make the sub-model description field a multi-line . (Status: COMPLETED)
+3.  **User**: I was talking about a different incompatibility setting (the one for options). (Status: COMPLETED - Agent corrected course and implemented incompatibility for variants in the Option Dialog).
+4.  **User**: Categorize sub-models and add them to the option incompatibility list. (Status: COMPLETED)
+5.  **User**: Add a duplicate button for sub-models. (Status: COMPLETED)
+6.  **User**: Add option prices and descriptions to the PDF catalog. (Status: COMPLETED)
+7.  **User**: The main model's photo should be used in the PDF, not the variant's. (Status: COMPLETED)
+8.  **User**: The sub-model price should be added to the main model price, not replace it. (Status: COMPLETED)
+9.  **User**: The comparison table isn't showing in the calculator either. (Status: COMPLETED - Agent fixed the data source in the calculator UI).
+10. **User**: The comparison table isn't being created [in the PDF]. (Status: COMPLETED - Agent debugged and identified the issue, which led to the next request about the calculator).
 
 **Project Health Check:**
--   **Broken**: None. All user-reported issues from this session have been addressed.
+-   **Broken**: None.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
--   **amoCRM/Kommo**: Core integration for lead management. No changes made in this session, but the PDF generation is a key part of this workflow.
+-   **amoCRM/Kommo**: The primary integration target for the generated PDF offers.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. The testing agent was used multiple times to verify the variant refactor, the UI changes, the image upload flow, and the room size feature. It successfully identified and fixed one bug during development.
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: An early test run showed a 403 Forbidden error for an image URL, but this was due to a dead link in test data, not a code regression.
+-   **Known regressions**: None identified in this session.
 
 **Credentials to test flow:**
 -   Admin:  / 
 -   Manager (Employee):  / 
 
 **What agent forgot to execute**
--   The agent did not address the pre-existing, lower-priority issues from the previous handoff summary: the amoCRM widget height, sauna hints not saving, and the category hint editing dialog bug. The focus was entirely on the user's immediate and high-priority feature requests.</analysis>
+-   The agent did not address the pre-existing, lower-priority issues from the previous handoff (amoCRM widget height, sauna hints not saving, category hint editing dialog bug, unstable login sessions), correctly prioritizing the user's stream of high-priority feature requests.
+-   No dedicated test files (e.g., Pytest) were created for the new backend logic, increasing the risk of future regressions.</analysis>
