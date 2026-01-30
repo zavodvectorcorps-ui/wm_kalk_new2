@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { InputOrange } from './ui/input-orange';
@@ -12,10 +12,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, Calendar,
   Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon, Check, Home,
-  ChevronRight, ChevronDown, Lock, Unlock, Flame, Sofa, LayoutGrid, ArrowRight, ArrowLeft, CheckCircle2
+  ChevronRight, ChevronDown, Lock, Unlock, Flame, Sofa, LayoutGrid, ArrowRight, ArrowLeft, CheckCircle2, Trash2
 } from 'lucide-react';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
+
+// Icon mapping from string to component
+const ICON_MAP = {
+  Home, LayoutGrid, Flame, ArrowRight, Sofa, Package, Check, Gift, Shield, Calendar,
+  User, Phone, Mail, Tag, Percent, Calculator, Info, Edit, Save, FileDown, Loader2,
+  ChevronRight, ChevronDown, Lock, Unlock, CheckCircle2, Trash2
+};
+
+// LocalStorage key for saving progress
+const STORAGE_KEY = 'sauna_calculator_new_progress';
 
 // Component to display hint with optional media (image/video)
 const HintContent = ({ hint, hintImageUrl, hintVideoUrl, expanded = false }) => {
