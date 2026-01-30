@@ -53,7 +53,7 @@ const API_URL = (() => {
 // Category labels - products first as requested
 const CATEGORY_LABELS = {
   products: { label: 'Товары и опции', icon: Package },
-  layout_variants: { label: 'Варианты планировок', icon: Table },
+  layout_variants: { label: 'Варианты планировок', icon: Table2 },
   calculator_guide: { label: 'Работа с калькулятором', icon: Book },
   amocrm_integration: { label: 'Интеграция с amoCRM', icon: Link2 },
   objections: { label: 'Возражения', icon: MessageSquareQuote },
