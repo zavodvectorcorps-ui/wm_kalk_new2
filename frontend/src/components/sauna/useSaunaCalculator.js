@@ -942,8 +942,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         variantComparisonRows: variantComparisonRows,
         plusOnlyCategories: plusOnlyCategories,
         allAvailableOptions: allAvailableOptions,
-        // Selected Plus option (for WYMIARY POMIESZCZEŃ section)
-        selectedPlusOption: selectedPlusOption,
+        // Selected model variant data (for WYMIARY POMIESZCZEŃ section)
+        selectedModelVariantData: selectedModelVariantData,
         // Page 2 settings
         ...pdfPage2Settings,
       };
