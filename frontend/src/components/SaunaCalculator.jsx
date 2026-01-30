@@ -1003,6 +1003,37 @@ const ModelVariantSelector = ({ model, formData, handleModelVariantChange, price
                     </p>
                   )}
                   
+                  {/* Room dimensions badges */}
+                  {(variant.capacity || variant.terraceSize || variant.relaxRoomSize || variant.steamRoomSize || variant.entranceSide) && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {variant.capacity && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-700">
+                          👥 {variant.capacity}
+                        </span>
+                      )}
+                      {variant.terraceSize && variant.terraceSize !== '0' && variant.terraceSize !== '-' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">
+                          🌿 {variant.terraceSize}
+                        </span>
+                      )}
+                      {variant.relaxRoomSize && variant.relaxRoomSize !== '0' && variant.relaxRoomSize !== '-' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
+                          🛋️ {variant.relaxRoomSize}
+                        </span>
+                      )}
+                      {variant.steamRoomSize && variant.steamRoomSize !== '0' && variant.steamRoomSize !== '-' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700">
+                          🔥 {variant.steamRoomSize}
+                        </span>
+                      )}
+                      {variant.entranceSide && variant.entranceSide !== '-' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-100 text-purple-700">
+                          🚪 {variant.entranceSide}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
                   <div className={`text-lg font-bold ${isSelected ? 'text-purple-600' : 'text-amber-600'}`}>
                     {variant.price > 0 ? `+${formatPrice(variant.price)} PLN` : (lang === 'pl' ? 'W cenie' : 'В цене')}
                   </div>
