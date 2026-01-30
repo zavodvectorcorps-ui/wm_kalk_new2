@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { InputOrange } from './ui/input-orange';
@@ -11,7 +11,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, Calendar,
-  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon, Check, Home
+  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon, Check, Home,
+  ChevronRight, ChevronDown, Lock, Unlock, Flame, Sofa, LayoutGrid, ArrowRight, ArrowLeft, CheckCircle2
 } from 'lucide-react';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
