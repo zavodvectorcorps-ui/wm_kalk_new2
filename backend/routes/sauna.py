@@ -1261,9 +1261,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     variant_entrance_side = selected_variant.get('entranceSide')
     variant_name = selected_variant.get('name')
     variant_image_url = selected_variant.get('imageUrl')
+    variant_hint = selected_variant.get('hint')  # Description / what's included
     
     # Determine if we should use variant data or standard room sizes
-    has_variant_data = variant_terrace_size or variant_relax_room_size or variant_steam_room_size or variant_entrance_side or variant_capacity
+    has_variant_data = variant_terrace_size or variant_relax_room_size or variant_steam_room_size or variant_entrance_side or variant_capacity or variant_hint
     has_variant_image = bool(variant_image_url)
     has_standard_data = relax_room_size or steam_room_size or capacity
     
