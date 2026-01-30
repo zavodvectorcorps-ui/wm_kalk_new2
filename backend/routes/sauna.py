@@ -1252,21 +1252,22 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     has_terrace = getattr(request, 'hasTerrace', False)
     capacity = getattr(request, 'capacity', None)
     
-    # Get selected Plus option data (from Warianty układu category)
-    selected_plus_option = getattr(request, 'selectedPlusOption', None) or {}
-    plus_terrace_size = selected_plus_option.get('terraceSize')
-    plus_relax_room_size = selected_plus_option.get('relaxRoomSize')
-    plus_steam_room_size = selected_plus_option.get('steamRoomSize')
-    plus_entrance_side = selected_plus_option.get('entranceSide')
-    plus_option_name = selected_plus_option.get('name')
-    plus_option_image_url = selected_plus_option.get('imageUrl')
+    # Get selected model variant data (from sub-model / layout variant)
+    selected_variant = getattr(request, 'selectedModelVariantData', None) or {}
+    variant_capacity = selected_variant.get('capacity')
+    variant_terrace_size = selected_variant.get('terraceSize')
+    variant_relax_room_size = selected_variant.get('relaxRoomSize')
+    variant_steam_room_size = selected_variant.get('steamRoomSize')
+    variant_entrance_side = selected_variant.get('entranceSide')
+    variant_name = selected_variant.get('name')
+    variant_image_url = selected_variant.get('imageUrl')
     
-    # Determine if we should use Plus option data or standard room sizes
-    has_plus_data = plus_terrace_size or plus_relax_room_size or plus_steam_room_size or plus_entrance_side
-    has_plus_image = bool(plus_option_image_url)
+    # Determine if we should use variant data or standard room sizes
+    has_variant_data = variant_terrace_size or variant_relax_room_size or variant_steam_room_size or variant_entrance_side or variant_capacity
+    has_variant_image = bool(variant_image_url)
     has_standard_data = relax_room_size or steam_room_size or capacity
     
-    if has_plus_data or has_plus_image or has_standard_data:
+    if has_variant_data or has_variant_image or has_standard_data:
         room_sizes_title = ParagraphStyle(
             'RoomSizesTitle',
             fontName='DejaVuSans-Bold',
@@ -1281,24 +1282,24 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         
         room_data = []
         
-        # If Plus option is selected, use its data
-        if has_plus_data or has_plus_image:
+        # If model variant is selected, use its data
+        if has_variant_data or has_variant_image:
             # Use Paragraph for long text to enable word wrap
             label_style = ParagraphStyle('RoomLabel', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, leading=11)
             value_style = ParagraphStyle('RoomValue', fontName='DejaVuSans-Bold', fontSize=9, textColor=BROWN_DARK, leading=11)
             
-            if plus_option_name:
-                room_data.append([Paragraph('Wariant układu:', label_style), Paragraph(plus_option_name, value_style)])
-            if capacity:
-                room_data.append([Paragraph('Orientacyjna liczba osób:', label_style), Paragraph(capacity, value_style)])
-            if plus_terrace_size:
-                room_data.append([Paragraph('Taras:', label_style), Paragraph(plus_terrace_size, value_style)])
-            if plus_relax_room_size:
-                room_data.append([Paragraph('Pokój wypoczynkowy:', label_style), Paragraph(plus_relax_room_size, value_style)])
-            if plus_steam_room_size:
-                room_data.append([Paragraph('Sauna parowa:', label_style), Paragraph(plus_steam_room_size, value_style)])
-            if plus_entrance_side:
-                room_data.append([Paragraph('Strona wejścia:', label_style), Paragraph(plus_entrance_side, value_style)])
+            if variant_name:
+                room_data.append([Paragraph('Wariant układu:', label_style), Paragraph(variant_name, value_style)])
+            if variant_capacity or capacity:
+                room_data.append([Paragraph('Orientacyjna liczba osób:', label_style), Paragraph(variant_capacity or capacity, value_style)])
+            if variant_terrace_size:
+                room_data.append([Paragraph('Taras:', label_style), Paragraph(variant_terrace_size, value_style)])
+            if variant_relax_room_size:
+                room_data.append([Paragraph('Pokój wypoczynkowy:', label_style), Paragraph(variant_relax_room_size, value_style)])
+            if variant_steam_room_size:
+                room_data.append([Paragraph('Sauna parowa:', label_style), Paragraph(variant_steam_room_size, value_style)])
+            if variant_entrance_side:
+                room_data.append([Paragraph('Strona wejścia:', label_style), Paragraph(variant_entrance_side, value_style)])
         else:
             # Use standard room sizes
             if capacity:
@@ -1310,14 +1311,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             if has_terrace:
                 room_data.append(['', 'Z dodatkowym tarasem ✓'])
         
-        # Try to load Plus option image first (before checking room_data)
-        plus_option_img = None
-        if plus_option_image_url and (has_plus_data or has_plus_image):
+        # Try to load variant image first (before checking room_data)
+        variant_img = None
+        if variant_image_url and (has_variant_data or has_variant_image):
             try:
                 img_data = None
-                if '/api/uploads/' in plus_option_image_url:
-                    img_data = await load_image_from_mongodb(plus_option_image_url)
-                elif plus_option_image_url.startswith('http'):
+                if '/api/uploads/' in variant_image_url:
+                    img_data = await load_image_from_mongodb(variant_image_url)
+                elif variant_image_url.startswith('http'):
                     try:
                         req = urllib.request.Request(plus_option_image_url, headers={
                             'User-Agent': 'Mozilla/5.0',
