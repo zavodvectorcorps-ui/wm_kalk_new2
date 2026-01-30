@@ -679,53 +679,6 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
             onChange={(variants) => setEditingModel(prev => ({ ...prev, variants }))}
           />
           
-          {/* Room Sizes Section */}
-          <div className="border-t pt-4 mt-4">
-            <Label className="text-sm font-medium text-blue-700 mb-2 block">📐 Размеры комнат (стандарт)</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Комната отдыха</Label>
-                <Input
-                  value={editingModel.relaxRoomSize || ''}
-                  onChange={(e) => setEditingModel(prev => ({ ...prev, relaxRoomSize: e.target.value }))}
-                  placeholder="2.5 x 3.0 m"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Парная</Label>
-                <Input
-                  value={editingModel.steamRoomSize || ''}
-                  onChange={(e) => setEditingModel(prev => ({ ...prev, steamRoomSize: e.target.value }))}
-                  placeholder="2.0 x 2.0 m"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Room Sizes with Terrace */}
-          <div className="border-t pt-4 mt-2">
-            <Label className="text-sm font-medium text-green-700 mb-2 block">🏡 Размеры с доп. террасой</Label>
-            <p className="text-xs text-gray-500 mb-2">Эти размеры будут использоваться когда выбрана опция "Дополнительная терраса"</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Комната отдыха</Label>
-                <Input
-                  value={editingModel.relaxRoomSizeWithTerrace || ''}
-                  onChange={(e) => setEditingModel(prev => ({ ...prev, relaxRoomSizeWithTerrace: e.target.value }))}
-                  placeholder="3.0 x 3.5 m"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Парная</Label>
-                <Input
-                  value={editingModel.steamRoomSizeWithTerrace || ''}
-                  onChange={(e) => setEditingModel(prev => ({ ...prev, steamRoomSizeWithTerrace: e.target.value }))}
-                  placeholder="2.5 x 2.5 m"
-                />
-              </div>
-            </div>
-          </div>
-          
           <div>
             <Label>{txt.hint || 'Подсказка / Описание'}</Label>
             <Textarea
