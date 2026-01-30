@@ -1693,6 +1693,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             return None
         
         # ===== SECTION 1: Model Variants =====
+        logger.info(f"PDF Page 2 - model_variants count: {len(model_variants) if model_variants else 0}")
+        logger.info(f"PDF Page 2 - page2_show_variants: {page2_show_variants}, page2_show_comparison: {page2_show_comparison}")
+        if model_variants:
+            for i, v in enumerate(model_variants):
+                logger.info(f"Variant {i}: name={v.get('namePl')}, relax={v.get('relaxRoomSize')}, steam={v.get('steamRoomSize')}, terrace={v.get('terraceSize')}, entrance={v.get('entranceSide')}")
+        
         if model_variants and page2_show_variants:
             elements.append(Paragraph(page2_variants_title.upper(), 
                 ParagraphStyle('Page2Title', fontName='DejaVuSans-Bold', fontSize=14, 
