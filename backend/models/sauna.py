@@ -16,6 +16,9 @@ class SaunaModelVariant(BaseModel):
     imageUrl: Optional[str] = ""  # Image for this variant
     hint: Optional[str] = ""  # Description (RU)
     hintPl: Optional[str] = ""  # Description (PL)
+    # Category/group for this variant (e.g., "Прямой вход", "Боковой вход", "Правая печка")
+    category: Optional[str] = ""  # Variant category for grouping
+    categoryPl: Optional[str] = ""  # Category in Polish
     # Room dimensions for this variant (used in PDF WYMIARY POMIESZCZEŃ)
     capacity: Optional[str] = ""  # Orientacyjna liczba osób
     terraceSize: Optional[str] = ""  # Taras
