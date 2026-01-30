@@ -1712,6 +1712,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 v.get('relaxRoomSize') or v.get('steamRoomSize') or v.get('terraceSize') or v.get('entranceSide')
                 for v in model_variants
             )
+            logger.info(f"PDF Page 2 - has_comparison_data: {has_comparison_data}")
             
             if has_comparison_data and page2_show_comparison:
                 comparison_data = [[
