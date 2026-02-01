@@ -24,8 +24,18 @@ from services.telegram_service import notify_new_order
 # Import amoCRM functions for notes
 from routes.amocrm import add_note_to_amocrm, get_amocrm_settings
 
+# Import modular routers
+from routes.sauna_crud import router as crud_router
+from routes.sauna_orders import router as orders_router
+from routes.sauna_wizard import router as wizard_router
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/sauna", tags=["Sauna Calculator"])
+
+# Include modular routers
+router.include_router(crud_router)
+router.include_router(orders_router)
+router.include_router(wizard_router)
 
 
 # Default PDF template settings
