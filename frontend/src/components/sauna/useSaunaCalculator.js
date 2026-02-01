@@ -1089,11 +1089,16 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     modelVariant: getSelectedModelVariant(),
     modelPrice: getModelPrice(),
     
-    // Layout catalog
+    // Layout catalog (from useLayoutCatalog hook)
     selectedLayoutSize,
     selectedLayoutId,
     layoutVariants,
+    layoutLoading,
     handleLayoutSelect,
+    clearLayoutSelection,
+    getSelectedLayout,
+    getOtherLayoutsForSize,
+    getLayoutsBySize,
     
     // Setters
     setFormData,
@@ -1120,6 +1125,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     getCategoryName,
     getSelectedOptions,
     isOptionVisible,
+    isCategoryVisible,
+    isTerraceSelected,
     getOptionBasePrice,
   };
 };
