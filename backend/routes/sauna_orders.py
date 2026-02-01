@@ -51,7 +51,7 @@ async def create_sauna_order(order: SaunaOrder):
         logger.warning(f"Failed to send Telegram notification with PDF for sauna order: {e}")
         try:
             await notify_new_order(order_dict, order_type='sauna', is_web_order=False)
-        except:
+        except Exception:
             pass
     
     # Update order with PDF status
