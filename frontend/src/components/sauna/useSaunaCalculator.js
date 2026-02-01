@@ -1199,6 +1199,12 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     modelVariant: getSelectedModelVariant(),
     modelPrice: getModelPrice(),
     
+    // Layout catalog
+    selectedLayoutSize,
+    selectedLayoutId,
+    layoutVariants,
+    handleLayoutSelect,
+    
     // Setters
     setFormData,
     setAppliedDiscount,
