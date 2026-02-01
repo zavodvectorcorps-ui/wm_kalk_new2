@@ -3,7 +3,8 @@ from fastapi import APIRouter
 from database import db
 from models.sauna import WizardStep
 
-router = APIRouter(prefix="/sauna", tags=["Sauna Wizard"])
+# No prefix - will be included in main sauna router
+router = APIRouter(tags=["Sauna Wizard"])
 
 DEFAULT_WIZARD_STEPS = [
     {

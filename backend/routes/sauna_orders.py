@@ -9,7 +9,8 @@ from services.telegram_service import notify_new_order
 from routes.amocrm import add_note_to_amocrm, get_amocrm_settings
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/sauna", tags=["Sauna Orders"])
+# No prefix - will be included in main sauna router
+router = APIRouter(tags=["Sauna Orders"])
 
 
 async def generate_sauna_pdf_bytes_import(request: SaunaPDFRequest) -> bytes:

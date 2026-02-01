@@ -4,7 +4,8 @@ from database import db
 from models.sauna import SaunaModel, SaunaOption, SaunaCategory, SaunaPriceData
 from data.sauna_defaults import default_sauna_prices
 
-router = APIRouter(prefix="/sauna", tags=["Sauna CRUD"])
+# No prefix - will be included in main sauna router
+router = APIRouter(tags=["Sauna CRUD"])
 
 
 # =============================================
