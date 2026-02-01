@@ -534,6 +534,14 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             />
           ))}
 
+          {/* Layout Catalog */}
+          <LayoutCatalog
+            selectedSize={selectedLayoutSize}
+            selectedLayoutId={selectedLayoutId}
+            onLayoutSelect={handleLayoutSelect}
+            lang={lang}
+          />
+
           {/* Notes */}
           <Card className="shadow-md">
             <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
