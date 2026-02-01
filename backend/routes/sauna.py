@@ -1804,6 +1804,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     plus_only_categories = getattr(request, 'plusOnlyCategories', []) or []
     all_available_options = getattr(request, 'allAvailableOptions', []) or []
     
+    # Other layouts for the same size from Layout Catalog
+    other_layouts_for_size = getattr(request, 'otherLayoutsForSize', []) or []
+    selected_layout_size = getattr(request, 'selectedLayoutSize', None)
+    
     # PDF Page 2 settings from request
     page2_enabled = getattr(request, 'pdfPage2Enabled', True)
     page2_variants_title = getattr(request, 'pdfPage2VariantsTitle', 'Możliwe warianty wykonania w wybranym rozmiarze') or 'Możliwe warianty wykonania w wybranym rozmiarze'
