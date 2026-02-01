@@ -901,16 +901,51 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       // Get room dimensions from selected model variant (for WYMIARY POMIESZCZEŃ section)
       const selectedVariant = getSelectedModelVariant();
       let selectedModelVariantData = null;
-      if (selectedVariant && (selectedVariant.terraceSize || selectedVariant.relaxRoomSize || selectedVariant.steamRoomSize || selectedVariant.entranceSide || selectedVariant.imageUrl || selectedVariant.hint || selectedVariant.hintPl)) {
+      
+      // Check if there's a "Планировка" (Layout) category with selected option that has an image
+      // This image should override the variant image in PDF
+      let layoutImageUrl = null;
+      const layoutCategory = prices.categories?.find(cat => 
+        cat.name?.toLowerCase().includes('планировка') || 
+        cat.name?.toLowerCase().includes('planowka') ||
+        cat.name?.toLowerCase().includes('układ') ||
+        cat.namePl?.toLowerCase().includes('planowka') ||
+        cat.nameRu?.toLowerCase().includes('планировка')
+      );
+      
+      if (layoutCategory) {
+        const selectedLayoutId = formData.selections[layoutCategory.id];
+        if (selectedLayoutId) {
+          const selectedLayout = layoutCategory.options?.find(opt => opt.id === selectedLayoutId);
+          if (selectedLayout?.imageUrl) {
+            layoutImageUrl = selectedLayout.imageUrl;
+          }
+        }
+      }
+      
+      if (selectedVariant && (selectedVariant.terraceSize || selectedVariant.relaxRoomSize || selectedVariant.steamRoomSize || selectedVariant.entranceSide || selectedVariant.imageUrl || selectedVariant.hint || selectedVariant.hintPl || layoutImageUrl)) {
         selectedModelVariantData = {
           name: selectedVariant.namePl || selectedVariant.name,
-          imageUrl: selectedVariant.imageUrl || null,
+          // Use layout image if available, otherwise use variant image
+          imageUrl: layoutImageUrl || selectedVariant.imageUrl || null,
           capacity: selectedVariant.capacity || null,
           terraceSize: selectedVariant.terraceSize || null,
           relaxRoomSize: selectedVariant.relaxRoomSize || null,
           steamRoomSize: selectedVariant.steamRoomSize || null,
           entranceSide: selectedVariant.entranceSide || null,
           hint: selectedVariant.hintPl || selectedVariant.hint || null,  // Description / what's included
+        };
+      } else if (layoutImageUrl) {
+        // If no variant but layout image selected, still pass it
+        selectedModelVariantData = {
+          name: null,
+          imageUrl: layoutImageUrl,
+          capacity: null,
+          terraceSize: null,
+          relaxRoomSize: null,
+          steamRoomSize: null,
+          entranceSide: null,
+          hint: null,
         };
       }
       
