@@ -27,6 +27,11 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const [requestedDiscount, setRequestedDiscount] = useState(0);
   const [requestedDiscountNote, setRequestedDiscountNote] = useState('');
   
+  // Layout catalog selection
+  const [selectedLayoutSize, setSelectedLayoutSize] = useState(null);
+  const [selectedLayoutId, setSelectedLayoutId] = useState(null);
+  const [layoutVariants, setLayoutVariants] = useState([]);
+  
   const isAdminUser = isAdmin && isAdmin();
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = getTranslation(lang);
