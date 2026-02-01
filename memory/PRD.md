@@ -6,23 +6,17 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 ## Latest Updates
 
 ### Feb 1, 2025 - Code Refactoring: Backend & Frontend Modularization (COMPLETED)
-- **NEW**: Created modular backend services and routes for better code organization
-- **Backend Modules Created**:
-  - `services/pdf_helpers.py` - Image optimization, MongoDB loading, PDF utilities
-  - `services/pdf_sections.py` - PDF section builders (header, client info, promo, gallery)
-  - `routes/sauna_crud.py` - CRUD operations for models, categories, options (prices)
-  - `routes/sauna_orders.py` - Order CRUD and tech spec endpoints
-  - `routes/sauna_wizard.py` - Wizard calculator API
-- **Frontend Hooks Created**:
-  - `useLayoutCatalog.js` - Layout catalog selection and management
-  - `usePriceCalculation.js` - Price calculation logic
-  - `useOptionVisibility.js` - Option visibility based on rules
-- **Refactoring Applied**:
-  - Main `sauna.py` reduced from 2842 to 2318 lines (-18%)
-  - CRUD operations moved to modular files and included via `router.include_router()`
-  - Duplicate code eliminated
-- **Testing**: All 22 backend tests passed, all UI flows working
-- **Documentation**: Created `/app/REFACTORING_GUIDE.md` with migration details
+- **Backend Refactoring**:
+  - `sauna.py` reduced from 2842 to 2318 lines (-18%)
+  - Created modular files: `sauna_crud.py`, `sauna_orders.py`, `sauna_wizard.py`
+  - Created PDF helpers: `pdf_helpers.py`, `pdf_sections.py`
+  - All modules connected via `router.include_router()`
+- **Frontend Refactoring**:
+  - `useSaunaCalculator.js` reduced from 1237 to 1134 lines (-8%)
+  - Created modular hooks: `useLayoutCatalog.js`, `useOptionVisibility.js`, `usePriceCalculation.js`
+  - Hooks integrated and working
+- **Testing**: All 22 backend tests passed, UI fully functional
+- **Documentation**: Updated `/app/REFACTORING_GUIDE.md`
 
 ### Jan 30, 2025 - Sub-model Description in PDF & Room Sizes from Variant (COMPLETED)
 - **NEW**: Variant description (hint) now displayed in PDF's "WYMIARY POMIESZCZEŃ" section as "Co zawiera wariant:"
