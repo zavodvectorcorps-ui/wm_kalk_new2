@@ -734,6 +734,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         ...getRoomSizes(),
         // Capacity (number of people)
         capacity: model?.capacity || null,
+        // Layout catalog selection (for PDF generation)
+        selectedLayoutId: selectedLayoutId || null,
+        selectedLayoutSize: selectedLayoutSize || null,
         // Edit mode fields
         ...(isEditMode && editOrderId && {
           updatedBy: user?.username || 'calculator',
