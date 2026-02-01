@@ -93,14 +93,400 @@ def is_block_enabled(template: dict, block_id: str) -> bool:
     return True  # Default to enabled if not found
 
 
+@router.get("/prices")
+async def get_sauna_prices():
+    """Get sauna pricing data"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        await db.sauna_prices.insert_one({"_id": "default", **default_sauna_prices})
+        return default_sauna_prices
+    
+    prices.pop('_id', None)
+    return prices
+
+
+@router.post("/prices")
+async def update_sauna_prices(prices: SaunaPriceData):
+    """Update sauna pricing data"""
+    price_dict = prices.model_dump()
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": price_dict},
+        upsert=True
+    )
+    return {"message": "Sauna prices updated successfully"}
+
 
 # =============================================
-# CRUD operations moved to modular files:
-# - sauna_crud.py: prices, models, categories, options
-# - sauna_orders.py: orders CRUD
-# - sauna_wizard.py: wizard steps API
-# These are included via router.include_router() above
+# SAUNA MODELS CRUD
 # =============================================
+@router.post("/models")
+async def add_sauna_model(model: SaunaModel):
+    """Add a new sauna model"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        await db.sauna_prices.insert_one({"_id": "default", **default_sauna_prices})
+        prices = default_sauna_prices.copy()
+    
+    models = prices.get("models", [])
+    if any(m["id"] == model.id for m in models):
+        raise HTTPException(status_code=400, detail="Model with this ID already exists")
+    
+    models.append(model.model_dump())
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": {"models": models}}
+    )
+    return {"message": "Model added successfully", "model": model}
+
+
+@router.put("/models/{model_id}")
+async def update_sauna_model(model_id: str, model: SaunaModel):
+    """Update an existing sauna model"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        raise HTTPException(status_code=404, detail="Prices not found")
+    
+    models = prices.get("models", [])
+    model_index = next((i for i, m in enumerate(models) if m["id"] == model_id), None)
+    
+    if model_index is None:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    models[model_index] = model.model_dump()
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": {"models": models}}
+    )
+    return {"message": "Model updated successfully", "model": model}
+
+
+@router.delete("/models/{model_id}")
+async def delete_sauna_model(model_id: str):
+    """Delete a sauna model"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        raise HTTPException(status_code=404, detail="Prices not found")
+    
+    models = prices.get("models", [])
+    new_models = [m for m in models if m["id"] != model_id]
+    
+    if len(new_models) == len(models):
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": {"models": new_models}}
+    )
+    return {"message": "Model deleted successfully"}
+
+
+# =============================================
+# SAUNA CATEGORIES CRUD
+# =============================================
+@router.post("/categories")
+async def add_sauna_category(category: SaunaCategory):
+    """Add a new sauna category"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        await db.sauna_prices.insert_one({"_id": "default", **default_sauna_prices})
+        prices = default_sauna_prices.copy()
+    
+    categories = prices.get("categories", [])
+    if any(c["id"] == category.id for c in categories):
+        raise HTTPException(status_code=400, detail="Category with this ID already exists")
+    
+    categories.append(category.model_dump())
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": {"categories": categories}}
+    )
+    return {"message": "Category added successfully", "category": category}
+
+
+@router.put("/categories/{category_id}")
+async def update_sauna_category(category_id: str, category: SaunaCategory):
+    """Update an existing sauna category"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        raise HTTPException(status_code=404, detail="Prices not found")
+    
+    categories = prices.get("categories", [])
+    cat_index = next((i for i, c in enumerate(categories) if c["id"] == category_id), None)
+    
+    if cat_index is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    categories[cat_index] = category.model_dump()
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": {"categories": categories}}
+    )
+    return {"message": "Category updated successfully", "category": category}
+
+
+@router.delete("/categories/{category_id}")
+async def delete_sauna_category(category_id: str):
+    """Delete a sauna category"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        raise HTTPException(status_code=404, detail="Prices not found")
+    
+    categories = prices.get("categories", [])
+    new_categories = [c for c in categories if c["id"] != category_id]
+    
+    if len(new_categories) == len(categories):
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": {"categories": new_categories}}
+    )
+    return {"message": "Category deleted successfully"}
+
+
+# =============================================
+# SAUNA OPTIONS CRUD
+# =============================================
+@router.post("/categories/{category_id}/options")
+async def add_sauna_option(category_id: str, option: SaunaOption):
+    """Add an option to a category"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        raise HTTPException(status_code=404, detail="Prices not found")
+    
+    categories = prices.get("categories", [])
+    cat_index = next((i for i, c in enumerate(categories) if c["id"] == category_id), None)
+    
+    if cat_index is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    options = categories[cat_index].get("options", [])
+    if any(o["id"] == option.id for o in options):
+        raise HTTPException(status_code=400, detail="Option with this ID already exists")
+    
+    options.append(option.model_dump())
+    categories[cat_index]["options"] = options
+    
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": {"categories": categories}}
+    )
+    return {"message": "Option added successfully", "option": option}
+
+
+@router.put("/categories/{category_id}/options/{option_id}")
+async def update_sauna_option(category_id: str, option_id: str, option: SaunaOption):
+    """Update an option in a category"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        raise HTTPException(status_code=404, detail="Prices not found")
+    
+    categories = prices.get("categories", [])
+    cat_index = next((i for i, c in enumerate(categories) if c["id"] == category_id), None)
+    
+    if cat_index is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    options = categories[cat_index].get("options", [])
+    opt_index = next((i for i, o in enumerate(options) if o["id"] == option_id), None)
+    
+    if opt_index is None:
+        raise HTTPException(status_code=404, detail="Option not found")
+    
+    options[opt_index] = option.model_dump()
+    categories[cat_index]["options"] = options
+    
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": {"categories": categories}}
+    )
+    return {"message": "Option updated successfully", "option": option}
+
+
+@router.delete("/categories/{category_id}/options/{option_id}")
+async def delete_sauna_option(category_id: str, option_id: str):
+    """Delete an option from a category"""
+    prices = await db.sauna_prices.find_one({"_id": "default"})
+    if not prices:
+        raise HTTPException(status_code=404, detail="Prices not found")
+    
+    categories = prices.get("categories", [])
+    cat_index = next((i for i, c in enumerate(categories) if c["id"] == category_id), None)
+    
+    if cat_index is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    options = categories[cat_index].get("options", [])
+    new_options = [o for o in options if o["id"] != option_id]
+    
+    if len(new_options) == len(options):
+        raise HTTPException(status_code=404, detail="Option not found")
+    
+    categories[cat_index]["options"] = new_options
+    
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": {"categories": categories}}
+    )
+    return {"message": "Option deleted successfully"}
+
+
+@router.post("/orders", response_model=SaunaOrder)
+async def create_sauna_order(order: SaunaOrder):
+    """Create a new sauna order"""
+    order_dict = order.model_dump()
+    
+    # Save order first
+    await db.sauna_orders.insert_one(order_dict)
+    
+    # Then send Telegram notification with PDF
+    pdf_generated = False
+    try:
+        pdf_request = SaunaPDFRequest(
+            orderId=order_dict.get('id', ''),
+            fullName=order_dict.get('fullName', ''),
+            phoneNumber=order_dict.get('phoneNumber', ''),
+            fullAddress=order_dict.get('fullAddress', ''),
+            email=order_dict.get('email', ''),
+            orderDate=order_dict.get('orderDate', order_dict.get('createdAt', datetime.now().isoformat())),
+            selectedModel=order_dict.get('selectedModel', ''),
+            modelName=order_dict.get('modelName', ''),
+            basePrice=order_dict.get('basePrice', 0),
+            selections=order_dict.get('selections', {}),
+            quantities=order_dict.get('quantities', {}),
+            notes=order_dict.get('notes', ''),
+            total=order_dict.get('total', 0)
+        )
+        pdf_data = await generate_sauna_pdf_bytes(pdf_request)
+        pdf_generated = True
+        await notify_new_order(order_dict, order_type='sauna', is_web_order=False, pdf_data=pdf_data)
+    except Exception as e:
+        logger.warning(f"Failed to send Telegram notification with PDF for sauna order: {e}")
+        try:
+            await notify_new_order(order_dict, order_type='sauna', is_web_order=False)
+        except:
+            pass
+    
+    # Update order with PDF status
+    if pdf_generated:
+        await db.sauna_orders.update_one(
+            {"id": order_dict.get('id')},
+            {"$set": {"pdfGenerated": True, "pdfGeneratedAt": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    return order
+
+
+@router.get("/orders")
+async def get_sauna_orders(username: str = None, role: str = None):
+    """Get sauna orders - admins see all, managers see only their own"""
+    # Build query filter
+    query = {}
+    
+    # If user is a manager (not admin), filter by createdBy
+    if role and role != 'admin' and username:
+        query['createdBy'] = username
+    
+    orders = await db.sauna_orders.find(query, {"_id": 0}).to_list(1000)
+    return orders
+
+
+@router.get("/orders/{order_id}")
+async def get_sauna_order(order_id: str):
+    """Get a single sauna order by ID"""
+    order = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@router.put("/orders/{order_id}")
+async def update_sauna_order(order_id: str, order: SaunaOrder):
+    """Update an existing sauna order with change history tracking"""
+    from datetime import datetime, timezone
+    
+    # Get existing order to track changes
+    existing = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    order_dict = order.model_dump()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Track what fields changed
+    changes = []
+    tracked_fields = [
+        'fullName', 'clientName', 'phoneNumber', 'phone', 'fullAddress',
+        'orderContents', 'notes', 'dealSum', 'debtSum', 'totalPrice', 'amountDue',
+        'deliveryStatus', 'deliveryComment', 'isImportant',
+        'tripId', 'tripName', 'tripDriverName', 'tripDepartureDate', 'tripOrderStatus',
+        'modelName', 'total', 'discountPercent'
+    ]
+    
+    for field in tracked_fields:
+        old_val = existing.get(field)
+        new_val = order_dict.get(field)
+        if old_val != new_val:
+            changes.append({
+                'field': field,
+                'oldValue': old_val,
+                'newValue': new_val
+            })
+    
+    # If there are changes, add to history
+    if changes:
+        history_entry = {
+            'timestamp': now,
+            'changes': changes,
+            'changedBy': order_dict.get('updatedBy', 'system')
+        }
+        
+        # Get existing history or create new
+        change_history = existing.get('changeHistory', []) or []
+        change_history.append(history_entry)
+        order_dict['changeHistory'] = change_history
+        order_dict['updatedAt'] = now
+    
+    result = await db.sauna_orders.update_one(
+        {"id": order_id},
+        {"$set": order_dict}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Return updated order
+    updated = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    
+    # Send note to amoCRM if order has amocrm_id and there were changes
+    if changes and updated.get('amocrm_id'):
+        try:
+            settings = get_amocrm_settings()
+            domain = settings.get('amocrm_domain')
+            token = settings.get('amocrm_token')
+            
+            if domain and token:
+                # Format change list for note
+                changed_fields = [c['field'] for c in changes]
+                changed_by = order_dict.get('updatedBy', 'система')
+                note_text = f"✏️ Заказ изменён пользователем {changed_by}\n\nИзменённые поля: {', '.join(changed_fields)}"
+                
+                await add_note_to_amocrm(updated['amocrm_id'], note_text, domain, token)
+                logger.info(f"Note sent to amoCRM for sauna order {order_id}")
+        except Exception as e:
+            logger.error(f"Failed to send note to amoCRM: {e}")
+    
+    return updated
+
+
+@router.delete("/orders/{order_id}")
+async def delete_sauna_order(order_id: str):
+    """Delete a sauna order"""
+    result = await db.sauna_orders.delete_one({"id": order_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return {"message": "Order deleted successfully"}
+
 
 async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
     """Generate PDF for sauna order and return as bytes (for Telegram)"""
@@ -340,6 +726,125 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
 # ============== WIZARD STEPS API ==============
 
 # Default wizard steps configuration
+DEFAULT_WIZARD_STEPS = [
+    {
+        "id": "model",
+        "name": "Model",
+        "nameRu": "Модель",
+        "icon": "Home",
+        "description": "Wybierz model sauny",
+        "descriptionRu": "Выберите модель сауны",
+        "categoryNames": [],
+        "sortOrder": 0,
+        "isActive": True,
+        "isRequired": True
+    },
+    {
+        "id": "variant",
+        "name": "Wariant",
+        "nameRu": "Вариант планировки",
+        "icon": "LayoutGrid",
+        "description": "Wybierz wariant układu",
+        "descriptionRu": "Выберите вариант планировки",
+        "categoryNames": [],
+        "sortOrder": 1,
+        "isActive": True,
+        "isRequired": False
+    },
+    {
+        "id": "stove",
+        "name": "Piec",
+        "nameRu": "Печь",
+        "icon": "Flame",
+        "description": "Wybierz rodzaj pieca",
+        "descriptionRu": "Выберите тип печи",
+        "categoryNames": ["Piece", "piece", "piec"],
+        "sortOrder": 2,
+        "isActive": True,
+        "isRequired": True
+    },
+    {
+        "id": "stove-position",
+        "name": "Strona pieca",
+        "nameRu": "Расположение печи",
+        "icon": "ArrowRight",
+        "description": "Wybierz stronę pieca",
+        "descriptionRu": "Выберите сторону печи",
+        "categoryNames": ["Strona Pieca", "strona pieca"],
+        "sortOrder": 3,
+        "isActive": True,
+        "isRequired": True
+    },
+    {
+        "id": "benches",
+        "name": "Ławki",
+        "nameRu": "Лавки",
+        "icon": "Sofa",
+        "description": "Wybierz rodzaj ławek",
+        "descriptionRu": "Выберите тип лавок",
+        "categoryNames": ["Ławki", "lawki", "ławka"],
+        "sortOrder": 4,
+        "isActive": True,
+        "isRequired": True
+    },
+    {
+        "id": "other",
+        "name": "Dodatkowe opcje",
+        "nameRu": "Доп. опции",
+        "icon": "Package",
+        "description": "Wybierz dodatkowe opcje",
+        "descriptionRu": "Выберите дополнительные опции",
+        "categoryNames": [],
+        "sortOrder": 5,
+        "isActive": True,
+        "isRequired": False
+    }
+]
+
+
+@router.get("/wizard-steps")
+async def get_wizard_steps():
+    """Get wizard steps configuration."""
+    steps = await db.sauna_wizard_steps.find({}).sort("sortOrder", 1).to_list(100)
+    
+    # If no steps configured, return defaults
+    if not steps:
+        return DEFAULT_WIZARD_STEPS
+    
+    # Remove MongoDB _id field
+    for step in steps:
+        step.pop("_id", None)
+    
+    return steps
+
+
+@router.put("/wizard-steps")
+async def update_wizard_steps(steps: list[WizardStep]):
+    """Update wizard steps configuration (replaces all steps)."""
+    # Clear existing steps
+    await db.sauna_wizard_steps.delete_many({})
+    
+    # Insert new steps with sort order
+    steps_data = []
+    for i, step in enumerate(steps):
+        step_dict = step.model_dump()
+        step_dict["sortOrder"] = i
+        steps_data.append(step_dict)
+    
+    if steps_data:
+        await db.sauna_wizard_steps.insert_many(steps_data)
+    
+    return {"success": True, "count": len(steps_data)}
+
+
+@router.post("/wizard-steps/reset")
+async def reset_wizard_steps():
+    """Reset wizard steps to defaults."""
+    await db.sauna_wizard_steps.delete_many({})
+    await db.sauna_wizard_steps.insert_many(DEFAULT_WIZARD_STEPS)
+    return {"success": True, "message": "Wizard steps reset to defaults"}
+
+
 @router.post("/generate-pdf")
 async def generate_sauna_pdf(request: SaunaPDFRequest):
     """Generate PDF for sauna order - Professional offer format"""
@@ -1941,11 +2446,30 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     )
 
 
+# =============================================
+# TECH SPEC (Technical Specification) ENDPOINTS
+# =============================================
 
-# =============================================
-# TECH SPEC PDF GENERATION (not in modular file)
-# CRUD endpoints for tech-spec are in sauna_orders.py
-# =============================================
+@router.put("/orders/{order_id}/tech-spec")
+async def update_order_tech_spec(order_id: str, tech_spec: dict):
+    """Update technical specification for an order"""
+    result = await db.sauna_orders.update_one(
+        {"id": order_id},
+        {"$set": {"techSpec": tech_spec}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return {"message": "Tech spec updated successfully"}
+
+
+@router.get("/orders/{order_id}/tech-spec")
+async def get_order_tech_spec(order_id: str):
+    """Get technical specification for an order"""
+    order = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order.get("techSpec", {})
+
 
 @router.post("/generate-tech-spec-pdf")
 async def generate_tech_spec_pdf(request: dict):
