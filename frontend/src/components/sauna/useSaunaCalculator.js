@@ -1050,6 +1050,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         allAvailableOptions: allAvailableOptions,
         // Selected model variant data (for WYMIARY POMIESZCZEŃ section)
         selectedModelVariantData: selectedModelVariantData,
+        // Other layouts for the same size (for page 2 - MOŻLIWE WARIANTY WYKONANIA)
+        otherLayoutsForSize: otherLayoutsForSize,
+        selectedLayoutSize: selectedLayoutSize,
         // Page 2 settings
         ...pdfPage2Settings,
       };
