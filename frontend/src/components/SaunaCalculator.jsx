@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
+import { LayoutCatalog } from './sauna/LayoutCatalog';
 
 // Component to display hint with optional media (image/video)
 const HintContent = ({ hint, hintImageUrl, hintVideoUrl, expanded = false }) => {
