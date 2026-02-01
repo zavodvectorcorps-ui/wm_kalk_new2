@@ -290,6 +290,57 @@ export const LayoutCatalog = ({
           {previewLayout?.description && (
             <p className="text-sm text-gray-600 mt-2">{previewLayout.description}</p>
           )}
+          
+          {/* Dimensions */}
+          {previewLayout && (
+            <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-600">
+              {previewLayout.peopleCount && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded">
+                  <Users className="h-4 w-4" /> {previewLayout.peopleCount} {txt.people}
+                </span>
+              )}
+              {previewLayout.terraceSize && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-green-100 rounded text-green-700">
+                  <Home className="h-4 w-4" /> {txt.terrace}: {previewLayout.terraceSize}
+                </span>
+              )}
+              {previewLayout.relaxRoomSize && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 rounded text-blue-700">
+                  <Maximize2 className="h-4 w-4" /> {txt.relaxRoom}: {previewLayout.relaxRoomSize}
+                </span>
+              )}
+              {previewLayout.steamRoomSize && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 rounded text-orange-700">
+                  <Flame className="h-4 w-4" /> {txt.steamRoom}: {previewLayout.steamRoomSize}
+                </span>
+              )}
+              {previewLayout.entranceSide && (
+                <span className="flex items-center gap-1 px-2 py-1 bg-purple-100 rounded text-purple-700">
+                  <DoorOpen className="h-4 w-4" /> {txt.entrance}: {previewLayout.entranceSide}
+                </span>
+              )}
+            </div>
+          )}
+          
+          {/* Select Button */}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setPreviewLayout(null)}>
+              {lang === 'pl' ? 'Zamknij' : 'Закрыть'}
+            </Button>
+            <Button 
+              className="bg-purple-600 hover:bg-purple-700"
+              onClick={() => {
+                const layoutId = previewLayout?._id || previewLayout?.id;
+                if (layoutId && selectedSize) {
+                  onLayoutSelect(selectedSize, layoutId);
+                  setPreviewLayout(null);
+                }
+              }}
+            >
+              <Check className="h-4 w-4 mr-2" />
+              {lang === 'pl' ? 'Wybierz tę planowkę' : 'Выбрать эту планировку'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </Card>
