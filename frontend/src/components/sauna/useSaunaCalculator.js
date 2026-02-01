@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { API_URL, getTranslation, getImageUrl, getInitialFormData } from './constants';
+import { useOptionVisibility } from './useOptionVisibility';
+import { useLayoutCatalog } from './useLayoutCatalog';
 
 export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPrefill = null, onAmocrmPrefillUsed = null) => {
   const { t, i18n } = useTranslation();
@@ -27,16 +29,25 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const [requestedDiscount, setRequestedDiscount] = useState(0);
   const [requestedDiscountNote, setRequestedDiscountNote] = useState('');
   
-  // Layout catalog selection
-  const [selectedLayoutSize, setSelectedLayoutSize] = useState(null);
-  const [selectedLayoutId, setSelectedLayoutId] = useState(null);
-  const [layoutVariants, setLayoutVariants] = useState([]);
-  
   const isAdminUser = isAdmin && isAdmin();
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = getTranslation(lang);
   
   const [formData, setFormData] = useState(getInitialFormData());
+
+  // Use modular hooks
+  const { isOptionVisible, isCategoryVisible, isTerraceSelected } = useOptionVisibility(formData);
+  const { 
+    selectedLayoutSize, 
+    selectedLayoutId, 
+    layoutVariants, 
+    layoutLoading,
+    handleLayoutSelect,
+    clearLayoutSelection,
+    getSelectedLayout,
+    getOtherLayoutsForSize,
+    getLayoutsBySize
+  } = useLayoutCatalog();
 
   // Handle amoCRM prefill data
   useEffect(() => {
