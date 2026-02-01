@@ -183,10 +183,170 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       }
       
       const endpoint = isSauna ? `${API_URL}/api/sauna/generate-pdf` : `${API_URL}/api/generate-pdf`;
-      const response = await axios.post(endpoint, 
-        { ...order, orderId: order.id, type, language: 'pl' },
-        { responseType: 'blob' }
-      );
+      
+      // For sauna orders, we need to fetch additional data for PDF page 2
+      let pdfPayload = { ...order, orderId: order.id, type, language: 'pl' };
+      
+      if (isSauna) {
+        try {
+          // Fetch prices to get model variants and categories
+          const pricesResponse = await axios.get(`${API_URL}/api/sauna/prices`);
+          const prices = pricesResponse.data;
+          
+          // Get model data
+          const model = prices.models?.find(m => m.id === order.selectedModel);
+          
+          // Collect model variants for page 2
+          const modelVariantsData = model?.variants?.map(v => ({
+            id: v.id,
+            name: v.name,
+            namePl: v.namePl,
+            price: v.price,
+            imageUrl: v.imageUrl,
+            hint: v.hint,
+            hintPl: v.hintPl,
+            capacity: v.capacity,
+            terraceSize: v.terraceSize,
+            relaxRoomSize: v.relaxRoomSize,
+            steamRoomSize: v.steamRoomSize,
+            entranceSide: v.entranceSide,
+          })) || [];
+          
+          // Get Plus-only categories
+          const plusOnlyCategories = (prices.categories || [])
+            .filter(cat => {
+              const visibleFor = cat.visibleForModelVariants || [];
+              if (visibleFor.length === 0) return false;
+              return visibleFor.some(v => v.toLowerCase() === 'plus' || v.includes('plus'));
+            })
+            .map(cat => ({
+              id: cat.id,
+              name: cat.name,
+              options: (cat.options || [])
+                .filter(opt => opt.showInPdf !== false)
+                .map(opt => ({
+                  id: opt.id,
+                  name: opt.name,
+                  price: opt.price,
+                  imageUrl: opt.imageUrl,
+                  hint: opt.hint,
+                }))
+            }));
+          
+          // Get all available options for page 2
+          const allAvailableOptions = (prices.categories || [])
+            .filter(cat => {
+              const visibleFor = cat.visibleForModelVariants || [];
+              if (visibleFor.length > 0) return false;
+              if (cat.id === 'fundament') return false;
+              return true;
+            })
+            .flatMap(cat => (cat.options || [])
+              .filter(opt => opt.showInPdf !== false)
+              .map(opt => ({
+                id: opt.id,
+                name: opt.name,
+                price: opt.price,
+                imageUrl: opt.imageUrl,
+                hint: opt.hint,
+                categoryName: cat.name,
+              })));
+          
+          // Get selected model variant data
+          const selectedVariant = model?.variants?.find(v => v.id === order.selectedModelVariant);
+          let selectedModelVariantData = null;
+          
+          // Check for layout catalog selection stored in order
+          let otherLayoutsForSize = [];
+          if (order.selectedLayoutId && order.selectedLayoutSize) {
+            // Fetch layout variants
+            try {
+              const layoutsResponse = await axios.get(`${API_URL}/api/faq/layout-variants`);
+              const layoutVariants = layoutsResponse.data || [];
+              
+              const selectedLayoutFromCatalog = layoutVariants.find(l => 
+                (l._id === order.selectedLayoutId || l.id === order.selectedLayoutId)
+              );
+              
+              if (selectedLayoutFromCatalog) {
+                // Build selectedModelVariantData from layout catalog
+                selectedModelVariantData = {
+                  imageUrl: selectedLayoutFromCatalog.imageUrl,
+                  name: selectedLayoutFromCatalog.variantName,
+                  namePl: selectedLayoutFromCatalog.variantName,
+                  capacity: selectedLayoutFromCatalog.peopleCount,
+                  terraceSize: selectedLayoutFromCatalog.terraceSize,
+                  relaxRoomSize: selectedLayoutFromCatalog.relaxRoomSize,
+                  steamRoomSize: selectedLayoutFromCatalog.steamRoomSize,
+                  entranceSide: selectedLayoutFromCatalog.entranceSide,
+                  hint: selectedLayoutFromCatalog.description,
+                };
+                
+                // Get other layouts for the same size
+                otherLayoutsForSize = layoutVariants
+                  .filter(l => l.modelSize === order.selectedLayoutSize && 
+                    (l._id !== order.selectedLayoutId && l.id !== order.selectedLayoutId))
+                  .map(l => ({
+                    id: l._id || l.id,
+                    name: l.variantName,
+                    imageUrl: l.imageUrl,
+                    description: l.description,
+                    peopleCount: l.peopleCount,
+                    terraceSize: l.terraceSize,
+                    relaxRoomSize: l.relaxRoomSize,
+                    steamRoomSize: l.steamRoomSize,
+                    entranceSide: l.entranceSide,
+                  }));
+              }
+            } catch (e) {
+              console.error('Failed to fetch layout variants:', e);
+            }
+          }
+          
+          // If no layout from catalog, use model variant
+          if (!selectedModelVariantData && selectedVariant) {
+            selectedModelVariantData = {
+              imageUrl: selectedVariant.imageUrl,
+              name: selectedVariant.namePl || selectedVariant.name,
+              namePl: selectedVariant.namePl,
+              capacity: selectedVariant.capacity,
+              terraceSize: selectedVariant.terraceSize,
+              relaxRoomSize: selectedVariant.relaxRoomSize,
+              steamRoomSize: selectedVariant.steamRoomSize,
+              entranceSide: selectedVariant.entranceSide,
+              hint: selectedVariant.hintPl || selectedVariant.hint,
+            };
+          }
+          
+          // PDF Page 2 settings
+          const pdfPage2Settings = {
+            pdfPage2Enabled: prices.pdfPage2Enabled !== false,
+            pdfPage2VariantsTitle: prices.pdfPage2VariantsTitle || 'Możliwe warianty wykonania w wybranym rozmiarze',
+            pdfPage2OptionsTitle: prices.pdfPage2OptionsTitle || 'Opcje, które można dodać do sauny',
+            pdfPage2ShowVariants: prices.pdfPage2ShowVariants !== false,
+            pdfPage2ShowComparisonTable: prices.pdfPage2ShowComparisonTable !== false,
+            pdfPage2ShowPlusCategories: prices.pdfPage2ShowPlusCategories !== false,
+            pdfPage2ShowAllOptions: prices.pdfPage2ShowAllOptions !== false,
+          };
+          
+          pdfPayload = {
+            ...pdfPayload,
+            categories: prices.categories,
+            modelVariants: modelVariantsData,
+            plusOnlyCategories,
+            allAvailableOptions,
+            selectedModelVariantData,
+            otherLayoutsForSize,
+            selectedLayoutSize: order.selectedLayoutSize,
+            ...pdfPage2Settings,
+          };
+        } catch (e) {
+          console.error('Failed to fetch additional PDF data:', e);
+          // Continue with basic payload
+        }
+      }
+      
+      const response = await axios.post(endpoint, pdfPayload, { responseType: 'blob' });
 
       // Generate filename: TYPE_ClientName_OrderId
       let safeName = (order.fullName || 'Klient').replace(/\s+/g, '_');
