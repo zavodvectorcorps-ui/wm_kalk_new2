@@ -926,50 +926,85 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       const selectedVariant = getSelectedModelVariant();
       let selectedModelVariantData = null;
       
-      // Check if there's a "Планировка" (Layout) category with selected option that has an image
-      // This image should override the variant image in PDF
-      let layoutImageUrl = null;
-      const layoutCategory = prices.categories?.find(cat => 
-        cat.name?.toLowerCase().includes('планировка') || 
-        cat.name?.toLowerCase().includes('planowka') ||
-        cat.name?.toLowerCase().includes('układ') ||
-        cat.namePl?.toLowerCase().includes('planowka') ||
-        cat.nameRu?.toLowerCase().includes('планировка')
-      );
+      // Check if layout is selected from the Layout Catalog
+      let layoutCatalogImageUrl = null;
+      let selectedLayoutFromCatalog = null;
+      let otherLayoutsForSize = [];
       
-      if (layoutCategory) {
-        const selectedLayoutId = formData.selections[layoutCategory.id];
-        if (selectedLayoutId) {
-          const selectedLayout = layoutCategory.options?.find(opt => opt.id === selectedLayoutId);
-          if (selectedLayout?.imageUrl) {
-            layoutImageUrl = selectedLayout.imageUrl;
+      if (selectedLayoutId && layoutVariants.length > 0) {
+        selectedLayoutFromCatalog = layoutVariants.find(l => 
+          (l._id === selectedLayoutId || l.id === selectedLayoutId)
+        );
+        if (selectedLayoutFromCatalog?.imageUrl) {
+          layoutCatalogImageUrl = selectedLayoutFromCatalog.imageUrl;
+        }
+        
+        // Get other layouts for the same size (for PDF page 2)
+        if (selectedLayoutSize) {
+          otherLayoutsForSize = layoutVariants
+            .filter(l => l.modelSize === selectedLayoutSize && (l._id !== selectedLayoutId && l.id !== selectedLayoutId))
+            .map(l => ({
+              id: l._id || l.id,
+              name: l.variantName,
+              imageUrl: l.imageUrl,
+              description: l.description,
+              peopleCount: l.peopleCount,
+              terraceSize: l.terraceSize,
+              relaxRoomSize: l.relaxRoomSize,
+              steamRoomSize: l.steamRoomSize,
+              entranceSide: l.entranceSide,
+            }));
+        }
+      }
+      
+      // Fallback: Check if there's a "Планировка" (Layout) category with selected option that has an image
+      let layoutCategoryImageUrl = null;
+      if (!layoutCatalogImageUrl) {
+        const layoutCategory = prices.categories?.find(cat => 
+          cat.name?.toLowerCase().includes('планировка') || 
+          cat.name?.toLowerCase().includes('planowka') ||
+          cat.name?.toLowerCase().includes('układ') ||
+          cat.namePl?.toLowerCase().includes('planowka') ||
+          cat.nameRu?.toLowerCase().includes('планировка')
+        );
+        
+        if (layoutCategory) {
+          const selectedLayoutOptId = formData.selections[layoutCategory.id];
+          if (selectedLayoutOptId) {
+            const selectedLayout = layoutCategory.options?.find(opt => opt.id === selectedLayoutOptId);
+            if (selectedLayout?.imageUrl) {
+              layoutCategoryImageUrl = selectedLayout.imageUrl;
+            }
           }
         }
       }
       
-      if (selectedVariant && (selectedVariant.terraceSize || selectedVariant.relaxRoomSize || selectedVariant.steamRoomSize || selectedVariant.entranceSide || selectedVariant.imageUrl || selectedVariant.hint || selectedVariant.hintPl || layoutImageUrl)) {
+      // Priority: Layout Catalog > Layout Category > Variant image
+      const finalLayoutImageUrl = layoutCatalogImageUrl || layoutCategoryImageUrl;
+      
+      if (selectedVariant && (selectedVariant.terraceSize || selectedVariant.relaxRoomSize || selectedVariant.steamRoomSize || selectedVariant.entranceSide || selectedVariant.imageUrl || selectedVariant.hint || selectedVariant.hintPl || finalLayoutImageUrl)) {
         selectedModelVariantData = {
-          name: selectedVariant.namePl || selectedVariant.name,
+          name: selectedLayoutFromCatalog?.variantName || selectedVariant.namePl || selectedVariant.name,
           // Use layout image if available, otherwise use variant image
-          imageUrl: layoutImageUrl || selectedVariant.imageUrl || null,
-          capacity: selectedVariant.capacity || null,
-          terraceSize: selectedVariant.terraceSize || null,
-          relaxRoomSize: selectedVariant.relaxRoomSize || null,
-          steamRoomSize: selectedVariant.steamRoomSize || null,
-          entranceSide: selectedVariant.entranceSide || null,
-          hint: selectedVariant.hintPl || selectedVariant.hint || null,  // Description / what's included
+          imageUrl: finalLayoutImageUrl || selectedVariant.imageUrl || null,
+          capacity: selectedLayoutFromCatalog?.peopleCount || selectedVariant.capacity || null,
+          terraceSize: selectedLayoutFromCatalog?.terraceSize || selectedVariant.terraceSize || null,
+          relaxRoomSize: selectedLayoutFromCatalog?.relaxRoomSize || selectedVariant.relaxRoomSize || null,
+          steamRoomSize: selectedLayoutFromCatalog?.steamRoomSize || selectedVariant.steamRoomSize || null,
+          entranceSide: selectedLayoutFromCatalog?.entranceSide || selectedVariant.entranceSide || null,
+          hint: selectedLayoutFromCatalog?.description || selectedVariant.hintPl || selectedVariant.hint || null,
         };
-      } else if (layoutImageUrl) {
-        // If no variant but layout image selected, still pass it
+      } else if (finalLayoutImageUrl || selectedLayoutFromCatalog) {
+        // If no variant but layout selected, use layout data
         selectedModelVariantData = {
-          name: null,
-          imageUrl: layoutImageUrl,
-          capacity: null,
-          terraceSize: null,
-          relaxRoomSize: null,
-          steamRoomSize: null,
-          entranceSide: null,
-          hint: null,
+          name: selectedLayoutFromCatalog?.variantName || null,
+          imageUrl: finalLayoutImageUrl,
+          capacity: selectedLayoutFromCatalog?.peopleCount || null,
+          terraceSize: selectedLayoutFromCatalog?.terraceSize || null,
+          relaxRoomSize: selectedLayoutFromCatalog?.relaxRoomSize || null,
+          steamRoomSize: selectedLayoutFromCatalog?.steamRoomSize || null,
+          entranceSide: selectedLayoutFromCatalog?.entranceSide || null,
+          hint: selectedLayoutFromCatalog?.description || null,
         };
       }
       
