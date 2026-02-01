@@ -259,18 +259,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     setFormData(prev => ({ ...prev, selectedModelVariant: variantId }));
   };
 
-  // Check if terrace option is selected
-  const isTerraceSelected = useCallback(() => {
-    const tarasSelection = formData.selections['opcje_dodatkowe'];
-    if (typeof tarasSelection === 'object') {
-      // Checkbox category - check if taras_zewnetrzny is selected
-      return tarasSelection['taras_zewnetrzny'] === true;
-    }
-    // For other input types
-    return tarasSelection === 'taras_zewnetrzny';
-  }, [formData.selections]);
-
-  // Get room sizes based on terrace selection
+  // Get room sizes based on terrace selection (uses isTerraceSelected from useOptionVisibility hook)
   const getRoomSizes = useCallback(() => {
     const model = getSelectedModel();
     if (!model) return { relaxRoomSize: null, steamRoomSize: null };
