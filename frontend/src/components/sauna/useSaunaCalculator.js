@@ -205,6 +205,11 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       setAdminGifts(editingOrder.adminGifts || []);
       setAdminDiscountApproved(editingOrder.adminDiscountApproved || false);
       
+      // Restore layout catalog selection
+      if (editingOrder.selectedLayoutId) {
+        handleLayoutSelect(editingOrder.selectedLayoutSize, editingOrder.selectedLayoutId);
+      }
+      
       // Restore amoCRM data from original order (critical for edit flow from widget)
       if (editingOrder.amocrm_id) {
         setAmocrmData({
@@ -216,7 +221,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       
       toast.info(`${txt.editingOrder}: ${editingOrder.id}`);
     }
-  }, [editingOrder, prices.categories, txt.editingOrder]);
+  }, [editingOrder, prices.categories, txt.editingOrder, handleLayoutSelect]);
 
   // Get selected model
   const getSelectedModel = useCallback(() => {
