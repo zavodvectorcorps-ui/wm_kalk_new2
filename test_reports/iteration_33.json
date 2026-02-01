@@ -1,0 +1,95 @@
+{
+  "summary": "Tested layout selection saving/restoration and PDF generation from Orders page. All features working correctly: 1) Layout selection (selectedLayoutId, selectedLayoutSize) saved to order, 2) Layout restored when editing order, 3) PDF from Orders page generates with page 2 data, 4) Two-column layout for small categories in PDF Section 3 implemented.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_api.py",
+    "/app/test_reports/pytest/pytest_results_iteration33.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PASS: useSaunaCalculator.js correctly saves selectedLayoutId and selectedLayoutSize in orderData (lines 743-744)",
+    "PASS: useSaunaCalculator.js restores layout selection via handleLayoutSelect when editing order (lines 209-210)",
+    "PASS: OrdersPage.jsx handleDownloadPDF fetches all required data for PDF page 2 (prices, modelVariants, plusOnlyCategories, allAvailableOptions, selectedModelVariantData, otherLayoutsForSize)",
+    "PASS: OrdersPage.jsx correctly loads layout variants from API when order has selectedLayoutId (lines 261-303)",
+    "PASS: sauna.py PDF generation Section 3 implements two-column layout for small categories (1-3 options) at lines 1738-1769",
+    "PASS: Layout Catalog UI shows size selection buttons with variant counts",
+    "PASS: Layout selection displays variant images and 'Wybierz' buttons",
+    "PASS: Selected layout shows checkmark and 'Wybrana' button state"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (22/22 tests passed + 4 layout-specific tests)",
+    "frontend": "100% (all UI flows working)"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"}
+  },
+  "seed_data_creation": "Created and cleaned up TEST_Layout_Selection order for testing",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Layout selection feature fully tested. Order saves selectedLayoutId and selectedLayoutSize. Edit mode restores layout via handleLayoutSelect. PDF from Orders page includes page 2 with options. Two-column layout for small categories (1-3 options) implemented in sauna.py.",
+  "features_tested": {
+    "layout_selection_saving": {
+      "status": "PASS",
+      "details": "Order created with selectedLayoutId='lv-697c8008fc2e6eb446b87d05' and selectedLayoutSize='2m' - verified via API"
+    },
+    "layout_selection_restoration": {
+      "status": "PASS",
+      "details": "When editing order, Layout Catalog shows '✓ Levo' indicating layout was restored via handleLayoutSelect"
+    },
+    "pdf_from_orders_page": {
+      "status": "PASS",
+      "details": "PDF downloaded from Orders page (Pobierz PDF button) - generates successfully with page 2 data"
+    },
+    "pdf_two_column_layout": {
+      "status": "PASS",
+      "details": "Code review confirms two-column layout for categories with 1-3 options in sauna.py lines 1738-1769"
+    },
+    "layout_variants_api": {
+      "status": "PASS",
+      "details": "GET /api/faq/layout-variants returns 9 variants with correct structure"
+    },
+    "api_sauna_prices": {
+      "status": "PASS",
+      "details": "GET /api/sauna/prices returns 13 models and 15 categories"
+    },
+    "api_sauna_orders_crud": {
+      "status": "PASS",
+      "details": "Full CRUD for orders working - create, read, update, delete all pass"
+    },
+    "api_pdf_generation": {
+      "status": "PASS",
+      "details": "POST /api/sauna/generate-pdf returns valid PDF (978KB with layout data)"
+    }
+  },
+  "test_scenarios_executed": [
+    {
+      "scenario": "Create order with layout selection from calculator",
+      "result": "PASS - Order saved with selectedLayoutId and selectedLayoutSize"
+    },
+    {
+      "scenario": "Edit order and verify layout restoration",
+      "result": "PASS - Layout Catalog shows selected layout (Levo) when editing"
+    },
+    {
+      "scenario": "Download PDF from Orders page",
+      "result": "PASS - PDF generated with page 2 data"
+    },
+    {
+      "scenario": "Backend API tests (22 tests)",
+      "result": "PASS - All tests passed"
+    },
+    {
+      "scenario": "Layout-specific API tests (4 tests)",
+      "result": "PASS - Layout fields saved and retrieved correctly"
+    }
+  ]
+}
