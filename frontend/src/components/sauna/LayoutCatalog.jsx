@@ -136,26 +136,24 @@ export const LayoutCatalog = ({
                   return (
                     <div
                       key={layoutId}
-                      onClick={() => onLayoutSelect(selectedSize, layoutId)}
                       className={`
-                        relative cursor-pointer rounded-xl border-2 overflow-hidden transition-all
+                        relative rounded-xl border-2 overflow-hidden transition-all
                         ${isSelected 
                           ? 'border-purple-500 ring-2 ring-purple-300 shadow-lg' 
                           : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
                         }
                       `}
                     >
-                      {/* Image */}
-                      <div className="aspect-[4/3] bg-gray-100 relative">
+                      {/* Image - click to preview */}
+                      <div 
+                        className="aspect-[4/3] bg-gray-100 relative cursor-pointer"
+                        onClick={() => setPreviewLayout(layout)}
+                      >
                         {layout.imageUrl ? (
                           <img 
                             src={layout.imageUrl.startsWith('/api') ? `${API_URL}${layout.imageUrl}` : layout.imageUrl}
                             alt={layout.variantName}
                             className="w-full h-full object-cover"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPreviewLayout(layout);
-                            }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -169,6 +167,11 @@ export const LayoutCatalog = ({
                             <Check className="h-4 w-4" />
                           </div>
                         )}
+                        
+                        {/* Zoom hint */}
+                        <div className="absolute bottom-1 right-1 bg-black/50 text-white rounded px-1 py-0.5 text-[10px]">
+                          🔍
+                        </div>
                       </div>
 
                       {/* Info */}
@@ -198,6 +201,26 @@ export const LayoutCatalog = ({
                             </span>
                           )}
                         </div>
+                        
+                        {/* Select Button */}
+                        <Button
+                          size="sm"
+                          className={`w-full mt-2 ${
+                            isSelected 
+                              ? 'bg-green-600 hover:bg-green-700' 
+                              : 'bg-purple-600 hover:bg-purple-700'
+                          }`}
+                          onClick={() => onLayoutSelect(selectedSize, layoutId)}
+                        >
+                          {isSelected ? (
+                            <>
+                              <Check className="h-3 w-3 mr-1" />
+                              {lang === 'pl' ? 'Wybrana' : 'Выбрано'}
+                            </>
+                          ) : (
+                            lang === 'pl' ? 'Wybierz' : 'Выбрать'
+                          )}
+                        </Button>
                       </div>
                     </div>
                   );
