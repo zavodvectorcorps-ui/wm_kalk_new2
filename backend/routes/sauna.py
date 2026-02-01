@@ -1828,7 +1828,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             return (4, 125)
     
     # Only add Page 2 if enabled and we have content to show
-    if page2_enabled and (model_variants or all_available_options):
+    if page2_enabled and (model_variants or all_available_options or other_layouts_for_size):
         elements.append(PageBreak())
         
         # Helper function to load image for PDF card
