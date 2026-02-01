@@ -129,25 +129,6 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     fetchPrices();
   }, [fetchPrices]);
 
-  // Load layout variants for catalog
-  useEffect(() => {
-    const fetchLayoutVariants = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/api/faq/layout-variants`);
-        setLayoutVariants(response.data || []);
-      } catch (error) {
-        console.error('Failed to load layout variants:', error);
-      }
-    };
-    fetchLayoutVariants();
-  }, []);
-
-  // Handler for layout catalog selection
-  const handleLayoutSelect = useCallback((size, layoutId) => {
-    setSelectedLayoutSize(size);
-    setSelectedLayoutId(layoutId);
-  }, []);
-
   // Load order data when editing
   useEffect(() => {
     if (editingOrder && prices.categories?.length > 0) {
