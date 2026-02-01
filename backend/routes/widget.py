@@ -230,17 +230,162 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
         
         async with httpx.AsyncClient(timeout=60.0) as client:
             if section == 'sauna':
-                # Load categories from pricing
+                # Load categories and prices from sauna_prices
                 categories = []
+                sauna_prices_data = {}
                 try:
-                    sauna_pricing = db["sauna_pricing"]
-                    pricing_doc = sauna_pricing.find_one({"type": "sauna"}, {"_id": 0})
+                    sauna_prices_collection = db["sauna_prices"]
+                    pricing_doc = sauna_prices_collection.find_one({"_id": "default"})
                     if pricing_doc:
                         categories = pricing_doc.get("categories", [])
+                        sauna_prices_data = pricing_doc
                 except Exception as e:
-                    logger.error(f"Error loading sauna categories: {e}")
+                    logger.error(f"Error loading sauna prices: {e}")
                 
-                # Build request exactly like calculator
+                # Get model data for page 2
+                models = sauna_prices_data.get("models", [])
+                selected_model_id = order.get('selectedModel') or order.get('modelId', '')
+                model = next((m for m in models if m.get('id') == selected_model_id), None)
+                
+                # Collect model variants for page 2
+                model_variants_data = []
+                if model and model.get('variants'):
+                    model_variants_data = [{
+                        'id': v.get('id'),
+                        'name': v.get('name'),
+                        'namePl': v.get('namePl'),
+                        'price': v.get('price'),
+                        'imageUrl': v.get('imageUrl'),
+                        'hint': v.get('hint'),
+                        'hintPl': v.get('hintPl'),
+                        'capacity': v.get('capacity'),
+                        'terraceSize': v.get('terraceSize'),
+                        'relaxRoomSize': v.get('relaxRoomSize'),
+                        'steamRoomSize': v.get('steamRoomSize'),
+                        'entranceSide': v.get('entranceSide'),
+                    } for v in model.get('variants', [])]
+                
+                # Get Plus-only categories
+                plus_only_categories = []
+                for cat in categories:
+                    visible_for = cat.get('visibleForModelVariants', [])
+                    if not visible_for:
+                        continue
+                    if any(v.lower() == 'plus' or 'plus' in v.lower() for v in visible_for):
+                        plus_only_categories.append({
+                            'id': cat.get('id'),
+                            'name': cat.get('name'),
+                            'options': [
+                                {
+                                    'id': opt.get('id'),
+                                    'name': opt.get('name'),
+                                    'price': opt.get('price'),
+                                    'imageUrl': opt.get('imageUrl'),
+                                    'hint': opt.get('hint'),
+                                }
+                                for opt in cat.get('options', [])
+                                if opt.get('showInPdf') != False
+                            ]
+                        })
+                
+                # Get all available options for page 2
+                all_available_options = []
+                for cat in categories:
+                    visible_for = cat.get('visibleForModelVariants', [])
+                    if visible_for:
+                        continue  # Skip Plus-only categories
+                    if cat.get('id') == 'fundament':
+                        continue  # Skip foundation
+                    
+                    for opt in cat.get('options', []):
+                        if opt.get('showInPdf') == False:
+                            continue
+                        all_available_options.append({
+                            'id': opt.get('id'),
+                            'name': opt.get('name'),
+                            'price': opt.get('price'),
+                            'imageUrl': opt.get('imageUrl'),
+                            'hint': opt.get('hint'),
+                            'categoryName': cat.get('name'),
+                        })
+                
+                # Get selected model variant data
+                selected_variant_id = order.get('selectedModelVariant')
+                selected_model_variant_data = None
+                
+                # Check for layout catalog selection stored in order
+                selected_layout_id = order.get('selectedLayoutId')
+                selected_layout_size = order.get('selectedLayoutSize')
+                other_layouts_for_size = []
+                
+                if selected_layout_id and selected_layout_size:
+                    # Load layout variants
+                    try:
+                        layout_variants_collection = db["sauna_layout_variants"]
+                        layout_variants = list(layout_variants_collection.find({}, {"_id": 0}))
+                        
+                        selected_layout = next((l for l in layout_variants 
+                            if str(l.get('_id')) == selected_layout_id or l.get('id') == selected_layout_id), None)
+                        
+                        if selected_layout:
+                            selected_model_variant_data = {
+                                'imageUrl': selected_layout.get('imageUrl'),
+                                'name': selected_layout.get('variantName'),
+                                'namePl': selected_layout.get('variantName'),
+                                'capacity': selected_layout.get('peopleCount'),
+                                'terraceSize': selected_layout.get('terraceSize'),
+                                'relaxRoomSize': selected_layout.get('relaxRoomSize'),
+                                'steamRoomSize': selected_layout.get('steamRoomSize'),
+                                'entranceSide': selected_layout.get('entranceSide'),
+                                'hint': selected_layout.get('description'),
+                            }
+                            
+                            # Get other layouts for the same size
+                            for l in layout_variants:
+                                l_id = str(l.get('_id')) or l.get('id')
+                                if l.get('modelSize') == selected_layout_size and l_id != selected_layout_id:
+                                    other_layouts_for_size.append({
+                                        'id': l_id,
+                                        'name': l.get('variantName'),
+                                        'imageUrl': l.get('imageUrl'),
+                                        'description': l.get('description'),
+                                        'peopleCount': l.get('peopleCount'),
+                                        'terraceSize': l.get('terraceSize'),
+                                        'relaxRoomSize': l.get('relaxRoomSize'),
+                                        'steamRoomSize': l.get('steamRoomSize'),
+                                        'entranceSide': l.get('entranceSide'),
+                                    })
+                    except Exception as e:
+                        logger.error(f"Error loading layout variants: {e}")
+                
+                # If no layout from catalog, use model variant
+                if not selected_model_variant_data and selected_variant_id and model:
+                    variant = next((v for v in model.get('variants', []) if v.get('id') == selected_variant_id), None)
+                    if variant:
+                        selected_model_variant_data = {
+                            'imageUrl': variant.get('imageUrl'),
+                            'name': variant.get('namePl') or variant.get('name'),
+                            'namePl': variant.get('namePl'),
+                            'capacity': variant.get('capacity'),
+                            'terraceSize': variant.get('terraceSize'),
+                            'relaxRoomSize': variant.get('relaxRoomSize'),
+                            'steamRoomSize': variant.get('steamRoomSize'),
+                            'entranceSide': variant.get('entranceSide'),
+                            'hint': variant.get('hintPl') or variant.get('hint'),
+                        }
+                
+                # PDF Page 2 settings
+                pdf_page2_settings = {
+                    'pdfPage2Enabled': sauna_prices_data.get('pdfPage2Enabled', True),
+                    'pdfPage2VariantsTitle': sauna_prices_data.get('pdfPage2VariantsTitle', 'Możliwe warianty wykonania w wybranym rozmiarze'),
+                    'pdfPage2OptionsTitle': sauna_prices_data.get('pdfPage2OptionsTitle', 'Opcje, które można dodać do sauny'),
+                    'pdfPage2ShowVariants': sauna_prices_data.get('pdfPage2ShowVariants', True),
+                    'pdfPage2ShowComparisonTable': sauna_prices_data.get('pdfPage2ShowComparisonTable', True),
+                    'pdfPage2ShowPlusCategories': sauna_prices_data.get('pdfPage2ShowPlusCategories', True),
+                    'pdfPage2ShowAllOptions': sauna_prices_data.get('pdfPage2ShowAllOptions', True),
+                }
+                
+                # Build request with all page 2 data (same as calculator)
                 pdf_data = {
                     "orderId": order_id,
                     "fullName": full_name,
@@ -248,7 +393,7 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
                     "fullAddress": order.get('fullAddress') or order.get('address', ''),
                     "email": order.get('email', ''),
                     "orderDate": order.get('orderDate', datetime.now(timezone.utc).strftime('%Y-%m-%d')),
-                    "selectedModel": order.get('selectedModel') or order.get('modelId', ''),
+                    "selectedModel": selected_model_id,
                     "modelName": order.get('modelName', ''),
                     "modelImageUrl": order.get('modelImageUrl', ''),
                     "basePrice": order.get('basePrice', 0) or order.get('modelPrice', 0),
@@ -263,7 +408,16 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
                     "total": new_total,
                     "language": "pl",
                     "categories": categories,
-                    "adminGifts": gifts
+                    "adminGifts": gifts,
+                    # Page 2 data
+                    "modelVariants": model_variants_data,
+                    "plusOnlyCategories": plus_only_categories,
+                    "allAvailableOptions": all_available_options,
+                    "selectedModelVariantData": selected_model_variant_data,
+                    "otherLayoutsForSize": other_layouts_for_size,
+                    "selectedLayoutSize": selected_layout_size,
+                    # Page 2 settings
+                    **pdf_page2_settings,
                 }
                 
                 pdf_endpoint = f"{internal_url}/api/sauna/generate-pdf"
