@@ -10,16 +10,19 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **Backend Modules Created**:
   - `services/pdf_helpers.py` - Image optimization, MongoDB loading, PDF utilities
   - `services/pdf_sections.py` - PDF section builders (header, client info, promo, gallery)
-  - `routes/sauna_crud.py` - CRUD operations for models, categories, options
+  - `routes/sauna_crud.py` - CRUD operations for models, categories, options (prices)
   - `routes/sauna_orders.py` - Order CRUD and tech spec endpoints
   - `routes/sauna_wizard.py` - Wizard calculator API
 - **Frontend Hooks Created**:
   - `useLayoutCatalog.js` - Layout catalog selection and management
   - `usePriceCalculation.js` - Price calculation logic
   - `useOptionVisibility.js` - Option visibility based on rules
-- **Documentation**: Created `/app/REFACTORING_GUIDE.md` with migration plan
-- **Note**: Original code untouched - new modules are for future use
-- **Tested**: Application works correctly after refactoring
+- **Refactoring Applied**:
+  - Main `sauna.py` reduced from 2842 to 2318 lines (-18%)
+  - CRUD operations moved to modular files and included via `router.include_router()`
+  - Duplicate code eliminated
+- **Testing**: All 22 backend tests passed, all UI flows working
+- **Documentation**: Created `/app/REFACTORING_GUIDE.md` with migration details
 
 ### Jan 30, 2025 - Sub-model Description in PDF & Room Sizes from Variant (COMPLETED)
 - **NEW**: Variant description (hint) now displayed in PDF's "WYMIARY POMIESZCZEŃ" section as "Co zawiera wariant:"
