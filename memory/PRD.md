@@ -235,16 +235,27 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 /app
 ├── backend (FastAPI)
 │   ├── routes/
-│   │   ├── amocrm.py      # CRM integration
-│   │   ├── backup.py      # Backup system
-│   │   ├── balia.py       # Balia orders
-│   │   ├── sauna.py       # Sauna orders
-│   │   ├── training.py    # Training module API
-│   │   └── widget.py      # amoCRM widget
+│   │   ├── amocrm.py        # CRM integration
+│   │   ├── backup.py        # Backup system
+│   │   ├── balia.py         # Balia orders
+│   │   ├── sauna.py         # Sauna orders & PDF (main)
+│   │   ├── sauna_crud.py    # Sauna CRUD (modular) - NEW
+│   │   ├── sauna_orders.py  # Sauna orders (modular) - NEW
+│   │   ├── sauna_wizard.py  # Wizard API (modular) - NEW
+│   │   ├── training.py      # Training module API
+│   │   └── widget.py        # amoCRM widget
+│   ├── services/
+│   │   ├── pdf_helpers.py   # PDF utilities - NEW
+│   │   └── pdf_sections.py  # PDF section builders - NEW
 │   └── server.py
 └── frontend (React)
     └── src/
         ├── components/
+        │   ├── sauna/
+        │   │   ├── useSaunaCalculator.js  # Main hook
+        │   │   ├── useLayoutCatalog.js    # Layout catalog - NEW
+        │   │   ├── usePriceCalculation.js # Price logic - NEW
+        │   │   └── useOptionVisibility.js # Visibility rules - NEW
         │   ├── LandingPage.jsx
         │   ├── TrainingPage.jsx
         │   └── ...
