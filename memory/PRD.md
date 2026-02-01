@@ -9,8 +9,10 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **NEW**: Layout selection (from catalog) now saved in order (`selectedLayoutId`, `selectedLayoutSize`)
 - **NEW**: Layout selection restored when editing existing order
 - **FIX**: PDF from Orders page now includes full page 2 with all options (was missing before)
+- **FIX**: PDF uploaded to amoCRM now includes full page 2 (widget.py updated)
 - **NEW**: PDF page 2 - small categories (1-3 options) now display in two columns for compact layout
 - **Backend**: `sauna.py` Section 3 rewritten with `build_category_block()` for two-column layout
+- **Backend**: `widget.py` `generate_and_upload_pdf_to_amocrm()` now collects all page 2 data
 - **Frontend**: `useSaunaCalculator.js` - added layout fields to `orderData`, restore via `handleLayoutSelect`
 - **Frontend**: `OrdersPage.jsx` - `handleDownloadPDF` now fetches all data for page 2
 - **Testing**: All tests passed (26/26 backend + UI flows)
