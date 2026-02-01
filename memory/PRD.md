@@ -5,6 +5,22 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 1, 2025 - Code Refactoring: Backend & Frontend Modularization (COMPLETED)
+- **NEW**: Created modular backend services and routes for better code organization
+- **Backend Modules Created**:
+  - `services/pdf_helpers.py` - Image optimization, MongoDB loading, PDF utilities
+  - `services/pdf_sections.py` - PDF section builders (header, client info, promo, gallery)
+  - `routes/sauna_crud.py` - CRUD operations for models, categories, options
+  - `routes/sauna_orders.py` - Order CRUD and tech spec endpoints
+  - `routes/sauna_wizard.py` - Wizard calculator API
+- **Frontend Hooks Created**:
+  - `useLayoutCatalog.js` - Layout catalog selection and management
+  - `usePriceCalculation.js` - Price calculation logic
+  - `useOptionVisibility.js` - Option visibility based on rules
+- **Documentation**: Created `/app/REFACTORING_GUIDE.md` with migration plan
+- **Note**: Original code untouched - new modules are for future use
+- **Tested**: Application works correctly after refactoring
+
 ### Jan 30, 2025 - Sub-model Description in PDF & Room Sizes from Variant (COMPLETED)
 - **NEW**: Variant description (hint) now displayed in PDF's "WYMIARY POMIESZCZEŃ" section as "Co zawiera wariant:"
 - **FIX**: Removed duplicate variant description in PDF (was appearing twice)
