@@ -322,7 +322,7 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
                     # Load layout variants
                     try:
                         layout_variants_collection = db["sauna_layout_variants"]
-                        layout_variants = list(layout_variants_collection.find({}, {"_id": 0}))
+                        layout_variants = list(layout_variants_collection.find({}))
                         
                         selected_layout = next((l for l in layout_variants 
                             if str(l.get('_id')) == selected_layout_id or l.get('id') == selected_layout_id), None)
@@ -342,7 +342,7 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
                             
                             # Get other layouts for the same size
                             for l in layout_variants:
-                                l_id = str(l.get('_id')) or l.get('id')
+                                l_id = str(l.get('_id')) if l.get('_id') else l.get('id')
                                 if l.get('modelSize') == selected_layout_size and l_id != selected_layout_id:
                                     other_layouts_for_size.append({
                                         'id': l_id,
