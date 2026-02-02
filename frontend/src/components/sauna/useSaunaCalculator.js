@@ -906,7 +906,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         };
       }
       
-      // Get all available additional options with images (filter by showInPdf)
+      // Get all available additional options with images (filtered by model compatibility)
       const allAvailableOptions = (prices.categories || [])
         .filter(cat => {
           // Exclude categories that are Plus-only or foundation
@@ -916,7 +916,24 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           return true;
         })
         .flatMap(cat => (cat.options || [])
-          .filter(opt => opt.showInPdf !== false)  // Only include options with showInPdf=true or undefined
+          .filter(opt => {
+            // Skip options hidden from PDF
+            if (opt.showInPdf === false) return false;
+            
+            // Skip options incompatible with selected model
+            const incompatibleModels = opt.incompatibleModels || [];
+            if (incompatibleModels.length > 0 && formData.selectedModel) {
+              if (incompatibleModels.includes(formData.selectedModel)) return false;
+            }
+            
+            // Check showInPdfForModels if defined (whitelist)
+            const showInPdfForModels = opt.showInPdfForModels || [];
+            if (showInPdfForModels.length > 0 && formData.selectedModel) {
+              if (!showInPdfForModels.includes(formData.selectedModel)) return false;
+            }
+            
+            return true;
+          })
           .map(opt => ({
             id: opt.id,
             name: opt.name,
