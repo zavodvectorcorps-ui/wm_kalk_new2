@@ -747,12 +747,11 @@ export const useLogistics = () => {
         }
       });
       
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.detail || 'Failed to refresh order');
-      }
-      
       const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.detail || 'Failed to refresh order');
+      }
       
       // Check if update was skipped (order in trip or delivered)
       if (result.status === 'skipped') {
