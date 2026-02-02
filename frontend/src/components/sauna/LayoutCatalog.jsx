@@ -346,10 +346,16 @@ export const LayoutCatalog = ({
           )}
 
           {/* Selected Layout Preview */}
-          {selectedLayout && (
-            <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+          {(selectedLayout || customLayoutImage) && (
+            <div className={`mt-4 p-3 rounded-lg border ${customLayoutImage ? 'bg-blue-50 border-blue-200' : 'bg-purple-50 border-purple-200'}`}>
               <div className="flex items-start gap-4">
-                {selectedLayout.imageUrl && (
+                {customLayoutImage ? (
+                  <img 
+                    src={customLayoutImage.preview || (customLayoutImage.url.startsWith('/api') ? `${API_URL}${customLayoutImage.url}` : customLayoutImage.url)}
+                    alt={txt.customLayout}
+                    className="w-24 h-18 object-cover rounded-lg border border-blue-300"
+                  />
+                ) : selectedLayout?.imageUrl && (
                   <img 
                     src={selectedLayout.imageUrl.startsWith('/api') ? `${API_URL}${selectedLayout.imageUrl}` : selectedLayout.imageUrl}
                     alt={selectedLayout.variantName}
@@ -357,7 +363,7 @@ export const LayoutCatalog = ({
                   />
                 )}
                 <div className="flex-1">
-                  <h4 className="font-medium text-purple-800 flex items-center gap-2">
+                  <h4 className={`font-medium flex items-center gap-2 ${customLayoutImage ? 'text-blue-800' : 'text-purple-800'}`}>
                     <Check className="h-4 w-4 text-green-600" />
                     {txt.selected}: {selectedLayout.variantName}
                   </h4>
