@@ -84,6 +84,7 @@ class SaunaOption(BaseModel):
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None
     showInPdf: bool = True  # If true, option will be shown in PDF catalog (page 2)
+    showInPdfForModels: Optional[List[str]] = []  # If set, option shown in PDF only for these models (whitelist)
     # Model-specific pricing: {modelId: price} - overrides base price for specific models
     priceByModel: Optional[Dict[str, int]] = {}
     # Plus variant card details (displayed on option card in calculator)
