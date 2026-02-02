@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://spa-calculator.preview.emergentagent.com/api"
+BACKEND_URL = "https://hottubpro.preview.emergentagent.com/api"
 
 def test_health_check():
     """Test GET /api/health endpoint"""
