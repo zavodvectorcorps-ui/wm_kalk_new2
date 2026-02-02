@@ -691,11 +691,11 @@ export const useLogistics = () => {
         body: JSON.stringify(missingIds)
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to sync missing orders');
-      }
-      
       const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.detail || 'Failed to sync missing orders');
+      }
       
       // Reload all orders after sync
       if (result.synced_count > 0) {
