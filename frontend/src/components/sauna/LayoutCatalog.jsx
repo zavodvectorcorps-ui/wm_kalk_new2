@@ -365,30 +365,37 @@ export const LayoutCatalog = ({
                 <div className="flex-1">
                   <h4 className={`font-medium flex items-center gap-2 ${customLayoutImage ? 'text-blue-800' : 'text-purple-800'}`}>
                     <Check className="h-4 w-4 text-green-600" />
-                    {txt.selected}: {selectedLayout.variantName}
+                    {customLayoutImage ? txt.customLayout : `${txt.selected}: ${selectedLayout?.variantName}`}
                   </h4>
-                  {selectedLayout.description && (
+                  {!customLayoutImage && selectedLayout?.description && (
                     <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                       {selectedLayout.description}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-600">
-                    {selectedLayout.peopleCount && (
-                      <span><Users className="h-3 w-3 inline mr-1" />{selectedLayout.peopleCount} {txt.people}</span>
-                    )}
-                    {selectedLayout.terraceSize && (
-                      <span><Home className="h-3 w-3 inline mr-1" />{txt.terrace}: {selectedLayout.terraceSize}</span>
-                    )}
-                    {selectedLayout.relaxRoomSize && (
-                      <span><Maximize2 className="h-3 w-3 inline mr-1" />{txt.relaxRoom}: {selectedLayout.relaxRoomSize}</span>
-                    )}
-                    {selectedLayout.steamRoomSize && (
-                      <span><Flame className="h-3 w-3 inline mr-1" />{txt.steamRoom}: {selectedLayout.steamRoomSize}</span>
-                    )}
-                    {selectedLayout.entranceSide && (
-                      <span><DoorOpen className="h-3 w-3 inline mr-1" />{txt.entrance}: {selectedLayout.entranceSide}</span>
-                    )}
-                  </div>
+                  {customLayoutImage && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      {lang === 'pl' ? 'Własne zdjęcie planowki zostanie użyte na pierwszej stronie PDF' : 'Своё изображение планировки будет использовано на первой странице PDF'}
+                    </p>
+                  )}
+                  {!customLayoutImage && selectedLayout && (
+                    <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-600">
+                      {selectedLayout.peopleCount && (
+                        <span><Users className="h-3 w-3 inline mr-1" />{selectedLayout.peopleCount} {txt.people}</span>
+                      )}
+                      {selectedLayout.terraceSize && (
+                        <span><Home className="h-3 w-3 inline mr-1" />{txt.terrace}: {selectedLayout.terraceSize}</span>
+                      )}
+                      {selectedLayout.relaxRoomSize && (
+                        <span><Maximize2 className="h-3 w-3 inline mr-1" />{txt.relaxRoom}: {selectedLayout.relaxRoomSize}</span>
+                      )}
+                      {selectedLayout.steamRoomSize && (
+                        <span><Flame className="h-3 w-3 inline mr-1" />{txt.steamRoom}: {selectedLayout.steamRoomSize}</span>
+                      )}
+                      {selectedLayout.entranceSide && (
+                        <span><DoorOpen className="h-3 w-3 inline mr-1" />{txt.entrance}: {selectedLayout.entranceSide}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
