@@ -539,6 +539,10 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             selectedSize={selectedLayoutSize}
             selectedLayoutId={selectedLayoutId}
             onLayoutSelect={handleLayoutSelect}
+            customLayoutImage={customLayoutImage}
+            customLayoutUploading={customLayoutUploading}
+            onUploadCustomImage={uploadCustomLayoutImage}
+            onRemoveCustomImage={removeCustomLayoutImage}
             lang={lang}
           />
 
