@@ -176,6 +176,74 @@ export const LayoutCatalog = ({
               <label className="text-sm font-medium text-gray-700 mb-2 block">
                 {txt.selectLayout}
               </label>
+              
+              {/* Custom Layout Upload Section */}
+              <div className="mb-4 p-3 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50/50">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  data-testid="custom-layout-file-input"
+                />
+                
+                {customLayoutImage ? (
+                  // Show uploaded custom image
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <img
+                        src={customLayoutImage.preview || (customLayoutImage.url.startsWith('/api') ? `${API_URL}${customLayoutImage.url}` : customLayoutImage.url)}
+                        alt={txt.customLayout}
+                        className="w-24 h-18 object-cover rounded-lg border-2 border-blue-400"
+                      />
+                      <div className="absolute -top-2 -right-2 bg-blue-600 text-white rounded-full p-1">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-blue-800">{txt.customLayout}</p>
+                      <p className="text-xs text-blue-600">{lang === 'pl' ? 'Ta planowka zostanie użyta w PDF' : 'Эта планировка будет использована в PDF'}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onRemoveCustomImage}
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                      data-testid="remove-custom-layout-btn"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      {lang === 'pl' ? 'Usuń' : 'Удалить'}
+                    </Button>
+                  </div>
+                ) : (
+                  // Upload button
+                  <div className="flex items-center justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={customLayoutUploading}
+                      className="border-blue-400 text-blue-700 hover:bg-blue-100"
+                      data-testid="upload-custom-layout-btn"
+                    >
+                      {customLayoutUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {txt.uploading}
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          {txt.uploadCustom}
+                        </>
+                      )}
+                    </Button>
+                    <span className="text-sm text-gray-500">{txt.orUploadOwn}</span>
+                  </div>
+                )}
+              </div>
+              
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {layoutsForSize.map(layout => {
                   const layoutId = layout._id || layout.id;
