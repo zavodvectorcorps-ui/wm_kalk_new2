@@ -5,12 +5,17 @@ import { API_URL } from './constants';
 /**
  * Hook for managing layout catalog selection.
  * Handles fetching layout variants and managing selection state.
+ * Also supports custom layout image uploads.
  */
 export const useLayoutCatalog = () => {
   const [selectedLayoutSize, setSelectedLayoutSize] = useState(null);
   const [selectedLayoutId, setSelectedLayoutId] = useState(null);
   const [layoutVariants, setLayoutVariants] = useState([]);
   const [layoutLoading, setLayoutLoading] = useState(false);
+  
+  // Custom uploaded layout image state
+  const [customLayoutImage, setCustomLayoutImage] = useState(null); // { url, file, preview }
+  const [customLayoutUploading, setCustomLayoutUploading] = useState(false);
 
   // Load layout variants for catalog
   useEffect(() => {
