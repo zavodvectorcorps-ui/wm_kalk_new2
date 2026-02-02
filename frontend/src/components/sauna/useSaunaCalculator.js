@@ -828,6 +828,12 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       const selectedVariant = getSelectedModelVariant();
       let selectedModelVariantData = null;
       
+      // Check if custom layout image was uploaded (highest priority)
+      let customLayoutImageUrl = null;
+      if (customLayoutImage?.url) {
+        customLayoutImageUrl = customLayoutImage.url;
+      }
+      
       // Check if layout is selected from the Layout Catalog
       let layoutCatalogImageUrl = null;
       let selectedLayoutFromCatalog = null;
@@ -861,7 +867,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       
       // Fallback: Check if there's a "Планировка" (Layout) category with selected option that has an image
       let layoutCategoryImageUrl = null;
-      if (!layoutCatalogImageUrl) {
+      if (!layoutCatalogImageUrl && !customLayoutImageUrl) {
         const layoutCategory = prices.categories?.find(cat => 
           cat.name?.toLowerCase().includes('планировка') || 
           cat.name?.toLowerCase().includes('planowka') ||
@@ -881,32 +887,34 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         }
       }
       
-      // Priority: Layout Catalog > Layout Category > Variant image
-      const finalLayoutImageUrl = layoutCatalogImageUrl || layoutCategoryImageUrl;
+      // Priority: Custom Uploaded Image > Layout Catalog > Layout Category > Variant image
+      const finalLayoutImageUrl = customLayoutImageUrl || layoutCatalogImageUrl || layoutCategoryImageUrl;
       
       if (selectedVariant && (selectedVariant.terraceSize || selectedVariant.relaxRoomSize || selectedVariant.steamRoomSize || selectedVariant.entranceSide || selectedVariant.imageUrl || selectedVariant.hint || selectedVariant.hintPl || finalLayoutImageUrl)) {
         selectedModelVariantData = {
-          name: selectedLayoutFromCatalog?.variantName || selectedVariant.namePl || selectedVariant.name,
-          // Use layout image if available, otherwise use variant image
+          name: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.variantName || selectedVariant.namePl || selectedVariant.name),
+          // Use custom image first, then layout image, then variant image
           imageUrl: finalLayoutImageUrl || selectedVariant.imageUrl || null,
-          capacity: selectedLayoutFromCatalog?.peopleCount || selectedVariant.capacity || null,
-          terraceSize: selectedLayoutFromCatalog?.terraceSize || selectedVariant.terraceSize || null,
-          relaxRoomSize: selectedLayoutFromCatalog?.relaxRoomSize || selectedVariant.relaxRoomSize || null,
-          steamRoomSize: selectedLayoutFromCatalog?.steamRoomSize || selectedVariant.steamRoomSize || null,
-          entranceSide: selectedLayoutFromCatalog?.entranceSide || selectedVariant.entranceSide || null,
-          hint: selectedLayoutFromCatalog?.description || selectedVariant.hintPl || selectedVariant.hint || null,
+          capacity: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.peopleCount || selectedVariant.capacity || null),
+          terraceSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.terraceSize || selectedVariant.terraceSize || null),
+          relaxRoomSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.relaxRoomSize || selectedVariant.relaxRoomSize || null),
+          steamRoomSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.steamRoomSize || selectedVariant.steamRoomSize || null),
+          entranceSide: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.entranceSide || selectedVariant.entranceSide || null),
+          hint: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.description || selectedVariant.hintPl || selectedVariant.hint || null),
+          isCustomImage: !!customLayoutImageUrl,
         };
       } else if (finalLayoutImageUrl || selectedLayoutFromCatalog) {
-        // If no variant but layout selected, use layout data
+        // If no variant but layout selected or custom image uploaded, use that data
         selectedModelVariantData = {
-          name: selectedLayoutFromCatalog?.variantName || null,
+          name: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.variantName || null),
           imageUrl: finalLayoutImageUrl,
-          capacity: selectedLayoutFromCatalog?.peopleCount || null,
-          terraceSize: selectedLayoutFromCatalog?.terraceSize || null,
-          relaxRoomSize: selectedLayoutFromCatalog?.relaxRoomSize || null,
-          steamRoomSize: selectedLayoutFromCatalog?.steamRoomSize || null,
-          entranceSide: selectedLayoutFromCatalog?.entranceSide || null,
-          hint: selectedLayoutFromCatalog?.description || null,
+          capacity: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.peopleCount || null),
+          terraceSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.terraceSize || null),
+          relaxRoomSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.relaxRoomSize || null),
+          steamRoomSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.steamRoomSize || null),
+          entranceSide: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.entranceSide || null),
+          hint: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.description || null),
+          isCustomImage: !!customLayoutImageUrl,
         };
       }
       
