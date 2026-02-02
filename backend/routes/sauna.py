@@ -1734,6 +1734,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             
             # Prepare category list and their sizes
             categories_list = list(options_by_category.items())
+            logger.info(f"PDF Page 2 - Categories for two-column layout: {[(name, len(opts)) for name, opts in categories_list]}")
             
             # Build two-column layout for categories
             i = 0
@@ -1746,8 +1747,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     cat_name2, cat_opts2 = categories_list[i + 1]
                     opts_count2 = len(cat_opts2)
                     
-                    # If both categories are small (1-3 options each), place them side by side
-                    if opts_count1 <= 3 and opts_count2 <= 3:
+                    # If both categories are small (1-4 options each), place them side by side
+                    if opts_count1 <= 4 and opts_count2 <= 4:
+                        logger.info(f"PDF: Pairing '{cat_name1}' ({opts_count1}) with '{cat_name2}' ({opts_count2})")
                         block1 = await build_category_block(cat_name1, cat_opts1, 255)
                         block2 = await build_category_block(cat_name2, cat_opts2, 255)
                         
@@ -1763,6 +1765,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                         continue
                 
                 # Large category or no pair - full width
+                logger.info(f"PDF: Full width for '{cat_name1}' ({opts_count1} options)")
                 block = await build_category_block(cat_name1, cat_opts1, 520)
                 elements.append(block)
                 elements.append(Spacer(1, 6))
