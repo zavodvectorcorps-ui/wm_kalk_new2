@@ -5,6 +5,22 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 2, 2025 - Custom Layout Upload in Calculator (COMPLETED)
+- **NEW**: Managers can now upload their own custom layout image directly in "Katalog planowek" (Layout Catalog)
+- **Feature**: Upload button "Wgraj własną planowkę" appears after selecting a size
+- **Feature**: Custom uploaded image has highest priority and overrides catalog/variant images
+- **Feature**: Custom image preview shows with blue styling and checkmark
+- **Feature**: "Własna planowka" badge appears in Layout Catalog header when custom image is uploaded
+- **Feature**: Remove button allows deleting the custom image to return to catalog selection
+- **PDF**: Custom uploaded image is used on page 1 of generated PDF (in "WYMIARY POMIESZCZEŃ" section)
+- **Backend**: Uses existing `/api/upload/image` endpoint with MongoDB storage
+- **Files Modified**:
+  - `LayoutCatalog.jsx` - Added upload UI, preview, remove functionality
+  - `useLayoutCatalog.js` - Added `uploadCustomLayoutImage`, `removeCustomLayoutImage`, `customLayoutImage` state
+  - `useSaunaCalculator.js` - Added priority logic: Custom Image > Catalog > Category > Variant
+  - `SaunaCalculator.jsx` - Passes new props to LayoutCatalog
+- **Testing**: All 10 backend tests passed, UI fully functional
+
 ### Feb 1, 2025 - Layout Selection Persistence & PDF Improvements (COMPLETED)
 - **NEW**: Layout selection (from catalog) now saved in order (`selectedLayoutId`, `selectedLayoutSize`)
 - **NEW**: Layout selection restored when editing existing order
