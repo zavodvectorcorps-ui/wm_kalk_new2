@@ -1,0 +1,135 @@
+{
+  "summary": "Tested custom layout upload feature in Sauna Calculator. All features working correctly: 1) Upload button appears after selecting size in Layout Catalog, 2) File input accepts image files (jpg, png, webp, gif), 3) Uploaded custom image shows preview with blue styling, 4) Remove button allows deleting uploaded image, 5) Custom image clears catalog selection, 6) Custom image badge appears in header, 7) PDF generation includes custom image on page 1.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_custom_layout_upload.py",
+    "/app/test_reports/pytest/pytest_results_iteration34.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PASS: LayoutCatalog.jsx correctly implements upload button with data-testid='upload-custom-layout-btn' (line 228)",
+    "PASS: LayoutCatalog.jsx file input has data-testid='custom-layout-file-input' and accepts image types (lines 184-189)",
+    "PASS: LayoutCatalog.jsx shows blue-styled preview when custom image is uploaded (lines 193-218)",
+    "PASS: LayoutCatalog.jsx remove button has data-testid='remove-custom-layout-btn' (line 214)",
+    "PASS: useLayoutCatalog.js uploadCustomLayoutImage clears catalog selection (line 77)",
+    "PASS: useLayoutCatalog.js properly handles file upload to /api/upload/image (lines 54-86)",
+    "PASS: useSaunaCalculator.js passes customLayoutImage.url to selectedModelVariantData.imageUrl (lines 832-917)",
+    "PASS: useSaunaCalculator.js sets isCustomImage: true when custom image is uploaded (lines 904, 917)",
+    "PASS: upload.py endpoint validates file types and optimizes images (lines 67-117)",
+    "PASS: sauna.py PDF generation loads custom image from MongoDB via /api/uploads/ URL (lines 944-969)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_custom_layout_upload.py"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 tests passed)",
+    "frontend": "100% (all UI flows working)"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"}
+  },
+  "seed_data_creation": "Created test images for upload testing, cleaned up after tests",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Custom layout upload feature fully tested. Upload button appears after selecting size in Layout Catalog. Custom image has highest priority in PDF generation (overrides catalog selection and model variant images). File types validated: jpg, png, webp, gif. Max file size: 10MB.",
+  "features_tested": {
+    "upload_button_visibility": {
+      "status": "PASS",
+      "details": "Upload button 'Wgraj własną planowkę' appears after selecting a size in Layout Catalog"
+    },
+    "file_input_accepts_images": {
+      "status": "PASS",
+      "details": "File input accepts image/jpeg, image/png, image/webp, image/gif"
+    },
+    "custom_image_preview": {
+      "status": "PASS",
+      "details": "Uploaded image shows preview with blue border and checkmark, text 'Ta planowka zostanie użyta w PDF'"
+    },
+    "remove_button_functionality": {
+      "status": "PASS",
+      "details": "Remove button ('Usuń') successfully removes custom image and clears state"
+    },
+    "catalog_selection_cleared": {
+      "status": "PASS",
+      "details": "When custom image is uploaded, catalog layout selection (selectedLayoutId) is cleared"
+    },
+    "custom_image_badge": {
+      "status": "PASS",
+      "details": "Badge 'Własna planowka' appears in Layout Catalog header when custom image is uploaded"
+    },
+    "pdf_generation_with_custom_image": {
+      "status": "PASS",
+      "details": "PDF generation includes custom image in selectedModelVariantData.imageUrl with isCustomImage: true"
+    },
+    "fallback_to_catalog_selection": {
+      "status": "PASS",
+      "details": "If no custom image, existing layout catalog selection works as before"
+    },
+    "upload_api_endpoint": {
+      "status": "PASS",
+      "details": "POST /api/upload/image accepts files, validates types, optimizes images, stores in MongoDB"
+    },
+    "uploaded_image_retrieval": {
+      "status": "PASS",
+      "details": "GET /api/uploads/{filename} returns image from MongoDB with proper headers"
+    }
+  },
+  "test_scenarios_executed": [
+    {
+      "scenario": "Login as admin and navigate to Sauna Calculator",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Fill customer info and select model",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Expand Layout Catalog and select size",
+      "result": "PASS"
+    },
+    {
+      "scenario": "Verify upload button appears after size selection",
+      "result": "PASS - Button 'Wgraj własną planowkę' visible"
+    },
+    {
+      "scenario": "Upload custom layout image",
+      "result": "PASS - Image uploaded, preview shown with blue styling"
+    },
+    {
+      "scenario": "Verify custom image badge in header",
+      "result": "PASS - 'Własna planowka' badge visible"
+    },
+    {
+      "scenario": "Verify catalog selection cleared",
+      "result": "PASS - No catalog layout selected after custom upload"
+    },
+    {
+      "scenario": "Test remove button functionality",
+      "result": "PASS - Custom image removed, upload button reappears"
+    },
+    {
+      "scenario": "Re-upload and generate PDF",
+      "result": "PASS - PDF generated with custom image"
+    },
+    {
+      "scenario": "Backend API tests (10 tests)",
+      "result": "PASS - All tests passed"
+    }
+  ],
+  "ui_screenshots_taken": [
+    "01_before_upload.jpg - Layout Catalog with size selected, upload button visible",
+    "02_after_upload.jpg - Custom image preview with blue styling",
+    "03_custom_image_state.jpg - Custom image badge in header",
+    "04_after_remove.jpg - Upload button reappears after remove",
+    "05_before_pdf.jpg - Re-uploaded custom image",
+    "06_final.jpg - PDF generation success toast"
+  ]
+}
