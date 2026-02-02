@@ -233,7 +233,8 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                 }))
             }));
           
-          // Get all available options for page 2
+          // Get all available options for page 2 (filtered by model compatibility)
+          const selectedModelId = order.selectedModel;
           const allAvailableOptions = (prices.categories || [])
             .filter(cat => {
               const visibleFor = cat.visibleForModelVariants || [];
@@ -242,7 +243,24 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
               return true;
             })
             .flatMap(cat => (cat.options || [])
-              .filter(opt => opt.showInPdf !== false)
+              .filter(opt => {
+                // Skip options hidden from PDF
+                if (opt.showInPdf === false) return false;
+                
+                // Skip options incompatible with selected model
+                const incompatibleModels = opt.incompatibleModels || [];
+                if (incompatibleModels.length > 0 && selectedModelId) {
+                  if (incompatibleModels.includes(selectedModelId)) return false;
+                }
+                
+                // Check showInPdfForModels if defined
+                const showInPdfForModels = opt.showInPdfForModels || [];
+                if (showInPdfForModels.length > 0 && selectedModelId) {
+                  if (!showInPdfForModels.includes(selectedModelId)) return false;
+                }
+                
+                return true;
+              })
               .map(opt => ({
                 id: opt.id,
                 name: opt.name,
