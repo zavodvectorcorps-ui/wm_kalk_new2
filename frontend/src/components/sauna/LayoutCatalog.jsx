@@ -72,6 +72,42 @@ export const LayoutCatalog = ({
     relaxRoom: lang === 'pl' ? 'Pokój wyp.' : 'Комната отдыха',
     steamRoom: lang === 'pl' ? 'Sauna' : 'Парная',
     entrance: lang === 'pl' ? 'Wejście' : 'Вход',
+    uploadCustom: lang === 'pl' ? 'Wgraj własną planowkę' : 'Загрузить свою планировку',
+    customLayout: lang === 'pl' ? 'Własna planowka' : 'Своя планировка',
+    uploading: lang === 'pl' ? 'Wgrywanie...' : 'Загрузка...',
+    removeCustom: lang === 'pl' ? 'Usuń własną planowkę' : 'Удалить свою планировку',
+    orUploadOwn: lang === 'pl' ? 'lub wgraj własną planowkę' : 'или загрузите свою планировку',
+  };
+
+  // Handle custom image upload
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast.error(lang === 'pl' ? 'Nieprawidłowy format pliku. Dozwolone: JPG, PNG, WEBP, GIF' : 'Неверный формат файла. Разрешены: JPG, PNG, WEBP, GIF');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error(lang === 'pl' ? 'Plik jest za duży. Maksymalny rozmiar: 10MB' : 'Файл слишком большой. Максимум: 10MB');
+      return;
+    }
+
+    try {
+      await onUploadCustomImage(file);
+      toast.success(lang === 'pl' ? 'Planowka została wgrana!' : 'Планировка загружена!');
+    } catch (error) {
+      toast.error(lang === 'pl' ? 'Błąd podczas wgrywania pliku' : 'Ошибка при загрузке файла');
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   if (loading) {
