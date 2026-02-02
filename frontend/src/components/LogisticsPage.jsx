@@ -543,13 +543,23 @@ export const LogisticsPage = () => {
                                               try {
                                                 const result = await syncMissingOrders(comparison.missingInLocal);
                                                 if (result) {
-                                                  toast.success(`Синхронизировано: ${result.synced_count}, не удалось: ${result.failed_count}`);
+                                                  const parts = [];
+                                                  if (result.synced_count > 0) parts.push(`Добавлено: ${result.synced_count}`);
+                                                  if (result.already_exists_count > 0) parts.push(`Обновлено: ${result.already_exists_count}`);
+                                                  if (result.failed_count > 0) parts.push(`Ошибок: ${result.failed_count}`);
+                                                  
+                                                  if (parts.length > 0) {
+                                                    toast.success(parts.join(', '));
+                                                  } else {
+                                                    toast.info('Нет заказов для синхронизации');
+                                                  }
+                                                  
                                                   if (selectedPipeline && selectedStatus) {
                                                     fetchAmocrmStats(selectedPipeline, selectedStatus);
                                                   }
                                                 }
                                               } catch (err) {
-                                                toast.error('Ошибка синхронизации');
+                                                toast.error(`Ошибка синхронизации: ${err.message}`);
                                               }
                                             }}
                                           >
