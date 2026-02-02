@@ -140,10 +140,14 @@ export const useLayoutCatalog = () => {
     selectedLayoutId,
     layoutVariants,
     layoutLoading,
+    customLayoutImage,
+    customLayoutUploading,
     
     // Actions
     handleLayoutSelect,
     clearLayoutSelection,
+    uploadCustomLayoutImage,
+    removeCustomLayoutImage,
     
     // Getters
     getSelectedLayout,
