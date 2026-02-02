@@ -1301,19 +1301,25 @@ async def sync_missing_orders(
     Fetches lead data from amoCRM API and creates orders in the local database.
     Uses the same field extraction logic as the main webhook sync.
     """
+    logger.info(f"sync_missing_orders called: section={section}, lead_ids_count={len(lead_ids)}")
+    
     if section not in ["greenhouse", "balia", "sauna"]:
         raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
     
     # Get amoCRM settings
     settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
     if not settings:
+        logger.error("sync_missing_orders: amoCRM not configured")
         raise HTTPException(status_code=400, detail="amoCRM not configured")
     
     domain = settings.get("amocrm_domain", "")
     token = settings.get("amocrm_token", "")
     
     if not domain or not token:
+        logger.error(f"sync_missing_orders: credentials not set (domain={bool(domain)}, token={bool(token)})")
         raise HTTPException(status_code=400, detail="amoCRM credentials not set")
+    
+    logger.info(f"sync_missing_orders: domain={domain[:20]}..., processing {len(lead_ids)} leads")
     
     # Get collection for section
     collection = {
