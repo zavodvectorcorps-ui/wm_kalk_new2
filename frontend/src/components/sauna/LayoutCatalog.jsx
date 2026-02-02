@@ -128,7 +128,13 @@ export const LayoutCatalog = ({
           <div className="flex items-center gap-2">
             <LayoutGrid className="h-5 w-5" />
             <span className="text-base">{txt.title}</span>
-            {selectedLayout && (
+            {customLayoutImage && (
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                <Upload className="h-3 w-3 mr-1" />
+                {txt.customLayout}
+              </Badge>
+            )}
+            {!customLayoutImage && selectedLayout && (
               <Badge variant="secondary" className="bg-green-100 text-green-700">
                 <Check className="h-3 w-3 mr-1" />
                 {selectedLayout.variantName}
