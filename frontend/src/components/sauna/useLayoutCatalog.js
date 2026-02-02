@@ -37,13 +37,61 @@ export const useLayoutCatalog = () => {
   const handleLayoutSelect = useCallback((size, layoutId) => {
     setSelectedLayoutSize(size);
     setSelectedLayoutId(layoutId);
+    // Clear custom image when selecting a layout from catalog
+    if (layoutId) {
+      setCustomLayoutImage(null);
+    }
   }, []);
 
   // Clear layout selection
   const clearLayoutSelection = useCallback(() => {
     setSelectedLayoutSize(null);
     setSelectedLayoutId(null);
+    setCustomLayoutImage(null);
   }, []);
+
+  // Upload custom layout image
+  const uploadCustomLayoutImage = useCallback(async (file) => {
+    if (!file) return null;
+    
+    setCustomLayoutUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${API_URL}/api/upload/image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      const uploadedUrl = response.data.url;
+      const preview = URL.createObjectURL(file);
+      
+      const customImage = {
+        url: uploadedUrl,
+        file: file,
+        preview: preview
+      };
+      
+      setCustomLayoutImage(customImage);
+      // Clear catalog selection when uploading custom image
+      setSelectedLayoutId(null);
+      
+      return customImage;
+    } catch (error) {
+      console.error('Failed to upload custom layout image:', error);
+      throw error;
+    } finally {
+      setCustomLayoutUploading(false);
+    }
+  }, []);
+
+  // Remove custom layout image
+  const removeCustomLayoutImage = useCallback(() => {
+    if (customLayoutImage?.preview) {
+      URL.revokeObjectURL(customLayoutImage.preview);
+    }
+    setCustomLayoutImage(null);
+  }, [customLayoutImage]);
 
   // Get selected layout data
   const getSelectedLayout = useCallback(() => {
