@@ -288,7 +288,7 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
                             ]
                         })
                 
-                # Get all available options for page 2
+                # Get all available options for page 2 (filtered by model compatibility)
                 all_available_options = []
                 for cat in categories:
                     visible_for = cat.get('visibleForModelVariants', [])
@@ -298,8 +298,22 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
                         continue  # Skip foundation
                     
                     for opt in cat.get('options', []):
+                        # Skip options hidden from PDF
                         if opt.get('showInPdf') == False:
                             continue
+                        
+                        # Skip options incompatible with selected model
+                        incompatible_models = opt.get('incompatibleModels', [])
+                        if incompatible_models and selected_model_id:
+                            if selected_model_id in incompatible_models:
+                                continue
+                        
+                        # Check showInPdfForModels if defined (whitelist)
+                        show_in_pdf_for_models = opt.get('showInPdfForModels', [])
+                        if show_in_pdf_for_models and selected_model_id:
+                            if selected_model_id not in show_in_pdf_for_models:
+                                continue
+                        
                         all_available_options.append({
                             'id': opt.get('id'),
                             'name': opt.get('name'),
