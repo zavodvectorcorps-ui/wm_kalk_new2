@@ -1,22 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { LayoutGrid, Check, ChevronDown, ChevronUp, Image as ImageIcon, Users, Maximize2, Home, Flame, DoorOpen } from 'lucide-react';
+import { LayoutGrid, Check, ChevronDown, ChevronUp, Image as ImageIcon, Users, Maximize2, Home, Flame, DoorOpen, Upload, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 export const LayoutCatalog = ({ 
   selectedSize, 
   selectedLayoutId, 
-  onLayoutSelect, 
+  onLayoutSelect,
+  customLayoutImage,
+  customLayoutUploading,
+  onUploadCustomImage,
+  onRemoveCustomImage,
   lang = 'pl' 
 }) => {
   const [layouts, setLayouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [previewLayout, setPreviewLayout] = useState(null);
+  const fileInputRef = useRef(null);
 
   // Group layouts by model size
   const groupedLayouts = layouts.reduce((acc, layout) => {
