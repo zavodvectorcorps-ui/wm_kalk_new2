@@ -503,6 +503,48 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               <Label htmlFor="edit-showInPdf">{txt.showInPdf || 'Показывать в PDF (каталог опций)'}</Label>
             </div>
             
+            {/* Show in PDF for specific models */}
+            {editingOption.showInPdf !== false && models && models.length > 0 && (
+              <div className="border rounded p-3 bg-purple-50 mt-2">
+                <Label className="text-sm font-medium text-purple-700 mb-2 block">
+                  📄 Показывать в PDF только для моделей:
+                </Label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Если ничего не выбрано — опция показывается для всех моделей. Если выбраны модели — только для них.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {models.map(model => {
+                    const showInPdfForModels = editingOption.showInPdfForModels || [];
+                    const isSelected = showInPdfForModels.includes(model.id);
+                    return (
+                      <Badge
+                        key={model.id}
+                        variant={isSelected ? "default" : "outline"}
+                        className={`cursor-pointer transition-colors ${isSelected ? 'bg-purple-600 hover:bg-purple-700' : 'hover:bg-purple-100'}`}
+                        onClick={() => {
+                          setEditingOption(prev => {
+                            const current = prev.showInPdfForModels || [];
+                            if (isSelected) {
+                              return { ...prev, showInPdfForModels: current.filter(id => id !== model.id) };
+                            } else {
+                              return { ...prev, showInPdfForModels: [...current, model.id] };
+                            }
+                          });
+                        }}
+                      >
+                        {model.name}
+                      </Badge>
+                    );
+                  })}
+                </div>
+                {(editingOption.showInPdfForModels || []).length > 0 && (
+                  <p className="text-xs text-purple-600 mt-2">
+                    Выбрано: {(editingOption.showInPdfForModels || []).length} моделей
+                  </p>
+                )}
+              </div>
+            )}
+            
             {/* Price by Model Section */}
             {models && models.length > 0 && (
               <div className="border-t pt-4 mt-4">
