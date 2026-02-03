@@ -34,6 +34,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const txt = getTranslation(lang);
   
   const [formData, setFormData] = useState(getInitialFormData());
+  const [autoSelectedLayoutSize, setAutoSelectedLayoutSize] = useState(null);
 
   // Use modular hooks
   const { isOptionVisible, isCategoryVisible, isTerraceSelected } = useOptionVisibility(formData);
