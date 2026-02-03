@@ -268,23 +268,41 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     setFormData(prev => ({ ...prev, selectedModelVariant: variantId }));
   };
 
-  // Get room sizes based on terrace selection (uses isTerraceSelected from useOptionVisibility hook)
+  // Get room sizes based on terrace selection and variant (uses isTerraceSelected from useOptionVisibility hook)
   const getRoomSizes = useCallback(() => {
     const model = getSelectedModel();
     if (!model) return { relaxRoomSize: null, steamRoomSize: null };
     
     const hasTerrace = isTerraceSelected();
+    const variant = getSelectedModelVariant();
+    
+    // Priority: variant data > model data (with terrace variant if applicable)
+    let relaxRoomSize = null;
+    let steamRoomSize = null;
+    
+    // Check variant first
+    if (variant?.relaxRoomSize) {
+      relaxRoomSize = variant.relaxRoomSize;
+    } else if (hasTerrace && model.relaxRoomSizeWithTerrace) {
+      relaxRoomSize = model.relaxRoomSizeWithTerrace;
+    } else {
+      relaxRoomSize = model.relaxRoomSize;
+    }
+    
+    if (variant?.steamRoomSize) {
+      steamRoomSize = variant.steamRoomSize;
+    } else if (hasTerrace && model.steamRoomSizeWithTerrace) {
+      steamRoomSize = model.steamRoomSizeWithTerrace;
+    } else {
+      steamRoomSize = model.steamRoomSize;
+    }
     
     return {
-      relaxRoomSize: hasTerrace && model.relaxRoomSizeWithTerrace 
-        ? model.relaxRoomSizeWithTerrace 
-        : model.relaxRoomSize,
-      steamRoomSize: hasTerrace && model.steamRoomSizeWithTerrace 
-        ? model.steamRoomSizeWithTerrace 
-        : model.steamRoomSize,
+      relaxRoomSize,
+      steamRoomSize,
       hasTerrace
     };
-  }, [getSelectedModel, isTerraceSelected]);
+  }, [getSelectedModel, getSelectedModelVariant, isTerraceSelected]);
 
   // isOptionVisible is now provided by useOptionVisibility hook (imported above)
 
