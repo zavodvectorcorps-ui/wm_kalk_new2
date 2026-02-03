@@ -47,6 +47,8 @@ class SaunaModel(BaseModel):
     # Room sizes when "additional terrace" option is selected
     relaxRoomSizeWithTerrace: Optional[str] = None
     steamRoomSizeWithTerrace: Optional[str] = None
+    # Layout size for filtering layouts in catalog (e.g., "2m", "2.5m", "3m")
+    layoutSize: Optional[str] = None
     # Model variants (sub-models) with different prices and images
     variants: Optional[List[SaunaModelVariant]] = []
     # Gallery images - multiple photos for this model
