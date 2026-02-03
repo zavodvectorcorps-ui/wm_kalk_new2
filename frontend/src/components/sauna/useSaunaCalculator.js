@@ -753,8 +753,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       const baseModelPrice = model?.basePrice || 0;
       const variantPrice = modelVariant?.price || 0;
       const effectivePrice = baseModelPrice + variantPrice;
-      // Get model image - always from main model, not variant
-      const modelImage = model?.imageUrl || '';
+      // Get model image - priority: variant image > main model image
+      const modelImage = modelVariant?.imageUrl || model?.imageUrl || '';
       // Get model name with variant
       const effectiveModelName = modelVariant 
         ? `${model?.name || ''} (${modelVariant.namePl || modelVariant.name || ''})` 
