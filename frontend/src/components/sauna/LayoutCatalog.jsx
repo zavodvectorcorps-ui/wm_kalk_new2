@@ -45,24 +45,6 @@ export const LayoutCatalog = ({
   // Selected layout object
   const selectedLayout = layouts.find(l => l._id === selectedLayoutId || l.id === selectedLayoutId);
 
-  // Load layouts
-  useEffect(() => {
-    const fetchLayouts = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/faq/layout-variants`);
-        if (response.ok) {
-          const data = await response.json();
-          setLayouts(data);
-        }
-      } catch (error) {
-        console.error('Failed to load layout variants:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLayouts();
-  }, []);
-
   const txt = {
     title: lang === 'pl' ? 'Katalog planowek' : 'Каталог планировок',
     selectSize: lang === 'pl' ? 'Wybierz rozmiar' : 'Выберите размер',
