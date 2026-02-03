@@ -901,8 +901,8 @@ class LayoutVariantUpdate(BaseModel):
 
 
 @router.get("/layout-variants")
-async def get_layout_variants(model_size: Optional[str] = None, include_inactive: bool = False):
-    """Get all layout variants, optionally filtered by model size."""
+async def get_layout_variants(model_size: Optional[str] = None, model_variant_id: Optional[str] = None, include_inactive: bool = False):
+    """Get all layout variants, optionally filtered by model size and model variant."""
     query = {}
     if model_size:
         query["modelSize"] = model_size
@@ -910,6 +910,18 @@ async def get_layout_variants(model_size: Optional[str] = None, include_inactive
         query["isActive"] = {"$ne": False}
     
     variants = list(layout_variants_collection.find(query, {"_id": 0}).sort([("modelSize", 1), ("variantNumber", 1), ("sortOrder", 1)]))
+    
+    # Filter by model variant if specified
+    if model_variant_id:
+        filtered_variants = []
+        for v in variants:
+            variant_ids = v.get("modelVariantIds") or []
+            # If modelVariantIds is empty/null, show to all variants (backwards compatible)
+            # If modelVariantIds has values, check if current variant is in the list
+            if not variant_ids or model_variant_id in variant_ids:
+                filtered_variants.append(v)
+        variants = filtered_variants
+    
     return variants
 
 
