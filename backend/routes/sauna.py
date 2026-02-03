@@ -555,38 +555,11 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     model_image_url = getattr(request, 'modelImageUrl', None) or ''
     if model_image_url:
         try:
-            img_data = None
-            logger.info(f"Processing model image URL: {model_image_url}")
-            
-            # Try loading from MongoDB first - check for /api/uploads/ pattern
-            if '/api/uploads/' in model_image_url:
-                img_data = await load_image_from_mongodb(model_image_url)
-                if img_data:
-                    logger.info(f"Loaded model image from MongoDB for Sauna PDF (size: {len(img_data)} bytes)")
-                else:
-                    logger.warning(f"MongoDB image not found for URL: {model_image_url}")
-            
-            # Fallback to HTTP download for external URLs (only if not MongoDB URL or MongoDB failed)
-            if not img_data and model_image_url.startswith('http') and '/api/uploads/' not in model_image_url:
-                try:
-                    req = urllib.request.Request(
-                        model_image_url,
-                        headers={
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                            'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-                            'Accept-Language': 'en-US,en;q=0.9',
-                            'Referer': 'https://wm-sauna.pl/',
-                        }
-                    )
-                    with urllib.request.urlopen(req, timeout=10) as response:
-                        img_data = response.read()
-                    logger.info(f"Downloaded model image from external URL: {model_image_url}")
-                except Exception as e:
-                    logger.warning(f"Could not download image from URL: {e}")
+            img_data = await load_image(model_image_url, timeout=3)
             
             if img_data:
-                # Optimize image for PDF (resize and compress)
-                img_data = optimize_image_for_pdf(img_data, max_size=600, quality=70)
+                # Optimize image for PDF (smaller size, lower quality for speed)
+                img_data = optimize_image_for_pdf(img_data, max_size=300, quality=55)
                 
                 # Get image dimensions to preserve aspect ratio
                 img_buffer = io.BytesIO(img_data)
