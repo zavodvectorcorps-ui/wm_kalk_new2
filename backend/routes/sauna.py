@@ -1619,8 +1619,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     elements.append(Spacer(1, 12))
         
         # ===== SECTION 3: All Available Options (Simple two-column layout without category grouping) =====
+        # Start on a new page
         if all_available_options and page2_show_all_opts:
-            elements.append(Spacer(1, 8))
+            elements.append(PageBreak())
             elements.append(Paragraph(page2_options_title.upper(), 
                 ParagraphStyle('AllOptTitle', fontName='DejaVuSans-Bold', fontSize=12, 
                               textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=8)))
