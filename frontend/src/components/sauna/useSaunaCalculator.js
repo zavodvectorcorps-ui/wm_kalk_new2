@@ -452,7 +452,11 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
 
   const handleModelChange = (modelId) => {
     // Reset model variant selection when changing model
-    setFormData(prev => ({ ...prev, selectedModel: modelId, selectedModelVariant: '' }));
+    // Auto-select first variant if model has variants
+    const newModel = prices.models?.find(m => m.id === modelId);
+    const firstVariantId = newModel?.variants?.[0]?.id || '';
+    
+    setFormData(prev => ({ ...prev, selectedModel: modelId, selectedModelVariant: firstVariantId }));
     setAppliedDiscount(0);
   };
 
