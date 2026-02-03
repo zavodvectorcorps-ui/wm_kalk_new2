@@ -16,13 +16,17 @@ export const LayoutCatalog = ({
   customLayoutUploading,
   onUploadCustomImage,
   onRemoveCustomImage,
+  filteredLayouts = [],  // Pre-filtered layouts from hook
+  layoutsLoading = false,
   lang = 'pl' 
 }) => {
-  const [layouts, setLayouts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [previewLayout, setPreviewLayout] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Use filtered layouts passed from parent (already filtered by model variant)
+  const layouts = filteredLayouts;
+  const loading = layoutsLoading;
 
   // Group layouts by model size
   const groupedLayouts = layouts.reduce((acc, layout) => {
