@@ -793,6 +793,27 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
               </div>
             </div>
           </div>
+
+          {/* Layout Catalog Size */}
+          <div className="border-t pt-4 mt-2">
+            <Label className="text-sm font-medium text-purple-700 mb-2 block">📐 Размер планировок</Label>
+            <p className="text-xs text-gray-500 mb-2">При выборе этой модели автоматически выберется указанный размер в каталоге планировок</p>
+            <select
+              value={editingModel.layoutSize || ''}
+              onChange={(e) => setEditingModel(prev => ({ ...prev, layoutSize: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">Не указан (выбор вручную)</option>
+              <option value="2m">2m</option>
+              <option value="2.5m">2.5m</option>
+              <option value="3m">3m</option>
+              <option value="3.5m">3.5m</option>
+              <option value="4m">4m</option>
+              <option value="4.5m">4.5m</option>
+              <option value="5m">5m</option>
+              <option value="6m">6m</option>
+            </select>
+          </div>
           
           <div>
             <Label>{txt.hint || 'Подсказка / Описание'}</Label>
