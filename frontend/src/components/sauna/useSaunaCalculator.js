@@ -1207,6 +1207,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     layoutLoading,
     customLayoutImage,
     customLayoutUploading,
+    autoSelectedLayoutSize,
     handleLayoutSelect,
     clearLayoutSelection,
     uploadCustomLayoutImage,
