@@ -51,7 +51,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     getSelectedLayout,
     getOtherLayoutsForSize,
     getLayoutsBySize
-  } = useLayoutCatalog();
+  } = useLayoutCatalog(formData.selectedModelVariant);
 
   // Handle amoCRM prefill data
   useEffect(() => {
