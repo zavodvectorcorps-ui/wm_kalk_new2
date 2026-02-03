@@ -345,10 +345,17 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     """Generate PDF for sauna order - Professional offer format"""
     import urllib.request
     import base64
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
     from PIL import Image as PILImage
     
-    def optimize_image_for_pdf(img_data: bytes, max_size: int = 800, quality: int = 75) -> bytes:
+    # Image cache to avoid loading the same image multiple times
+    image_cache = {}
+    
+    def optimize_image_for_pdf(img_data: bytes, max_size: int = 400, quality: int = 60) -> bytes:
         """Optimize image for PDF: resize and compress to reduce file size"""
+        if not img_data:
+            return img_data
         try:
             img = PILImage.open(io.BytesIO(img_data))
             
@@ -363,51 +370,89 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             elif img.mode != 'RGB':
                 img = img.convert('RGB')
             
-            # Resize if too large
+            # Resize if too large (more aggressive resize for faster PDF)
             width, height = img.size
             if width > max_size or height > max_size:
                 ratio = min(max_size / width, max_size / height)
                 new_width = int(width * ratio)
                 new_height = int(height * ratio)
-                img = img.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
+                img = img.resize((new_width, new_height), PILImage.Resampling.BILINEAR)  # BILINEAR is faster than LANCZOS
             
-            # Compress as JPEG
+            # Compress as JPEG with lower quality for faster loading
             output = io.BytesIO()
             img.save(output, format='JPEG', quality=quality, optimize=True)
-            optimized = output.getvalue()
-            
-            original_size = len(img_data)
-            new_size = len(optimized)
-            if new_size < original_size:
-                logger.info(f"Optimized image: {original_size/1024:.1f}KB -> {new_size/1024:.1f}KB")
-                return optimized
-            return img_data
+            return output.getvalue()
         except Exception as e:
             logger.warning(f"Could not optimize image: {e}")
             return img_data
     
     async def load_image_from_mongodb(image_url: str) -> bytes:
-        """Load image from MongoDB by extracting ID from URL"""
+        """Load image from MongoDB by extracting ID from URL with caching"""
         if not image_url or '/api/uploads/' not in image_url:
-            logger.warning(f"Invalid image URL for MongoDB: {image_url}")
             return None
+        
+        # Check cache first
+        if image_url in image_cache:
+            return image_cache[image_url]
+        
         try:
             filename = image_url.split('/api/uploads/')[-1]
             file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
-            logger.info(f"Looking for MongoDB image with ID: {file_id}")
-            image_doc = await db.images.find_one({"id": file_id})
+            image_doc = await db.images.find_one({"id": file_id}, {"content": 1})
             if image_doc:
                 content = image_doc.get("content", "")
                 if content:
                     decoded = base64.b64decode(content)
-                    logger.info(f"Found MongoDB image, decoded size: {len(decoded)} bytes")
+                    image_cache[image_url] = decoded
                     return decoded
-                else:
-                    logger.warning(f"MongoDB image found but content is empty for ID: {file_id}")
-            else:
-                logger.warning(f"MongoDB image not found for ID: {file_id}")
         except Exception as e:
             logger.warning(f"Could not load image from MongoDB: {e}")
+        return None
+    
+    def load_image_from_url_sync(image_url: str, timeout: int = 3) -> bytes:
+        """Synchronous image loading from URL with short timeout"""
+        if not image_url or not image_url.startswith('http'):
+            return None
+        
+        # Check cache first
+        if image_url in image_cache:
+            return image_cache[image_url]
+        
+        try:
+            req = urllib.request.Request(image_url, headers={
+                'User-Agent': 'Mozilla/5.0',
+                'Accept': 'image/*',
+            })
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                data = response.read()
+                image_cache[image_url] = data
+                return data
+        except Exception as e:
+            logger.warning(f"Could not download image (timeout={timeout}s): {e}")
+        return None
+    
+    async def load_image_from_url(image_url: str, timeout: int = 3) -> bytes:
+        """Async wrapper for URL image loading"""
+        if not image_url or '/api/uploads/' in image_url:
+            return None
+        
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            return await loop.run_in_executor(executor, load_image_from_url_sync, image_url, timeout)
+    
+    async def load_image(image_url: str, timeout: int = 3) -> bytes:
+        """Universal image loader - handles both MongoDB and external URLs"""
+        if not image_url:
+            return None
+        
+        # Check cache first
+        if image_url in image_cache:
+            return image_cache[image_url]
+        
+        if '/api/uploads/' in image_url:
+            return await load_image_from_mongodb(image_url)
+        elif image_url.startswith('http'):
+            return await load_image_from_url(image_url, timeout)
         return None
     
     async def load_template_image(image_id: str) -> bytes:
@@ -415,7 +460,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         if not image_id:
             return None
         try:
-            image_doc = await db.pdf_images.find_one({"id": image_id})
+            image_doc = await db.pdf_images.find_one({"id": image_id}, {"data": 1})
             if image_doc and image_doc.get("data"):
                 return base64.b64decode(image_doc["data"])
         except Exception as e:
