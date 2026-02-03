@@ -874,8 +874,11 @@ class LayoutVariantCreate(BaseModel):
     relaxRoomSize: Optional[str] = None
     steamRoomSize: Optional[str] = None
     entranceType: Optional[str] = None
+    entranceSide: Optional[str] = None
+    peopleCount: Optional[str] = None
     sortOrder: int = 0
     isActive: bool = True
+    modelVariantIds: Optional[List[str]] = None  # List of model variant IDs this layout is compatible with
 
 
 class LayoutVariantUpdate(BaseModel):
@@ -890,8 +893,11 @@ class LayoutVariantUpdate(BaseModel):
     relaxRoomSize: Optional[str] = None
     steamRoomSize: Optional[str] = None
     entranceType: Optional[str] = None
+    entranceSide: Optional[str] = None
+    peopleCount: Optional[str] = None
     sortOrder: Optional[int] = None
     isActive: Optional[bool] = None
+    modelVariantIds: Optional[List[str]] = None  # List of model variant IDs this layout is compatible with
 
 
 @router.get("/layout-variants")
