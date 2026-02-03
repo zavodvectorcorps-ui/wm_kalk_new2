@@ -1781,6 +1781,96 @@ export const FAQView = ({ calculatorType = 'both' }) => {
               </div>
             </div>
 
+            {/* Model Variant Filter - показывать только для определенных под-моделей */}
+            <div className="border-t pt-4 mt-4">
+              <Label className="text-amber-700 font-medium mb-3 block">
+                Показывать для под-моделей
+                <span className="text-xs text-gray-500 font-normal ml-2">
+                  (если не выбрано ни одной - показывается для всех)
+                </span>
+              </Label>
+              <div className="max-h-48 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                {saunaModels.filter(m => m.variants?.length > 0).map(model => (
+                  <div key={model.id} className="mb-3">
+                    <div className="text-sm font-medium text-gray-700 mb-1">
+                      {model.namePl || model.name}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 ml-4">
+                      {model.variants.map(variant => {
+                        const isSelected = (newLayoutVariant.modelVariantIds || []).includes(variant.id);
+                        return (
+                          <label 
+                            key={variant.id} 
+                            className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm ${
+                              isSelected ? 'bg-amber-100 border border-amber-400' : 'bg-white border border-gray-200 hover:bg-gray-100'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                const currentIds = newLayoutVariant.modelVariantIds || [];
+                                if (e.target.checked) {
+                                  setNewLayoutVariant({
+                                    ...newLayoutVariant,
+                                    modelVariantIds: [...currentIds, variant.id]
+                                  });
+                                } else {
+                                  setNewLayoutVariant({
+                                    ...newLayoutVariant,
+                                    modelVariantIds: currentIds.filter(id => id !== variant.id)
+                                  });
+                                }
+                              }}
+                              className="rounded border-gray-300"
+                            />
+                            <span className={isSelected ? 'text-amber-800 font-medium' : 'text-gray-600'}>
+                              {variant.namePl || variant.name}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {saunaModels.filter(m => m.variants?.length > 0).length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    Нет моделей с под-вариантами
+                  </p>
+                )}
+              </div>
+              {(newLayoutVariant.modelVariantIds || []).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {(newLayoutVariant.modelVariantIds || []).map(variantId => {
+                    // Find variant name
+                    let variantName = variantId;
+                    for (const model of saunaModels) {
+                      const variant = model.variants?.find(v => v.id === variantId);
+                      if (variant) {
+                        variantName = variant.namePl || variant.name;
+                        break;
+                      }
+                    }
+                    return (
+                      <span key={variantId} className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">
+                        {variantName}
+                        <button 
+                          type="button"
+                          onClick={() => setNewLayoutVariant({
+                            ...newLayoutVariant,
+                            modelVariantIds: (newLayoutVariant.modelVariantIds || []).filter(id => id !== variantId)
+                          })}
+                          className="hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Description */}
             <div className="space-y-2">
               <Label>Описание (RU)</Label>
