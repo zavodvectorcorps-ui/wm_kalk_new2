@@ -1,16 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { API_URL } from './constants';
 
 /**
  * Hook for managing layout catalog selection.
  * Handles fetching layout variants and managing selection state.
- * Also supports custom layout image uploads.
+ * Also supports custom layout image uploads and filtering by model variant.
  */
-export const useLayoutCatalog = () => {
+export const useLayoutCatalog = (selectedModelVariantId = null) => {
   const [selectedLayoutSize, setSelectedLayoutSize] = useState(null);
   const [selectedLayoutId, setSelectedLayoutId] = useState(null);
-  const [layoutVariants, setLayoutVariants] = useState([]);
+  const [allLayoutVariants, setAllLayoutVariants] = useState([]);  // All variants from API
   const [layoutLoading, setLayoutLoading] = useState(false);
   
   // Custom uploaded layout image state
@@ -23,7 +23,7 @@ export const useLayoutCatalog = () => {
       setLayoutLoading(true);
       try {
         const response = await axios.get(`${API_URL}/api/faq/layout-variants`);
-        setLayoutVariants(response.data || []);
+        setAllLayoutVariants(response.data || []);
       } catch (error) {
         console.error('Failed to load layout variants:', error);
       } finally {
@@ -32,6 +32,37 @@ export const useLayoutCatalog = () => {
     };
     fetchLayoutVariants();
   }, []);
+
+  // Filter layout variants by selected model variant
+  // If modelVariantIds is empty/null - show to all (backwards compatible)
+  // If modelVariantIds has values - only show if current variant is in the list
+  const layoutVariants = useMemo(() => {
+    if (!selectedModelVariantId) {
+      return allLayoutVariants;
+    }
+    
+    return allLayoutVariants.filter(layout => {
+      const variantIds = layout.modelVariantIds || [];
+      // Empty list means compatible with all variants
+      if (variantIds.length === 0) {
+        return true;
+      }
+      // Check if current variant is in the list
+      return variantIds.includes(selectedModelVariantId);
+    });
+  }, [allLayoutVariants, selectedModelVariantId]);
+
+  // Clear selection when model variant changes and selected layout is no longer available
+  useEffect(() => {
+    if (selectedLayoutId && layoutVariants.length > 0) {
+      const stillAvailable = layoutVariants.some(l => 
+        l._id === selectedLayoutId || l.id === selectedLayoutId
+      );
+      if (!stillAvailable) {
+        setSelectedLayoutId(null);
+      }
+    }
+  }, [layoutVariants, selectedLayoutId]);
 
   // Handler for layout catalog selection
   const handleLayoutSelect = useCallback((size, layoutId) => {
