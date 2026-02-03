@@ -936,22 +936,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         variant_img = None
         if variant_image_url and (has_variant_data or has_variant_image):
             try:
-                img_data = None
-                if '/api/uploads/' in variant_image_url:
-                    img_data = await load_image_from_mongodb(variant_image_url)
-                elif variant_image_url.startswith('http'):
-                    try:
-                        req = urllib.request.Request(variant_image_url, headers={
-                            'User-Agent': 'Mozilla/5.0',
-                            'Accept': 'image/*',
-                        })
-                        with urllib.request.urlopen(req, timeout=10) as response:
-                            img_data = response.read()
-                    except Exception as e:
-                        logger.warning(f"Could not download variant image: {e}")
+                img_data = await load_image(variant_image_url, timeout=3)
                 
                 if img_data:
-                    img_data = optimize_image_for_pdf(img_data, max_size=600, quality=80)
+                    img_data = optimize_image_for_pdf(img_data, max_size=300, quality=55)
                     pil_img = PILImage.open(io.BytesIO(img_data))
                     orig_w, orig_h = pil_img.size
                     # Scale to fit in right column (max 200x140)
@@ -959,7 +947,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     ratio = min(max_w / orig_w, max_h / orig_h)
                     new_w, new_h = int(orig_w * ratio), int(orig_h * ratio)
                     variant_img = RLImage(io.BytesIO(img_data), width=new_w, height=new_h)
-                    logger.info(f"Loaded variant image: {new_w}x{new_h}")
             except Exception as e:
                 logger.warning(f"Could not load variant image: {e}")
         
