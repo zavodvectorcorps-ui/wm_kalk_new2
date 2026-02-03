@@ -1618,7 +1618,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     elements.append(list_table)
                     elements.append(Spacer(1, 12))
         
-        # ===== SECTION 3: All Available Options (Two-column category layout for compact display) =====
+        # ===== SECTION 3: All Available Options (Simple two-column layout without category grouping) =====
         if all_available_options and page2_show_all_opts:
             elements.append(Spacer(1, 8))
             elements.append(Paragraph(page2_options_title.upper(), 
@@ -1627,117 +1627,74 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
             elements.append(Spacer(1, 8))
             
-            # Group options by category
-            options_by_category = {}
-            for opt in all_available_options:
-                cat_name = opt.get('categoryName', 'Inne')
-                if cat_name not in options_by_category:
-                    options_by_category[cat_name] = []
-                options_by_category[cat_name].append(opt)
-            
-            # Helper function to build a category block (title + options)
-            async def build_category_block(cat_name, cat_opts, col_width=255):
-                """Build a category block with title and options list."""
-                cat_elements = []
+            # Build simple two-column layout for ALL options (no category grouping)
+            async def build_option_cell(opt, col_width=255):
+                """Build a single option cell with image and text."""
+                opt_name = opt.get('name', '')
+                opt_image = opt.get('imageUrl', '')
+                opt_price = opt.get('price', 0)
                 
-                # Category title
-                cat_elements.append(Paragraph(f'<b>{cat_name}</b>', 
-                    ParagraphStyle('OptCatName', fontName='DejaVuSans-Bold', fontSize=10, textColor=BROWN_DARK, spaceAfter=3)))
+                # Load small image
+                opt_img = await load_card_image(opt_image, 50, 40)
                 
-                # Options list (single column within the block)
-                for opt in cat_opts:
-                    opt_name = opt.get('name', '')
-                    opt_image = opt.get('imageUrl', '')
-                    opt_price = opt.get('price', 0)
-                    opt_hint = opt.get('hint', '')
-                    
-                    # Load small image (50x40 for compact layout)
-                    opt_img = await load_card_image(opt_image, 50, 40)
-                    
-                    # Build text content
-                    name_style = ParagraphStyle('ListOptName2', fontName='DejaVuSans-Bold', fontSize=8, textColor=TEXT_COLOR, leading=10)
-                    price_style = ParagraphStyle('ListOptPrice', fontName='DejaVuSans-Bold', fontSize=7, textColor=BROWN, leading=9)
-                    hint_style = ParagraphStyle('ListOptHint', fontName='DejaVuSans', fontSize=6, textColor=MUTED, leading=8)
-                    
-                    text_parts = [Paragraph(opt_name, name_style)]
+                # Build text content
+                name_style = ParagraphStyle('ListOptName2', fontName='DejaVuSans-Bold', fontSize=9, textColor=TEXT_COLOR, leading=11)
+                price_style = ParagraphStyle('ListOptPrice', fontName='DejaVuSans', fontSize=8, textColor=BROWN, leading=10)
+                
+                if opt_img:
+                    # With image: [img | name + price]
+                    text_content = opt_name
                     if opt_price:
-                        text_parts.append(Paragraph(f'{opt_price:,} PLN'.replace(',', ' '), price_style))
-                    if opt_hint:
-                        hint_short = opt_hint[:60] + '...' if len(opt_hint) > 60 else opt_hint
-                        text_parts.append(Paragraph(hint_short, hint_style))
+                        text_content += f' - {opt_price:,} PLN'.replace(',', ' ')
                     
-                    text_table = Table([[p] for p in text_parts], colWidths=[col_width - 60])
-                    text_table.setStyle(TableStyle([
-                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                        ('TOPPADDING', (0, 0), (-1, -1), 0),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                    cell_table = Table(
+                        [[opt_img, Paragraph(text_content, name_style)]],
+                        colWidths=[55, col_width - 60]
+                    )
+                    cell_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
                     ]))
-                    
-                    if opt_img:
-                        opt_row = Table([[opt_img, text_table]], colWidths=[55, col_width - 60])
-                        opt_row.setStyle(TableStyle([
-                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                        ]))
-                        cat_elements.append(opt_row)
-                    else:
-                        text_with_price = f'• {opt_name}'
-                        if opt_price:
-                            text_with_price += f' - {opt_price:,} PLN'.replace(',', ' ')
-                        cat_elements.append(Paragraph(text_with_price, ParagraphStyle('BulletOpt', fontName='DejaVuSans', fontSize=8, textColor=TEXT_COLOR, leading=10)))
-                    
-                    cat_elements.append(Spacer(1, 3))
+                    return cell_table
+                else:
+                    # No image: bullet point style
+                    text_content = f'• {opt_name}'
+                    if opt_price:
+                        text_content += f' - {opt_price:,} PLN'.replace(',', ' ')
+                    return Paragraph(text_content, name_style)
+            
+            # Build rows of 2 options each
+            option_rows = []
+            for i in range(0, len(all_available_options), 2):
+                row_cells = []
                 
-                # Wrap in a table for the category block
-                cat_block = Table([[e] for e in cat_elements], colWidths=[col_width])
-                cat_block.setStyle(TableStyle([
+                # First option
+                cell1 = await build_option_cell(all_available_options[i], 255)
+                row_cells.append(cell1)
+                
+                # Second option (if exists)
+                if i + 1 < len(all_available_options):
+                    cell2 = await build_option_cell(all_available_options[i + 1], 255)
+                    row_cells.append(cell2)
+                else:
+                    row_cells.append('')  # Empty cell for odd number of options
+                
+                option_rows.append(row_cells)
+            
+            # Create the two-column table
+            if option_rows:
+                options_table = Table(option_rows, colWidths=[265, 265])
+                options_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                     ('LEFTPADDING', (0, 0), (-1, -1), 3),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                    ('TOPPADDING', (0, 0), (-1, -1), 0),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ('LINEBELOW', (0, 0), (-1, -2), 0.5, colors.Color(0.9, 0.9, 0.9)),
                 ]))
-                return cat_block
-            
-            # Prepare category list and their sizes
-            categories_list = list(options_by_category.items())
-            logger.info(f"PDF Page 2 - Categories for two-column layout: {[(name, len(opts)) for name, opts in categories_list]}")
-            
-            # Build two-column layout for categories
-            i = 0
-            while i < len(categories_list):
-                cat_name1, cat_opts1 = categories_list[i]
-                opts_count1 = len(cat_opts1)
-                
-                # Check if there's a next category to pair with
-                if i + 1 < len(categories_list):
-                    cat_name2, cat_opts2 = categories_list[i + 1]
-                    opts_count2 = len(cat_opts2)
-                    
-                    # If both categories are small (1-4 options each), place them side by side
-                    if opts_count1 <= 4 and opts_count2 <= 4:
-                        logger.info(f"PDF: Pairing '{cat_name1}' ({opts_count1}) with '{cat_name2}' ({opts_count2})")
-                        block1 = await build_category_block(cat_name1, cat_opts1, 255)
-                        block2 = await build_category_block(cat_name2, cat_opts2, 255)
-                        
-                        row_table = Table([[block1, block2]], colWidths=[265, 265])
-                        row_table.setStyle(TableStyle([
-                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                        ]))
-                        elements.append(row_table)
-                        elements.append(Spacer(1, 6))
-                        i += 2
-                        continue
-                
-                # Large category or no pair - full width
-                logger.info(f"PDF: Full width for '{cat_name1}' ({opts_count1} options)")
-                block = await build_category_block(cat_name1, cat_opts1, 520)
-                elements.append(block)
-                elements.append(Spacer(1, 6))
-                i += 1
+                elements.append(options_table)
+                elements.append(Spacer(1, 8))
     
     # ========== GALLERY PROMO PAGE ==========
     if is_block_enabled(pdf_template, 'gallery_promo'):
