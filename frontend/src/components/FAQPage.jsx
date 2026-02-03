@@ -344,13 +344,31 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     terraceSize: '',
     relaxRoomSize: '',
     steamRoomSize: '',
-    entranceType: ''
+    entranceType: '',
+    modelVariantIds: []
   });
   const [expandedModels, setExpandedModels] = useState(new Set());
+  const [saunaModels, setSaunaModels] = useState([]); // List of sauna models with their variants
 
   const isAdmin = user?.role === 'admin';
   const userId = user?.id || user?.username;
   const username = user?.username;
+
+  // Fetch sauna models for layout variant filtering
+  useEffect(() => {
+    const fetchSaunaModels = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/sauna/prices`);
+        const models = response.data?.models || [];
+        setSaunaModels(models);
+      } catch (error) {
+        console.error('Failed to load sauna models:', error);
+      }
+    };
+    if (activeTab === 'layout_variants') {
+      fetchSaunaModels();
+    }
+  }, [activeTab]);
 
   // Build folder tree from flat list
   const buildFolderTree = (folders) => {
