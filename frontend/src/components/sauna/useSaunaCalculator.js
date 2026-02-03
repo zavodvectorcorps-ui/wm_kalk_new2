@@ -445,6 +445,22 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     setAppliedDiscount(value);
   };
 
+  // Helper to extract layout size from model name (e.g., "235x200 cm" → "2m", "235x300" → "3m")
+  const extractLayoutSizeFromModelName = (modelName) => {
+    if (!modelName) return null;
+    
+    // Look for patterns like "235x200", "235×300", "200x300 cm" etc.
+    const match = modelName.match(/[\dx×](\d{3})(?:\s*cm)?/i);
+    if (match) {
+      const lengthCm = parseInt(match[1], 10);
+      // Convert cm to meters and round to nearest 0.5m
+      const lengthM = lengthCm / 100;
+      const roundedM = Math.round(lengthM * 2) / 2; // Round to 0.5
+      return `${roundedM}m`;
+    }
+    return null;
+  };
+
   const handleModelChange = (modelId) => {
     // Reset model variant selection when changing model
     // Auto-select first variant if model has variants
@@ -454,9 +470,14 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     setFormData(prev => ({ ...prev, selectedModel: modelId, selectedModelVariant: firstVariantId }));
     setAppliedDiscount(0);
     
-    // Auto-select layout size based on model's layoutSize field
-    if (newModel?.layoutSize) {
-      handleLayoutSelect(newModel.layoutSize, null);
+    // Auto-select layout size: use layoutSize field if set, otherwise try to extract from model name
+    let layoutSize = newModel?.layoutSize;
+    if (!layoutSize) {
+      layoutSize = extractLayoutSizeFromModelName(newModel?.name || newModel?.namePl);
+    }
+    
+    if (layoutSize) {
+      handleLayoutSelect(layoutSize, null);
     }
   };
 
