@@ -775,39 +775,14 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # Load bench image if available
     bench_img = None
     if bench_image_url and bench_name:
-        bench_data = None
-        
-        # Try loading from MongoDB first (for /api/uploads/ URLs)
-        if '/api/uploads/' in bench_image_url:
-            bench_data = await load_image_from_mongodb(bench_image_url)
-            if bench_data:
-                logger.info(f"Loaded bench image from MongoDB: {len(bench_data)} bytes")
-        
-        # If not found in MongoDB, try loading from external URL
-        if not bench_data and bench_image_url.startswith('http'):
-            try:
-                import urllib.request
-                
-                req = urllib.request.Request(
-                    bench_image_url,
-                    headers={
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-                    }
-                )
-                
-                with urllib.request.urlopen(req, timeout=10) as response:
-                    bench_data = response.read()
-                    logger.info(f"Loaded bench image from URL: {len(bench_data)} bytes")
-            except Exception as e:
-                logger.warning(f"Could not load bench image from URL: {e}")
+        bench_data = await load_image(bench_image_url, timeout=3)
         
         # Create image object if we have data
         if bench_data:
             try:
                 import tempfile
-                # Optimize bench image for PDF
-                bench_data = optimize_image_for_pdf(bench_data, max_size=500, quality=70)
+                # Optimize bench image for PDF (smaller for speed)
+                bench_data = optimize_image_for_pdf(bench_data, max_size=250, quality=55)
                 
                 with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
                     tmp.write(bench_data)
