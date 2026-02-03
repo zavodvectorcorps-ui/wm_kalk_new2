@@ -453,6 +453,11 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     
     setFormData(prev => ({ ...prev, selectedModel: modelId, selectedModelVariant: firstVariantId }));
     setAppliedDiscount(0);
+    
+    // Auto-select layout size based on model's layoutSize field
+    if (newModel?.layoutSize) {
+      handleLayoutSelect(newModel.layoutSize, null);
+    }
   };
 
   const handleApplyStandardDiscount = () => {
