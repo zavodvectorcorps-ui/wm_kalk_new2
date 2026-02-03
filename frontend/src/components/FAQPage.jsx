@@ -887,7 +887,8 @@ export const FAQView = ({ calculatorType = 'both' }) => {
                       terraceSize: '',
                       relaxRoomSize: '',
                       steamRoomSize: '',
-                      entranceType: ''
+                      entranceType: '',
+                      modelVariantIds: []
                     });
                     setShowLayoutVariantDialog(true);
                   }}
