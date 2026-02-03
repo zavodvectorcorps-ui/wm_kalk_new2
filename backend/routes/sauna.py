@@ -2089,7 +2089,7 @@ async def generate_tech_spec_pdf(request: dict):
                     'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
                 }
             )
-            with urllib.request.urlopen(req, timeout=10) as response:
+            with urllib.request.urlopen(req, timeout=3) as response:
                 img_data = response.read()
                 
             with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
