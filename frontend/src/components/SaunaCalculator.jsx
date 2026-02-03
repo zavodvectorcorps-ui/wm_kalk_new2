@@ -547,6 +547,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             onRemoveCustomImage={removeCustomLayoutImage}
             filteredLayouts={layoutVariants}
             layoutsLoading={layoutLoading}
+            autoSelectedSize={autoSelectedLayoutSize}
             lang={lang}
           />
 
