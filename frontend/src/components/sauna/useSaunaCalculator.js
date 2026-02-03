@@ -53,11 +53,6 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     getLayoutsBySize
   } = useLayoutCatalog(formData.selectedModelVariant);
 
-  // Debug: log when variant changes
-  useEffect(() => {
-    console.log('[useSaunaCalculator] selectedModelVariant changed to:', formData.selectedModelVariant);
-  }, [formData.selectedModelVariant]);
-
   // Handle amoCRM prefill data
   useEffect(() => {
     if (amocrmPrefill && !editingOrder) {
