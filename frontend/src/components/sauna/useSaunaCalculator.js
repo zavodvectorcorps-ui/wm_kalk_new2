@@ -839,18 +839,36 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       let selectedLayoutFromCatalog = null;
       let otherLayoutsForSize = [];
       
-      if (selectedLayoutId && layoutVariants.length > 0) {
-        selectedLayoutFromCatalog = layoutVariants.find(l => 
-          (l._id === selectedLayoutId || l.id === selectedLayoutId)
-        );
-        if (selectedLayoutFromCatalog?.imageUrl) {
-          layoutCatalogImageUrl = selectedLayoutFromCatalog.imageUrl;
-        }
-        
-        // Get other layouts for the same size (for PDF page 2)
-        if (selectedLayoutSize) {
+      // Get other layouts for the same size (for PDF page 2)
+      // This should work even when custom image is uploaded
+      if (selectedLayoutSize && layoutVariants.length > 0) {
+        // If we have a selected layout from catalog, exclude it
+        if (selectedLayoutId) {
+          selectedLayoutFromCatalog = layoutVariants.find(l => 
+            (l._id === selectedLayoutId || l.id === selectedLayoutId)
+          );
+          if (selectedLayoutFromCatalog?.imageUrl) {
+            layoutCatalogImageUrl = selectedLayoutFromCatalog.imageUrl;
+          }
+          
           otherLayoutsForSize = layoutVariants
             .filter(l => l.modelSize === selectedLayoutSize && (l._id !== selectedLayoutId && l.id !== selectedLayoutId))
+            .map(l => ({
+              id: l._id || l.id,
+              name: l.variantName,
+              imageUrl: l.imageUrl,
+              description: l.description,
+              peopleCount: l.peopleCount,
+              terraceSize: l.terraceSize,
+              relaxRoomSize: l.relaxRoomSize,
+              steamRoomSize: l.steamRoomSize,
+              entranceSide: l.entranceSide,
+            }));
+        } else {
+          // No layout selected from catalog - show ALL layouts for this size
+          // This happens when custom image is uploaded
+          otherLayoutsForSize = layoutVariants
+            .filter(l => l.modelSize === selectedLayoutSize)
             .map(l => ({
               id: l._id || l.id,
               name: l.variantName,
@@ -890,30 +908,34 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       // Priority: Custom Uploaded Image > Layout Catalog > Layout Category > Variant image
       const finalLayoutImageUrl = customLayoutImageUrl || layoutCatalogImageUrl || layoutCategoryImageUrl;
       
+      // When custom image is uploaded, still use variant data for dimensions
+      // Only skip layout catalog data, but keep variant data as fallback
       if (selectedVariant && (selectedVariant.terraceSize || selectedVariant.relaxRoomSize || selectedVariant.steamRoomSize || selectedVariant.entranceSide || selectedVariant.imageUrl || selectedVariant.hint || selectedVariant.hintPl || finalLayoutImageUrl)) {
         selectedModelVariantData = {
-          name: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.variantName || selectedVariant.namePl || selectedVariant.name),
+          // For custom image: use variant name, not layout name
+          name: customLayoutImageUrl ? (selectedVariant.namePl || selectedVariant.name) : (selectedLayoutFromCatalog?.variantName || selectedVariant.namePl || selectedVariant.name),
           // Use custom image first, then layout image, then variant image
           imageUrl: finalLayoutImageUrl || selectedVariant.imageUrl || null,
-          capacity: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.peopleCount || selectedVariant.capacity || null),
-          terraceSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.terraceSize || selectedVariant.terraceSize || null),
-          relaxRoomSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.relaxRoomSize || selectedVariant.relaxRoomSize || null),
-          steamRoomSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.steamRoomSize || selectedVariant.steamRoomSize || null),
-          entranceSide: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.entranceSide || selectedVariant.entranceSide || null),
-          hint: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.description || selectedVariant.hintPl || selectedVariant.hint || null),
+          // For dimensions: prefer layout catalog data, then fallback to variant data
+          capacity: selectedLayoutFromCatalog?.peopleCount || selectedVariant.capacity || null,
+          terraceSize: selectedLayoutFromCatalog?.terraceSize || selectedVariant.terraceSize || null,
+          relaxRoomSize: selectedLayoutFromCatalog?.relaxRoomSize || selectedVariant.relaxRoomSize || null,
+          steamRoomSize: selectedLayoutFromCatalog?.steamRoomSize || selectedVariant.steamRoomSize || null,
+          entranceSide: selectedLayoutFromCatalog?.entranceSide || selectedVariant.entranceSide || null,
+          hint: selectedLayoutFromCatalog?.description || selectedVariant.hintPl || selectedVariant.hint || null,
           isCustomImage: !!customLayoutImageUrl,
         };
       } else if (finalLayoutImageUrl || selectedLayoutFromCatalog) {
-        // If no variant but layout selected or custom image uploaded, use that data
+        // If no variant but layout selected or custom image uploaded, use layout data
         selectedModelVariantData = {
-          name: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.variantName || null),
+          name: selectedLayoutFromCatalog?.variantName || null,
           imageUrl: finalLayoutImageUrl,
-          capacity: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.peopleCount || null),
-          terraceSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.terraceSize || null),
-          relaxRoomSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.relaxRoomSize || null),
-          steamRoomSize: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.steamRoomSize || null),
-          entranceSide: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.entranceSide || null),
-          hint: customLayoutImageUrl ? null : (selectedLayoutFromCatalog?.description || null),
+          capacity: selectedLayoutFromCatalog?.peopleCount || null,
+          terraceSize: selectedLayoutFromCatalog?.terraceSize || null,
+          relaxRoomSize: selectedLayoutFromCatalog?.relaxRoomSize || null,
+          steamRoomSize: selectedLayoutFromCatalog?.steamRoomSize || null,
+          entranceSide: selectedLayoutFromCatalog?.entranceSide || null,
+          hint: selectedLayoutFromCatalog?.description || null,
           isCustomImage: !!customLayoutImageUrl,
         };
       }
