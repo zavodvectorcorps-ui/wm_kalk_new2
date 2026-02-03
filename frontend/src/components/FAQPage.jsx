@@ -1022,7 +1022,8 @@ export const FAQView = ({ calculatorType = 'both' }) => {
                                           terraceSize: variant.terraceSize || '',
                                           relaxRoomSize: variant.relaxRoomSize || '',
                                           steamRoomSize: variant.steamRoomSize || '',
-                                          entranceType: variant.entranceType || ''
+                                          entranceType: variant.entranceType || '',
+                                          modelVariantIds: variant.modelVariantIds || []
                                         });
                                         setShowLayoutVariantDialog(true);
                                       }}
