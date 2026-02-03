@@ -18,6 +18,7 @@ export const LayoutCatalog = ({
   onRemoveCustomImage,
   filteredLayouts = [],  // Pre-filtered layouts from hook
   layoutsLoading = false,
+  autoSelectedSize = null,  // Size auto-selected based on model, will hide other sizes
   lang = 'pl' 
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -36,8 +37,11 @@ export const LayoutCatalog = ({
     return acc;
   }, {});
 
-  // Available sizes
-  const availableSizes = Object.keys(groupedLayouts).sort();
+  // Available sizes - if autoSelectedSize is set, only show that size
+  const allSizes = Object.keys(groupedLayouts).sort();
+  const availableSizes = autoSelectedSize && allSizes.includes(autoSelectedSize) 
+    ? [autoSelectedSize] 
+    : allSizes;
 
   // Layouts for selected size
   const layoutsForSize = selectedSize ? (groupedLayouts[selectedSize] || []) : [];
