@@ -1316,28 +1316,16 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     if page2_enabled and (model_variants or all_available_options or other_layouts_for_size):
         elements.append(PageBreak())
         
-        # Helper function to load image for PDF card
+        # Helper function to load image for PDF card (uses cached load_image)
         async def load_card_image(image_url: str, max_width: int = 120, max_height: int = 90) -> RLImage:
             """Load and scale image for variant/option card"""
             if not image_url:
                 return None
             try:
-                img_data = None
-                if '/api/uploads/' in image_url:
-                    img_data = await load_image_from_mongodb(image_url)
-                elif image_url.startswith('http'):
-                    try:
-                        req = urllib.request.Request(image_url, headers={
-                            'User-Agent': 'Mozilla/5.0',
-                            'Accept': 'image/*',
-                        })
-                        with urllib.request.urlopen(req, timeout=10) as response:
-                            img_data = response.read()
-                    except Exception as e:
-                        logger.warning(f"Could not download card image: {e}")
+                img_data = await load_image(image_url, timeout=2)  # Short timeout for cards
                 
                 if img_data:
-                    img_data = optimize_image_for_pdf(img_data, max_size=400, quality=70)
+                    img_data = optimize_image_for_pdf(img_data, max_size=200, quality=50)  # Smaller for speed
                     pil_img = PILImage.open(io.BytesIO(img_data))
                     orig_w, orig_h = pil_img.size
                     ratio = min(max_width / orig_w, max_height / orig_h)
