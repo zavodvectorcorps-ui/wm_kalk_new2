@@ -37,11 +37,14 @@ export const useLayoutCatalog = (selectedModelVariantId = null) => {
   // If modelVariantIds is empty/null - show to all (backwards compatible)
   // If modelVariantIds has values - only show if current variant is in the list
   const layoutVariants = useMemo(() => {
+    console.log('[LayoutCatalog] Filtering layouts for variant:', selectedModelVariantId, 'Total layouts:', allLayoutVariants.length);
+    
     if (!selectedModelVariantId) {
+      console.log('[LayoutCatalog] No variant selected, showing all');
       return allLayoutVariants;
     }
     
-    return allLayoutVariants.filter(layout => {
+    const filtered = allLayoutVariants.filter(layout => {
       const variantIds = layout.modelVariantIds || [];
       // Empty list means compatible with all variants
       if (variantIds.length === 0) {
@@ -50,6 +53,9 @@ export const useLayoutCatalog = (selectedModelVariantId = null) => {
       // Check if current variant is in the list
       return variantIds.includes(selectedModelVariantId);
     });
+    
+    console.log('[LayoutCatalog] Filtered layouts:', filtered.length, filtered.map(l => l.variantName));
+    return filtered;
   }, [allLayoutVariants, selectedModelVariantId]);
 
   // Clear selection when model variant changes and selected layout is no longer available
