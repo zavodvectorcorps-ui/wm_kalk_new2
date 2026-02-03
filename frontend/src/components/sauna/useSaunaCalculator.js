@@ -477,6 +477,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       layoutSize = extractLayoutSizeFromModelName(newModel?.name || newModel?.namePl);
     }
     
+    // Set auto-selected size to hide other sizes in catalog
+    setAutoSelectedLayoutSize(layoutSize || null);
+    
     if (layoutSize) {
       handleLayoutSelect(layoutSize, null);
     }
