@@ -5,12 +5,12 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
-### Feb 5, 2025 - Hot Tub (Balia) 422 Error Fix Verified (COMPLETED)
-- **VERIFIED**: The 422 error when saving options in the hot tub pricing admin was fixed by previous agent
-- **Fix**: Pydantic models in `balia.py` were made more flexible with `Optional` fields
-- **Tested**: POST /api/prices returns 200 OK, UI "Zapisz wszystko" button works correctly
-- **Note**: The `/api/public/prices` endpoint is already optimized (37KB response, ~100ms, with caching)
-- **Files**: `/app/backend/models/balia.py` - CategoryOption, BaliaCategory, PriceData models
+### Feb 5, 2025 - Hot Tub (Balia) 422 Error Fix - CREATING NEW OPTIONS (COMPLETED)
+- **FIXED**: 422 error when creating NEW options in hot tub pricing admin
+- **Root Cause**: `CategoryOption.name` and `BaliaCategory.name` were required (`str`), but frontend only sends `nameRu`/`namePl`
+- **Fix**: Made `name` and `inputType` fields `Optional` with defaults in Pydantic models
+- **Tested**: Adding new option → Save all → 200 OK, toast "Zapisano!" appears
+- **Files Modified**: `/app/backend/models/balia.py` - CategoryOption.name, BaliaCategory.name, BaliaCategory.inputType now Optional
 
 ### Feb 2, 2025 - Custom Layout Upload in Calculator (COMPLETED)
 - **NEW**: Managers can now upload their own custom layout image directly in "Katalog planowek" (Layout Catalog)
