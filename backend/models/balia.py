@@ -103,7 +103,7 @@ class CategoryOption(BaseModel):
     model_config = ConfigDict(extra="allow")
     
     id: str
-    name: str
+    name: Optional[str] = ""  # Made optional - frontend uses nameRu/namePl
     nameRu: Optional[str] = ""
     namePl: Optional[str] = ""
     price: Optional[float] = 0
