@@ -123,15 +123,19 @@ async def get_prices():
 async def update_prices(prices: PriceData):
     """Update pricing"""
     global _prices_cache
-    price_dict = prices.model_dump()
-    await db.prices.update_one(
-        {"_id": "default"},
-        {"$set": price_dict},
-        upsert=True
-    )
-    # Invalidate cache
-    _prices_cache = {"data": None, "expires": 0}
-    return {"message": "Prices updated successfully"}
+    try:
+        price_dict = prices.model_dump()
+        await db.prices.update_one(
+            {"_id": "default"},
+            {"$set": price_dict},
+            upsert=True
+        )
+        # Invalidate cache
+        _prices_cache = {"data": None, "expires": 0}
+        return {"message": "Prices updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating prices: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/prices/export")
