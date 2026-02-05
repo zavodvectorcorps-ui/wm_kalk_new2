@@ -106,14 +106,14 @@ class CategoryOption(BaseModel):
     name: str
     nameRu: Optional[str] = ""
     namePl: Optional[str] = ""
-    price: float
+    price: Optional[float] = 0
     imageUrl: Optional[str] = ""
     hint: Optional[str] = ""
     hintPl: Optional[str] = ""
     hintImageUrl: Optional[str] = ""  # Image for hint
     hintVideoUrl: Optional[str] = ""  # Video for hint
     applicableTo: Optional[str] = None
-    sortOrder: int
+    sortOrder: Optional[int] = 0
     # Pricing calculation fields
     purchasePriceEur: Optional[float] = 0  # Purchase price in EUR
     markupPercent: Optional[float] = 30  # Markup percentage
