@@ -125,13 +125,13 @@ class BaliaCategory(BaseModel):
     model_config = ConfigDict(extra="allow")
     
     id: str
-    name: str
+    name: Optional[str] = ""  # Made optional - frontend uses nameRu/namePl
     nameRu: Optional[str] = ""
     namePl: Optional[str] = ""
     imageUrl: Optional[str] = ""
-    inputType: str
+    inputType: Optional[str] = "radio"  # Made optional with default
     displayType: str = "list"  # "list" | "tiles"
-    sortOrder: int = 0
+    sortOrder: Optional[int] = 0
     options: Optional[List[CategoryOption]] = []
     # Conditional display - show only when parent category has specific value
     dependsOn: Optional[str] = None  # Parent category ID
