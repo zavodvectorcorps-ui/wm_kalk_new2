@@ -128,11 +128,11 @@ class BaliaCategory(BaseModel):
     name: str
     nameRu: Optional[str] = ""
     namePl: Optional[str] = ""
-    imageUrl: str = ""
+    imageUrl: Optional[str] = ""
     inputType: str
     displayType: str = "list"  # "list" | "tiles"
-    sortOrder: int
-    options: List[CategoryOption]
+    sortOrder: int = 0
+    options: Optional[List[CategoryOption]] = []
     # Conditional display - show only when parent category has specific value
     dependsOn: Optional[str] = None  # Parent category ID
     dependsOnValue: Optional[str] = None  # Required value in parent category
