@@ -1734,6 +1734,8 @@ async def get_public_prices():
     optimized_categories = []
     for cat in prices.get('categories', []):
         opt_cat = {**cat}
+        # Optimize category image
+        opt_cat['imageUrl'] = optimize_image_field(cat.get('imageUrl', ''))
         # Optimize options
         if 'options' in opt_cat:
             opt_options = []
@@ -1742,6 +1744,22 @@ async def get_public_prices():
                 opt_opt['imageUrl'] = optimize_image_field(opt.get('imageUrl', ''))
                 # Remove hint images from public API
                 opt_opt.pop('hintImageUrl', None)
+                # Optimize subOptions if present
+                if 'subOptions' in opt_opt:
+                    opt_subs = []
+                    for sub in (opt_opt.get('subOptions') or []):
+                        opt_sub = {**sub}
+                        opt_sub['imageUrl'] = optimize_image_field(sub.get('imageUrl', ''))
+                        # Optimize variants
+                        if 'variants' in opt_sub:
+                            opt_variants = []
+                            for v in (opt_sub.get('variants') or []):
+                                opt_v = {**v}
+                                opt_v['imageUrl'] = optimize_image_field(v.get('imageUrl', ''))
+                                opt_variants.append(opt_v)
+                            opt_sub['variants'] = opt_variants
+                        opt_subs.append(opt_sub)
+                    opt_opt['subOptions'] = opt_subs
                 opt_options.append(opt_opt)
             opt_cat['options'] = opt_options
         optimized_categories.append(opt_cat)
