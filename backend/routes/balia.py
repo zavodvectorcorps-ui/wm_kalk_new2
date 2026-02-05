@@ -1679,7 +1679,7 @@ from models.balia import WebOrder
 
 @router.get("/public/prices")
 async def get_public_prices():
-    """Get prices for public calculator (no auth required) - with caching"""
+    """Get prices for public calculator (no auth required) - with caching and optimization"""
     global _prices_cache
     
     # Check cache first
@@ -1699,10 +1699,63 @@ async def get_public_prices():
     if not isinstance(prices.get('categories'), list):
         prices['categories'] = default_balia_prices.get('categories', [])
     
-    # Update cache
-    _prices_cache = {"data": prices, "expires": current_time + CACHE_TTL}
+    # Optimize response size - remove base64 images, keep only URLs
+    def optimize_image_field(url):
+        """Keep URL if it's a real URL, otherwise return empty string to skip base64"""
+        if not url:
+            return ''
+        # Skip base64 images (they start with 'data:' or are very long)
+        if url.startswith('data:') or len(url) > 500:
+            return ''  # Will be loaded separately if needed
+        return url
     
-    return prices
+    # Optimize models
+    optimized_models = []
+    for model in prices.get('models', []):
+        opt_model = {**model}
+        opt_model['imageUrl'] = optimize_image_field(model.get('imageUrl', ''))
+        # Optimize gallery images
+        if 'galleryImages' in opt_model:
+            opt_model['galleryImages'] = [
+                img for img in (opt_model.get('galleryImages') or [])
+                if img and not img.startswith('data:') and len(img) < 500
+            ]
+        # Optimize heater variants
+        if 'heaterVariants' in opt_model:
+            opt_variants = []
+            for hv in (opt_model.get('heaterVariants') or []):
+                opt_hv = {**hv}
+                opt_hv['imageUrl'] = optimize_image_field(hv.get('imageUrl', ''))
+                opt_variants.append(opt_hv)
+            opt_model['heaterVariants'] = opt_variants
+        optimized_models.append(opt_model)
+    
+    # Optimize categories
+    optimized_categories = []
+    for cat in prices.get('categories', []):
+        opt_cat = {**cat}
+        # Optimize options
+        if 'options' in opt_cat:
+            opt_options = []
+            for opt in (opt_cat.get('options') or []):
+                opt_opt = {**opt}
+                opt_opt['imageUrl'] = optimize_image_field(opt.get('imageUrl', ''))
+                # Remove hint images from public API
+                opt_opt.pop('hintImageUrl', None)
+                opt_options.append(opt_opt)
+            opt_cat['options'] = opt_options
+        optimized_categories.append(opt_cat)
+    
+    optimized_prices = {
+        **prices,
+        'models': optimized_models,
+        'categories': optimized_categories
+    }
+    
+    # Update cache
+    _prices_cache = {"data": optimized_prices, "expires": current_time + CACHE_TTL}
+    
+    return optimized_prices
 
 
 @router.post("/public/web-order")
