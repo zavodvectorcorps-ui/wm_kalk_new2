@@ -33,6 +33,7 @@ import {
   FolderOpen,
   Columns,
   Square,
+  Upload,
 } from 'lucide-react';
 
 // Smart API URL - auto-detect on production
