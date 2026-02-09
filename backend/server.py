@@ -49,6 +49,9 @@ app = FastAPI(
     version="2.0.0"
 )
 
+# Add GZip compression for responses > 500 bytes
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 # Include routers with /api prefix
 app.include_router(auth_router, prefix="/api")
 app.include_router(balia_router, prefix="/api")
