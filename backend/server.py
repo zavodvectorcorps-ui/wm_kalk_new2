@@ -1,5 +1,6 @@
 """WM Calculator API - Main Application Entry Point."""
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
