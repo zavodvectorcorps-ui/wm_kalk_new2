@@ -180,3 +180,60 @@ async def delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
     
     await db.users.delete_one({"id": user_id})
     return {"message": "User deleted successfully"}
+
+
+
+@router.get("/auth/debug-users")
+async def debug_users():
+    """Debug endpoint to check users database status (temporary)"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Count users
+        count = await db.users.count_documents({})
+        
+        # Get usernames only (no passwords)
+        users = await db.users.find({}, {"_id": 0, "username": 1, "role": 1}).to_list(100)
+        
+        logger.info(f"Debug: Found {count} users in database")
+        
+        return {
+            "status": "ok",
+            "user_count": count,
+            "users": [{"username": u.get("username"), "role": u.get("role")} for u in users]
+        }
+    except Exception as e:
+        logger.error(f"Debug users error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@router.post("/auth/reset-password")
+async def reset_user_password(data: dict):
+    """Emergency password reset for a user (requires master key)"""
+    import logging
+    import os
+    logger = logging.getLogger(__name__)
+    
+    master_key = data.get("master_key")
+    username = data.get("username")
+    new_password = data.get("new_password")
+    
+    # Master key is JWT_SECRET for emergency access
+    expected_key = os.environ.get("JWT_SECRET", "")
+    
+    if not master_key or master_key != expected_key:
+        raise HTTPException(status_code=403, detail="Invalid master key")
+    
+    if not username or not new_password:
+        raise HTTPException(status_code=400, detail="Username and new_password required")
+    
+    user = await db.users.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    new_hash = hash_password(new_password)
+    await db.users.update_one({"username": username}, {"$set": {"password": new_hash}})
+    
+    logger.info(f"Password reset for user '{username}'")
+    return {"message": f"Password reset successfully for {username}"}
