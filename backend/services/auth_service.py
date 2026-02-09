@@ -5,6 +5,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timezone, timedelta
 import jwt
 import uuid
+import asyncio
 
 from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, ADMIN_PASSWORD
 from database import db
@@ -12,6 +13,10 @@ from database import db
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
+
+# Flag to track if admin was initialized (per-instance)
+_admin_initialized = False
+_init_lock = asyncio.Lock()
 
 
 def hash_password(password: str) -> str:
