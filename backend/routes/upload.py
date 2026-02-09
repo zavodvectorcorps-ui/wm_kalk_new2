@@ -72,7 +72,7 @@ def optimize_image(content: bytes, max_size: int = MAX_IMAGE_DIMENSION) -> tuple
 
 @router.post("/upload/image")
 async def upload_image(file: UploadFile = File(...)):
-    """Upload an image file, optimize it, and store in MongoDB."""
+    """Upload an image file, optimize it, and store in Cloudinary or MongoDB."""
     # Check file extension
     file_ext = Path(file.filename).suffix.lower()
     if file_ext not in ALLOWED_EXTENSIONS:
@@ -100,15 +100,37 @@ async def upload_image(file: UploadFile = File(...)):
     unique_id = uuid.uuid4().hex
     unique_filename = f"{unique_id}{file_ext}"
     
-    # Encode to base64 for MongoDB storage
+    # Try Cloudinary first if configured
+    if is_cloudinary_configured():
+        result = await cloudinary_upload(optimized_content, unique_filename, folder="wm-calculator")
+        if result:
+            # Store reference in MongoDB for tracking
+            image_doc = {
+                "id": unique_id,
+                "filename": unique_filename,
+                "cloudinary_url": result["url"],
+                "cloudinary_public_id": result["public_id"],
+                "storage": "cloudinary",
+                "size": len(optimized_content)
+            }
+            await db.images.insert_one(image_doc)
+            
+            logger.info(f"Uploaded image to Cloudinary: {result['url']}")
+            
+            return {
+                "filename": unique_filename,
+                "url": result["url"]  # Return Cloudinary URL directly
+            }
+    
+    # Fallback to MongoDB storage
     base64_content = base64.b64encode(optimized_content).decode('utf-8')
     
-    # Store in MongoDB
     image_doc = {
         "id": unique_id,
         "filename": unique_filename,
         "content": base64_content,
         "content_type": "image/jpeg",
+        "storage": "mongodb",
         "size": len(optimized_content)
     }
     
@@ -116,11 +138,23 @@ async def upload_image(file: UploadFile = File(...)):
     
     logger.info(f"Uploaded image to MongoDB: {unique_filename} ({len(optimized_content)/1024:.1f}KB)")
     
-    # Return the URL path (relative to API)
     return {
         "filename": unique_filename,
         "url": f"/api/uploads/{unique_filename}"
     }
+
+
+@router.get("/cloudinary/signature")
+async def get_cloudinary_signature(folder: str = "wm-calculator"):
+    """Get signed upload params for direct frontend upload to Cloudinary"""
+    if not is_cloudinary_configured():
+        raise HTTPException(status_code=503, detail="Cloudinary not configured")
+    
+    signature = generate_signature(folder)
+    if not signature:
+        raise HTTPException(status_code=500, detail="Failed to generate signature")
+    
+    return signature
 
 
 @router.get("/uploads/{filename}")
