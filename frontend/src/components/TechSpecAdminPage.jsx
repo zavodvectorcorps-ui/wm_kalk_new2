@@ -83,6 +83,49 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
     placeholder: '',
     required: false,
   });
+  const [uploadingNewOptionImage, setUploadingNewOptionImage] = useState(false);
+  const [uploadingEditOptionImage, setUploadingEditOptionImage] = useState(false);
+
+  // Image upload handler
+  const handleImageUpload = async (e, isEditing = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (isEditing) {
+      setUploadingEditOptionImage(true);
+    } else {
+      setUploadingNewOptionImage(true);
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      // Use URL directly if it's already absolute (Cloudinary), otherwise prepend API_URL
+      const fullUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
+      
+      if (isEditing) {
+        setEditingOption(prev => ({ ...prev, imageUrl: fullUrl }));
+      } else {
+        setNewOption(prev => ({ ...prev, imageUrl: fullUrl }));
+      }
+      toast.success('Изображение загружено');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Ошибка загрузки');
+    } finally {
+      if (isEditing) {
+        setUploadingEditOptionImage(false);
+      } else {
+        setUploadingNewOptionImage(false);
+      }
+    }
+  };
 
   const txt = {
     title: 'Управление тех.заданием',
