@@ -82,6 +82,11 @@ async def backup_scheduler():
     """Background task that runs automatic backups based on settings."""
     logger.info("Backup scheduler started")
     
+    # Wait 5 minutes after startup before checking backups
+    # This allows the application to fully start and prevents blocking on startup
+    logger.info("Backup scheduler waiting 5 minutes before first check...")
+    await asyncio.sleep(300)  # 5 minutes delay
+    
     while True:
         try:
             # Check backup settings
