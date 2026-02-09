@@ -148,6 +148,13 @@ async def startup_event():
     import logging
     logger = logging.getLogger(__name__)
     
+    # Create MongoDB indexes for better performance
+    try:
+        await create_indexes()
+        logger.info("MongoDB indexes created/verified")
+    except Exception as e:
+        logger.warning(f"Could not create indexes: {e}")
+    
     try:
         # Check and add phone field for balia
         balia_fields = await db.customer_fields.find_one({"calculatorType": "balia"})
