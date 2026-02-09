@@ -862,7 +862,30 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
             {selectedCategory?.hasImages && (
               <div>
                 <Label>{txt.imageUrl}</Label>
-                <Input value={newOption.imageUrl} onChange={(e) => setNewOption(prev => ({ ...prev, imageUrl: e.target.value }))} placeholder="https://..." />
+                <div className="flex gap-2">
+                  <Input 
+                    value={newOption.imageUrl} 
+                    onChange={(e) => setNewOption(prev => ({ ...prev, imageUrl: e.target.value }))} 
+                    placeholder="https://... или загрузите файл"
+                    className="flex-1"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    id="new-option-image-upload"
+                    onChange={(e) => handleImageUpload(e, false)}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    disabled={uploadingNewOptionImage}
+                    onClick={() => document.getElementById('new-option-image-upload')?.click()}
+                  >
+                    {uploadingNewOptionImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  </Button>
+                </div>
                 {newOption.imageUrl && <img src={newOption.imageUrl} alt="Preview" className="mt-2 h-20 object-cover rounded" />}
               </div>
             )}
@@ -896,7 +919,30 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
               </div>
               <div>
                 <Label>{txt.imageUrl}</Label>
-                <Input value={editingOption.imageUrl || ''} onChange={(e) => setEditingOption(prev => ({ ...prev, imageUrl: e.target.value }))} placeholder="https://..." />
+                <div className="flex gap-2">
+                  <Input 
+                    value={editingOption.imageUrl || ''} 
+                    onChange={(e) => setEditingOption(prev => ({ ...prev, imageUrl: e.target.value }))} 
+                    placeholder="https://... или загрузите файл"
+                    className="flex-1"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    id="edit-option-image-upload"
+                    onChange={(e) => handleImageUpload(e, true)}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    disabled={uploadingEditOptionImage}
+                    onClick={() => document.getElementById('edit-option-image-upload')?.click()}
+                  >
+                    {uploadingEditOptionImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  </Button>
+                </div>
                 {editingOption.imageUrl && <img src={editingOption.imageUrl} alt="Preview" className="mt-2 h-20 object-cover rounded" />}
               </div>
               <div>
