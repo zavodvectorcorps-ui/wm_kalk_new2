@@ -44,7 +44,7 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
         body: formData
       });
       const data = await response.json();
-      const fullUrl = `${API_URL}${data.url}`;
+      const fullUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
       setNewOption(prev => ({ ...prev, hintImageUrl: fullUrl }));
     } catch (error) {
       console.error('Hint image upload error:', error);
@@ -355,7 +355,7 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
         body: formData
       });
       const data = await response.json();
-      const fullUrl = `${API_URL}${data.url}`;
+      const fullUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
       setEditingOption(prev => ({ ...prev, hintImageUrl: fullUrl }));
     } catch (error) {
       console.error('Hint image upload error:', error);

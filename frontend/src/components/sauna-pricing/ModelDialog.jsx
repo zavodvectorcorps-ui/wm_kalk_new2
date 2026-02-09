@@ -67,7 +67,7 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
         body: formData
       });
       const data = await response.json();
-      const fullUrl = `${API_URL}${data.url}`;
+      const fullUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
       handleVariantChange(index, 'imageUrl', fullUrl);
     } catch (error) {
       console.error('Image upload error:', error);
@@ -340,7 +340,7 @@ const GalleryImagesEditor = ({ images = [], onChange }) => {
           body: formData
         });
         const data = await response.json();
-        const fullUrl = `${API_URL}${data.url}`;
+        const fullUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
         newImages.push(fullUrl);
       } catch (error) {
         console.error('Gallery image upload error:', error);
@@ -427,7 +427,7 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
         body: formData
       });
       const data = await response.json();
-      const fullUrl = `${API_URL}${data.url}`;
+      const fullUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
       setNewModel(prev => ({ ...prev, hintImageUrl: fullUrl }));
     } catch (error) {
       console.error('Hint image upload error:', error);
@@ -680,7 +680,7 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
         body: formData
       });
       const data = await response.json();
-      const fullUrl = `${API_URL}${data.url}`;
+      const fullUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
       setEditingModel(prev => ({ ...prev, hintImageUrl: fullUrl }));
     } catch (error) {
       console.error('Hint image upload error:', error);

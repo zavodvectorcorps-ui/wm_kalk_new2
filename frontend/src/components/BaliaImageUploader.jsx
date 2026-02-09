@@ -117,7 +117,7 @@ export const BaliaImageUploader = ({
       }
       
       // Save FULL URL with domain (like in Sauna)
-      const fullUrl = `${API_URL}${data.url}`;
+      const fullUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
       console.log('Saving full URL:', fullUrl);
       onChange(fullUrl);
       toast.success(txt.optimized);
