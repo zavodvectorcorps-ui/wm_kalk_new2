@@ -61,15 +61,31 @@ async def get_admin_user(current_user: dict = Depends(get_current_user)):
 
 
 async def init_admin_user():
-    """Initialize admin user if not exists"""
-    admin = await db.users.find_one({"username": "admin"})
-    if not admin:
-        admin_user = {
-            "id": str(uuid.uuid4()),
-            "username": "admin",
-            "password": hash_password(ADMIN_PASSWORD),
-            "role": "admin",
-            "access": "all",
-            "createdAt": datetime.now(timezone.utc).isoformat()
-        }
-        await db.users.insert_one(admin_user)
+    """Initialize admin user if not exists - with locking to prevent race conditions"""
+    global _admin_initialized
+    
+    # Skip if already initialized in this instance
+    if _admin_initialized:
+        return
+    
+    async with _init_lock:
+        # Double-check after acquiring lock
+        if _admin_initialized:
+            return
+            
+        try:
+            admin = await db.users.find_one({"username": "admin"})
+            if not admin:
+                admin_user = {
+                    "id": str(uuid.uuid4()),
+                    "username": "admin",
+                    "password": hash_password(ADMIN_PASSWORD),
+                    "role": "admin",
+                    "access": "all",
+                    "createdAt": datetime.now(timezone.utc).isoformat()
+                }
+                await db.users.insert_one(admin_user)
+            _admin_initialized = True
+        except Exception:
+            # Don't fail login if init fails, just try again next time
+            pass
