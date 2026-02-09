@@ -141,6 +141,38 @@ async def backup_scheduler():
             await asyncio.sleep(300)
 
 
+async def create_indexes():
+    """Create MongoDB indexes for better query performance"""
+    # Orders indexes
+    await db.orders.create_index("createdAt")
+    await db.orders.create_index("status")
+    await db.orders.create_index([("createdAt", -1)])  # For sorting by date desc
+    
+    # Sauna orders indexes
+    await db.sauna_orders.create_index("createdAt")
+    await db.sauna_orders.create_index("status")
+    await db.sauna_orders.create_index([("createdAt", -1)])
+    
+    # Users indexes
+    await db.users.create_index("username", unique=True)
+    await db.users.create_index("role")
+    
+    # Settings indexes
+    await db.settings.create_index("type", unique=True)
+    
+    # Customer fields index
+    await db.customer_fields.create_index("calculatorType")
+    
+    # Prices cache index (for quick lookups)
+    await db.prices.create_index("updatedAt")
+    await db.sauna_prices.create_index("updatedAt")
+    
+    # Leads/CRM indexes
+    await db.sauna_leads.create_index("createdAt")
+    await db.sauna_leads.create_index("status")
+    await db.sauna_leads.create_index([("createdAt", -1)])
+
+
 # Startup event to ensure phone field exists
 @app.on_event("startup")
 async def startup_event():
