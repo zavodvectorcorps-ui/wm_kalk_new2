@@ -21,14 +21,21 @@ router = APIRouter(tags=["Authentication"])
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
     """Login user (admin or employee)"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     await init_admin_user()
     
     user = await db.users.find_one({"username": credentials.username}, {"_id": 0})
     if not user:
+        logger.warning(f"Login failed: user '{credentials.username}' not found in database")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     if not verify_password(credentials.password, user["password"]):
+        logger.warning(f"Login failed: wrong password for user '{credentials.username}'")
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    logger.info(f"Login successful for user '{credentials.username}'")
     
     token = create_token(user)
     user_response = UserResponse(
