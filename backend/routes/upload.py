@@ -159,7 +159,7 @@ async def get_cloudinary_signature(folder: str = "wm-calculator"):
 
 @router.get("/uploads/{filename}")
 async def get_uploaded_file(filename: str):
-    """Serve an uploaded file from MongoDB with caching and CORS headers."""
+    """Serve an uploaded file from MongoDB or redirect to Cloudinary."""
     # Extract ID from filename (remove extension)
     file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
     
@@ -169,7 +169,15 @@ async def get_uploaded_file(filename: str):
     if not image_doc:
         raise HTTPException(status_code=404, detail="File not found")
     
-    # Decode base64 content
+    # If stored in Cloudinary, redirect to CDN URL
+    if image_doc.get("storage") == "cloudinary" and image_doc.get("cloudinary_url"):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=image_doc["cloudinary_url"], status_code=302)
+    
+    # Decode base64 content for MongoDB storage
+    if "content" not in image_doc:
+        raise HTTPException(status_code=404, detail="File content not found")
+    
     try:
         content = base64.b64decode(image_doc["content"])
     except Exception as e:
