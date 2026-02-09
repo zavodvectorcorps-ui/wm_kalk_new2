@@ -1,4 +1,4 @@
-"""File upload routes for images with MongoDB storage."""
+"""File upload routes for images with MongoDB storage and Cloudinary support."""
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import Response
 import uuid
@@ -9,6 +9,12 @@ from PIL import Image
 import io
 
 from database import db
+from services.cloudinary_service import (
+    is_cloudinary_configured, 
+    upload_image as cloudinary_upload,
+    delete_image as cloudinary_delete,
+    generate_signature
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Upload"])
