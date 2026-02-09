@@ -5,6 +5,30 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 9, 2025 - Performance Optimization & Cloudinary Integration (COMPLETED)
+- **OPTIMIZED**: Added GZip compression middleware - 81% reduction in API response size
+- **OPTIMIZED**: Added MongoDB indexes for faster queries (orders, users, settings, leads)
+- **OPTIMIZED**: Backup scheduler now waits 5 minutes after startup (prevents blocking)
+- **OPTIMIZED**: Backup skips imgur.com images (rate limited) and old preview URLs
+- **NEW**: Cloudinary integration for external image storage (optional)
+  - Auto-fallback to MongoDB if Cloudinary not configured
+  - New endpoint: `/api/upload/storage-status`
+  - New endpoint: `/api/cloudinary/signature` for signed uploads
+- **FIXED**: .gitignore malformed entries cleaned up
+- **FIXED**: CORS set to "*" for Emergent deployment compatibility
+- **Files Modified**:
+  - `server.py` - GZip middleware, MongoDB indexes, backup delay
+  - `routes/upload.py` - Cloudinary support with MongoDB fallback
+  - `routes/backup.py` - Skip imgur/old preview URLs, add delays
+  - `services/cloudinary_service.py` - New service for Cloudinary API
+  - `services/cache_service.py` - New in-memory cache service
+  - `backend/.env` - Cloudinary config placeholders added
+
+### Feb 9, 2025 - Deployment Fixes (COMPLETED)
+- **FIXED**: Unstable login sessions - added locking to prevent race conditions in init_admin_user
+- **FIXED**: Better error handling in auth service with logging
+- **Files Modified**: `services/auth_service.py`, `routes/auth.py`
+
 ### Feb 5, 2025 - Hot Tub (Balia) 422 Error Fix - CREATING NEW OPTIONS (COMPLETED)
 - **FIXED**: 422 error when creating NEW options in hot tub pricing admin
 - **Root Cause**: `CategoryOption.name` and `BaliaCategory.name` were required (`str`), but frontend only sends `nameRu`/`namePl`
