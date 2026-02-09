@@ -17,13 +17,25 @@ from services.auth_service import (
 
 router = APIRouter(tags=["Authentication"])
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
     """Login user (admin or employee)"""
-    await init_admin_user()
+    try:
+        await init_admin_user()
+    except Exception as e:
+        logger.error(f"init_admin_user failed: {e}")
+        # Continue anyway - admin might already exist
     
-    user = await db.users.find_one({"username": credentials.username}, {"_id": 0})
+    try:
+        user = await db.users.find_one({"username": credentials.username}, {"_id": 0})
+    except Exception as e:
+        logger.error(f"Database error during login: {e}")
+        raise HTTPException(status_code=503, detail="Database temporarily unavailable")
+    
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
