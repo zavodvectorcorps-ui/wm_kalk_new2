@@ -157,10 +157,18 @@ async def embed_images_in_data(data: dict, base_url: str) -> dict:
         if url.startswith('/api/uploads'):
             url = f"{base_url}{url}"
         
+        # Skip old preview URLs that no longer exist
+        if 'preview.emergentagent.com' in url and 'wm-kalkulator' not in url:
+            logger.info(f"Skipping old preview URL: {url}")
+            continue
+        
         b64 = await download_image_as_base64(url)
         if b64:
             embedded[path] = b64
             logger.info(f"Embedded image: {path}")
+        
+        # Small delay between requests to avoid rate limiting
+        await asyncio.sleep(0.1)
     
     # Apply embedded images back to data
     def set_nested(d, path, value):
