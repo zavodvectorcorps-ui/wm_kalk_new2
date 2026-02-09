@@ -99,12 +99,24 @@ async def download_image_as_base64(url: str) -> Optional[str]:
     try:
         if not url or not url.startswith('http'):
             return None
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        
+        # Skip imgur URLs - they have strict rate limiting
+        if 'imgur.com' in url:
+            logger.info(f"Skipping imgur URL (rate limited): {url}")
+            return None
+            
+        async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.get(url)
             if response.status_code == 200:
                 content_type = response.headers.get('content-type', 'image/jpeg')
                 b64 = base64.b64encode(response.content).decode('utf-8')
                 return f"data:{content_type};base64,{b64}"
+            elif response.status_code == 429:
+                logger.warning(f"Rate limited for image {url}")
+                return None
+            elif response.status_code == 404:
+                logger.warning(f"Image not found (404): {url}")
+                return None
     except Exception as e:
         logger.warning(f"Failed to download image {url}: {e}")
     return None
