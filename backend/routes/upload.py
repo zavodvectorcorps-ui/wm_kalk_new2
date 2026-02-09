@@ -202,10 +202,21 @@ async def get_uploaded_file(filename: str):
 
 
 @router.delete("/upload/image/{filename}")
-async def delete_image(filename: str):
-    """Delete an uploaded image from MongoDB."""
+async def delete_uploaded_image(filename: str):
+    """Delete an uploaded image from Cloudinary or MongoDB."""
     # Extract ID from filename
     file_id = filename.rsplit('.', 1)[0] if '.' in filename else filename
+    
+    # Find in MongoDB first
+    image_doc = await db.images.find_one({"id": file_id})
+    
+    if not image_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # If stored in Cloudinary, delete from there too
+    if image_doc.get("storage") == "cloudinary" and image_doc.get("cloudinary_public_id"):
+        cloudinary_delete(image_doc["cloudinary_public_id"])
+        logger.info(f"Deleted image from Cloudinary: {image_doc['cloudinary_public_id']}")
     
     # Delete from MongoDB
     result = await db.images.delete_one({"id": file_id})
@@ -213,6 +224,23 @@ async def delete_image(filename: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="File not found")
     
-    logger.info(f"Deleted image from MongoDB: {filename}")
+    logger.info(f"Deleted image record: {filename}")
     
     return {"message": "File deleted successfully"}
+
+
+@router.get("/upload/storage-status")
+async def get_storage_status():
+    """Check which storage backend is active"""
+    cloudinary_active = is_cloudinary_configured()
+    
+    # Count images by storage type
+    mongodb_count = await db.images.count_documents({"storage": {"$ne": "cloudinary"}})
+    cloudinary_count = await db.images.count_documents({"storage": "cloudinary"})
+    
+    return {
+        "cloudinary_configured": cloudinary_active,
+        "primary_storage": "cloudinary" if cloudinary_active else "mongodb",
+        "images_in_mongodb": mongodb_count,
+        "images_in_cloudinary": cloudinary_count
+    }
