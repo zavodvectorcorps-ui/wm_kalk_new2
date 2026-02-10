@@ -40,15 +40,19 @@ def create_token(user_data: dict) -> str:
 
 def decode_token(token: str) -> dict:
     import logging
+    import hashlib
     logger = logging.getLogger(__name__)
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         return payload
     except jwt.ExpiredSignatureError:
-        logger.warning(f"Token expired for user")
+        logger.warning(f"Token expired")
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError as e:
-        logger.warning(f"Invalid token: {e}")
+        # Log first 8 chars of token hash and secret hash for debugging
+        token_hash = hashlib.md5(token[:20].encode()).hexdigest()[:8] if token else "none"
+        secret_hash = hashlib.md5(JWT_SECRET.encode()).hexdigest()[:8]
+        logger.warning(f"Invalid token (token_hash={token_hash}, secret_hash={secret_hash}): {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
