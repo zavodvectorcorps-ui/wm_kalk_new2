@@ -307,7 +307,7 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
     total = request.total or 0
     total_formatted = f"{total:,.0f}".replace(",", " ")
     
-    total_data = [["RAZEM DO ZAPŁATY:", f"{total_formatted} zł"]]
+    total_data = [["RAZEM DO ZAPŁATY (brutto z VAT):", f"{total_formatted} zł"]]
     
     total_table = Table(total_data, colWidths=[125*mm, 50*mm])
     total_table.setStyle(TableStyle([
