@@ -180,6 +180,14 @@ async def startup_event():
     import logging
     logger = logging.getLogger(__name__)
     
+    # Initialize admin user at startup (not on every login)
+    from services.auth_service import init_admin_user
+    try:
+        await init_admin_user()
+        logger.info("Admin user initialized/verified")
+    except Exception as e:
+        logger.warning(f"Could not initialize admin user: {e}")
+    
     # Create MongoDB indexes for better performance
     try:
         await create_indexes()
