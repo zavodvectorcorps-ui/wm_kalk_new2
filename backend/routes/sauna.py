@@ -1248,7 +1248,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         discount_note = f"<br/><font size='8' color='#F0F9F5'>Rabat: {discount_percent:.0f}% (cena bez rabatu: {subtotal_int:,} PLN)</font>".replace(',', ' ')
     
     # Build left content as a single Paragraph with HTML-like formatting
-    left_html = f'''<font color="white"><b>WARTOŚĆ CAŁKOWITA OFERTY</b></font><br/><br/>
+    left_html = f'''<font color="white"><b>WARTOŚĆ CAŁKOWITA OFERTY (brutto z VAT)</b></font><br/><br/>
     <font color="white" size="20"><b>{total_price_str} PLN</b></font>{discount_note}'''
     
     total_left = Paragraph(left_html, 
