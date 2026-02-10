@@ -180,6 +180,12 @@ async def startup_event():
     import logging
     logger = logging.getLogger(__name__)
     
+    # Log JWT_SECRET hash for debugging multi-instance issues
+    import hashlib
+    from config import JWT_SECRET
+    secret_hash = hashlib.md5(JWT_SECRET.encode()).hexdigest()[:8]
+    logger.info(f"Instance started with JWT_SECRET hash: {secret_hash}")
+    
     # Initialize admin user at startup (not on every login)
     from services.auth_service import init_admin_user
     try:
