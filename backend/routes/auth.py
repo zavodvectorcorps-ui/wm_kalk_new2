@@ -67,6 +67,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
 @router.post("/auth/verify")
 async def verify_token(current_user: dict = Depends(get_current_user)):
     """Verify if token is valid"""
+    logger.info(f"Token verified for user: {current_user.get('sub', 'unknown')}")
     return {"valid": True, "user": current_user}
 
 
