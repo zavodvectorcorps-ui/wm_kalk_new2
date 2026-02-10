@@ -26,11 +26,7 @@ async def login(credentials: UserLogin):
     """Login user (admin or employee)"""
     logger.info(f"Login attempt for user: {credentials.username}")
     
-    try:
-        await init_admin_user()
-    except Exception as e:
-        logger.error(f"init_admin_user failed: {e}")
-        # Continue anyway - admin might already exist
+    # Note: init_admin_user is now called only at startup, not on every login
     
     try:
         user = await db.users.find_one({"username": credentials.username}, {"_id": 0})
