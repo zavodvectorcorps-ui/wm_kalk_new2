@@ -67,7 +67,7 @@ export const translations = {
     priceBeforeDiscount: 'Цена до скидки',
     priceAfterDiscount: 'Цена после скидки',
     youSave: 'Вы экономите',
-    total: 'ИТОГО',
+    total: 'ИТОГО (брутто с VAT)',
     saveAndGeneratePDF: 'Сохранить и создать PDF',
     generatePDFOnly: 'Создать PDF',
     clearForm: 'Очистить форму',
