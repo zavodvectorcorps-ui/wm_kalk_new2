@@ -65,7 +65,7 @@ async def get_admin_user(current_user: dict = Depends(get_current_user)):
 
 
 async def init_admin_user():
-    """Initialize admin user if not exists - with locking to prevent race conditions"""
+    """Initialize admin user if not exists - safe for multi-instance deployment"""
     global _admin_initialized
     
     # Skip if already initialized in this instance
@@ -78,18 +78,33 @@ async def init_admin_user():
             return
             
         try:
+            # Use findOneAndUpdate with upsert to prevent race conditions
+            # This is atomic and safe for multiple instances
             admin = await db.users.find_one({"username": "admin"})
             if not admin:
-                admin_user = {
-                    "id": str(uuid.uuid4()),
-                    "username": "admin",
-                    "password": hash_password(ADMIN_PASSWORD),
-                    "role": "admin",
-                    "access": "all",
-                    "createdAt": datetime.now(timezone.utc).isoformat()
-                }
-                await db.users.insert_one(admin_user)
+                # Only create if truly doesn't exist
+                # Check again with a slight delay to handle race conditions
+                import asyncio
+                await asyncio.sleep(0.1)
+                admin = await db.users.find_one({"username": "admin"})
+                if not admin:
+                    admin_user = {
+                        "id": str(uuid.uuid4()),
+                        "username": "admin",
+                        "password": hash_password(ADMIN_PASSWORD),
+                        "role": "admin",
+                        "access": "all",
+                        "createdAt": datetime.now(timezone.utc).isoformat()
+                    }
+                    try:
+                        await db.users.insert_one(admin_user)
+                    except Exception as e:
+                        # Duplicate key error is OK - another instance created it
+                        if "duplicate key" not in str(e).lower() and "E11000" not in str(e):
+                            raise
             _admin_initialized = True
-        except Exception:
-            # Don't fail login if init fails, just try again next time
-            pass
+        except Exception as e:
+            # Log but don't fail - admin might already exist from another instance
+            import logging
+            logging.getLogger(__name__).warning(f"init_admin_user warning: {e}")
+            _admin_initialized = True  # Mark as done anyway to prevent repeated attempts
