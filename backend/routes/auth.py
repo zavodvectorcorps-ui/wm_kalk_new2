@@ -86,7 +86,7 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
         raise HTTPException(status_code=400, detail="Username already exists")
     
     # Validate access - can be string or array
-    valid_access_values = ["balia", "sauna", "logistics", "driver", "warehouse", "all"]
+    valid_access_values = ["balia", "sauna", "logistics", "driver", "warehouse", "sauna_crm", "all"]
     if isinstance(user_data.access, list):
         for acc in user_data.access:
             if acc not in valid_access_values:
