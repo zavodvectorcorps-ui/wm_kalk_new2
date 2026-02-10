@@ -324,6 +324,30 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
 export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditingOption, techSpecCategories, categories, models, onSave, txt }) => {
   const selectedTechSpecCategory = techSpecCategories?.find(tc => tc.id === editingOption?.techSpecCategoryId);
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/image`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      const fullUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
+      setEditingOption(prev => ({ ...prev, imageUrl: fullUrl }));
+    } catch (error) {
+      console.error('Image upload error:', error);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
   
   // Get incompatible models list (NEW - inverted logic)
   const incompatibleModels = editingOption?.incompatibleModels || [];
