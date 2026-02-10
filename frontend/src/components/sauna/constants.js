@@ -132,7 +132,7 @@ export const translations = {
     priceBeforeDiscount: 'Cena przed rabatem',
     priceAfterDiscount: 'Cena po rabacie',
     youSave: 'Oszczędzasz',
-    total: 'RAZEM',
+    total: 'RAZEM (brutto z VAT)',
     saveAndGeneratePDF: 'Zapisz i generuj PDF',
     generatePDFOnly: 'Generuj PDF',
     clearForm: 'Wyczyść formularz',
