@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
     """Login user (admin or employee)"""
+    logger.info(f"Login attempt for user: {credentials.username}")
+    
     try:
         await init_admin_user()
     except Exception as e:
@@ -33,16 +35,20 @@ async def login(credentials: UserLogin):
     try:
         user = await db.users.find_one({"username": credentials.username}, {"_id": 0})
     except Exception as e:
-        logger.error(f"Database error during login: {e}")
+        logger.error(f"Database error during login for {credentials.username}: {e}")
         raise HTTPException(status_code=503, detail="Database temporarily unavailable")
     
     if not user:
+        logger.warning(f"Login failed: user '{credentials.username}' not found")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     if not verify_password(credentials.password, user["password"]):
+        logger.warning(f"Login failed: wrong password for user '{credentials.username}'")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     token = create_token(user)
+    logger.info(f"Login successful for user: {credentials.username}")
+    
     user_response = UserResponse(
         id=user["id"],
         username=user["username"],
