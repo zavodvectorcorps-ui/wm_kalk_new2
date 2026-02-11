@@ -57,6 +57,10 @@ export const AuthProvider = ({ children }) => {
             'Authorization': `Bearer ${authToken}`
           }
         });
+        
+        // Read body as text first (safe approach)
+        const responseText = await response.text();
+        
         if (!response.ok) {
           // Don't retry on 401 - token is invalid
           if (response.status === 401) {
@@ -64,7 +68,13 @@ export const AuthProvider = ({ children }) => {
           }
           throw new Error(`Server error: ${response.status}`);
         }
-        return response.json();
+        
+        // Parse JSON from text
+        try {
+          return JSON.parse(responseText);
+        } catch (e) {
+          throw new Error('Invalid server response');
+        }
       } catch (error) {
         lastError = error;
         // Don't retry on invalid token
