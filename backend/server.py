@@ -173,20 +173,18 @@ async def create_indexes():
     await db.sauna_leads.create_index([("createdAt", -1)])
 
 
-# Startup event to ensure phone field exists
-@app.on_event("startup")
-async def startup_event():
-    """Ensure required fields exist on startup"""
+async def deferred_startup_tasks():
+    """
+    Heavy startup tasks that run in background after the server is ready.
+    This ensures health checks pass quickly while these tasks complete.
+    """
     import logging
     logger = logging.getLogger(__name__)
     
-    # Log JWT_SECRET hash for debugging multi-instance issues
-    import hashlib
-    from config import JWT_SECRET
-    secret_hash = hashlib.md5(JWT_SECRET.encode()).hexdigest()[:8]
-    logger.info(f"Instance started with JWT_SECRET hash: {secret_hash}")
+    # Small delay to ensure server is fully ready
+    await asyncio.sleep(2)
     
-    # Initialize admin user at startup (not on every login)
+    # Initialize admin user
     from services.auth_service import init_admin_user
     try:
         await init_admin_user()
@@ -249,10 +247,36 @@ async def startup_event():
             await db.customer_fields.insert_one(default_fields)
             logger.info("Created default balia customer fields with phoneNumber")
     except Exception as e:
-        logger.error(f"Error in startup event: {e}")
+        logger.error(f"Error in deferred startup tasks: {e}")
+
+
+# Background task reference for deferred startup
+deferred_startup_task = None
+
+
+# Startup event - FAST, only essential operations
+@app.on_event("startup")
+async def startup_event():
+    """
+    Fast startup - only logs and schedules background tasks.
+    Heavy operations are deferred to allow health checks to pass quickly.
+    """
+    import logging
+    import hashlib
+    from config import JWT_SECRET
+    
+    logger = logging.getLogger(__name__)
+    
+    # Log JWT_SECRET hash for debugging multi-instance issues
+    secret_hash = hashlib.md5(JWT_SECRET.encode()).hexdigest()[:8]
+    logger.info(f"Instance started with JWT_SECRET hash: {secret_hash}")
+    
+    # Schedule heavy tasks to run in background (non-blocking)
+    global deferred_startup_task, backup_scheduler_task
+    deferred_startup_task = asyncio.create_task(deferred_startup_tasks())
+    logger.info("Deferred startup tasks scheduled")
     
     # Start backup scheduler in background
-    global backup_scheduler_task
     backup_scheduler_task = asyncio.create_task(backup_scheduler())
     logger.info("Backup scheduler task started")
 
