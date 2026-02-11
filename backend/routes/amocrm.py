@@ -1091,6 +1091,7 @@ async def receive_webhook_section(
     token = settings.get("amocrm_token", "")
     
     lead_data = basic_lead_data  # Default to webhook data
+    api_data = None  # Will be populated if API fetch succeeds
     
     if domain and token and lead_id:
         log_entry["api_fetch_attempt"] = True
