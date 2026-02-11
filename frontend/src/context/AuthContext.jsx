@@ -58,19 +58,27 @@ export const AuthProvider = ({ children }) => {
           }
         });
         if (!response.ok) {
-          throw new Error('Invalid token');
+          // Don't retry on 401 - token is invalid
+          if (response.status === 401) {
+            throw new Error('Invalid token');
+          }
+          throw new Error(`Server error: ${response.status}`);
         }
         return response.json();
       } catch (error) {
         lastError = error;
+        // Don't retry on invalid token
+        if (error.message === 'Invalid token') {
+          throw error;
+        }
         console.warn(`Token verify attempt ${attempt} failed:`, error.message);
         if (attempt < 3) {
-          // Wait before retry (200ms, 400ms)
-          await new Promise(resolve => setTimeout(resolve, attempt * 200));
+          // Wait before retry (300ms, 600ms)
+          await new Promise(resolve => setTimeout(resolve, attempt * 300));
         }
       }
     }
-    throw lastError;
+    throw lastError || new Error('Token verification failed');
   };
 
   const login = async (username, password) => {
