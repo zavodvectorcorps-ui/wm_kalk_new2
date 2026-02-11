@@ -74,25 +74,48 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (username, password) => {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ username, password })
-    });
+    // Retry logic for unstable network/server
+    let lastError = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Login failed');
+        if (!response.ok) {
+          const error = await response.json();
+          // If it's a real auth error (wrong password), don't retry
+          if (response.status === 401) {
+            throw new Error(error.detail || 'Login failed');
+          }
+          // For server errors, retry
+          throw new Error(error.detail || `Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setToken(data.token);
+        setUser(data.user);
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('authUser', JSON.stringify(data.user));
+        return data.user;
+      } catch (error) {
+        lastError = error;
+        // Don't retry on auth errors (wrong password)
+        if (error.message.includes('Invalid credentials') || error.message.includes('Login failed')) {
+          throw error;
+        }
+        console.warn(`Login attempt ${attempt} failed:`, error.message);
+        if (attempt < 3) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, attempt * 300));
+        }
+      }
     }
-
-    const data = await response.json();
-    setToken(data.token);
-    setUser(data.user);
-    localStorage.setItem('authToken', data.token);
-    localStorage.setItem('authUser', JSON.stringify(data.user));
-    return data.user;
+    throw lastError;
   };
 
   const logout = () => {
