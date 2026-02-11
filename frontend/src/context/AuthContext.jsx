@@ -94,17 +94,20 @@ export const AuthProvider = ({ children }) => {
           body: JSON.stringify({ username, password })
         });
 
-        // Clone response before reading body (for potential retry scenarios)
-        const responseClone = response.clone();
+        // Read body as text first (can only read once)
+        const responseText = await response.text();
+        
+        // Try to parse as JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          // Not valid JSON - server error
+          throw new Error(`Server error: ${response.status}`);
+        }
         
         if (!response.ok) {
-          let errorMessage = `Server error: ${response.status}`;
-          try {
-            const error = await response.json();
-            errorMessage = error.detail || errorMessage;
-          } catch (e) {
-            // Could not parse error body
-          }
+          const errorMessage = data.detail || `Server error: ${response.status}`;
           
           // If it's a real auth error (wrong password), don't retry
           if (response.status === 401) {
@@ -114,7 +117,7 @@ export const AuthProvider = ({ children }) => {
           throw new Error(errorMessage);
         }
 
-        const data = await responseClone.json();
+        // Success - save token and user
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem('authToken', data.token);
