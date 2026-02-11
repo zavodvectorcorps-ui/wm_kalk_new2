@@ -141,7 +141,7 @@ export const translations = {
     formCleared: 'Formularz wyczyszczony',
     fillRequired: 'Wypełnij wymagane pola',
     selectModelFirst: 'Najpierw wybierz model',
-    gratis: 'gratis',
+    gratis: 'w zestawie',
     quantity: 'Ilość',
     priceDepends: 'cena zależy od modelu',
     editingOrder: 'Edycja zamówienia',
