@@ -76,7 +76,7 @@ export const translations = {
     formCleared: 'Форма очищена',
     fillRequired: 'Заполните обязательные поля',
     selectModelFirst: 'Сначала выберите модель',
-    gratis: 'бесплатно',
+    gratis: 'в комплекте',
     quantity: 'Кол-во',
     priceDepends: 'цена зависит от модели',
     editingOrder: 'Редактирование заказа',
