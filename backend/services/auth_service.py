@@ -6,11 +6,14 @@ from datetime import datetime, timezone, timedelta
 import jwt
 import uuid
 import asyncio
+import logging
 
 from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, ADMIN_PASSWORD
 from database import db
 
-# Password hashing
+logger = logging.getLogger(__name__)
+
+# Password hashing - with explicit bcrypt backend
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
@@ -24,7 +27,20 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify password with retry on bcrypt errors"""
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception as e:
+        # Log the error but try one more time
+        logger.warning(f"Password verification error (retrying): {e}")
+        try:
+            # Small delay before retry
+            import time
+            time.sleep(0.1)
+            return pwd_context.verify(plain_password, hashed_password)
+        except Exception as e2:
+            logger.error(f"Password verification failed after retry: {e2}")
+            return False
 
 
 def create_token(user_data: dict) -> str:
