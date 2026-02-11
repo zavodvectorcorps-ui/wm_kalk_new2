@@ -47,16 +47,30 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const verifyToken = async (authToken) => {
-    const response = await fetch(`${API_URL}/api/auth/verify`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`
+    // Retry logic for unstable network/server
+    let lastError = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/verify`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Invalid token');
+        }
+        return response.json();
+      } catch (error) {
+        lastError = error;
+        console.warn(`Token verify attempt ${attempt} failed:`, error.message);
+        if (attempt < 3) {
+          // Wait before retry (200ms, 400ms)
+          await new Promise(resolve => setTimeout(resolve, attempt * 200));
+        }
       }
-    });
-    if (!response.ok) {
-      throw new Error('Invalid token');
     }
-    return response.json();
+    throw lastError;
   };
 
   const login = async (username, password) => {
