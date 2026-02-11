@@ -1097,7 +1097,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 # Show original price crossed out + gift label
                 price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
             else:
-                price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
+                # Don't show price for options with 0 price
+                price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else ''
             
             options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift, 'original_price': total_price})
     else:
@@ -1133,7 +1134,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             if is_gift:
                                 price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
                             else:
-                                price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
+                                # Don't show price for options with 0 price
+                                price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else ''
                             
                             options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift, 'original_price': total_price})
             else:
