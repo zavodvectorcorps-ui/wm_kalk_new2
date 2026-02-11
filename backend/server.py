@@ -284,7 +284,18 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cancel background tasks on shutdown"""
-    global backup_scheduler_task
+    global backup_scheduler_task, deferred_startup_task
+    
+    # Cancel deferred startup task if still running
+    if deferred_startup_task and not deferred_startup_task.done():
+        deferred_startup_task.cancel()
+        try:
+            await deferred_startup_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Deferred startup task stopped")
+    
+    # Cancel backup scheduler
     if backup_scheduler_task:
         backup_scheduler_task.cancel()
         try:
