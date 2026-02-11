@@ -86,17 +86,27 @@ export const AuthProvider = ({ children }) => {
           body: JSON.stringify({ username, password })
         });
 
+        // Clone response before reading body (for potential retry scenarios)
+        const responseClone = response.clone();
+        
         if (!response.ok) {
-          const error = await response.json();
+          let errorMessage = `Server error: ${response.status}`;
+          try {
+            const error = await response.json();
+            errorMessage = error.detail || errorMessage;
+          } catch (e) {
+            // Could not parse error body
+          }
+          
           // If it's a real auth error (wrong password), don't retry
           if (response.status === 401) {
-            throw new Error(error.detail || 'Login failed');
+            throw new Error(errorMessage);
           }
-          // For server errors, retry
-          throw new Error(error.detail || `Server error: ${response.status}`);
+          // For server errors (500, 502, 503, 520), retry
+          throw new Error(errorMessage);
         }
 
-        const data = await response.json();
+        const data = await responseClone.json();
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem('authToken', data.token);
@@ -105,17 +115,17 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         lastError = error;
         // Don't retry on auth errors (wrong password)
-        if (error.message.includes('Invalid credentials') || error.message.includes('Login failed')) {
+        if (error.message && (error.message.includes('Invalid credentials') || error.message.includes('credentials'))) {
           throw error;
         }
         console.warn(`Login attempt ${attempt} failed:`, error.message);
         if (attempt < 3) {
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, attempt * 300));
+          // Wait before retry (increases with each attempt)
+          await new Promise(resolve => setTimeout(resolve, attempt * 500));
         }
       }
     }
-    throw lastError;
+    throw lastError || new Error('Login failed after 3 attempts');
   };
 
   const logout = () => {
