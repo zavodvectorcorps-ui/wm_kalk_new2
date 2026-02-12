@@ -96,7 +96,7 @@ export const SECTIONS = {
     color: 'text-orange-600',
     bgColor: 'bg-orange-100',
     borderColor: 'border-orange-500',
-    endpoint: '/api/sauna/orders',
+    endpoint: '/api/sauna/orders?for_logistics=true',
     markerColor: '#ea580c'
   }
 };
