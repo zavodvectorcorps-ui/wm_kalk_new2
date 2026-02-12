@@ -1448,15 +1448,25 @@ async def sync_missing_orders(
     section: str,
     lead_ids: List[str] = []
 ):
-    """Sync missing orders from amoCRM by their lead IDs.
+    """Sync missing orders from amoCRM by their lead IDs using batch API.
     
     Fetches lead data from amoCRM API and creates orders in the local database.
-    Uses the same field extraction logic as the main webhook sync.
+    Uses batch fetch for efficiency (instead of N+1 requests).
     """
     logger.info(f"sync_missing_orders called: section={section}, lead_ids_count={len(lead_ids)}")
     
     if section not in ["greenhouse", "balia", "sauna"]:
         raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
+    
+    if not lead_ids:
+        return {
+            "status": "ok",
+            "section": section,
+            "synced_count": 0,
+            "failed_count": 0,
+            "already_exists_count": 0,
+            "details": {"synced": [], "failed": [], "already_exists": []}
+        }
     
     # Get amoCRM settings
     settings = integration_settings.find_one({"type": "amocrm"}, {"_id": 0})
@@ -1482,11 +1492,11 @@ async def sync_missing_orders(
     
     # Get field mapping for this section (same logic as webhook)
     all_mappings = settings.get("field_mapping", {})
-    # Support both old (flat) and new (per-section) structure
-    if section in all_mappings:
-        section_mapping = all_mappings[section]
-    else:
-        section_mapping = all_mappings  # Old flat structure
+    section_mapping = all_mappings.get(section, all_mappings)
+    
+    # Batch fetch all leads at once (much faster!)
+    leads_data = await fetch_leads_batch_from_amocrm(lead_ids, domain, token, batch_size=50)
+    logger.info(f"Batch fetched {len(leads_data)} leads from amoCRM")
     
     results = {
         "synced": [],
@@ -1496,17 +1506,22 @@ async def sync_missing_orders(
     
     section_prefix = {"greenhouse": "GH", "balia": "BAL", "sauna": "SAU"}
     section_names = {"greenhouse": "Теплицы", "balia": "Купели", "sauna": "Сауны"}
+    domain_clean = domain.replace("https://", "").replace("http://", "").rstrip("/")
+    now = datetime.now(timezone.utc).isoformat()
+    important_field_id = settings.get("important_order_field_id", "")
     
     for lead_id in lead_ids:
+        lead_id_str = str(lead_id)
+        
         try:
             # Check if order already exists
-            existing = collection.find_one({"amocrm_id": str(lead_id)})
+            existing = collection.find_one({"amocrm_id": lead_id_str})
             
-            # Fetch lead data from amoCRM API
-            api_data = await fetch_lead_from_amocrm(str(lead_id), domain, token)
+            # Get lead data from batch results
+            api_data = leads_data.get(lead_id_str)
             
             if not api_data:
-                results["failed"].append({"id": lead_id, "reason": "Lead not found in amoCRM"})
+                results["failed"].append({"id": lead_id, "reason": "Lead not found in amoCRM batch response"})
                 continue
             
             # Use the same extraction function as webhook
@@ -1517,8 +1532,7 @@ async def sync_missing_orders(
                 continue
             
             # Build notes from various fields (same as webhook)
-            notes_parts = []
-            notes_parts.append(f"Из amoCRM ({section_names.get(section, section)})")
+            notes_parts = [f"Из amoCRM ({section_names.get(section, section)})"]
             if lead_data.get("amocrm_name"):
                 notes_parts.append(f"Сделка: {lead_data['amocrm_name']}")
             if lead_data.get("orderContents"):
@@ -1527,15 +1541,11 @@ async def sync_missing_orders(
                 notes_parts.append(f"Комментарий: {lead_data['orderComment']}")
             
             # Generate full amoCRM link with domain
-            amocrm_link = ""
-            domain_clean = domain.replace("https://", "").replace("http://", "").rstrip("/")
-            if lead_data.get("amocrm_id"):
-                amocrm_link = f"https://{domain_clean}/leads/detail/{lead_data.get('amocrm_id')}"
+            amocrm_link = f"https://{domain_clean}/leads/detail/{lead_data.get('amocrm_id', lead_id)}"
             
             # Check if order is important based on amoCRM flag field
             is_important = False
-            important_field_id = settings.get("important_order_field_id", "")
-            if important_field_id and api_data:
+            if important_field_id:
                 custom_fields = api_data.get("custom_fields_values", [])
                 for field in custom_fields:
                     if str(field.get("field_id", "")) == important_field_id:
@@ -1549,7 +1559,14 @@ async def sync_missing_orders(
                             is_important = val in [True, "true", "1", 1, "да", "yes"]
                         break
             
-            now = datetime.now(timezone.utc).isoformat()
+            # Extract tags
+            amocrm_tags = []
+            embedded = api_data.get("_embedded", {})
+            tags_data = embedded.get("tags", [])
+            for tag in tags_data:
+                tag_info = {"id": tag.get("id"), "name": tag.get("name", "")}
+                if tag_info["name"]:
+                    amocrm_tags.append(tag_info)
             
             # If order exists - UPDATE it
             if existing:
@@ -1560,13 +1577,14 @@ async def sync_missing_orders(
                     "addressIndex": lead_data.get("addressIndex", ""),
                     "addressCity": lead_data.get("addressCity", ""),
                     "addressStreet": lead_data.get("addressStreet", ""),
-                    "orderNumber": lead_data.get("orderNumber", "") or str(lead_data.get("amocrm_id", "")),
+                    "orderNumber": lead_data.get("orderNumber", "") or lead_id_str,
                     "orderContents": lead_data.get("orderContents", ""),
                     "orderComment": lead_data.get("orderComment", ""),
                     "dealSum": lead_data.get("dealSum", ""),
                     "debtSum": lead_data.get("debtSum", ""),
                     "notes": ". ".join(notes_parts),
                     "isImportant": is_important,
+                    "amocrm_tags": amocrm_tags,
                     "amocrm_link": amocrm_link,
                     "amocrm_data": lead_data,
                     "updatedAt": now,
@@ -1580,7 +1598,7 @@ async def sync_missing_orders(
                 }
                 
                 collection.update_one(
-                    {"amocrm_id": str(lead_id)},
+                    {"amocrm_id": lead_id_str},
                     {
                         "$set": update_fields,
                         "$push": {"changeHistory": change_entry}
@@ -1606,7 +1624,7 @@ async def sync_missing_orders(
                 "addressIndex": lead_data.get("addressIndex", ""),
                 "addressCity": lead_data.get("addressCity", ""),
                 "addressStreet": lead_data.get("addressStreet", ""),
-                "orderNumber": lead_data.get("orderNumber", "") or str(lead_data.get("amocrm_id", "")),
+                "orderNumber": lead_data.get("orderNumber", "") or lead_id_str,
                 "orderContents": lead_data.get("orderContents", ""),
                 "orderComment": lead_data.get("orderComment", ""),
                 "dealSum": lead_data.get("dealSum", ""),
@@ -1614,17 +1632,18 @@ async def sync_missing_orders(
                 "notes": ". ".join(notes_parts),
                 "orderDate": now,
                 "createdAt": now,
-                "transferredAt": now,  # Date/time of transfer from amoCRM
+                "transferredAt": now,
                 "source": "amocrm",
                 "status": "new",
                 "deliveryStatus": "pending",
                 "deliveryComment": "",
                 "warehouseStatus": "request",
                 "isImportant": is_important,
+                "amocrm_tags": amocrm_tags,
                 "amocrm_id": lead_data.get("amocrm_id"),
                 "amocrm_link": amocrm_link,
                 "amocrm_data": lead_data,
-                "changeHistory": []  # Initialize empty change history
+                "changeHistory": []
             }
             
             # Insert order
@@ -1637,7 +1656,7 @@ async def sync_missing_orders(
                 "name": order_data.get("fullName")
             })
             
-            logger.info(f"Synced missing order from amoCRM: {order_id} with all fields")
+            logger.info(f"Synced missing order from amoCRM: {order_id}")
             
         except Exception as e:
             logger.error(f"Error syncing lead {lead_id}: {e}")
