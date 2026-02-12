@@ -383,17 +383,17 @@ export const IntegrationsPage = () => {
         <div className="space-y-2">
           <Label className="text-sm">Воронка для этого раздела</Label>
           <Select
-            value={settings.section_pipelines?.[section] || ''}
+            value={settings.section_pipelines?.[section] || 'all'}
             onValueChange={(val) => setSettings(prev => ({
               ...prev,
-              section_pipelines: { ...prev.section_pipelines, [section]: val }
+              section_pipelines: { ...prev.section_pipelines, [section]: val === 'all' ? '' : val }
             }))}
           >
             <SelectTrigger>
               <SelectValue placeholder="Выберите воронку (фильтр webhook)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Все воронки (без фильтра)</SelectItem>
+              <SelectItem value="all">Все воронки (без фильтра)</SelectItem>
               {pipelines.map(p => (
                 <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
               ))}
