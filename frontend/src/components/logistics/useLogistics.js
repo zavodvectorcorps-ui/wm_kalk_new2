@@ -2410,6 +2410,8 @@ export const useLogistics = () => {
     syncMissingOrders,
     deleteUnnamedOrders,
     deletingUnnamed,
+    deleteAllOrdersInSection,
+    deletingSection,
     
     // amoCRM refresh
     refreshingOrderId,
