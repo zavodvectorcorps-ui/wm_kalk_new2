@@ -778,7 +778,7 @@ export const useLogistics = () => {
     }
   }, [activeSection, fetchAllOrders]);
 
-  // Delete all orders from a specific section (ALL orders, not just amoCRM)
+  // Delete all LOGISTICS orders from a specific section (preserves calculator orders)
   const [deletingSection, setDeletingSection] = useState(null);
   
   const deleteAllOrdersInSection = useCallback(async (sectionToDelete) => {
@@ -790,12 +790,8 @@ export const useLogistics = () => {
       greenhouse: 'Теплицы'
     };
     
-    const confirmMessage = `⚠️ ВНИМАНИЕ!\n\nВы уверены, что хотите удалить ВСЕ заказы из секции "${sectionNames[sectionToDelete] || sectionToDelete}"?\n\nЭто удалит ВСЕ заказы (не только amoCRM)!\nДействие нельзя отменить!`;
+    const confirmMessage = `Удалить все заказы ЛОГИСТИКИ из секции "${sectionNames[sectionToDelete] || sectionToDelete}"?\n\nЗаказы из калькулятора сохранятся.`;
     if (!window.confirm(confirmMessage)) return;
-    
-    // Double confirmation for safety
-    const doubleConfirm = window.confirm(`Последнее подтверждение:\nУдалить ВСЕ заказы из ${sectionNames[sectionToDelete]}?`);
-    if (!doubleConfirm) return;
     
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -806,7 +802,7 @@ export const useLogistics = () => {
     setDeletingSection(sectionToDelete);
     
     try {
-      // Use /all/ endpoint to delete ALL orders (not just amoCRM)
+      // Use /all/ endpoint to delete logistics orders only
       const response = await fetch(`${API_URL}/api/integrations/amocrm/orders/all/${sectionToDelete}`, {
         method: 'DELETE',
         headers: {
@@ -821,10 +817,10 @@ export const useLogistics = () => {
       }
       
       if (result.deleted_count > 0) {
-        toast.success(`Удалено заказов из ${sectionNames[sectionToDelete] || sectionToDelete}: ${result.deleted_count}`);
+        toast.success(`Удалено заказов логистики: ${result.deleted_count}. Сохранено заказов калькулятора: ${result.preserved_calculator_orders || 0}`);
         await fetchAllOrders();
       } else {
-        toast.info('Нет заказов для удаления');
+        toast.info('Нет заказов логистики для удаления');
       }
       
       return result;
