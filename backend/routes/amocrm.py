@@ -1309,6 +1309,47 @@ async def delete_amocrm_orders(section: str):
     return {"status": "ok", "deleted_count": deleted_count, "section": section}
 
 
+@router.delete("/orders/unnamed/{section}")
+async def delete_unnamed_orders(section: str):
+    """Delete all orders without a name (Без имени) from a section.
+    
+    Useful for cleaning up orders that were created from webhook but have no customer name.
+    """
+    if section not in ["greenhouse", "balia", "sauna", "all"]:
+        raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
+    
+    deleted_count = 0
+    
+    # Filter for orders with empty or "Без имени" fullName
+    filter_query = {
+        "$or": [
+            {"fullName": ""},
+            {"fullName": "Без имени"},
+            {"fullName": None},
+            {"fullName": {"$exists": False}}
+        ]
+    }
+    
+    if section == "all" or section == "greenhouse":
+        result = greenhouse_orders.delete_many(filter_query)
+        deleted_count += result.deleted_count
+        logger.info(f"Deleted {result.deleted_count} unnamed orders from greenhouse")
+    
+    if section == "all" or section == "balia":
+        result = balia_orders.delete_many(filter_query)
+        deleted_count += result.deleted_count
+        logger.info(f"Deleted {result.deleted_count} unnamed orders from balia")
+    
+    if section == "all" or section == "sauna":
+        result = sauna_orders.delete_many(filter_query)
+        deleted_count += result.deleted_count
+        logger.info(f"Deleted {result.deleted_count} unnamed orders from sauna")
+    
+    logger.info(f"Total deleted {deleted_count} unnamed orders from {section}")
+    
+    return {"status": "ok", "deleted_count": deleted_count, "section": section}
+
+
 @router.post("/sync-missing/{section}")
 async def sync_missing_orders(
     section: str,
