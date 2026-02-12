@@ -773,7 +773,7 @@ export const useLogistics = () => {
     }
   }, [activeSection, fetchAllOrders]);
 
-  // Delete all orders from a specific section
+  // Delete all orders from a specific section (ALL orders, not just amoCRM)
   const [deletingSection, setDeletingSection] = useState(null);
   
   const deleteAllOrdersInSection = useCallback(async (sectionToDelete) => {
@@ -785,8 +785,12 @@ export const useLogistics = () => {
       greenhouse: 'Теплицы'
     };
     
-    const confirmMessage = `Вы уверены, что хотите удалить ВСЕ заказы из секции "${sectionNames[sectionToDelete] || sectionToDelete}"? Это действие нельзя отменить!`;
+    const confirmMessage = `⚠️ ВНИМАНИЕ!\n\nВы уверены, что хотите удалить ВСЕ заказы из секции "${sectionNames[sectionToDelete] || sectionToDelete}"?\n\nЭто удалит ВСЕ заказы (не только amoCRM)!\nДействие нельзя отменить!`;
     if (!window.confirm(confirmMessage)) return;
+    
+    // Double confirmation for safety
+    const doubleConfirm = window.confirm(`Последнее подтверждение:\nУдалить ВСЕ заказы из ${sectionNames[sectionToDelete]}?`);
+    if (!doubleConfirm) return;
     
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -797,7 +801,8 @@ export const useLogistics = () => {
     setDeletingSection(sectionToDelete);
     
     try {
-      const response = await fetch(`${API_URL}/api/integrations/amocrm/orders/${sectionToDelete}`, {
+      // Use /all/ endpoint to delete ALL orders (not just amoCRM)
+      const response = await fetch(`${API_URL}/api/integrations/amocrm/orders/all/${sectionToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
