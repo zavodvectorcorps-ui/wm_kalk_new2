@@ -5,6 +5,21 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 12, 2025 - amoCRM Batch API Optimization & Section Delete Buttons (COMPLETED)
+- **OPTIMIZED**: amoCRM sync now uses batch API instead of N+1 individual requests
+  - `refresh_all_orders` - fetches all leads in batches of 50 (was: 1 request per lead)
+  - `sync_missing_orders` - fetches all leads in batches of 50 (was: 1 request per lead)
+  - New function `fetch_leads_batch_from_amocrm()` for efficient batch fetching
+  - Performance: N/50 API requests instead of N requests
+- **NEW**: Delete buttons for Balia/Sauna sections in Logistics Settings
+  - "Удалить все из Купелей" - deletes all amoCRM orders from Balia
+  - "Удалить все из Саун" - deletes all amoCRM orders from Sauna
+  - Confirmation dialog before deletion
+- **Files Modified**:
+  - `routes/amocrm.py` - Added batch fetch, refactored refresh_all and sync_missing
+  - `logistics/useLogistics.js` - Added `deleteAllOrdersInSection` function
+  - `LogisticsPage.jsx` - Added delete section buttons in settings
+
 ### Feb 9, 2025 - Performance Optimization & Cloudinary Integration (COMPLETED)
 - **OPTIMIZED**: Added GZip compression middleware - 81% reduction in API response size
 - **OPTIMIZED**: Added MongoDB indexes for faster queries (orders, users, settings, leads)
