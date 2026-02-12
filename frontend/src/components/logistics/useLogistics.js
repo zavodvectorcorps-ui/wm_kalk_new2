@@ -2354,6 +2354,8 @@ export const useLogistics = () => {
     fetchAmocrmStats,
     getAmocrmComparison,
     syncMissingOrders,
+    deleteUnnamedOrders,
+    deletingUnnamed,
     
     // amoCRM refresh
     refreshingOrderId,
