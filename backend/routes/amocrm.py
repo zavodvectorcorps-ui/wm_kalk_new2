@@ -7,6 +7,7 @@ import os
 import json
 import logging
 import httpx
+import asyncio
 from urllib.parse import parse_qs
 
 router = APIRouter(prefix="/api/integrations/amocrm", tags=["amocrm"])
