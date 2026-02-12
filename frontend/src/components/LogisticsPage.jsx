@@ -575,6 +575,21 @@ export const LogisticsPage = () => {
                                           Синхронизировано
                                         </Badge>
                                       )}
+                                      {/* Button to delete unnamed orders */}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 text-xs text-red-600 border-red-300 hover:bg-red-50"
+                                        onClick={deleteUnnamedOrders}
+                                        disabled={deletingUnnamed}
+                                      >
+                                        {deletingUnnamed ? (
+                                          <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="h-3 w-3 mr-1" />
+                                        )}
+                                        Удалить без имени
+                                      </Button>
                                     </>
                                   );
                                 })()}
