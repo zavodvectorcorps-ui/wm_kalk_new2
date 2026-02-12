@@ -1402,6 +1402,37 @@ async def delete_amocrm_orders(section: str):
     return {"status": "ok", "deleted_count": deleted_count, "section": section}
 
 
+@router.delete("/orders/all/{section}")
+async def delete_all_section_orders(section: str):
+    """Delete ALL orders from a section (not just amoCRM).
+    
+    WARNING: This deletes ALL orders regardless of source!
+    Use with caution - cannot be undone.
+    """
+    if section not in ["greenhouse", "balia", "sauna"]:
+        raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
+    
+    collection = get_collection_for_section(section)
+    if collection is None:
+        raise HTTPException(status_code=400, detail=f"Unknown section: {section}")
+    
+    # Count before deletion
+    count_before = collection.count_documents({})
+    
+    # Delete ALL orders from the section
+    result = collection.delete_many({})
+    deleted_count = result.deleted_count
+    
+    logger.warning(f"DELETED ALL {deleted_count} orders from {section} (was: {count_before})")
+    
+    return {
+        "status": "ok", 
+        "deleted_count": deleted_count, 
+        "section": section,
+        "message": f"Удалено все {deleted_count} заказов из секции {section}"
+    }
+
+
 @router.delete("/orders/unnamed/{section}")
 async def delete_unnamed_orders(section: str):
     """Delete all orders without a name (Без имени) from a section.
