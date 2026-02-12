@@ -1404,9 +1404,9 @@ async def delete_amocrm_orders(section: str):
 
 @router.delete("/orders/all/{section}")
 async def delete_all_section_orders(section: str):
-    """Delete all LOGISTICS orders from a section.
+    """Delete all amoCRM orders from a section for logistics cleanup.
     
-    Only deletes orders that came from amoCRM or were created for logistics.
+    Only deletes orders that came from amoCRM.
     Preserves orders created through the calculator.
     """
     if section not in ["greenhouse", "balia", "sauna"]:
@@ -1416,15 +1416,11 @@ async def delete_all_section_orders(section: str):
     if collection is None:
         raise HTTPException(status_code=400, detail=f"Unknown section: {section}")
     
-    # Only delete orders that are for logistics (from amoCRM or have logistics-specific fields)
-    # Orders from calculator don't have these fields
+    # Only delete orders from amoCRM
     logistics_filter = {
         "$or": [
-            {"source": "amocrm"},  # Orders from amoCRM webhook
-            {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},  # Orders linked to amoCRM
-            {"transferredAt": {"$exists": True}},  # Orders transferred to logistics
-            {"deliveryStatus": {"$exists": True}},  # Orders with delivery status
-            {"warehouseStatus": {"$exists": True}},  # Orders with warehouse status
+            {"source": "amocrm"},
+            {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},
         ]
     }
     
@@ -1432,18 +1428,18 @@ async def delete_all_section_orders(section: str):
     count_before = collection.count_documents(logistics_filter)
     total_in_section = collection.count_documents({})
     
-    # Delete only logistics orders
+    # Delete only amoCRM orders
     result = collection.delete_many(logistics_filter)
     deleted_count = result.deleted_count
     
-    logger.warning(f"DELETED {deleted_count} logistics orders from {section} (total was: {total_in_section}, logistics: {count_before})")
+    logger.info(f"Deleted {deleted_count} amoCRM orders from {section} (total was: {total_in_section}, amoCRM: {count_before})")
     
     return {
         "status": "ok", 
         "deleted_count": deleted_count, 
         "section": section,
         "preserved_calculator_orders": total_in_section - deleted_count,
-        "message": f"Удалено {deleted_count} заказов логистики из секции {section}"
+        "message": f"Удалено {deleted_count} заказов amoCRM из секции {section}"
     }
 
 
