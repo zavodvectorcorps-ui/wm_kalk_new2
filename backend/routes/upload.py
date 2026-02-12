@@ -7,6 +7,8 @@ import base64
 from pathlib import Path
 from PIL import Image
 import io
+import cloudinary
+import cloudinary.uploader
 
 from database import db
 from services.cloudinary_service import (
