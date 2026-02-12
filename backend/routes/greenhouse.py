@@ -68,9 +68,22 @@ class GreenhouseOrder(BaseModel):
 
 
 @router.get("/orders")
-async def get_greenhouse_orders():
-    """Get all greenhouse orders."""
-    orders = list(greenhouse_orders.find({}, {"_id": 0}))
+async def get_greenhouse_orders(for_logistics: bool = False):
+    """Get all greenhouse orders.
+    
+    Args:
+        for_logistics: If True, only return orders from amoCRM
+    """
+    query = {}
+    
+    # Filter for logistics - ONLY amoCRM orders
+    if for_logistics:
+        query["$or"] = [
+            {"source": "amocrm"},
+            {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},
+        ]
+    
+    orders = list(greenhouse_orders.find(query, {"_id": 0}))
     return orders
 
 
