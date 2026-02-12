@@ -315,10 +315,10 @@ export const LogisticsPage = () => {
             <div className="space-y-2 pt-4 border-t">
               <Label className="text-sm font-medium flex items-center gap-2 text-red-600">
                 <Trash2 className="h-4 w-4" />
-                Очистка данных (удаление всех заказов из секции)
+                Очистка логистики (удаление заказов amoCRM)
               </Label>
               <p className="text-xs text-muted-foreground mb-2">
-                ⚠️ Внимание: это удалит ВСЕ заказы amoCRM из выбранной секции. Действие необратимо.
+                ⚠️ Удаляет только заказы из логистики (amoCRM). Заказы из калькулятора сохраняются.
               </p>
               <div className="flex gap-2 flex-wrap">
                 <Button
@@ -333,7 +333,7 @@ export const LogisticsPage = () => {
                   ) : (
                     <Trash2 className="h-4 w-4 mr-2" />
                   )}
-                  Удалить все из Купелей
+                  Очистить логистику Купелей
                 </Button>
                 <Button
                   variant="destructive"
@@ -347,7 +347,7 @@ export const LogisticsPage = () => {
                   ) : (
                     <Trash2 className="h-4 w-4 mr-2" />
                   )}
-                  Удалить все из Саун
+                  Очистить логистику Саун
                 </Button>
               </div>
             </div>
