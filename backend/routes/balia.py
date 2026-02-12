@@ -645,14 +645,28 @@ async def create_order(order: Order):
 
 
 @router.get("/orders", response_model=List[Order])
-async def get_orders(username: str = None, role: str = None):
-    """Get orders - admins see all, managers see only their own"""
+async def get_orders(username: str = None, role: str = None, for_logistics: bool = False):
+    """Get orders - admins see all, managers see only their own.
+    
+    Args:
+        for_logistics: If True, only return orders for logistics (from amoCRM or with logistics fields)
+    """
     # Build query filter
     query = {}
     
     # If user is a manager (not admin), filter by createdBy
     if role and role != 'admin' and username:
         query['createdBy'] = username
+    
+    # Filter for logistics orders only
+    if for_logistics:
+        query["$or"] = [
+            {"source": "amocrm"},
+            {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},
+            {"transferredAt": {"$exists": True}},
+            {"deliveryStatus": {"$exists": True}},
+            {"warehouseStatus": {"$exists": True}},
+        ]
     
     orders = await db.orders.find(query, {"_id": 0}).to_list(1000)
     return orders
