@@ -1069,11 +1069,27 @@ async def receive_webhook_section(
     
     logger.info(f"Webhook for {section}: lead_id={lead_id}, pipeline_id={webhook_pipeline_id}, name={basic_lead_data.get('amocrm_name')}")
     
+    # STRICT CHECK: Reject webhooks without lead_id (e.g., contact-only webhooks)
+    if not lead_id:
+        log_entry["status"] = "skipped"
+        log_entry["reason"] = "No lead_id in webhook data - likely a contact-only webhook"
+        webhook_logs.insert_one(log_entry)
+        logger.info(f"Skipping webhook for {section}: no lead_id (contact webhook?)")
+        return {"status": "ok", "message": "No lead data in webhook, skipped"}
+    
+    # STRICT CHECK: Reject webhooks without pipeline_id
+    if not webhook_pipeline_id:
+        log_entry["status"] = "skipped"
+        log_entry["reason"] = "No pipeline_id in webhook data"
+        webhook_logs.insert_one(log_entry)
+        logger.info(f"Skipping webhook for {section}: no pipeline_id")
+        return {"status": "ok", "message": "No pipeline_id in webhook, skipped"}
+    
     # Check pipeline filter - only process leads from configured pipeline for this section
     section_pipelines = settings.get("section_pipelines", {})
     expected_pipeline_id = section_pipelines.get(section, "")
     
-    if expected_pipeline_id and webhook_pipeline_id:
+    if expected_pipeline_id:
         if str(webhook_pipeline_id) != str(expected_pipeline_id):
             log_entry["status"] = "skipped"
             log_entry["reason"] = f"Pipeline mismatch: webhook={webhook_pipeline_id}, expected={expected_pipeline_id} for {section}"
