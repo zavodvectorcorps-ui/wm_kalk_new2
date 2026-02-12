@@ -117,6 +117,9 @@ async def get_prices(response: Response):
             {"$set": {"models": prices['models']}}
         )
     
+    # Cache for 5 minutes (prices don't change often)
+    response.headers["Cache-Control"] = "public, max-age=300"
+    
     return prices
 
 
