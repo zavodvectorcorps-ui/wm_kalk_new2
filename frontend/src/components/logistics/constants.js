@@ -76,7 +76,7 @@ export const SECTIONS = {
     color: 'text-green-600',
     bgColor: 'bg-green-100',
     borderColor: 'border-green-500',
-    endpoint: '/api/greenhouse/orders?for_logistics=true',
+    endpoint: '/api/greenhouse/orders',
     markerColor: '#16a34a'
   },
   balia: {
@@ -86,7 +86,7 @@ export const SECTIONS = {
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
     borderColor: 'border-blue-500',
-    endpoint: '/api/orders?for_logistics=true',
+    endpoint: '/api/orders',
     markerColor: '#2563eb'
   },
   sauna: {
@@ -96,7 +96,7 @@ export const SECTIONS = {
     color: 'text-orange-600',
     bgColor: 'bg-orange-100',
     borderColor: 'border-orange-500',
-    endpoint: '/api/sauna/orders?for_logistics=true',
+    endpoint: '/api/sauna/orders',
     markerColor: '#ea580c'
   }
 };
