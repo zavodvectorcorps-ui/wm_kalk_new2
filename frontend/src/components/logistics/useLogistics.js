@@ -773,6 +773,60 @@ export const useLogistics = () => {
     }
   }, [activeSection, fetchAllOrders]);
 
+  // Delete all orders from a specific section
+  const [deletingSection, setDeletingSection] = useState(null);
+  
+  const deleteAllOrdersInSection = useCallback(async (sectionToDelete) => {
+    if (!sectionToDelete) return;
+    
+    const sectionNames = {
+      balia: 'Купели',
+      sauna: 'Сауны',
+      greenhouse: 'Теплицы'
+    };
+    
+    const confirmMessage = `Вы уверены, что хотите удалить ВСЕ заказы из секции "${sectionNames[sectionToDelete] || sectionToDelete}"? Это действие нельзя отменить!`;
+    if (!window.confirm(confirmMessage)) return;
+    
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      toast.error('Необходима авторизация');
+      return;
+    }
+    
+    setDeletingSection(sectionToDelete);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/integrations/amocrm/orders/${sectionToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.detail || 'Failed to delete orders');
+      }
+      
+      if (result.deleted_count > 0) {
+        toast.success(`Удалено заказов из ${sectionNames[sectionToDelete] || sectionToDelete}: ${result.deleted_count}`);
+        await fetchAllOrders();
+      } else {
+        toast.info('Нет заказов для удаления');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error deleting orders from section:', error);
+      toast.error(`Ошибка удаления: ${error.message}`);
+      throw error;
+    } finally {
+      setDeletingSection(null);
+    }
+  }, [fetchAllOrders]);
+
   // Refresh single order from amoCRM
   const refreshOrderFromAmocrm = useCallback(async (orderId, amocrmId) => {
     if (!amocrmId) {
