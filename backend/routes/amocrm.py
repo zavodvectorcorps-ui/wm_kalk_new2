@@ -3139,9 +3139,9 @@ async def refresh_single_lead(section: str, amocrm_id: str):
 
 @router.post("/refresh_all/{section}")
 async def refresh_all_orders(section: str):
-    """Refresh ALL amoCRM orders in a section.
+    """Refresh ALL amoCRM orders in a section using batch API.
     
-    Fetches fresh data from amoCRM API for each order with an amocrm_id.
+    Uses batch fetch to get multiple leads in one request (much faster than N+1).
     """
     if section not in ["greenhouse", "balia", "sauna"]:
         raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
@@ -3168,35 +3168,38 @@ async def refresh_all_orders(section: str):
     all_mappings = settings.get("field_mapping", {})
     field_mapping = all_mappings.get(section, all_mappings)
     
-    results = {"updated": 0, "failed": 0, "errors": []}
+    # Extract all amoCRM IDs for batch fetch
+    lead_ids = [str(order.get("amocrm_id")) for order in amocrm_orders if order.get("amocrm_id")]
     
+    logger.info(f"Starting batch refresh for {section}: {len(lead_ids)} leads to fetch")
+    
+    # Batch fetch all leads at once (much faster than individual requests!)
+    leads_data = await fetch_leads_batch_from_amocrm(lead_ids, domain, token, batch_size=50)
+    
+    logger.info(f"Batch fetch complete: got {len(leads_data)} leads")
+    
+    results = {"updated": 0, "failed": 0, "errors": []}
+    domain_clean = domain.replace("https://", "").replace("http://", "").rstrip("/")
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Process each order with the batched data
     for order in amocrm_orders:
-        amocrm_id = order.get("amocrm_id")
+        amocrm_id = str(order.get("amocrm_id", ""))
         order_id = order.get("id")
         
         try:
-            # Fetch fresh data from amoCRM
-            api_data = await fetch_lead_from_amocrm(str(amocrm_id), domain, token)
+            # Get lead data from batch results
+            api_data = leads_data.get(amocrm_id)
             
             if not api_data:
                 results["failed"] += 1
-                results["errors"].append({"order_id": order_id, "reason": "API fetch failed"})
+                results["errors"].append({"order_id": order_id, "reason": "Lead not found in batch response"})
                 continue
             
             # Extract lead data
             lead_data = extract_lead_data_from_api(api_data, field_mapping)
             
-            # Fetch contact phone if needed
-            contact_id = lead_data.get("contact_id")
-            if contact_id and not lead_data.get("phoneNumber"):
-                contact_data = await fetch_contact_from_amocrm(contact_id, domain, token)
-                if contact_data:
-                    phone = extract_contact_phone(contact_data)
-                    if phone:
-                        lead_data["phoneNumber"] = phone
-            
             # Generate amoCRM link
-            domain_clean = domain.replace("https://", "").replace("http://", "").rstrip("/")
             amocrm_link = f"https://{domain_clean}/leads/detail/{amocrm_id}"
             
             # Extract tags
@@ -3208,10 +3211,8 @@ async def refresh_all_orders(section: str):
                 if tag_info["name"]:
                     amocrm_tags.append(tag_info)
             
-            now = datetime.now(timezone.utc).isoformat()
-            
             # Get existing order to preserve some fields
-            existing = collection.find_one({"amocrm_id": str(amocrm_id)})
+            existing = collection.find_one({"amocrm_id": amocrm_id})
             
             # Update fields
             update_fields = {
@@ -3237,7 +3238,7 @@ async def refresh_all_orders(section: str):
             }
             
             collection.update_one(
-                {"amocrm_id": str(amocrm_id)},
+                {"amocrm_id": amocrm_id},
                 {
                     "$set": update_fields,
                     "$push": {"changeHistory": change_entry}
