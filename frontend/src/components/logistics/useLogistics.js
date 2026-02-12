@@ -210,27 +210,34 @@ export const useLogistics = () => {
     if (!amocrmStats || !amocrmStats.lead_ids) return null;
     
     const localOrders = currentData?.orders || [];
-    // Only compare unassigned orders (not in a trip)
-    const unassignedOrders = localOrders.filter(o => !o.tripId);
-    const localAmocrmIds = unassignedOrders
+    const tripsOrders = trips.flatMap(trip => trip.orders || []);
+    
+    // Combine ALL orders - both free and in trips
+    const allLocalOrders = [...localOrders, ...tripsOrders];
+    
+    // Get all amocrm_ids from local orders (both free and in trips)
+    const localAmocrmIds = allLocalOrders
       .filter(o => o.amocrm_id)
       .map(o => String(o.amocrm_id));
     
+    // Remove duplicates (in case same order appears in both lists)
+    const uniqueLocalAmocrmIds = [...new Set(localAmocrmIds)];
+    
     const amocrmIds = amocrmStats.lead_ids;
     
-    // Find which IDs are in amoCRM but not in local (free orders)
-    const missingInLocal = amocrmIds.filter(id => !localAmocrmIds.includes(id));
+    // Find which IDs are in amoCRM but not in local (need to sync)
+    const missingInLocal = amocrmIds.filter(id => !uniqueLocalAmocrmIds.includes(id));
     // Find which IDs are in local but not in amoCRM (already processed or moved to another stage)
-    const extraInLocal = localAmocrmIds.filter(id => !amocrmIds.includes(id));
+    const extraInLocal = uniqueLocalAmocrmIds.filter(id => !amocrmIds.includes(id));
     
     return {
       amocrmCount: amocrmIds.length,
-      localCount: localAmocrmIds.length,
+      localCount: uniqueLocalAmocrmIds.length,
       missingInLocal,
       extraInLocal,
       synced: missingInLocal.length === 0
     };
-  }, [amocrmStats, currentData?.orders]);
+  }, [amocrmStats, currentData?.orders, trips]);
 
   // Sync missing orders from amoCRM - defined as ref to be set later
   const syncMissingOrdersRef = useRef(null);
