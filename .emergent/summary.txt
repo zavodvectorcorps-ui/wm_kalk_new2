@@ -1,193 +1,201 @@
 <analysis>**original_problem_statement:**
-The user is building a logistics and sales management system for their sauna and hot tub business. The application is a full-stack React/FastAPI/MongoDB system for calculating product prices and generating PDF sales offers.
+The user is developing a logistics and sales management system for their sauna and hot tub business. The application is a full-stack React/FastAPI/MongoDB system used for calculating product prices, generating PDF sales offers, and managing logistics via an amoCRM integration.
 
-Recent user requests have focused on:
-1.  **Feature:** Allowing managers to upload a custom layout image in the sauna calculator, which should then be used in the generated PDF.
-2.  **Performance:** The user reported that PDF generation was causing timeouts (524 error) and that the hot tub calculator was loading slowly.
-3.  **Bug Fixes & Enhancements:**
-    *   When a custom layout is uploaded, all other available layouts for that size should still appear on the PDF's second page.
-    *   The Available Options on the PDF's second page should be in a simple two-column layout, without category separation.
-    *   The room dimensions in the PDF and the calculator summary should be correctly sourced from the selected sub-model, especially when a custom layout is used.
-    *   The Available Options section should start on a new page in the PDF.
-4.  **New Feature Requests:**
-    *   Make layout variants in the catalog dependent on the selected sauna sub-model (e.g., Standard, Enlarged Steam Room).
-    *   When a sauna model is selected in the calculator, automatically filter the layout catalog to show only the relevant layout size (e.g., selecting a 2m sauna shows only 2m layouts).
-    *   The main model image in the PDF should be taken from the selected sub-model first, falling back to the main model's image if the sub-model has none.
-5.  **New Bug:** Saving options in the hot tub (купели) calculator is failing with a 422 error.
+Recent user requests have focused on several key areas:
+1.  **Critical Bug (Authentication):** A persistent and recurring issue where users are randomly logged out of the system, often accompanied by  or  errors. This is a top-priority blocker.
+2.  **Critical Bug (Performance):** The logistics page, which syncs orders from amoCRM, has become extremely slow to load.
+3.  **Critical Bug (Data Integrity):** The system was importing unnecessary orders from amoCRM pipelines that were not relevant, cluttering the logistics view. Orders without names were also appearing.
+4.  **Deployment Issues:** The application was frequently failing deployments due to  errors during health checks, likely caused by slow application startup when connecting to a production MongoDB Atlas instance.
+5.  **Feature Request:** The user requested a way to use the sauna calculator's logic on a separate, new website, asking for the best way to share the code/data.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a functional full-stack system with a React frontend, FastAPI backend, and MongoDB database.
+The application is a full-stack React/FastAPI/MongoDB system. Key functionalities include a sauna/hot tub price calculator, PDF offer generation, and a logistics management module integrated with amoCRM.
 
-In this session, the following was accomplished:
--   **Custom Layout Upload:** The feature for managers to upload a custom layout image in the sauna calculator has been fully implemented and tested.
--   **Performance Optimization:**
-    -   PDF generation has been drastically optimized by introducing image caching, parallel loading, resizing, and quality reduction. This resolved critical 524 timeout errors, reducing generation time from over 100 seconds to under 1 second.
-    -   The hot tub calculator's initial load time was significantly improved by optimizing the  endpoint. The payload size was reduced from 4.5 MB to 33 KB by removing embedded base64 images from the JSON response.
--   **Layout Filtering & Dependencies:**
-    -   A new feature was added to link layout variants to specific sauna sub-models. The UI in the admin panel was updated, and the calculator now filters layouts based on the selected sub-model.
-    -   The calculator now automatically selects the correct layout size based on the chosen sauna model and hides other irrelevant size options from the manager.
--   **PDF & UI Logic Fixes:**
-    -   Logic for displaying other available layouts, sourcing room dimensions, and arranging options in two columns in the PDF has been fixed as per user requests.
-    -   The PDF model image is now correctly sourced from the sub-model first.
+In this session, the agent has:
+- **Optimized Backend Startup:** Implemented lazy database connections and deferred heavy startup tasks (DB indexing, admin user creation) to background processes. This was done to fix deployment timeouts.
+- **Fixed Critical Bugs:**
+    - Addressed an  in the amoCRM webhook handler.
+    - Resolved a Response body is already used error in the frontend's authentication retry logic.
+- **Improved amoCRM Integration:**
+    - Added backend logic and a frontend UI to filter incoming webhooks by a manually entered , preventing the creation of unwanted orders.
+    - Added a strict check to reject webhooks that don't contain a .
+    - Added a feature to mass-delete orders that were created Without a name.
+    - Corrected the client-side sync logic to prevent creating duplicate orders by checking against all existing local orders (both in trips and unassigned).
+- **Created API Documentation:** Generated documentation and a sample React component to help the user integrate the sauna calculator on a new website via API.
 
 **Last working item**:
--   **Last item agent was working**: The agent was troubleshooting a bug where saving options in the hot tub (купели) administrator page fails with a 422 Unprocessable Content error. The agent suspected a Pydantic validation error on the backend, where the incoming data from the frontend did not match the strict model definition.
--   **Status**: IN PROGRESS
+-   **Last item agent was working**: The user reported that loading orders from amoCRM in the logistics page was extremely slow. The agent analyzed the production logs and identified the root cause: the system was fetching each lead from the amoCRM API in a separate request (an N+1 query problem), causing significant delays. The agent concluded that the solution is to refactor the code to use amoCRM's batch API to fetch multiple leads in a single request.
+-   **Status**: NOT STARTED
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent. The agent should first try to reproduce the issue by attempting to save options in the hot tub pricing admin panel. If the error persists, they should check the backend logs for detailed Pydantic validation errors. A  command with a valid payload can also be used to confirm the endpoint works correctly after the fix.
+-   **Which testing method agent to use?**: backend testing agent. The agent needs to refactor the logic in . After implementation, the testing agent should be used to verify that the amoCRM sync endpoint is faster and still returns the correct data.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Saving options in the hot tub calculator fails with 422 error.** (P0)
--   **Issue 2: amoCRM widget height does not increase on user's hosting.** (P2)
--   **Issue 3: Unstable user login sessions.** (P3)
--   **Issue 4: Minor admin UI bugs (sauna hints not saving, category hint dialog redirection).** (P3)
+-   **Issue 1: Slow loading of orders from amoCRM.** (P0 - CRITICAL BLOCKER)
+-   **Issue 2: Unstable user login sessions.** (P0 - CRITICAL, RECURRING)
+-   **Issue 3: Unwanted orders from amoCRM still appear.** (P1)
+-   **Issue 4:  errors during deployment.** (P1)
 
-Issues Detail:
--   **Issue 1: Saving options in the hot tub calculator fails with 422 error.**
-    -   **Attempted fixes**: The agent made the Pydantic models for the hot tub pricing data (,  in ) more flexible by making several fields . This was done to prevent validation errors if the frontend doesn't send these fields. The backend has been restarted, but the fix has not been verified.
+**Issues Detail**:
+-   **Issue 1: Slow loading of orders from amoCRM.**
+    -   **Attempted fixes**: None. The agent only diagnosed the problem.
     -   **Next debug checklist**:
-        1.  Attempt to save options in the hot tub pricing admin UI to see if the 422 error is gone.
-        2.  If the error persists, inspect the browser's network tab for the exact payload sent in the  request.
-        3.  Check the backend logs () for detailed Pydantic validation errors, which will point to the exact field causing the issue.
-        4.  Compare the sent payload with the Pydantic models (,  in ) to find the mismatch.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical bug preventing administrators from managing pricing and options for hot tubs.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
+        1.  Locate the function responsible for fetching leads during synchronization in .
+        2.  Modify the logic from a loop of single API calls to a single batch API call to amoCRM to retrieve all required leads at once.
+        3.  Ensure the data processing logic correctly handles the batched response.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical performance bug that makes the logistics page unusable. Fixing it will restore the functionality of the amoCRM integration.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Backend
-    -   **Blocked on other issue**: None
+    -   **Blocked on other issue**: None.
 
--   **Issue 2: amoCRM widget height is not increasing on user's hosting.**
-    -   **Next debug checklist**: Explain iframe cross-origin limitations to the user and suggest alternative solutions like redesigning the widget layout to fit the fixed height.
-    -   **Status**: NOT STARTED
+-   **Issue 2: Unstable user login sessions.**
+    -   **Attempted fixes**: Numerous fixes have been applied across sessions, including increasing JWT lifetime, robust client/server retry logic, pinning  version, and fixing a body already used clone error in . The user was also advised to increase server resources (Power).
+    -   **Next debug checklist**:
+        1.  User must deploy the latest version with all the fixes.
+        2.  If the issue persists, the user needs to provide new production backend logs.
+        3.  The agent must analyze these logs for  consistency across pods and any other token validation errors. The random nature of the logouts strongly suggests an issue related to the multi-instance Kubernetes environment.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical usability bug that prevents reliable use of the application.
+    -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None.
 
--   **Issue 3: Unstable user login sessions.**
-    -   **Next debug checklist**: Investigate JWT token expiration, refresh logic, and server/client-side token handling. The agent experienced this issue multiple times during the session, indicating a persistent problem.
-    -   **Status**: NOT STARTED
+-   **Issue 3: Unwanted orders from amoCRM still appear.**
+    -   **Attempted fixes**:
+        1.  Backend (): Added a strict check to reject webhooks without a  or .
+        2.  Frontend (): Added a UI to manually input a  to filter incoming leads.
+    -   **Next debug checklist**:
+        1.  The user needs to correctly identify the  for their Теплицы funnel in amoCRM.
+        2.  The user must enter this ID into the settings on the Integrations page and save.
+        3.  Verify if unwanted orders (especially those Без имени) stop appearing.
+    -   **Why fix this issue and what will be achieved with the fix?**: Prevents data clutter in the logistics system.
+    -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None.
 
--   **Issue 4: Minor admin UI bugs.**
-    -   **Next debug checklist**: In the pricing admin, investigate why sauna hints may not be saving and why the category hint dialog redirects incorrectly.
-    -   **Status**: NOT STARTED
+-   **Issue 4:  errors during deployment.**
+    -   **Attempted fixes**: The agent implemented lazy-loading for the MongoDB connection and deferred startup tasks (, ) to run in the background after the app starts. This should allow the  endpoint to respond immediately.
+    -   **Next debug checklist**: The user has deployed multiple times, and while some logs show success, others still show timeouts. The user should try deploying the latest version. If timeouts persist, it strongly indicates a resource issue, and the user's idea of increasing the allocated Power on the Emergent platform is the most likely solution.
+    -   **Why fix this issue and what will be achieved with the fix?**: Ensures successful and reliable application deployments.
+    -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on other issue**: None.
 
 **In progress Task List**:
-- None
+-   None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    *   **P1**: Fully refactor the  function in . While performance was optimized, the function itself is still monolithic and complex. It should be broken down into smaller helper functions.
-    *   **P1**: Continue refactoring large React components and hooks, especially .
-    *   **P1**: Re-activate and continue development of the Wizard Calculator ().
+    *   **P1**: Refactor the monolithic  function in .
+    *   **P1**: Refactor the complex  hook in .
+    *   **P1**: Continue development of the Wizard Calculator ().
 -   **Future Tasks**:
     *   **P2**: Add UI for importing/restoring a backup.
     *   **P2**: Replace the deprecated Google Maps Autocomplete component.
     *   **P3**: Finalize the Sauna Lead Statistics feature.
 
 **Completed work in this session**
--   **Feature - Custom Layout Upload**: Implemented a feature for managers to upload a custom layout image in the sauna calculator, which is then prioritized in the generated PDF.
--   **Performance - PDF Generation**: Resolved critical 524 timeout errors by drastically optimizing image handling in . Implemented image caching, resizing, quality reduction, and a universal  function, reducing PDF generation time from >100s to <1s.
--   **Performance - Hot Tub Calculator**: Optimized the  endpoint for the hot tub calculator by removing embedded base64 images, reducing the API response size from 4.5 MB to 33 KB.
--   **Feature - Layout to Sub-Model Dependency**: Implemented filtering of layout variants based on the selected sauna sub-model. This included DB schema changes, a new admin UI in , and filtering logic in .
--   **Feature - Automatic Layout Size Selection**: The calculator now automatically selects the appropriate layout size based on the chosen sauna model and hides other size options, improving the user experience.
--   **Bugfix - PDF Content & Layout**:
-    -   Fixed an issue to ensure other available layouts are shown on page 2 of the PDF even when a custom layout is uploaded.
-    -   Correctly implemented a two-column layout for Available Options on the PDF's second page.
-    -   Ensured the Available Options section starts on a new page.
--   **Bugfix - Data Sourcing**:
-    -   Fixed logic to ensure room dimensions in the PDF and calculator summary are correctly sourced from the selected sub-model.
-    -   Corrected the logic to use the sub-model's image for the main model picture in the PDF, with a fallback to the main model's image.
--   **Bugfix - Layout Filtering**: Resolved a bug where layout variants were not being filtered correctly by fixing the data flow between , , and .
+-   **Performance - Backend Startup:** Fixed deployment timeouts by implementing a lazy DB connection () and deferring heavy startup tasks ().
+-   **Bugfix - amoCRM :** Fixed a server crash by initializing  in the webhook handler ().
+-   **Bugfix - Frontend Authentication:** Fixed a Response body is already used error in the login retry logic ().
+-   **Feature - amoCRM Webhook Filtering:** Implemented backend checks and a frontend UI (, ) to filter incoming webhooks by a manually configured .
+-   **Feature - Mass Deletion of Orders:** Added a backend endpoint and UI button (, ) to delete unnamed orders from the logistics system.
+-   **Bugfix - amoCRM Sync Duplicates:** Corrected the sync logic in  to compare against all local orders (including those in trips) to prevent creating duplicates.
+-   **Feature - API Documentation:** Created  and a downloadable zip to facilitate integrating the calculator into another website.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Monolithic PDF Generation Function**
-    -   **Debug checklist**: The file  was heavily optimized for performance, but the core function  remains over 1500 lines long. This function needs to be broken down into smaller, single-responsibility helper functions.
-    -   **Why to solve this issue and what will be achieved with this?**: The function is extremely difficult to debug and extend. Refactoring will improve maintainability and reduce the risk of introducing new bugs.
+    -   **Debug checklist**: The function  in  is over 1500 lines and needs to be broken down.
+    -   **Why to solve this issue and what will be achieved with this?**: Improves code quality and maintainability.
     -   **Should Test frontend/backend/both after fix**: Backend
     -   **Is recurring issue?**: Y
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Unstable user login sessions.
--   **Recurrence count**: 3+ (occurred again in this session)
--   **Status**: NOT STARTED
+-   **Recurrence count**: Very High.
+-   **Status**: IN PROGRESS (Fixes implemented, but user verification is pending).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend Performance Optimization**: Drastically reducing API response size by replacing base64 encoded images with URLs. Optimizing long-running tasks (PDF generation) with caching, image resizing (), and reducing external requests.
--   **Complex Frontend State Management**: Managing tightly coupled state in React between model selection, sub-model selection, and layout variant filtering using multiple hooks (, ).
--   **Client-Side Filtering**: Shifting data filtering logic to the frontend () to provide a more responsive UI when selections change.
--   **Pydantic Model Debugging**: Investigating and fixing  errors by making backend Pydantic models more flexible ( fields) to accommodate variations in frontend payloads.
+-   **Backend Performance Optimization**: Using lazy database connections and deferred background tasks to accelerate application startup and pass Kubernetes health checks.
+-   **API Efficiency (N+1 Problem)**: Identified that fetching amoCRM leads one-by-one is a major performance bottleneck. The next step is to implement batch fetching.
+-   **Robust Webhook Handling**: Added strict data validation (, ) to webhook handlers to filter out irrelevant events and prevent bad data from entering the system.
+-   **Resilient Frontend Logic**: Improved  error handling by reading the response body as text to prevent body already used errors during retries.
 
 **key DB schema**
--   **sauna_layout_variants** (collection):
-    -    (new field): List of sub-model IDs that this layout is compatible with.
--   **sauna_models** (collection):
-    -    (new field): Specifies the default layout size (e.g., 2m, 3m) to be selected when this model is chosen.
+-   No schema changes were made in this session.
+
+**changes in tech stack**
+-   None.
 
 **All files of reference**
-*   **/app/backend/routes/balia.py**: Location of the hot tub pricing endpoint () causing the 422 error.
-*   **/app/backend/models/balia.py**: Pydantic models for the hot tub calculator, which were modified to be more flexible.
-*   **/app/backend/routes/sauna.py**: Location of the heavily optimized PDF generation logic.
-*   **/app/frontend/src/components/sauna/useSaunaCalculator.js**: The central hook for all sauna calculator logic.
-*   **/app/frontend/src/components/sauna/useLayoutCatalog.js**: Hook responsible for filtering layout variants.
-*   **/app/frontend/src/components/sauna/LayoutCatalog.jsx**: The UI component for displaying and uploading layouts.
-*   **/app/frontend/src/components/FAQPage.jsx**: Admin page for managing layout variants and their dependencies.
-*   **/app/frontend/src/components/sauna-pricing/ModelDialog.jsx**: Admin UI for editing sauna models, where  was added.
+-   **/app/backend/routes/amocrm.py**: Contains the core logic for amoCRM integration, which was heavily modified to fix bugs and add filtering. It is the target for the next performance optimization.
+-   **/app/frontend/src/context/AuthContext.jsx**: Contains the frontend authentication logic where a critical bug in the retry mechanism was fixed.
+-   **/app/backend/server.py**: Main application entry point, modified for faster startup.
+-   **/app/backend/database.py**: Database connection module, modified for lazy initialization.
+-   **/app/frontend/src/components/logistics/useLogistics.js**: Hook containing the client-side logic for the logistics page, where the order comparison logic was fixed.
+-   **/app/frontend/src/components/IntegrationsPage.jsx**: UI for configuring integrations, where the pipeline filter was added.
 
 **Areas that need refactoring**:
--   **CRITICAL**:  - The  function is still a monolithic function. The performance optimizations were added within the existing structure. It needs to be broken down into smaller, testable helper functions.
--   **HIGH**:  - This hook has grown even more complex with the addition of new features. It could benefit from further separation of concerns.
+-   : The  function remains a large monolith.
+-   : This hook is still overly complex.
 
 **key api endpoints**
--   : **(CURRENTLY BROKEN)** Endpoint for saving hot tub options, returning a 422 error.
--   : New optimized endpoint for fetching public hot tub prices with a much smaller payload. The frontend needs to be updated to use this.
--   : Main endpoint for PDF generation, now highly performant.
--   : Endpoint used for uploading custom layout images.
+-   : The main endpoint for receiving data from amoCRM. Logic was added to filter requests.
+-   : **(NEW)** Deletes all orders in a given section that have no name.
+-   : The user login endpoint, which was affected by the body already used frontend bug.
+-   : The health check endpoint that was failing due to slow startup.
 
 **Critical Info for New Agent**
 -   You **MUST** respond in **Russian**.
--   **Highest priority task**: Verify the fix for the  error when saving hot tub options. The Pydantic models were relaxed in , but you need to confirm this solves the problem by testing the save functionality.
--   **Hot Tub Optimization**: The agent created a new endpoint  to speed up the hot tub calculator. The frontend component () still uses the old, slow  endpoint. You should update it to use the new, faster one.
--   **PDF Performance**: The  function in  was a major bottleneck causing 524 timeouts. It has been heavily optimized. Be extremely careful not to introduce new performance regressions, especially related to image fetching or processing.
--   **Login Instability**: User login sessions are unstable. The agent was logged out unexpectedly multiple times. This is a recurring, high-impact usability issue that needs to be addressed.
+-   The **highest priority (P0)** is to fix the **slow amoCRM order loading**. You need to refactor the lead fetching logic in  to use a batch API instead of making N+1 requests.
+-   The **unstable user authentication (P0, recurring)** issue is still not confirmed as resolved. Be prepared to analyze production logs if the user reports it again. The solution may involve advising the user to increase server resources (Power) on the Emergent platform.
+-   The fix for **unwanted amoCRM orders** depends on the user correctly configuring the  in the UI. Guide them if they have trouble.
 
 **documents and test reports created in this job**
--   /app/test_reports/iteration_34.json
+-   /app/API_DOCUMENTATION_FOR_NEW_SITE.md
+-   /app/sauna-api-integration.zip
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** Fix the issue where PDF options are not in two columns. (Status: COMPLETED).
-9.  **User:** Fix the issue where room dimensions are not taken from the sub-model. (Status: COMPLETED).
-8.  **User:** Make the Available Options section in the PDF start on a new page. (Status: COMPLETED).
-7.  **User:** Is it possible to make layout variants depend on the selected sub-model? (Status: COMPLETED).
-6.  **User:** When selecting a sub-model, the layout catalog still shows all variants, not the filtered ones. (Status: COMPLETED - This was a bug in the initial implementation that was later fixed).
-5.  **User:** When I select a 2-meter model, can the catalog automatically select the 2m layouts and hide the others? (Status: COMPLETED).
-4.  **User:** Even after selecting a 2-meter model, all layout sizes are still visible. (Status: COMPLETED - This was an intermediate step, the final implementation hides other sizes).
-3.  **User:** The main model image in the PDF should come from the sub-model, not the main model. (Status: COMPLETED).
-2.  **User:** The hot tub calculator feels slow to load, can you optimize it? (Status: COMPLETED - API response size was reduced from 4.5MB to 33KB).
-1.  **User:** Saving options in the hot tub calculator doesn't work. I'm getting a 422 error. (Status: **IN PROGRESS - THIS IS THE NEXT TASK**).
+10. User provides extensive backend logs showing many  requests to the amoCRM API, confirming the N+1 issue. (Status: ADDRESSED - agent diagnosed the issue)
+9. Agent asks for backend logs to investigate the slow loading. (Status: ADDRESSED)
+8. User reports that loading orders from amoCRM has become very slow and provides frontend console logs. (Status: IN PROGRESS)
+7. User reports that some unnamed orders are still appearing and that orders should only be transferred from the specific webhook-triggering funnel. (Status: ADDRESSED - agent implemented stricter webhook filtering)
+6. User confirms their current webhook setup is correct and that they don't need the UI to load a list of funnels. (Status: ADDRESSED)
+5. Agent reports that the deployment logs show success but with a temporary timeout, indicating the app is starting but may be slow. (Status: ADDRESSED)
+4. User provides deployment logs showing  errors on the  endpoint, even after previous fixes. (Status: ADDRESSED - agent re-investigated and proposed increasing server resources)
+3. User asks if they should increase server resources (Power) because employees are still getting logged out, and agrees to provide new logs. (Status: ADDRESSED)
+2. Agent explains the options for dealing with Cloudflare 520 errors and getting a direct Emergent server URL, and offers to add fallback logic to the API documentation. (Status: ADDRESSED)
+1. User asks if there is a direct Emergent server URL for the API to bypass Cloudflare 520 errors. (Status: ADDRESSED)
 
 **Project Health Check:**
-*   **Broken:** Saving options in the hot tub pricing admin ().
-*   **Mocked:** None.
+-   **Broken**:
+    -   amoCRM order synchronization is unusably slow.
+    -   User authentication is still considered unstable until verified as fixed in production.
+-   **Mocked**: None.
 
 **3rd Party Integrations**
-*   **amoCRM/Kommo**: Primary CRM integration.
-*   **Telegram**: Used for sending notifications.
+-   **amoCRM/Kommo**: Primary CRM integration. Currently has a major performance issue.
+-   **Telegram**: Used for sending notifications.
+-   **Cloudinary**: Used for all new image uploads.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, for the custom layout upload feature.
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None.
--   **Known regressions**: Saving hot tub options is a new regression introduced or discovered during this session.
+-   **Test files created**: None
+-   **Known regressions**: The unstable authentication is a severe, persistent issue. The amoCRM integration performance has severely degraded.
 
 **Credentials to test flow:**
 -   Admin:  / 
 -   Manager (Employee):  / 
 
 **What agent forgot to execute**
--   The frontend for the hot tub calculator () was not updated to use the new, optimized  endpoint. It still calls the old, slow  endpoint.</analysis>
+-   The planned refactoring of  and  remains pending.
+-   The agent diagnosed the N+1 issue with the amoCRM API but did not implement the batch API fix. This is the immediate next step.</analysis>
