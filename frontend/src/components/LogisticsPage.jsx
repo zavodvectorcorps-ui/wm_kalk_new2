@@ -161,6 +161,8 @@ export const LogisticsPage = () => {
     syncMissingOrders,
     deleteUnnamedOrders,
     deletingUnnamed,
+    deleteAllOrdersInSection,
+    deletingSection,
     // amoCRM refresh
     refreshingOrderId,
     refreshingAll,
