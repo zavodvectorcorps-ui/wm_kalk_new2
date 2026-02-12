@@ -379,28 +379,45 @@ export const IntegrationsPage = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Pipeline filter selector */}
+        {/* Pipeline filter - manual input */}
         <div className="space-y-2">
-          <Label className="text-sm">Воронка для этого раздела</Label>
-          <Select
-            value={settings.section_pipelines?.[section] || 'all'}
-            onValueChange={(val) => setSettings(prev => ({
-              ...prev,
-              section_pipelines: { ...prev.section_pipelines, [section]: val === 'all' ? '' : val }
-            }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Выберите воронку (фильтр webhook)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все воронки (без фильтра)</SelectItem>
-              {pipelines.map(p => (
-                <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label className="text-sm">ID воронки (фильтр)</Label>
+          <div className="flex gap-2">
+            <Input
+              value={settings.section_pipelines?.[section] || ''}
+              onChange={(e) => setSettings(prev => ({
+                ...prev,
+                section_pipelines: { ...prev.section_pipelines, [section]: e.target.value }
+              }))}
+              placeholder="Введите pipeline_id из amoCRM"
+              className="font-mono text-sm"
+            />
+            {pipelines.length > 0 && (
+              <Select
+                value={settings.section_pipelines?.[section] || 'manual'}
+                onValueChange={(val) => {
+                  if (val !== 'manual') {
+                    setSettings(prev => ({
+                      ...prev,
+                      section_pipelines: { ...prev.section_pipelines, [section]: val }
+                    }));
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Выбрать" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Ввести вручную</SelectItem>
+                  {pipelines.map(p => (
+                    <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground">
-            Только сделки из выбранной воронки будут создаваться как заказы
+            Только сделки из этой воронки будут создаваться. Оставьте пустым для всех воронок.
           </p>
         </div>
         
