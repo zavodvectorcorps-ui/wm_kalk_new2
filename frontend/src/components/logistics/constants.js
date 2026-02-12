@@ -86,7 +86,7 @@ export const SECTIONS = {
     color: 'text-blue-600',
     bgColor: 'bg-blue-100',
     borderColor: 'border-blue-500',
-    endpoint: '/api/orders',
+    endpoint: '/api/orders?for_logistics=true',
     markerColor: '#2563eb'
   },
   sauna: {
