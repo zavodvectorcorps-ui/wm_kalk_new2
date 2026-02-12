@@ -209,30 +209,35 @@ export const useLogistics = () => {
   const getAmocrmComparison = useCallback(() => {
     if (!amocrmStats || !amocrmStats.lead_ids) return null;
     
+    // Only FREE orders (not in trips, not delivered)
     const localOrders = currentData?.orders || [];
+    
+    // Orders in trips (for finding missing ones)
     const tripsOrders = trips.flatMap(trip => trip.orders || []);
     
-    // Combine ALL orders - both free and in trips
-    const allLocalOrders = [...localOrders, ...tripsOrders];
-    
-    // Get all amocrm_ids from local orders (both free and in trips)
-    const localAmocrmIds = allLocalOrders
+    // Get amocrm_ids from FREE orders only (for display count)
+    const freeAmocrmIds = localOrders
       .filter(o => o.amocrm_id)
       .map(o => String(o.amocrm_id));
     
-    // Remove duplicates (in case same order appears in both lists)
-    const uniqueLocalAmocrmIds = [...new Set(localAmocrmIds)];
+    // Get ALL local amocrm_ids (both free and in trips) to check what's already synced
+    const allLocalAmocrmIds = [...localOrders, ...tripsOrders]
+      .filter(o => o.amocrm_id)
+      .map(o => String(o.amocrm_id));
+    
+    // Remove duplicates
+    const uniqueAllLocalAmocrmIds = [...new Set(allLocalAmocrmIds)];
     
     const amocrmIds = amocrmStats.lead_ids;
     
     // Find which IDs are in amoCRM but not in local (need to sync)
-    const missingInLocal = amocrmIds.filter(id => !uniqueLocalAmocrmIds.includes(id));
+    const missingInLocal = amocrmIds.filter(id => !uniqueAllLocalAmocrmIds.includes(id));
     // Find which IDs are in local but not in amoCRM (already processed or moved to another stage)
-    const extraInLocal = uniqueLocalAmocrmIds.filter(id => !amocrmIds.includes(id));
+    const extraInLocal = uniqueAllLocalAmocrmIds.filter(id => !amocrmIds.includes(id));
     
     return {
       amocrmCount: amocrmIds.length,
-      localCount: uniqueLocalAmocrmIds.length,
+      localCount: freeAmocrmIds.length,  // Only FREE orders count
       missingInLocal,
       extraInLocal,
       synced: missingInLocal.length === 0
