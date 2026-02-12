@@ -13,14 +13,18 @@ router = APIRouter(tags=["Sauna CRUD"])
 # =============================================
 
 @router.get("/prices")
-async def get_sauna_prices():
+async def get_sauna_prices(response: Response):
     """Get sauna pricing data"""
     prices = await db.sauna_prices.find_one({"_id": "default"})
     if not prices:
         await db.sauna_prices.insert_one({"_id": "default", **default_sauna_prices})
-        return default_sauna_prices
+        prices = default_sauna_prices
+    else:
+        prices.pop('_id', None)
     
-    prices.pop('_id', None)
+    # Cache for 5 minutes (prices don't change often)
+    response.headers["Cache-Control"] = "public, max-age=300"
+    
     return prices
 
 
