@@ -73,6 +73,12 @@ export const IntegrationsPage = () => {
       balia: { ...DEFAULT_FIELD_MAPPING },
       sauna: { ...DEFAULT_FIELD_MAPPING }
     },
+    // Pipeline filter for webhooks - only accept leads from these pipelines
+    section_pipelines: {
+      greenhouse: '',
+      balia: '',
+      sauna: ''
+    },
     // Two-way sync settings
     amocrm_domain: '',
     amocrm_token: '',
