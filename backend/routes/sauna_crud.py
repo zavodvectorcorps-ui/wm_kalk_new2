@@ -1,5 +1,5 @@
 """CRUD operations for sauna models, categories, and options."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from database import db
 from models.sauna import SaunaModel, SaunaOption, SaunaCategory, SaunaPriceData
 from data.sauna_defaults import default_sauna_prices
