@@ -379,6 +379,31 @@ export const IntegrationsPage = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Pipeline filter selector */}
+        <div className="space-y-2">
+          <Label className="text-sm">Воронка для этого раздела</Label>
+          <Select
+            value={settings.section_pipelines?.[section] || ''}
+            onValueChange={(val) => setSettings(prev => ({
+              ...prev,
+              section_pipelines: { ...prev.section_pipelines, [section]: val }
+            }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Выберите воронку (фильтр webhook)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Все воронки (без фильтра)</SelectItem>
+              {pipelines.map(p => (
+                <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Только сделки из выбранной воронки будут создаваться как заказы
+          </p>
+        </div>
+        
         <div className="space-y-2">
           <Label className="text-sm">URL для Webhook</Label>
           <div className="flex gap-2">
