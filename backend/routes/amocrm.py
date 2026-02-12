@@ -272,6 +272,82 @@ async def fetch_lead_from_amocrm(lead_id: str, domain: str, token: str) -> Optio
         return None
 
 
+async def fetch_leads_batch_from_amocrm(lead_ids: List[str], domain: str, token: str, batch_size: int = 50) -> Dict[str, Dict[str, Any]]:
+    """Fetch multiple leads from amoCRM API in batch.
+    
+    Uses filter[id] parameter to get multiple leads in one request.
+    Much more efficient than fetching each lead individually.
+    
+    Args:
+        lead_ids: List of lead IDs to fetch
+        domain: amoCRM domain
+        token: API token
+        batch_size: Number of leads per request (max 250, default 50)
+        
+    Returns:
+        Dict mapping lead_id -> lead_data
+    """
+    if not domain or not token or not lead_ids:
+        logger.warning("Missing amoCRM credentials or lead_ids for batch fetch")
+        return {}
+    
+    results = {}
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+    # Process in batches
+    for i in range(0, len(lead_ids), batch_size):
+        batch = lead_ids[i:i + batch_size]
+        
+        # Build filter query params for batch
+        params = {"with": "contacts", "limit": batch_size}
+        # amoCRM accepts filter[id] with comma-separated IDs or array
+        params["filter[id]"] = ",".join(str(lid) for lid in batch)
+        
+        url = f"https://{domain}/api/v4/leads"
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(url, headers=headers, params=params)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    leads = data.get("_embedded", {}).get("leads", [])
+                    
+                    for lead in leads:
+                        lead_id = str(lead.get("id", ""))
+                        if lead_id:
+                            results[lead_id] = lead
+                    
+                    logger.info(f"Batch fetched {len(leads)} leads from amoCRM (requested {len(batch)})")
+                    
+                elif response.status_code == 429:
+                    logger.warning(f"amoCRM API rate limit exceeded during batch fetch")
+                    # Wait and retry once
+                    await asyncio.sleep(1)
+                    response = await client.get(url, headers=headers, params=params)
+                    if response.status_code == 200:
+                        data = response.json()
+                        leads = data.get("_embedded", {}).get("leads", [])
+                        for lead in leads:
+                            lead_id = str(lead.get("id", ""))
+                            if lead_id:
+                                results[lead_id] = lead
+                else:
+                    logger.error(f"amoCRM batch API error {response.status_code}: {response.text[:200]}")
+                    
+        except Exception as e:
+            logger.error(f"Failed to batch fetch leads from amoCRM: {e}")
+        
+        # Small delay between batches to avoid rate limiting
+        if i + batch_size < len(lead_ids):
+            await asyncio.sleep(0.2)
+    
+    return results
+
+
 async def fetch_contact_from_amocrm(contact_id: str, domain: str, token: str) -> Optional[Dict[str, Any]]:
     """Fetch contact data from amoCRM API to get phone and other contact info.
     
