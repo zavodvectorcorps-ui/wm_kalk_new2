@@ -1404,10 +1404,10 @@ async def delete_amocrm_orders(section: str):
 
 @router.delete("/orders/all/{section}")
 async def delete_all_section_orders(section: str):
-    """Delete ALL orders from a section (not just amoCRM).
+    """Delete all LOGISTICS orders from a section.
     
-    WARNING: This deletes ALL orders regardless of source!
-    Use with caution - cannot be undone.
+    Only deletes orders that came from amoCRM or were created for logistics.
+    Preserves orders created through the calculator.
     """
     if section not in ["greenhouse", "balia", "sauna"]:
         raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
@@ -1416,20 +1416,34 @@ async def delete_all_section_orders(section: str):
     if collection is None:
         raise HTTPException(status_code=400, detail=f"Unknown section: {section}")
     
-    # Count before deletion
-    count_before = collection.count_documents({})
+    # Only delete orders that are for logistics (from amoCRM or have logistics-specific fields)
+    # Orders from calculator don't have these fields
+    logistics_filter = {
+        "$or": [
+            {"source": "amocrm"},  # Orders from amoCRM webhook
+            {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},  # Orders linked to amoCRM
+            {"transferredAt": {"$exists": True}},  # Orders transferred to logistics
+            {"deliveryStatus": {"$exists": True}},  # Orders with delivery status
+            {"warehouseStatus": {"$exists": True}},  # Orders with warehouse status
+        ]
+    }
     
-    # Delete ALL orders from the section
-    result = collection.delete_many({})
+    # Count before deletion
+    count_before = collection.count_documents(logistics_filter)
+    total_in_section = collection.count_documents({})
+    
+    # Delete only logistics orders
+    result = collection.delete_many(logistics_filter)
     deleted_count = result.deleted_count
     
-    logger.warning(f"DELETED ALL {deleted_count} orders from {section} (was: {count_before})")
+    logger.warning(f"DELETED {deleted_count} logistics orders from {section} (total was: {total_in_section}, logistics: {count_before})")
     
     return {
         "status": "ok", 
         "deleted_count": deleted_count, 
         "section": section,
-        "message": f"Удалено все {deleted_count} заказов из секции {section}"
+        "preserved_calculator_orders": total_in_section - deleted_count,
+        "message": f"Удалено {deleted_count} заказов логистики из секции {section}"
     }
 
 
