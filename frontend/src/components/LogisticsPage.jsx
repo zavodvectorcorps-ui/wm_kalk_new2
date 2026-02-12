@@ -310,6 +310,48 @@ export const LogisticsPage = () => {
                 </p>
               )}
             </div>
+            
+            {/* Section cleanup buttons */}
+            <div className="space-y-2 pt-4 border-t">
+              <Label className="text-sm font-medium flex items-center gap-2 text-red-600">
+                <Trash2 className="h-4 w-4" />
+                Очистка данных (удаление всех заказов из секции)
+              </Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                ⚠️ Внимание: это удалит ВСЕ заказы amoCRM из выбранной секции. Действие необратимо.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => deleteAllOrdersInSection('balia')}
+                  disabled={deletingSection === 'balia'}
+                  data-testid="delete-all-balia-btn"
+                >
+                  {deletingSection === 'balia' ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  Удалить все из Купелей
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => deleteAllOrdersInSection('sauna')}
+                  disabled={deletingSection === 'sauna'}
+                  data-testid="delete-all-sauna-btn"
+                >
+                  {deletingSection === 'sauna' ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  Удалить все из Саун
+                </Button>
+              </div>
+            </div>
+            
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowSettingsModal(false)}>Отмена</Button>
               <Button 
