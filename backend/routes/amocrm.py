@@ -101,6 +101,8 @@ class AmoCRMSettings(BaseModel):
     enabled: bool = False
     # Field mapping - separate for each section (Dict to accept any structure)
     field_mapping: Dict[str, Any] = {}
+    # Pipeline IDs for each section (to filter webhooks by pipeline)
+    section_pipelines: Dict[str, str] = {}  # e.g., {"greenhouse": "12345", "balia": "67890", "sauna": "11111"}
     # amoCRM API credentials for syncing back
     amocrm_domain: str = ""  # e.g., "mycompany.amocrm.ru"
     amocrm_token: str = ""  # Long-lived token
