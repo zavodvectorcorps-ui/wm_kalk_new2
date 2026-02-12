@@ -76,7 +76,7 @@ export const SECTIONS = {
     color: 'text-green-600',
     bgColor: 'bg-green-100',
     borderColor: 'border-green-500',
-    endpoint: '/api/greenhouse/orders',
+    endpoint: '/api/greenhouse/orders?for_logistics=true',
     markerColor: '#16a34a'
   },
   balia: {
