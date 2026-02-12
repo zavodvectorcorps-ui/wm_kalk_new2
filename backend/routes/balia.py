@@ -40,11 +40,12 @@ async def root():
 
 
 @router.get("/prices")
-async def get_prices():
+async def get_prices(response: Response):
     """Get current pricing"""
     prices = await db.prices.find_one({"_id": "default"})
     if not prices:
         await db.prices.insert_one({"_id": "default", **default_balia_prices})
+        response.headers["Cache-Control"] = "public, max-age=300"
         return default_balia_prices
     
     prices.pop('_id', None)
