@@ -721,6 +721,58 @@ export const useLogistics = () => {
     syncMissingOrdersRef.current = syncMissingOrders;
   }, [syncMissingOrders]);
 
+  // Delete unnamed orders (Без имени)
+  const [deletingUnnamed, setDeletingUnnamed] = useState(false);
+  
+  const deleteUnnamedOrders = useCallback(async () => {
+    const sectionMap = {
+      balia: 'balia',
+      greenhouse: 'greenhouse',
+      sauna: 'sauna'
+    };
+    
+    const section = sectionMap[activeSection];
+    if (!section) return;
+    
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      toast.error('Необходима авторизация');
+      return;
+    }
+    
+    setDeletingUnnamed(true);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/integrations/amocrm/orders/unnamed/${section}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.detail || 'Failed to delete unnamed orders');
+      }
+      
+      if (result.deleted_count > 0) {
+        toast.success(`Удалено заказов без имени: ${result.deleted_count}`);
+        await fetchAllOrders();
+      } else {
+        toast.info('Нет заказов без имени для удаления');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error deleting unnamed orders:', error);
+      toast.error(`Ошибка удаления: ${error.message}`);
+      throw error;
+    } finally {
+      setDeletingUnnamed(false);
+    }
+  }, [activeSection, fetchAllOrders]);
+
   // Refresh single order from amoCRM
   const refreshOrderFromAmocrm = useCallback(async (orderId, amocrmId) => {
     if (!amocrmId) {
