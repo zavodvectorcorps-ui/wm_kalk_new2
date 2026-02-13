@@ -1093,6 +1093,52 @@ const SettingsTab = ({ prices, setPrices, nbpRate, lang, canEdit, txt, onExport,
         </p>
       </div>
       
+      {/* Manager Discount Settings */}
+      <Separator />
+      <div className="border rounded-lg p-4 bg-purple-50 space-y-4">
+        <h3 className="font-semibold text-purple-800 flex items-center gap-2">
+          <User className="h-4 w-4" />
+          {lang === 'ru' ? 'Настройки скидок' : 'Ustawienia rabatów'}
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>{lang === 'ru' ? 'Макс. скидка менеджера (%)' : 'Maks. rabat menedżera (%)'}</Label>
+            <Input 
+              type="number"
+              min="0"
+              max="100"
+              value={prices.maxManagerDiscount || 10} 
+              onChange={(e) => setPrices(prev => ({ ...prev, maxManagerDiscount: parseInt(e.target.value) || 10 }))}
+              disabled={!canEdit()}
+              placeholder="10"
+            />
+            <p className="text-xs text-purple-600">
+              {lang === 'ru' 
+                ? 'Максимальная скидка, которую менеджер может применить без одобрения администратора' 
+                : 'Maksymalny rabat, który menedżer może zastosować bez zgody administratora'}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>{lang === 'ru' ? 'Стандартная скидка (%)' : 'Standardowy rabat (%)'}</Label>
+            <Input 
+              type="number"
+              min="0"
+              max="100"
+              value={prices.defaultDiscount || 0} 
+              onChange={(e) => setPrices(prev => ({ ...prev, defaultDiscount: parseInt(e.target.value) || 0 }))}
+              disabled={!canEdit()}
+              placeholder="0"
+            />
+            <p className="text-xs text-purple-600">
+              {lang === 'ru' 
+                ? 'Скидка, применяемая по умолчанию для всех заказов' 
+                : 'Rabat stosowany domyślnie dla wszystkich zamówień'}
+            </p>
+          </div>
+        </div>
+      </div>
+      
       {/* Global Models Hint Section */}
       <Separator />
       <ModelsHintSection prices={prices} setPrices={setPrices} lang={lang} canEdit={canEdit} />
