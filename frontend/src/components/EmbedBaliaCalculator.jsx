@@ -222,8 +222,10 @@ export const EmbedBaliaCalculator = () => {
         heaterVariantType: selectedHeaterVariant?.type || 'external',
         selections: selections,
         selectedOptions: getSelectedOptions(),
-        subtotal: calculateTotal(),
-        total: calculateTotal(),
+        subtotal: subtotal,
+        discount: appliedDiscount,
+        discountAmount: discountAmount,
+        total: totalWithDiscount,
         currency: prices.currencySymbol || 'zł'
       };
       
@@ -237,6 +239,7 @@ export const EmbedBaliaCalculator = () => {
         setSelectedHeaterVariant(null);
         setSelections({});
         setCustomerData({ name: '', phone: '', comment: '' });
+        setAppliedDiscount(0);
       }
     } catch (error) {
       console.error('Error submitting order:', error);
@@ -254,7 +257,7 @@ export const EmbedBaliaCalculator = () => {
     );
   }
 
-  const total = calculateTotal();
+  const total = totalWithDiscount;
   const currencySymbol = prices.currencySymbol || 'zł';
 
   return (
