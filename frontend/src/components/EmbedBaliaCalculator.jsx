@@ -46,6 +46,9 @@ export const EmbedBaliaCalculator = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [submittedOrderId, setSubmittedOrderId] = useState('');
   
+  // Discount state
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  
   // Form state
   const [selectedModel, setSelectedModel] = useState(null);
   const [selectedHeaterVariant, setSelectedHeaterVariant] = useState(null);
@@ -56,6 +59,9 @@ export const EmbedBaliaCalculator = () => {
     comment: ''
   });
 
+  // Get max discount for manager
+  const maxManagerDiscount = prices.maxManagerDiscount || 10;
+  
   // Calculate total
   const calculateTotal = () => {
     let total = selectedHeaterVariant?.price || 0;
@@ -78,6 +84,18 @@ export const EmbedBaliaCalculator = () => {
     });
     
     return total;
+  };
+  
+  // Calculate discounted total
+  const subtotal = calculateTotal();
+  const discountAmount = Math.round(subtotal * appliedDiscount / 100);
+  const totalWithDiscount = subtotal - discountAmount;
+
+  // Handle discount change
+  const handleDiscountChange = (value) => {
+    const numValue = parseInt(value) || 0;
+    const maxAllowed = maxManagerDiscount;
+    setAppliedDiscount(Math.min(Math.max(0, numValue), maxAllowed));
   };
 
   // Fetch prices
