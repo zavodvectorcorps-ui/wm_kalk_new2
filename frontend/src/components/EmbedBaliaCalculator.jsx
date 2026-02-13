@@ -795,10 +795,46 @@ export const EmbedBaliaCalculator = () => {
 
               <Separator />
 
+              {/* Discount Section */}
+              <div className="bg-purple-50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Label htmlFor="discount" className="font-medium text-purple-800">
+                    Rabat (%):
+                  </Label>
+                  <Input
+                    id="discount"
+                    type="number"
+                    min="0"
+                    max={maxManagerDiscount}
+                    value={appliedDiscount}
+                    onChange={(e) => handleDiscountChange(e.target.value)}
+                    className="w-20 h-9"
+                  />
+                  <span className="text-sm text-purple-600">
+                    (max {maxManagerDiscount}%)
+                  </span>
+                </div>
+                
+                {appliedDiscount > 0 && (
+                  <div className="text-sm space-y-1">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Cena przed rabatem:</span>
+                      <span>{subtotal.toLocaleString()} {currencySymbol}</span>
+                    </div>
+                    <div className="flex justify-between text-purple-700 font-medium">
+                      <span>Rabat ({appliedDiscount}%):</span>
+                      <span>-{discountAmount.toLocaleString()} {currencySymbol}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
               {/* Total & Submit */}
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
                 <div className="text-center md:text-left">
-                  <p className="text-sm text-gray-500">Suma:</p>
+                  <p className="text-sm text-gray-500">Suma{appliedDiscount > 0 ? ' po rabacie' : ''}:</p>
                   <p className="text-3xl font-bold text-blue-600">
                     {total.toLocaleString()} {currencySymbol}
                   </p>
