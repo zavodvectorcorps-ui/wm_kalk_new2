@@ -1187,6 +1187,33 @@ async def receive_webhook_section(
     if lead_id:
         existing_order = collection.find_one({"amocrm_id": lead_id})
     
+    # === HANDLE CANCELLED ORDERS ===
+    # If lead is moved to "cancelled" stage (status_id=73620210), delete from logistics
+    # But ONLY if order is not already assigned to a trip
+    CANCELLED_STATUS_ID = "73620210"  # "слетел заказ" stage in amoCRM
+    webhook_status_id = basic_lead_data.get("status_id", "")
+    
+    if str(webhook_status_id) == CANCELLED_STATUS_ID and existing_order:
+        trip_id = existing_order.get("tripId")
+        order_id = existing_order.get("id")
+        
+        if trip_id:
+            # Order is in a trip - don't delete, just log
+            log_entry["status"] = "skipped"
+            log_entry["reason"] = f"Order moved to cancelled stage but is in trip {trip_id} - not deleted"
+            webhook_logs.insert_one(log_entry)
+            logger.info(f"Order {order_id} moved to cancelled in amoCRM but is in trip {trip_id} - keeping in logistics")
+            return {"status": "ok", "order_id": order_id, "section": section, "action": "skipped", "reason": "Order in trip, not deleted"}
+        else:
+            # Order is NOT in a trip - delete it from logistics
+            collection.delete_one({"amocrm_id": lead_id})
+            log_entry["status"] = "deleted"
+            log_entry["deleted_order_id"] = order_id
+            log_entry["reason"] = "Order moved to cancelled stage in amoCRM and not in trip"
+            webhook_logs.insert_one(log_entry)
+            logger.info(f"Deleted order {order_id} from {section} - moved to cancelled stage in amoCRM")
+            return {"status": "ok", "order_id": order_id, "section": section, "action": "deleted", "reason": "Cancelled in amoCRM"}
+    
     # For "update" events - only process if order already exists in this section
     # This prevents orders from other pipelines being created in wrong sections
     if event_type == "update" and not existing_order:
