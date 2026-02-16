@@ -209,15 +209,15 @@ export const useLogistics = () => {
   const getAmocrmComparison = useCallback(() => {
     if (!amocrmStats || !amocrmStats.lead_ids) return null;
     
-    // Only FREE orders (not in trips, not delivered)
+    // All orders in current section
     const localOrders = currentData?.orders || [];
     
     // Orders in trips (for finding missing ones)
     const tripsOrders = trips.flatMap(trip => trip.orders || []);
     
-    // Get amocrm_ids from FREE orders only (for display count)
+    // Get amocrm_ids from FREE orders only (not in trips) for display count
     const freeAmocrmIds = localOrders
-      .filter(o => o.amocrm_id)
+      .filter(o => o.amocrm_id && !o.tripId)  // Only orders NOT in trips
       .map(o => String(o.amocrm_id));
     
     // Get ALL local amocrm_ids (both free and in trips) to check what's already synced
