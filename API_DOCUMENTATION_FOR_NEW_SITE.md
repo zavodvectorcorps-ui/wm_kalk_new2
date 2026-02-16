@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://thermo-sync.preview.emergentagent.com
+Preview: https://sauna-crm-portal.preview.emergentagent.com
 ```
 
 ---
