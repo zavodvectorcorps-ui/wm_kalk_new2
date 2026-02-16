@@ -1342,15 +1342,22 @@ async def remove_orders_from_trip(trip_id: str, order_ids: List[str]):
         }}
     )
     
-    # Remove all trip data from orders
+    # Remove all trip data from orders AND reset status to "ожидает"
     collection.update_many(
         {"id": {"$in": order_ids}},
-        {"$unset": {
-            "tripId": "", "tripName": "", "tripDriverId": "", 
-            "tripDriverName": "", "tripDepartureDate": "", 
-            "tripStatus": "", "tripOrderStatus": ""
-        }}
+        {
+            "$unset": {
+                "tripId": "", "tripName": "", "tripDriverId": "", 
+                "tripDriverName": "", "tripDepartureDate": "", 
+                "tripStatus": "", "tripOrderStatus": ""
+            },
+            "$set": {
+                "warehouseStatus": "request"  # Reset to "ожидает" when removed from trip
+            }
+        }
     )
+    
+    logger.info(f"Reset warehouseStatus to 'request' for {len(order_ids)} orders removed from trip")
     
     # Check amoCRM settings before attempting to clear
     amocrm_clear_results = []
