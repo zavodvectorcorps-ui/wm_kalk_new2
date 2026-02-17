@@ -604,6 +604,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             lang={lang}
             txt={txt}
           />
+          </div>
         </div>
       </div>
     </div>
