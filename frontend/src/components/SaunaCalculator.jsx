@@ -477,8 +477,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             txt={txt}
           />
 
-          {/* Model Variant Selection (if model has variants) */}
-          {model?.variants?.length > 0 && (
+          {/* Model Variant Selection (if model has variants or linked variants) */}
+          {(model?.variants?.length > 0 || (model?.linkedVariantsModelId && prices?.models?.find(m => m.id === model.linkedVariantsModelId)?.variants?.length > 0)) && (
             <ModelVariantSelector
               model={model}
               formData={formData}
