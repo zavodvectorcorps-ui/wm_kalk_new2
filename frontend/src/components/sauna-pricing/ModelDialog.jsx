@@ -814,6 +814,35 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
               <option value="6m">6m</option>
             </select>
           </div>
+
+          {/* Linked Variants Model - take variants from another model */}
+          {allModels && allModels.length > 0 && (
+            <div className="border-t pt-4 mt-2">
+              <Label className="text-sm font-medium text-cyan-700 mb-2 block">🔗 Взять варианты из другой модели</Label>
+              <p className="text-xs text-gray-500 mb-2">
+                Если у этой модели нет своих вариантов, можно использовать варианты из другой модели (например, для бочек взять из квадро такого же размера)
+              </p>
+              <select
+                value={editingModel.linkedVariantsModelId || ''}
+                onChange={(e) => setEditingModel(prev => ({ ...prev, linkedVariantsModelId: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+              >
+                <option value="">Не использовать (свои варианты)</option>
+                {allModels
+                  .filter(m => m.id !== editingModel.id && m.variants && m.variants.length > 0)
+                  .map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.variants.length} вариантов)
+                    </option>
+                  ))}
+              </select>
+              {editingModel.linkedVariantsModelId && (
+                <p className="text-xs text-cyan-600 mt-1">
+                  ✓ Варианты будут взяты из выбранной модели
+                </p>
+              )}
+            </div>
+          )}
           
           <div>
             <Label>{txt.hint || 'Подсказка / Описание'}</Label>
