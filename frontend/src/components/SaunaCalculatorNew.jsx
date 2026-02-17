@@ -1203,7 +1203,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
                   )}
                   {m.steamRoomSize && (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Łaźnia:</span>
+                      <span>Pokój parowy:</span>
                       <span className="font-medium text-amber-800">{m.steamRoomSize}</span>
                     </div>
                   )}
