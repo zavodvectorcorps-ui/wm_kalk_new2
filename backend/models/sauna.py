@@ -23,7 +23,7 @@ class SaunaModelVariant(BaseModel):
     capacity: Optional[str] = ""  # Orientacyjna liczba osób
     terraceSize: Optional[str] = ""  # Taras
     relaxRoomSize: Optional[str] = ""  # Pokój wypoczynkowy
-    steamRoomSize: Optional[str] = ""  # Sauna parowa
+    steamRoomSize: Optional[str] = ""  # Pokój parowy
     entranceSide: Optional[str] = ""  # Strona wejścia
 
 
