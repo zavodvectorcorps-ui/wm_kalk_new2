@@ -918,7 +918,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             if variant_relax_room_size:
                 room_data.append([Paragraph('Pokój wypoczynkowy:', label_style), Paragraph(variant_relax_room_size, value_style)])
             if variant_steam_room_size:
-                room_data.append([Paragraph('Sauna parowa:', label_style), Paragraph(variant_steam_room_size, value_style)])
+                room_data.append([Paragraph('Pokój parowy:', label_style), Paragraph(variant_steam_room_size, value_style)])
             if variant_entrance_side:
                 room_data.append([Paragraph('Strona wejścia:', label_style), Paragraph(variant_entrance_side, value_style)])
         else:
