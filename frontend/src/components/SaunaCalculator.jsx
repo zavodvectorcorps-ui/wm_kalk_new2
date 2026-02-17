@@ -783,7 +783,19 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
 
 // Model Variant Selector Component (like heater selection in hot tubs)
 const ModelVariantSelector = ({ model, formData, handleModelVariantChange, prices, lang, txt }) => {
-  const variants = model?.variants || [];
+  // Get variants - either from current model or from linked model
+  let variants = model?.variants || [];
+  let linkedModelName = null;
+  
+  // If current model has no variants but has linkedVariantsModelId, use variants from linked model
+  if (variants.length === 0 && model?.linkedVariantsModelId) {
+    const linkedModel = prices?.models?.find(m => m.id === model.linkedVariantsModelId);
+    if (linkedModel?.variants?.length > 0) {
+      variants = linkedModel.variants;
+      linkedModelName = linkedModel.name;
+    }
+  }
+  
   if (variants.length === 0) return null;
   
   // Get selected variant or default to first
