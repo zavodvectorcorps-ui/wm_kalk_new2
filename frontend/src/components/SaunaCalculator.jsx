@@ -1503,142 +1503,146 @@ const SummaryCard = ({
   handleDiscountChange, handleApplyStandardDiscount, handleSaveAndGeneratePDF,
   handleClearForm, handleCancelEdit, getCategoryName, isOptionVisible, maxManagerDiscount, loading, lang, txt
 }) => (
-  <Card className="shadow-lg border-amber-200">
-    <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100">
+  <Card className="shadow-lg border-amber-200 max-h-[calc(100vh-2rem)] flex flex-col">
+    <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100 flex-shrink-0">
       <CardTitle className="flex items-center gap-2 text-amber-800">
         <Calculator className="h-5 w-5" />
         {txt.summary}
       </CardTitle>
     </CardHeader>
-    <CardContent className="p-4 space-y-4">
+    <CardContent className="p-4 flex flex-col flex-grow overflow-hidden">
       {model ? (
-        <>
-          {/* Selected Model */}
-          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-            <div className="text-sm text-amber-700 font-medium">{txt.model}</div>
-            <div className="font-medium">{model.name}</div>
-            {/* Show variant if selected */}
-            {modelVariant && (
-              <div className="text-sm text-purple-600 font-medium">
-                {lang === 'pl' ? (modelVariant.namePl || modelVariant.name) : (modelVariant.nameRu || modelVariant.name)}
-              </div>
-            )}
-            <div className="text-amber-700 font-bold">{formatPrice(modelPrice)} PLN</div>
-            {/* Room sizes */}
-            {(roomSizes?.relaxRoomSize || roomSizes?.steamRoomSize) && (
-              <div className="mt-2 pt-2 border-t border-amber-200 text-xs space-y-1">
-                {roomSizes.relaxRoomSize && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Przebieralnia:</span>
-                    <span className="font-medium text-amber-800">{roomSizes.relaxRoomSize}</span>
-                  </div>
-                )}
-                {roomSizes.steamRoomSize && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Łaźnia:</span>
-                    <span className="font-medium text-amber-800">{roomSizes.steamRoomSize}</span>
-                  </div>
-                )}
-                {roomSizes.hasTerrace && (
-                  <div className="text-xs text-green-600 mt-1">
-                    ✓ Z dodatkowym tarasem
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Selected Options */}
-          <SelectedOptionsList prices={prices} formData={formData} getCategoryName={getCategoryName} isOptionVisible={isOptionVisible} txt={txt} />
-
-          {/* Foundation */}
-          {foundationPrice > 0 && (
-            <div className="text-sm">
-              <div className="flex justify-between">
-                <span>{txt.foundationPrice}</span>
-                <span className="text-amber-700 font-medium">+{formatPrice(foundationPrice)} PLN</span>
-              </div>
+        <div className="flex flex-col h-full">
+          {/* Scrollable area for model and options */}
+          <div className="flex-grow overflow-y-auto space-y-4 pr-1 min-h-0">
+            {/* Selected Model */}
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="text-sm text-amber-700 font-medium">{txt.model}</div>
+              <div className="font-medium">{model.name}</div>
+              {/* Show variant if selected */}
+              {modelVariant && (
+                <div className="text-sm text-purple-600 font-medium">
+                  {lang === 'pl' ? (modelVariant.namePl || modelVariant.name) : (modelVariant.nameRu || modelVariant.name)}
+                </div>
+              )}
+              <div className="text-amber-700 font-bold">{formatPrice(modelPrice)} PLN</div>
+              {/* Room sizes */}
+              {(roomSizes?.relaxRoomSize || roomSizes?.steamRoomSize) && (
+                <div className="mt-2 pt-2 border-t border-amber-200 text-xs space-y-1">
+                  {roomSizes.relaxRoomSize && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Przebieralnia:</span>
+                      <span className="font-medium text-amber-800">{roomSizes.relaxRoomSize}</span>
+                    </div>
+                  )}
+                  {roomSizes.steamRoomSize && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Łaźnia:</span>
+                      <span className="font-medium text-amber-800">{roomSizes.steamRoomSize}</span>
+                    </div>
+                  )}
+                  {roomSizes.hasTerrace && (
+                    <div className="text-xs text-green-600 mt-1">
+                      ✓ Z dodatkowym tarasem
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
 
-          <div className="border-t border-amber-200 my-2" />
+            {/* Selected Options */}
+            <SelectedOptionsList prices={prices} formData={formData} getCategoryName={getCategoryName} isOptionVisible={isOptionVisible} txt={txt} />
 
-          {/* Subtotal */}
-          <div className="flex justify-between text-sm">
-            <span className="font-medium">{txt.priceBeforeDiscount}</span>
-            <span className="font-medium">{formatPrice(subtotal)} PLN</span>
+            {/* Foundation */}
+            {foundationPrice > 0 && (
+              <div className="text-sm">
+                <div className="flex justify-between">
+                  <span>{txt.foundationPrice}</span>
+                  <span className="text-amber-700 font-medium">+{formatPrice(foundationPrice)} PLN</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Discount Section */}
-          <DiscountSection
-            appliedDiscount={appliedDiscount}
-            discountAmount={discountAmount}
-            isAdminUser={isAdminUser}
-            adminDiscountApproved={adminDiscountApproved}
-            setAdminDiscountApproved={setAdminDiscountApproved}
-            handleDiscountChange={handleDiscountChange}
-            handleApplyStandardDiscount={handleApplyStandardDiscount}
-            maxManagerDiscount={maxManagerDiscount}
-            lang={lang}
-            txt={txt}
-          />
+          {/* Fixed bottom area - price and buttons */}
+          <div className="flex-shrink-0 border-t border-amber-200 pt-4 mt-4 space-y-4">
+            {/* Subtotal */}
+            <div className="flex justify-between text-sm">
+              <span className="font-medium">{txt.priceBeforeDiscount}</span>
+              <span className="font-medium">{formatPrice(subtotal)} PLN</span>
+            </div>
 
-          {/* Requested Discount for non-admins */}
-          {!isAdminUser && (
-            <RequestedDiscountSection
-              requestedDiscount={requestedDiscount}
-              setRequestedDiscount={setRequestedDiscount}
-              requestedDiscountNote={requestedDiscountNote}
-              setRequestedDiscountNote={setRequestedDiscountNote}
+            {/* Discount Section */}
+            <DiscountSection
+              appliedDiscount={appliedDiscount}
+              discountAmount={discountAmount}
+              isAdminUser={isAdminUser}
+              adminDiscountApproved={adminDiscountApproved}
+              setAdminDiscountApproved={setAdminDiscountApproved}
+              handleDiscountChange={handleDiscountChange}
+              handleApplyStandardDiscount={handleApplyStandardDiscount}
+              maxManagerDiscount={maxManagerDiscount}
               lang={lang}
               txt={txt}
             />
-          )}
 
-          {/* Admin Gifts */}
-          {isAdminUser && isEditMode && adminGifts.length > 0 && (
-            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 space-y-2">
-              <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                <Gift className="h-4 w-4" />
-                {txt.gifts} ({adminGifts.length})
-              </div>
-              <div className="text-xs text-emerald-600">{txt.giftsHint}</div>
-            </div>
-          )}
+            {/* Requested Discount for non-admins */}
+            {!isAdminUser && (
+              <RequestedDiscountSection
+                requestedDiscount={requestedDiscount}
+                setRequestedDiscount={setRequestedDiscount}
+                requestedDiscountNote={requestedDiscountNote}
+                setRequestedDiscountNote={setRequestedDiscountNote}
+                lang={lang}
+                txt={txt}
+              />
+            )}
 
-          {/* Total */}
-          <div className="p-3 bg-amber-600 text-white rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="font-medium">{txt.total}</span>
-              <span className="text-2xl font-bold">{formatPrice(Math.round(total))} PLN</span>
-            </div>
-            {appliedDiscount > 0 && (
-              <div className="text-xs text-amber-100 mt-1">
-                {txt.discount}: {appliedDiscount}% ({txt.priceBeforeDiscount}: {formatPrice(subtotal)} PLN)
+            {/* Admin Gifts */}
+            {isAdminUser && isEditMode && adminGifts.length > 0 && (
+              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-700 font-medium">
+                  <Gift className="h-4 w-4" />
+                  {txt.gifts} ({adminGifts.length})
+                </div>
+                <div className="text-xs text-emerald-600">{txt.giftsHint}</div>
               </div>
             )}
-          </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-2 pt-2">
-            <Button onClick={handleSaveAndGeneratePDF} disabled={loading} className="w-full bg-amber-600 hover:bg-amber-700">
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /><FileDown className="h-4 w-4 mr-2" /></>}
-              {isEditMode ? txt.saveChangesAndPdf : txt.saveAndGeneratePDF}
-            </Button>
-            
-            {isEditMode ? (
-              <Button onClick={handleCancelEdit} disabled={loading} variant="outline" className="w-full border-amber-300 text-amber-700 hover:bg-amber-50">
-                <X className="h-4 w-4 mr-2" />
-                {txt.cancelEdit}
+            {/* Total */}
+            <div className="p-3 bg-amber-600 text-white rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">{txt.total}</span>
+                <span className="text-2xl font-bold">{formatPrice(Math.round(total))} PLN</span>
+              </div>
+              {appliedDiscount > 0 && (
+                <div className="text-xs text-amber-100 mt-1">
+                  {txt.discount}: {appliedDiscount}% ({txt.priceBeforeDiscount}: {formatPrice(subtotal)} PLN)
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <Button onClick={handleSaveAndGeneratePDF} disabled={loading} className="w-full bg-amber-600 hover:bg-amber-700">
+                {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /><FileDown className="h-4 w-4 mr-2" /></>}
+                {isEditMode ? txt.saveChangesAndPdf : txt.saveAndGeneratePDF}
               </Button>
-            ) : (
-              <Button onClick={handleClearForm} disabled={loading} variant="outline" className="w-full border-amber-300 text-amber-700 hover:bg-amber-50">
-                <RotateCcw className="h-4 w-4 mr-2" />
-                {txt.clearForm}
-              </Button>
-            )}
+              
+              {isEditMode ? (
+                <Button onClick={handleCancelEdit} disabled={loading} variant="outline" className="w-full border-amber-300 text-amber-700 hover:bg-amber-50">
+                  <X className="h-4 w-4 mr-2" />
+                  {txt.cancelEdit}
+                </Button>
+              ) : (
+                <Button onClick={handleClearForm} disabled={loading} variant="outline" className="w-full border-amber-300 text-amber-700 hover:bg-amber-50">
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  {txt.clearForm}
+                </Button>
+              )}
+            </div>
           </div>
-        </>
+        </div>
       ) : (
         <div className="text-center text-muted-foreground py-8">{txt.selectModelFirst}</div>
       )}
