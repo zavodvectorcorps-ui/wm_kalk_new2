@@ -605,6 +605,60 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
           />
         </div>
       </div>
+      
+      {/* Fixed Bottom Price Bar */}
+      {model && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-amber-300 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] z-50 px-4 py-3">
+          <div className="container mx-auto max-w-7xl">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Price Info */}
+              <div className="flex flex-wrap items-center gap-4 md:gap-8">
+                <div className="text-sm">
+                  <span className="text-muted-foreground">{txt.priceBeforeDiscount}: </span>
+                  <span className="font-medium">{formatPrice(subtotal)} PLN</span>
+                </div>
+                {appliedDiscount > 0 && (
+                  <div className="text-sm text-green-600">
+                    <span>{lang === 'pl' ? 'Rabat' : 'Скидка'}: </span>
+                    <span className="font-medium">{appliedDiscount}% (-{formatPrice(discountAmount)} PLN)</span>
+                  </div>
+                )}
+                <div className="text-lg md:text-xl font-bold text-amber-700">
+                  {txt.total}: {formatPrice(total)} PLN
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearForm}
+                  className="text-muted-foreground"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">{txt.clear}</span>
+                </Button>
+                <Button
+                  onClick={handleSaveAndGeneratePDF}
+                  disabled={loading || !formData.fullName || !formData.phone}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  {txt.saveAndGeneratePDF}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Spacer for fixed bottom bar */}
+      {model && <div className="h-20" />}
     </div>
     </TooltipProvider>
   );
