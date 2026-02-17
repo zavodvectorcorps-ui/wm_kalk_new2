@@ -1549,7 +1549,7 @@ const SummaryCard = ({
                   )}
                   {roomSizes.steamRoomSize && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Łaźnia:</span>
+                      <span className="text-muted-foreground">Pokój parowy:</span>
                       <span className="font-medium text-amber-800">{roomSizes.steamRoomSize}</span>
                     </div>
                   )}
