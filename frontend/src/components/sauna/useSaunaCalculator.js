@@ -236,16 +236,29 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   // Get selected model variant
   const getSelectedModelVariant = useCallback(() => {
     const model = getSelectedModel();
-    if (!model || !model.variants?.length) return null;
+    if (!model) return null;
+    
+    // Get variants - either from current model or from linked model
+    let variants = model.variants || [];
+    
+    // If current model has no variants but has linkedVariantsModelId, use variants from linked model
+    if (!variants.length && model.linkedVariantsModelId) {
+      const linkedModel = prices?.models?.find(m => m.id === model.linkedVariantsModelId);
+      if (linkedModel?.variants?.length > 0) {
+        variants = linkedModel.variants;
+      }
+    }
+    
+    if (!variants.length) return null;
     
     // If variant is selected, return it
     if (formData.selectedModelVariant) {
-      return model.variants.find(v => v.id === formData.selectedModelVariant);
+      return variants.find(v => v.id === formData.selectedModelVariant);
     }
     
     // Default to first variant if model has variants but none selected
-    return model.variants[0];
-  }, [getSelectedModel, formData.selectedModelVariant]);
+    return variants[0];
+  }, [getSelectedModel, formData.selectedModelVariant, prices?.models]);
 
   // Get effective model price (from variant or base price)
   const getModelPrice = useCallback(() => {
