@@ -298,6 +298,7 @@ export const ModelsTab = ({
         setEditingModel={setEditingModel}
         onSave={onSaveEditModel}
         txt={txt}
+        allModels={prices?.models || []}
       />
     </Card>
   );
