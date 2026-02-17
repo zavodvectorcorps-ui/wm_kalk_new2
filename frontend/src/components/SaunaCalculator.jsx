@@ -1555,14 +1555,14 @@ const SummaryCard = ({
   handleDiscountChange, handleApplyStandardDiscount, handleSaveAndGeneratePDF,
   handleClearForm, handleCancelEdit, getCategoryName, isOptionVisible, maxManagerDiscount, loading, lang, txt
 }) => (
-  <Card className="shadow-lg sticky top-4 border-amber-200 max-h-[calc(100vh-2rem)] flex flex-col">
-    <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100 flex-shrink-0">
+  <Card className="shadow-lg border-amber-200">
+    <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100">
       <CardTitle className="flex items-center gap-2 text-amber-800">
         <Calculator className="h-5 w-5" />
         {txt.summary}
       </CardTitle>
     </CardHeader>
-    <CardContent className="p-4 space-y-4 overflow-y-auto flex-grow">
+    <CardContent className="p-4 space-y-4">
       {model ? (
         <>
           {/* Selected Model */}
