@@ -663,7 +663,7 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
   );
 };
 
-export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingModel, onSave, txt }) => {
+export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingModel, onSave, txt, allModels }) => {
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
   
   const handleHintImageUpload = async (e) => {
