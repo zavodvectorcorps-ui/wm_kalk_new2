@@ -289,6 +289,7 @@ export const ModelsTab = ({
         setNewModel={setNewModel}
         onAdd={onAddModel}
         txt={txt}
+        allModels={prices?.models || []}
       />
 
       <EditModelDialog
