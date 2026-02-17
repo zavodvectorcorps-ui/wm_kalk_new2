@@ -1503,18 +1503,18 @@ const SummaryCard = ({
   handleDiscountChange, handleApplyStandardDiscount, handleSaveAndGeneratePDF,
   handleClearForm, handleCancelEdit, getCategoryName, isOptionVisible, maxManagerDiscount, loading, lang, txt
 }) => (
-  <Card className="shadow-lg border-amber-200 max-h-[calc(100vh-2rem)] flex flex-col">
-    <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100 flex-shrink-0">
+  <Card className="shadow-lg border-amber-200">
+    <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100">
       <CardTitle className="flex items-center gap-2 text-amber-800">
         <Calculator className="h-5 w-5" />
         {txt.summary}
       </CardTitle>
     </CardHeader>
-    <CardContent className="p-4 flex flex-col flex-grow overflow-hidden">
+    <CardContent className="p-4">
       {model ? (
-        <div className="flex flex-col h-full">
-          {/* Scrollable area for model and options */}
-          <div className="flex-grow overflow-y-auto space-y-4 pr-1 min-h-0">
+        <>
+          {/* Scrollable area for model and options - fixed max height */}
+          <div className="max-h-[35vh] overflow-y-auto space-y-4 pr-1 mb-4">
             {/* Selected Model */}
             <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
               <div className="text-sm text-amber-700 font-medium">{txt.model}</div>
@@ -1565,7 +1565,7 @@ const SummaryCard = ({
           </div>
 
           {/* Fixed bottom area - price and buttons */}
-          <div className="flex-shrink-0 border-t border-amber-200 pt-4 mt-4 space-y-4">
+          <div className="border-t border-amber-200 pt-4 space-y-4">
             {/* Subtotal */}
             <div className="flex justify-between text-sm">
               <span className="font-medium">{txt.priceBeforeDiscount}</span>
@@ -1642,7 +1642,7 @@ const SummaryCard = ({
               )}
             </div>
           </div>
-        </div>
+        </>
       ) : (
         <div className="text-center text-muted-foreground py-8">{txt.selectModelFirst}</div>
       )}
