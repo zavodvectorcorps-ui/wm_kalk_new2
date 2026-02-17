@@ -192,7 +192,7 @@ export const SaunaPricingPage = () => {
             </div>
             <p className="text-xs text-muted-foreground bg-amber-50 p-3 rounded-lg">
               📊 Таблица сравнения вариантов теперь генерируется автоматически из данных под-моделей. 
-              Добавьте размеры помещений (Taras, Pokój wypoczynkowy, Sauna parowa, Strona wejścia) 
+              Добавьте размеры помещений (Taras, Pokój wypoczynkowy, Pokój parowy, Strona wejścia) 
               в каждый вариант модели на вкладке "Modele".
             </p>
           </div>
