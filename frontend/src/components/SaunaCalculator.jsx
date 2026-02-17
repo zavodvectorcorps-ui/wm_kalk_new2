@@ -570,7 +570,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
 
         {/* Right Column - Summary */}
         <div className="lg:col-span-1">
-          <SummaryCard
+          <div className="sticky top-4">
+            <SummaryCard
             model={model}
             modelVariant={modelVariant}
             modelPrice={modelPrice}
