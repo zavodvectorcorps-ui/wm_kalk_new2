@@ -260,7 +260,7 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-xs text-orange-600">Sauna parowa</Label>
+                    <Label className="text-xs text-orange-600">Pokój parowy</Label>
                     <Input
                       value={variant.steamRoomSize || ''}
                       onChange={(e) => handleVariantChange(index, 'steamRoomSize', e.target.value)}
