@@ -410,7 +410,7 @@ const GalleryImagesEditor = ({ images = [], onChange }) => {
   );
 };
 
-export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAdd, txt }) => {
+export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAdd, txt, allModels }) => {
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
   
   const handleHintImageUpload = async (e) => {
