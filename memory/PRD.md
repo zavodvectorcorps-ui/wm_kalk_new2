@@ -17,10 +17,21 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
   - Save/load layouts to MongoDB
   - Export canvas to PNG
   - Publish layouts to calculator catalog
-  - **NEW: Variant selection** - supports sub-models for different layouts
-  - **NEW: Outline/contour upload** - upload background image with real dimensions
-  - **NEW: Dimension display** - shows sizes in cm based on outline scale
+  - **Variant selection** - supports sub-models for different layouts
+  - **Outline/contour upload** - upload background image with real dimensions
+  - **Dimension display** - shows sizes in cm based on outline scale
   - **Duplicate layouts** - copy existing layouts for quick variations
+  - **NEW: Drawing Tools:**
+    - Select tool (cursor)
+    - Rectangle tool - draw rectangles by dragging (for sauna outline, zones)
+    - Wall/Line tool - draw walls and dividers
+    - Color picker for stroke
+    - Line width selector (1-10px)
+    - Fill toggle for rectangles
+    - All shapes snap to grid
+    - Real-time dimension display while drawing
+    - Properties panel shows width/height/length in px and cm
+    - Edit stroke color and width after drawing
 - **Backend API**: `/api/layout-configurator/` with endpoints:
   - `GET /element-types` - available element types
   - `POST /assets` - upload graphic element
