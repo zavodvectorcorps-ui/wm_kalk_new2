@@ -1238,15 +1238,19 @@ export const useLogistics = () => {
   // Update trip order IDs
   const updateTripOrderIds = async (tripId, newOrderIds) => {
     try {
-      const res = await fetch(`${API_URL}/api/trips/${tripId}`, {
+      // Update local state immediately for instant UI feedback
+      setSelectedTrip(prev => prev ? { ...prev, orderIds: newOrderIds } : null);
+      setTrips(prev => prev.map(t => t.id === tripId ? { ...t, orderIds: newOrderIds } : t));
+      
+      // Then save to server (don't await to avoid blocking)
+      fetch(`${API_URL}/api/trips/${tripId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderIds: newOrderIds })
+      }).catch(error => {
+        console.error('Error updating trip order:', error);
+        toast.error('Ошибка сохранения порядка');
       });
-      if (res.ok) {
-        setSelectedTrip(prev => prev ? { ...prev, orderIds: newOrderIds } : null);
-        fetchTrips();
-      }
     } catch (error) {
       console.error('Error updating trip order:', error);
     }
