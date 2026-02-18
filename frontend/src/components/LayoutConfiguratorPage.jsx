@@ -1,0 +1,1109 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { fabric } from 'fabric';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Badge } from './ui/badge';
+import { Slider } from './ui/slider';
+import { toast } from 'sonner';
+import {
+  Plus, Trash2, Save, Download, Upload, RotateCw, RotateCcw,
+  ZoomIn, ZoomOut, Grid3X3, Eye, EyeOff, Layers, Settings2,
+  FolderOpen, Copy, Move, Loader2, RefreshCw, GripVertical
+} from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+// Element type icons and colors
+const ELEMENT_TYPES = {
+  heater: { icon: '🔥', color: '#ef4444', name: 'Печь', namePl: 'Piec' },
+  bench: { icon: '🪑', color: '#8b5cf6', name: 'Лавка', namePl: 'Ławka' },
+  door: { icon: '🚪', color: '#3b82f6', name: 'Дверь', namePl: 'Drzwi' },
+  window: { icon: '🪟', color: '#06b6d4', name: 'Окно', namePl: 'Okno' },
+  shower: { icon: '🚿', color: '#10b981', name: 'Душ', namePl: 'Prysznic' },
+  divider: { icon: '📏', color: '#f59e0b', name: 'Перегородка', namePl: 'Ścianka' },
+  stairs: { icon: '🪜', color: '#6366f1', name: 'Ступеньки', namePl: 'Schody' },
+  terrace: { icon: '🏡', color: '#84cc16', name: 'Терраса', namePl: 'Taras' },
+  other: { icon: '📦', color: '#64748b', name: 'Другое', namePl: 'Inne' },
+};
+
+const LayoutConfiguratorPage = () => {
+  // Canvas ref and state
+  const canvasRef = useRef(null);
+  const fabricRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const bgFileInputRef = useRef(null);
+  
+  // Data state
+  const [saunaModels, setSaunaModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState(null);
+  const [assets, setAssets] = useState([]);
+  const [layouts, setLayouts] = useState([]);
+  const [currentLayout, setCurrentLayout] = useState(null);
+  
+  // UI state
+  const [selectedObject, setSelectedObject] = useState(null);
+  const [showGrid, setShowGrid] = useState(true);
+  const [gridSize, setGridSize] = useState(20);
+  const [canvasWidth, setCanvasWidth] = useState(800);
+  const [canvasHeight, setCanvasHeight] = useState(400);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('elements');
+  
+  // Dialogs
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [uploadAssetDialogOpen, setUploadAssetDialogOpen] = useState(false);
+  const [layoutName, setLayoutName] = useState('');
+  
+  // Upload form state
+  const [uploadForm, setUploadForm] = useState({
+    name: '',
+    type: 'other',
+    modelId: null,
+    file: null,
+  });
+
+  // Initialize Fabric canvas
+  useEffect(() => {
+    if (canvasRef.current && !fabricRef.current) {
+      const canvas = new fabric.Canvas(canvasRef.current, {
+        width: canvasWidth,
+        height: canvasHeight,
+        backgroundColor: '#f8fafc',
+        selection: true,
+        preserveObjectStacking: true,
+      });
+      
+      fabricRef.current = canvas;
+      
+      // Event listeners
+      canvas.on('selection:created', handleObjectSelected);
+      canvas.on('selection:updated', handleObjectSelected);
+      canvas.on('selection:cleared', () => setSelectedObject(null));
+      canvas.on('object:modified', handleObjectModified);
+      canvas.on('object:moving', handleObjectMoving);
+      
+      // Draw initial grid
+      drawGrid();
+      
+      return () => {
+        canvas.dispose();
+        fabricRef.current = null;
+      };
+    }
+  }, []);
+
+  // Fetch initial data
+  useEffect(() => {
+    fetchSaunaModels();
+    fetchAssets();
+    fetchLayouts();
+  }, []);
+
+  // Update canvas size when model changes
+  useEffect(() => {
+    if (fabricRef.current) {
+      fabricRef.current.setWidth(canvasWidth);
+      fabricRef.current.setHeight(canvasHeight);
+      drawGrid();
+    }
+  }, [canvasWidth, canvasHeight]);
+
+  // Draw grid
+  const drawGrid = useCallback(() => {
+    if (!fabricRef.current) return;
+    
+    const canvas = fabricRef.current;
+    
+    // Remove existing grid lines
+    const objects = canvas.getObjects();
+    objects.forEach(obj => {
+      if (obj.isGridLine) {
+        canvas.remove(obj);
+      }
+    });
+    
+    if (!showGrid) {
+      canvas.renderAll();
+      return;
+    }
+    
+    // Draw vertical lines
+    for (let i = 0; i <= canvasWidth; i += gridSize) {
+      const line = new fabric.Line([i, 0, i, canvasHeight], {
+        stroke: '#e2e8f0',
+        strokeWidth: i % (gridSize * 5) === 0 ? 1 : 0.5,
+        selectable: false,
+        evented: false,
+        isGridLine: true,
+      });
+      canvas.add(line);
+      canvas.sendToBack(line);
+    }
+    
+    // Draw horizontal lines
+    for (let i = 0; i <= canvasHeight; i += gridSize) {
+      const line = new fabric.Line([0, i, canvasWidth, i], {
+        stroke: '#e2e8f0',
+        strokeWidth: i % (gridSize * 5) === 0 ? 1 : 0.5,
+        selectable: false,
+        evented: false,
+        isGridLine: true,
+      });
+      canvas.add(line);
+      canvas.sendToBack(line);
+    }
+    
+    canvas.renderAll();
+  }, [showGrid, gridSize, canvasWidth, canvasHeight]);
+
+  useEffect(() => {
+    drawGrid();
+  }, [showGrid, gridSize, drawGrid]);
+
+  // API calls
+  const fetchSaunaModels = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/sauna-models`);
+      const data = await res.json();
+      setSaunaModels(data.models || []);
+    } catch (error) {
+      console.error('Error fetching sauna models:', error);
+    }
+  };
+
+  const fetchAssets = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/assets`);
+      const data = await res.json();
+      setAssets(data.assets || []);
+    } catch (error) {
+      console.error('Error fetching assets:', error);
+    }
+  };
+
+  const fetchLayouts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/layouts`);
+      const data = await res.json();
+      setLayouts(data.layouts || []);
+    } catch (error) {
+      console.error('Error fetching layouts:', error);
+    }
+  };
+
+  // Snap to grid
+  const snapToGrid = (value) => {
+    return Math.round(value / gridSize) * gridSize;
+  };
+
+  // Event handlers
+  const handleObjectSelected = (e) => {
+    const obj = e.selected?.[0];
+    if (obj && !obj.isGridLine && !obj.isBackground) {
+      setSelectedObject({
+        id: obj.elementId,
+        type: obj.elementType,
+        x: Math.round(obj.left),
+        y: Math.round(obj.top),
+        rotation: Math.round(obj.angle || 0),
+        scale: obj.scaleX || 1,
+        zIndex: canvas.getObjects().indexOf(obj),
+      });
+    }
+  };
+
+  const handleObjectModified = (e) => {
+    const obj = e.target;
+    if (obj && !obj.isGridLine) {
+      // Snap to grid after modification
+      obj.set({
+        left: snapToGrid(obj.left),
+        top: snapToGrid(obj.top),
+      });
+      obj.setCoords();
+      fabricRef.current.renderAll();
+      
+      handleObjectSelected({ selected: [obj] });
+    }
+  };
+
+  const handleObjectMoving = (e) => {
+    const obj = e.target;
+    obj.set({
+      left: snapToGrid(obj.left),
+      top: snapToGrid(obj.top),
+    });
+  };
+
+  // Add element to canvas
+  const addElementToCanvas = async (asset) => {
+    if (!fabricRef.current) return;
+    
+    const canvas = fabricRef.current;
+    
+    try {
+      // Determine image URL
+      let imageUrl = asset.imageUrl;
+      if (imageUrl.startsWith('/api/')) {
+        imageUrl = `${API_URL}${imageUrl}`;
+      }
+      
+      fabric.Image.fromURL(imageUrl, (img) => {
+        if (!img) {
+          toast.error('Не удалось загрузить изображение');
+          return;
+        }
+        
+        // Set initial properties
+        const scale = Math.min(asset.width / img.width, asset.height / img.height, 1);
+        img.set({
+          left: snapToGrid(canvasWidth / 2 - (img.width * scale) / 2),
+          top: snapToGrid(canvasHeight / 2 - (img.height * scale) / 2),
+          scaleX: scale,
+          scaleY: scale,
+          elementId: `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          elementType: asset.type,
+          assetId: asset.id,
+          assetName: asset.name,
+        });
+        
+        // Add controls
+        img.setControlsVisibility({
+          mt: false,
+          mb: false,
+          ml: false,
+          mr: false,
+        });
+        
+        canvas.add(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+        
+        toast.success(`Добавлен: ${asset.name}`);
+      }, { crossOrigin: 'anonymous' });
+    } catch (error) {
+      console.error('Error adding element:', error);
+      toast.error('Ошибка при добавлении элемента');
+    }
+  };
+
+  // Rotate selected object
+  const rotateSelected = (degrees) => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    const obj = canvas.getActiveObject();
+    if (obj && !obj.isGridLine) {
+      obj.rotate((obj.angle || 0) + degrees);
+      canvas.renderAll();
+      handleObjectSelected({ selected: [obj] });
+    }
+  };
+
+  // Scale selected object
+  const scaleSelected = (delta) => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    const obj = canvas.getActiveObject();
+    if (obj && !obj.isGridLine) {
+      const newScale = Math.max(0.1, Math.min(3, (obj.scaleX || 1) + delta));
+      obj.scale(newScale);
+      canvas.renderAll();
+      handleObjectSelected({ selected: [obj] });
+    }
+  };
+
+  // Delete selected object
+  const deleteSelected = () => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    const obj = canvas.getActiveObject();
+    if (obj && !obj.isGridLine && !obj.isBackground) {
+      canvas.remove(obj);
+      canvas.renderAll();
+      setSelectedObject(null);
+      toast.success('Элемент удален');
+    }
+  };
+
+  // Clear canvas
+  const clearCanvas = () => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    const objects = canvas.getObjects().filter(o => !o.isGridLine);
+    objects.forEach(obj => canvas.remove(obj));
+    canvas.renderAll();
+    setSelectedObject(null);
+    setCurrentLayout(null);
+  };
+
+  // Upload asset
+  const handleUploadAsset = async () => {
+    if (!uploadForm.file || !uploadForm.name || !uploadForm.type) {
+      toast.error('Заполните все поля');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadForm.file);
+      formData.append('name', uploadForm.name);
+      formData.append('nameRu', uploadForm.name);
+      formData.append('type', uploadForm.type);
+      if (uploadForm.modelId) {
+        formData.append('modelId', uploadForm.modelId);
+      }
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/assets`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        toast.success('Элемент загружен!');
+        setUploadAssetDialogOpen(false);
+        setUploadForm({ name: '', type: 'other', modelId: null, file: null });
+        fetchAssets();
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка загрузки');
+      }
+    } catch (error) {
+      toast.error('Ошибка при загрузке');
+    }
+    setLoading(false);
+  };
+
+  // Delete asset
+  const handleDeleteAsset = async (assetId) => {
+    if (!window.confirm('Удалить этот элемент из библиотеки?')) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/assets/${assetId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        toast.success('Элемент удален');
+        fetchAssets();
+      }
+    } catch (error) {
+      toast.error('Ошибка при удалении');
+    }
+  };
+
+  // Save layout
+  const handleSaveLayout = async () => {
+    if (!fabricRef.current || !selectedModel || !layoutName.trim()) {
+      toast.error('Выберите модель и введите название');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const canvas = fabricRef.current;
+      
+      // Collect elements
+      const elements = [];
+      canvas.getObjects().forEach((obj, index) => {
+        if (!obj.isGridLine && !obj.isBackground && obj.elementId) {
+          elements.push({
+            id: obj.elementId,
+            assetId: obj.assetId,
+            type: obj.elementType,
+            x: Math.round(obj.left),
+            y: Math.round(obj.top),
+            rotation: Math.round(obj.angle || 0),
+            scale: parseFloat((obj.scaleX || 1).toFixed(2)),
+            zIndex: index,
+          });
+        }
+      });
+      
+      const formData = new FormData();
+      formData.append('name', layoutName);
+      formData.append('modelId', selectedModel.id);
+      formData.append('modelName', selectedModel.name);
+      formData.append('canvasWidth', canvasWidth.toString());
+      formData.append('canvasHeight', canvasHeight.toString());
+      formData.append('elements', JSON.stringify(elements));
+      formData.append('modelSize', selectedModel.layoutSize || '');
+      formData.append('capacity', selectedModel.capacity || '');
+      
+      const url = currentLayout
+        ? `${API_URL}/api/layout-configurator/layouts/${currentLayout.id}/data`
+        : `${API_URL}/api/layout-configurator/layouts`;
+      
+      const method = currentLayout ? 'PUT' : 'POST';
+      
+      let res;
+      if (currentLayout) {
+        // Update existing
+        res = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: layoutName,
+            elements,
+            canvasWidth,
+            canvasHeight,
+          }),
+        });
+      } else {
+        // Create new
+        res = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+      }
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast.success('Планировка сохранена!');
+        setSaveDialogOpen(false);
+        fetchLayouts();
+        if (!currentLayout) {
+          setCurrentLayout({ id: data.layoutId, name: layoutName });
+        }
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка сохранения');
+      }
+    } catch (error) {
+      toast.error('Ошибка при сохранении');
+    }
+    setLoading(false);
+  };
+
+  // Load layout
+  const handleLoadLayout = async (layout) => {
+    if (!fabricRef.current) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/layouts/${layout.id}`);
+      if (!res.ok) throw new Error('Layout not found');
+      
+      const data = await res.json();
+      
+      // Clear canvas
+      clearCanvas();
+      
+      // Set canvas size
+      setCanvasWidth(data.canvasWidth || 800);
+      setCanvasHeight(data.canvasHeight || 400);
+      
+      // Find and set model
+      const model = saunaModels.find(m => m.id === data.modelId);
+      if (model) setSelectedModel(model);
+      
+      // Load elements
+      for (const el of data.elements || []) {
+        const asset = assets.find(a => a.id === el.assetId);
+        if (asset) {
+          await loadElementToCanvas(asset, el);
+        }
+      }
+      
+      setCurrentLayout(data);
+      setLayoutName(data.name);
+      setLoadDialogOpen(false);
+      toast.success('Планировка загружена');
+    } catch (error) {
+      toast.error('Ошибка при загрузке планировки');
+    }
+    setLoading(false);
+  };
+
+  // Load element with position
+  const loadElementToCanvas = (asset, position) => {
+    return new Promise((resolve) => {
+      if (!fabricRef.current) {
+        resolve();
+        return;
+      }
+      
+      let imageUrl = asset.imageUrl;
+      if (imageUrl.startsWith('/api/')) {
+        imageUrl = `${API_URL}${imageUrl}`;
+      }
+      
+      fabric.Image.fromURL(imageUrl, (img) => {
+        if (!img) {
+          resolve();
+          return;
+        }
+        
+        img.set({
+          left: position.x,
+          top: position.y,
+          scaleX: position.scale || 1,
+          scaleY: position.scale || 1,
+          angle: position.rotation || 0,
+          elementId: position.id,
+          elementType: position.type,
+          assetId: asset.id,
+          assetName: asset.name,
+        });
+        
+        fabricRef.current.add(img);
+        fabricRef.current.renderAll();
+        resolve();
+      }, { crossOrigin: 'anonymous' });
+    });
+  };
+
+  // Export to PNG
+  const handleExportPNG = () => {
+    if (!fabricRef.current) return;
+    
+    // Temporarily hide grid
+    const gridLines = fabricRef.current.getObjects().filter(o => o.isGridLine);
+    gridLines.forEach(line => line.set('visible', false));
+    fabricRef.current.renderAll();
+    
+    // Export
+    const dataURL = fabricRef.current.toDataURL({
+      format: 'png',
+      quality: 1,
+      multiplier: 2,
+    });
+    
+    // Restore grid
+    gridLines.forEach(line => line.set('visible', showGrid));
+    fabricRef.current.renderAll();
+    
+    // Download
+    const link = document.createElement('a');
+    link.download = `layout-${currentLayout?.name || 'export'}-${Date.now()}.png`;
+    link.href = dataURL;
+    link.click();
+    
+    toast.success('Изображение экспортировано');
+  };
+
+  // Publish layout
+  const handlePublishLayout = async (layout) => {
+    try {
+      const endpoint = layout.isPublished ? 'unpublish' : 'publish';
+      const res = await fetch(`${API_URL}/api/layout-configurator/layouts/${layout.id}/${endpoint}`, {
+        method: 'POST',
+      });
+      
+      if (res.ok) {
+        toast.success(layout.isPublished ? 'Планировка скрыта' : 'Планировка опубликована!');
+        fetchLayouts();
+      }
+    } catch (error) {
+      toast.error('Ошибка');
+    }
+  };
+
+  // Delete layout
+  const handleDeleteLayout = async (layoutId) => {
+    if (!window.confirm('Удалить эту планировку?')) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/layouts/${layoutId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        toast.success('Планировка удалена');
+        fetchLayouts();
+        if (currentLayout?.id === layoutId) {
+          clearCanvas();
+        }
+      }
+    } catch (error) {
+      toast.error('Ошибка при удалении');
+    }
+  };
+
+  // Group assets by type
+  const assetsByType = assets.reduce((acc, asset) => {
+    if (!acc[asset.type]) acc[asset.type] = [];
+    acc[asset.type].push(asset);
+    return acc;
+  }, {});
+
+  return (
+    <div className="h-[calc(100vh-200px)] flex gap-4">
+      {/* Left Panel - Elements */}
+      <div className="w-64 flex-shrink-0 flex flex-col">
+        <Card className="flex-1 flex flex-col overflow-hidden">
+          <CardHeader className="py-3 px-4 border-b flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Элементы</CardTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setUploadAssetDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-2 flex-1 overflow-y-auto">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full grid grid-cols-2 mb-2">
+                <TabsTrigger value="elements" className="text-xs">Библиотека</TabsTrigger>
+                <TabsTrigger value="layouts" className="text-xs">Планировки</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="elements" className="mt-0">
+                {Object.entries(assetsByType).map(([type, typeAssets]) => (
+                  <div key={type} className="mb-3">
+                    <div className="flex items-center gap-1 mb-1 text-xs font-medium text-muted-foreground">
+                      <span>{ELEMENT_TYPES[type]?.icon}</span>
+                      <span>{ELEMENT_TYPES[type]?.name || type}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      {typeAssets.map(asset => (
+                        <div
+                          key={asset.id}
+                          className="group relative aspect-square bg-muted rounded border cursor-pointer hover:border-primary transition-colors"
+                          onClick={() => addElementToCanvas(asset)}
+                          title={`Нажмите чтобы добавить: ${asset.name}`}
+                        >
+                          <img
+                            src={asset.imageUrl.startsWith('http') ? asset.imageUrl : `${API_URL}${asset.imageUrl}`}
+                            alt={asset.name}
+                            className="w-full h-full object-contain p-1"
+                          />
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            className="absolute top-0 right-0 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteAsset(asset.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                
+                {assets.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    <p>Нет загруженных элементов</p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => setUploadAssetDialogOpen(true)}
+                    >
+                      Загрузить первый элемент
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="layouts" className="mt-0">
+                <div className="space-y-2">
+                  {layouts.map(layout => (
+                    <div
+                      key={layout.id}
+                      className="p-2 border rounded hover:bg-muted/50 cursor-pointer group"
+                      onClick={() => handleLoadLayout(layout)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium truncate">{layout.name}</span>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePublishLayout(layout);
+                            }}
+                          >
+                            {layout.isPublished ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteLayout(layout.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {layout.modelName}
+                        {layout.isPublished && (
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            Опубликовано
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {layouts.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      <p>Нет сохраненных планировок</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Center - Canvas */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Toolbar */}
+        <Card className="mb-2">
+          <CardContent className="p-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Model selector */}
+              <Select
+                value={selectedModel?.id || ''}
+                onValueChange={(id) => setSelectedModel(saunaModels.find(m => m.id === id))}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Выберите модель..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {saunaModels.map(model => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <div className="h-6 w-px bg-border" />
+              
+              {/* Canvas size */}
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  value={canvasWidth}
+                  onChange={(e) => setCanvasWidth(parseInt(e.target.value) || 800)}
+                  className="w-20 h-8 text-sm"
+                />
+                <span className="text-muted-foreground">×</span>
+                <Input
+                  type="number"
+                  value={canvasHeight}
+                  onChange={(e) => setCanvasHeight(parseInt(e.target.value) || 400)}
+                  className="w-20 h-8 text-sm"
+                />
+              </div>
+              
+              <div className="h-6 w-px bg-border" />
+              
+              {/* Grid toggle */}
+              <Button
+                size="sm"
+                variant={showGrid ? 'default' : 'outline'}
+                onClick={() => setShowGrid(!showGrid)}
+              >
+                <Grid3X3 className="h-4 w-4 mr-1" />
+                Сетка
+              </Button>
+              
+              <div className="h-6 w-px bg-border" />
+              
+              {/* Actions */}
+              <Button size="sm" variant="outline" onClick={clearCanvas}>
+                <Trash2 className="h-4 w-4 mr-1" />
+                Очистить
+              </Button>
+              
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (selectedModel) {
+                    setLayoutName(currentLayout?.name || `${selectedModel.name} - Планировка`);
+                    setSaveDialogOpen(true);
+                  } else {
+                    toast.error('Сначала выберите модель сауны');
+                  }
+                }}
+              >
+                <Save className="h-4 w-4 mr-1" />
+                Сохранить
+              </Button>
+              
+              <Button size="sm" variant="outline" onClick={handleExportPNG}>
+                <Download className="h-4 w-4 mr-1" />
+                PNG
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Canvas container */}
+        <Card className="flex-1 overflow-auto">
+          <CardContent className="p-4 flex items-center justify-center min-h-full">
+            <div
+              className="border-2 border-dashed border-muted-foreground/25 rounded-lg"
+              style={{ width: canvasWidth + 4, height: canvasHeight + 4 }}
+            >
+              <canvas ref={canvasRef} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Right Panel - Properties */}
+      <div className="w-56 flex-shrink-0">
+        <Card className="h-full">
+          <CardHeader className="py-3 px-4 border-b">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              Свойства
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3">
+            {selectedObject ? (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs">Тип</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span>{ELEMENT_TYPES[selectedObject.type]?.icon}</span>
+                    <span className="text-sm">{ELEMENT_TYPES[selectedObject.type]?.name}</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">X</Label>
+                    <Input
+                      type="number"
+                      value={selectedObject.x}
+                      onChange={(e) => {
+                        const obj = fabricRef.current?.getActiveObject();
+                        if (obj) {
+                          obj.set('left', parseInt(e.target.value) || 0);
+                          fabricRef.current.renderAll();
+                          handleObjectSelected({ selected: [obj] });
+                        }
+                      }}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Y</Label>
+                    <Input
+                      type="number"
+                      value={selectedObject.y}
+                      onChange={(e) => {
+                        const obj = fabricRef.current?.getActiveObject();
+                        if (obj) {
+                          obj.set('top', parseInt(e.target.value) || 0);
+                          fabricRef.current.renderAll();
+                          handleObjectSelected({ selected: [obj] });
+                        }
+                      }}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-xs">Поворот: {selectedObject.rotation}°</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Button size="sm" variant="outline" onClick={() => rotateSelected(-90)}>
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => rotateSelected(-15)}>
+                      -15°
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => rotateSelected(15)}>
+                      +15°
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => rotateSelected(90)}>
+                      <RotateCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-xs">Масштаб: {(selectedObject.scale * 100).toFixed(0)}%</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Button size="sm" variant="outline" onClick={() => scaleSelected(-0.1)}>
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                    <Slider
+                      value={[selectedObject.scale * 100]}
+                      min={10}
+                      max={300}
+                      step={5}
+                      onValueChange={([val]) => {
+                        const obj = fabricRef.current?.getActiveObject();
+                        if (obj) {
+                          obj.scale(val / 100);
+                          fabricRef.current.renderAll();
+                          handleObjectSelected({ selected: [obj] });
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button size="sm" variant="outline" onClick={() => scaleSelected(0.1)}>
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="w-full"
+                    onClick={deleteSelected}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Удалить элемент
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                <Move className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Выберите элемент на холсте</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Upload Asset Dialog */}
+      <Dialog open={uploadAssetDialogOpen} onOpenChange={setUploadAssetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Загрузить элемент</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Название</Label>
+              <Input
+                value={uploadForm.name}
+                onChange={(e) => setUploadForm({ ...uploadForm, name: e.target.value })}
+                placeholder="Печь Harvia..."
+              />
+            </div>
+            
+            <div>
+              <Label>Тип элемента</Label>
+              <Select
+                value={uploadForm.type}
+                onValueChange={(val) => setUploadForm({ ...uploadForm, type: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ELEMENT_TYPES).map(([id, type]) => (
+                    <SelectItem key={id} value={id}>
+                      {type.icon} {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Для модели (опционально)</Label>
+              <Select
+                value={uploadForm.modelId || 'global'}
+                onValueChange={(val) => setUploadForm({ ...uploadForm, modelId: val === 'global' ? null : val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Для всех моделей" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="global">Для всех моделей</SelectItem>
+                  {saunaModels.map(model => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Изображение (PNG/SVG)</Label>
+              <div className="mt-1">
+                <input
+                  type="file"
+                  accept="image/png,image/svg+xml,image/webp"
+                  onChange={(e) => setUploadForm({ ...uploadForm, file: e.target.files?.[0] || null })}
+                  className="text-sm"
+                />
+              </div>
+              {uploadForm.file && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Выбран: {uploadForm.file.name}
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadAssetDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleUploadAsset} disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Загрузить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Save Layout Dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Сохранить планировку</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Название планировки</Label>
+              <Input
+                value={layoutName}
+                onChange={(e) => setLayoutName(e.target.value)}
+                placeholder="Вариант 1..."
+              />
+            </div>
+            {selectedModel && (
+              <div className="p-3 bg-muted rounded-lg text-sm">
+                <p><strong>Модель:</strong> {selectedModel.name}</p>
+                <p><strong>Размер холста:</strong> {canvasWidth} × {canvasHeight}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleSaveLayout} disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {currentLayout ? 'Обновить' : 'Сохранить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default LayoutConfiguratorPage;
