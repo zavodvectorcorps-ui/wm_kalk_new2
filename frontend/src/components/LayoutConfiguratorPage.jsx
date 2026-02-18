@@ -1734,42 +1734,36 @@ const LayoutConfiguratorPage = () => {
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-xs">X (px)</Label>
+                    <Label className="text-xs">X (см)</Label>
                     <Input
                       type="number"
-                      value={selectedObject.x}
+                      value={selectedObject.xCm}
                       onChange={(e) => {
                         const obj = fabricRef.current?.getActiveObject();
                         if (obj) {
-                          obj.set('left', parseInt(e.target.value) || 0);
+                          obj.set('left', parseFloat(e.target.value || 0) * pixelsPerCm);
                           fabricRef.current.renderAll();
                           handleObjectSelected({ selected: [obj] });
                         }
                       }}
                       className="h-7 text-xs"
                     />
-                    {showDimensions && pxToCm(selectedObject.x) && (
-                      <span className="text-xs text-muted-foreground">{pxToCm(selectedObject.x)} см</span>
-                    )}
                   </div>
                   <div>
-                    <Label className="text-xs">Y (px)</Label>
+                    <Label className="text-xs">Y (см)</Label>
                     <Input
                       type="number"
-                      value={selectedObject.y}
+                      value={selectedObject.yCm}
                       onChange={(e) => {
                         const obj = fabricRef.current?.getActiveObject();
                         if (obj) {
-                          obj.set('top', parseInt(e.target.value) || 0);
+                          obj.set('top', parseFloat(e.target.value || 0) * pixelsPerCm);
                           fabricRef.current.renderAll();
                           handleObjectSelected({ selected: [obj] });
                         }
                       }}
                       className="h-7 text-xs"
                     />
-                    {showDimensions && pxToCm(selectedObject.y) && (
-                      <span className="text-xs text-muted-foreground">{pxToCm(selectedObject.y)} см</span>
-                    )}
                   </div>
                 </div>
                 
