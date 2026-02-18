@@ -154,11 +154,27 @@ const ContentGeneratorPage = () => {
     }
   };
 
-  const handleDownloadImage = (url, filename) => {
-    const link = document.createElement('a');
-    link.href = `${API_URL}${url}`;
-    link.download = filename;
-    link.click();
+  const handleDownloadImage = async (url, filename) => {
+    try {
+      // Fetch the image as blob to force download
+      const response = await fetch(`${API_URL}${url}`);
+      const blob = await response.blob();
+      
+      // Create blob URL and trigger download
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up blob URL
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Ошибка при скачивании');
+    }
   };
 
   const resetPrompt = () => {
