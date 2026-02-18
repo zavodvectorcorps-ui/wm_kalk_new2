@@ -912,6 +912,103 @@ const LayoutConfiguratorPage = () => {
     // Find room (largest rectangle)
     const room = findRoomRect();
     
+    // Helper to draw distance line with arrows and label
+    const drawDistanceLine = (x1, y1, x2, y2, labelText, isHorizontal = true) => {
+      const arrowSize = 4;
+      
+      // Main line
+      const line = new fabric.Line([x1, y1, x2, y2], {
+        stroke: '#dc2626',
+        strokeWidth: 1,
+        strokeDashArray: [4, 2],
+        selectable: false,
+        evented: false,
+        isDimensionLabel: true,
+      });
+      canvas.add(line);
+      
+      // Arrow at start
+      if (isHorizontal) {
+        const arrow1 = new fabric.Triangle({
+          left: x1,
+          top: y1,
+          width: arrowSize,
+          height: arrowSize * 1.5,
+          fill: '#dc2626',
+          angle: -90,
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(arrow1);
+        
+        const arrow2 = new fabric.Triangle({
+          left: x2,
+          top: y2,
+          width: arrowSize,
+          height: arrowSize * 1.5,
+          fill: '#dc2626',
+          angle: 90,
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(arrow2);
+      } else {
+        const arrow1 = new fabric.Triangle({
+          left: x1,
+          top: y1,
+          width: arrowSize,
+          height: arrowSize * 1.5,
+          fill: '#dc2626',
+          angle: 0,
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(arrow1);
+        
+        const arrow2 = new fabric.Triangle({
+          left: x2,
+          top: y2,
+          width: arrowSize,
+          height: arrowSize * 1.5,
+          fill: '#dc2626',
+          angle: 180,
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(arrow2);
+      }
+      
+      // Label
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+      const label = new fabric.Text(labelText, {
+        left: midX + (isHorizontal ? 0 : 8),
+        top: midY + (isHorizontal ? -12 : 0),
+        fontSize: 9,
+        fill: '#dc2626',
+        fontWeight: 'bold',
+        backgroundColor: 'rgba(255,255,255,0.8)',
+        originX: 'center',
+        originY: isHorizontal ? 'bottom' : 'center',
+        selectable: false,
+        evented: false,
+        isDimensionLabel: true,
+      });
+      canvas.add(label);
+    };
+    
     shapes.forEach(obj => {
       if (obj.type === 'rect') {
         const width = obj.width * (obj.scaleX || 1);
@@ -962,53 +1059,23 @@ const LayoutConfiguratorPage = () => {
           const distBottom = Math.round((roomBottom - objBottom) / pixelsPerCm);
           
           // Left distance line + label
-          if (distLeft > 0) {
-            const leftLine = new fabric.Line([room.left, obj.top + height / 2, obj.left, obj.top + height / 2], {
-              stroke: '#dc2626',
-              strokeWidth: 1,
-              strokeDashArray: [3, 3],
-              selectable: false,
-              evented: false,
-              isDimensionLabel: true,
-            });
-            canvas.add(leftLine);
-            
-            const leftDistLabel = new fabric.Text(`${distLeft}`, {
-              left: room.left + (obj.left - room.left) / 2,
-              top: obj.top + height / 2 - 12,
-              fontSize: 9,
-              fill: '#dc2626',
-              originX: 'center',
-              selectable: false,
-              evented: false,
-              isDimensionLabel: true,
-            });
-            canvas.add(leftDistLabel);
+          if (distLeft > 10) {
+            drawDistanceLine(room.left, obj.top + height / 2, obj.left, obj.top + height / 2, `${distLeft}`, true);
+          }
+          
+          // Right distance line + label
+          if (distRight > 10) {
+            drawDistanceLine(objRight, obj.top + height / 2, roomRight, obj.top + height / 2, `${distRight}`, true);
           }
           
           // Top distance line + label
-          if (distTop > 0) {
-            const topLine = new fabric.Line([obj.left + width / 2, room.top, obj.left + width / 2, obj.top], {
-              stroke: '#dc2626',
-              strokeWidth: 1,
-              strokeDashArray: [3, 3],
-              selectable: false,
-              evented: false,
-              isDimensionLabel: true,
-            });
-            canvas.add(topLine);
-            
-            const topDistLabel = new fabric.Text(`${distTop}`, {
-              left: obj.left + width / 2 + 8,
-              top: room.top + (obj.top - room.top) / 2,
-              fontSize: 9,
-              fill: '#dc2626',
-              originX: 'left',
-              selectable: false,
-              evented: false,
-              isDimensionLabel: true,
-            });
-            canvas.add(topDistLabel);
+          if (distTop > 10) {
+            drawDistanceLine(obj.left + width / 2, room.top, obj.left + width / 2, obj.top, `${distTop}`, false);
+          }
+          
+          // Bottom distance line + label
+          if (distBottom > 10) {
+            drawDistanceLine(obj.left + width / 2, objBottom, obj.left + width / 2, roomBottom, `${distBottom}`, false);
           }
         }
       } else if (obj.type === 'line') {
@@ -1035,6 +1102,71 @@ const LayoutConfiguratorPage = () => {
         canvas.add(lineLabel);
       }
     });
+    
+    // Draw distances between objects (not room)
+    const nonRoomShapes = shapes.filter(s => s !== room && s.type === 'rect');
+    for (let i = 0; i < nonRoomShapes.length; i++) {
+      for (let j = i + 1; j < nonRoomShapes.length; j++) {
+        const obj1 = nonRoomShapes[i];
+        const obj2 = nonRoomShapes[j];
+        
+        const w1 = obj1.width * (obj1.scaleX || 1);
+        const h1 = obj1.height * (obj1.scaleY || 1);
+        const w2 = obj2.width * (obj2.scaleX || 1);
+        const h2 = obj2.height * (obj2.scaleY || 1);
+        
+        const c1x = obj1.left + w1 / 2;
+        const c1y = obj1.top + h1 / 2;
+        const c2x = obj2.left + w2 / 2;
+        const c2y = obj2.top + h2 / 2;
+        
+        // Check if objects are horizontally aligned (similar Y)
+        if (Math.abs(c1y - c2y) < Math.max(h1, h2) / 2) {
+          // Horizontal distance between objects
+          let distPx;
+          if (obj1.left + w1 < obj2.left) {
+            // obj1 is to the left of obj2
+            distPx = obj2.left - (obj1.left + w1);
+            if (distPx > 10 * pixelsPerCm) {
+              const distCm = Math.round(distPx / pixelsPerCm);
+              const y = (c1y + c2y) / 2;
+              drawDistanceLine(obj1.left + w1, y, obj2.left, y, `${distCm}`, true);
+            }
+          } else if (obj2.left + w2 < obj1.left) {
+            // obj2 is to the left of obj1
+            distPx = obj1.left - (obj2.left + w2);
+            if (distPx > 10 * pixelsPerCm) {
+              const distCm = Math.round(distPx / pixelsPerCm);
+              const y = (c1y + c2y) / 2;
+              drawDistanceLine(obj2.left + w2, y, obj1.left, y, `${distCm}`, true);
+            }
+          }
+        }
+        
+        // Check if objects are vertically aligned (similar X)
+        if (Math.abs(c1x - c2x) < Math.max(w1, w2) / 2) {
+          // Vertical distance between objects
+          let distPx;
+          if (obj1.top + h1 < obj2.top) {
+            // obj1 is above obj2
+            distPx = obj2.top - (obj1.top + h1);
+            if (distPx > 10 * pixelsPerCm) {
+              const distCm = Math.round(distPx / pixelsPerCm);
+              const x = (c1x + c2x) / 2;
+              drawDistanceLine(x, obj1.top + h1, x, obj2.top, `${distCm}`, false);
+            }
+          } else if (obj2.top + h2 < obj1.top) {
+            // obj2 is above obj1
+            distPx = obj1.top - (obj2.top + h2);
+            if (distPx > 10 * pixelsPerCm) {
+              const distCm = Math.round(distPx / pixelsPerCm);
+              const x = (c1x + c2x) / 2;
+              drawDistanceLine(x, obj2.top + h2, x, obj1.top, `${distCm}`, false);
+            }
+          }
+        }
+      }
+    }
     
     canvas.renderAll();
   }, [pixelsPerCm, findRoomRect, showDimensions]);
