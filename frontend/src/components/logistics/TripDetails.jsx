@@ -218,9 +218,20 @@ const TripDetails = ({
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="h-5 w-5 p-0 justify-center text-xs">
-                        {index + 1}
-                      </Badge>
+                      <Input
+                        type="number"
+                        min="1"
+                        max={tripOrders.length}
+                        value={index + 1}
+                        onChange={(e) => {
+                          const newPos = parseInt(e.target.value);
+                          if (newPos >= 1 && newPos <= tripOrders.length && newPos !== index + 1) {
+                            onMoveOrderToPosition(index, newPos);
+                          }
+                        }}
+                        className="h-6 w-10 p-0 text-center text-xs font-medium"
+                        title="Введите номер позиции"
+                      />
                       <span className="font-medium truncate">
                         {order.fullName || order.customerName}
                       </span>
