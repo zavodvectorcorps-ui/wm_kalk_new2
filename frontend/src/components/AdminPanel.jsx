@@ -177,6 +177,10 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
             <IntegrationsPage />
           </TabsContent>
 
+          <TabsContent value="configurator">
+            <LayoutConfiguratorPage />
+          </TabsContent>
+
           <TabsContent value="content">
             <ContentGeneratorPage />
           </TabsContent>
