@@ -465,23 +465,54 @@ export const useSaunaPricing = () => {
   const handleSaveEditOption = async (editingOption) => {
     if (!editingOption) return false;
     
-    const { categoryId, ...optionData } = editingOption;
+    const { categoryId, newCategoryId, ...optionData } = editingOption;
+    const targetCategoryId = newCategoryId && newCategoryId !== categoryId ? newCategoryId : categoryId;
     
     try {
-      await axios.put(`${API_URL}/api/sauna/categories/${categoryId}/options/${editingOption.id}`, optionData);
-      setPrices(prev => ({
-        ...prev,
-        categories: prev.categories.map(cat => {
-          if (cat.id === categoryId) {
-            return {
-              ...cat,
-              options: cat.options.map(o => o.id === editingOption.id ? optionData : o),
-            };
-          }
-          return cat;
-        }),
-      }));
-      toast.success(txt.saved);
+      // If moving to a different category
+      if (newCategoryId && newCategoryId !== categoryId) {
+        // Delete from old category
+        await axios.delete(`${API_URL}/api/sauna/categories/${categoryId}/options/${editingOption.id}`);
+        // Add to new category
+        await axios.post(`${API_URL}/api/sauna/categories/${newCategoryId}/options`, { ...optionData, id: editingOption.id });
+        
+        // Update local state - remove from old, add to new
+        setPrices(prev => ({
+          ...prev,
+          categories: prev.categories.map(cat => {
+            if (cat.id === categoryId) {
+              return {
+                ...cat,
+                options: cat.options.filter(o => o.id !== editingOption.id),
+              };
+            }
+            if (cat.id === newCategoryId) {
+              return {
+                ...cat,
+                options: [...(cat.options || []), optionData],
+              };
+            }
+            return cat;
+          }),
+        }));
+        toast.success('Опция перемещена в другую категорию');
+      } else {
+        // Just update in same category
+        await axios.put(`${API_URL}/api/sauna/categories/${categoryId}/options/${editingOption.id}`, optionData);
+        setPrices(prev => ({
+          ...prev,
+          categories: prev.categories.map(cat => {
+            if (cat.id === categoryId) {
+              return {
+                ...cat,
+                options: cat.options.map(o => o.id === editingOption.id ? optionData : o),
+              };
+            }
+            return cat;
+          }),
+        }));
+        toast.success(txt.saved);
+      }
       return true;
     } catch (error) {
       console.error('Error updating option:', error);
