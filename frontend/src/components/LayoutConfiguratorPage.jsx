@@ -1493,30 +1493,43 @@ const LayoutConfiguratorPage = () => {
               
               <div className="h-6 w-px bg-border" />
               
-              {/* Canvas size */}
+              {/* Real canvas size in cm */}
               <div className="flex items-center gap-1 text-xs">
+                <span className="text-muted-foreground">Область:</span>
                 <Input
                   type="number"
-                  value={canvasWidth}
-                  onChange={(e) => setCanvasWidth(parseInt(e.target.value) || 800)}
-                  className="w-16 h-7 text-xs"
+                  value={canvasRealWidthCm}
+                  onChange={(e) => setCanvasRealWidthCm(parseInt(e.target.value) || 500)}
+                  className="w-14 h-7 text-xs"
+                  title="Ширина области в см"
                 />
                 <span className="text-muted-foreground">×</span>
                 <Input
                   type="number"
-                  value={canvasHeight}
-                  onChange={(e) => setCanvasHeight(parseInt(e.target.value) || 400)}
-                  className="w-16 h-7 text-xs"
+                  value={canvasRealHeightCm}
+                  onChange={(e) => setCanvasRealHeightCm(parseInt(e.target.value) || 350)}
+                  className="w-14 h-7 text-xs"
+                  title="Высота области в см"
                 />
-                <span className="text-muted-foreground text-xs">px</span>
+                <span className="text-muted-foreground text-xs">см</span>
               </div>
               
-              {/* Show dimensions info */}
-              {modelOutline && (
-                <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                  {modelOutline.outerLength}×{modelOutline.outerWidth} см
-                </div>
-              )}
+              {/* Grid size selector */}
+              <Select
+                value={gridSizeCm.toString()}
+                onValueChange={(val) => setGridSizeCm(parseInt(val))}
+              >
+                <SelectTrigger className="w-20 h-7 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 см</SelectItem>
+                  <SelectItem value="10">10 см</SelectItem>
+                  <SelectItem value="20">20 см</SelectItem>
+                  <SelectItem value="25">25 см</SelectItem>
+                  <SelectItem value="50">50 см</SelectItem>
+                </SelectContent>
+              </Select>
               
               <div className="h-6 w-px bg-border" />
               
@@ -1528,16 +1541,6 @@ const LayoutConfiguratorPage = () => {
               >
                 <Grid3X3 className="h-4 w-4 mr-1" />
                 Сетка
-              </Button>
-              
-              {/* Dimensions toggle */}
-              <Button
-                size="sm"
-                variant={showDimensions ? 'default' : 'outline'}
-                onClick={() => setShowDimensions(!showDimensions)}
-                title="Показать размеры"
-              >
-                📏 Размеры
               </Button>
               
               <div className="h-6 w-px bg-border" />
