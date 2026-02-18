@@ -397,29 +397,203 @@ async def export_layout_image(layout_id: str, imageData: str = Form(...)):
     return {"success": True, "imageUrl": image_url}
 
 
-# ============ SAUNA MODELS (for dropdown) ============
+# ============ SAUNA MODELS & VARIANTS ============
 
 @router.get("/sauna-models")
 async def get_sauna_models():
-    """Get sauna models from prices collection for the model dropdown."""
+    """Get sauna models with variants from prices collection."""
     prices_doc = await db.sauna_prices.find_one({}, {"_id": 0, "models": 1})
     
     if not prices_doc or not prices_doc.get("models"):
         return {"models": []}
     
-    # Return simplified model list
+    # Return model list with variants
     models = []
     for m in prices_doc["models"]:
         if m.get("active", True):
+            # Get variants for this model
+            variants = []
+            for v in m.get("variants", []):
+                variants.append({
+                    "id": v.get("id"),
+                    "name": v.get("name"),
+                    "nameRu": v.get("nameRu", v.get("name")),
+                    "namePl": v.get("namePl", v.get("name")),
+                    "category": v.get("category", ""),
+                    "capacity": v.get("capacity", m.get("capacity")),
+                    "hint": v.get("hint", ""),
+                })
+            
             models.append({
                 "id": m.get("id"),
                 "name": m.get("name"),
                 "layoutSize": m.get("layoutSize"),
                 "capacity": m.get("capacity"),
                 "imageUrl": m.get("imageUrl", ""),
+                "variants": variants,
+                "linkedVariantsModelId": m.get("linkedVariantsModelId"),
             })
     
     return {"models": models}
+
+
+# ============ MODEL OUTLINES (Contours) ============
+
+def get_outlines_collection():
+    return db.layout_model_outlines
+
+
+class ModelOutline(BaseModel):
+    """Sauna model/variant outline (contour) configuration."""
+    id: str
+    modelId: str
+    variantId: Optional[str] = None  # null = for all variants of this model
+    imageUrl: str  # PNG/SVG outline image
+    # Real dimensions in centimeters
+    outerWidth: float  # External width in cm
+    outerLength: float  # External length in cm
+    innerWidth: Optional[float] = None  # Internal width in cm
+    innerLength: Optional[float] = None  # Internal length in cm
+    wallThickness: Optional[float] = None  # Wall thickness in cm
+    # Canvas mapping
+    canvasWidth: int = 800
+    canvasHeight: int = 400
+    # Pixel per cm ratio (calculated from canvas size and real dimensions)
+    pixelsPerCm: Optional[float] = None
+    createdAt: str
+    updatedAt: str
+
+
+@router.post("/outlines")
+async def upload_outline(
+    file: UploadFile = File(...),
+    modelId: str = Form(...),
+    variantId: str = Form(default=None),
+    outerWidth: float = Form(...),  # cm
+    outerLength: float = Form(...),  # cm
+    innerWidth: float = Form(default=None),
+    innerLength: float = Form(default=None),
+    wallThickness: float = Form(default=None),
+    canvasWidth: int = Form(default=800),
+    canvasHeight: int = Form(default=400),
+):
+    """Upload outline image for a model/variant with real dimensions."""
+    # Validate file type
+    allowed_types = ["image/png", "image/svg+xml", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Only PNG, SVG, and WebP files are allowed")
+    
+    # Read file content
+    content = await file.read()
+    content_base64 = base64.b64encode(content).decode('utf-8')
+    
+    # Generate unique ID
+    outline_id = f"outline-{uuid.uuid4().hex[:12]}"
+    
+    # Upload to Cloudinary or store as base64
+    image_url = None
+    if is_cloudinary_configured():
+        result = await upload_base64_image(
+            content_base64,
+            f"outline-{modelId}-{variantId or 'all'}",
+            folder="layout-outlines"
+        )
+        if result:
+            image_url = result["url"]
+    
+    if not image_url:
+        mime_type = file.content_type
+        image_url = f"data:{mime_type};base64,{content_base64}"
+    
+    # Calculate pixels per cm based on canvas and real dimensions
+    # Use the larger dimension for scaling
+    scale_width = canvasWidth / outerLength  # Length maps to canvas width
+    scale_height = canvasHeight / outerWidth  # Width maps to canvas height
+    pixels_per_cm = min(scale_width, scale_height) * 0.9  # 90% to leave margin
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    outline_doc = {
+        "id": outline_id,
+        "modelId": modelId,
+        "variantId": variantId if variantId and variantId != "null" else None,
+        "imageUrl": image_url,
+        "outerWidth": outerWidth,
+        "outerLength": outerLength,
+        "innerWidth": innerWidth if innerWidth else outerWidth - (wallThickness * 2 if wallThickness else 20),
+        "innerLength": innerLength if innerLength else outerLength - (wallThickness * 2 if wallThickness else 20),
+        "wallThickness": wallThickness or 10,
+        "canvasWidth": canvasWidth,
+        "canvasHeight": canvasHeight,
+        "pixelsPerCm": pixels_per_cm,
+        "createdAt": now,
+        "updatedAt": now,
+    }
+    
+    # Upsert - replace if exists for same model/variant
+    existing = await get_outlines_collection().find_one({
+        "modelId": modelId,
+        "variantId": outline_doc["variantId"]
+    })
+    
+    if existing:
+        await get_outlines_collection().update_one(
+            {"id": existing["id"]},
+            {"$set": {**outline_doc, "id": existing["id"], "createdAt": existing["createdAt"]}}
+        )
+        outline_doc["id"] = existing["id"]
+    else:
+        await get_outlines_collection().insert_one(outline_doc)
+    
+    if "_id" in outline_doc:
+        del outline_doc["_id"]
+    
+    return outline_doc
+
+
+@router.get("/outlines")
+async def list_outlines(modelId: str = None):
+    """List all outlines, optionally filtered by model."""
+    query = {}
+    if modelId:
+        query["modelId"] = modelId
+    
+    cursor = get_outlines_collection().find(query, {"_id": 0}).sort("modelId", 1)
+    outlines = await cursor.to_list(length=500)
+    return {"outlines": outlines}
+
+
+@router.get("/outlines/{model_id}")
+async def get_outline(model_id: str, variant_id: str = None):
+    """Get outline for specific model/variant."""
+    # First try to find variant-specific outline
+    if variant_id:
+        outline = await get_outlines_collection().find_one(
+            {"modelId": model_id, "variantId": variant_id},
+            {"_id": 0}
+        )
+        if outline:
+            return outline
+    
+    # Fall back to model-level outline (variantId = null)
+    outline = await get_outlines_collection().find_one(
+        {"modelId": model_id, "variantId": None},
+        {"_id": 0}
+    )
+    
+    if not outline:
+        raise HTTPException(status_code=404, detail="Outline not found")
+    
+    return outline
+
+
+@router.delete("/outlines/{outline_id}")
+async def delete_outline(outline_id: str):
+    """Delete an outline."""
+    result = await get_outlines_collection().delete_one({"id": outline_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Outline not found")
+    return {"success": True, "deleted": outline_id}
 
 
 # ============ PUBLIC API for Calculator Catalog ============
