@@ -1615,7 +1615,19 @@ const LayoutConfiguratorPage = () => {
                   </div>
                 </div>
                 
-                <div className="pt-2 border-t">
+                <div className="pt-2 border-t space-y-2">
+                  {/* Save as outline button (for rectangles) */}
+                  {selectedObject?.isDrawnShape && selectedObject?.type === 'rect' && selectedModel && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowSaveOutlineDialog(true)}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Сохранить как контур
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="destructive"
