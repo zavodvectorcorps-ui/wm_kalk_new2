@@ -473,6 +473,33 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 rows={3}
               />
             </div>
+
+            {/* Change Category */}
+            {categories && categories.length > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <Label className="text-sm font-medium text-indigo-700 mb-2 block">📁 Переместить в другую категорию</Label>
+                <Select
+                  value={editingOption.categoryId || ''}
+                  onValueChange={(value) => setEditingOption(prev => ({ ...prev, newCategoryId: value }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите категорию" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name} {cat.id === editingOption.categoryId && '(текущая)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editingOption.newCategoryId && editingOption.newCategoryId !== editingOption.categoryId && (
+                  <p className="text-xs text-indigo-600 mt-1">
+                    ✓ Опция будет перемещена в категорию "{categories.find(c => c.id === editingOption.newCategoryId)?.name}"
+                  </p>
+                )}
+              </div>
+            )}
             
             {/* Hint media fields */}
             <div className="border-t pt-4 mt-4">
