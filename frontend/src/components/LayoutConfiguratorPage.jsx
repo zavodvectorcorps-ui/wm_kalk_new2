@@ -1669,25 +1669,25 @@ const LayoutConfiguratorPage = () => {
                   </div>
                 </div>
                 
-                {/* Dimensions for drawn shapes */}
-                {selectedObject.isDrawnShape && selectedObject.width && selectedObject.height && (
-                  <div className="p-2 bg-muted rounded text-xs space-y-1">
-                    <div className="flex justify-between">
+                {/* Dimensions for drawn shapes - in CM */}
+                {selectedObject.isDrawnShape && selectedObject.widthCm && selectedObject.heightCm && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm space-y-1">
+                    <div className="flex justify-between font-medium">
                       <span>Ширина:</span>
-                      <span className="font-medium">{selectedObject.width} px {pxToCm(selectedObject.width) && `(${pxToCm(selectedObject.width)} см)`}</span>
+                      <span>{selectedObject.widthCm} см</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between font-medium">
                       <span>Высота:</span>
-                      <span className="font-medium">{selectedObject.height} px {pxToCm(selectedObject.height) && `(${pxToCm(selectedObject.height)} см)`}</span>
+                      <span>{selectedObject.heightCm} см</span>
                     </div>
                   </div>
                 )}
                 
-                {selectedObject.isDrawnShape && selectedObject.length && (
-                  <div className="p-2 bg-muted rounded text-xs">
-                    <div className="flex justify-between">
+                {selectedObject.isDrawnShape && selectedObject.lengthCm && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                    <div className="flex justify-between font-medium">
                       <span>Длина:</span>
-                      <span className="font-medium">{selectedObject.length} px {pxToCm(selectedObject.length) && `(${pxToCm(selectedObject.length)} см)`}</span>
+                      <span>{selectedObject.lengthCm} см</span>
                     </div>
                   </div>
                 )}
