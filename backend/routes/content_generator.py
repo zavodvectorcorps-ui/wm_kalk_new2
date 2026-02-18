@@ -84,7 +84,7 @@ async def process_single_image(image_bytes: bytes, prompt: str, filename: str) -
                 
                 if cloudinary_result:
                     # Store metadata in MongoDB (without image data)
-                    get_images_collection().insert_one({
+                    await get_images_collection().insert_one({
                         "filename": output_filename,
                         "original_filename": filename,
                         "cloudinary_url": cloudinary_result["url"],
@@ -177,7 +177,7 @@ async def process_batch_images(
     }
     
     # Save job to MongoDB
-    get_jobs_collection().insert_one(job_data)
+    await get_jobs_collection().insert_one(job_data)
     
     # Read all files into memory before starting async processing
     files_data = []
@@ -198,7 +198,7 @@ async def process_batch_background(job_id: str, files_data: List[dict], prompt: 
     """Background task to process images one by one."""
     
     jobs_collection = get_jobs_collection()
-    jobs_collection.update_one({"job_id": job_id}, {"$set": {"status": "processing"}})
+    await jobs_collection.update_one({"job_id": job_id}, {"$set": {"status": "processing"}})
     
     results = []
     for i, file_info in enumerate(files_data):
@@ -217,13 +217,13 @@ async def process_batch_background(job_id: str, files_data: List[dict], prompt: 
             })
         
         # Update progress in MongoDB
-        jobs_collection.update_one(
+        await jobs_collection.update_one(
             {"job_id": job_id}, 
             {"$set": {"results": results, "processed_images": i + 1}}
         )
     
     # Mark as completed
-    jobs_collection.update_one(
+    await jobs_collection.update_one(
         {"job_id": job_id}, 
         {"$set": {"status": "completed", "results": results, "processed_images": len(files_data)}}
     )
@@ -233,7 +233,7 @@ async def process_batch_background(job_id: str, files_data: List[dict], prompt: 
 async def get_job_status(job_id: str):
     """Get the status and results of a batch processing job."""
     
-    job = get_jobs_collection().find_one({"job_id": job_id}, {"_id": 0})
+    job = await get_jobs_collection().find_one({"job_id": job_id}, {"_id": 0})
     
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -277,7 +277,7 @@ async def delete_processed_image(filename: str):
     import cloudinary.uploader
     
     # Find image in DB
-    image_doc = get_images_collection().find_one({"filename": filename})
+    image_doc = await get_images_collection().find_one({"filename": filename})
     
     if not image_doc:
         raise HTTPException(status_code=404, detail="Image not found")
@@ -290,7 +290,7 @@ async def delete_processed_image(filename: str):
         print(f"Warning: Could not delete from Cloudinary: {e}")
     
     # Delete from MongoDB
-    get_images_collection().delete_one({"filename": filename})
+    await get_images_collection().delete_one({"filename": filename})
     
     return {"success": True, "deleted": filename}
 
