@@ -895,6 +895,150 @@ const LayoutConfiguratorPage = () => {
     };
   }, [pixelsPerCm, findRoomRect]);
 
+  // Update dimension labels on canvas
+  const updateDimensionLabels = useCallback(() => {
+    if (!fabricRef.current || !showDimensions) return;
+    
+    const canvas = fabricRef.current;
+    
+    // Remove old dimension labels
+    canvas.getObjects().filter(o => o.isDimensionLabel).forEach(o => canvas.remove(o));
+    
+    // Get all drawn shapes (except grid)
+    const shapes = canvas.getObjects().filter(o => 
+      o.isDrawnShape && !o.isGridLine && !o.isGridLabel
+    );
+    
+    // Find room (largest rectangle)
+    const room = findRoomRect();
+    
+    shapes.forEach(obj => {
+      if (obj.type === 'rect') {
+        const width = obj.width * (obj.scaleX || 1);
+        const height = obj.height * (obj.scaleY || 1);
+        const widthCm = Math.round(width / pixelsPerCm);
+        const heightCm = Math.round(height / pixelsPerCm);
+        
+        // Width label (top center)
+        const widthLabel = new fabric.Text(`${widthCm} см`, {
+          left: obj.left + width / 2,
+          top: obj.top - 14,
+          fontSize: 10,
+          fill: '#1e40af',
+          fontWeight: 'bold',
+          originX: 'center',
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(widthLabel);
+        
+        // Height label (left center, rotated)
+        const heightLabel = new fabric.Text(`${heightCm} см`, {
+          left: obj.left - 6,
+          top: obj.top + height / 2,
+          fontSize: 10,
+          fill: '#1e40af',
+          fontWeight: 'bold',
+          originX: 'center',
+          originY: 'center',
+          angle: -90,
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(heightLabel);
+        
+        // Distance labels to room walls (if this is not the room itself)
+        if (room && obj !== room) {
+          const objRight = obj.left + width;
+          const objBottom = obj.top + height;
+          const roomRight = room.left + room.width * (room.scaleX || 1);
+          const roomBottom = room.top + room.height * (room.scaleY || 1);
+          
+          const distLeft = Math.round((obj.left - room.left) / pixelsPerCm);
+          const distRight = Math.round((roomRight - objRight) / pixelsPerCm);
+          const distTop = Math.round((obj.top - room.top) / pixelsPerCm);
+          const distBottom = Math.round((roomBottom - objBottom) / pixelsPerCm);
+          
+          // Left distance line + label
+          if (distLeft > 0) {
+            const leftLine = new fabric.Line([room.left, obj.top + height / 2, obj.left, obj.top + height / 2], {
+              stroke: '#dc2626',
+              strokeWidth: 1,
+              strokeDashArray: [3, 3],
+              selectable: false,
+              evented: false,
+              isDimensionLabel: true,
+            });
+            canvas.add(leftLine);
+            
+            const leftDistLabel = new fabric.Text(`${distLeft}`, {
+              left: room.left + (obj.left - room.left) / 2,
+              top: obj.top + height / 2 - 12,
+              fontSize: 9,
+              fill: '#dc2626',
+              originX: 'center',
+              selectable: false,
+              evented: false,
+              isDimensionLabel: true,
+            });
+            canvas.add(leftDistLabel);
+          }
+          
+          // Top distance line + label
+          if (distTop > 0) {
+            const topLine = new fabric.Line([obj.left + width / 2, room.top, obj.left + width / 2, obj.top], {
+              stroke: '#dc2626',
+              strokeWidth: 1,
+              strokeDashArray: [3, 3],
+              selectable: false,
+              evented: false,
+              isDimensionLabel: true,
+            });
+            canvas.add(topLine);
+            
+            const topDistLabel = new fabric.Text(`${distTop}`, {
+              left: obj.left + width / 2 + 8,
+              top: room.top + (obj.top - room.top) / 2,
+              fontSize: 9,
+              fill: '#dc2626',
+              originX: 'left',
+              selectable: false,
+              evented: false,
+              isDimensionLabel: true,
+            });
+            canvas.add(topDistLabel);
+          }
+        }
+      } else if (obj.type === 'line') {
+        // Line length label
+        const dx = (obj.x2 || 0) - (obj.x1 || 0);
+        const dy = (obj.y2 || 0) - (obj.y1 || 0);
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const lengthCm = Math.round(length / pixelsPerCm);
+        
+        const midX = obj.left + (obj.x1 + obj.x2) / 2;
+        const midY = obj.top + (obj.y1 + obj.y2) / 2;
+        
+        const lineLabel = new fabric.Text(`${lengthCm} см`, {
+          left: midX,
+          top: midY - 12,
+          fontSize: 10,
+          fill: '#1e40af',
+          fontWeight: 'bold',
+          originX: 'center',
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(lineLabel);
+      }
+    });
+    
+    canvas.renderAll();
+  }, [pixelsPerCm, findRoomRect, showDimensions]);
+
   // Event handlers
   const handleObjectSelected = (e) => {
     const obj = e.selected?.[0];
