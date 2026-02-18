@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { ClipboardList, BarChart3, DollarSign, Users, Waves, Flame, ArrowLeft, Database, Globe, Link, HelpCircle } from 'lucide-react';
+import { ClipboardList, BarChart3, DollarSign, Users, Waves, Flame, ArrowLeft, Database, Globe, Link, HelpCircle, Sparkles } from 'lucide-react';
 import { AdminOrdersPage } from './AdminOrdersPage';
 import { StatisticsPage } from './StatisticsPage';
 import { BaliaPricingPage } from './BaliaPricingPage';
@@ -13,6 +13,7 @@ import { BackupPage } from './BackupPage';
 import { WebOrdersPage } from './WebOrdersPage';
 import { IntegrationsPage } from './IntegrationsPage';
 import AdminHelpPage from './AdminHelpPage';
+import ContentGeneratorPage from './ContentGeneratorPage';
 
 export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
   const { i18n } = useTranslation();
