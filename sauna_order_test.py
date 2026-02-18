@@ -11,7 +11,7 @@ import re
 from datetime import datetime
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://sauna-crm-portal.preview.emergentagent.com/api"
+BACKEND_URL = "https://sauna-content-pro.preview.emergentagent.com/api"
 
 def test_sauna_order_id_format():
     """

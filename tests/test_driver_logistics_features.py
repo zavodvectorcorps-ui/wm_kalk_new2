@@ -7,7 +7,7 @@ import requests
 import os
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sauna-crm-portal.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sauna-content-pro.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_USER = "admin"
