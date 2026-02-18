@@ -1315,6 +1315,67 @@ const LayoutConfiguratorPage = () => {
               
               <div className="h-6 w-px bg-border" />
               
+              {/* Drawing Tools */}
+              <div className="flex items-center gap-1 bg-muted rounded-md p-1">
+                {Object.entries(DRAWING_TOOLS).map(([toolId, tool]) => {
+                  const Icon = tool.icon;
+                  return (
+                    <Button
+                      key={toolId}
+                      size="sm"
+                      variant={activeTool === toolId ? 'default' : 'ghost'}
+                      className="h-7 w-7 p-0"
+                      onClick={() => setActiveTool(toolId)}
+                      title={tool.name}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </Button>
+                  );
+                })}
+              </div>
+              
+              {/* Drawing color picker (when drawing tool is active) */}
+              {activeTool !== 'select' && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={drawingColor}
+                    onChange={(e) => setDrawingColor(e.target.value)}
+                    className="w-7 h-7 rounded cursor-pointer"
+                    title="Цвет"
+                  />
+                  <Select
+                    value={drawingStrokeWidth.toString()}
+                    onValueChange={(val) => setDrawingStrokeWidth(parseInt(val))}
+                  >
+                    <SelectTrigger className="w-16 h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1px</SelectItem>
+                      <SelectItem value="2">2px</SelectItem>
+                      <SelectItem value="3">3px</SelectItem>
+                      <SelectItem value="5">5px</SelectItem>
+                      <SelectItem value="8">8px</SelectItem>
+                      <SelectItem value="10">10px</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {activeTool === 'rectangle' && (
+                    <Button
+                      size="sm"
+                      variant={drawingFill !== 'transparent' ? 'default' : 'outline'}
+                      className="h-7 text-xs"
+                      onClick={() => setDrawingFill(drawingFill === 'transparent' ? drawingColor + '20' : 'transparent')}
+                      title="Заливка"
+                    >
+                      Заливка
+                    </Button>
+                  )}
+                </div>
+              )}
+              
+              <div className="h-6 w-px bg-border" />
+              
               {/* Actions */}
               <Button size="sm" variant="outline" onClick={clearCanvas}>
                 <Trash2 className="h-4 w-4 mr-1" />
