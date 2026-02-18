@@ -156,8 +156,9 @@ const ContentGeneratorPage = () => {
 
   const handleDownloadImage = async (url, filename) => {
     try {
-      // Fetch the image as blob to force download
-      const response = await fetch(`${API_URL}${url}`);
+      // URL from Cloudinary is already absolute, no need to prepend API_URL
+      const imageUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+      const response = await fetch(imageUrl);
       const blob = await response.blob();
       
       // Create blob URL and trigger download
@@ -326,7 +327,7 @@ const ContentGeneratorPage = () => {
                           <span className="truncate">{result.original_filename}</span>
                           {result.success && (
                             <a
-                              href={`${API_URL}${result.url}`}
+                              href={result.url.startsWith('http') ? result.url : `${API_URL}${result.url}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-purple-600 hover:underline ml-auto"
@@ -370,7 +371,7 @@ const ContentGeneratorPage = () => {
                 {processedImages.map((image) => (
                   <div key={image.filename} className="group relative">
                     <img
-                      src={`${API_URL}${image.url}`}
+                      src={image.url.startsWith('http') ? image.url : `${API_URL}${image.url}`}
                       alt={image.filename}
                       className="w-full h-32 object-cover rounded-lg border"
                     />
