@@ -6,10 +6,11 @@ import asyncio
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from database import db
+from services.cloudinary_service import upload_base64_image, is_cloudinary_configured
 
 load_dotenv()
 
@@ -37,7 +38,7 @@ class ProcessingJob(BaseModel):
 
 
 async def process_single_image(image_bytes: bytes, prompt: str, filename: str) -> dict:
-    """Process a single image through Nano Banana Pro API."""
+    """Process a single image through Nano Banana Pro API and save to Cloudinary."""
     from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
     
     api_key = os.getenv("EMERGENT_LLM_KEY")
@@ -71,25 +72,45 @@ async def process_single_image(image_bytes: bytes, prompt: str, filename: str) -
         
         if images and len(images) > 0:
             # Generate unique filename
-            output_filename = f"processed_{uuid.uuid4().hex[:8]}_{filename}"
+            output_filename = f"processed_{uuid.uuid4().hex[:8]}_{filename.rsplit('.', 1)[0]}"
             
-            # Store image in MongoDB
-            image_data = images[0]['data']  # Already base64
-            get_images_collection().insert_one({
-                "filename": output_filename,
-                "original_filename": filename,
-                "data": image_data,
-                "content_type": "image/png",
-                "created_at": datetime.now().isoformat()
-            })
-            
-            return {
-                "success": True,
-                "original_filename": filename,
-                "processed_filename": output_filename,
-                "url": f"/api/content/images/{output_filename}",
-                "text_response": text[:200] if text else None
-            }
+            # Upload to Cloudinary
+            if is_cloudinary_configured():
+                cloudinary_result = await upload_base64_image(
+                    images[0]['data'], 
+                    output_filename, 
+                    folder="sauna-processed"
+                )
+                
+                if cloudinary_result:
+                    # Store metadata in MongoDB (without image data)
+                    get_images_collection().insert_one({
+                        "filename": output_filename,
+                        "original_filename": filename,
+                        "cloudinary_url": cloudinary_result["url"],
+                        "cloudinary_public_id": cloudinary_result["public_id"],
+                        "created_at": datetime.now().isoformat()
+                    })
+                    
+                    return {
+                        "success": True,
+                        "original_filename": filename,
+                        "processed_filename": output_filename,
+                        "url": cloudinary_result["url"],
+                        "text_response": text[:200] if text else None
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "original_filename": filename,
+                        "error": "Failed to upload to Cloudinary"
+                    }
+            else:
+                return {
+                    "success": False,
+                    "original_filename": filename,
+                    "error": "Cloudinary not configured"
+                }
         else:
             return {
                 "success": False,
@@ -220,22 +241,6 @@ async def get_job_status(job_id: str):
     return job
 
 
-@router.get("/images/{filename}")
-async def get_processed_image(filename: str):
-    """Serve a processed image from MongoDB."""
-    
-    image_doc = get_images_collection().find_one({"filename": filename})
-    
-    if not image_doc:
-        raise HTTPException(status_code=404, detail="Image not found")
-    
-    # Decode base64 image
-    image_data = base64.b64decode(image_doc["data"])
-    content_type = image_doc.get("content_type", "image/png")
-    
-    return Response(content=image_data, media_type=content_type)
-
-
 @router.get("/default-prompt")
 async def get_default_prompt():
     """Get the default prompt for sauna image processing."""
@@ -244,11 +249,11 @@ async def get_default_prompt():
 
 @router.get("/processed-images")
 async def list_processed_images():
-    """List all processed images from MongoDB."""
+    """List all processed images from MongoDB (with Cloudinary URLs)."""
     
     images_cursor = get_images_collection().find(
         {}, 
-        {"filename": 1, "original_filename": 1, "created_at": 1, "_id": 0}
+        {"filename": 1, "original_filename": 1, "cloudinary_url": 1, "created_at": 1, "_id": 0}
     ).sort("created_at", -1).limit(100)
     
     images = []
@@ -256,7 +261,7 @@ async def list_processed_images():
         images.append({
             "filename": img["filename"],
             "original_filename": img.get("original_filename", ""),
-            "url": f"/api/content/images/{img['filename']}",
+            "url": img.get("cloudinary_url", ""),
             "created_at": img.get("created_at", "")
         })
     
@@ -265,12 +270,24 @@ async def list_processed_images():
 
 @router.delete("/images/{filename}")
 async def delete_processed_image(filename: str):
-    """Delete a processed image from MongoDB."""
+    """Delete a processed image metadata from MongoDB."""
+    import cloudinary.uploader
     
-    result = get_images_collection().delete_one({"filename": filename})
+    # Find image in DB
+    image_doc = get_images_collection().find_one({"filename": filename})
     
-    if result.deleted_count == 0:
+    if not image_doc:
         raise HTTPException(status_code=404, detail="Image not found")
+    
+    # Try to delete from Cloudinary
+    try:
+        if image_doc.get("cloudinary_public_id"):
+            cloudinary.uploader.destroy(image_doc["cloudinary_public_id"])
+    except Exception as e:
+        print(f"Warning: Could not delete from Cloudinary: {e}")
+    
+    # Delete from MongoDB
+    get_images_collection().delete_one({"filename": filename})
     
     return {"success": True, "deleted": filename}
 
