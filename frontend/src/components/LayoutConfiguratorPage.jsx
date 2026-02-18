@@ -822,6 +822,53 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Find the main room rectangle (largest rect that could be the room outline)
+  const findRoomRect = useCallback(() => {
+    if (!fabricRef.current) return null;
+    const canvas = fabricRef.current;
+    const rects = canvas.getObjects().filter(o => 
+      o.isDrawnShape && o.type === 'rect' && !o.isOutline
+    );
+    if (rects.length === 0) return null;
+    
+    // Find the largest rectangle by area
+    let largest = rects[0];
+    let maxArea = (largest.width || 0) * (largest.height || 0);
+    
+    rects.forEach(rect => {
+      const area = (rect.width || 0) * (rect.height || 0);
+      if (area > maxArea) {
+        maxArea = area;
+        largest = rect;
+      }
+    });
+    
+    return largest;
+  }, []);
+
+  // Calculate distances from object to room walls
+  const calculateDistances = useCallback((obj) => {
+    const room = findRoomRect();
+    if (!room || !obj || obj === room) return null;
+    
+    const objLeft = obj.left;
+    const objTop = obj.top;
+    const objRight = obj.left + (obj.width || 0) * (obj.scaleX || 1);
+    const objBottom = obj.top + (obj.height || 0) * (obj.scaleY || 1);
+    
+    const roomLeft = room.left;
+    const roomTop = room.top;
+    const roomRight = room.left + room.width * (room.scaleX || 1);
+    const roomBottom = room.top + room.height * (room.scaleY || 1);
+    
+    return {
+      leftWall: ((objLeft - roomLeft) / pixelsPerCm).toFixed(0),
+      rightWall: ((roomRight - objRight) / pixelsPerCm).toFixed(0),
+      topWall: ((objTop - roomTop) / pixelsPerCm).toFixed(0),
+      bottomWall: ((roomBottom - objBottom) / pixelsPerCm).toFixed(0),
+    };
+  }, [pixelsPerCm, findRoomRect]);
+
   // Event handlers
   const handleObjectSelected = (e) => {
     const obj = e.selected?.[0];
@@ -831,6 +878,7 @@ const LayoutConfiguratorPage = () => {
       // Get dimensions for drawn shapes in CM
       let widthCm = null, heightCm = null, lengthCm = null;
       let widthPx = null, heightPx = null, lengthPx = null;
+      let strokeWidthCm = obj.strokeWidthCm || (obj.strokeWidth / pixelsPerCm).toFixed(1);
       
       if (obj.isDrawnShape) {
         if (obj.type === 'rect') {
@@ -849,6 +897,9 @@ const LayoutConfiguratorPage = () => {
       // Position in CM
       const xCm = (obj.left / pixelsPerCm).toFixed(0);
       const yCm = (obj.top / pixelsPerCm).toFixed(0);
+      
+      // Calculate distances to room walls
+      const distances = calculateDistances(obj);
       
       setSelectedObject({
         id: obj.elementId,
@@ -870,6 +921,8 @@ const LayoutConfiguratorPage = () => {
         stroke: obj.stroke,
         fill: obj.fill,
         strokeWidth: obj.strokeWidth,
+        strokeWidthCm,
+        distances, // Distances to room walls
       });
     }
   };
