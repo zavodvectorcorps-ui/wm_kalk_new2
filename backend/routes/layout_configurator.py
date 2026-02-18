@@ -304,6 +304,44 @@ async def delete_layout(layout_id: str):
     return {"success": True, "deleted": layout_id}
 
 
+@router.post("/layouts/{layout_id}/duplicate")
+async def duplicate_layout(layout_id: str):
+    """Create a copy of an existing layout."""
+    # Find original layout
+    original = await get_layouts_collection().find_one({"id": layout_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Layout not found")
+    
+    # Create new layout with copied data
+    new_id = f"layout-{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    new_layout = {
+        **original,
+        "id": new_id,
+        "name": f"{original.get('name', 'Layout')} (копия)",
+        "namePl": f"{original.get('namePl', original.get('name', 'Layout'))} (kopia)",
+        "nameRu": f"{original.get('nameRu', original.get('name', 'Layout'))} (копия)",
+        "isPublished": False,  # New copy is not published
+        "exportedImageUrl": None,  # Need to re-export
+        "createdAt": now,
+        "updatedAt": now,
+    }
+    
+    # Generate new IDs for elements to avoid conflicts
+    if new_layout.get("elements"):
+        for el in new_layout["elements"]:
+            el["id"] = f"el-{uuid.uuid4().hex[:12]}"
+    
+    await get_layouts_collection().insert_one(new_layout)
+    
+    # Remove _id from response
+    if "_id" in new_layout:
+        del new_layout["_id"]
+    
+    return {"success": True, "layoutId": new_id, "layout": new_layout}
+
+
 @router.post("/layouts/{layout_id}/publish")
 async def publish_layout(layout_id: str):
     """Publish layout to calculator catalog."""
