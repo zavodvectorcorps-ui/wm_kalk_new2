@@ -278,23 +278,38 @@ const LayoutConfiguratorPage = () => {
     for (let i = 0; i <= canvasHeight; i += gridPx) {
       const cmValue = Math.round(i / pixelsPerCm);
       const isMajor = cmValue % (gridSizeCm * majorGridEvery) === 0;
+      
       const line = new fabric.Line([0, i, canvasWidth, i], {
-        stroke: '#e2e8f0',
-        strokeWidth: i % (gridSize * 5) === 0 ? 1 : 0.5,
+        stroke: isMajor ? '#cbd5e1' : '#e2e8f0',
+        strokeWidth: isMajor ? 1 : 0.5,
         selectable: false,
         evented: false,
         isGridLine: true,
       });
       canvas.add(line);
       canvas.sendToBack(line);
+      
+      // Add label for major lines
+      if (isMajor && cmValue > 0) {
+        const label = new fabric.Text(`${cmValue}`, {
+          left: 2,
+          top: i + 2,
+          fontSize: 9,
+          fill: '#94a3b8',
+          selectable: false,
+          evented: false,
+          isGridLabel: true,
+        });
+        canvas.add(label);
+      }
     }
     
     canvas.renderAll();
-  }, [showGrid, gridSize, canvasWidth, canvasHeight]);
+  }, [showGrid, gridSizeCm, pixelsPerCm, canvasWidth, canvasHeight]);
 
   useEffect(() => {
     drawGrid();
-  }, [showGrid, gridSize, drawGrid]);
+  }, [drawGrid]);
 
   // API calls
   const fetchSaunaModels = async () => {
