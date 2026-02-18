@@ -225,6 +225,21 @@ const LayoutConfiguratorPage = () => {
     }
   }, [canvasRealWidthCm, gridSizeCm, showGrid]);
 
+  // Update dimension labels when showDimensions changes
+  useEffect(() => {
+    if (fabricRef.current) {
+      if (showDimensions) {
+        updateDimensionLabels();
+      } else {
+        // Remove dimension labels
+        fabricRef.current.getObjects()
+          .filter(o => o.isDimensionLabel)
+          .forEach(o => fabricRef.current.remove(o));
+        fabricRef.current.renderAll();
+      }
+    }
+  }, [showDimensions, updateDimensionLabels]);
+
   // Draw grid
   const drawGrid = useCallback(() => {
     if (!fabricRef.current) return;
