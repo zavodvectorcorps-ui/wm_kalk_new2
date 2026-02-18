@@ -19,6 +19,23 @@ import {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
+// A4 Landscape dimensions
+// A4 = 297mm x 210mm (landscape)
+// Using scale: 2 pixels per mm = 20 pixels per cm
+const A4_LANDSCAPE = {
+  widthPx: 842,   // 297mm * 2.83 ≈ 842px (standard 72dpi)
+  heightPx: 595,  // 210mm * 2.83 ≈ 595px
+  widthCm: 29.7,
+  heightCm: 21.0,
+};
+
+// Default scale: how many real cm fit in the canvas
+// E.g., if canvas represents 500cm x 350cm area
+const DEFAULT_CANVAS_REAL_SIZE = {
+  widthCm: 500,  // Real width the canvas represents
+  heightCm: 350, // Real height the canvas represents
+};
+
 // Drawing tools
 const DRAWING_TOOLS = {
   select: { icon: MousePointer, name: 'Выбор', cursor: 'default' },
