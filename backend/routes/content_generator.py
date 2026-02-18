@@ -6,7 +6,7 @@ import asyncio
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from database import db
@@ -18,13 +18,12 @@ router = APIRouter(prefix="/api/content", tags=["content"])
 # Default prompt for sauna background replacement
 DEFAULT_SAUNA_PROMPT = """Это фотография уличной мобильной сауны. Сохрани вид и пропорции сауны, цвет дерева и все детали конструкции. Замени реальный фон на простой загородный участок в Польше: небольшой неслишком современный дачный дом, немного сада, деревья, натуральная земля и трава. Дом должен выглядеть обычным, аккуратным, без дорогого дизайна, без ярких цветов. Сохрани естественный дневной свет и тени, как на исходном фото. Если через окна или стеклянные двери видно улицу или здания, тоже замени их на тот же дачный фон, чтобы сцена выглядела цельной. Сделай картинку чистой и пригодной для каталога и рекламы, без лишних объектов, автомобилей и людей."""
 
-# Directory for processed images
-PROCESSED_DIR = "/app/backend/static/processed"
-os.makedirs(PROCESSED_DIR, exist_ok=True)
-
-# MongoDB collection for jobs
+# MongoDB collections
 def get_jobs_collection():
     return db.content_jobs
+
+def get_images_collection():
+    return db.content_images
 
 
 class ProcessingJob(BaseModel):
@@ -43,7 +42,11 @@ async def process_single_image(image_bytes: bytes, prompt: str, filename: str) -
     
     api_key = os.getenv("EMERGENT_LLM_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
+        return {
+            "success": False,
+            "original_filename": filename,
+            "error": "EMERGENT_LLM_KEY not configured"
+        }
     
     try:
         # Encode image to base64
@@ -67,14 +70,18 @@ async def process_single_image(image_bytes: bytes, prompt: str, filename: str) -
         text, images = await chat.send_message_multimodal_response(msg)
         
         if images and len(images) > 0:
-            # Save the processed image
+            # Generate unique filename
             output_filename = f"processed_{uuid.uuid4().hex[:8]}_{filename}"
-            output_path = os.path.join(PROCESSED_DIR, output_filename)
             
-            # Decode and save
-            image_data = base64.b64decode(images[0]['data'])
-            with open(output_path, 'wb') as f:
-                f.write(image_data)
+            # Store image in MongoDB
+            image_data = images[0]['data']  # Already base64
+            get_images_collection().insert_one({
+                "filename": output_filename,
+                "original_filename": filename,
+                "data": image_data,
+                "content_type": "image/png",
+                "created_at": datetime.now().isoformat()
+            })
             
             return {
                 "success": True,
@@ -215,22 +222,18 @@ async def get_job_status(job_id: str):
 
 @router.get("/images/{filename}")
 async def get_processed_image(filename: str):
-    """Serve a processed image."""
+    """Serve a processed image from MongoDB."""
     
-    file_path = os.path.join(PROCESSED_DIR, filename)
+    image_doc = get_images_collection().find_one({"filename": filename})
     
-    if not os.path.exists(file_path):
+    if not image_doc:
         raise HTTPException(status_code=404, detail="Image not found")
     
-    # Determine content type
-    if filename.lower().endswith('.png'):
-        media_type = "image/png"
-    elif filename.lower().endswith('.webp'):
-        media_type = "image/webp"
-    else:
-        media_type = "image/jpeg"
+    # Decode base64 image
+    image_data = base64.b64decode(image_doc["data"])
+    content_type = image_doc.get("content_type", "image/png")
     
-    return FileResponse(file_path, media_type=media_type)
+    return Response(content=image_data, media_type=content_type)
 
 
 @router.get("/default-prompt")
@@ -241,38 +244,33 @@ async def get_default_prompt():
 
 @router.get("/processed-images")
 async def list_processed_images():
-    """List all processed images."""
+    """List all processed images from MongoDB."""
     
-    if not os.path.exists(PROCESSED_DIR):
-        return {"images": []}
+    images_cursor = get_images_collection().find(
+        {}, 
+        {"filename": 1, "original_filename": 1, "created_at": 1, "_id": 0}
+    ).sort("created_at", -1).limit(100)
     
     images = []
-    for filename in os.listdir(PROCESSED_DIR):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
-            file_path = os.path.join(PROCESSED_DIR, filename)
-            stat = os.stat(file_path)
-            images.append({
-                "filename": filename,
-                "url": f"/api/content/images/{filename}",
-                "size": stat.st_size,
-                "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat()
-            })
-    
-    # Sort by creation date, newest first
-    images.sort(key=lambda x: x["created_at"], reverse=True)
+    for img in images_cursor:
+        images.append({
+            "filename": img["filename"],
+            "original_filename": img.get("original_filename", ""),
+            "url": f"/api/content/images/{img['filename']}",
+            "created_at": img.get("created_at", "")
+        })
     
     return {"images": images}
 
 
 @router.delete("/images/{filename}")
 async def delete_processed_image(filename: str):
-    """Delete a processed image."""
+    """Delete a processed image from MongoDB."""
     
-    file_path = os.path.join(PROCESSED_DIR, filename)
+    result = get_images_collection().delete_one({"filename": filename})
     
-    if not os.path.exists(file_path):
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Image not found")
     
-    os.remove(file_path)
     return {"success": True, "deleted": filename}
 
