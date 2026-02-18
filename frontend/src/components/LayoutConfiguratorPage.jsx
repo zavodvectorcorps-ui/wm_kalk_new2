@@ -77,6 +77,21 @@ const LayoutConfiguratorPage = () => {
   const [drawingStrokeWidth, setDrawingStrokeWidth] = useState(3);
   const [drawingFill, setDrawingFill] = useState('transparent');
   
+  // Refs for drawing (to access current state in event handlers)
+  const activeToolRef = useRef('select');
+  const isDrawingRef = useRef(false);
+  const drawingObjectRef = useRef(null);
+  const drawStartPointRef = useRef(null);
+  const drawingColorRef = useRef('#374151');
+  const drawingStrokeWidthRef = useRef(3);
+  const drawingFillRef = useRef('transparent');
+  
+  // Keep refs in sync with state
+  useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
+  useEffect(() => { drawingColorRef.current = drawingColor; }, [drawingColor]);
+  useEffect(() => { drawingStrokeWidthRef.current = drawingStrokeWidth; }, [drawingStrokeWidth]);
+  useEffect(() => { drawingFillRef.current = drawingFill; }, [drawingFill]);
+  
   // Dialogs
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
