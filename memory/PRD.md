@@ -5,10 +5,27 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 18, 2025 - Layout Configurator Bug Fixes (COMPLETED)
+- **FIXED**: Drawing line over rectangle was moving the rectangle
+  - Objects are now made non-interactive during drawing
+  - Interactivity restored after mouse up
+- **FIXED**: No manual input for shape dimensions  
+  - Added INPUT fields for width/height (rectangles) and length (lines) in properties panel
+  - Values editable in centimeters
+- **FIXED**: Grid step was 10cm, user needed 1cm option
+  - Added 1 cm option to grid selector dropdown
+- **NEW**: Dimensions displayed directly on canvas
+  - Labels show width/height on rectangles (e.g., "150 см")
+  - Labels show length on lines
+  - Toggle button "Размеры" to show/hide dimension labels
+  - Distance indicators from objects to room walls
+- **Files Modified**: `/app/frontend/src/components/LayoutConfiguratorPage.jsx`
+- **Testing**: All 7 test scenarios passed (100% success rate)
+
 ### Feb 18, 2025 - Layout Configurator (NEW FEATURE - IN PROGRESS)
 - **NEW**: Modular sauna layout configurator with drag & drop canvas
 - **Features Implemented**:
-  - Fabric.js canvas with grid snap (20px)
+  - Fabric.js canvas with grid snap (configurable: 1cm, 5cm, 10cm, 20cm, 25cm, 50cm)
   - Upload graphic elements (PNG/SVG) to library
   - Element types: heater, bench, door, window, shower, divider, stairs, terrace, other
   - Drag elements from library to canvas
@@ -21,17 +38,21 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
   - **Outline/contour upload** - upload background image with real dimensions
   - **Dimension display** - shows sizes in cm based on outline scale
   - **Duplicate layouts** - copy existing layouts for quick variations
-  - **NEW: Drawing Tools:**
-    - Select tool (cursor)
+  - **Drawing Tools:**
+    - Select tool (cursor) - select and move objects
     - Rectangle tool - draw rectangles by dragging (for sauna outline, zones)
     - Wall/Line tool - draw walls and dividers
     - Color picker for stroke
-    - Line width selector (1-10px)
+    - Line width selector in cm
     - Fill toggle for rectangles
-    - All shapes snap to grid
-    - Real-time dimension display while drawing
-    - Properties panel shows width/height/length in px and cm
+    - All shapes snap to 1cm precision
+    - Real-time dimension display on canvas
+    - Manual dimension input in properties panel
     - Edit stroke color and width after drawing
+  - **Dimension Labels on Canvas:**
+    - Width/height labels on rectangles
+    - Length labels on lines  
+    - Toggle visibility with "Размеры" button
 - **Backend API**: `/api/layout-configurator/` with endpoints:
   - `GET /element-types` - available element types
   - `POST /assets` - upload graphic element
@@ -46,7 +67,7 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
   - `POST /layouts/{id}/publish` - publish to catalog
   - `GET /published-layouts` - get published for calculator
   - `GET /sauna-models` - sauna models WITH VARIANTS for dropdown
-  - **NEW: Outline endpoints:**
+  - **Outline endpoints:**
     - `POST /outlines` - upload outline with dimensions
     - `GET /outlines` - list all outlines
     - `GET /outlines/{model_id}` - get outline for model/variant
@@ -55,7 +76,7 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **Files Created/Modified**:
   - `/app/backend/routes/layout_configurator.py` - full backend API
   - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - full UI
-- **Status**: Core functionality complete, awaiting production testing
+- **Status**: Core functionality complete with bug fixes applied
 - **TODO**: 
   - Integrate published layouts with existing LayoutCatalog component
 
