@@ -1280,47 +1280,6 @@ const LayoutConfiguratorPage = () => {
                 </div>
               </div>
             )}
-                      <ZoomOut className="h-4 w-4" />
-                    </Button>
-                    <Slider
-                      value={[selectedObject.scale * 100]}
-                      min={10}
-                      max={300}
-                      step={5}
-                      onValueChange={([val]) => {
-                        const obj = fabricRef.current?.getActiveObject();
-                        if (obj) {
-                          obj.scale(val / 100);
-                          fabricRef.current.renderAll();
-                          handleObjectSelected({ selected: [obj] });
-                        }
-                      }}
-                      className="flex-1"
-                    />
-                    <Button size="sm" variant="outline" onClick={() => scaleSelected(0.1)}>
-                      <ZoomIn className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="pt-2 border-t">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="w-full"
-                    onClick={deleteSelected}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Удалить элемент
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                <Move className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Выберите элемент на холсте</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
