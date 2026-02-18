@@ -542,48 +542,46 @@ const LayoutConfiguratorPage = () => {
     
     const obj = drawingObjectRef.current;
     const currentTool = activeToolRef.current;
+    
+    if (obj) {
+      // Check if shape is too small (accidental click)
+      let isTooSmall = false;
       
-      if (activeTool === 'rectangle') {
-        isTooSmall = drawingObject.width < gridSize || drawingObject.height < gridSize;
-      } else if (activeTool === 'wall') {
-        const dx = drawingObject.x2 - drawingObject.x1;
-        const dy = drawingObject.y2 - drawingObject.y1;
+      if (currentTool === 'rectangle') {
+        isTooSmall = (obj.width || 0) < gridSize || (obj.height || 0) < gridSize;
+      } else if (currentTool === 'wall') {
+        const dx = (obj.x2 || 0) - (obj.x1 || 0);
+        const dy = (obj.y2 || 0) - (obj.y1 || 0);
         const length = Math.sqrt(dx * dx + dy * dy);
         isTooSmall = length < gridSize;
       }
       
       if (isTooSmall) {
-        canvas.remove(drawingObject);
+        canvas.remove(obj);
+        toast.info('Слишком маленький объект');
       } else {
         // Enable controls for resizing
-        drawingObject.setCoords();
-        canvas.setActiveObject(drawingObject);
+        obj.setCoords();
+        canvas.setActiveObject(obj);
+        canvas.renderAll();
         
         // Show dimensions
-        if (activeTool === 'rectangle') {
-          const widthCm = pxToCm(drawingObject.width * (drawingObject.scaleX || 1));
-          const heightCm = pxToCm(drawingObject.height * (drawingObject.scaleY || 1));
-          if (widthCm && heightCm) {
-            toast.success(`Прямоугольник: ${widthCm} × ${heightCm} см`);
-          }
-        } else if (activeTool === 'wall') {
-          const dx = drawingObject.x2 - drawingObject.x1;
-          const dy = drawingObject.y2 - drawingObject.y1;
+        if (currentTool === 'rectangle') {
+          toast.success(`Прямоугольник: ${obj.width} × ${obj.height} px`);
+        } else if (currentTool === 'wall') {
+          const dx = (obj.x2 || 0) - (obj.x1 || 0);
+          const dy = (obj.y2 || 0) - (obj.y1 || 0);
           const lengthPx = Math.sqrt(dx * dx + dy * dy);
-          const lengthCm = pxToCm(lengthPx);
-          if (lengthCm) {
-            toast.success(`Стена: ${lengthCm} см`);
-          }
+          toast.success(`Стена: ${Math.round(lengthPx)} px`);
         }
       }
     }
     
+    drawingObjectRef.current = null;
+    drawStartPointRef.current = null;
     setDrawingObject(null);
     setDrawStartPoint(null);
-    
-    // Switch back to select after drawing (optional - remove if you want continuous drawing)
-    // setActiveTool('select');
-  };
+  }, [gridSize]);
 
   // Handle object scaling (for showing dimensions while resizing)
   const handleObjectScaling = (e) => {
