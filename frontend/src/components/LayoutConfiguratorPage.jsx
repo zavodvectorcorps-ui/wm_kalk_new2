@@ -766,6 +766,10 @@ const LayoutConfiguratorPage = () => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     
+    // CRITICAL: Re-enable target finding after drawing
+    canvas.skipTargetFind = false;
+    canvas.selection = true;
+    
     // ALWAYS restore interactivity of all objects after mouse up
     // This is critical - even if we weren't drawing, restore state
     canvas.getObjects().forEach(obj => {
