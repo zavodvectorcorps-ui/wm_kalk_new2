@@ -1839,6 +1839,33 @@ const LayoutConfiguratorPage = () => {
                 Сетка
               </Button>
               
+              {/* Dimensions toggle */}
+              <Button
+                size="sm"
+                variant={showDimensions ? 'default' : 'outline'}
+                onClick={() => {
+                  setShowDimensions(!showDimensions);
+                  // Force update after toggle
+                  setTimeout(() => {
+                    if (!showDimensions) {
+                      updateDimensionLabels();
+                    } else {
+                      // Remove dimension labels
+                      if (fabricRef.current) {
+                        fabricRef.current.getObjects()
+                          .filter(o => o.isDimensionLabel)
+                          .forEach(o => fabricRef.current.remove(o));
+                        fabricRef.current.renderAll();
+                      }
+                    }
+                  }, 0);
+                }}
+                title="Показать/скрыть размеры на холсте"
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                Размеры
+              </Button>
+              
               <div className="h-6 w-px bg-border" />
               
               {/* Drawing Tools */}
