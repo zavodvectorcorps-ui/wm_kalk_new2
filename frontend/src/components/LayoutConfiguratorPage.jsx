@@ -643,20 +643,31 @@ const LayoutConfiguratorPage = () => {
     const currentTool = activeToolRef.current;
     if (currentTool === 'select') return;
     
-    // Allow drawing on top of existing objects (ignore target check for grid lines only)
-    // This fixes the issue where you can't draw inside a rectangle
+    // Skip grid labels
     if (opt.target && opt.target.isGridLabel) return;
     
     const canvas = fabricRef.current;
     if (!canvas) return;
     
+    // IMPORTANT: Temporarily make all objects non-interactive while drawing
+    // This prevents the "pushing" effect when drawing over existing objects
+    canvas.getObjects().forEach(obj => {
+      if (!obj.isGridLine && !obj.isGridLabel) {
+        obj._wasSelectable = obj.selectable;
+        obj._wasEvented = obj.evented;
+        obj.selectable = false;
+        obj.evented = false;
+      }
+    });
+    
     // Deselect any active object when starting to draw
     canvas.discardActiveObject();
+    canvas.renderAll();
     
     const pointer = canvas.getPointer(opt.e);
     const pxPerCm = pixelsPerCmRef.current;
-    const gridPx = gridSizeCm * pxPerCm;
-    const snap = (v) => Math.round(v / gridPx) * gridPx;
+    // Snap to 1cm for precise positioning
+    const snap = (v) => Math.round(v / pxPerCm) * pxPerCm;
     const x = snap(pointer.x);
     const y = snap(pointer.y);
     
