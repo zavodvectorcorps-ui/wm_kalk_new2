@@ -1386,6 +1386,7 @@ const LayoutConfiguratorPage = () => {
             {selectedModel && (
               <div className="p-3 bg-muted rounded-lg text-sm">
                 <p><strong>Модель:</strong> {selectedModel.name}</p>
+                {selectedVariant && <p><strong>Вариант:</strong> {selectedVariant.nameRu || selectedVariant.name}</p>}
                 <p><strong>Размер холста:</strong> {canvasWidth} × {canvasHeight}</p>
               </div>
             )}
@@ -1397,6 +1398,103 @@ const LayoutConfiguratorPage = () => {
             <Button onClick={handleSaveLayout} disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {currentLayout ? 'Обновить' : 'Сохранить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Upload Outline Dialog */}
+      <Dialog open={uploadOutlineDialogOpen} onOpenChange={setUploadOutlineDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Загрузить контур сауны</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-muted rounded-lg text-sm">
+              <p><strong>Модель:</strong> {selectedModel?.name}</p>
+              {selectedVariant && <p><strong>Вариант:</strong> {selectedVariant.nameRu || selectedVariant.name}</p>}
+            </div>
+            
+            <div>
+              <Label>Изображение контура (PNG/SVG)</Label>
+              <div className="mt-1">
+                <input
+                  type="file"
+                  accept="image/png,image/svg+xml,image/webp"
+                  onChange={(e) => setOutlineForm({ ...outlineForm, file: e.target.files?.[0] || null })}
+                  className="text-sm"
+                />
+              </div>
+              {outlineForm.file && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Выбран: {outlineForm.file.name}
+                </p>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Внешняя длина (см)</Label>
+                <Input
+                  type="number"
+                  value={outlineForm.outerLength}
+                  onChange={(e) => setOutlineForm({ ...outlineForm, outerLength: parseFloat(e.target.value) || 0 })}
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Внешняя ширина (см)</Label>
+                <Input
+                  type="number"
+                  value={outlineForm.outerWidth}
+                  onChange={(e) => setOutlineForm({ ...outlineForm, outerWidth: parseFloat(e.target.value) || 0 })}
+                  className="h-8"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Внутренняя длина (см)</Label>
+                <Input
+                  type="number"
+                  value={outlineForm.innerLength}
+                  onChange={(e) => setOutlineForm({ ...outlineForm, innerLength: parseFloat(e.target.value) || 0 })}
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Внутренняя ширина (см)</Label>
+                <Input
+                  type="number"
+                  value={outlineForm.innerWidth}
+                  onChange={(e) => setOutlineForm({ ...outlineForm, innerWidth: parseFloat(e.target.value) || 0 })}
+                  className="h-8"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label className="text-xs">Толщина стены (см)</Label>
+              <Input
+                type="number"
+                value={outlineForm.wallThickness}
+                onChange={(e) => setOutlineForm({ ...outlineForm, wallThickness: parseFloat(e.target.value) || 0 })}
+                className="h-8 w-32"
+              />
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              Размеры используются для расчёта масштаба. Контур будет отображаться на холсте как фон.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadOutlineDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleUploadOutline} disabled={loading || !outlineForm.file}>
+              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Загрузить
             </Button>
           </DialogFooter>
         </DialogContent>
