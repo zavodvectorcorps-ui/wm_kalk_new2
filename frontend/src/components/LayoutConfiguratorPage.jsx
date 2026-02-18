@@ -639,6 +639,44 @@ const LayoutConfiguratorPage = () => {
 
   // ============ DRAWING TOOLS ============
   
+  // CRITICAL: This handler runs BEFORE Fabric.js processes the mouse event
+  // It completely prevents object selection when a drawing tool is active
+  const handleCanvasMouseDownBefore = useCallback((opt) => {
+    const currentTool = activeToolRef.current;
+    if (currentTool === 'select') return;
+    
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    // CRITICAL: Prevent Fabric.js from selecting/interacting with ANY object
+    // by setting these flags BEFORE the event is processed
+    canvas.skipTargetFind = true;
+    canvas.selection = false;
+    
+    // Also prevent the event from selecting the target
+    if (opt.e) {
+      opt.e.preventDefault();
+    }
+    
+    // Clear any existing target to prevent interaction
+    canvas._currentTransform = null;
+    
+    // Make all objects non-selectable immediately
+    canvas.getObjects().forEach(obj => {
+      if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
+        if (obj._wasSelectable === undefined) {
+          obj._wasSelectable = obj.selectable;
+          obj._wasEvented = obj.evented;
+        }
+        obj.selectable = false;
+        obj.evented = false;
+      }
+    });
+    
+    // Discard any active object
+    canvas.discardActiveObject();
+  }, []);
+  
   // Mouse down - start drawing
   const handleCanvasMouseDown = useCallback((opt) => {
     const currentTool = activeToolRef.current;
@@ -649,15 +687,6 @@ const LayoutConfiguratorPage = () => {
     
     const canvas = fabricRef.current;
     if (!canvas) return;
-    
-    // CRITICAL: Disable target finding completely while drawing
-    // This prevents ANY interaction with existing objects
-    canvas.skipTargetFind = true;
-    canvas.selection = false;
-    
-    // IMPORTANT: Temporarily make all objects non-interactive while drawing
-    // This prevents the "pushing" effect when drawing over existing objects
-    canvas.getObjects().forEach(obj => {
       if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
         obj._wasSelectable = obj.selectable;
         obj._wasEvented = obj.evented;
