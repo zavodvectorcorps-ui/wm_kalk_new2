@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GoogleMap, Marker, DirectionsRenderer } from '@react-google-maps/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { 
   Route, User, Trash2, Sparkles, GripVertical, ArrowUp, ArrowDown,
@@ -26,6 +27,7 @@ const TripDetails = ({
   onUpdateOrderStatus,
   onRemoveOrderFromTrip,
   onMoveOrderInTrip,
+  onMoveOrderToPosition,
   onDragStart,
   onDragEnd,
   onDragOver,
