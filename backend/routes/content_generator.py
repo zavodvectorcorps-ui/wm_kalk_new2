@@ -9,6 +9,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from database import db
 
 load_dotenv()
 
@@ -21,8 +22,9 @@ DEFAULT_SAUNA_PROMPT = """Это фотография уличной мобил�
 PROCESSED_DIR = "/app/backend/static/processed"
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
-# Store processing status
-processing_jobs = {}
+# MongoDB collection for jobs
+def get_jobs_collection():
+    return db.content_jobs
 
 
 class ProcessingJob(BaseModel):
@@ -136,15 +138,18 @@ async def process_batch_images(
     
     # Create job
     job_id = str(uuid.uuid4())
-    job = ProcessingJob(
-        job_id=job_id,
-        status="pending",
-        total_images=len(files),
-        processed_images=0,
-        results=[],
-        created_at=datetime.now().isoformat()
-    )
-    processing_jobs[job_id] = job.dict()
+    job_data = {
+        "job_id": job_id,
+        "status": "pending",
+        "total_images": len(files),
+        "processed_images": 0,
+        "results": [],
+        "error": None,
+        "created_at": datetime.now().isoformat()
+    }
+    
+    # Save job to MongoDB
+    get_jobs_collection().insert_one(job_data)
     
     # Read all files into memory before starting async processing
     files_data = []
@@ -164,8 +169,10 @@ async def process_batch_images(
 async def process_batch_background(job_id: str, files_data: List[dict], prompt: str):
     """Background task to process images one by one."""
     
-    processing_jobs[job_id]["status"] = "processing"
+    jobs_collection = get_jobs_collection()
+    jobs_collection.update_one({"job_id": job_id}, {"$set": {"status": "processing"}})
     
+    results = []
     for i, file_info in enumerate(files_data):
         try:
             result = await process_single_image(
@@ -173,27 +180,37 @@ async def process_batch_background(job_id: str, files_data: List[dict], prompt: 
                 prompt, 
                 file_info["filename"]
             )
-            processing_jobs[job_id]["results"].append(result)
-            processing_jobs[job_id]["processed_images"] = i + 1
+            results.append(result)
         except Exception as e:
-            processing_jobs[job_id]["results"].append({
+            results.append({
                 "success": False,
                 "original_filename": file_info["filename"],
                 "error": str(e)
             })
-            processing_jobs[job_id]["processed_images"] = i + 1
+        
+        # Update progress in MongoDB
+        jobs_collection.update_one(
+            {"job_id": job_id}, 
+            {"$set": {"results": results, "processed_images": i + 1}}
+        )
     
-    processing_jobs[job_id]["status"] = "completed"
+    # Mark as completed
+    jobs_collection.update_one(
+        {"job_id": job_id}, 
+        {"$set": {"status": "completed", "results": results, "processed_images": len(files_data)}}
+    )
 
 
 @router.get("/job/{job_id}")
 async def get_job_status(job_id: str):
     """Get the status and results of a batch processing job."""
     
-    if job_id not in processing_jobs:
+    job = get_jobs_collection().find_one({"job_id": job_id}, {"_id": 0})
+    
+    if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    return processing_jobs[job_id]
+    return job
 
 
 @router.get("/images/{filename}")
@@ -258,3 +275,4 @@ async def delete_processed_image(filename: str):
     
     os.remove(file_path)
     return {"success": True, "deleted": filename}
+
