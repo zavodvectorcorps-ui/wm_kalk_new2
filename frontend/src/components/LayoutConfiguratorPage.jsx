@@ -90,6 +90,9 @@ const LayoutConfiguratorPage = () => {
   const [gridSizeCm, setGridSizeCm] = useState(10);
   const gridSizePx = gridSizeCm * pixelsPerCm;
   
+  // Zoom state
+  const [zoomLevel, setZoomLevel] = useState(1);
+  
   // UI state
   const [selectedObject, setSelectedObject] = useState(null);
   const [showGrid, setShowGrid] = useState(true);
