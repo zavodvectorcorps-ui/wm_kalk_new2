@@ -1710,26 +1710,213 @@ const LayoutConfiguratorPage = () => {
 
   return (
     <div className="h-[calc(100vh-200px)] flex gap-4">
-      {/* Left Panel - Elements */}
-      <div className="w-64 flex-shrink-0 flex flex-col">
+      {/* Left Panel - Settings & Elements */}
+      <div className="w-72 flex-shrink-0 flex flex-col gap-2">
+        {/* Settings Card */}
+        <Card>
+          <CardHeader className="py-2 px-3 border-b">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              Настройки
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 space-y-3">
+            {/* Model selector */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">Модель сауны</Label>
+              <Select
+                value={selectedModel?.id || ''}
+                onValueChange={handleModelChange}
+              >
+                <SelectTrigger className="w-full h-8 text-xs">
+                  <SelectValue placeholder="Выберите модель..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {saunaModels.map(model => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Variant selector */}
+            {selectedModel?.variants?.length > 0 && (
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Вариант</Label>
+                <Select
+                  value={selectedVariant?.id || ''}
+                  onValueChange={handleVariantChange}
+                >
+                  <SelectTrigger className="w-full h-8 text-xs">
+                    <SelectValue placeholder="Вариант..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedModel.variants.map(variant => (
+                      <SelectItem key={variant.id} value={variant.id}>
+                        {variant.nameRu || variant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {/* Outline upload button */}
+            {selectedModel && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-8 text-xs"
+                onClick={() => setUploadOutlineDialogOpen(true)}
+              >
+                <Upload className="h-3 w-3 mr-1" />
+                Загрузить контур
+              </Button>
+            )}
+            
+            <div className="border-t pt-3 space-y-2">
+              {/* Grid controls */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Сетка</Label>
+                <div className="flex items-center gap-1">
+                  <Select
+                    value={gridSizeCm.toString()}
+                    onValueChange={(val) => setGridSizeCm(parseInt(val))}
+                  >
+                    <SelectTrigger className="w-16 h-7 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 см</SelectItem>
+                      <SelectItem value="5">5 см</SelectItem>
+                      <SelectItem value="10">10 см</SelectItem>
+                      <SelectItem value="20">20 см</SelectItem>
+                      <SelectItem value="50">50 см</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant={showGrid ? 'default' : 'outline'}
+                    className="h-7 w-7 p-0"
+                    onClick={() => setShowGrid(!showGrid)}
+                    title={showGrid ? 'Скрыть сетку' : 'Показать сетку'}
+                  >
+                    <Grid3X3 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Dimensions toggle */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Размеры</Label>
+                <Button
+                  size="sm"
+                  variant={showDimensions ? 'default' : 'outline'}
+                  className="h-7 text-xs px-2"
+                  onClick={() => {
+                    setShowDimensions(!showDimensions);
+                    setTimeout(() => {
+                      if (!showDimensions) {
+                        updateDimensionLabels();
+                      } else {
+                        if (fabricRef.current) {
+                          fabricRef.current.getObjects()
+                            .filter(o => o.isDimensionLabel)
+                            .forEach(o => fabricRef.current.remove(o));
+                          fabricRef.current.renderAll();
+                        }
+                      }
+                    }, 0);
+                  }}
+                >
+                  <Pencil className="h-3 w-3 mr-1" />
+                  {showDimensions ? 'Вкл' : 'Выкл'}
+                </Button>
+              </div>
+              
+              {/* Zoom controls */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Масштаб</Label>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 w-7 p-0"
+                    onClick={() => handleZoom(-0.25)}
+                  >
+                    <ZoomOut className="h-3 w-3" />
+                  </Button>
+                  <span className="text-xs w-10 text-center">{Math.round(zoomLevel * 100)}%</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 w-7 p-0"
+                    onClick={() => handleZoom(0.25)}
+                  >
+                    <ZoomIn className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-1 text-xs"
+                    onClick={resetZoom}
+                  >
+                    100%
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="border-t pt-3 flex gap-2">
+              <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={clearCanvas}>
+                <Trash2 className="h-3 w-3 mr-1" />
+                Очистить
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleExportPNG} title="Экспорт PNG">
+                <Download className="h-3 w-3" />
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 h-8 text-xs"
+                onClick={() => {
+                  if (selectedModel) {
+                    setLayoutName(currentLayout?.name || `${selectedModel.name}${selectedVariant ? ` - ${selectedVariant.nameRu || selectedVariant.name}` : ''} - Планировка`);
+                    setSaveDialogOpen(true);
+                  } else {
+                    toast.error('Сначала выберите модель сауны');
+                  }
+                }}
+              >
+                <Save className="h-3 w-3 mr-1" />
+                Сохранить
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Elements Card */}
         <Card className="flex-1 flex flex-col overflow-hidden">
-          <CardHeader className="py-3 px-4 border-b flex-shrink-0">
+          <CardHeader className="py-2 px-3 border-b flex-shrink-0">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm">Элементы</CardTitle>
               <Button
                 size="sm"
                 variant="outline"
+                className="h-6 w-6 p-0"
                 onClick={() => setUploadAssetDialogOpen(true)}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </CardHeader>
           <CardContent className="p-2 flex-1 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full grid grid-cols-2 mb-2">
-                <TabsTrigger value="elements" className="text-xs">Библиотека</TabsTrigger>
-                <TabsTrigger value="layouts" className="text-xs">Планировки</TabsTrigger>
+              <TabsList className="w-full grid grid-cols-2 mb-2 h-7">
+                <TabsTrigger value="elements" className="text-xs h-6">Библиотека</TabsTrigger>
+                <TabsTrigger value="layouts" className="text-xs h-6">Планировки</TabsTrigger>
               </TabsList>
               
               <TabsContent value="elements" className="mt-0">
