@@ -1122,6 +1122,7 @@ const LayoutConfiguratorPage = () => {
       fabricRef.current.renderAll();
       
       handleObjectSelected({ selected: [obj] });
+      updateDimensionLabels();
     }
   };
 
@@ -1131,6 +1132,8 @@ const LayoutConfiguratorPage = () => {
       left: snapToGrid(obj.left),
       top: snapToGrid(obj.top),
     });
+    // Update dimension labels during movement for real-time feedback
+    updateDimensionLabels();
   };
 
   // Add element to canvas
