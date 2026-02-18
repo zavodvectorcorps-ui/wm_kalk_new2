@@ -120,6 +120,7 @@ export const LogisticsPage = () => {
     updateOrderStatusInTrip,
     removeOrderFromTrip,
     optimizeTripRoute,
+    buildTripRoute,
     printTripOrders,
     moveOrderUp,
     moveOrderDown,
