@@ -649,10 +649,15 @@ const LayoutConfiguratorPage = () => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     
+    // CRITICAL: Disable target finding completely while drawing
+    // This prevents ANY interaction with existing objects
+    canvas.skipTargetFind = true;
+    canvas.selection = false;
+    
     // IMPORTANT: Temporarily make all objects non-interactive while drawing
     // This prevents the "pushing" effect when drawing over existing objects
     canvas.getObjects().forEach(obj => {
-      if (!obj.isGridLine && !obj.isGridLabel) {
+      if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
         obj._wasSelectable = obj.selectable;
         obj._wasEvented = obj.evented;
         obj.selectable = false;
