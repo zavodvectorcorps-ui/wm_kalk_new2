@@ -819,13 +819,6 @@ const LayoutConfiguratorPage = () => {
           const lengthCm = (lengthPx / pxPerCm).toFixed(0);
           toast.success(`Стена: ${lengthCm} см`);
         }
-        
-        // Update dimension labels after drawing
-        setTimeout(() => {
-          if (showDimensions) {
-            updateDimensionLabels();
-          }
-        }, 50);
       }
     }
     
@@ -834,7 +827,7 @@ const LayoutConfiguratorPage = () => {
     setDrawingObject(null);
     setDrawStartPoint(null);
     canvas.renderAll();
-  }, [showDimensions, updateDimensionLabels]);
+  }, []);
 
   // Handle object scaling (for showing dimensions while resizing)
   const handleObjectScaling = (e) => {
