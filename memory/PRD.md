@@ -5,6 +5,20 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 18, 2025 - Content Generator 500 Error Fix (COMPLETED)
+- **FIXED**: 500 Internal Server Error on `/api/content/processed-images` endpoint
+- **Root Cause**: MongoDB Motor async cursor was being iterated synchronously (`for img in images_cursor`)
+- **Fix**: Added `await` to all MongoDB operations and used `to_list()` for cursor iteration
+- **Operations Fixed**:
+  - `list_processed_images()` - `find().to_list()`
+  - `get_job_status()` - `find_one()`
+  - `delete_processed_image()` - `find_one()`, `delete_one()`
+  - `process_batch_background()` - `update_one()` (3 calls)
+  - `process_single_image()` - `insert_one()`
+  - `process_batch_images()` - `insert_one()`
+- **Files Modified**: `/app/backend/routes/content_generator.py`
+- **Testing**: curl confirmed `/api/content/processed-images` now returns `{"images":[]}`
+
 ### Feb 12, 2025 - amoCRM Batch API Optimization & Section Delete Buttons (COMPLETED)
 - **OPTIMIZED**: amoCRM sync now uses batch API instead of N+1 individual requests
   - `refresh_all_orders` - fetches all leads in batches of 50 (was: 1 request per lead)
