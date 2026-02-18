@@ -382,3 +382,36 @@ async def get_sauna_models():
             })
     
     return {"models": models}
+
+
+# ============ PUBLIC API for Calculator Catalog ============
+
+@router.get("/published-layouts")
+async def get_published_layouts(model_size: str = None):
+    """Get published layouts in format compatible with LayoutCatalog component."""
+    query = {"isPublished": True}
+    if model_size:
+        query["modelSize"] = model_size
+    
+    cursor = get_layouts_collection().find(query, {"_id": 0}).sort([("sortOrder", 1), ("createdAt", -1)])
+    layouts = await cursor.to_list(length=500)
+    
+    # Transform to LayoutCatalog format
+    result = []
+    for layout in layouts:
+        result.append({
+            "id": layout.get("id"),
+            "_id": layout.get("id"),  # For backward compatibility
+            "name": layout.get("namePl") or layout.get("name"),
+            "nameRu": layout.get("nameRu") or layout.get("name"),
+            "modelSize": layout.get("modelSize"),
+            "capacity": layout.get("capacity"),
+            "description": layout.get("descriptionPl") or layout.get("description"),
+            "descriptionRu": layout.get("description"),
+            "imageUrl": layout.get("exportedImageUrl"),  # Use exported PNG
+            "isActive": True,
+            "source": "configurator",  # Mark as from configurator
+        })
+    
+    return result
+
