@@ -678,8 +678,9 @@ const LayoutConfiguratorPage = () => {
         height: 1,
         fill: drawingFillRef.current,
         stroke: drawingColorRef.current,
-        strokeWidth: drawingStrokeWidthRef.current,
+        strokeWidth: strokeWidthPx,
         strokeUniform: true,
+        strokeWidthCm: strokeWidthCmRef.current, // Store cm value
         elementId: `rect-${Date.now()}`,
         elementType: 'rect',
         isDrawnShape: true,
@@ -687,8 +688,9 @@ const LayoutConfiguratorPage = () => {
     } else if (currentTool === 'wall') {
       obj = new fabric.Line([x, y, x + 1, y], {
         stroke: drawingColorRef.current,
-        strokeWidth: drawingStrokeWidthRef.current,
+        strokeWidth: strokeWidthPx,
         strokeLineCap: 'round',
+        strokeWidthCm: strokeWidthCmRef.current, // Store cm value
         elementId: `wall-${Date.now()}`,
         elementType: 'wall',
         isDrawnShape: true,
