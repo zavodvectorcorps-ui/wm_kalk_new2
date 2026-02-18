@@ -2044,175 +2044,10 @@ const LayoutConfiguratorPage = () => {
       
       {/* Center - Canvas */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Toolbar */}
+        {/* Drawing Toolbar - compact */}
         <Card className="mb-2">
           <CardContent className="p-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Model selector */}
-              <Select
-                value={selectedModel?.id || ''}
-                onValueChange={handleModelChange}
-              >
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Выберите модель..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {saunaModels.map(model => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {/* Variant selector */}
-              {selectedModel?.variants?.length > 0 && (
-                <Select
-                  value={selectedVariant?.id || ''}
-                  onValueChange={handleVariantChange}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Вариант..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedModel.variants.map(variant => (
-                      <SelectItem key={variant.id} value={variant.id}>
-                        {variant.nameRu || variant.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              
-              {/* Outline upload button */}
-              {selectedModel && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setUploadOutlineDialogOpen(true)}
-                  title="Загрузить контур сауны"
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  Контур
-                </Button>
-              )}
-              
-              <div className="h-6 w-px bg-border" />
-              
-              {/* Real canvas size in cm */}
-              <div className="flex items-center gap-1 text-xs">
-                <span className="text-muted-foreground">Область:</span>
-                <Input
-                  type="number"
-                  value={canvasRealWidthCm}
-                  onChange={(e) => setCanvasRealWidthCm(parseInt(e.target.value) || 500)}
-                  className="w-14 h-7 text-xs"
-                  title="Ширина области в см"
-                />
-                <span className="text-muted-foreground">×</span>
-                <Input
-                  type="number"
-                  value={canvasRealHeightCm}
-                  onChange={(e) => setCanvasRealHeightCm(parseInt(e.target.value) || 350)}
-                  className="w-14 h-7 text-xs"
-                  title="Высота области в см"
-                />
-                <span className="text-muted-foreground text-xs">см</span>
-              </div>
-              
-              {/* Grid size selector */}
-              <Select
-                value={gridSizeCm.toString()}
-                onValueChange={(val) => setGridSizeCm(parseInt(val))}
-              >
-                <SelectTrigger className="w-20 h-7 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 см</SelectItem>
-                  <SelectItem value="5">5 см</SelectItem>
-                  <SelectItem value="10">10 см</SelectItem>
-                  <SelectItem value="20">20 см</SelectItem>
-                  <SelectItem value="25">25 см</SelectItem>
-                  <SelectItem value="50">50 см</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <div className="h-6 w-px bg-border" />
-              
-              {/* Zoom controls */}
-              <div className="flex items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  onClick={() => handleZoom(-0.25)}
-                  title="Уменьшить"
-                >
-                  <ZoomOut className="h-4 w-4" />
-                </Button>
-                <span className="text-xs w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  onClick={() => handleZoom(0.25)}
-                  title="Увеличить"
-                >
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-xs"
-                  onClick={resetZoom}
-                  title="Сброс масштаба"
-                >
-                  100%
-                </Button>
-              </div>
-              
-              <div className="h-6 w-px bg-border" />
-              
-              {/* Grid toggle */}
-              <Button
-                size="sm"
-                variant={showGrid ? 'default' : 'outline'}
-                onClick={() => setShowGrid(!showGrid)}
-              >
-                <Grid3X3 className="h-4 w-4 mr-1" />
-                Сетка
-              </Button>
-              
-              {/* Dimensions toggle */}
-              <Button
-                size="sm"
-                variant={showDimensions ? 'default' : 'outline'}
-                onClick={() => {
-                  setShowDimensions(!showDimensions);
-                  // Force update after toggle
-                  setTimeout(() => {
-                    if (!showDimensions) {
-                      updateDimensionLabels();
-                    } else {
-                      // Remove dimension labels
-                      if (fabricRef.current) {
-                        fabricRef.current.getObjects()
-                          .filter(o => o.isDimensionLabel)
-                          .forEach(o => fabricRef.current.remove(o));
-                        fabricRef.current.renderAll();
-                      }
-                    }
-                  }, 0);
-                }}
-                title="Показать/скрыть размеры на холсте"
-              >
-                <Pencil className="h-4 w-4 mr-1" />
-                Размеры
-              </Button>
-              
-              <div className="h-6 w-px bg-border" />
-              
+            <div className="flex items-center justify-center gap-4">
               {/* Drawing Tools */}
               <div className="flex items-center gap-1 bg-muted rounded-md p-1">
                 {Object.entries(DRAWING_TOOLS).map(([toolId, tool]) => {
@@ -2222,7 +2057,7 @@ const LayoutConfiguratorPage = () => {
                       key={toolId}
                       size="sm"
                       variant={activeTool === toolId ? 'default' : 'ghost'}
-                      className="h-7 w-7 p-0"
+                      className="h-8 w-8 p-0"
                       onClick={() => setActiveTool(toolId)}
                       title={tool.name}
                     >
@@ -2234,24 +2069,24 @@ const LayoutConfiguratorPage = () => {
               
               {/* Drawing options (when drawing tool is active) */}
               {activeTool !== 'select' && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <input
                     type="color"
                     value={drawingColor}
                     onChange={(e) => setDrawingColor(e.target.value)}
-                    className="w-7 h-7 rounded cursor-pointer"
+                    className="w-8 h-8 rounded cursor-pointer border"
                     title="Цвет"
                   />
                   <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">Толщина:</span>
                     <Input
                       type="number"
-                      step="0.1"
-                      min="0.1"
-                      max="50"
+                      step="0.5"
+                      min="0.5"
+                      max="20"
                       value={drawingStrokeWidthCm}
                       onChange={(e) => setDrawingStrokeWidthCm(parseFloat(e.target.value) || 1)}
-                      className="w-14 h-7 text-xs"
-                      title="Толщина линии в см"
+                      className="w-16 h-8 text-xs"
                     />
                     <span className="text-xs text-muted-foreground">см</span>
                   </div>
@@ -2259,44 +2094,14 @@ const LayoutConfiguratorPage = () => {
                     <Button
                       size="sm"
                       variant={drawingFill !== 'transparent' ? 'default' : 'outline'}
-                      className="h-7 text-xs"
+                      className="h-8 text-xs"
                       onClick={() => setDrawingFill(drawingFill === 'transparent' ? drawingColor + '20' : 'transparent')}
-                      title="Заливка"
                     >
                       Заливка
                     </Button>
                   )}
                 </div>
               )}
-              
-              <div className="h-6 w-px bg-border" />
-              
-              {/* Actions */}
-              <Button size="sm" variant="outline" onClick={clearCanvas}>
-                <Trash2 className="h-4 w-4 mr-1" />
-                Очистить
-              </Button>
-              
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (selectedModel) {
-                    setLayoutName(currentLayout?.name || `${selectedModel.name}${selectedVariant ? ` - ${selectedVariant.nameRu || selectedVariant.name}` : ''} - Планировка`);
-                    setSaveDialogOpen(true);
-                  } else {
-                    toast.error('Сначала выберите модель сауны');
-                  }
-                }}
-              >
-                <Save className="h-4 w-4 mr-1" />
-                Сохранить
-              </Button>
-              
-              <Button size="sm" variant="outline" onClick={handleExportPNG}>
-                <Download className="h-4 w-4 mr-1" />
-                PNG
-              </Button>
             </div>
           </CardContent>
         </Card>
