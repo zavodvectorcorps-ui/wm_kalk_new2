@@ -427,6 +427,100 @@ const LayoutConfiguratorPage = () => {
     setLoading(false);
   };
 
+  // Save drawn rectangle as outline for model
+  const handleSaveDrawnOutline = async () => {
+    if (!fabricRef.current || !selectedModel) {
+      toast.error('Выберите модель сауны');
+      return;
+    }
+    
+    const canvas = fabricRef.current;
+    const activeObj = canvas.getActiveObject();
+    
+    if (!activeObj || activeObj.type !== 'rect') {
+      toast.error('Выберите прямоугольник для сохранения как контур');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      // Export only the selected rectangle as PNG
+      const tempCanvas = document.createElement('canvas');
+      const rectWidth = activeObj.width * (activeObj.scaleX || 1);
+      const rectHeight = activeObj.height * (activeObj.scaleY || 1);
+      tempCanvas.width = rectWidth;
+      tempCanvas.height = rectHeight;
+      const ctx = tempCanvas.getContext('2d');
+      
+      // Draw rectangle
+      ctx.strokeStyle = activeObj.stroke || '#374151';
+      ctx.lineWidth = activeObj.strokeWidth || 3;
+      ctx.strokeRect(0, 0, rectWidth, rectHeight);
+      if (activeObj.fill && activeObj.fill !== 'transparent') {
+        ctx.fillStyle = activeObj.fill;
+        ctx.fillRect(0, 0, rectWidth, rectHeight);
+      }
+      
+      // Convert to base64
+      const dataUrl = tempCanvas.toDataURL('image/png');
+      const base64Data = dataUrl.split(',')[1];
+      
+      // Create a blob from base64
+      const byteString = atob(base64Data);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: 'image/png' });
+      const file = new File([blob], 'outline.png', { type: 'image/png' });
+      
+      // Upload to backend
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('modelId', selectedModel.id);
+      if (selectedVariant) {
+        formData.append('variantId', selectedVariant.id);
+      }
+      formData.append('outerLength', saveOutlineForm.outerLength.toString());
+      formData.append('outerWidth', saveOutlineForm.outerWidth.toString());
+      formData.append('innerLength', saveOutlineForm.innerLength.toString());
+      formData.append('innerWidth', saveOutlineForm.innerWidth.toString());
+      formData.append('wallThickness', saveOutlineForm.wallThickness.toString());
+      formData.append('canvasWidth', canvasWidth.toString());
+      formData.append('canvasHeight', canvasHeight.toString());
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/outlines`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        const outline = await res.json();
+        setModelOutline(outline);
+        toast.success('Контур сохранён для модели!');
+        setShowSaveOutlineDialog(false);
+        
+        // Mark the rectangle as outline (optional: make it non-selectable)
+        activeObj.set({
+          isOutline: true,
+          selectable: false,
+          evented: false,
+          opacity: 0.8,
+        });
+        canvas.discardActiveObject();
+        canvas.renderAll();
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка сохранения');
+      }
+    } catch (error) {
+      console.error('Save outline error:', error);
+      toast.error('Ошибка при сохранении контура');
+    }
+    setLoading(false);
+  };
+
   // Convert pixels to centimeters
   const pxToCm = (px) => {
     if (!modelOutline?.pixelsPerCm) return null;
