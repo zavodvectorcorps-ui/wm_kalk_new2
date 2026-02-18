@@ -13,10 +13,18 @@ import { toast } from 'sonner';
 import {
   Plus, Trash2, Save, Download, Upload, RotateCw, RotateCcw,
   ZoomIn, ZoomOut, Grid3X3, Eye, EyeOff, Layers, Settings2,
-  FolderOpen, Copy, Move, Loader2, RefreshCw, GripVertical
+  FolderOpen, Copy, Move, Loader2, RefreshCw, GripVertical,
+  Square, Minus, MousePointer, Pencil
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+
+// Drawing tools
+const DRAWING_TOOLS = {
+  select: { icon: MousePointer, name: 'Выбор', cursor: 'default' },
+  rectangle: { icon: Square, name: 'Прямоугольник', cursor: 'crosshair' },
+  wall: { icon: Minus, name: 'Стена/Линия', cursor: 'crosshair' },
+};
 
 // Element type icons and colors
 const ELEMENT_TYPES = {
@@ -29,6 +37,8 @@ const ELEMENT_TYPES = {
   stairs: { icon: '🪜', color: '#6366f1', name: 'Ступеньки', namePl: 'Schody' },
   terrace: { icon: '🏡', color: '#84cc16', name: 'Терраса', namePl: 'Taras' },
   other: { icon: '📦', color: '#64748b', name: 'Другое', namePl: 'Inne' },
+  rect: { icon: '⬜', color: '#374151', name: 'Область', namePl: 'Obszar' },
+  wall: { icon: '➖', color: '#1f2937', name: 'Стена', namePl: 'Ściana' },
 };
 
 const LayoutConfiguratorPage = () => {
