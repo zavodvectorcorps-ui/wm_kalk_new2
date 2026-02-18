@@ -991,7 +991,7 @@ const LayoutConfiguratorPage = () => {
               {/* Model selector */}
               <Select
                 value={selectedModel?.id || ''}
-                onValueChange={(id) => setSelectedModel(saunaModels.find(m => m.id === id))}
+                onValueChange={handleModelChange}
               >
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Выберите модель..." />
@@ -1005,24 +1005,64 @@ const LayoutConfiguratorPage = () => {
                 </SelectContent>
               </Select>
               
+              {/* Variant selector */}
+              {selectedModel?.variants?.length > 0 && (
+                <Select
+                  value={selectedVariant?.id || ''}
+                  onValueChange={handleVariantChange}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Вариант..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedModel.variants.map(variant => (
+                      <SelectItem key={variant.id} value={variant.id}>
+                        {variant.nameRu || variant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              
+              {/* Outline upload button */}
+              {selectedModel && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setUploadOutlineDialogOpen(true)}
+                  title="Загрузить контур сауны"
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Контур
+                </Button>
+              )}
+              
               <div className="h-6 w-px bg-border" />
               
               {/* Canvas size */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 text-xs">
                 <Input
                   type="number"
                   value={canvasWidth}
                   onChange={(e) => setCanvasWidth(parseInt(e.target.value) || 800)}
-                  className="w-20 h-8 text-sm"
+                  className="w-16 h-7 text-xs"
                 />
                 <span className="text-muted-foreground">×</span>
                 <Input
                   type="number"
                   value={canvasHeight}
                   onChange={(e) => setCanvasHeight(parseInt(e.target.value) || 400)}
-                  className="w-20 h-8 text-sm"
+                  className="w-16 h-7 text-xs"
                 />
+                <span className="text-muted-foreground text-xs">px</span>
               </div>
+              
+              {/* Show dimensions info */}
+              {modelOutline && (
+                <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                  {modelOutline.outerLength}×{modelOutline.outerWidth} см
+                </div>
+              )}
               
               <div className="h-6 w-px bg-border" />
               
@@ -1034,6 +1074,16 @@ const LayoutConfiguratorPage = () => {
               >
                 <Grid3X3 className="h-4 w-4 mr-1" />
                 Сетка
+              </Button>
+              
+              {/* Dimensions toggle */}
+              <Button
+                size="sm"
+                variant={showDimensions ? 'default' : 'outline'}
+                onClick={() => setShowDimensions(!showDimensions)}
+                title="Показать размеры"
+              >
+                📏 Размеры
               </Button>
               
               <div className="h-6 w-px bg-border" />
@@ -1049,7 +1099,7 @@ const LayoutConfiguratorPage = () => {
                 variant="outline"
                 onClick={() => {
                   if (selectedModel) {
-                    setLayoutName(currentLayout?.name || `${selectedModel.name} - Планировка`);
+                    setLayoutName(currentLayout?.name || `${selectedModel.name}${selectedVariant ? ` - ${selectedVariant.nameRu || selectedVariant.name}` : ''} - Планировка`);
                     setSaveDialogOpen(true);
                   } else {
                     toast.error('Сначала выберите модель сауны');
