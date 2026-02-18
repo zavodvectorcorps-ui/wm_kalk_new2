@@ -1,0 +1,142 @@
+{
+  "summary": "Tested Layout Configurator bug fixes for sauna module. All 7 reported features/bugs verified as FIXED: 1) Grid selector has 1cm option, 2) Drawing line over rectangle does NOT move the rectangle (bug fixed), 3) Properties panel has INPUT fields for width/height of rectangles, 4) Properties panel has INPUT field for line length, 5) Dimensions displayed on canvas, 6) 'Размеры' button toggles dimension display, 7) Manual dimension input works correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_35.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PASS: handleCanvasMouseDown (line 642) - Objects made non-interactive during drawing to prevent 'pushing' effect",
+    "PASS: handleCanvasMouseUp (line 760) - Objects interactivity restored after drawing",
+    "PASS: Grid selector (lines 1812-1819) - Has 1cm, 5cm, 10cm, 20cm, 25cm, 50cm options",
+    "PASS: Properties panel (lines 2019-2072) - INPUT fields for Ширина (width) and Высота (height) for rectangles",
+    "PASS: Properties panel (lines 2074-2110) - INPUT field for Длина (length) for lines",
+    "PASS: updateDimensionLabels (line 899) - Draws dimension labels on canvas for shapes",
+    "PASS: showDimensions state (line 99) - Controls visibility of dimension labels on canvas",
+    "PASS: Размеры button (lines 1869-1893) - Toggles showDimensions state"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100% (all 7 features verified working)"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"}
+  },
+  "seed_data_creation": "None - used drawing tools to create test shapes",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Layout Configurator bug fixes verified. Path: Login -> Panel administracyjny -> Планировки tab. Drawing tools: Arrow (select), Square (rectangle), Line (wall). Grid selector in toolbar. Properties panel on right side shows dimension inputs when shape is selected.",
+  "features_tested": {
+    "grid_1cm_option": {
+      "status": "PASS",
+      "details": "Grid selector dropdown contains '1 см' option. Selecting it shows finer grid on canvas."
+    },
+    "rectangle_drawing": {
+      "status": "PASS",
+      "details": "Rectangle tool works correctly. Toast shows 'Прямоугольник: X × Y см' after drawing."
+    },
+    "line_over_rectangle_no_push": {
+      "status": "PASS",
+      "details": "BUG FIXED: Drawing a line over existing rectangle does NOT move/push the rectangle. Objects made non-interactive during drawing via handleCanvasMouseDown."
+    },
+    "rectangle_dimension_inputs": {
+      "status": "PASS",
+      "details": "Properties panel shows INPUT fields for 'Ширина' (width) and 'Высота' (height) when rectangle is selected. Values in cm."
+    },
+    "line_length_input": {
+      "status": "PASS",
+      "details": "Properties panel shows INPUT field for 'Длина' (length) when line is selected. Value in cm."
+    },
+    "dimensions_on_canvas": {
+      "status": "PASS",
+      "details": "Dimension labels (e.g., '119 см', '89 см') displayed directly on canvas above/beside shapes."
+    },
+    "dimensions_toggle_button": {
+      "status": "PASS",
+      "details": "'Размеры' button in toolbar toggles dimension label visibility on canvas."
+    },
+    "manual_dimension_input": {
+      "status": "PASS",
+      "details": "Changing values in width/height/length INPUT fields updates the shape size on canvas."
+    }
+  },
+  "test_scenarios_executed": [
+    {
+      "scenario": "Login as admin and navigate to Layout Configurator",
+      "result": "PASS - Navigated via Panel administracyjny -> Планировки tab"
+    },
+    {
+      "scenario": "Verify grid selector has 1cm option",
+      "result": "PASS - Dropdown shows: 1 см, 5 см, 10 см, 20 см, 25 см, 50 см"
+    },
+    {
+      "scenario": "Draw rectangle on canvas",
+      "result": "PASS - Rectangle drawn, toast shows dimensions, shape visible on canvas"
+    },
+    {
+      "scenario": "Draw line over existing rectangle",
+      "result": "PASS - Line created, rectangle did NOT move (bug fixed)"
+    },
+    {
+      "scenario": "Verify properties panel shows dimension inputs for rectangle",
+      "result": "PASS - Ширина (width) and Высота (height) INPUT fields visible"
+    },
+    {
+      "scenario": "Verify properties panel shows length input for line",
+      "result": "PASS - Длина (length) INPUT field visible when line selected"
+    },
+    {
+      "scenario": "Verify dimensions displayed on canvas",
+      "result": "PASS - Labels like '119 см' shown above/beside shapes"
+    },
+    {
+      "scenario": "Test manual dimension input",
+      "result": "PASS - Changed width from 119 to 150, rectangle resized on canvas"
+    }
+  ],
+  "ui_screenshots_taken": [
+    "01_login_page.jpg - Login page",
+    "02_after_login.jpg - Service selection page",
+    "03_admin_panel.jpg - Admin panel with tabs",
+    "04_layout_configurator.jpg - Layout Configurator page",
+    "05_grid_selector_open.jpg - Grid selector dropdown showing 1cm option",
+    "06_grid_1cm_selected.jpg - Grid set to 1cm",
+    "07_rectangle_drawn.jpg - Rectangle drawn on canvas with dimensions",
+    "08_rect_before_line.jpg - Rectangle before drawing line",
+    "09_line_over_rect.jpg - Line drawn over rectangle (rectangle not moved)",
+    "10_dimensions_on.jpg - Dimensions visible on canvas",
+    "13_width_changed.jpg - Width changed via manual input",
+    "14_height_changed.jpg - Height changed via manual input"
+  ],
+  "bugs_verified_fixed": [
+    {
+      "bug": "Drawing line over rectangle moves the rectangle",
+      "status": "FIXED",
+      "fix_location": "handleCanvasMouseDown - objects made non-interactive during drawing"
+    },
+    {
+      "bug": "No manual input for shape dimensions",
+      "status": "FIXED",
+      "fix_location": "Properties panel - INPUT fields added for width/height/length"
+    },
+    {
+      "bug": "Grid step is 10cm, should be 1cm",
+      "status": "FIXED",
+      "fix_location": "Grid selector - 1cm option added to dropdown"
+    },
+    {
+      "bug": "Dimensions not displayed on drawing",
+      "status": "FIXED",
+      "fix_location": "updateDimensionLabels function - draws labels on canvas"
+    }
+  ]
+}
