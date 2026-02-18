@@ -97,7 +97,17 @@ const LayoutConfiguratorPage = () => {
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [uploadAssetDialogOpen, setUploadAssetDialogOpen] = useState(false);
   const [uploadOutlineDialogOpen, setUploadOutlineDialogOpen] = useState(false);
+  const [showSaveOutlineDialog, setShowSaveOutlineDialog] = useState(false);
   const [layoutName, setLayoutName] = useState('');
+  
+  // Save outline form
+  const [saveOutlineForm, setSaveOutlineForm] = useState({
+    outerLength: 400,
+    outerWidth: 300,
+    innerLength: 380,
+    innerWidth: 280,
+    wallThickness: 10,
+  });
   
   // Upload form state
   const [uploadForm, setUploadForm] = useState({
