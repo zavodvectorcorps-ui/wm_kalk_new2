@@ -725,8 +725,8 @@ const LayoutConfiguratorPage = () => {
     
     const pointer = canvas.getPointer(opt.e);
     const pxPerCm = pixelsPerCmRef.current;
-    const gridPx = gridSizeCm * pxPerCm;
-    const snap = (v) => Math.round(v / gridPx) * gridPx;
+    // Snap to 1cm for precise positioning (not grid size)
+    const snap = (v) => Math.round(v / pxPerCm) * pxPerCm;
     const x = snap(pointer.x);
     const y = snap(pointer.y);
     const startPoint = drawStartPointRef.current;
@@ -754,14 +754,28 @@ const LayoutConfiguratorPage = () => {
     
     obj.setCoords();
     canvas.renderAll();
-  }, [gridSizeCm]);
+  }, []);
   
   // Mouse up - finish drawing
   const handleCanvasMouseUp = useCallback((opt) => {
-    if (!isDrawingRef.current) return;
-    
     const canvas = fabricRef.current;
     if (!canvas) return;
+    
+    // ALWAYS restore interactivity of all objects after mouse up
+    // This is critical - even if we weren't drawing, restore state
+    canvas.getObjects().forEach(obj => {
+      if (obj._wasSelectable !== undefined) {
+        obj.selectable = obj._wasSelectable;
+        obj.evented = obj._wasEvented;
+        delete obj._wasSelectable;
+        delete obj._wasEvented;
+      }
+    });
+    
+    if (!isDrawingRef.current) {
+      canvas.renderAll();
+      return;
+    }
     
     isDrawingRef.current = false;
     setIsDrawing(false);
@@ -769,29 +783,29 @@ const LayoutConfiguratorPage = () => {
     const obj = drawingObjectRef.current;
     const currentTool = activeToolRef.current;
     const pxPerCm = pixelsPerCmRef.current;
-    const gridPx = gridSizeCm * pxPerCm;
+    // Minimum size is 5cm (not dependent on grid size)
+    const minSizePx = 5 * pxPerCm;
     
     if (obj) {
-      // Check if shape is too small (less than half grid size)
+      // Check if shape is too small (less than 5cm)
       let isTooSmall = false;
       
       if (currentTool === 'rectangle') {
-        isTooSmall = (obj.width || 0) < gridPx / 2 || (obj.height || 0) < gridPx / 2;
+        isTooSmall = (obj.width || 0) < minSizePx || (obj.height || 0) < minSizePx;
       } else if (currentTool === 'wall') {
         const dx = (obj.x2 || 0) - (obj.x1 || 0);
         const dy = (obj.y2 || 0) - (obj.y1 || 0);
         const length = Math.sqrt(dx * dx + dy * dy);
-        isTooSmall = length < gridPx / 2;
+        isTooSmall = length < minSizePx;
       }
       
       if (isTooSmall) {
         canvas.remove(obj);
-        toast.info('Слишком маленький объект');
+        toast.info('Слишком маленький объект (минимум 5 см)');
       } else {
         // Enable controls for resizing
         obj.setCoords();
         canvas.setActiveObject(obj);
-        canvas.renderAll();
         
         // Show dimensions in CM
         if (currentTool === 'rectangle') {
@@ -812,7 +826,8 @@ const LayoutConfiguratorPage = () => {
     drawStartPointRef.current = null;
     setDrawingObject(null);
     setDrawStartPoint(null);
-  }, [gridSizeCm]);
+    canvas.renderAll();
+  }, []);
 
   // Handle object scaling (for showing dimensions while resizing)
   const handleObjectScaling = (e) => {
@@ -1799,25 +1814,96 @@ const LayoutConfiguratorPage = () => {
                   </div>
                 </div>
                 
-                {/* Dimensions for drawn shapes - in CM */}
+                {/* Dimensions for drawn shapes - in CM with editable inputs */}
                 {selectedObject.isDrawnShape && selectedObject.widthCm && selectedObject.heightCm && (
-                  <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm space-y-1">
-                    <div className="flex justify-between font-medium">
-                      <span>Ширина:</span>
-                      <span>{selectedObject.widthCm} см</span>
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-xs font-medium">Ширина:</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={selectedObject.widthCm}
+                          onChange={(e) => {
+                            const obj = fabricRef.current?.getActiveObject();
+                            if (obj && obj.type === 'rect') {
+                              const newWidthCm = parseFloat(e.target.value) || 1;
+                              const newWidthPx = newWidthCm * pixelsPerCm;
+                              obj.set({ width: newWidthPx, scaleX: 1 });
+                              obj.setCoords();
+                              fabricRef.current.renderAll();
+                              handleObjectSelected({ selected: [obj] });
+                              updateDimensionLabels();
+                            }
+                          }}
+                          className="w-20 h-7 text-xs"
+                        />
+                        <span className="text-xs text-muted-foreground">см</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between font-medium">
-                      <span>Высота:</span>
-                      <span>{selectedObject.heightCm} см</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-xs font-medium">Высота:</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={selectedObject.heightCm}
+                          onChange={(e) => {
+                            const obj = fabricRef.current?.getActiveObject();
+                            if (obj && obj.type === 'rect') {
+                              const newHeightCm = parseFloat(e.target.value) || 1;
+                              const newHeightPx = newHeightCm * pixelsPerCm;
+                              obj.set({ height: newHeightPx, scaleY: 1 });
+                              obj.setCoords();
+                              fabricRef.current.renderAll();
+                              handleObjectSelected({ selected: [obj] });
+                              updateDimensionLabels();
+                            }
+                          }}
+                          className="w-20 h-7 text-xs"
+                        />
+                        <span className="text-xs text-muted-foreground">см</span>
+                      </div>
                     </div>
                   </div>
                 )}
                 
                 {selectedObject.isDrawnShape && selectedObject.lengthCm && (
                   <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm">
-                    <div className="flex justify-between font-medium">
-                      <span>Длина:</span>
-                      <span>{selectedObject.lengthCm} см</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-xs font-medium">Длина:</Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={selectedObject.lengthCm}
+                          onChange={(e) => {
+                            const obj = fabricRef.current?.getActiveObject();
+                            if (obj && obj.type === 'line') {
+                              const newLengthCm = parseFloat(e.target.value) || 1;
+                              const newLengthPx = newLengthCm * pixelsPerCm;
+                              // Keep direction, change length
+                              const dx = (obj.x2 || 0) - (obj.x1 || 0);
+                              const dy = (obj.y2 || 0) - (obj.y1 || 0);
+                              const currentLength = Math.sqrt(dx * dx + dy * dy) || 1;
+                              const ratio = newLengthPx / currentLength;
+                              obj.set({
+                                x2: obj.x1 + dx * ratio,
+                                y2: obj.y1 + dy * ratio,
+                              });
+                              obj.setCoords();
+                              fabricRef.current.renderAll();
+                              handleObjectSelected({ selected: [obj] });
+                              updateDimensionLabels();
+                            }
+                          }}
+                          className="w-20 h-7 text-xs"
+                        />
+                        <span className="text-xs text-muted-foreground">см</span>
+                      </div>
                     </div>
                   </div>
                 )}
