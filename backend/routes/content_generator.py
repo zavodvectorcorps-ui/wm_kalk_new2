@@ -256,8 +256,11 @@ async def list_processed_images():
         {"filename": 1, "original_filename": 1, "cloudinary_url": 1, "created_at": 1, "_id": 0}
     ).sort("created_at", -1).limit(100)
     
+    # Use to_list() for async iteration with Motor
+    images_list = await images_cursor.to_list(length=100)
+    
     images = []
-    for img in images_cursor:
+    for img in images_list:
         images.append({
             "filename": img["filename"],
             "original_filename": img.get("original_filename", ""),
