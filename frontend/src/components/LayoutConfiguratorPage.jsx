@@ -1637,6 +1637,7 @@ const LayoutConfiguratorPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="1">1 см</SelectItem>
                   <SelectItem value="5">5 см</SelectItem>
                   <SelectItem value="10">10 см</SelectItem>
                   <SelectItem value="20">20 см</SelectItem>
