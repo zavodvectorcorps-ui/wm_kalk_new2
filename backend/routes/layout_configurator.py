@@ -153,7 +153,8 @@ async def upload_asset(
     await get_assets_collection().insert_one(asset_doc)
     
     # Return without _id
-    del asset_doc["_id"] if "_id" in asset_doc else None
+    if "_id" in asset_doc:
+        del asset_doc["_id"]
     return asset_doc
 
 
