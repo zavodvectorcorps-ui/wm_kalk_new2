@@ -1621,6 +1621,40 @@ const LayoutConfiguratorPage = () => {
               
               <div className="h-6 w-px bg-border" />
               
+              {/* Zoom controls */}
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 w-7 p-0"
+                  onClick={() => handleZoom(-0.25)}
+                  title="Уменьшить"
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="text-xs w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 w-7 p-0"
+                  onClick={() => handleZoom(0.25)}
+                  title="Увеличить"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  onClick={resetZoom}
+                  title="Сброс масштаба"
+                >
+                  100%
+                </Button>
+              </div>
+              
+              <div className="h-6 w-px bg-border" />
+              
               {/* Grid toggle */}
               <Button
                 size="sm"
@@ -1652,7 +1686,7 @@ const LayoutConfiguratorPage = () => {
                 })}
               </div>
               
-              {/* Drawing color picker (when drawing tool is active) */}
+              {/* Drawing options (when drawing tool is active) */}
               {activeTool !== 'select' && (
                 <div className="flex items-center gap-2">
                   <input
@@ -1662,22 +1696,19 @@ const LayoutConfiguratorPage = () => {
                     className="w-7 h-7 rounded cursor-pointer"
                     title="Цвет"
                   />
-                  <Select
-                    value={drawingStrokeWidth.toString()}
-                    onValueChange={(val) => setDrawingStrokeWidth(parseInt(val))}
-                  >
-                    <SelectTrigger className="w-16 h-7 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1px</SelectItem>
-                      <SelectItem value="2">2px</SelectItem>
-                      <SelectItem value="3">3px</SelectItem>
-                      <SelectItem value="5">5px</SelectItem>
-                      <SelectItem value="8">8px</SelectItem>
-                      <SelectItem value="10">10px</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      max="50"
+                      value={drawingStrokeWidthCm}
+                      onChange={(e) => setDrawingStrokeWidthCm(parseFloat(e.target.value) || 1)}
+                      className="w-14 h-7 text-xs"
+                      title="Толщина линии в см"
+                    />
+                    <span className="text-xs text-muted-foreground">см</span>
+                  </div>
                   {activeTool === 'rectangle' && (
                     <Button
                       size="sm"
