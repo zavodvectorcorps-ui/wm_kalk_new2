@@ -1132,8 +1132,8 @@ const LayoutConfiguratorPage = () => {
       </div>
       
       {/* Right Panel - Properties */}
-      <div className="w-56 flex-shrink-0">
-        <Card className="h-full">
+      <div className="w-64 flex-shrink-0">
+        <Card className="h-full overflow-auto">
           <CardHeader className="py-3 px-4 border-b">
             <CardTitle className="text-sm flex items-center gap-2">
               <Settings2 className="h-4 w-4" />
@@ -1153,7 +1153,7 @@ const LayoutConfiguratorPage = () => {
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-xs">X</Label>
+                    <Label className="text-xs">X (px)</Label>
                     <Input
                       type="number"
                       value={selectedObject.x}
@@ -1165,11 +1165,14 @@ const LayoutConfiguratorPage = () => {
                           handleObjectSelected({ selected: [obj] });
                         }
                       }}
-                      className="h-8 text-sm"
+                      className="h-7 text-xs"
                     />
+                    {showDimensions && pxToCm(selectedObject.x) && (
+                      <span className="text-xs text-muted-foreground">{pxToCm(selectedObject.x)} см</span>
+                    )}
                   </div>
                   <div>
-                    <Label className="text-xs">Y</Label>
+                    <Label className="text-xs">Y (px)</Label>
                     <Input
                       type="number"
                       value={selectedObject.y}
@@ -1181,25 +1184,28 @@ const LayoutConfiguratorPage = () => {
                           handleObjectSelected({ selected: [obj] });
                         }
                       }}
-                      className="h-8 text-sm"
+                      className="h-7 text-xs"
                     />
+                    {showDimensions && pxToCm(selectedObject.y) && (
+                      <span className="text-xs text-muted-foreground">{pxToCm(selectedObject.y)} см</span>
+                    )}
                   </div>
                 </div>
                 
                 <div>
                   <Label className="text-xs">Поворот: {selectedObject.rotation}°</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Button size="sm" variant="outline" onClick={() => rotateSelected(-90)}>
-                      <RotateCcw className="h-4 w-4" />
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => rotateSelected(-90)}>
+                      <RotateCcw className="h-3 w-3" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => rotateSelected(-15)}>
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => rotateSelected(-15)}>
                       -15°
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => rotateSelected(15)}>
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => rotateSelected(15)}>
                       +15°
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => rotateSelected(90)}>
-                      <RotateCw className="h-4 w-4" />
+                    <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => rotateSelected(90)}>
+                      <RotateCw className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
@@ -1207,7 +1213,73 @@ const LayoutConfiguratorPage = () => {
                 <div>
                   <Label className="text-xs">Масштаб: {(selectedObject.scale * 100).toFixed(0)}%</Label>
                   <div className="flex items-center gap-2 mt-1">
-                    <Button size="sm" variant="outline" onClick={() => scaleSelected(-0.1)}>
+                    <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => scaleSelected(-0.1)}>
+                      <ZoomOut className="h-3 w-3" />
+                    </Button>
+                    <Slider
+                      value={[selectedObject.scale * 100]}
+                      min={10}
+                      max={300}
+                      step={5}
+                      onValueChange={([val]) => {
+                        const obj = fabricRef.current?.getActiveObject();
+                        if (obj) {
+                          obj.scale(val / 100);
+                          fabricRef.current.renderAll();
+                          handleObjectSelected({ selected: [obj] });
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => scaleSelected(0.1)}>
+                      <ZoomIn className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="w-full"
+                    onClick={deleteSelected}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Удалить
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4 text-muted-foreground text-sm">
+                <Move className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Выберите элемент</p>
+              </div>
+            )}
+            
+            {/* Model outline info */}
+            {modelOutline && (
+              <div className="mt-4 pt-4 border-t">
+                <Label className="text-xs font-medium">Размеры сауны</Label>
+                <div className="mt-2 space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Внешние:</span>
+                    <span>{modelOutline.outerLength} × {modelOutline.outerWidth} см</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Внутренние:</span>
+                    <span>{modelOutline.innerLength} × {modelOutline.innerWidth} см</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Стена:</span>
+                    <span>{modelOutline.wallThickness} см</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Масштаб:</span>
+                    <span>{modelOutline.pixelsPerCm?.toFixed(2)} px/см</span>
+                  </div>
+                </div>
+              </div>
+            )}
                       <ZoomOut className="h-4 w-4" />
                     </Button>
                     <Slider
