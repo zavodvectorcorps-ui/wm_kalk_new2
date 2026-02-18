@@ -1984,7 +1984,28 @@ const TripDetailsCard = ({
                   <div key={orderId} className={`p-2 rounded transition-all text-xs ${draggedOrderIndex === index ? 'opacity-50 scale-95' : ''} ${order.isImportant ? 'bg-orange-100 border border-orange-300' : 'bg-muted'}`} draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => handleDragOver(e, index)} onDrop={(e) => handleDrop(e, index)} onDragEnd={handleDragEnd}>
                     <div className="flex items-center gap-1 cursor-grab active:cursor-grabbing">
                       <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span className="font-bold w-5 text-center text-purple-600">{index + 1}</span>
+                      <Input
+                        type="number"
+                        min="1"
+                        max={selectedTrip.orderIds.length}
+                        defaultValue={index + 1}
+                        onBlur={(e) => {
+                          const newPos = parseInt(e.target.value);
+                          if (newPos >= 1 && newPos <= selectedTrip.orderIds.length && newPos !== index + 1) {
+                            moveOrderToPosition(index, newPos);
+                          } else {
+                            e.target.value = index + 1;
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.target.blur();
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-5 w-8 p-0 text-center text-xs font-bold text-purple-600 flex-shrink-0"
+                        title="Введите номер позиции"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-medium truncate">{order.fullName || order.customerName}</p>
@@ -1998,10 +2019,6 @@ const TripDetailsCard = ({
                       <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => setExpandedTripOrder(isExpanded ? null : orderId)}>
                         {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                       </Button>
-                      <div className="flex flex-col flex-shrink-0">
-                        <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderUp(index)} disabled={index === 0}><ArrowUp className="h-2.5 w-2.5" /></Button>
-                        <Button size="sm" variant="ghost" className="h-4 w-4 p-0" onClick={() => moveOrderDown(index)} disabled={index === selectedTrip.orderIds.length - 1}><ArrowDown className="h-2.5 w-2.5" /></Button>
-                      </div>
                       <Button size="sm" variant="ghost" onClick={() => removeOrderFromTrip(selectedTrip.id, orderId)} className="text-red-500 h-5 w-5 p-0 flex-shrink-0"><X className="h-3 w-3" /></Button>
                     </div>
                     
