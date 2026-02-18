@@ -186,7 +186,6 @@ const LayoutConfiguratorPage = () => {
       canvas.on('object:scaling', handleObjectScaling);
       
       // CRITICAL: Use mouse:down:before to intercept BEFORE Fabric processes selection
-      canvas.on('mouse:down:before', handleCanvasMouseDownBefore);
       canvas.on('mouse:down', handleCanvasMouseDown);
       canvas.on('mouse:move', handleCanvasMouseMove);
       canvas.on('mouse:up', handleCanvasMouseUp);
