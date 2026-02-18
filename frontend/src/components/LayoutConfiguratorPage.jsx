@@ -1435,9 +1435,72 @@ const LayoutConfiguratorPage = () => {
                   <Label className="text-xs">Тип</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <span>{ELEMENT_TYPES[selectedObject.type]?.icon}</span>
-                    <span className="text-sm">{ELEMENT_TYPES[selectedObject.type]?.name}</span>
+                    <span className="text-sm">{ELEMENT_TYPES[selectedObject.type]?.name || selectedObject.type}</span>
                   </div>
                 </div>
+                
+                {/* Dimensions for drawn shapes */}
+                {selectedObject.isDrawnShape && selectedObject.width && selectedObject.height && (
+                  <div className="p-2 bg-muted rounded text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span>Ширина:</span>
+                      <span className="font-medium">{selectedObject.width} px {pxToCm(selectedObject.width) && `(${pxToCm(selectedObject.width)} см)`}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Высота:</span>
+                      <span className="font-medium">{selectedObject.height} px {pxToCm(selectedObject.height) && `(${pxToCm(selectedObject.height)} см)`}</span>
+                    </div>
+                  </div>
+                )}
+                
+                {selectedObject.isDrawnShape && selectedObject.length && (
+                  <div className="p-2 bg-muted rounded text-xs">
+                    <div className="flex justify-between">
+                      <span>Длина:</span>
+                      <span className="font-medium">{selectedObject.length} px {pxToCm(selectedObject.length) && `(${pxToCm(selectedObject.length)} см)`}</span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Shape color controls */}
+                {selectedObject.isDrawnShape && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">Цвет:</Label>
+                      <input
+                        type="color"
+                        value={selectedObject.stroke || '#374151'}
+                        onChange={(e) => {
+                          const obj = fabricRef.current?.getActiveObject();
+                          if (obj) {
+                            obj.set('stroke', e.target.value);
+                            fabricRef.current.renderAll();
+                            handleObjectSelected({ selected: [obj] });
+                          }
+                        }}
+                        className="w-8 h-6 rounded cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">Толщина:</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={selectedObject.strokeWidth || 3}
+                        onChange={(e) => {
+                          const obj = fabricRef.current?.getActiveObject();
+                          if (obj) {
+                            obj.set('strokeWidth', parseInt(e.target.value) || 3);
+                            fabricRef.current.renderAll();
+                            handleObjectSelected({ selected: [obj] });
+                          }
+                        }}
+                        className="w-16 h-7 text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
