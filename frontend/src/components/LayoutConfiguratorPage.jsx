@@ -554,22 +554,26 @@ const LayoutConfiguratorPage = () => {
     setLoading(false);
   };
 
-  // Convert pixels to centimeters
-  const pxToCm = (px) => {
-    if (!modelOutline?.pixelsPerCm) return null;
-    return (px / modelOutline.pixelsPerCm).toFixed(1);
-  };
+  // Convert pixels to centimeters (using current scale)
+  const pxToCm = useCallback((px) => {
+    return (px / pixelsPerCm).toFixed(1);
+  }, [pixelsPerCm]);
 
   // Convert centimeters to pixels
-  const cmToPx = (cm) => {
-    if (!modelOutline?.pixelsPerCm) return null;
-    return cm * modelOutline.pixelsPerCm;
-  };
+  const cmToPx = useCallback((cm) => {
+    return cm * pixelsPerCm;
+  }, [pixelsPerCm]);
 
-  // Snap to grid
-  const snapToGrid = useCallback((value) => {
-    return Math.round(value / gridSize) * gridSize;
-  }, [gridSize]);
+  // Snap to grid (in pixels, based on cm grid)
+  const snapToGrid = useCallback((valuePx) => {
+    const gridPx = gridSizeCm * pixelsPerCm;
+    return Math.round(valuePx / gridPx) * gridPx;
+  }, [gridSizeCm, pixelsPerCm]);
+
+  // Snap cm value to grid
+  const snapCmToGrid = useCallback((valueCm) => {
+    return Math.round(valueCm / gridSizeCm) * gridSizeCm;
+  }, [gridSizeCm]);
 
   // ============ DRAWING TOOLS ============
   
