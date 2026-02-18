@@ -775,8 +775,9 @@ const LayoutConfiguratorPage = () => {
     
     // Snap scale to grid
     if (obj.type === 'rect') {
-      const newWidth = snapToGrid(obj.width * obj.scaleX);
-      const newHeight = snapToGrid(obj.height * obj.scaleY);
+      const gridPx = gridSizeCm * pixelsPerCm;
+      const newWidth = Math.round((obj.width * obj.scaleX) / gridPx) * gridPx;
+      const newHeight = Math.round((obj.height * obj.scaleY) / gridPx) * gridPx;
       obj.set({
         width: newWidth,
         height: newHeight,
@@ -789,34 +790,48 @@ const LayoutConfiguratorPage = () => {
   // Event handlers
   const handleObjectSelected = (e) => {
     const obj = e.selected?.[0];
-    if (obj && !obj.isGridLine && !obj.isBackground) {
+    if (obj && !obj.isGridLine && !obj.isBackground && !obj.isGridLabel) {
       const canvas = fabricRef.current;
       
-      // Get dimensions for drawn shapes
-      let width = null, height = null, length = null;
+      // Get dimensions for drawn shapes in CM
+      let widthCm = null, heightCm = null, lengthCm = null;
+      let widthPx = null, heightPx = null, lengthPx = null;
+      
       if (obj.isDrawnShape) {
         if (obj.type === 'rect') {
-          width = Math.round(obj.width * (obj.scaleX || 1));
-          height = Math.round(obj.height * (obj.scaleY || 1));
+          widthPx = Math.round(obj.width * (obj.scaleX || 1));
+          heightPx = Math.round(obj.height * (obj.scaleY || 1));
+          widthCm = (widthPx / pixelsPerCm).toFixed(0);
+          heightCm = (heightPx / pixelsPerCm).toFixed(0);
         } else if (obj.type === 'line') {
           const dx = obj.x2 - obj.x1;
           const dy = obj.y2 - obj.y1;
-          length = Math.round(Math.sqrt(dx * dx + dy * dy));
+          lengthPx = Math.round(Math.sqrt(dx * dx + dy * dy));
+          lengthCm = (lengthPx / pixelsPerCm).toFixed(0);
         }
       }
+      
+      // Position in CM
+      const xCm = (obj.left / pixelsPerCm).toFixed(0);
+      const yCm = (obj.top / pixelsPerCm).toFixed(0);
       
       setSelectedObject({
         id: obj.elementId,
         type: obj.elementType,
         x: Math.round(obj.left),
         y: Math.round(obj.top),
+        xCm,
+        yCm,
         rotation: Math.round(obj.angle || 0),
         scale: obj.scaleX || 1,
         zIndex: canvas ? canvas.getObjects().indexOf(obj) : 0,
         isDrawnShape: obj.isDrawnShape || false,
-        width,
-        height,
-        length,
+        widthPx,
+        heightPx,
+        lengthPx,
+        widthCm,
+        heightCm,
+        lengthCm,
         stroke: obj.stroke,
         fill: obj.fill,
         strokeWidth: obj.strokeWidth,
