@@ -1420,15 +1420,20 @@ export const useLogistics = () => {
     }
   }, [selectedTrip, sectionData, warehouseCoords]);
 
-  // Build trip route when selected trip changes
+  // Build trip route when selected trip changes (but NOT on orderIds change to avoid slow rebuilds on reorder)
+  const prevTripIdRef = React.useRef(null);
   useEffect(() => {
-    if (selectedTrip && isLoaded && activeInnerTab === 'trips') {
+    // Only rebuild route when trip selection changes, not on every order reorder
+    const tripChanged = selectedTrip?.id !== prevTripIdRef.current;
+    prevTripIdRef.current = selectedTrip?.id || null;
+    
+    if (selectedTrip && isLoaded && activeInnerTab === 'trips' && tripChanged) {
       buildTripRoute();
-    } else {
+    } else if (!selectedTrip) {
       setTripDirections(null);
       setTripRouteInfo(null);
     }
-  }, [selectedTrip, selectedTrip?.orderIds, isLoaded, activeInnerTab, warehouseCoords, buildTripRoute]);
+  }, [selectedTrip?.id, isLoaded, activeInnerTab, warehouseCoords, buildTripRoute]);
 
   // Move order up/down in trip
   const moveOrderUp = async (index) => {
