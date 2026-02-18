@@ -738,6 +738,7 @@ export const LogisticsPage = () => {
                 syncingToAmocrm={syncingToAmocrm}
                 deleteTrip={deleteTrip}
                 optimizeTripRoute={optimizeTripRoute}
+                buildTripRoute={buildTripRoute}
                 updateOrderStatusInTrip={updateOrderStatusInTrip}
                 removeOrderFromTrip={removeOrderFromTrip}
                 moveOrderUp={moveOrderUp}
