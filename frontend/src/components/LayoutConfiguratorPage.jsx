@@ -212,6 +212,171 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Fetch outline for selected model/variant
+  const fetchOutline = async (modelId, variantId = null) => {
+    try {
+      let url = `${API_URL}/api/layout-configurator/outlines/${modelId}`;
+      if (variantId) {
+        url += `?variant_id=${variantId}`;
+      }
+      const res = await fetch(url);
+      if (res.ok) {
+        const outline = await res.json();
+        setModelOutline(outline);
+        // Update canvas size based on outline
+        if (outline.canvasWidth && outline.canvasHeight) {
+          setCanvasWidth(outline.canvasWidth);
+          setCanvasHeight(outline.canvasHeight);
+        }
+        // Load outline image to canvas
+        loadOutlineToCanvas(outline);
+      } else {
+        setModelOutline(null);
+        removeOutlineFromCanvas();
+      }
+    } catch (error) {
+      console.error('Error fetching outline:', error);
+      setModelOutline(null);
+    }
+  };
+
+  // Load outline image to canvas as background
+  const loadOutlineToCanvas = (outline) => {
+    if (!fabricRef.current || !outline?.imageUrl) return;
+    
+    const canvas = fabricRef.current;
+    
+    // Remove existing outline
+    removeOutlineFromCanvas();
+    
+    let imageUrl = outline.imageUrl;
+    if (imageUrl.startsWith('/api/')) {
+      imageUrl = `${API_URL}${imageUrl}`;
+    }
+    
+    fabric.Image.fromURL(imageUrl, (img) => {
+      if (!img) return;
+      
+      // Scale to fit canvas
+      const scaleX = canvasWidth / img.width;
+      const scaleY = canvasHeight / img.height;
+      const scale = Math.min(scaleX, scaleY) * 0.95;
+      
+      img.set({
+        left: canvasWidth / 2,
+        top: canvasHeight / 2,
+        originX: 'center',
+        originY: 'center',
+        scaleX: scale,
+        scaleY: scale,
+        selectable: false,
+        evented: false,
+        isOutline: true,
+        opacity: 0.8,
+      });
+      
+      canvas.add(img);
+      // Send to back but above grid
+      const gridLines = canvas.getObjects().filter(o => o.isGridLine);
+      canvas.moveTo(img, gridLines.length);
+      canvas.renderAll();
+    }, { crossOrigin: 'anonymous' });
+  };
+
+  // Remove outline from canvas
+  const removeOutlineFromCanvas = () => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    const outlines = canvas.getObjects().filter(o => o.isOutline);
+    outlines.forEach(o => canvas.remove(o));
+    canvas.renderAll();
+  };
+
+  // Handle model selection change
+  const handleModelChange = (modelId) => {
+    const model = saunaModels.find(m => m.id === modelId);
+    setSelectedModel(model);
+    setSelectedVariant(null);
+    if (model) {
+      fetchOutline(modelId);
+    } else {
+      setModelOutline(null);
+      removeOutlineFromCanvas();
+    }
+  };
+
+  // Handle variant selection change
+  const handleVariantChange = (variantId) => {
+    if (!selectedModel) return;
+    const variant = selectedModel.variants?.find(v => v.id === variantId);
+    setSelectedVariant(variant);
+    fetchOutline(selectedModel.id, variantId);
+  };
+
+  // Upload outline
+  const handleUploadOutline = async () => {
+    if (!outlineForm.file || !selectedModel) {
+      toast.error('Выберите модель и файл контура');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', outlineForm.file);
+      formData.append('modelId', selectedModel.id);
+      if (selectedVariant) {
+        formData.append('variantId', selectedVariant.id);
+      }
+      formData.append('outerWidth', outlineForm.outerWidth.toString());
+      formData.append('outerLength', outlineForm.outerLength.toString());
+      formData.append('innerWidth', outlineForm.innerWidth.toString());
+      formData.append('innerLength', outlineForm.innerLength.toString());
+      formData.append('wallThickness', outlineForm.wallThickness.toString());
+      formData.append('canvasWidth', canvasWidth.toString());
+      formData.append('canvasHeight', canvasHeight.toString());
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/outlines`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        const outline = await res.json();
+        setModelOutline(outline);
+        loadOutlineToCanvas(outline);
+        toast.success('Контур загружен!');
+        setUploadOutlineDialogOpen(false);
+        setOutlineForm({
+          file: null,
+          outerWidth: 300,
+          outerLength: 400,
+          innerWidth: 280,
+          innerLength: 380,
+          wallThickness: 10,
+        });
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка загрузки');
+      }
+    } catch (error) {
+      toast.error('Ошибка при загрузке контура');
+    }
+    setLoading(false);
+  };
+
+  // Convert pixels to centimeters
+  const pxToCm = (px) => {
+    if (!modelOutline?.pixelsPerCm) return null;
+    return (px / modelOutline.pixelsPerCm).toFixed(1);
+  };
+
+  // Convert centimeters to pixels
+  const cmToPx = (cm) => {
+    if (!modelOutline?.pixelsPerCm) return null;
+    return cm * modelOutline.pixelsPerCm;
+  };
+
   // Snap to grid
   const snapToGrid = (value) => {
     return Math.round(value / gridSize) * gridSize;
