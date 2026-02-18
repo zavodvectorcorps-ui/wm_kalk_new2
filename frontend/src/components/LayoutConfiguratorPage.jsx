@@ -687,16 +687,8 @@ const LayoutConfiguratorPage = () => {
     
     const canvas = fabricRef.current;
     if (!canvas) return;
-      if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
-        obj._wasSelectable = obj.selectable;
-        obj._wasEvented = obj.evented;
-        obj.selectable = false;
-        obj.evented = false;
-      }
-    });
     
-    // Deselect any active object when starting to draw
-    canvas.discardActiveObject();
+    // Ensure canvas is in drawing mode (already set in before handler)
     canvas.renderAll();
     
     const pointer = canvas.getPointer(opt.e);
@@ -726,7 +718,7 @@ const LayoutConfiguratorPage = () => {
         stroke: drawingColorRef.current,
         strokeWidth: strokeWidthPx,
         strokeUniform: true,
-        strokeWidthCm: strokeWidthCmRef.current, // Store cm value
+        strokeWidthCm: strokeWidthCmRef.current,
         elementId: `rect-${Date.now()}`,
         elementType: 'rect',
         isDrawnShape: true,
@@ -736,7 +728,7 @@ const LayoutConfiguratorPage = () => {
         stroke: drawingColorRef.current,
         strokeWidth: strokeWidthPx,
         strokeLineCap: 'round',
-        strokeWidthCm: strokeWidthCmRef.current, // Store cm value
+        strokeWidthCm: strokeWidthCmRef.current,
         elementId: `wall-${Date.now()}`,
         elementType: 'wall',
         isDrawnShape: true,
