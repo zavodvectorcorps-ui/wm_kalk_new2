@@ -745,6 +745,19 @@ const LayoutConfiguratorPage = () => {
                             size="icon"
                             variant="ghost"
                             className="h-6 w-6"
+                            title="Дублировать"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicateLayout(layout);
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            title={layout.isPublished ? 'Скрыть' : 'Опубликовать'}
                             onClick={(e) => {
                               e.stopPropagation();
                               handlePublishLayout(layout);
@@ -756,6 +769,7 @@ const LayoutConfiguratorPage = () => {
                             size="icon"
                             variant="ghost"
                             className="h-6 w-6 text-destructive"
+                            title="Удалить"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteLayout(layout.id);
