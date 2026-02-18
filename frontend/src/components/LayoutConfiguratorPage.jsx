@@ -1993,6 +1993,89 @@ const LayoutConfiguratorPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Save Drawn Outline Dialog */}
+      <Dialog open={showSaveOutlineDialog} onOpenChange={setShowSaveOutlineDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Сохранить контур для модели</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-muted rounded-lg text-sm">
+              <p><strong>Модель:</strong> {selectedModel?.name}</p>
+              {selectedVariant && <p><strong>Вариант:</strong> {selectedVariant.nameRu || selectedVariant.name}</p>}
+              {selectedObject?.width && selectedObject?.height && (
+                <p><strong>Размер контура:</strong> {selectedObject.width} × {selectedObject.height} px</p>
+              )}
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              Укажите реальные размеры сауны в сантиметрах. Это позволит правильно рассчитывать масштаб элементов.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Внешняя длина (см)</Label>
+                <Input
+                  type="number"
+                  value={saveOutlineForm.outerLength}
+                  onChange={(e) => setSaveOutlineForm({ ...saveOutlineForm, outerLength: parseFloat(e.target.value) || 0 })}
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Внешняя ширина (см)</Label>
+                <Input
+                  type="number"
+                  value={saveOutlineForm.outerWidth}
+                  onChange={(e) => setSaveOutlineForm({ ...saveOutlineForm, outerWidth: parseFloat(e.target.value) || 0 })}
+                  className="h-8"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Внутренняя длина (см)</Label>
+                <Input
+                  type="number"
+                  value={saveOutlineForm.innerLength}
+                  onChange={(e) => setSaveOutlineForm({ ...saveOutlineForm, innerLength: parseFloat(e.target.value) || 0 })}
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Внутренняя ширина (см)</Label>
+                <Input
+                  type="number"
+                  value={saveOutlineForm.innerWidth}
+                  onChange={(e) => setSaveOutlineForm({ ...saveOutlineForm, innerWidth: parseFloat(e.target.value) || 0 })}
+                  className="h-8"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label className="text-xs">Толщина стены (см)</Label>
+              <Input
+                type="number"
+                value={saveOutlineForm.wallThickness}
+                onChange={(e) => setSaveOutlineForm({ ...saveOutlineForm, wallThickness: parseFloat(e.target.value) || 0 })}
+                className="h-8 w-32"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveOutlineDialog(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleSaveDrawnOutline} disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Сохранить контур
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
