@@ -1425,7 +1425,7 @@ export const useLogistics = () => {
   }, [selectedTrip, sectionData, warehouseCoords]);
 
   // Build trip route when selected trip changes (but NOT on orderIds change to avoid slow rebuilds on reorder)
-  const prevTripIdRef = React.useRef(null);
+  const prevTripIdRef = useRef(null);
   useEffect(() => {
     // Only rebuild route when trip selection changes, not on every order reorder
     const tripChanged = selectedTrip?.id !== prevTripIdRef.current;
