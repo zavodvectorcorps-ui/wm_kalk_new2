@@ -673,7 +673,7 @@ const LayoutConfiguratorPage = () => {
     
     obj.setCoords();
     canvas.renderAll();
-  }, [gridSize]);
+  }, [gridSizeCm]);
   
   // Mouse up - finish drawing
   const handleCanvasMouseUp = useCallback((opt) => {
@@ -687,18 +687,20 @@ const LayoutConfiguratorPage = () => {
     
     const obj = drawingObjectRef.current;
     const currentTool = activeToolRef.current;
+    const pxPerCm = pixelsPerCmRef.current;
+    const gridPx = gridSizeCm * pxPerCm;
     
     if (obj) {
-      // Check if shape is too small (accidental click)
+      // Check if shape is too small (less than half grid size)
       let isTooSmall = false;
       
       if (currentTool === 'rectangle') {
-        isTooSmall = (obj.width || 0) < gridSize || (obj.height || 0) < gridSize;
+        isTooSmall = (obj.width || 0) < gridPx / 2 || (obj.height || 0) < gridPx / 2;
       } else if (currentTool === 'wall') {
         const dx = (obj.x2 || 0) - (obj.x1 || 0);
         const dy = (obj.y2 || 0) - (obj.y1 || 0);
         const length = Math.sqrt(dx * dx + dy * dy);
-        isTooSmall = length < gridSize;
+        isTooSmall = length < gridPx / 2;
       }
       
       if (isTooSmall) {
@@ -710,14 +712,17 @@ const LayoutConfiguratorPage = () => {
         canvas.setActiveObject(obj);
         canvas.renderAll();
         
-        // Show dimensions
+        // Show dimensions in CM
         if (currentTool === 'rectangle') {
-          toast.success(`Прямоугольник: ${obj.width} × ${obj.height} px`);
+          const widthCm = (obj.width / pxPerCm).toFixed(0);
+          const heightCm = (obj.height / pxPerCm).toFixed(0);
+          toast.success(`Прямоугольник: ${widthCm} × ${heightCm} см`);
         } else if (currentTool === 'wall') {
           const dx = (obj.x2 || 0) - (obj.x1 || 0);
           const dy = (obj.y2 || 0) - (obj.y1 || 0);
           const lengthPx = Math.sqrt(dx * dx + dy * dy);
-          toast.success(`Стена: ${Math.round(lengthPx)} px`);
+          const lengthCm = (lengthPx / pxPerCm).toFixed(0);
+          toast.success(`Стена: ${lengthCm} см`);
         }
       }
     }
@@ -726,7 +731,7 @@ const LayoutConfiguratorPage = () => {
     drawStartPointRef.current = null;
     setDrawingObject(null);
     setDrawStartPoint(null);
-  }, [gridSize]);
+  }, [gridSizeCm]);
 
   // Handle object scaling (for showing dimensions while resizing)
   const handleObjectScaling = (e) => {
