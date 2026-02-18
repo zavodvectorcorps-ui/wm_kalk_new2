@@ -32,6 +32,7 @@ from routes.pdf_templates import router as pdf_templates_router
 from routes.training import router as training_router
 from routes.content import router as content_router
 from routes.content_generator import router as content_generator_router
+from routes.layout_configurator import router as layout_configurator_router
 
 # Configure logging
 logging.basicConfig(
@@ -78,6 +79,7 @@ app.include_router(pdf_templates_router, prefix="/api")
 app.include_router(training_router, prefix="/api")
 app.include_router(content_router, prefix="/api")
 app.include_router(content_generator_router)
+app.include_router(layout_configurator_router)
 
 # Initialize backup database reference
 from database import db
