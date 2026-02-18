@@ -1046,6 +1046,21 @@ const LayoutConfiguratorPage = () => {
     canvas.renderAll();
   }, [pixelsPerCm, findRoomRect, showDimensions]);
 
+  // Update dimension labels when showDimensions changes
+  useEffect(() => {
+    if (fabricRef.current) {
+      if (showDimensions) {
+        updateDimensionLabels();
+      } else {
+        // Remove dimension labels
+        fabricRef.current.getObjects()
+          .filter(o => o.isDimensionLabel)
+          .forEach(o => fabricRef.current.remove(o));
+        fabricRef.current.renderAll();
+      }
+    }
+  }, [showDimensions, updateDimensionLabels]);
+
   // Event handlers
   const handleObjectSelected = (e) => {
     const obj = e.selected?.[0];
