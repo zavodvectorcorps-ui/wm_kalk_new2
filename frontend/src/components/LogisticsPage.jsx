@@ -123,6 +123,7 @@ export const LogisticsPage = () => {
     printTripOrders,
     moveOrderUp,
     moveOrderDown,
+    moveOrderToPosition,
     handleDragStart,
     handleDragOver,
     handleDrop,
