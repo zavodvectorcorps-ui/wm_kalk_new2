@@ -791,23 +791,7 @@ const LayoutConfiguratorPage = () => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     
-    // CRITICAL: Re-enable target finding after drawing
-    canvas.skipTargetFind = false;
-    canvas.selection = true;
-    
-    // ALWAYS restore interactivity of all objects after mouse up
-    // This is critical - even if we weren't drawing, restore state
-    canvas.getObjects().forEach(obj => {
-      if (obj._wasSelectable !== undefined) {
-        obj.selectable = obj._wasSelectable;
-        obj.evented = obj._wasEvented;
-        delete obj._wasSelectable;
-        delete obj._wasEvented;
-      }
-    });
-    
     if (!isDrawingRef.current) {
-      canvas.renderAll();
       return;
     }
     
@@ -837,9 +821,11 @@ const LayoutConfiguratorPage = () => {
         canvas.remove(obj);
         toast.info('Слишком маленький объект (минимум 5 см)');
       } else {
-        // Enable controls for resizing
+        // The new object should remain non-selectable because drawing tool is still active
+        // It will become selectable when user switches to select tool
+        obj.selectable = false;
+        obj.evented = false;
         obj.setCoords();
-        canvas.setActiveObject(obj);
         
         // Show dimensions in CM
         if (currentTool === 'rectangle') {
