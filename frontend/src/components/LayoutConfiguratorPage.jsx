@@ -419,10 +419,180 @@ const LayoutConfiguratorPage = () => {
     return Math.round(value / gridSize) * gridSize;
   };
 
+  // ============ DRAWING TOOLS ============
+  
+  // Mouse down - start drawing
+  const handleCanvasMouseDown = (opt) => {
+    if (activeTool === 'select') return;
+    
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    const pointer = canvas.getPointer(opt.e);
+    const x = snapToGrid(pointer.x);
+    const y = snapToGrid(pointer.y);
+    
+    setIsDrawing(true);
+    setDrawStartPoint({ x, y });
+    
+    let obj;
+    
+    if (activeTool === 'rectangle') {
+      obj = new fabric.Rect({
+        left: x,
+        top: y,
+        width: 0,
+        height: 0,
+        fill: drawingFill,
+        stroke: drawingColor,
+        strokeWidth: drawingStrokeWidth,
+        strokeUniform: true,
+        elementId: `rect-${Date.now()}`,
+        elementType: 'rect',
+        isDrawnShape: true,
+      });
+    } else if (activeTool === 'wall') {
+      obj = new fabric.Line([x, y, x, y], {
+        stroke: drawingColor,
+        strokeWidth: drawingStrokeWidth,
+        strokeLineCap: 'round',
+        elementId: `wall-${Date.now()}`,
+        elementType: 'wall',
+        isDrawnShape: true,
+      });
+    }
+    
+    if (obj) {
+      canvas.add(obj);
+      setDrawingObject(obj);
+    }
+  };
+  
+  // Mouse move - update drawing
+  const handleCanvasMouseMove = (opt) => {
+    if (!isDrawing || !drawingObject || !drawStartPoint) return;
+    
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    const pointer = canvas.getPointer(opt.e);
+    const x = snapToGrid(pointer.x);
+    const y = snapToGrid(pointer.y);
+    
+    if (activeTool === 'rectangle') {
+      const width = Math.abs(x - drawStartPoint.x);
+      const height = Math.abs(y - drawStartPoint.y);
+      const left = Math.min(drawStartPoint.x, x);
+      const top = Math.min(drawStartPoint.y, y);
+      
+      drawingObject.set({
+        left,
+        top,
+        width,
+        height,
+      });
+    } else if (activeTool === 'wall') {
+      drawingObject.set({
+        x2: x,
+        y2: y,
+      });
+    }
+    
+    canvas.renderAll();
+  };
+  
+  // Mouse up - finish drawing
+  const handleCanvasMouseUp = (opt) => {
+    if (!isDrawing) return;
+    
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    setIsDrawing(false);
+    
+    if (drawingObject) {
+      // Check if shape is too small (accidental click)
+      let isTooSmall = false;
+      
+      if (activeTool === 'rectangle') {
+        isTooSmall = drawingObject.width < gridSize || drawingObject.height < gridSize;
+      } else if (activeTool === 'wall') {
+        const dx = drawingObject.x2 - drawingObject.x1;
+        const dy = drawingObject.y2 - drawingObject.y1;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        isTooSmall = length < gridSize;
+      }
+      
+      if (isTooSmall) {
+        canvas.remove(drawingObject);
+      } else {
+        // Enable controls for resizing
+        drawingObject.setCoords();
+        canvas.setActiveObject(drawingObject);
+        
+        // Show dimensions
+        if (activeTool === 'rectangle') {
+          const widthCm = pxToCm(drawingObject.width * (drawingObject.scaleX || 1));
+          const heightCm = pxToCm(drawingObject.height * (drawingObject.scaleY || 1));
+          if (widthCm && heightCm) {
+            toast.success(`Прямоугольник: ${widthCm} × ${heightCm} см`);
+          }
+        } else if (activeTool === 'wall') {
+          const dx = drawingObject.x2 - drawingObject.x1;
+          const dy = drawingObject.y2 - drawingObject.y1;
+          const lengthPx = Math.sqrt(dx * dx + dy * dy);
+          const lengthCm = pxToCm(lengthPx);
+          if (lengthCm) {
+            toast.success(`Стена: ${lengthCm} см`);
+          }
+        }
+      }
+    }
+    
+    setDrawingObject(null);
+    setDrawStartPoint(null);
+    
+    // Switch back to select after drawing (optional - remove if you want continuous drawing)
+    // setActiveTool('select');
+  };
+
+  // Handle object scaling (for showing dimensions while resizing)
+  const handleObjectScaling = (e) => {
+    const obj = e.target;
+    if (!obj || !obj.isDrawnShape) return;
+    
+    // Snap scale to grid
+    if (obj.type === 'rect') {
+      const newWidth = snapToGrid(obj.width * obj.scaleX);
+      const newHeight = snapToGrid(obj.height * obj.scaleY);
+      obj.set({
+        width: newWidth,
+        height: newHeight,
+        scaleX: 1,
+        scaleY: 1,
+      });
+    }
+  };
+
   // Event handlers
   const handleObjectSelected = (e) => {
     const obj = e.selected?.[0];
     if (obj && !obj.isGridLine && !obj.isBackground) {
+      const canvas = fabricRef.current;
+      
+      // Get dimensions for drawn shapes
+      let width = null, height = null, length = null;
+      if (obj.isDrawnShape) {
+        if (obj.type === 'rect') {
+          width = Math.round(obj.width * (obj.scaleX || 1));
+          height = Math.round(obj.height * (obj.scaleY || 1));
+        } else if (obj.type === 'line') {
+          const dx = obj.x2 - obj.x1;
+          const dy = obj.y2 - obj.y1;
+          length = Math.round(Math.sqrt(dx * dx + dy * dy));
+        }
+      }
+      
       setSelectedObject({
         id: obj.elementId,
         type: obj.elementType,
@@ -430,7 +600,14 @@ const LayoutConfiguratorPage = () => {
         y: Math.round(obj.top),
         rotation: Math.round(obj.angle || 0),
         scale: obj.scaleX || 1,
-        zIndex: canvas.getObjects().indexOf(obj),
+        zIndex: canvas ? canvas.getObjects().indexOf(obj) : 0,
+        isDrawnShape: obj.isDrawnShape || false,
+        width,
+        height,
+        length,
+        stroke: obj.stroke,
+        fill: obj.fill,
+        strokeWidth: obj.strokeWidth,
       });
     }
   };
@@ -443,6 +620,19 @@ const LayoutConfiguratorPage = () => {
         left: snapToGrid(obj.left),
         top: snapToGrid(obj.top),
       });
+      
+      // For drawn rectangles, also snap dimensions
+      if (obj.isDrawnShape && obj.type === 'rect') {
+        const newWidth = snapToGrid(obj.width * (obj.scaleX || 1));
+        const newHeight = snapToGrid(obj.height * (obj.scaleY || 1));
+        obj.set({
+          width: newWidth,
+          height: newHeight,
+          scaleX: 1,
+          scaleY: 1,
+        });
+      }
+      
       obj.setCoords();
       fabricRef.current.renderAll();
       
