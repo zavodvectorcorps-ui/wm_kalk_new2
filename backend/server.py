@@ -31,6 +31,7 @@ from routes.faq import router as faq_router
 from routes.pdf_templates import router as pdf_templates_router
 from routes.training import router as training_router
 from routes.content import router as content_router
+from routes.content_generator import router as content_generator_router
 
 # Configure logging
 logging.basicConfig(
