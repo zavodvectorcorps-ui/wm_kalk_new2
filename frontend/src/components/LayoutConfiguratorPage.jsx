@@ -648,33 +648,33 @@ const LayoutConfiguratorPage = () => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     
-    // CRITICAL: Prevent Fabric.js from selecting/interacting with ANY object
-    // by setting these flags BEFORE the event is processed
-    canvas.skipTargetFind = true;
-    canvas.selection = false;
-    
-    // Also prevent the event from selecting the target
-    if (opt.e) {
-      opt.e.preventDefault();
-    }
-    
-    // Clear any existing target to prevent interaction
-    canvas._currentTransform = null;
-    
-    // Make all objects non-selectable immediately
-    canvas.getObjects().forEach(obj => {
-      if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
-        if (obj._wasSelectable === undefined) {
-          obj._wasSelectable = obj.selectable;
-          obj._wasEvented = obj.evented;
+    // Check if we clicked on an existing object (not grid/labels)
+    const target = canvas.findTarget(opt.e);
+    if (target && !target.isGridLine && !target.isGridLabel && !target.isDimensionLabel) {
+      // CRITICAL: We're trying to draw over an existing object
+      // Prevent Fabric.js from selecting/moving it
+      canvas.skipTargetFind = true;
+      canvas.selection = false;
+      
+      // Clear any transform that might be starting
+      canvas._currentTransform = null;
+      
+      // Make all objects non-interactive
+      canvas.getObjects().forEach(obj => {
+        if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
+          if (obj._wasSelectable === undefined) {
+            obj._wasSelectable = obj.selectable;
+            obj._wasEvented = obj.evented;
+          }
+          obj.selectable = false;
+          obj.evented = false;
         }
-        obj.selectable = false;
-        obj.evented = false;
-      }
-    });
-    
-    // Discard any active object
-    canvas.discardActiveObject();
+      });
+      
+      // Discard active object to prevent any movement
+      canvas.discardActiveObject();
+      canvas.renderAll();
+    }
   }, []);
   
   // Mouse down - start drawing
