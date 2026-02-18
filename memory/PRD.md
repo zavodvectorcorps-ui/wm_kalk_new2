@@ -5,19 +5,52 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 18, 2025 - Layout Configurator (NEW FEATURE - IN PROGRESS)
+- **NEW**: Modular sauna layout configurator with drag & drop canvas
+- **Features Implemented**:
+  - Fabric.js canvas with grid snap (20px)
+  - Upload graphic elements (PNG/SVG) to library
+  - Element types: heater, bench, door, window, shower, divider, stairs, terrace, other
+  - Drag elements from library to canvas
+  - Element manipulation: move, rotate (±15°/90°), scale (10%-300%)
+  - Properties panel showing x, y, rotation, scale
+  - Save/load layouts to MongoDB
+  - Export canvas to PNG
+  - Publish layouts to calculator catalog
+- **Backend API**: `/api/layout-configurator/` with endpoints:
+  - `GET /element-types` - available element types
+  - `POST /assets` - upload graphic element
+  - `GET /assets` - list elements
+  - `DELETE /assets/{id}` - delete element
+  - `POST /layouts` - create layout
+  - `GET /layouts` - list layouts
+  - `GET /layouts/{id}` - get layout
+  - `PUT /layouts/{id}/data` - update layout
+  - `DELETE /layouts/{id}` - delete layout
+  - `POST /layouts/{id}/publish` - publish to catalog
+  - `GET /published-layouts` - get published for calculator
+  - `GET /sauna-models` - sauna models for dropdown
+- **Frontend**: New tab "Планировки" in AdminPanel
+- **Files Created**:
+  - `/app/backend/routes/layout_configurator.py`
+  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx`
+- **Status**: Core functionality implemented, needs testing on production
+- **TODO**: 
+  - Add background image upload for sauna outline
+  - Integrate published layouts with existing LayoutCatalog component
+  - Test full flow end-to-end
+
 ### Feb 18, 2025 - Content Generator 500 Error Fix (COMPLETED)
 - **FIXED**: 500 Internal Server Error on `/api/content/processed-images` endpoint
-- **Root Cause**: MongoDB Motor async cursor was being iterated synchronously (`for img in images_cursor`)
+- **Root Cause**: MongoDB Motor async cursor was being iterated synchronously
 - **Fix**: Added `await` to all MongoDB operations and used `to_list()` for cursor iteration
-- **Operations Fixed**:
-  - `list_processed_images()` - `find().to_list()`
-  - `get_job_status()` - `find_one()`
-  - `delete_processed_image()` - `find_one()`, `delete_one()`
-  - `process_batch_background()` - `update_one()` (3 calls)
-  - `process_single_image()` - `insert_one()`
-  - `process_batch_images()` - `insert_one()`
 - **Files Modified**: `/app/backend/routes/content_generator.py`
-- **Testing**: curl confirmed `/api/content/processed-images` now returns `{"images":[]}`
+
+### Feb 18, 2025 - Cloudinary URL Fix (COMPLETED)
+- **FIXED**: Images not loading due to malformed URLs
+- **Root Cause**: Frontend was prepending API_URL to already absolute Cloudinary URLs
+- **Fix**: Added `url.startsWith('http')` check before prepending API_URL
+- **Files Modified**: `/app/frontend/src/components/ContentGeneratorPage.jsx`
 
 ### Feb 12, 2025 - amoCRM Batch API Optimization & Section Delete Buttons (COMPLETED)
 - **OPTIMIZED**: amoCRM sync now uses batch API instead of N+1 individual requests
