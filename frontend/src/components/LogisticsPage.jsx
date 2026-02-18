@@ -1784,7 +1784,7 @@ const TripsView = ({
 
 const TripDetailsCard = ({
   selectedTrip, setSelectedTrip, sectionKey, sectionData, drivers, tripRouteInfo, optimizingRoute,
-  draggedOrderIndex, updateTrip, updateTripStatus, syncTripToAmocrm, syncingToAmocrm, deleteTrip, optimizeTripRoute, updateOrderStatusInTrip,
+  draggedOrderIndex, updateTrip, updateTripStatus, syncTripToAmocrm, syncingToAmocrm, deleteTrip, optimizeTripRoute, buildTripRoute, buildingTripRoute, updateOrderStatusInTrip,
   removeOrderFromTrip, moveOrderUp, moveOrderDown, moveOrderToPosition, handleDragStart, handleDragOver, handleDrop,
   handleDragEnd, formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders, amocrmPipelines, API_URL
 }) => {
