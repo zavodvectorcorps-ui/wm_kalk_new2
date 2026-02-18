@@ -68,6 +68,15 @@ const LayoutConfiguratorPage = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('elements');
   
+  // Drawing tools state
+  const [activeTool, setActiveTool] = useState('select');
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawingObject, setDrawingObject] = useState(null);
+  const [drawStartPoint, setDrawStartPoint] = useState(null);
+  const [drawingColor, setDrawingColor] = useState('#374151');
+  const [drawingStrokeWidth, setDrawingStrokeWidth] = useState(3);
+  const [drawingFill, setDrawingFill] = useState('transparent');
+  
   // Dialogs
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
@@ -92,6 +101,7 @@ const LayoutConfiguratorPage = () => {
     innerLength: 380,
     wallThickness: 10,
   });
+
 
   // Initialize Fabric canvas
   useEffect(() => {
