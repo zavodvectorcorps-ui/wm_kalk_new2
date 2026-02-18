@@ -1563,7 +1563,7 @@ const SummaryCard = ({
             </div>
 
             {/* Selected Options */}
-            <SelectedOptionsList prices={prices} formData={formData} getCategoryName={getCategoryName} isOptionVisible={isOptionVisible} txt={txt} />
+            <SelectedOptionsList prices={prices} formData={formData} getCategoryName={getCategoryName} isOptionVisible={isOptionVisible} getOptionBasePrice={getOptionBasePrice} txt={txt} />
 
             {/* Foundation */}
             {foundationPrice > 0 && (
