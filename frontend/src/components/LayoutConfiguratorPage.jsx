@@ -589,7 +589,9 @@ const LayoutConfiguratorPage = () => {
     if (!canvas) return;
     
     const pointer = canvas.getPointer(opt.e);
-    const snap = (v) => Math.round(v / gridSize) * gridSize;
+    const pxPerCm = pixelsPerCmRef.current;
+    const gridPx = gridSizeCm * pxPerCm;
+    const snap = (v) => Math.round(v / gridPx) * gridPx;
     const x = snap(pointer.x);
     const y = snap(pointer.y);
     
@@ -631,7 +633,7 @@ const LayoutConfiguratorPage = () => {
       setDrawingObject(obj);
       canvas.renderAll();
     }
-  }, [gridSize]);
+  }, [gridSizeCm]);
   
   // Mouse move - update drawing
   const handleCanvasMouseMove = useCallback((opt) => {
@@ -641,7 +643,9 @@ const LayoutConfiguratorPage = () => {
     if (!canvas) return;
     
     const pointer = canvas.getPointer(opt.e);
-    const snap = (v) => Math.round(v / gridSize) * gridSize;
+    const pxPerCm = pixelsPerCmRef.current;
+    const gridPx = gridSizeCm * pxPerCm;
+    const snap = (v) => Math.round(v / gridPx) * gridPx;
     const x = snap(pointer.x);
     const y = snap(pointer.y);
     const startPoint = drawStartPointRef.current;
