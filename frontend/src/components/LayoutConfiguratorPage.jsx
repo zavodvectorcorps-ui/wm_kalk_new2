@@ -37,10 +37,13 @@ const LayoutConfiguratorPage = () => {
   const fabricRef = useRef(null);
   const fileInputRef = useRef(null);
   const bgFileInputRef = useRef(null);
+  const outlineFileInputRef = useRef(null);
   
   // Data state
   const [saunaModels, setSaunaModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState(null);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [modelOutline, setModelOutline] = useState(null);
   const [assets, setAssets] = useState([]);
   const [layouts, setLayouts] = useState([]);
   const [currentLayout, setCurrentLayout] = useState(null);
@@ -48,6 +51,7 @@ const LayoutConfiguratorPage = () => {
   // UI state
   const [selectedObject, setSelectedObject] = useState(null);
   const [showGrid, setShowGrid] = useState(true);
+  const [showDimensions, setShowDimensions] = useState(true);
   const [gridSize, setGridSize] = useState(20);
   const [canvasWidth, setCanvasWidth] = useState(800);
   const [canvasHeight, setCanvasHeight] = useState(400);
@@ -58,6 +62,7 @@ const LayoutConfiguratorPage = () => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [uploadAssetDialogOpen, setUploadAssetDialogOpen] = useState(false);
+  const [uploadOutlineDialogOpen, setUploadOutlineDialogOpen] = useState(false);
   const [layoutName, setLayoutName] = useState('');
   
   // Upload form state
@@ -66,6 +71,16 @@ const LayoutConfiguratorPage = () => {
     type: 'other',
     modelId: null,
     file: null,
+  });
+  
+  // Outline upload form
+  const [outlineForm, setOutlineForm] = useState({
+    file: null,
+    outerWidth: 300,  // cm
+    outerLength: 400, // cm
+    innerWidth: 280,
+    innerLength: 380,
+    wallThickness: 10,
   });
 
   // Initialize Fabric canvas
