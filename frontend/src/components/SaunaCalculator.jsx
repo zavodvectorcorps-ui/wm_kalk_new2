@@ -1662,7 +1662,7 @@ const SummaryCard = ({
   </Card>
 );
 
-const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisible, txt }) => {
+const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisible, getOptionBasePrice, txt }) => {
   // Helper to get variant info for an option
   const getVariantInfo = (opt, optId) => {
     const variants = opt?.variants?.length > 0 ? opt.variants : opt?.subOptions;
@@ -1702,7 +1702,9 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
               {selectedOpts.map(opt => {
                 const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
                 const variantInfo = getVariantInfo(opt, opt.id);
-                const displayPrice = variantInfo ? variantInfo.price : opt.price;
+                // Use getOptionBasePrice for model-specific pricing
+                const optionBasePrice = getOptionBasePrice ? getOptionBasePrice(opt) : opt.price;
+                const displayPrice = variantInfo ? variantInfo.price : optionBasePrice;
                 const totalPrice = displayPrice * quantity;
                 
                 return (
@@ -1729,7 +1731,9 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
           
           const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
           const variantInfo = getVariantInfo(opt, selection);
-          const displayPrice = variantInfo ? variantInfo.price : opt.price;
+          // Use getOptionBasePrice for model-specific pricing
+          const optionBasePrice = getOptionBasePrice ? getOptionBasePrice(opt) : opt.price;
+          const displayPrice = variantInfo ? variantInfo.price : optionBasePrice;
           const totalPrice = displayPrice * quantity;
           
           return (
