@@ -2395,6 +2395,7 @@ export const useLogistics = () => {
     printTripOrders,
     moveOrderUp,
     moveOrderDown,
+    moveOrderToPosition,
     handleDragStart,
     handleDragOver,
     handleDrop,
