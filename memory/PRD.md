@@ -13,10 +13,14 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
   - Element types: heater, bench, door, window, shower, divider, stairs, terrace, other
   - Drag elements from library to canvas
   - Element manipulation: move, rotate (±15°/90°), scale (10%-300%)
-  - Properties panel showing x, y, rotation, scale
+  - Properties panel showing x, y, rotation, scale with CM conversion
   - Save/load layouts to MongoDB
   - Export canvas to PNG
   - Publish layouts to calculator catalog
+  - **NEW: Variant selection** - supports sub-models for different layouts
+  - **NEW: Outline/contour upload** - upload background image with real dimensions
+  - **NEW: Dimension display** - shows sizes in cm based on outline scale
+  - **Duplicate layouts** - copy existing layouts for quick variations
 - **Backend API**: `/api/layout-configurator/` with endpoints:
   - `GET /element-types` - available element types
   - `POST /assets` - upload graphic element
@@ -27,18 +31,22 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
   - `GET /layouts/{id}` - get layout
   - `PUT /layouts/{id}/data` - update layout
   - `DELETE /layouts/{id}` - delete layout
+  - `POST /layouts/{id}/duplicate` - duplicate layout
   - `POST /layouts/{id}/publish` - publish to catalog
   - `GET /published-layouts` - get published for calculator
-  - `GET /sauna-models` - sauna models for dropdown
+  - `GET /sauna-models` - sauna models WITH VARIANTS for dropdown
+  - **NEW: Outline endpoints:**
+    - `POST /outlines` - upload outline with dimensions
+    - `GET /outlines` - list all outlines
+    - `GET /outlines/{model_id}` - get outline for model/variant
+    - `DELETE /outlines/{outline_id}` - delete outline
 - **Frontend**: New tab "Планировки" in AdminPanel
-- **Files Created**:
-  - `/app/backend/routes/layout_configurator.py`
-  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx`
-- **Status**: Core functionality implemented, needs testing on production
+- **Files Created/Modified**:
+  - `/app/backend/routes/layout_configurator.py` - full backend API
+  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - full UI
+- **Status**: Core functionality complete, awaiting production testing
 - **TODO**: 
-  - Add background image upload for sauna outline
   - Integrate published layouts with existing LayoutCatalog component
-  - Test full flow end-to-end
 
 ### Feb 18, 2025 - Content Generator 500 Error Fix (COMPLETED)
 - **FIXED**: 500 Internal Server Error on `/api/content/processed-images` endpoint
