@@ -742,6 +742,7 @@ export const LogisticsPage = () => {
                 removeOrderFromTrip={removeOrderFromTrip}
                 moveOrderUp={moveOrderUp}
                 moveOrderDown={moveOrderDown}
+                moveOrderToPosition={moveOrderToPosition}
                 handleDragStart={handleDragStart}
                 handleDragOver={handleDragOver}
                 handleDrop={handleDrop}
