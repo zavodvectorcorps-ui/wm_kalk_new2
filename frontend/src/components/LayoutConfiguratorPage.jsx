@@ -106,7 +106,7 @@ const LayoutConfiguratorPage = () => {
   const [drawingObject, setDrawingObject] = useState(null);
   const [drawStartPoint, setDrawStartPoint] = useState(null);
   const [drawingColor, setDrawingColor] = useState('#374151');
-  const [drawingStrokeWidth, setDrawingStrokeWidth] = useState(3);
+  const [drawingStrokeWidthCm, setDrawingStrokeWidthCm] = useState(4); // Stroke width in CM
   const [drawingFill, setDrawingFill] = useState('transparent');
   
   // Refs for drawing (to access current state in event handlers)
@@ -114,9 +114,11 @@ const LayoutConfiguratorPage = () => {
   const isDrawingRef = useRef(false);
   const drawingObjectRef = useRef(null);
   const pixelsPerCmRef = useRef(pixelsPerCm);
+  const strokeWidthCmRef = useRef(4);
   
-  // Keep pixelsPerCm ref updated
+  // Keep refs updated
   useEffect(() => { pixelsPerCmRef.current = pixelsPerCm; }, [pixelsPerCm]);
+  useEffect(() => { strokeWidthCmRef.current = drawingStrokeWidthCm; }, [drawingStrokeWidthCm]);
   const drawStartPointRef = useRef(null);
   const drawingColorRef = useRef('#374151');
   const drawingStrokeWidthRef = useRef(3);
