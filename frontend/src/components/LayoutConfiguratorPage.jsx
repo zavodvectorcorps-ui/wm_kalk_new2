@@ -430,46 +430,53 @@ const LayoutConfiguratorPage = () => {
   };
 
   // Snap to grid
-  const snapToGrid = (value) => {
+  const snapToGrid = useCallback((value) => {
     return Math.round(value / gridSize) * gridSize;
-  };
+  }, [gridSize]);
 
   // ============ DRAWING TOOLS ============
   
   // Mouse down - start drawing
-  const handleCanvasMouseDown = (opt) => {
-    if (activeTool === 'select') return;
+  const handleCanvasMouseDown = useCallback((opt) => {
+    const currentTool = activeToolRef.current;
+    if (currentTool === 'select') return;
+    
+    // Don't start drawing if clicking on an existing object
+    if (opt.target && !opt.target.isGridLine) return;
     
     const canvas = fabricRef.current;
     if (!canvas) return;
     
     const pointer = canvas.getPointer(opt.e);
-    const x = snapToGrid(pointer.x);
-    const y = snapToGrid(pointer.y);
+    const snap = (v) => Math.round(v / gridSize) * gridSize;
+    const x = snap(pointer.x);
+    const y = snap(pointer.y);
     
+    isDrawingRef.current = true;
+    drawStartPointRef.current = { x, y };
     setIsDrawing(true);
     setDrawStartPoint({ x, y });
     
     let obj;
     
-    if (activeTool === 'rectangle') {
+    if (currentTool === 'rectangle') {
       obj = new fabric.Rect({
         left: x,
         top: y,
-        width: 0,
-        height: 0,
-        fill: drawingFill,
-        stroke: drawingColor,
-        strokeWidth: drawingStrokeWidth,
+        width: 1,
+        height: 1,
+        fill: drawingFillRef.current,
+        stroke: drawingColorRef.current,
+        strokeWidth: drawingStrokeWidthRef.current,
         strokeUniform: true,
         elementId: `rect-${Date.now()}`,
         elementType: 'rect',
         isDrawnShape: true,
       });
-    } else if (activeTool === 'wall') {
-      obj = new fabric.Line([x, y, x, y], {
-        stroke: drawingColor,
-        strokeWidth: drawingStrokeWidth,
+    } else if (currentTool === 'wall') {
+      obj = new fabric.Line([x, y, x + 1, y], {
+        stroke: drawingColorRef.current,
+        strokeWidth: drawingStrokeWidthRef.current,
         strokeLineCap: 'round',
         elementId: `wall-${Date.now()}`,
         elementType: 'wall',
@@ -479,55 +486,62 @@ const LayoutConfiguratorPage = () => {
     
     if (obj) {
       canvas.add(obj);
+      drawingObjectRef.current = obj;
       setDrawingObject(obj);
+      canvas.renderAll();
     }
-  };
+  }, [gridSize]);
   
   // Mouse move - update drawing
-  const handleCanvasMouseMove = (opt) => {
-    if (!isDrawing || !drawingObject || !drawStartPoint) return;
+  const handleCanvasMouseMove = useCallback((opt) => {
+    if (!isDrawingRef.current || !drawingObjectRef.current || !drawStartPointRef.current) return;
     
     const canvas = fabricRef.current;
     if (!canvas) return;
     
     const pointer = canvas.getPointer(opt.e);
-    const x = snapToGrid(pointer.x);
-    const y = snapToGrid(pointer.y);
+    const snap = (v) => Math.round(v / gridSize) * gridSize;
+    const x = snap(pointer.x);
+    const y = snap(pointer.y);
+    const startPoint = drawStartPointRef.current;
+    const obj = drawingObjectRef.current;
+    const currentTool = activeToolRef.current;
     
-    if (activeTool === 'rectangle') {
-      const width = Math.abs(x - drawStartPoint.x);
-      const height = Math.abs(y - drawStartPoint.y);
-      const left = Math.min(drawStartPoint.x, x);
-      const top = Math.min(drawStartPoint.y, y);
+    if (currentTool === 'rectangle') {
+      const width = Math.abs(x - startPoint.x) || 1;
+      const height = Math.abs(y - startPoint.y) || 1;
+      const left = Math.min(startPoint.x, x);
+      const top = Math.min(startPoint.y, y);
       
-      drawingObject.set({
+      obj.set({
         left,
         top,
         width,
         height,
       });
-    } else if (activeTool === 'wall') {
-      drawingObject.set({
+    } else if (currentTool === 'wall') {
+      obj.set({
         x2: x,
         y2: y,
       });
     }
     
+    obj.setCoords();
     canvas.renderAll();
-  };
+  }, [gridSize]);
   
   // Mouse up - finish drawing
-  const handleCanvasMouseUp = (opt) => {
-    if (!isDrawing) return;
+  const handleCanvasMouseUp = useCallback((opt) => {
+    if (!isDrawingRef.current) return;
     
     const canvas = fabricRef.current;
     if (!canvas) return;
     
+    isDrawingRef.current = false;
     setIsDrawing(false);
     
-    if (drawingObject) {
-      // Check if shape is too small (accidental click)
-      let isTooSmall = false;
+    const obj = drawingObjectRef.current;
+    const currentTool = activeToolRef.current;
       
       if (activeTool === 'rectangle') {
         isTooSmall = drawingObject.width < gridSize || drawingObject.height < gridSize;
