@@ -1447,6 +1447,26 @@ export const useLogistics = () => {
     toast.success('Порядок изменён');
   };
 
+  // Move order to specific position (1-based index from user input)
+  const moveOrderToPosition = async (currentIndex, newPosition) => {
+    if (!selectedTrip) return;
+    
+    // Convert to 0-based index
+    const targetIndex = newPosition - 1;
+    
+    // Validate position
+    if (targetIndex < 0 || targetIndex >= selectedTrip.orderIds.length || targetIndex === currentIndex) {
+      return;
+    }
+    
+    const newOrderIds = [...selectedTrip.orderIds];
+    const [movedItem] = newOrderIds.splice(currentIndex, 1);
+    newOrderIds.splice(targetIndex, 0, movedItem);
+    
+    await updateTripOrderIds(selectedTrip.id, newOrderIds);
+    toast.success(`Заказ перемещён на позицию ${newPosition}`);
+  };
+
   // Drag and drop handlers
   const handleDragStart = (e, index) => {
     setDraggedOrderIndex(index);
