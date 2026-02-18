@@ -613,6 +613,29 @@ const LayoutConfiguratorPage = () => {
     return Math.round(valueCm / gridSizeCm) * gridSizeCm;
   }, [gridSizeCm]);
 
+  // ============ ZOOM ============
+  
+  const handleZoom = useCallback((delta) => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    let newZoom = zoomLevel + delta;
+    newZoom = Math.max(0.25, Math.min(3, newZoom)); // Limit zoom 25% - 300%
+    
+    canvas.setZoom(newZoom);
+    canvas.setWidth(canvasWidth * newZoom);
+    canvas.setHeight(canvasHeight * newZoom);
+    setZoomLevel(newZoom);
+  }, [zoomLevel, canvasWidth, canvasHeight]);
+
+  const resetZoom = useCallback(() => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    canvas.setZoom(1);
+    canvas.setWidth(canvasWidth);
+    canvas.setHeight(canvasHeight);
+    setZoomLevel(1);
+  }, [canvasWidth, canvasHeight]);
+
   // ============ DRAWING TOOLS ============
   
   // Mouse down - start drawing
@@ -620,11 +643,15 @@ const LayoutConfiguratorPage = () => {
     const currentTool = activeToolRef.current;
     if (currentTool === 'select') return;
     
-    // Don't start drawing if clicking on an existing object
-    if (opt.target && !opt.target.isGridLine) return;
+    // Allow drawing on top of existing objects (ignore target check for grid lines only)
+    // This fixes the issue where you can't draw inside a rectangle
+    if (opt.target && opt.target.isGridLabel) return;
     
     const canvas = fabricRef.current;
     if (!canvas) return;
+    
+    // Deselect any active object when starting to draw
+    canvas.discardActiveObject();
     
     const pointer = canvas.getPointer(opt.e);
     const pxPerCm = pixelsPerCmRef.current;
@@ -637,6 +664,9 @@ const LayoutConfiguratorPage = () => {
     drawStartPointRef.current = { x, y };
     setIsDrawing(true);
     setDrawStartPoint({ x, y });
+    
+    // Calculate stroke width in pixels from cm
+    const strokeWidthPx = strokeWidthCmRef.current * pxPerCm;
     
     let obj;
     
