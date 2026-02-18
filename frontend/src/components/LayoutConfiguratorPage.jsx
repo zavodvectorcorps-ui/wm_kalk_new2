@@ -1054,6 +1054,17 @@ const LayoutConfiguratorPage = () => {
     }
   }, [showDimensions, updateDimensionLabels]);
 
+  // Update dimension labels when drawing finishes
+  useEffect(() => {
+    if (!isDrawing && showDimensions && fabricRef.current) {
+      // Small delay to ensure the object is fully added
+      const timer = setTimeout(() => {
+        updateDimensionLabels();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isDrawing, showDimensions, updateDimensionLabels]);
+
   // Event handlers
   const handleObjectSelected = (e) => {
     const obj = e.selected?.[0];
