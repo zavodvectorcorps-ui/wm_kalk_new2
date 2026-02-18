@@ -1969,10 +1969,16 @@ const TripDetailsCard = ({
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium">Заказы ({selectedTrip.orderIds?.length || 0}):</p>
               {selectedTrip.orderIds?.length >= 1 && (
-                <Button size="sm" variant="outline" onClick={optimizeTripRoute} disabled={optimizingRoute} className="gap-1 h-7 text-xs" data-testid="optimize-route-btn">
-                  {optimizingRoute ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                  Оптимизировать
-                </Button>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="outline" onClick={buildTripRoute} disabled={buildingTripRoute} className="gap-1 h-7 text-xs" data-testid="build-route-btn">
+                    {buildingTripRoute ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Route className="h-3 w-3" />}
+                    Маршрут
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={optimizeTripRoute} disabled={optimizingRoute} className="gap-1 h-7 text-xs" data-testid="optimize-route-btn">
+                    {optimizingRoute ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    Оптимизировать
+                  </Button>
+                </div>
               )}
             </div>
             <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
