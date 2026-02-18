@@ -121,13 +121,11 @@ const LayoutConfiguratorPage = () => {
   useEffect(() => { strokeWidthCmRef.current = drawingStrokeWidthCm; }, [drawingStrokeWidthCm]);
   const drawStartPointRef = useRef(null);
   const drawingColorRef = useRef('#374151');
-  const drawingStrokeWidthRef = useRef(3);
   const drawingFillRef = useRef('transparent');
   
   // Keep refs in sync with state
   useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
   useEffect(() => { drawingColorRef.current = drawingColor; }, [drawingColor]);
-  useEffect(() => { drawingStrokeWidthRef.current = drawingStrokeWidth; }, [drawingStrokeWidth]);
   useEffect(() => { drawingFillRef.current = drawingFill; }, [drawingFill]);
   
   // Dialogs
