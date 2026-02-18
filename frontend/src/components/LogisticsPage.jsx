@@ -1661,7 +1661,7 @@ const TripsView = ({
   sectionData, drivers, isLoaded, warehouseCoords, warehouseAddress, tripDirections, tripRouteInfo,
   buildingTripRoute, optimizingRoute, draggedOrderIndex, tripMapRef, updateTrip, updateTripStatus, 
   syncTripToAmocrm, syncingToAmocrm, deleteTrip,
-  optimizeTripRoute, updateOrderStatusInTrip, removeOrderFromTrip, moveOrderUp, moveOrderDown, moveOrderToPosition,
+  optimizeTripRoute, buildTripRoute, updateOrderStatusInTrip, removeOrderFromTrip, moveOrderUp, moveOrderDown, moveOrderToPosition,
   handleDragStart, handleDragOver, handleDrop, handleDragEnd, setActiveInnerTab,
   formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders,
   getFilteredTrips, searchQuery, amocrmPipelines, API_URL
