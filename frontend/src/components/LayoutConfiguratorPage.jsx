@@ -122,6 +122,12 @@ const LayoutConfiguratorPage = () => {
       canvas.on('selection:cleared', () => setSelectedObject(null));
       canvas.on('object:modified', handleObjectModified);
       canvas.on('object:moving', handleObjectMoving);
+      canvas.on('object:scaling', handleObjectScaling);
+      
+      // Drawing event listeners
+      canvas.on('mouse:down', handleCanvasMouseDown);
+      canvas.on('mouse:move', handleCanvasMouseMove);
+      canvas.on('mouse:up', handleCanvasMouseUp);
       
       // Draw initial grid
       drawGrid();
@@ -132,6 +138,17 @@ const LayoutConfiguratorPage = () => {
       };
     }
   }, []);
+
+  // Update canvas cursor when tool changes
+  useEffect(() => {
+    if (fabricRef.current) {
+      const tool = DRAWING_TOOLS[activeTool];
+      fabricRef.current.defaultCursor = tool?.cursor || 'default';
+      fabricRef.current.hoverCursor = activeTool === 'select' ? 'move' : tool?.cursor || 'default';
+      // Disable selection when drawing
+      fabricRef.current.selection = activeTool === 'select';
+    }
+  }, [activeTool]);
 
   // Fetch initial data
   useEffect(() => {
