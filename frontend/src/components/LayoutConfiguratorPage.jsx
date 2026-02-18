@@ -1834,19 +1834,48 @@ const LayoutConfiguratorPage = () => {
                       <Label className="text-xs">Толщина:</Label>
                       <Input
                         type="number"
-                        min="1"
-                        max="20"
-                        value={selectedObject.strokeWidth || 3}
+                        step="0.1"
+                        min="0.1"
+                        max="50"
+                        value={selectedObject.strokeWidthCm || 4}
                         onChange={(e) => {
                           const obj = fabricRef.current?.getActiveObject();
                           if (obj) {
-                            obj.set('strokeWidth', parseInt(e.target.value) || 3);
+                            const cmValue = parseFloat(e.target.value) || 1;
+                            obj.set('strokeWidth', cmValue * pixelsPerCm);
+                            obj.set('strokeWidthCm', cmValue);
                             fabricRef.current.renderAll();
                             handleObjectSelected({ selected: [obj] });
                           }
                         }}
                         className="w-16 h-7 text-xs"
                       />
+                      <span className="text-xs text-muted-foreground">см</span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Distances to room walls */}
+                {selectedObject.distances && (
+                  <div className="p-2 bg-green-50 border border-green-200 rounded text-xs space-y-1">
+                    <Label className="text-xs font-medium">Расстояние до стен:</Label>
+                    <div className="grid grid-cols-2 gap-1 mt-1">
+                      <div className="flex justify-between">
+                        <span>← Лево:</span>
+                        <span className="font-medium">{selectedObject.distances.leftWall} см</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Право →:</span>
+                        <span className="font-medium">{selectedObject.distances.rightWall} см</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>↑ Верх:</span>
+                        <span className="font-medium">{selectedObject.distances.topWall} см</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Низ ↓:</span>
+                        <span className="font-medium">{selectedObject.distances.bottomWall} см</span>
+                      </div>
                     </div>
                   </div>
                 )}
