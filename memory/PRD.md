@@ -5,6 +5,20 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 18, 2025 - Layout Configurator UI Improvements & Distance Lines (COMPLETED)
+- **NEW**: Distance indicator lines between objects
+  - Red dashed lines with arrows show distances between objects
+  - Distances shown between aligned objects (horizontal and vertical)
+  - Distances from each object to room walls (all 4 directions)
+  - Labels with distance values in centimeters
+- **IMPROVED**: Reorganized UI layout
+  - Settings panel moved to left sidebar (model selector, grid, zoom, dimensions toggle)
+  - Canvas area is now clean and centered
+  - Drawing tools in compact toolbar above canvas
+  - Removed canvas size inputs (using standard canvas)
+- **Files Modified**: `/app/frontend/src/components/LayoutConfiguratorPage.jsx`
+- **Testing**: Visual verification passed
+
 ### Feb 18, 2025 - Layout Configurator Bug Fixes (COMPLETED)
 - **FIXED**: Drawing line over rectangle was moving the rectangle
   - Objects are now made non-interactive during drawing
