@@ -624,6 +624,30 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Duplicate layout
+  const handleDuplicateLayout = async (layout) => {
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/layouts/${layout.id}/duplicate`, {
+        method: 'POST',
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast.success('Планировка скопирована!');
+        fetchLayouts();
+        // Optionally load the duplicated layout
+        if (data.layout) {
+          handleLoadLayout(data.layout);
+        }
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка при копировании');
+      }
+    } catch (error) {
+      toast.error('Ошибка при копировании');
+    }
+  };
+
   // Group assets by type
   const assetsByType = assets.reduce((acc, asset) => {
     if (!acc[asset.type]) acc[asset.type] = [];
