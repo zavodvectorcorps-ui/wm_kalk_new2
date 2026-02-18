@@ -75,13 +75,25 @@ const LayoutConfiguratorPage = () => {
   const [layouts, setLayouts] = useState([]);
   const [currentLayout, setCurrentLayout] = useState(null);
   
+  // Canvas state - A4 landscape fixed size
+  const [canvasWidth] = useState(A4_LANDSCAPE.widthPx);
+  const [canvasHeight] = useState(A4_LANDSCAPE.heightPx);
+  
+  // Real-world dimensions that the canvas represents (in cm)
+  const [canvasRealWidthCm, setCanvasRealWidthCm] = useState(DEFAULT_CANVAS_REAL_SIZE.widthCm);
+  const [canvasRealHeightCm, setCanvasRealHeightCm] = useState(DEFAULT_CANVAS_REAL_SIZE.heightCm);
+  
+  // Calculated scale: pixels per cm
+  const pixelsPerCm = canvasWidth / canvasRealWidthCm;
+  
+  // Grid in cm (e.g., 10cm grid)
+  const [gridSizeCm, setGridSizeCm] = useState(10);
+  const gridSizePx = gridSizeCm * pixelsPerCm;
+  
   // UI state
   const [selectedObject, setSelectedObject] = useState(null);
   const [showGrid, setShowGrid] = useState(true);
   const [showDimensions, setShowDimensions] = useState(true);
-  const [gridSize, setGridSize] = useState(20);
-  const [canvasWidth, setCanvasWidth] = useState(800);
-  const [canvasHeight, setCanvasHeight] = useState(400);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('elements');
   
@@ -98,6 +110,10 @@ const LayoutConfiguratorPage = () => {
   const activeToolRef = useRef('select');
   const isDrawingRef = useRef(false);
   const drawingObjectRef = useRef(null);
+  const pixelsPerCmRef = useRef(pixelsPerCm);
+  
+  // Keep pixelsPerCm ref updated
+  useEffect(() => { pixelsPerCmRef.current = pixelsPerCm; }, [pixelsPerCm]);
   const drawStartPointRef = useRef(null);
   const drawingColorRef = useRef('#374151');
   const drawingStrokeWidthRef = useRef(3);
