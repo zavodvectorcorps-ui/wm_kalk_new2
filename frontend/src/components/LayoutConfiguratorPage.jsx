@@ -639,43 +639,47 @@ const LayoutConfiguratorPage = () => {
 
   // ============ DRAWING TOOLS ============
   
-  // CRITICAL: This handler runs BEFORE Fabric.js processes the mouse event
-  // It completely prevents object selection when a drawing tool is active
-  const handleCanvasMouseDownBefore = useCallback((opt) => {
-    const currentTool = activeToolRef.current;
-    if (currentTool === 'select') return;
-    
+  // Update canvas interactivity based on active tool
+  useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     
-    // Check if we clicked on an existing object (not grid/labels)
-    const target = canvas.findTarget(opt.e);
-    if (target && !target.isGridLine && !target.isGridLabel && !target.isDimensionLabel) {
-      // CRITICAL: We're trying to draw over an existing object
-      // Prevent Fabric.js from selecting/moving it
+    const currentTool = activeToolRef.current;
+    
+    if (currentTool !== 'select') {
+      // When drawing tool is active, completely disable object interactions
       canvas.skipTargetFind = true;
       canvas.selection = false;
+      canvas.defaultCursor = 'crosshair';
+      canvas.hoverCursor = 'crosshair';
       
-      // Clear any transform that might be starting
-      canvas._currentTransform = null;
-      
-      // Make all objects non-interactive
+      // Make all existing objects non-interactive
       canvas.getObjects().forEach(obj => {
         if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
-          if (obj._wasSelectable === undefined) {
-            obj._wasSelectable = obj.selectable;
-            obj._wasEvented = obj.evented;
-          }
           obj.selectable = false;
           obj.evented = false;
+          obj.hoverCursor = 'crosshair';
         }
       });
+    } else {
+      // When select tool is active, enable interactions
+      canvas.skipTargetFind = false;
+      canvas.selection = true;
+      canvas.defaultCursor = 'default';
+      canvas.hoverCursor = 'move';
       
-      // Discard active object to prevent any movement
-      canvas.discardActiveObject();
-      canvas.renderAll();
+      // Make all objects interactive again
+      canvas.getObjects().forEach(obj => {
+        if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
+          obj.selectable = true;
+          obj.evented = true;
+          obj.hoverCursor = 'move';
+        }
+      });
     }
-  }, []);
+    
+    canvas.renderAll();
+  }, [activeTool]);
   
   // Mouse down - start drawing
   const handleCanvasMouseDown = useCallback((opt) => {
