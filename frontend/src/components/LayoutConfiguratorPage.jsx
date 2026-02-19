@@ -564,7 +564,8 @@ const LayoutConfiguratorPage = () => {
     setSelectedModel(model);
     setSelectedVariant(null);
     if (model) {
-      fetchOutline(modelId);
+      // Try to load template layout for this model
+      loadTemplateForModel(modelId, null);
     } else {
       setModelOutline(null);
       removeOutlineFromCanvas();
@@ -576,7 +577,28 @@ const LayoutConfiguratorPage = () => {
     if (!selectedModel) return;
     const variant = selectedModel.variants?.find(v => v.id === variantId);
     setSelectedVariant(variant);
-    fetchOutline(selectedModel.id, variantId);
+    // Try to load template layout for this model+variant
+    loadTemplateForModel(selectedModel.id, variantId);
+  };
+
+  // Load template layout for model/variant, or fallback to outline
+  const loadTemplateForModel = async (modelId, variantId) => {
+    // First try to find a saved layout for this model/variant
+    const matchingLayout = layouts.find(layout => {
+      if (variantId) {
+        return layout.modelId === modelId && layout.variantId === variantId;
+      }
+      return layout.modelId === modelId && !layout.variantId;
+    });
+    
+    if (matchingLayout) {
+      // Load the layout as template
+      loadTemplateLayout(matchingLayout);
+      toast.info(`Загружена планировка: ${matchingLayout.name}`);
+    } else {
+      // No saved layout, just load the outline
+      fetchOutline(modelId, variantId);
+    }
   };
 
   // Upload outline
