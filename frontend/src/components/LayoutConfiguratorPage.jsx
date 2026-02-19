@@ -1866,6 +1866,304 @@ const LayoutConfiguratorPage = () => {
     toast.success('Группа разбита');
   }, [saveToHistory]);
 
+  // ============ SELECT ALL & DUPLICATE ============
+  const selectAll = useCallback(() => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    
+    // Get all selectable objects (excluding grid, dimension labels, etc.)
+    const selectableObjects = canvas.getObjects().filter(obj => 
+      !obj.isGridLine && !obj.isDimensionLabel && !obj.isGridLabel && obj.selectable !== false
+    );
+    
+    if (selectableObjects.length === 0) {
+      toast.error('Нет объектов для выделения');
+      return;
+    }
+    
+    // Create an active selection
+    canvas.discardActiveObject();
+    const selection = new fabric.ActiveSelection(selectableObjects, { canvas });
+    canvas.setActiveObject(selection);
+    canvas.requestRenderAll();
+    toast.success(`Выделено ${selectableObjects.length} объектов`);
+  }, []);
+
+  const duplicateSelected = useCallback(() => {
+    if (!fabricRef.current) return;
+    const activeObject = fabricRef.current.getActiveObject();
+    if (!activeObject) {
+      toast.error('Нет выделенного объекта');
+      return;
+    }
+    
+    activeObject.clone((cloned) => {
+      fabricRef.current.discardActiveObject();
+      
+      // Offset duplicated object
+      cloned.set({
+        left: cloned.left + 30,
+        top: cloned.top + 30,
+        evented: true,
+      });
+      
+      if (cloned.type === 'activeSelection') {
+        cloned.canvas = fabricRef.current;
+        cloned.forEachObject((obj) => {
+          obj.set({
+            elementId: `dup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            selectable: true,
+            evented: true,
+          });
+          fabricRef.current.add(obj);
+        });
+        cloned.setCoords();
+      } else {
+        cloned.set({
+          elementId: `dup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          selectable: true,
+          evented: true,
+        });
+        fabricRef.current.add(cloned);
+      }
+      
+      fabricRef.current.setActiveObject(cloned);
+      fabricRef.current.requestRenderAll();
+      updateDimensionLabels();
+      saveToHistory();
+      toast.success('Продублировано');
+    });
+  }, [updateDimensionLabels, saveToHistory]);
+
+  // ============ ALIGNMENT FUNCTIONS ============
+  const alignObjects = useCallback((alignment) => {
+    if (!fabricRef.current) return;
+    const activeObject = fabricRef.current.getActiveObject();
+    
+    if (!activeObject || activeObject.type !== 'activeSelection') {
+      toast.error('Выделите несколько объектов для выравнивания');
+      return;
+    }
+    
+    const objects = activeObject.getObjects();
+    if (objects.length < 2) {
+      toast.error('Нужно минимум 2 объекта');
+      return;
+    }
+    
+    // Get bounding box of all selected objects
+    const bounds = activeObject.getBoundingRect();
+    
+    objects.forEach(obj => {
+      const objBounds = obj.getBoundingRect(true);
+      
+      switch (alignment) {
+        case 'left':
+          obj.set('left', obj.left - (objBounds.left - bounds.left));
+          break;
+        case 'center-h':
+          const centerX = bounds.left + bounds.width / 2;
+          obj.set('left', obj.left + (centerX - (objBounds.left + objBounds.width / 2)));
+          break;
+        case 'right':
+          obj.set('left', obj.left + ((bounds.left + bounds.width) - (objBounds.left + objBounds.width)));
+          break;
+        case 'top':
+          obj.set('top', obj.top - (objBounds.top - bounds.top));
+          break;
+        case 'center-v':
+          const centerY = bounds.top + bounds.height / 2;
+          obj.set('top', obj.top + (centerY - (objBounds.top + objBounds.height / 2)));
+          break;
+        case 'bottom':
+          obj.set('top', obj.top + ((bounds.top + bounds.height) - (objBounds.top + objBounds.height)));
+          break;
+        default:
+          break;
+      }
+      obj.setCoords();
+    });
+    
+    activeObject.setCoords();
+    fabricRef.current.requestRenderAll();
+    updateDimensionLabels();
+    saveToHistory();
+    
+    const alignNames = {
+      'left': 'по левому краю',
+      'center-h': 'по центру горизонтально',
+      'right': 'по правому краю',
+      'top': 'по верхнему краю',
+      'center-v': 'по центру вертикально',
+      'bottom': 'по нижнему краю',
+    };
+    toast.success(`Выровнено ${alignNames[alignment]}`);
+  }, [updateDimensionLabels, saveToHistory]);
+
+  const distributeObjects = useCallback((direction) => {
+    if (!fabricRef.current) return;
+    const activeObject = fabricRef.current.getActiveObject();
+    
+    if (!activeObject || activeObject.type !== 'activeSelection') {
+      toast.error('Выделите несколько объектов для распределения');
+      return;
+    }
+    
+    const objects = activeObject.getObjects();
+    if (objects.length < 3) {
+      toast.error('Нужно минимум 3 объекта для распределения');
+      return;
+    }
+    
+    // Sort objects by position
+    const sorted = [...objects].sort((a, b) => {
+      if (direction === 'horizontal') {
+        return a.left - b.left;
+      }
+      return a.top - b.top;
+    });
+    
+    // Calculate total space and distribute
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    
+    if (direction === 'horizontal') {
+      const firstCenter = first.left + (first.width * first.scaleX) / 2;
+      const lastCenter = last.left + (last.width * last.scaleX) / 2;
+      const totalSpace = lastCenter - firstCenter;
+      const spacing = totalSpace / (sorted.length - 1);
+      
+      sorted.forEach((obj, index) => {
+        if (index > 0 && index < sorted.length - 1) {
+          const newCenter = firstCenter + spacing * index;
+          obj.set('left', newCenter - (obj.width * obj.scaleX) / 2);
+          obj.setCoords();
+        }
+      });
+    } else {
+      const firstCenter = first.top + (first.height * first.scaleY) / 2;
+      const lastCenter = last.top + (last.height * last.scaleY) / 2;
+      const totalSpace = lastCenter - firstCenter;
+      const spacing = totalSpace / (sorted.length - 1);
+      
+      sorted.forEach((obj, index) => {
+        if (index > 0 && index < sorted.length - 1) {
+          const newCenter = firstCenter + spacing * index;
+          obj.set('top', newCenter - (obj.height * obj.scaleY) / 2);
+          obj.setCoords();
+        }
+      });
+    }
+    
+    activeObject.setCoords();
+    fabricRef.current.requestRenderAll();
+    updateDimensionLabels();
+    saveToHistory();
+    toast.success(direction === 'horizontal' ? 'Распределено по горизонтали' : 'Распределено по вертикали');
+  }, [updateDimensionLabels, saveToHistory]);
+
+  // ============ SNAP TO OBJECTS ============
+  const getSnapPoints = useCallback((movingObj) => {
+    if (!fabricRef.current || !snapToObjects) return [];
+    
+    const canvas = fabricRef.current;
+    const snapPoints = [];
+    
+    // Add canvas boundaries (walls)
+    snapPoints.push(
+      { x: 0, y: null, type: 'wall-left' },
+      { x: canvasWidth, y: null, type: 'wall-right' },
+      { x: null, y: 0, type: 'wall-top' },
+      { x: null, y: canvasHeight, type: 'wall-bottom' },
+    );
+    
+    // Add center lines
+    snapPoints.push(
+      { x: canvasWidth / 2, y: null, type: 'center-v' },
+      { x: null, y: canvasHeight / 2, type: 'center-h' },
+    );
+    
+    // Add snap points from other objects
+    canvas.getObjects().forEach(obj => {
+      if (obj === movingObj || obj.isGridLine || obj.isDimensionLabel || obj.isGridLabel) return;
+      
+      const bound = obj.getBoundingRect();
+      
+      // Left, center, right edges
+      snapPoints.push(
+        { x: bound.left, y: null, type: 'obj-left' },
+        { x: bound.left + bound.width / 2, y: null, type: 'obj-center-x' },
+        { x: bound.left + bound.width, y: null, type: 'obj-right' },
+      );
+      
+      // Top, center, bottom edges
+      snapPoints.push(
+        { x: null, y: bound.top, type: 'obj-top' },
+        { x: null, y: bound.top + bound.height / 2, type: 'obj-center-y' },
+        { x: null, y: bound.top + bound.height, type: 'obj-bottom' },
+      );
+    });
+    
+    return snapPoints;
+  }, [snapToObjects, canvasWidth, canvasHeight]);
+
+  const applySnap = useCallback((obj, snapPoints) => {
+    if (!snapToObjects || !obj) return { snappedX: false, snappedY: false };
+    
+    const bound = obj.getBoundingRect();
+    const objEdges = {
+      left: bound.left,
+      centerX: bound.left + bound.width / 2,
+      right: bound.left + bound.width,
+      top: bound.top,
+      centerY: bound.top + bound.height / 2,
+      bottom: bound.top + bound.height,
+    };
+    
+    let snappedX = false;
+    let snappedY = false;
+    let snapOffsetX = 0;
+    let snapOffsetY = 0;
+    
+    // Check X snap
+    for (const point of snapPoints) {
+      if (point.x !== null) {
+        for (const edge of ['left', 'centerX', 'right']) {
+          const diff = Math.abs(objEdges[edge] - point.x);
+          if (diff < snapDistance && !snappedX) {
+            snapOffsetX = point.x - objEdges[edge];
+            snappedX = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Check Y snap
+    for (const point of snapPoints) {
+      if (point.y !== null) {
+        for (const edge of ['top', 'centerY', 'bottom']) {
+          const diff = Math.abs(objEdges[edge] - point.y);
+          if (diff < snapDistance && !snappedY) {
+            snapOffsetY = point.y - objEdges[edge];
+            snappedY = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (snappedX || snappedY) {
+      obj.set({
+        left: obj.left + snapOffsetX,
+        top: obj.top + snapOffsetY,
+      });
+      obj.setCoords();
+    }
+    
+    return { snappedX, snappedY };
+  }, [snapToObjects, snapDistance]);
+
   // ============ KEYBOARD SHORTCUTS ============
   useEffect(() => {
     const handleKeyDown = (e) => {
