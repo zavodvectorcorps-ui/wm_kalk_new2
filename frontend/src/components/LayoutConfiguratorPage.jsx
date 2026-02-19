@@ -681,12 +681,13 @@ const LayoutConfiguratorPage = () => {
     if (!fabricRef.current || isUndoing.current) return;
     
     const canvas = fabricRef.current;
-    // Get only user-created objects (exclude grid, labels, dimensions, measurement parts)
-    const objects = canvas.getObjects().filter(obj => 
-      obj.isDrawnShape && !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isOutline && !obj.isMeasurementPart
-    );
     
-    const state = canvas.toJSON(['elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 'isMeasurement', 'isMeasurementPart', 'parentId']);
+    // Save full canvas state including all custom properties
+    const state = canvas.toJSON([
+      'elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 
+      'isMeasurement', 'isMeasurementPart', 'parentId', 'isRuler',
+      'showDimensions', 'assetId', 'assetName', 'isGroup', 'isModelOutline'
+    ]);
     const stateStr = JSON.stringify(state);
     
     setCanvasHistory(prev => {
