@@ -538,7 +538,6 @@ const LayoutConfiguratorPage = () => {
           // Don't set currentLayout - this is a template, not editing existing
           setCurrentLayout(null);
           
-          saveToHistory();
           toast.success(`Шаблон "${layout.name}" загружен. Измените и сохраните как новую планировку.`);
         });
       } catch (error) {
@@ -548,7 +547,7 @@ const LayoutConfiguratorPage = () => {
     } else {
       toast.error('Шаблон не содержит данных планировки');
     }
-  }, [drawGrid, saveToHistory]);
+  }, [drawGrid]);
 
   // Remove outline from canvas
   const removeOutlineFromCanvas = () => {
