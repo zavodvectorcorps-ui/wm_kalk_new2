@@ -3086,6 +3086,19 @@ const LayoutConfiguratorPage = () => {
               
               <div className="h-6 w-px bg-border" />
               
+              {/* Duplicate button */}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2 text-xs"
+                onClick={duplicateSelected}
+                title="Дублировать (Ctrl+D)"
+                data-testid="duplicate-button"
+              >
+                <CopyPlus className="h-3 w-3 mr-1" />
+                Дубль
+              </Button>
+              
               {/* Group/Ungroup buttons */}
               <div className="flex items-center gap-1">
                 <Button
@@ -3112,6 +3125,47 @@ const LayoutConfiguratorPage = () => {
                 </Button>
               </div>
               
+              {/* Alignment dropdown */}
+              <div className="flex items-center gap-1">
+                <Select onValueChange={(val) => alignObjects(val)}>
+                  <SelectTrigger className="h-8 w-28 text-xs" data-testid="align-select">
+                    <AlignLeft className="h-3 w-3 mr-1" />
+                    <SelectValue placeholder="Выровнять" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left">← По левому краю</SelectItem>
+                    <SelectItem value="center-h">↔ По центру (гор.)</SelectItem>
+                    <SelectItem value="right">→ По правому краю</SelectItem>
+                    <SelectItem value="top">↑ По верхнему краю</SelectItem>
+                    <SelectItem value="center-v">↕ По центру (верт.)</SelectItem>
+                    <SelectItem value="bottom">↓ По нижнему краю</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select onValueChange={(val) => distributeObjects(val)}>
+                  <SelectTrigger className="h-8 w-24 text-xs" data-testid="distribute-select">
+                    <SelectValue placeholder="Распред." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="horizontal">↔ По горизонтали</SelectItem>
+                    <SelectItem value="vertical">↕ По вертикали</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Snap toggle */}
+              <Button
+                size="sm"
+                variant={snapToObjects ? 'default' : 'outline'}
+                className="h-8 px-2 text-xs"
+                onClick={() => setSnapToObjects(!snapToObjects)}
+                title={snapToObjects ? 'Привязка включена' : 'Привязка выключена'}
+                data-testid="snap-toggle"
+              >
+                <Magnet className="h-3 w-3 mr-1" />
+                Привязка
+              </Button>
+              
               {/* Copy/Paste buttons */}
               <div className="flex items-center gap-1">
                 <Button
@@ -3136,11 +3190,11 @@ const LayoutConfiguratorPage = () => {
                 </Button>
               </div>
               
-              <div className="h-6 w-px bg-border hidden lg:block" />
+              <div className="h-6 w-px bg-border hidden xl:block" />
               
               {/* Keyboard shortcuts hint */}
-              <div className="text-xs text-muted-foreground hidden lg:block">
-                Ctrl+C/V: Копировать | Ctrl+G: Группа | Del: Удалить
+              <div className="text-xs text-muted-foreground hidden xl:block">
+                Ctrl+A: Выбр. всё | Ctrl+D: Дубль | Del: Удалить
               </div>
             </div>
           </CardContent>
