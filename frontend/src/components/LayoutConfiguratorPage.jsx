@@ -1046,59 +1046,65 @@ const LayoutConfiguratorPage = () => {
         } else if (currentTool === 'ruler') {
           // Create measurement label that stays on canvas
           const lengthCm = Math.round(lengthPx / pxPerCm);
-          const midX = obj.left + (obj.x1 + obj.x2) / 2;
-          const midY = obj.top + (obj.y1 + obj.y2) / 2;
           
-          // Add arrows at the ends
-          const dx = obj.x2 - obj.x1;
-          const dy = obj.y2 - obj.y1;
-          const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+          // For fabric.js Line, actual positions are calculated differently
+          // x1, y1 are relative to the object's position
+          const startX = obj.left + obj.x1;
+          const startY = obj.top + obj.y1;
+          const endX = obj.left + obj.x2;
+          const endY = obj.top + obj.y2;
+          const midX = (startX + endX) / 2;
+          const midY = (startY + endY) / 2;
           
-          // Start arrow
-          const arrow1 = new fabric.Triangle({
-            left: obj.left + obj.x1,
-            top: obj.top + obj.y1,
-            width: 8,
-            height: 10,
-            fill: '#dc2626',
-            angle: angle - 90,
-            originX: 'center',
-            originY: 'center',
-            selectable: false,
-            evented: false,
-            isMeasurementPart: true,
-            parentId: obj.elementId,
-          });
-          canvas.add(arrow1);
+          // Determine if horizontal or vertical
+          const isHorizontal = Math.abs(endX - startX) > Math.abs(endY - startY);
           
-          // End arrow
-          const arrow2 = new fabric.Triangle({
-            left: obj.left + obj.x2,
-            top: obj.top + obj.y2,
-            width: 8,
-            height: 10,
-            fill: '#dc2626',
-            angle: angle + 90,
-            originX: 'center',
-            originY: 'center',
-            selectable: false,
-            evented: false,
-            isMeasurementPart: true,
-            parentId: obj.elementId,
-          });
-          canvas.add(arrow2);
+          // Create perpendicular end caps (small lines) instead of triangles
+          const capLength = 8;
           
-          // Label with white background
+          // Start cap
+          const cap1 = new fabric.Line(
+            isHorizontal 
+              ? [startX, startY - capLength, startX, startY + capLength]
+              : [startX - capLength, startY, startX + capLength, startY],
+            {
+              stroke: '#dc2626',
+              strokeWidth: 2,
+              selectable: false,
+              evented: false,
+              isMeasurementPart: true,
+              parentId: obj.elementId,
+            }
+          );
+          canvas.add(cap1);
+          
+          // End cap
+          const cap2 = new fabric.Line(
+            isHorizontal
+              ? [endX, endY - capLength, endX, endY + capLength]
+              : [endX - capLength, endY, endX + capLength, endY],
+            {
+              stroke: '#dc2626',
+              strokeWidth: 2,
+              selectable: false,
+              evented: false,
+              isMeasurementPart: true,
+              parentId: obj.elementId,
+            }
+          );
+          canvas.add(cap2);
+          
+          // Label with white background - positioned above for horizontal, left for vertical
           const label = new fabric.Text(`${lengthCm} см`, {
-            left: midX,
-            top: midY - 12,
-            fontSize: 12,
+            left: midX + (isHorizontal ? 0 : 10),
+            top: midY + (isHorizontal ? -15 : 0),
+            fontSize: 11,
             fill: '#dc2626',
             fontWeight: 'bold',
             backgroundColor: 'rgba(255,255,255,0.9)',
-            padding: 3,
-            originX: 'center',
-            originY: 'bottom',
+            padding: 2,
+            originX: isHorizontal ? 'center' : 'left',
+            originY: isHorizontal ? 'bottom' : 'center',
             selectable: false,
             evented: false,
             isMeasurementPart: true,
