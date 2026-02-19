@@ -5,6 +5,30 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 19, 2025 - Layout Configurator Select All, Duplicate, Snap & Align (COMPLETED)
+- **NEW**: Select All (Ctrl+A)
+  - Selects all objects on canvas (excluding grid and labels)
+  - Shows toast with count of selected objects
+- **NEW**: Duplicate (Ctrl+D or "Дубль" button)
+  - Duplicates selected object(s) with 30px offset
+  - Works with single objects and groups
+- **NEW**: Snap to Objects and Walls
+  - "Привязка" toggle button in toolbar
+  - Objects snap to canvas edges (walls)
+  - Objects snap to edges and centers of other objects
+  - Snap distance: 10px
+- **NEW**: Alignment Tools
+  - "Выровнять" dropdown with 6 options:
+    - Left, Center (horizontal), Right
+    - Top, Center (vertical), Bottom
+  - Works with multiple selected objects
+- **NEW**: Distribution Tools
+  - "Распред." dropdown with horizontal/vertical options
+  - Evenly distributes 3+ objects
+- **Files Modified**:
+  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - Added selectAll, duplicateSelected, alignObjects, distributeObjects, getSnapPoints, applySnap functions
+- **Testing**: 100% success (all features verified)
+
 ### Feb 19, 2025 - Layout Configurator Group/Copy/Paste & Refactoring (COMPLETED)
 - **NEW**: Group/Ungroup Objects
   - Select multiple objects with Shift+Click
