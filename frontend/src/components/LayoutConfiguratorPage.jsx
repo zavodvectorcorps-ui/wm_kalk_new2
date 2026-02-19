@@ -1875,6 +1875,34 @@ const LayoutConfiguratorPage = () => {
         return;
       }
       
+      // Ctrl+C - Copy
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        copySelected();
+        return;
+      }
+      
+      // Ctrl+V - Paste
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        pasteFromClipboard();
+        return;
+      }
+      
+      // Ctrl+G - Group
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+        e.preventDefault();
+        groupSelected();
+        return;
+      }
+      
+      // Ctrl+Shift+G - Ungroup
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'G') {
+        e.preventDefault();
+        ungroupSelected();
+        return;
+      }
+      
       // Delete or Backspace - Delete selected object
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
@@ -1894,23 +1922,28 @@ const LayoutConfiguratorPage = () => {
         return;
       }
       
-      // Tool shortcuts
-      if (e.key === 'v' || e.key === 'V') {
-        setActiveTool('select');
-      } else if (e.key === 'r' || e.key === 'R') {
-        setActiveTool('rectangle');
-      } else if (e.key === 'l' || e.key === 'L') {
-        setActiveTool('wall');
-      } else if (e.key === 'm' || e.key === 'M') {
-        setActiveTool('ruler');
-      } else if (e.key === 't' || e.key === 'T') {
-        setActiveTool('text');
+      // Tool shortcuts (only when not using Ctrl/Cmd)
+      if (!e.ctrlKey && !e.metaKey) {
+        if (e.key === 'v' || e.key === 'V') {
+          setActiveTool('select');
+        } else if (e.key === 'r' || e.key === 'R') {
+          setActiveTool('rectangle');
+        } else if (e.key === 'l' || e.key === 'L') {
+          setActiveTool('wall');
+        } else if (e.key === 'm' || e.key === 'M') {
+          setActiveTool('ruler');
+        } else if (e.key === 't' || e.key === 'T') {
+          setActiveTool('text');
+        } else if (e.key === 'g' || e.key === 'G') {
+          // G without Ctrl - just group (not ungroup)
+          groupSelected();
+        }
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, deleteSelected]);
+  }, [handleUndo, deleteSelected, copySelected, pasteFromClipboard, groupSelected, ungroupSelected]);
 
   // Clear canvas
   const clearCanvas = () => {
