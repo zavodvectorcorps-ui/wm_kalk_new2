@@ -2718,6 +2718,17 @@ const LayoutConfiguratorPage = () => {
                       />
                       <span className="text-xs text-muted-foreground">см</span>
                     </div>
+                    {/* Show dimensions toggle for this object */}
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <Label className="text-xs cursor-pointer" htmlFor="show-dims-toggle">
+                        Показать размеры
+                      </Label>
+                      <Switch
+                        id="show-dims-toggle"
+                        checked={selectedObject.showDimensions}
+                        onCheckedChange={(checked) => toggleObjectDimensions(checked)}
+                      />
+                    </div>
                   </div>
                 )}
                 
