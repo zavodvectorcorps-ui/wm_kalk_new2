@@ -1571,6 +1571,7 @@ const LayoutConfiguratorPage = () => {
         strokeWidth: obj.strokeWidth,
         strokeWidthCm,
         distances, // Distances to room walls
+        showDimensions: obj.showDimensions !== false, // Add showDimensions flag
       });
     }
   };
