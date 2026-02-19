@@ -117,6 +117,10 @@ const LayoutConfiguratorPage = () => {
   const [drawingStrokeWidthCm, setDrawingStrokeWidthCm] = useState(4); // Stroke width in CM
   const [drawingFill, setDrawingFill] = useState('transparent');
   
+  // Snap settings
+  const [snapToObjects, setSnapToObjects] = useState(true);
+  const [snapDistance, setSnapDistance] = useState(10); // pixels
+  
   // Refs for drawing (to access current state in event handlers)
   const activeToolRef = useRef('select');
   const isDrawingRef = useRef(false);
