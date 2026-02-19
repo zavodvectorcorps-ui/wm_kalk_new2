@@ -751,9 +751,6 @@ const LayoutConfiguratorPage = () => {
         canvas.discardActiveObject();
         canvas.renderAll();
         
-        // Update dimension labels
-        updateDimensionLabels();
-        
         setSelectedObject(null);
         isUndoing.current = false;
         toast.success('Действие отменено');
@@ -763,7 +760,7 @@ const LayoutConfiguratorPage = () => {
     }
     
     setCanvasHistory(newHistory);
-  }, [canvasHistory, drawGrid, updateDimensionLabels]);
+  }, [canvasHistory, drawGrid]);
   
   // Save history after object modifications
   useEffect(() => {
