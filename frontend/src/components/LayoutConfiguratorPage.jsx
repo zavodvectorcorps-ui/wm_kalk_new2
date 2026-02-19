@@ -2495,7 +2495,23 @@ const LayoutConfiguratorPage = () => {
       }
       formData.append('canvasWidth', canvasWidth.toString());
       formData.append('canvasHeight', canvasHeight.toString());
+      // Get canvas state for template loading (excluding grid)
+      const userObjects = canvas.getObjects().filter(obj => 
+        !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel
+      );
+      const canvasState = {
+        version: '5.3.0',
+        objects: userObjects.map(obj => obj.toObject([
+          'elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 
+          'isMeasurement', 'isMeasurementPart', 'parentId', 'isRuler',
+          'showDimensions', 'assetId', 'assetName', 'isGroup', 'isModelOutline', 'isOutline',
+          'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
+        ])),
+        background: canvas.backgroundColor,
+      };
+      
       formData.append('elements', JSON.stringify(elements));
+      formData.append('canvasState', JSON.stringify(canvasState));
       formData.append('modelSize', selectedModel.layoutSize || '');
       formData.append('capacity', selectedModel.capacity || '');
       
