@@ -722,7 +722,6 @@ const LayoutConfiguratorPage = () => {
           canvas.add(obj);
         });
         canvas.renderAll();
-        updateDimensionLabels();
         isUndoing.current = false;
       });
     } else {
@@ -732,7 +731,7 @@ const LayoutConfiguratorPage = () => {
     
     setHistoryIndex(newIndex);
     toast.success('Действие отменено');
-  }, [historyIndex, canvasHistory, updateDimensionLabels]);
+  }, [historyIndex, canvasHistory]);
   
   // Save history after object modifications
   useEffect(() => {
