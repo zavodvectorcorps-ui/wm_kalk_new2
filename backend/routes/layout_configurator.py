@@ -215,12 +215,12 @@ async def create_layout(
     
     try:
         elements_list = json.loads(elements) if elements else []
-    except:
+    except (json.JSONDecodeError, TypeError):
         elements_list = []
     
     try:
         canvas_state_obj = json.loads(canvasState) if canvasState else None
-    except:
+    except (json.JSONDecodeError, TypeError):
         canvas_state_obj = None
     
     layout_doc = {
