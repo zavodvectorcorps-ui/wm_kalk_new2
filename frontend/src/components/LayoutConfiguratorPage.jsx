@@ -16,7 +16,6 @@ import {
   ZoomIn, ZoomOut, Grid3X3, Eye, EyeOff, Layers, Settings2,
   FolderOpen, Copy, Move, Loader2, RefreshCw, GripVertical,
   Square, Minus, MousePointer, Pencil, Ruler, Undo2, Type,
-  AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   Magnet, CopyPlus
 } from 'lucide-react';
 
