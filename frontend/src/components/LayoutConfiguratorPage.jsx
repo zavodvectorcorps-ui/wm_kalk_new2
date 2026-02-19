@@ -1054,12 +1054,11 @@ const LayoutConfiguratorPage = () => {
           // Create measurement label that stays on canvas
           const lengthCm = Math.round(lengthPx / pxPerCm);
           
-          // For fabric.js Line, actual positions are calculated differently
-          // x1, y1 are relative to the object's position
-          const startX = obj.left + obj.x1;
-          const startY = obj.top + obj.y1;
-          const endX = obj.left + obj.x2;
-          const endY = obj.top + obj.y2;
+          // With absolute coordinates, x1, y1, x2, y2 ARE the actual positions
+          const startX = obj.x1;
+          const startY = obj.y1;
+          const endX = obj.x2;
+          const endY = obj.y2;
           const midX = (startX + endX) / 2;
           const midY = (startY + endY) / 2;
           
