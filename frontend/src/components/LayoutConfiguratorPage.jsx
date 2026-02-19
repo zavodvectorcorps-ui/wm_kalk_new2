@@ -665,53 +665,53 @@ const LayoutConfiguratorPage = () => {
     if (!fabricRef.current || isUndoing.current) return;
     
     const canvas = fabricRef.current;
-    // Get only user-created objects (exclude grid, labels, dimensions)
+    // Get only user-created objects (exclude grid, labels, dimensions, measurement parts)
     const objects = canvas.getObjects().filter(obj => 
-      !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isOutline
+      !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isOutline && !obj.isMeasurementPart
     );
+    
+    if (objects.length === 0 && canvasHistory.length === 0) return; // Don't save empty state initially
     
     const state = JSON.stringify(objects.map(obj => obj.toObject([
       'elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 'isMeasurement'
     ])));
     
     setCanvasHistory(prev => {
-      // Remove any "future" states if we're not at the end
-      const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push(state);
+      const newHistory = [...prev, state];
       // Limit history size
       if (newHistory.length > MAX_HISTORY) {
         newHistory.shift();
       }
       return newHistory;
     });
-    setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY - 1));
-  }, [historyIndex]);
+    setHistoryIndex(prev => prev + 1);
+  }, [canvasHistory.length]);
   
   // Undo last action
   const handleUndo = useCallback(() => {
-    if (historyIndex <= 0 || !fabricRef.current) {
+    if (canvasHistory.length <= 1 || !fabricRef.current) {
       toast.info('Нечего отменять');
       return;
     }
     
     isUndoing.current = true;
     const canvas = fabricRef.current;
-    const newIndex = historyIndex - 1;
-    const previousState = canvasHistory[newIndex];
     
-    // Remove current user objects
-    canvas.getObjects().forEach(obj => {
-      if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isOutline) {
-        canvas.remove(obj);
-      }
-    });
+    // Get previous state (second to last)
+    const newHistory = canvasHistory.slice(0, -1);
+    const previousState = newHistory[newHistory.length - 1];
+    
+    // Remove current user objects and measurement parts
+    const toRemove = canvas.getObjects().filter(obj => 
+      !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isOutline
+    );
+    toRemove.forEach(obj => canvas.remove(obj));
     
     // Restore previous state
-    if (previousState) {
+    if (previousState && previousState !== '[]') {
       const objects = JSON.parse(previousState);
       fabric.util.enlivenObjects(objects, (enlivenedObjects) => {
         enlivenedObjects.forEach(obj => {
-          // Set interactivity based on current tool
           if (activeToolRef.current === 'select') {
             obj.selectable = true;
             obj.evented = true;
@@ -729,9 +729,10 @@ const LayoutConfiguratorPage = () => {
       isUndoing.current = false;
     }
     
-    setHistoryIndex(newIndex);
+    setCanvasHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
     toast.success('Действие отменено');
-  }, [historyIndex, canvasHistory]);
+  }, [canvasHistory]);
   
   // Save history after object modifications
   useEffect(() => {
