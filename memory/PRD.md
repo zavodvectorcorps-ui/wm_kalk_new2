@@ -5,6 +5,41 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 19, 2025 - Layout Configurator P0 & P1 Features (COMPLETED)
+- **NEW**: Text Tool
+  - Click canvas with Text tool (T key) opens dialog
+  - Enter text, choose font size (8-72), color picker
+  - Text added to canvas as editable Fabric.js object
+- **NEW**: Per-Element Dimension Toggle
+  - "Показать размеры" switch in properties panel for each selected object
+  - Toggle visibility of dimension labels for individual elements
+  - Setting saved with layout
+- **NEW**: Keyboard Shortcuts
+  - `Ctrl+Z` - Undo last action
+  - `Delete`/`Backspace` - Delete selected object
+  - `Escape` - Deselect object, switch to select tool
+  - `V` - Select tool
+  - `R` - Rectangle tool
+  - `L` - Line/Wall tool
+  - `M` - Ruler/Measurement tool
+  - `T` - Text tool
+  - Shortcuts displayed in toolbar hints
+- **NEW**: Catalog Integration
+  - Published layouts now appear in SaunaCalculator's LayoutCatalog
+  - `/api/layout-configurator/published-layouts` endpoint returns layouts for catalog
+  - `useLayoutCatalog.js` fetches from both FAQ and Configurator sources
+  - Export layout image when publishing
+- **REFACTORED**: Component Modularization
+  - Created `/app/frontend/src/components/layout-configurator/` folder
+  - New components: `DrawingToolbar.jsx`, `PropertiesPanel.jsx`, `SettingsPanel.jsx`, `ElementsLibrary.jsx`
+  - Shared constants in `constants.js`
+  - Index file for easy imports
+- **Files Created/Modified**:
+  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - Main component
+  - `/app/frontend/src/components/layout-configurator/*` - Refactored components
+  - `/app/frontend/src/components/sauna/useLayoutCatalog.js` - Catalog integration
+- **Testing**: All 17 API tests pass (100%), all UI features verified
+
 ### Feb 18, 2025 - Layout Configurator UI Improvements & Distance Lines (COMPLETED)
 - **NEW**: Distance indicator lines between objects
   - Red dashed lines with arrows show distances between objects
