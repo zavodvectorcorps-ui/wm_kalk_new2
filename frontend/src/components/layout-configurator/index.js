@@ -3,3 +3,6 @@ export { DrawingToolbar } from './DrawingToolbar';
 export { PropertiesPanel } from './PropertiesPanel';
 export { SettingsPanel } from './SettingsPanel';
 export { ElementsLibrary } from './ElementsLibrary';
+export { useCanvasHistory } from './useCanvasHistory';
+export { useClipboard } from './useClipboard';
+export { useKeyboardShortcuts } from './useKeyboardShortcuts';
