@@ -2546,6 +2546,20 @@ const LayoutConfiguratorPage = () => {
                   Нарисуйте линию для измерения расстояния
                 </div>
               )}
+              
+              {/* Text tool info */}
+              {activeTool === 'text' && (
+                <div className="text-xs text-muted-foreground">
+                  Кликните на холст чтобы добавить текст
+                </div>
+              )}
+              
+              <div className="h-6 w-px bg-border" />
+              
+              {/* Keyboard shortcuts hint */}
+              <div className="text-xs text-muted-foreground hidden md:block">
+                Ctrl+Z: Отмена | Del: Удалить | Esc: Снять выделение
+              </div>
             </div>
           </CardContent>
         </Card>
