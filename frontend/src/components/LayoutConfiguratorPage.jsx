@@ -1676,7 +1676,14 @@ const LayoutConfiguratorPage = () => {
     const canvas = fabricRef.current;
     const obj = canvas.getActiveObject();
     if (obj && !obj.isGridLine && !obj.isBackground) {
+      // If this is a measurement/ruler, also delete associated parts (caps, label)
+      if (obj.isMeasurement || obj.elementType === 'ruler') {
+        const parentId = obj.elementId;
+        const parts = canvas.getObjects().filter(o => o.parentId === parentId);
+        parts.forEach(part => canvas.remove(part));
+      }
       canvas.remove(obj);
+      canvas.discardActiveObject();
       canvas.renderAll();
       setSelectedObject(null);
       toast.success('Элемент удален');
