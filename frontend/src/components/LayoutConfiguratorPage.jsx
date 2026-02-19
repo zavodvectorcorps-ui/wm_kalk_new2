@@ -3100,6 +3100,62 @@ const LayoutConfiguratorPage = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Text Input Dialog */}
+      <Dialog open={textDialogOpen} onOpenChange={setTextDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Добавить текст</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Текст</Label>
+              <Input
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Введите текст..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && textInput.trim()) {
+                    addTextToCanvas();
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <Label>Размер шрифта</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Slider
+                  value={[textFontSize]}
+                  min={8}
+                  max={72}
+                  step={1}
+                  onValueChange={([val]) => setTextFontSize(val)}
+                  className="flex-1"
+                />
+                <span className="text-sm w-8">{textFontSize}</span>
+              </div>
+            </div>
+            <div>
+              <Label>Цвет</Label>
+              <input
+                type="color"
+                value={drawingColor}
+                onChange={(e) => setDrawingColor(e.target.value)}
+                className="w-full h-8 rounded cursor-pointer border mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTextDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={addTextToCanvas} disabled={!textInput.trim()}>
+              Добавить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Save Drawn Outline Dialog */}
       <Dialog open={showSaveOutlineDialog} onOpenChange={setShowSaveOutlineDialog}>
         <DialogContent className="max-w-lg">
