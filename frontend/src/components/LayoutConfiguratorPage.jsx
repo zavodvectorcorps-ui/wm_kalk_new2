@@ -216,6 +216,9 @@ const LayoutConfiguratorPage = () => {
       // Draw initial grid
       drawGrid();
       
+      // Save initial empty state to history
+      setTimeout(() => saveToHistory(), 100);
+      
       return () => {
         canvas.dispose();
         fabricRef.current = null;
