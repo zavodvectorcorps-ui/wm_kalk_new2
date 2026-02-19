@@ -932,25 +932,26 @@ const LayoutConfiguratorPage = () => {
     const obj = drawingObjectRef.current;
     const currentTool = activeToolRef.current;
     const pxPerCm = pixelsPerCmRef.current;
-    // Minimum size is 5cm (not dependent on grid size)
-    const minSizePx = 5 * pxPerCm;
+    // Minimum size is 5cm for shapes, 2cm for ruler
+    const minSizePx = currentTool === 'ruler' ? 2 * pxPerCm : 5 * pxPerCm;
     
     if (obj) {
-      // Check if shape is too small (less than 5cm)
+      // Check if shape is too small
       let isTooSmall = false;
+      let lengthPx = 0;
       
       if (currentTool === 'rectangle') {
         isTooSmall = (obj.width || 0) < minSizePx || (obj.height || 0) < minSizePx;
-      } else if (currentTool === 'wall') {
+      } else if (currentTool === 'wall' || currentTool === 'ruler') {
         const dx = (obj.x2 || 0) - (obj.x1 || 0);
         const dy = (obj.y2 || 0) - (obj.y1 || 0);
-        const length = Math.sqrt(dx * dx + dy * dy);
-        isTooSmall = length < minSizePx;
+        lengthPx = Math.sqrt(dx * dx + dy * dy);
+        isTooSmall = lengthPx < minSizePx;
       }
       
       if (isTooSmall) {
         canvas.remove(obj);
-        toast.info('Слишком маленький объект (минимум 5 см)');
+        toast.info('Слишком маленький объект');
       } else {
         // The new object should remain non-selectable because drawing tool is still active
         // It will become selectable when user switches to select tool
@@ -966,9 +967,73 @@ const LayoutConfiguratorPage = () => {
         } else if (currentTool === 'wall') {
           const dx = (obj.x2 || 0) - (obj.x1 || 0);
           const dy = (obj.y2 || 0) - (obj.y1 || 0);
-          const lengthPx = Math.sqrt(dx * dx + dy * dy);
-          const lengthCm = (lengthPx / pxPerCm).toFixed(0);
+          const lengthPxCalc = Math.sqrt(dx * dx + dy * dy);
+          const lengthCm = (lengthPxCalc / pxPerCm).toFixed(0);
           toast.success(`Стена: ${lengthCm} см`);
+        } else if (currentTool === 'ruler') {
+          // Create measurement label that stays on canvas
+          const lengthCm = Math.round(lengthPx / pxPerCm);
+          const midX = obj.left + (obj.x1 + obj.x2) / 2;
+          const midY = obj.top + (obj.y1 + obj.y2) / 2;
+          
+          // Add arrows at the ends
+          const dx = obj.x2 - obj.x1;
+          const dy = obj.y2 - obj.y1;
+          const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+          
+          // Start arrow
+          const arrow1 = new fabric.Triangle({
+            left: obj.left + obj.x1,
+            top: obj.top + obj.y1,
+            width: 8,
+            height: 10,
+            fill: '#dc2626',
+            angle: angle - 90,
+            originX: 'center',
+            originY: 'center',
+            selectable: false,
+            evented: false,
+            isMeasurementPart: true,
+            parentId: obj.elementId,
+          });
+          canvas.add(arrow1);
+          
+          // End arrow
+          const arrow2 = new fabric.Triangle({
+            left: obj.left + obj.x2,
+            top: obj.top + obj.y2,
+            width: 8,
+            height: 10,
+            fill: '#dc2626',
+            angle: angle + 90,
+            originX: 'center',
+            originY: 'center',
+            selectable: false,
+            evented: false,
+            isMeasurementPart: true,
+            parentId: obj.elementId,
+          });
+          canvas.add(arrow2);
+          
+          // Label with white background
+          const label = new fabric.Text(`${lengthCm} см`, {
+            left: midX,
+            top: midY - 12,
+            fontSize: 12,
+            fill: '#dc2626',
+            fontWeight: 'bold',
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            padding: 3,
+            originX: 'center',
+            originY: 'bottom',
+            selectable: false,
+            evented: false,
+            isMeasurementPart: true,
+            parentId: obj.elementId,
+          });
+          canvas.add(label);
+          
+          toast.success(`Измерение: ${lengthCm} см`);
         }
       }
     }
