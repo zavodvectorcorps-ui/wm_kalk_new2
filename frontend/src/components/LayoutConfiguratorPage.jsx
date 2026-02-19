@@ -446,7 +446,6 @@ const LayoutConfiguratorPage = () => {
       let scale;
       if (outline.outerLength && outline.outerWidth) {
         // Use real dimensions to calculate scale
-        // Canvas represents ~900cm x 600cm at default pixelsPerCm
         const targetWidthPx = outline.outerLength * pixelsPerCm;
         const targetHeightPx = outline.outerWidth * pixelsPerCm;
         
@@ -467,14 +466,20 @@ const LayoutConfiguratorPage = () => {
         scale = Math.min(scaleX, scaleY) * 0.85;
       }
       
-      // Center the outline on canvas
+      // Apply scale first
+      img.scale(scale);
+      
+      // Calculate centered position (using scaled dimensions)
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const centerX = (currentCanvasWidth - scaledWidth) / 2;
+      const centerY = (currentCanvasHeight - scaledHeight) / 2;
+      
       img.set({
-        left: currentCanvasWidth / 2,
-        top: currentCanvasHeight / 2,
-        originX: 'center',
-        originY: 'center',
-        scaleX: scale,
-        scaleY: scale,
+        left: centerX,
+        top: centerY,
+        originX: 'left',
+        originY: 'top',
         selectable: false,
         evented: false,
         isOutline: true,
@@ -487,9 +492,63 @@ const LayoutConfiguratorPage = () => {
       fabricRef.current.moveTo(img, gridLines.length);
       fabricRef.current.renderAll();
       
-      console.log('Outline loaded and centered:', outline.modelId, 'scale:', scale);
+      console.log('Outline centered at:', centerX, centerY, 'scale:', scale);
     }, { crossOrigin: 'anonymous' });
   }, [pixelsPerCm]);
+
+  // Load a template layout (saved layout as starting point)
+  const loadTemplateLayout = useCallback(async (layout) => {
+    if (!fabricRef.current || !layout) return;
+    
+    const canvas = fabricRef.current;
+    
+    // Clear existing user objects (keep grid)
+    const objectsToRemove = canvas.getObjects().filter(obj => 
+      !obj.isGridLine && !obj.isGridLabel
+    );
+    objectsToRemove.forEach(obj => canvas.remove(obj));
+    
+    // Load canvas state from the layout
+    if (layout.canvasState) {
+      try {
+        const state = typeof layout.canvasState === 'string' 
+          ? JSON.parse(layout.canvasState) 
+          : layout.canvasState;
+        
+        canvas.loadFromJSON(state, () => {
+          // Re-apply interactivity settings
+          canvas.getObjects().forEach(obj => {
+            if (obj.isGridLine || obj.isGridLabel || obj.isDimensionLabel) {
+              obj.selectable = false;
+              obj.evented = false;
+            } else if (obj.isOutline) {
+              obj.selectable = false;
+              obj.evented = false;
+            } else {
+              obj.selectable = true;
+              obj.evented = true;
+              obj.hoverCursor = 'move';
+            }
+          });
+          
+          // Redraw grid
+          drawGrid();
+          canvas.requestRenderAll();
+          
+          // Don't set currentLayout - this is a template, not editing existing
+          setCurrentLayout(null);
+          
+          saveToHistory();
+          toast.success(`Шаблон "${layout.name}" загружен. Измените и сохраните как новую планировку.`);
+        });
+      } catch (error) {
+        console.error('Error loading template:', error);
+        toast.error('Ошибка загрузки шаблона');
+      }
+    } else {
+      toast.error('Шаблон не содержит данных планировки');
+    }
+  }, [drawGrid, saveToHistory]);
 
   // Remove outline from canvas
   const removeOutlineFromCanvas = () => {
