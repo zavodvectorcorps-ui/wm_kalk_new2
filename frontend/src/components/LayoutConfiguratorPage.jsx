@@ -856,6 +856,17 @@ const LayoutConfiguratorPage = () => {
         elementType: 'wall',
         isDrawnShape: true,
       });
+    } else if (currentTool === 'ruler') {
+      // Create measurement line with arrows and label
+      obj = new fabric.Line([x, y, x + 1, y], {
+        stroke: '#dc2626', // Red color for measurements
+        strokeWidth: 2,
+        strokeDashArray: [5, 3],
+        elementId: `ruler-${Date.now()}`,
+        elementType: 'ruler',
+        isMeasurement: true,
+        isDrawnShape: true,
+      });
     }
     
     if (obj) {
