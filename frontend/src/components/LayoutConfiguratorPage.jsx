@@ -723,12 +723,16 @@ const LayoutConfiguratorPage = () => {
     if (previousStateStr) {
       const previousState = JSON.parse(previousStateStr);
       
-      // Clear canvas and reload from state
+      // Remove all objects except grid
+      const objectsToRemove = canvas.getObjects().filter(obj => !obj.isGridLine && !obj.isGridLabel);
+      objectsToRemove.forEach(obj => canvas.remove(obj));
+      
+      // Load objects from previous state
       canvas.loadFromJSON(previousState, () => {
-        // After loading, redraw grid
+        // Redraw grid (it gets cleared by loadFromJSON)
         drawGrid();
         
-        // Re-apply interactivity settings
+        // Re-apply interactivity settings to all objects
         canvas.getObjects().forEach(obj => {
           if (obj.isGridLine || obj.isGridLabel || obj.isDimensionLabel) {
             obj.selectable = false;
@@ -736,20 +740,30 @@ const LayoutConfiguratorPage = () => {
           } else if (activeToolRef.current === 'select') {
             obj.selectable = true;
             obj.evented = true;
+            obj.hoverCursor = 'move';
           } else {
             obj.selectable = false;
             obj.evented = false;
+            obj.hoverCursor = 'default';
           }
         });
         
+        canvas.discardActiveObject();
         canvas.renderAll();
+        
+        // Update dimension labels
+        updateDimensionLabels();
+        
+        setSelectedObject(null);
         isUndoing.current = false;
         toast.success('Действие отменено');
       });
+    } else {
+      isUndoing.current = false;
     }
     
     setCanvasHistory(newHistory);
-  }, [canvasHistory, drawGrid]);
+  }, [canvasHistory, drawGrid, updateDimensionLabels]);
   
   // Save history after object modifications
   useEffect(() => {
