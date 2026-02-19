@@ -824,6 +824,14 @@ const LayoutConfiguratorPage = () => {
     const x = snap(pointer.x);
     const y = snap(pointer.y);
     
+    // Handle text tool differently - show dialog instead of drawing
+    if (currentTool === 'text') {
+      setTextClickPosition({ x, y });
+      setTextInput('');
+      setTextDialogOpen(true);
+      return;
+    }
+    
     isDrawingRef.current = true;
     drawStartPointRef.current = { x, y };
     setIsDrawing(true);
@@ -848,6 +856,7 @@ const LayoutConfiguratorPage = () => {
         elementId: `rect-${Date.now()}`,
         elementType: 'rect',
         isDrawnShape: true,
+        showDimensions: true, // Default: show dimensions
       });
     } else if (currentTool === 'wall') {
       // For Line: use absolute coordinates, fabric.js will calculate left/top
@@ -859,6 +868,7 @@ const LayoutConfiguratorPage = () => {
         elementId: `wall-${Date.now()}`,
         elementType: 'wall',
         isDrawnShape: true,
+        showDimensions: true, // Default: show dimensions
       });
     } else if (currentTool === 'ruler') {
       // Create measurement line - use absolute coordinates
@@ -870,6 +880,7 @@ const LayoutConfiguratorPage = () => {
         elementType: 'ruler',
         isMeasurement: true,
         isDrawnShape: true,
+        showDimensions: true,
       });
     }
     
