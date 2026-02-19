@@ -775,31 +775,6 @@ const LayoutConfiguratorPage = () => {
     
     setCanvasHistory(newHistory);
   }, [canvasHistory, drawGrid]);
-  
-  // State to trigger history subscription after canvas is ready
-  const [canvasReady, setCanvasReady] = useState(false);
-  
-  // Save history after object modifications
-  useEffect(() => {
-    const canvas = fabricRef.current;
-    if (!canvas || !canvasReady) return;
-    
-    const saveState = () => {
-      if (!isUndoing.current) {
-        saveToHistory();
-      }
-    };
-    
-    canvas.on('object:added', saveState);
-    canvas.on('object:removed', saveState);
-    canvas.on('object:modified', saveState);
-    
-    return () => {
-      canvas.off('object:added', saveState);
-      canvas.off('object:removed', saveState);
-      canvas.off('object:modified', saveState);
-    };
-  }, [saveToHistory, canvasReady]);
 
   // ============ DRAWING TOOLS ============
   
