@@ -2996,21 +2996,21 @@ const LayoutConfiguratorPage = () => {
       
       {/* Center - Canvas */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Drawing Toolbar - compact */}
+        {/* Drawing Toolbar - Two rows */}
         <Card className="mb-2">
-          <CardContent className="p-2">
-            <div className="flex items-center justify-center gap-4">
+          <CardContent className="p-2 space-y-2">
+            {/* Row 1: Drawing tools and options */}
+            <div className="flex items-center justify-center gap-2 flex-wrap">
               {/* Undo button */}
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 px-3"
+                className="h-8 px-2"
                 onClick={handleUndo}
                 disabled={canvasHistory.length <= 1}
                 title="Отменить (Ctrl+Z)"
               >
-                <Undo2 className="h-4 w-4 mr-1" />
-                Отмена
+                <Undo2 className="h-4 w-4" />
               </Button>
               
               <div className="h-6 w-px bg-border" />
@@ -3024,44 +3024,41 @@ const LayoutConfiguratorPage = () => {
                       key={toolId}
                       size="sm"
                       variant={activeTool === toolId ? 'default' : 'ghost'}
-                      className="h-8 w-8 p-0"
+                      className="h-7 w-7 p-0"
                       onClick={() => setActiveTool(toolId)}
                       title={`${tool.name} (${tool.shortcut})`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-3.5 w-3.5" />
                     </Button>
                   );
                 })}
               </div>
               
               {/* Drawing options (when drawing tool is active and not ruler) */}
-              {activeTool !== 'select' && activeTool !== 'ruler' && (
-                <div className="flex items-center gap-3">
+              {activeTool !== 'select' && activeTool !== 'ruler' && activeTool !== 'text' && (
+                <div className="flex items-center gap-2">
                   <input
                     type="color"
                     value={drawingColor}
                     onChange={(e) => setDrawingColor(e.target.value)}
-                    className="w-8 h-8 rounded cursor-pointer border"
+                    className="w-7 h-7 rounded cursor-pointer border"
                     title="Цвет"
                   />
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-muted-foreground">Толщина:</span>
-                    <Input
-                      type="number"
-                      step="0.5"
-                      min="0.5"
-                      max="20"
-                      value={drawingStrokeWidthCm}
-                      onChange={(e) => setDrawingStrokeWidthCm(parseFloat(e.target.value) || 1)}
-                      className="w-16 h-8 text-xs"
-                    />
-                    <span className="text-xs text-muted-foreground">см</span>
-                  </div>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max="20"
+                    value={drawingStrokeWidthCm}
+                    onChange={(e) => setDrawingStrokeWidthCm(parseFloat(e.target.value) || 1)}
+                    className="w-14 h-7 text-xs"
+                    title="Толщина (см)"
+                  />
                   {activeTool === 'rectangle' && (
                     <Button
                       size="sm"
                       variant={drawingFill !== 'transparent' ? 'default' : 'outline'}
-                      className="h-8 text-xs"
+                      className="h-7 text-xs px-2"
                       onClick={() => setDrawingFill(drawingFill === 'transparent' ? drawingColor + '20' : 'transparent')}
                     >
                       Заливка
@@ -3070,27 +3067,22 @@ const LayoutConfiguratorPage = () => {
                 </div>
               )}
               
-              {/* Ruler info */}
+              {/* Tool hints */}
               {activeTool === 'ruler' && (
-                <div className="text-xs text-muted-foreground">
-                  Нарисуйте линию для измерения расстояния
-                </div>
+                <span className="text-xs text-muted-foreground">Линейка</span>
               )}
-              
-              {/* Text tool info */}
               {activeTool === 'text' && (
-                <div className="text-xs text-muted-foreground">
-                  Кликните на холст чтобы добавить текст
-                </div>
+                <span className="text-xs text-muted-foreground">Кликните для текста</span>
               )}
-              
-              <div className="h-6 w-px bg-border" />
-              
-              {/* Duplicate button */}
+            </div>
+            
+            {/* Row 2: Actions, alignment, snap */}
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              {/* Duplicate */}
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 px-2 text-xs"
+                className="h-7 px-2 text-xs"
                 onClick={duplicateSelected}
                 title="Дублировать (Ctrl+D)"
                 data-testid="duplicate-button"
@@ -3099,12 +3091,12 @@ const LayoutConfiguratorPage = () => {
                 Дубль
               </Button>
               
-              {/* Group/Ungroup buttons */}
+              {/* Group/Ungroup */}
               <div className="flex items-center gap-1">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2 text-xs"
+                  className="h-7 px-2 text-xs"
                   onClick={groupSelected}
                   title="Сгруппировать (Ctrl+G)"
                   data-testid="group-button"
@@ -3115,63 +3107,65 @@ const LayoutConfiguratorPage = () => {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2 text-xs"
+                  className="h-7 px-2 text-xs"
                   onClick={ungroupSelected}
                   title="Разгруппировать (Ctrl+Shift+G)"
                   data-testid="ungroup-button"
                 >
-                  <GripVertical className="h-3 w-3 mr-1" />
-                  Разбить
+                  <GripVertical className="h-3 w-3" />
                 </Button>
               </div>
               
+              <div className="h-5 w-px bg-border" />
+              
               {/* Alignment dropdown */}
-              <div className="flex items-center gap-1">
-                <Select onValueChange={(val) => alignObjects(val)}>
-                  <SelectTrigger className="h-8 w-28 text-xs" data-testid="align-select">
-                    <AlignLeft className="h-3 w-3 mr-1" />
-                    <SelectValue placeholder="Выровнять" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="left">← По левому краю</SelectItem>
-                    <SelectItem value="center-h">↔ По центру (гор.)</SelectItem>
-                    <SelectItem value="right">→ По правому краю</SelectItem>
-                    <SelectItem value="top">↑ По верхнему краю</SelectItem>
-                    <SelectItem value="center-v">↕ По центру (верт.)</SelectItem>
-                    <SelectItem value="bottom">↓ По нижнему краю</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select onValueChange={(val) => distributeObjects(val)}>
-                  <SelectTrigger className="h-8 w-24 text-xs" data-testid="distribute-select">
-                    <SelectValue placeholder="Распред." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="horizontal">↔ По горизонтали</SelectItem>
-                    <SelectItem value="vertical">↕ По вертикали</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select onValueChange={(val) => alignObjects(val)}>
+                <SelectTrigger className="h-7 w-24 text-xs" data-testid="align-select">
+                  <AlignLeft className="h-3 w-3 mr-1" />
+                  <span className="hidden sm:inline">Выровн.</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">← Лево</SelectItem>
+                  <SelectItem value="center-h">↔ Центр</SelectItem>
+                  <SelectItem value="right">→ Право</SelectItem>
+                  <SelectItem value="top">↑ Верх</SelectItem>
+                  <SelectItem value="center-v">↕ Середина</SelectItem>
+                  <SelectItem value="bottom">↓ Низ</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Distribute dropdown */}
+              <Select onValueChange={(val) => distributeObjects(val)}>
+                <SelectTrigger className="h-7 w-20 text-xs" data-testid="distribute-select">
+                  <span>Распр.</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="horizontal">↔ Гориз.</SelectItem>
+                  <SelectItem value="vertical">↕ Верт.</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="h-5 w-px bg-border" />
               
               {/* Snap toggle */}
               <Button
                 size="sm"
                 variant={snapToObjects ? 'default' : 'outline'}
-                className="h-8 px-2 text-xs"
+                className="h-7 px-2 text-xs"
                 onClick={() => setSnapToObjects(!snapToObjects)}
                 title={snapToObjects ? 'Привязка включена' : 'Привязка выключена'}
                 data-testid="snap-toggle"
               >
                 <Magnet className="h-3 w-3 mr-1" />
-                Привязка
+                Snap
               </Button>
               
-              {/* Copy/Paste buttons */}
+              {/* Copy/Paste */}
               <div className="flex items-center gap-1">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 w-8 p-0"
+                  className="h-7 w-7 p-0"
                   onClick={copySelected}
                   title="Копировать (Ctrl+C)"
                   data-testid="copy-button"
@@ -3181,21 +3175,19 @@ const LayoutConfiguratorPage = () => {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2 text-xs"
+                  className="h-7 w-7 p-0"
                   onClick={pasteFromClipboard}
                   title="Вставить (Ctrl+V)"
                   data-testid="paste-button"
                 >
-                  Вставить
+                  <Download className="h-3 w-3" />
                 </Button>
               </div>
               
-              <div className="h-6 w-px bg-border hidden xl:block" />
-              
-              {/* Keyboard shortcuts hint */}
-              <div className="text-xs text-muted-foreground hidden xl:block">
-                Ctrl+A: Выбр. всё | Ctrl+D: Дубль | Del: Удалить
-              </div>
+              {/* Keyboard hints */}
+              <span className="text-xs text-muted-foreground hidden lg:inline">
+                Ctrl+A/D/G | Del
+              </span>
             </div>
           </CardContent>
         </Card>
