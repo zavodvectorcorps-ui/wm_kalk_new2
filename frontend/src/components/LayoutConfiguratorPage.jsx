@@ -847,7 +847,11 @@ const LayoutConfiguratorPage = () => {
         isDrawnShape: true,
       });
     } else if (currentTool === 'wall') {
-      obj = new fabric.Line([x, y, x + 1, y], {
+      // For Line: use relative coordinates [0, 0, width, height]
+      // left, top will be the starting point
+      obj = new fabric.Line([0, 0, 1, 0], {
+        left: x,
+        top: y,
         stroke: drawingColorRef.current,
         strokeWidth: strokeWidthPx,
         strokeLineCap: 'round',
@@ -857,9 +861,11 @@ const LayoutConfiguratorPage = () => {
         isDrawnShape: true,
       });
     } else if (currentTool === 'ruler') {
-      // Create measurement line with arrows and label
-      obj = new fabric.Line([x, y, x + 1, y], {
-        stroke: '#dc2626', // Red color for measurements
+      // Create measurement line - use relative coordinates
+      obj = new fabric.Line([0, 0, 1, 0], {
+        left: x,
+        top: y,
+        stroke: '#dc2626',
         strokeWidth: 2,
         strokeDashArray: [5, 3],
         elementId: `ruler-${Date.now()}`,
