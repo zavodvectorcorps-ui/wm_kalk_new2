@@ -877,6 +877,56 @@ const LayoutConfiguratorPage = () => {
     }
   }, [gridSizeCm]);
   
+  // Find nearest snap point on existing objects
+  const findNearestSnapPoint = useCallback((x, y, threshold = 20) => {
+    if (!fabricRef.current) return null;
+    
+    const canvas = fabricRef.current;
+    const objects = canvas.getObjects().filter(obj => 
+      obj.isDrawnShape && !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel
+    );
+    
+    let nearestPoint = null;
+    let minDist = threshold;
+    
+    objects.forEach(obj => {
+      if (obj.type === 'rect') {
+        const corners = [
+          { x: obj.left, y: obj.top }, // top-left
+          { x: obj.left + obj.width * (obj.scaleX || 1), y: obj.top }, // top-right
+          { x: obj.left, y: obj.top + obj.height * (obj.scaleY || 1) }, // bottom-left
+          { x: obj.left + obj.width * (obj.scaleX || 1), y: obj.top + obj.height * (obj.scaleY || 1) }, // bottom-right
+        ];
+        
+        corners.forEach(corner => {
+          const dist = Math.sqrt(Math.pow(x - corner.x, 2) + Math.pow(y - corner.y, 2));
+          if (dist < minDist) {
+            minDist = dist;
+            nearestPoint = corner;
+          }
+        });
+        
+        // Also check edge midpoints
+        const midpoints = [
+          { x: obj.left + obj.width * (obj.scaleX || 1) / 2, y: obj.top }, // top center
+          { x: obj.left + obj.width * (obj.scaleX || 1) / 2, y: obj.top + obj.height * (obj.scaleY || 1) }, // bottom center
+          { x: obj.left, y: obj.top + obj.height * (obj.scaleY || 1) / 2 }, // left center
+          { x: obj.left + obj.width * (obj.scaleX || 1), y: obj.top + obj.height * (obj.scaleY || 1) / 2 }, // right center
+        ];
+        
+        midpoints.forEach(mp => {
+          const dist = Math.sqrt(Math.pow(x - mp.x, 2) + Math.pow(y - mp.y, 2));
+          if (dist < minDist) {
+            minDist = dist;
+            nearestPoint = mp;
+          }
+        });
+      }
+    });
+    
+    return nearestPoint;
+  }, []);
+  
   // Mouse move - update drawing
   const handleCanvasMouseMove = useCallback((opt) => {
     if (!isDrawingRef.current || !drawingObjectRef.current || !drawStartPointRef.current) return;
@@ -886,10 +936,10 @@ const LayoutConfiguratorPage = () => {
     
     const pointer = canvas.getPointer(opt.e);
     const pxPerCm = pixelsPerCmRef.current;
-    // Snap to 1cm for precise positioning (not grid size)
+    // Snap to 1cm for precise positioning
     const snap = (v) => Math.round(v / pxPerCm) * pxPerCm;
-    const x = snap(pointer.x);
-    const y = snap(pointer.y);
+    let x = snap(pointer.x);
+    let y = snap(pointer.y);
     const startPoint = drawStartPointRef.current;
     const obj = drawingObjectRef.current;
     const currentTool = activeToolRef.current;
@@ -907,15 +957,38 @@ const LayoutConfiguratorPage = () => {
         height,
       });
     } else if (currentTool === 'wall' || currentTool === 'ruler') {
+      // Force horizontal or vertical line
+      const dx = Math.abs(x - startPoint.x);
+      const dy = Math.abs(y - startPoint.y);
+      
+      if (dx > dy) {
+        // Horizontal line
+        y = startPoint.y;
+      } else {
+        // Vertical line
+        x = startPoint.x;
+      }
+      
+      // Try to snap to nearest object
+      const snapPoint = findNearestSnapPoint(x, y, 15 * pxPerCm); // 15cm threshold
+      if (snapPoint) {
+        // Only snap if it maintains horizontal/vertical
+        if (dx > dy && Math.abs(snapPoint.y - startPoint.y) < 5 * pxPerCm) {
+          x = snapPoint.x;
+        } else if (dy >= dx && Math.abs(snapPoint.x - startPoint.x) < 5 * pxPerCm) {
+          y = snapPoint.y;
+        }
+      }
+      
       obj.set({
-        x2: x,
-        y2: y,
+        x2: x - obj.left,
+        y2: y - obj.top,
       });
     }
     
     obj.setCoords();
     canvas.renderAll();
-  }, []);
+  }, [findNearestSnapPoint]);
   
   // Mouse up - finish drawing
   const handleCanvasMouseUp = useCallback((opt) => {
