@@ -14,7 +14,7 @@ import {
   Plus, Trash2, Save, Download, Upload, RotateCw, RotateCcw,
   ZoomIn, ZoomOut, Grid3X3, Eye, EyeOff, Layers, Settings2,
   FolderOpen, Copy, Move, Loader2, RefreshCw, GripVertical,
-  Square, Minus, MousePointer, Pencil, Ruler, Undo2
+  Square, Minus, MousePointer, Pencil, Ruler, Undo2, Type
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
