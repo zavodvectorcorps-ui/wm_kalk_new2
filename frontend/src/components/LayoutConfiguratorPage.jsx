@@ -1614,10 +1614,19 @@ const LayoutConfiguratorPage = () => {
 
   const handleObjectMoving = (e) => {
     const obj = e.target;
+    
+    // First apply grid snap
     obj.set({
       left: snapToGrid(obj.left),
       top: snapToGrid(obj.top),
     });
+    
+    // Then apply object/wall snap if enabled
+    if (snapToObjects) {
+      const snapPoints = getSnapPoints(obj);
+      applySnap(obj, snapPoints);
+    }
+    
     // Update dimension labels during movement for real-time feedback
     updateDimensionLabels();
   };
