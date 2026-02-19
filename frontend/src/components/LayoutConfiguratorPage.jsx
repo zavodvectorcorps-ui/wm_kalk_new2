@@ -1611,6 +1611,9 @@ const LayoutConfiguratorPage = () => {
       
       handleObjectSelected({ selected: [obj] });
       updateDimensionLabels();
+      
+      // Save to history after any modification (move, resize, rotate)
+      saveToHistory();
     }
   };
 
