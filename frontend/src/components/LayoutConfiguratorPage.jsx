@@ -2496,7 +2496,7 @@ const LayoutConfiguratorPage = () => {
                       variant={activeTool === toolId ? 'default' : 'ghost'}
                       className="h-8 w-8 p-0"
                       onClick={() => setActiveTool(toolId)}
-                      title={tool.name}
+                      title={`${tool.name} (${tool.shortcut})`}
                     >
                       <Icon className="h-4 w-4" />
                     </Button>
