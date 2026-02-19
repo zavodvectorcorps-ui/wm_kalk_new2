@@ -2759,9 +2759,61 @@ const LayoutConfiguratorPage = () => {
               
               <div className="h-6 w-px bg-border" />
               
+              {/* Group/Ungroup buttons */}
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs"
+                  onClick={groupSelected}
+                  title="Сгруппировать (Ctrl+G)"
+                  data-testid="group-button"
+                >
+                  <Layers className="h-3 w-3 mr-1" />
+                  Группа
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs"
+                  onClick={ungroupSelected}
+                  title="Разгруппировать (Ctrl+Shift+G)"
+                  data-testid="ungroup-button"
+                >
+                  <GripVertical className="h-3 w-3 mr-1" />
+                  Разбить
+                </Button>
+              </div>
+              
+              {/* Copy/Paste buttons */}
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={copySelected}
+                  title="Копировать (Ctrl+C)"
+                  data-testid="copy-button"
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-xs"
+                  onClick={pasteFromClipboard}
+                  title="Вставить (Ctrl+V)"
+                  data-testid="paste-button"
+                >
+                  Вставить
+                </Button>
+              </div>
+              
+              <div className="h-6 w-px bg-border hidden lg:block" />
+              
               {/* Keyboard shortcuts hint */}
-              <div className="text-xs text-muted-foreground hidden md:block">
-                Ctrl+Z: Отмена | Del: Удалить | Esc: Снять выделение
+              <div className="text-xs text-muted-foreground hidden lg:block">
+                Ctrl+C/V: Копировать | Ctrl+G: Группа | Del: Удалить
               </div>
             </div>
           </CardContent>
