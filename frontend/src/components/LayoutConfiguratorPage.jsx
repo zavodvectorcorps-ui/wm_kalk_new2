@@ -762,10 +762,13 @@ const LayoutConfiguratorPage = () => {
     setCanvasHistory(newHistory);
   }, [canvasHistory, drawGrid]);
   
+  // State to trigger history subscription after canvas is ready
+  const [canvasReady, setCanvasReady] = useState(false);
+  
   // Save history after object modifications
   useEffect(() => {
     const canvas = fabricRef.current;
-    if (!canvas) return;
+    if (!canvas || !canvasReady) return;
     
     const saveState = () => {
       if (!isUndoing.current) {
@@ -782,7 +785,7 @@ const LayoutConfiguratorPage = () => {
       canvas.off('object:removed', saveState);
       canvas.off('object:modified', saveState);
     };
-  }, [saveToHistory]);
+  }, [saveToHistory, canvasReady]);
 
   // ============ DRAWING TOOLS ============
   
