@@ -39,11 +39,11 @@ const DEFAULT_CANVAS_REAL_SIZE = {
 
 // Drawing tools
 const DRAWING_TOOLS = {
-  select: { icon: MousePointer, name: 'Выбор', cursor: 'default' },
-  rectangle: { icon: Square, name: 'Прямоугольник', cursor: 'crosshair' },
-  wall: { icon: Minus, name: 'Стена/Линия', cursor: 'crosshair' },
-  ruler: { icon: Ruler, name: 'Линейка', cursor: 'crosshair' },
-  text: { icon: Type, name: 'Текст', cursor: 'text' },
+  select: { icon: MousePointer, name: 'Выбор', cursor: 'default', shortcut: 'V' },
+  rectangle: { icon: Square, name: 'Прямоугольник', cursor: 'crosshair', shortcut: 'R' },
+  wall: { icon: Minus, name: 'Стена/Линия', cursor: 'crosshair', shortcut: 'L' },
+  ruler: { icon: Ruler, name: 'Линейка', cursor: 'crosshair', shortcut: 'M' },
+  text: { icon: Type, name: 'Текст', cursor: 'text', shortcut: 'T' },
 };
 
 // Element type icons and colors
