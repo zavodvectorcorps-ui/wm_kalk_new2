@@ -22,8 +22,36 @@ export const useLayoutCatalog = (selectedModelVariantId = null) => {
     const fetchLayoutVariants = async () => {
       setLayoutLoading(true);
       try {
-        const response = await axios.get(`${API_URL}/api/faq/layout-variants`);
-        setAllLayoutVariants(response.data || []);
+        // Fetch from both sources: FAQ variants and Configurator layouts
+        const [faqResponse, configuratorResponse] = await Promise.allSettled([
+          axios.get(`${API_URL}/api/faq/layout-variants`),
+          axios.get(`${API_URL}/api/layout-configurator/published-layouts`)
+        ]);
+        
+        // Combine results
+        const faqVariants = faqResponse.status === 'fulfilled' 
+          ? (faqResponse.value.data || []).map(v => ({ ...v, source: 'faq' }))
+          : [];
+        
+        const configuratorLayouts = configuratorResponse.status === 'fulfilled'
+          ? (configuratorResponse.value.data || []).map(layout => ({
+              _id: layout.id,
+              id: layout.id,
+              variantName: layout.name,
+              nameRu: layout.nameRu,
+              modelSize: layout.modelSize,
+              capacity: layout.capacity,
+              description: layout.description,
+              descriptionRu: layout.descriptionRu,
+              imageUrl: layout.imageUrl,
+              source: 'configurator',
+              modelVariantIds: [], // Available for all variants
+            }))
+          : [];
+        
+        // Combine and sort: configurator layouts first, then FAQ
+        const combined = [...configuratorLayouts, ...faqVariants];
+        setAllLayoutVariants(combined);
       } catch (error) {
         console.error('Failed to load layout variants:', error);
       } finally {
