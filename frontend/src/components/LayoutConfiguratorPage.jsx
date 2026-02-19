@@ -2489,6 +2489,10 @@ const LayoutConfiguratorPage = () => {
       formData.append('name', layoutName);
       formData.append('modelId', selectedModel.id);
       formData.append('modelName', selectedModel.name);
+      if (selectedVariant) {
+        formData.append('variantId', selectedVariant.id);
+        formData.append('variantName', selectedVariant.nameRu || selectedVariant.name);
+      }
       formData.append('canvasWidth', canvasWidth.toString());
       formData.append('canvasHeight', canvasHeight.toString());
       formData.append('elements', JSON.stringify(elements));
