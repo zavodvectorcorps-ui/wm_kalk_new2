@@ -2353,7 +2353,7 @@ const LayoutConfiguratorPage = () => {
                 variant="outline"
                 className="h-8 px-3"
                 onClick={handleUndo}
-                disabled={historyIndex <= 0}
+                disabled={canvasHistory.length <= 1}
                 title="Отменить (Ctrl+Z)"
               >
                 <Undo2 className="h-4 w-4 mr-1" />
