@@ -167,6 +167,9 @@ const LayoutConfiguratorPage = () => {
   const [textFontSize, setTextFontSize] = useState(14);
   const [textClickPosition, setTextClickPosition] = useState({ x: 0, y: 0 });
   
+  // Clipboard for copy/paste
+  const clipboardRef = useRef(null);
+  
   // Outline upload form
   const [outlineForm, setOutlineForm] = useState({
     file: null,
