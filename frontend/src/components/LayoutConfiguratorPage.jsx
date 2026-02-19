@@ -1588,7 +1588,7 @@ const LayoutConfiguratorPage = () => {
 
   const handleObjectModified = (e) => {
     const obj = e.target;
-    if (obj && !obj.isGridLine) {
+    if (obj && !obj.isGridLine && !obj.isDimensionLabel) {
       // Snap to grid after modification
       obj.set({
         left: snapToGrid(obj.left),
@@ -1612,9 +1612,7 @@ const LayoutConfiguratorPage = () => {
       
       handleObjectSelected({ selected: [obj] });
       updateDimensionLabels();
-      
-      // Save to history after any modification (move, resize, rotate)
-      saveToHistory();
+      // Note: saveToHistory is called via useEffect subscription to object:modified
     }
   };
 
