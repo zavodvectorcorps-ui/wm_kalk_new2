@@ -2058,6 +2058,66 @@ const LayoutConfiguratorPage = () => {
     toast.success('Изображение экспортировано');
   };
 
+  // Export canvas to base64 for saving
+  const exportCanvasToBase64 = () => {
+    if (!fabricRef.current) return null;
+    
+    // Temporarily hide grid
+    const gridLines = fabricRef.current.getObjects().filter(o => o.isGridLine || o.isGridLabel);
+    gridLines.forEach(line => line.set('visible', false));
+    fabricRef.current.renderAll();
+    
+    // Export
+    const dataURL = fabricRef.current.toDataURL({
+      format: 'png',
+      quality: 1,
+      multiplier: 2,
+    });
+    
+    // Restore grid
+    gridLines.forEach(line => line.set('visible', showGrid));
+    fabricRef.current.renderAll();
+    
+    // Return base64 without data:image/png;base64, prefix
+    return dataURL.split(',')[1];
+  };
+
+  // Publish layout with export
+  const handlePublishWithExport = async (layout) => {
+    if (!layout) return;
+    
+    setLoading(true);
+    try {
+      // First export the image if this layout is currently loaded
+      if (currentLayout?.id === layout.id && fabricRef.current) {
+        const imageData = exportCanvasToBase64();
+        if (imageData) {
+          const formData = new FormData();
+          formData.append('imageData', imageData);
+          
+          await fetch(`${API_URL}/api/layout-configurator/layouts/${layout.id}/export`, {
+            method: 'POST',
+            body: formData,
+          });
+        }
+      }
+      
+      // Then publish
+      const endpoint = layout.isPublished ? 'unpublish' : 'publish';
+      const res = await fetch(`${API_URL}/api/layout-configurator/layouts/${layout.id}/${endpoint}`, {
+        method: 'POST',
+      });
+      
+      if (res.ok) {
+        toast.success(layout.isPublished ? 'Планировка скрыта из каталога' : 'Планировка опубликована в каталог!');
+        fetchLayouts();
+      }
+    } catch (error) {
+      toast.error('Ошибка публикации');
+    }
+    setLoading(false);
+  };
+
   // Publish layout
   const handlePublishLayout = async (layout) => {
     try {
