@@ -5,6 +5,28 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 19, 2025 - Layout Configurator Group/Copy/Paste & Refactoring (COMPLETED)
+- **NEW**: Group/Ungroup Objects
+  - Select multiple objects with Shift+Click
+  - Ctrl+G or "Группа" button to group
+  - Ctrl+Shift+G or "Разбить" button to ungroup
+  - Groups move, scale, rotate as one unit
+- **NEW**: Copy/Paste
+  - Ctrl+C or copy button to copy selected object(s)
+  - Ctrl+V or "Вставить" button to paste with 20px offset
+  - Multiple pastes continue offsetting
+  - Works with single objects and groups
+- **REFACTORED**: Extracted hooks
+  - `useCanvasHistory.js` - undo/redo history management
+  - `useClipboard.js` - copy/paste/group/ungroup logic
+  - `useKeyboardShortcuts.js` - all keyboard shortcuts
+- **Files Created/Modified**:
+  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - Main component
+  - `/app/frontend/src/components/layout-configurator/useClipboard.js` - Clipboard hook
+  - `/app/frontend/src/components/layout-configurator/useKeyboardShortcuts.js` - Shortcuts hook
+  - `/app/frontend/src/components/layout-configurator/useCanvasHistory.js` - History hook
+- **Testing**: 100% success (all features verified)
+
 ### Feb 19, 2025 - Layout Configurator P0 & P1 Features (COMPLETED)
 - **NEW**: Text Tool
   - Click canvas with Text tool (T key) opens dialog
