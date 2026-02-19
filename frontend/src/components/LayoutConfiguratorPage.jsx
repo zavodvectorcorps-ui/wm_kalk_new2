@@ -658,6 +658,104 @@ const LayoutConfiguratorPage = () => {
     setZoomLevel(1);
   }, [canvasWidth, canvasHeight]);
 
+  // ============ UNDO HISTORY ============
+  
+  // Save current canvas state to history
+  const saveToHistory = useCallback(() => {
+    if (!fabricRef.current || isUndoing.current) return;
+    
+    const canvas = fabricRef.current;
+    // Get only user-created objects (exclude grid, labels, dimensions)
+    const objects = canvas.getObjects().filter(obj => 
+      !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isOutline
+    );
+    
+    const state = JSON.stringify(objects.map(obj => obj.toObject([
+      'elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 'isMeasurement'
+    ])));
+    
+    setCanvasHistory(prev => {
+      // Remove any "future" states if we're not at the end
+      const newHistory = prev.slice(0, historyIndex + 1);
+      newHistory.push(state);
+      // Limit history size
+      if (newHistory.length > MAX_HISTORY) {
+        newHistory.shift();
+      }
+      return newHistory;
+    });
+    setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY - 1));
+  }, [historyIndex]);
+  
+  // Undo last action
+  const handleUndo = useCallback(() => {
+    if (historyIndex <= 0 || !fabricRef.current) {
+      toast.info('Нечего отменять');
+      return;
+    }
+    
+    isUndoing.current = true;
+    const canvas = fabricRef.current;
+    const newIndex = historyIndex - 1;
+    const previousState = canvasHistory[newIndex];
+    
+    // Remove current user objects
+    canvas.getObjects().forEach(obj => {
+      if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isOutline) {
+        canvas.remove(obj);
+      }
+    });
+    
+    // Restore previous state
+    if (previousState) {
+      const objects = JSON.parse(previousState);
+      fabric.util.enlivenObjects(objects, (enlivenedObjects) => {
+        enlivenedObjects.forEach(obj => {
+          // Set interactivity based on current tool
+          if (activeToolRef.current === 'select') {
+            obj.selectable = true;
+            obj.evented = true;
+          } else {
+            obj.selectable = false;
+            obj.evented = false;
+          }
+          canvas.add(obj);
+        });
+        canvas.renderAll();
+        updateDimensionLabels();
+        isUndoing.current = false;
+      });
+    } else {
+      canvas.renderAll();
+      isUndoing.current = false;
+    }
+    
+    setHistoryIndex(newIndex);
+    toast.success('Действие отменено');
+  }, [historyIndex, canvasHistory, updateDimensionLabels]);
+  
+  // Save history after object modifications
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    const saveState = () => {
+      if (!isUndoing.current) {
+        saveToHistory();
+      }
+    };
+    
+    canvas.on('object:added', saveState);
+    canvas.on('object:removed', saveState);
+    canvas.on('object:modified', saveState);
+    
+    return () => {
+      canvas.off('object:added', saveState);
+      canvas.off('object:removed', saveState);
+      canvas.off('object:modified', saveState);
+    };
+  }, [saveToHistory]);
+
   // ============ DRAWING TOOLS ============
   
   // Update canvas interactivity based on active tool
