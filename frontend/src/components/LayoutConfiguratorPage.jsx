@@ -1710,6 +1710,46 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Add text to canvas
+  const addTextToCanvas = () => {
+    if (!fabricRef.current || !textInput.trim()) {
+      toast.error('Введите текст');
+      return;
+    }
+    
+    const canvas = fabricRef.current;
+    const text = new fabric.Text(textInput, {
+      left: textClickPosition.x,
+      top: textClickPosition.y,
+      fontSize: textFontSize,
+      fill: drawingColor,
+      fontFamily: 'Arial',
+      elementId: `text-${Date.now()}`,
+      elementType: 'text',
+      isDrawnShape: true,
+      selectable: activeToolRef.current === 'select',
+      evented: activeToolRef.current === 'select',
+    });
+    
+    canvas.add(text);
+    canvas.renderAll();
+    setTextDialogOpen(false);
+    setTextInput('');
+    toast.success('Текст добавлен');
+  };
+  
+  // Toggle dimension display for selected object
+  const toggleObjectDimensions = () => {
+    if (!fabricRef.current) return;
+    const obj = fabricRef.current.getActiveObject();
+    if (obj && obj.isDrawnShape) {
+      obj.showDimensions = !obj.showDimensions;
+      updateDimensionLabels();
+      // Update selected object state
+      handleObjectSelected({ selected: [obj] });
+    }
+  };
+
   // Clear canvas
   const clearCanvas = () => {
     if (!fabricRef.current) return;
