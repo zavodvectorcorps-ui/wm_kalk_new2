@@ -1223,9 +1223,9 @@ const LayoutConfiguratorPage = () => {
     // Remove old dimension labels
     canvas.getObjects().filter(o => o.isDimensionLabel).forEach(o => canvas.remove(o));
     
-    // Get all drawn shapes (except grid)
+    // Get all drawn shapes (except grid) that have showDimensions enabled
     const shapes = canvas.getObjects().filter(o => 
-      o.isDrawnShape && !o.isGridLine && !o.isGridLabel
+      o.isDrawnShape && !o.isGridLine && !o.isGridLabel && o.showDimensions !== false
     );
     
     // Find room (largest rectangle)
