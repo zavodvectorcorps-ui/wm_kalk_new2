@@ -194,10 +194,13 @@ async def create_layout(
     nameRu: str = Form(default=""),
     modelId: str = Form(...),
     modelName: str = Form(default=""),
+    variantId: str = Form(default=None),
+    variantName: str = Form(default=None),
     canvasWidth: int = Form(default=800),
     canvasHeight: int = Form(default=400),
     backgroundUrl: str = Form(default=None),
     elements: str = Form(default="[]"),  # JSON string
+    canvasState: str = Form(default=None),  # Full canvas state for template loading
     modelSize: str = Form(default=None),
     capacity: str = Form(default=None),
     description: str = Form(default=None),
@@ -215,6 +218,11 @@ async def create_layout(
     except:
         elements_list = []
     
+    try:
+        canvas_state_obj = json.loads(canvasState) if canvasState else None
+    except:
+        canvas_state_obj = None
+    
     layout_doc = {
         "id": layout_id,
         "name": name,
@@ -222,10 +230,13 @@ async def create_layout(
         "nameRu": nameRu or name,
         "modelId": modelId,
         "modelName": modelName,
+        "variantId": variantId if variantId and variantId != "null" else None,
+        "variantName": variantName if variantName and variantName != "null" else None,
         "canvasWidth": canvasWidth,
         "canvasHeight": canvasHeight,
         "backgroundUrl": backgroundUrl if backgroundUrl and backgroundUrl != "null" else None,
         "elements": elements_list,
+        "canvasState": canvas_state_obj,
         "modelSize": modelSize if modelSize and modelSize != "null" else None,
         "capacity": capacity if capacity and capacity != "null" else None,
         "description": description if description and description != "null" else None,
