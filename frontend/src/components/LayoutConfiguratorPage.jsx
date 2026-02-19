@@ -77,7 +77,7 @@ const LayoutConfiguratorPage = () => {
   
   // Canvas state - A4 landscape fixed size
   const [canvasWidth, setCanvasWidth] = useState(A4_LANDSCAPE.widthPx);
-  const [canvasHeight] = useState(A4_LANDSCAPE.heightPx);
+  const [canvasHeight, setCanvasHeight] = useState(A4_LANDSCAPE.heightPx);
   
   // Real-world dimensions that the canvas represents (in cm)
   const [canvasRealWidthCm, setCanvasRealWidthCm] = useState(DEFAULT_CANVAS_REAL_SIZE.widthCm);
