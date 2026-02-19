@@ -216,16 +216,26 @@ const LayoutConfiguratorPage = () => {
       // Draw initial grid
       drawGrid();
       
-      // Mark canvas as ready to trigger history subscription
-      setCanvasReady(true);
+      // Subscribe to history-saving events
+      const saveState = () => {
+        if (!isUndoing.current) {
+          saveToHistory();
+        }
+      };
+      
+      canvas.on('object:added', saveState);
+      canvas.on('object:removed', saveState);
+      canvas.on('object:modified', saveState);
       
       // Save initial empty state to history
       setTimeout(() => saveToHistory(), 100);
       
       return () => {
+        canvas.off('object:added', saveState);
+        canvas.off('object:removed', saveState);
+        canvas.off('object:modified', saveState);
         canvas.dispose();
         fabricRef.current = null;
-        setCanvasReady(false);
       };
     }
   }, []);
