@@ -699,13 +699,24 @@ const LayoutConfiguratorPage = () => {
     
     const canvas = fabricRef.current;
     
-    // Save full canvas state including all custom properties
-    const state = canvas.toJSON([
-      'elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 
-      'isMeasurement', 'isMeasurementPart', 'parentId', 'isRuler',
-      'showDimensions', 'assetId', 'assetName', 'isGroup', 'isModelOutline'
-    ]);
-    const stateStr = JSON.stringify(state);
+    // Get only user-created objects (exclude grid and labels)
+    const userObjects = canvas.getObjects().filter(obj => 
+      !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel
+    );
+    
+    // Create a temporary canvas state with only user objects
+    const tempCanvas = {
+      version: '5.3.0',
+      objects: userObjects.map(obj => obj.toObject([
+        'elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 
+        'isMeasurement', 'isMeasurementPart', 'parentId', 'isRuler',
+        'showDimensions', 'assetId', 'assetName', 'isGroup', 'isModelOutline',
+        'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
+      ])),
+      background: canvas.backgroundColor,
+    };
+    
+    const stateStr = JSON.stringify(tempCanvas);
     
     setCanvasHistory(prev => {
       // Don't save duplicate states
