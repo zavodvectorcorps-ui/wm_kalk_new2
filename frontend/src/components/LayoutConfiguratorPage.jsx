@@ -737,13 +737,13 @@ const LayoutConfiguratorPage = () => {
     if (previousStateStr) {
       const previousState = JSON.parse(previousStateStr);
       
-      // Remove all objects except grid
-      const objectsToRemove = canvas.getObjects().filter(obj => !obj.isGridLine && !obj.isGridLabel);
-      objectsToRemove.forEach(obj => canvas.remove(obj));
+      // Clear entire canvas
+      canvas.clear();
+      canvas.backgroundColor = '#f8fafc';
       
-      // Load objects from previous state
+      // Load objects from previous state (this will restore user objects)
       canvas.loadFromJSON(previousState, () => {
-        // Redraw grid (it gets cleared by loadFromJSON)
+        // Redraw grid on top
         drawGrid();
         
         // Re-apply interactivity settings to all objects
@@ -763,7 +763,7 @@ const LayoutConfiguratorPage = () => {
         });
         
         canvas.discardActiveObject();
-        canvas.renderAll();
+        canvas.requestRenderAll();
         
         setSelectedObject(null);
         isUndoing.current = false;
