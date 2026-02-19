@@ -23,17 +23,17 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 // A4 = 297mm x 210mm (landscape)
 // Using scale: 2 pixels per mm = 20 pixels per cm
 const A4_LANDSCAPE = {
-  widthPx: 842,   // 297mm * 2.83 ≈ 842px (standard 72dpi)
-  heightPx: 595,  // 210mm * 2.83 ≈ 595px
+  widthPx: 1200,   // Increased for larger saunas
+  heightPx: 800,   // Increased for larger saunas
   widthCm: 29.7,
   heightCm: 21.0,
 };
 
 // Default scale: how many real cm fit in the canvas
-// E.g., if canvas represents 500cm x 350cm area
+// Increased to support saunas up to 8m (800cm)
 const DEFAULT_CANVAS_REAL_SIZE = {
-  widthCm: 500,  // Real width the canvas represents
-  heightCm: 350, // Real height the canvas represents
+  widthCm: 900,  // Real width the canvas represents (9m)
+  heightCm: 600, // Real height the canvas represents (6m)
 };
 
 // Drawing tools
@@ -41,6 +41,7 @@ const DRAWING_TOOLS = {
   select: { icon: MousePointer, name: 'Выбор', cursor: 'default' },
   rectangle: { icon: Square, name: 'Прямоугольник', cursor: 'crosshair' },
   wall: { icon: Minus, name: 'Стена/Линия', cursor: 'crosshair' },
+  ruler: { icon: Ruler, name: 'Линейка', cursor: 'crosshair' },
 };
 
 // Element type icons and colors
