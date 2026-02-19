@@ -103,7 +103,6 @@ const LayoutConfiguratorPage = () => {
   
   // Undo history
   const [canvasHistory, setCanvasHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
   const isUndoing = useRef(false);
   const MAX_HISTORY = 30;
   
