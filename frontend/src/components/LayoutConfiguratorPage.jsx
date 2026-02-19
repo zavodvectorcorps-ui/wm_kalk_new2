@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Badge } from './ui/badge';
 import { Slider } from './ui/slider';
+import { Switch } from './ui/switch';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Save, Download, Upload, RotateCw, RotateCcw,
@@ -1739,16 +1740,66 @@ const LayoutConfiguratorPage = () => {
   };
   
   // Toggle dimension display for selected object
-  const toggleObjectDimensions = () => {
+  const toggleObjectDimensions = (value) => {
     if (!fabricRef.current) return;
     const obj = fabricRef.current.getActiveObject();
     if (obj && obj.isDrawnShape) {
-      obj.showDimensions = !obj.showDimensions;
+      obj.showDimensions = value;
       updateDimensionLabels();
       // Update selected object state
       handleObjectSelected({ selected: [obj] });
     }
   };
+
+  // ============ KEYBOARD SHORTCUTS ============
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger shortcuts when typing in inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      // Ctrl+Z - Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        handleUndo();
+        return;
+      }
+      
+      // Delete or Backspace - Delete selected object
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteSelected();
+        return;
+      }
+      
+      // Escape - Deselect / Switch to select tool
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setActiveTool('select');
+        if (fabricRef.current) {
+          fabricRef.current.discardActiveObject();
+          fabricRef.current.renderAll();
+        }
+        setSelectedObject(null);
+        return;
+      }
+      
+      // Tool shortcuts
+      if (e.key === 'v' || e.key === 'V') {
+        setActiveTool('select');
+      } else if (e.key === 'r' || e.key === 'R') {
+        setActiveTool('rectangle');
+      } else if (e.key === 'l' || e.key === 'L') {
+        setActiveTool('wall');
+      } else if (e.key === 'm' || e.key === 'M') {
+        setActiveTool('ruler');
+      } else if (e.key === 't' || e.key === 'T') {
+        setActiveTool('text');
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, deleteSelected]);
 
   // Clear canvas
   const clearCanvas = () => {
