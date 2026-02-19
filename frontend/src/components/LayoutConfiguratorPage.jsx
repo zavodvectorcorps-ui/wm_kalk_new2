@@ -843,11 +843,8 @@ const LayoutConfiguratorPage = () => {
         isDrawnShape: true,
       });
     } else if (currentTool === 'wall') {
-      // For Line: use relative coordinates [0, 0, width, height]
-      // left, top will be the starting point
-      obj = new fabric.Line([0, 0, 1, 0], {
-        left: x,
-        top: y,
+      // For Line: use absolute coordinates, fabric.js will calculate left/top
+      obj = new fabric.Line([x, y, x, y], {
         stroke: drawingColorRef.current,
         strokeWidth: strokeWidthPx,
         strokeLineCap: 'round',
@@ -857,10 +854,8 @@ const LayoutConfiguratorPage = () => {
         isDrawnShape: true,
       });
     } else if (currentTool === 'ruler') {
-      // Create measurement line - use relative coordinates
-      obj = new fabric.Line([0, 0, 1, 0], {
-        left: x,
-        top: y,
+      // Create measurement line - use absolute coordinates
+      obj = new fabric.Line([x, y, x, y], {
         stroke: '#dc2626',
         strokeWidth: 2,
         strokeDashArray: [5, 3],
