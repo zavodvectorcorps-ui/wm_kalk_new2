@@ -160,6 +160,12 @@ const LayoutConfiguratorPage = () => {
     file: null,
   });
   
+  // Text tool state
+  const [textDialogOpen, setTextDialogOpen] = useState(false);
+  const [textInput, setTextInput] = useState('');
+  const [textFontSize, setTextFontSize] = useState(14);
+  const [textClickPosition, setTextClickPosition] = useState({ x: 0, y: 0 });
+  
   // Outline upload form
   const [outlineForm, setOutlineForm] = useState({
     file: null,
