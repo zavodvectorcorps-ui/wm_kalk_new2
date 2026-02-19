@@ -1755,6 +1755,113 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // ============ COPY/PASTE FUNCTIONALITY ============
+  const copySelected = useCallback(() => {
+    if (!fabricRef.current) return;
+    const activeObject = fabricRef.current.getActiveObject();
+    if (!activeObject) {
+      toast.error('Нет выделенного объекта');
+      return;
+    }
+    
+    // Clone the object(s) to clipboard
+    activeObject.clone((cloned) => {
+      clipboardRef.current = cloned;
+      toast.success('Скопировано');
+    });
+  }, []);
+  
+  const pasteFromClipboard = useCallback(() => {
+    if (!fabricRef.current || !clipboardRef.current) {
+      toast.error('Буфер обмена пуст');
+      return;
+    }
+    
+    clipboardRef.current.clone((clonedObj) => {
+      fabricRef.current.discardActiveObject();
+      
+      // Offset pasted object slightly
+      clonedObj.set({
+        left: clonedObj.left + 20,
+        top: clonedObj.top + 20,
+        evented: true,
+      });
+      
+      if (clonedObj.type === 'activeSelection') {
+        // Handle group paste
+        clonedObj.canvas = fabricRef.current;
+        clonedObj.forEachObject((obj) => {
+          obj.set({
+            elementId: `pasted_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            selectable: true,
+            evented: true,
+          });
+          fabricRef.current.add(obj);
+        });
+        clonedObj.setCoords();
+      } else {
+        // Single object paste
+        clonedObj.set({
+          elementId: `pasted_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          selectable: true,
+          evented: true,
+        });
+        fabricRef.current.add(clonedObj);
+      }
+      
+      // Update clipboard for next paste (offset further)
+      clipboardRef.current.top += 20;
+      clipboardRef.current.left += 20;
+      
+      fabricRef.current.setActiveObject(clonedObj);
+      fabricRef.current.requestRenderAll();
+      updateDimensionLabels();
+      saveToHistory();
+      toast.success('Вставлено');
+    });
+  }, [updateDimensionLabels, saveToHistory]);
+
+  // ============ GROUP/UNGROUP FUNCTIONALITY ============
+  const groupSelected = useCallback(() => {
+    if (!fabricRef.current) return;
+    const activeObject = fabricRef.current.getActiveObject();
+    
+    if (!activeObject || activeObject.type !== 'activeSelection') {
+      toast.error('Выделите несколько объектов для группировки');
+      return;
+    }
+    
+    // Create a group from the active selection
+    const group = activeObject.toGroup();
+    group.set({
+      elementId: `group_${Date.now()}`,
+      elementType: 'group',
+      isGroup: true,
+      selectable: true,
+      evented: true,
+    });
+    
+    fabricRef.current.requestRenderAll();
+    saveToHistory();
+    toast.success('Объекты сгруппированы');
+  }, [saveToHistory]);
+  
+  const ungroupSelected = useCallback(() => {
+    if (!fabricRef.current) return;
+    const activeObject = fabricRef.current.getActiveObject();
+    
+    if (!activeObject || activeObject.type !== 'group') {
+      toast.error('Выделите группу для разгруппировки');
+      return;
+    }
+    
+    // Ungroup
+    const items = activeObject.toActiveSelection();
+    fabricRef.current.requestRenderAll();
+    saveToHistory();
+    toast.success('Группа разбита');
+  }, [saveToHistory]);
+
   // ============ KEYBOARD SHORTCUTS ============
   useEffect(() => {
     const handleKeyDown = (e) => {
