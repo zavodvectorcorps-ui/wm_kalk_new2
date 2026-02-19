@@ -356,13 +356,13 @@ const LayoutConfiguratorPage = () => {
       if (res.ok) {
         const outline = await res.json();
         setModelOutline(outline);
-        // Update canvas size based on outline
+        // Update canvas size based on outline and then load the image
         if (outline.canvasWidth && outline.canvasHeight) {
           setCanvasWidth(outline.canvasWidth);
           setCanvasHeight(outline.canvasHeight);
         }
-        // Load outline image to canvas
-        loadOutlineToCanvas(outline);
+        // Store outline for loading after canvas resize
+        // The useEffect on canvasWidth/canvasHeight will handle loading
       } else {
         setModelOutline(null);
         removeOutlineFromCanvas();
@@ -372,6 +372,17 @@ const LayoutConfiguratorPage = () => {
       setModelOutline(null);
     }
   };
+
+  // Load outline when modelOutline changes or canvas resizes
+  useEffect(() => {
+    if (modelOutline && fabricRef.current) {
+      // Small delay to ensure canvas is resized
+      const timer = setTimeout(() => {
+        loadOutlineToCanvas(modelOutline);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [modelOutline, canvasWidth, canvasHeight]);
 
   // Load outline image to canvas as background
   const loadOutlineToCanvas = (outline) => {
