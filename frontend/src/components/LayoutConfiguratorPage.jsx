@@ -2268,6 +2268,21 @@ const LayoutConfiguratorPage = () => {
         <Card className="mb-2">
           <CardContent className="p-2">
             <div className="flex items-center justify-center gap-4">
+              {/* Undo button */}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-3"
+                onClick={handleUndo}
+                disabled={historyIndex <= 0}
+                title="Отменить (Ctrl+Z)"
+              >
+                <Undo2 className="h-4 w-4 mr-1" />
+                Отмена
+              </Button>
+              
+              <div className="h-6 w-px bg-border" />
+              
               {/* Drawing Tools */}
               <div className="flex items-center gap-1 bg-muted rounded-md p-1">
                 {Object.entries(DRAWING_TOOLS).map(([toolId, tool]) => {
@@ -2287,8 +2302,8 @@ const LayoutConfiguratorPage = () => {
                 })}
               </div>
               
-              {/* Drawing options (when drawing tool is active) */}
-              {activeTool !== 'select' && (
+              {/* Drawing options (when drawing tool is active and not ruler) */}
+              {activeTool !== 'select' && activeTool !== 'ruler' && (
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -2320,6 +2335,13 @@ const LayoutConfiguratorPage = () => {
                       Заливка
                     </Button>
                   )}
+                </div>
+              )}
+              
+              {/* Ruler info */}
+              {activeTool === 'ruler' && (
+                <div className="text-xs text-muted-foreground">
+                  Нарисуйте линию для измерения расстояния
                 </div>
               )}
             </div>
