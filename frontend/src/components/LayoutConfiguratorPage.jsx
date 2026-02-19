@@ -216,12 +216,16 @@ const LayoutConfiguratorPage = () => {
       // Draw initial grid
       drawGrid();
       
+      // Mark canvas as ready to trigger history subscription
+      setCanvasReady(true);
+      
       // Save initial empty state to history
       setTimeout(() => saveToHistory(), 100);
       
       return () => {
         canvas.dispose();
         fabricRef.current = null;
+        setCanvasReady(false);
       };
     }
   }, []);
