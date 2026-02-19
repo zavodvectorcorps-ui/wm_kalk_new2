@@ -954,35 +954,43 @@ const LayoutConfiguratorPage = () => {
         height,
       });
     } else if (currentTool === 'wall' || currentTool === 'ruler') {
-      // Force horizontal or vertical line
+      // Force horizontal or vertical line based on dominant direction
       const dx = Math.abs(x - startPoint.x);
       const dy = Math.abs(y - startPoint.y);
       
       if (dx > dy) {
-        // Horizontal line
+        // Horizontal line - lock Y to start position
         y = startPoint.y;
       } else {
-        // Vertical line
+        // Vertical line - lock X to start position
         x = startPoint.x;
       }
       
-      // Try to snap to nearest object
-      const snapPoint = findNearestSnapPoint(x, y, 15 * pxPerCm); // 15cm threshold
+      // Try to snap endpoint to nearest object corner/edge
+      const snapPoint = findNearestSnapPoint(x, y, 15 * pxPerCm);
       if (snapPoint) {
-        // Only snap if it maintains horizontal/vertical
-        if (dx > dy && Math.abs(snapPoint.y - startPoint.y) < 5 * pxPerCm) {
-          x = snapPoint.x;
-        } else if (dy >= dx && Math.abs(snapPoint.x - startPoint.x) < 5 * pxPerCm) {
-          y = snapPoint.y;
+        // Only snap if it maintains horizontal/vertical constraint
+        if (dx > dy) {
+          // Horizontal: can snap X, but Y must stay same
+          if (Math.abs(snapPoint.y - startPoint.y) < 5 * pxPerCm) {
+            x = snapPoint.x;
+          }
+        } else {
+          // Vertical: can snap Y, but X must stay same
+          if (Math.abs(snapPoint.x - startPoint.x) < 5 * pxPerCm) {
+            y = snapPoint.y;
+          }
         }
       }
       
-      // For lines: x1, y1 = 0, 0 (relative start), x2, y2 = end relative to start
-      // obj.left, obj.top = startPoint
+      // Update line using absolute coordinates
       obj.set({
-        x2: x - startPoint.x,
-        y2: y - startPoint.y,
+        x1: startPoint.x,
+        y1: startPoint.y,
+        x2: x,
+        y2: y,
       });
+      obj.setCoords();
     }
     
     obj.setCoords();
