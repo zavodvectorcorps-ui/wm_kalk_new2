@@ -42,6 +42,7 @@ const DRAWING_TOOLS = {
   rectangle: { icon: Square, name: 'Прямоугольник', cursor: 'crosshair' },
   wall: { icon: Minus, name: 'Стена/Линия', cursor: 'crosshair' },
   ruler: { icon: Ruler, name: 'Линейка', cursor: 'crosshair' },
+  text: { icon: Type, name: 'Текст', cursor: 'text' },
 };
 
 // Element type icons and colors
