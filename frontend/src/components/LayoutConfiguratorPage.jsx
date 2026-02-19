@@ -1918,51 +1918,55 @@ const LayoutConfiguratorPage = () => {
         </Card>
         
         {/* Elements Card */}
-        <Card className="flex-1 flex flex-col overflow-hidden">
-          <CardHeader className="py-2 px-3 border-b flex-shrink-0">
+        <Card className="flex-1 flex flex-col overflow-hidden min-h-[400px]">
+          <CardHeader className="py-3 px-3 border-b flex-shrink-0">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Элементы</CardTitle>
+              <CardTitle className="text-base">Элементы</CardTitle>
               <Button
                 size="sm"
                 variant="outline"
-                className="h-6 w-6 p-0"
+                className="h-7 px-2"
                 onClick={() => setUploadAssetDialogOpen(true)}
               >
-                <Plus className="h-3 w-3" />
+                <Plus className="h-4 w-4 mr-1" />
+                Добавить
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-2 flex-1 overflow-y-auto">
+          <CardContent className="p-3 flex-1 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full grid grid-cols-2 mb-2 h-7">
-                <TabsTrigger value="elements" className="text-xs h-6">Библиотека</TabsTrigger>
-                <TabsTrigger value="layouts" className="text-xs h-6">Планировки</TabsTrigger>
+              <TabsList className="w-full grid grid-cols-2 mb-3 h-9">
+                <TabsTrigger value="elements" className="text-sm">Библиотека</TabsTrigger>
+                <TabsTrigger value="layouts" className="text-sm">Планировки</TabsTrigger>
               </TabsList>
               
               <TabsContent value="elements" className="mt-0">
                 {Object.entries(assetsByType).map(([type, typeAssets]) => (
-                  <div key={type} className="mb-3">
-                    <div className="flex items-center gap-1 mb-1 text-xs font-medium text-muted-foreground">
-                      <span>{ELEMENT_TYPES[type]?.icon}</span>
+                  <div key={type} className="mb-4">
+                    <div className="flex items-center gap-2 mb-2 text-sm font-medium text-muted-foreground">
+                      <span className="text-lg">{ELEMENT_TYPES[type]?.icon}</span>
                       <span>{ELEMENT_TYPES[type]?.name || type}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-1">
+                    <div className="grid grid-cols-2 gap-2">
                       {typeAssets.map(asset => (
                         <div
                           key={asset.id}
-                          className="group relative aspect-square bg-muted rounded border cursor-pointer hover:border-primary transition-colors"
+                          className="group relative aspect-square bg-muted rounded-lg border-2 cursor-pointer hover:border-primary hover:shadow-md transition-all"
                           onClick={() => addElementToCanvas(asset)}
                           title={`Нажмите чтобы добавить: ${asset.name}`}
                         >
                           <img
                             src={asset.imageUrl.startsWith('http') ? asset.imageUrl : `${API_URL}${asset.imageUrl}`}
                             alt={asset.name}
-                            className="w-full h-full object-contain p-1"
+                            className="w-full h-full object-contain p-2"
                           />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-2 py-1 rounded-b-lg truncate">
+                            {asset.name}
+                          </div>
                           <Button
                             size="icon"
                             variant="destructive"
-                            className="absolute top-0 right-0 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteAsset(asset.id);
