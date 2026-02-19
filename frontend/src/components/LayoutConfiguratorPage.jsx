@@ -385,10 +385,12 @@ const LayoutConfiguratorPage = () => {
   }, [modelOutline, canvasWidth, canvasHeight]);
 
   // Load outline image to canvas as background
-  const loadOutlineToCanvas = (outline) => {
+  const loadOutlineToCanvas = useCallback((outline) => {
     if (!fabricRef.current || !outline?.imageUrl) return;
     
     const canvas = fabricRef.current;
+    const currentCanvasWidth = canvas.getWidth();
+    const currentCanvasHeight = canvas.getHeight();
     
     // Remove existing outline
     removeOutlineFromCanvas();
@@ -399,16 +401,16 @@ const LayoutConfiguratorPage = () => {
     }
     
     fabric.Image.fromURL(imageUrl, (img) => {
-      if (!img) return;
+      if (!img || !fabricRef.current) return;
       
       // Scale to fit canvas
-      const scaleX = canvasWidth / img.width;
-      const scaleY = canvasHeight / img.height;
+      const scaleX = currentCanvasWidth / img.width;
+      const scaleY = currentCanvasHeight / img.height;
       const scale = Math.min(scaleX, scaleY) * 0.95;
       
       img.set({
-        left: canvasWidth / 2,
-        top: canvasHeight / 2,
+        left: currentCanvasWidth / 2,
+        top: currentCanvasHeight / 2,
         originX: 'center',
         originY: 'center',
         scaleX: scale,
@@ -419,13 +421,15 @@ const LayoutConfiguratorPage = () => {
         opacity: 0.8,
       });
       
-      canvas.add(img);
+      fabricRef.current.add(img);
       // Send to back but above grid
-      const gridLines = canvas.getObjects().filter(o => o.isGridLine);
-      canvas.moveTo(img, gridLines.length);
-      canvas.renderAll();
+      const gridLines = fabricRef.current.getObjects().filter(o => o.isGridLine);
+      fabricRef.current.moveTo(img, gridLines.length);
+      fabricRef.current.renderAll();
+      
+      console.log('Outline loaded:', outline.modelId);
     }, { crossOrigin: 'anonymous' });
-  };
+  }, []);
 
   // Remove outline from canvas
   const removeOutlineFromCanvas = () => {
