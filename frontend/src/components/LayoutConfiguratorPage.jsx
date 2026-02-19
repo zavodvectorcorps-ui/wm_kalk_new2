@@ -442,11 +442,32 @@ const LayoutConfiguratorPage = () => {
     fabric.Image.fromURL(imageUrl, (img) => {
       if (!img || !fabricRef.current) return;
       
-      // Scale to fit canvas
-      const scaleX = currentCanvasWidth / img.width;
-      const scaleY = currentCanvasHeight / img.height;
-      const scale = Math.min(scaleX, scaleY) * 0.95;
+      // Calculate scale based on real dimensions if available
+      let scale;
+      if (outline.outerLength && outline.outerWidth) {
+        // Use real dimensions to calculate scale
+        // Canvas represents ~900cm x 600cm at default pixelsPerCm
+        const targetWidthPx = outline.outerLength * pixelsPerCm;
+        const targetHeightPx = outline.outerWidth * pixelsPerCm;
+        
+        const scaleX = targetWidthPx / img.width;
+        const scaleY = targetHeightPx / img.height;
+        scale = Math.min(scaleX, scaleY);
+        
+        // Ensure it fits in canvas (with 10% margin)
+        const maxScale = Math.min(
+          (currentCanvasWidth * 0.9) / img.width,
+          (currentCanvasHeight * 0.9) / img.height
+        );
+        scale = Math.min(scale, maxScale);
+      } else {
+        // Fallback: scale to fit canvas
+        const scaleX = currentCanvasWidth / img.width;
+        const scaleY = currentCanvasHeight / img.height;
+        scale = Math.min(scaleX, scaleY) * 0.85;
+      }
       
+      // Center the outline on canvas
       img.set({
         left: currentCanvasWidth / 2,
         top: currentCanvasHeight / 2,
@@ -466,9 +487,9 @@ const LayoutConfiguratorPage = () => {
       fabricRef.current.moveTo(img, gridLines.length);
       fabricRef.current.renderAll();
       
-      console.log('Outline loaded:', outline.modelId);
+      console.log('Outline loaded and centered:', outline.modelId, 'scale:', scale);
     }, { crossOrigin: 'anonymous' });
-  }, []);
+  }, [pixelsPerCm]);
 
   // Remove outline from canvas
   const removeOutlineFromCanvas = () => {
