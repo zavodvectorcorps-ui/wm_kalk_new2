@@ -3025,12 +3025,29 @@ const LayoutConfiguratorPage = () => {
                   {layouts.map(layout => (
                     <div
                       key={layout.id}
-                      className="p-2 border rounded hover:bg-muted/50 cursor-pointer group"
-                      onClick={() => handleLoadLayout(layout)}
+                      className="p-2 border rounded hover:bg-muted/50 group"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium truncate">{layout.name}</span>
+                        <span 
+                          className="text-sm font-medium truncate cursor-pointer hover:text-primary"
+                          onClick={() => handleLoadLayout(layout)}
+                          title="Редактировать планировку"
+                        >
+                          {layout.name}
+                        </span>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            title="Использовать как шаблон"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              loadTemplateLayout(layout);
+                            }}
+                          >
+                            <FileInput className="h-3 w-3" />
+                          </Button>
                           <Button
                             size="icon"
                             variant="ghost"
