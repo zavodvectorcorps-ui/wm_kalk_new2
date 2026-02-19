@@ -101,6 +101,12 @@ const LayoutConfiguratorPage = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('elements');
   
+  // Undo history
+  const [canvasHistory, setCanvasHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const isUndoing = useRef(false);
+  const MAX_HISTORY = 30;
+  
   // Drawing tools state
   const [activeTool, setActiveTool] = useState('select');
   const [isDrawing, setIsDrawing] = useState(false);
