@@ -3137,35 +3137,6 @@ const LayoutConfiguratorPage = () => {
               
               <div className="h-5 w-px bg-border" />
               
-              {/* Alignment dropdown */}
-              <Select onValueChange={(val) => alignObjects(val)}>
-                <SelectTrigger className="h-7 w-24 text-xs" data-testid="align-select">
-                  <AlignLeft className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline">Выровн.</span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="left">← Лево</SelectItem>
-                  <SelectItem value="center-h">↔ Центр</SelectItem>
-                  <SelectItem value="right">→ Право</SelectItem>
-                  <SelectItem value="top">↑ Верх</SelectItem>
-                  <SelectItem value="center-v">↕ Середина</SelectItem>
-                  <SelectItem value="bottom">↓ Низ</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {/* Distribute dropdown */}
-              <Select onValueChange={(val) => distributeObjects(val)}>
-                <SelectTrigger className="h-7 w-20 text-xs" data-testid="distribute-select">
-                  <span>Распр.</span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="horizontal">↔ Гориз.</SelectItem>
-                  <SelectItem value="vertical">↕ Верт.</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <div className="h-5 w-px bg-border" />
-              
               {/* Snap toggle */}
               <Button
                 size="sm"
