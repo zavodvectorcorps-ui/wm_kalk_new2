@@ -986,9 +986,11 @@ const LayoutConfiguratorPage = () => {
         }
       }
       
+      // For lines: x1, y1 = 0, 0 (relative start), x2, y2 = end relative to start
+      // obj.left, obj.top = startPoint
       obj.set({
-        x2: x - obj.left,
-        y2: y - obj.top,
+        x2: x - startPoint.x,
+        y2: y - startPoint.y,
       });
     }
     
