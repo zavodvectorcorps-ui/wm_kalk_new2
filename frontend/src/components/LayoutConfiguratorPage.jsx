@@ -906,7 +906,7 @@ const LayoutConfiguratorPage = () => {
         width,
         height,
       });
-    } else if (currentTool === 'wall') {
+    } else if (currentTool === 'wall' || currentTool === 'ruler') {
       obj.set({
         x2: x,
         y2: y,
