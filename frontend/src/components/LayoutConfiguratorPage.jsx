@@ -2177,6 +2177,20 @@ const LayoutConfiguratorPage = () => {
         return;
       }
       
+      // Ctrl+A - Select All
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        selectAll();
+        return;
+      }
+      
+      // Ctrl+D - Duplicate
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        duplicateSelected();
+        return;
+      }
+      
       // Ctrl+C - Copy
       if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         e.preventDefault();
@@ -2245,7 +2259,7 @@ const LayoutConfiguratorPage = () => {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, deleteSelected, copySelected, pasteFromClipboard, groupSelected, ungroupSelected]);
+  }, [handleUndo, deleteSelected, copySelected, pasteFromClipboard, groupSelected, ungroupSelected, selectAll, duplicateSelected]);
 
   // Clear canvas
   const clearCanvas = () => {
