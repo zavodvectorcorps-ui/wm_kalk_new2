@@ -349,6 +349,7 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
                     <TableHead>{txt.type}</TableHead>
                     <TableHead>{t('orderNumber')}</TableHead>
                     <TableHead>{t('customer')}</TableHead>
+                    <TableHead>{txt.responsible}</TableHead>
                     <TableHead>{t('date')}</TableHead>
                     <TableHead className="text-right">{t('total')}</TableHead>
                     <TableHead className="text-right">{t('actions')}</TableHead>
