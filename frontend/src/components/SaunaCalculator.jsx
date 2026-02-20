@@ -1567,7 +1567,18 @@ const SummaryCard = ({
             </div>
 
             {/* Selected Options */}
-            <SelectedOptionsList prices={prices} formData={formData} getCategoryName={getCategoryName} isOptionVisible={isOptionVisible} getOptionBasePrice={getOptionBasePrice} txt={txt} />
+            <SelectedOptionsList 
+              prices={prices} 
+              formData={formData} 
+              getCategoryName={getCategoryName} 
+              isOptionVisible={isOptionVisible} 
+              getOptionBasePrice={getOptionBasePrice} 
+              adminGifts={adminGifts}
+              toggleGift={toggleGift}
+              removeOption={removeOption}
+              isAdminUser={isAdminUser}
+              txt={txt} 
+            />
 
             {/* Foundation */}
             {foundationPrice > 0 && (
