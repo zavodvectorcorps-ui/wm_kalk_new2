@@ -1150,6 +1150,15 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             if cat_id == 'lawki':
                 continue
             
+            # Skip dostawa - it will be shown separately below total
+            if cat_id == 'dostawa':
+                selection = request.selections.get(cat_id)
+                if selection:
+                    opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
+                    if opt:
+                        delivery_price = opt.get('price', 0)
+                continue
+            
             selection = request.selections.get(cat_id)
             
             if not selection:
