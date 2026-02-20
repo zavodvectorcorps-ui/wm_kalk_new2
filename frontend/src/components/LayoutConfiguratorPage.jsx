@@ -1655,6 +1655,11 @@ const LayoutConfiguratorPage = () => {
   // Event handlers
   const handleObjectSelected = (e) => {
     const obj = e.selected?.[0];
+    // Skip dimension lines - they should only be movable, not editable
+    if (obj && obj.isDimensionLine) {
+      setSelectedObject(null);
+      return;
+    }
     if (obj && !obj.isGridLine && !obj.isBackground && !obj.isGridLabel) {
       const canvas = fabricRef.current;
       
