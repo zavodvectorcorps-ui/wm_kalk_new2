@@ -130,6 +130,10 @@ const AppContent = () => {
     const params = new URLSearchParams(window.location.search);
     const pathname = window.location.pathname;
     
+    // Helper to get API URL
+    const getApiUrl = () => process.env.REACT_APP_BACKEND_URL || '';
+    const API_URL = getApiUrl();
+    
     // Handle direct calculator URLs: /sauna/calculator?edit=ORDER_ID or /balia/calculator?edit=ORDER_ID
     const calcMatch = pathname.match(/^\/(sauna|balia)\/calculator/);
     if (calcMatch) {
