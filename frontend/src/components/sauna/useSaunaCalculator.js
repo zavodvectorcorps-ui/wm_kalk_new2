@@ -343,6 +343,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     const categories = prices.categories || [];
     
     categories.forEach(category => {
+      // Skip fundament category - it's calculated separately in calculateFoundationPrice
+      if (category.id === 'fundament') return;
+      
       const selection = formData.selections[category.id];
       if (!selection) return;
       
