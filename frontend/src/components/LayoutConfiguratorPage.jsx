@@ -2842,7 +2842,7 @@ const LayoutConfiguratorPage = () => {
                   <SelectContent>
                     {selectedModel.variants.map(variant => (
                       <SelectItem key={variant.id} value={variant.id}>
-                        {variant.nameRu || variant.name}
+                        {variant.nameRu || variant.namePl || variant.name || `Вариант ${variant.id}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
