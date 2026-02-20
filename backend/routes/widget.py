@@ -1017,8 +1017,15 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
     from fastapi.responses import HTMLResponse
     from datetime import datetime
     
-    # Get order status
-    order, section = get_all_orders_by_amocrm_id(lead_id)
+    # Get ALL orders for this lead
+    all_orders = get_orders_dict_by_amocrm_id(lead_id)
+    
+    # For backward compatibility - get first order and section
+    order = None
+    section = None
+    if all_orders:
+        section = list(all_orders.keys())[0]
+        order = all_orders[section]
     
     # Get trip info
     trip_info = None
