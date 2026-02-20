@@ -271,8 +271,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
   const {
     loading, initialLoading, prices, formData, appliedDiscount,
     isEditMode, editOrderId, adminGifts, adminDiscountApproved,
-    requestedDiscount, requestedDiscountNote, isAdminUser, lang, txt,
-    model, optionsTotal, foundationPrice, subtotal, discountAmount, total,
+    requestedDiscount, requestedDiscountNote, isAdminUser, canGiveGifts, lang, txt,
+    model, optionsTotal, foundationPrice, deliveryPrice, subtotal, discountAmount, total,
     roomSizes, amocrmData, maxManagerDiscount, modelVariant, modelPrice,
     selectedLayoutSize, selectedLayoutId, handleLayoutSelect,
     customLayoutImage, customLayoutUploading, uploadCustomLayoutImage, removeCustomLayoutImage,
