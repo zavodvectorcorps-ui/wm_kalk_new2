@@ -2094,13 +2094,48 @@ const SummaryCard = ({
           )}
 
           {/* Admin Gifts */}
-          {isAdminUser && isEditMode && adminGifts.length > 0 && (
+          {canGiveGifts && isEditMode && adminGifts.length > 0 && (
             <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 space-y-2">
               <div className="flex items-center gap-2 text-emerald-700 font-medium">
                 <Gift className="h-4 w-4" />
                 {txt.gifts} ({adminGifts.length})
               </div>
               <div className="text-xs text-emerald-600">{txt.giftsHint}</div>
+            </div>
+          )}
+
+          {/* Delivery - shown as separate line */}
+          {deliverySelection && deliveryOption && (
+            <div className="text-sm group border-t border-amber-200 pt-2">
+              <div className="flex items-center justify-between gap-1">
+                <span className={isDeliveryGift ? 'text-green-600' : ''}>
+                  {isDeliveryGift && <Gift className="h-3 w-3 inline mr-1 text-green-500" />}
+                  🚚 {deliveryOption.name || 'Dostawa'}
+                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className={`whitespace-nowrap font-medium ${isDeliveryGift ? 'line-through text-gray-400' : 'text-blue-700'}`}>
+                    +{formatPrice(deliveryPrice || deliveryOption.price || 0)} PLN
+                  </span>
+                  {canGiveGifts && (
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                      <button
+                        onClick={() => toggleGift(deliverySelection)}
+                        className={`p-1 rounded hover:bg-green-100 ${isDeliveryGift ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`}
+                        title={isDeliveryGift ? 'Убрать из подарков' : 'Сделать подарком'}
+                      >
+                        <Gift className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => removeOption('dostawa', deliverySelection, false)}
+                        className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600"
+                        title="Удалить доставку"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -2113,6 +2148,11 @@ const SummaryCard = ({
             {appliedDiscount > 0 && (
               <div className="text-xs text-amber-100 mt-1">
                 {txt.discount}: {appliedDiscount}% ({txt.priceBeforeDiscount}: {formatPrice(subtotal)} PLN)
+              </div>
+            )}
+            {deliveryPrice > 0 && !isDeliveryGift && (
+              <div className="text-xs text-amber-100 mt-1">
+                Вкл. доставку: {formatPrice(deliveryPrice)} PLN
               </div>
             )}
           </div>
