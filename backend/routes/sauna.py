@@ -356,6 +356,34 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
         ('BOX', (0, 0), (-1, -1), 1, GREEN),
     ]))
     elements.append(total_table)
+    
+    # Delivery section (if delivery price > 0)
+    if delivery_price_simple > 0:
+        delivery_formatted = f"{int(delivery_price_simple):,.0f}".replace(",", " ")
+        total_with_delivery = int(total) + int(delivery_price_simple)
+        total_with_delivery_formatted = f"{total_with_delivery:,.0f}".replace(",", " ")
+        
+        delivery_data = [
+            ["Koszt dostawy:", f"+{delivery_formatted} zł"],
+            ["Razem z dostawą:", f"{total_with_delivery_formatted} zł"]
+        ]
+        
+        delivery_table = Table(delivery_data, colWidths=[125*mm, 50*mm])
+        delivery_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, 1), 12),
+            ('FONTNAME', (0, 1), (-1, 1), 'DejaVuSans-Bold'),
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFF8F0')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), TEXT_COLOR),
+            ('TEXTCOLOR', (1, 1), (1, 1), ORANGE_DARK),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(Spacer(1, 2*mm))
+        elements.append(delivery_table)
+    
     elements.append(Spacer(1, 8*mm))
     
     # Footer
