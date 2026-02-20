@@ -198,10 +198,18 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
     if request.selectedOptions:
         elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))
         
+        # Get admin gifts list
+        admin_gifts = getattr(request, 'adminGifts', []) or []
+        
         for opt in request.selectedOptions:
-            # Skip fundament category - it's displayed separately as foundationPrice
             category_id = opt.get('categoryId', '')
-            if category_id == 'fundament':
+            opt_id = opt.get('optionId', '') or opt.get('id', '')
+            
+            # Check if this option is a gift (including fundament)
+            is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
+            
+            # For fundament that is NOT a gift, skip (it's in foundationPrice)
+            if category_id == 'fundament' and not is_gift:
                 continue
                 
             opt_name = opt.get('optionName', '')
