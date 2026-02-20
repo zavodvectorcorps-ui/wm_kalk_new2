@@ -822,13 +822,10 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       const subtotal = calculateSubtotal();
       const selectedOptions = getSelectedOptions();
       
-      // Calculate total considering admin gifts
-      const giftsTotal = selectedOptions
-        .filter(opt => adminGifts.includes(opt.optionId) || adminGifts.includes(opt.id))
-        .reduce((sum, opt) => sum + (opt.totalPrice || opt.price || 0), 0);
-      const discountableAmount = subtotal - giftsTotal;
-      const discountAmount = discountableAmount * (appliedDiscount / 100);
-      const total = discountableAmount - discountAmount;
+      // Calculate total - subtotal already excludes gifts via calculateOptionsTotal() and calculateFoundationPrice()
+      // So we just apply discount to subtotal
+      const discountAmount = subtotal * (appliedDiscount / 100);
+      const total = subtotal - discountAmount;
       
       const orderId = isEditMode && editOrderId ? editOrderId : undefined;
       
