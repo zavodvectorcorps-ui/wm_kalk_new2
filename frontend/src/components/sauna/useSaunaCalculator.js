@@ -584,6 +584,30 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     );
   };
 
+  // Remove option from selection
+  const removeOption = (categoryId, optionId, isCheckbox = false) => {
+    setFormData(prev => {
+      if (isCheckbox) {
+        // For checkbox - just uncheck it
+        return {
+          ...prev,
+          selections: {
+            ...prev.selections,
+            [categoryId]: { ...(prev.selections[categoryId] || {}), [optionId]: false },
+          },
+        };
+      } else {
+        // For radio/dropdown - clear the selection
+        return {
+          ...prev,
+          selections: { ...prev.selections, [categoryId]: '' },
+        };
+      }
+    });
+    // Also remove from gifts if it was a gift
+    setAdminGifts(prev => prev.filter(id => id !== optionId));
+  };
+
   // Validate form
   const validateForm = () => {
     if (!formData.fullName || !formData.phoneNumber) {
