@@ -238,11 +238,18 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
                 except Exception as e:
                     logger.warning(f"Could not load option image: {e}")
             
-            # Format base price
+            # Format base price (with gift styling if needed)
             base_total = base_price * quantity
-            price_formatted = f"{base_total:,.0f}".replace(",", " ") + " zł"
-            if quantity > 1:
-                price_formatted = f"{quantity} × {base_price:,.0f}".replace(",", " ") + f" = {base_total:,.0f}".replace(",", " ") + " zł"
+            if is_gift:
+                # Gift: show crossed out price + gift label
+                price_formatted = Paragraph(
+                    f"<strike>{base_total:,.0f} zł</strike><br/><font color='#059669'><b>🎁 Prezent</b></font>".replace(",", " "),
+                    ParagraphStyle('GiftPrice', fontName='DejaVuSans', fontSize=9, alignment=TA_RIGHT, textColor=colors.HexColor('#888888'))
+                )
+            else:
+                price_formatted = f"{base_total:,.0f}".replace(",", " ") + " zł"
+                if quantity > 1:
+                    price_formatted = f"{quantity} × {base_price:,.0f}".replace(",", " ") + f" = {base_total:,.0f}".replace(",", " ") + " zł"
             
             # Main option row
             if img_element:
@@ -252,11 +259,14 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
                 opt_data = [[Paragraph(opt_name, ParagraphStyle('OptName', fontName='DejaVuSans-Bold', fontSize=10)), price_formatted]]
                 opt_table = Table(opt_data, colWidths=[140*mm, 35*mm])
             
+            # Use green color for gift items
+            price_color = colors.HexColor('#059669') if is_gift else ORANGE_DARK
+            
             opt_table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (-1, -1), 'DejaVuSans'),
                 ('FONTSIZE', (0, 0), (-1, -1), 10),
                 ('TEXTCOLOR', (0, 0), (-1, -1), TEXT_COLOR),
-                ('TEXTCOLOR', (-1, 0), (-1, -1), ORANGE_DARK),
+                ('TEXTCOLOR', (-1, 0), (-1, -1), price_color),
                 ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
