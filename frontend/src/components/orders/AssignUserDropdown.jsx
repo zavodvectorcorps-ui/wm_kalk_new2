@@ -85,7 +85,7 @@ export const AssignUserDropdown = ({
 
     setAssigning(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       const endpoint = isSauna 
         ? `${API_URL}/api/sauna/orders/${order.id}/assign`
         : `${API_URL}/api/orders/${order.id}/assign`;
