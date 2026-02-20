@@ -2224,7 +2224,7 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
               {displayPrice > 0 ? `+${formatPrice(totalPrice)} PLN` : txt.gratis}
             </span>
             {/* Control buttons - visible on hover or always on mobile */}
-            {isAdminUser && (
+            {canGiveGifts && (
               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
                 <button
                   onClick={() => toggleGift(opt.id)}
