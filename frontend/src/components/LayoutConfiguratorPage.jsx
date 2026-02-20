@@ -2970,7 +2970,7 @@ const LayoutConfiguratorPage = () => {
                 className="flex-1 h-8 text-xs"
                 onClick={() => {
                   if (selectedModel) {
-                    setLayoutName(currentLayout?.name || `${selectedModel.name}${selectedVariant ? ` - ${selectedVariant.nameRu || selectedVariant.name}` : ''} - Планировка`);
+                    setLayoutName(currentLayout?.name || `${selectedModel.name}${selectedVariant ? ` - ${selectedVariant.nameRu || selectedVariant.namePl || selectedVariant.name}` : ''} - Планировка`);
                     setSaveDialogOpen(true);
                   } else {
                     toast.error('Сначала выберите модель сауны');
