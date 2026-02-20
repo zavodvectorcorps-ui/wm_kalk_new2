@@ -779,6 +779,37 @@ def build_gifts_panel(order, base_url, lead_id):
     """
 
 
+
+@router.get("/orders-status/{lead_id}")
+async def get_orders_status(lead_id: str):
+    """Get all orders for amoCRM lead - shows sauna, balia, greenhouse if they exist."""
+    all_orders = get_orders_dict_by_amocrm_id(lead_id)
+    
+    if not all_orders:
+        return {
+            "found": False,
+            "orders": {},
+            "message": "Заказы не найдены"
+        }
+    
+    # Build response with minimal order info
+    orders_info = {}
+    for section, order in all_orders.items():
+        orders_info[section] = {
+            "id": order.get("id", ""),
+            "total": order.get("total", 0),
+            "modelName": order.get("modelName", ""),
+            "createdAt": order.get("createdAt", "")
+        }
+    
+    return {
+        "found": True,
+        "orders": orders_info,
+        "count": len(orders_info)
+    }
+
+
+
 @router.get("/delivery-status/{lead_id}")
 async def get_delivery_status(lead_id: str):
     """Get delivery status for amoCRM lead.
