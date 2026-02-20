@@ -1,295 +1,93 @@
 <analysis>**original_problem_statement:**
-The user is developing a logistics and sales management system for their sauna and hot tub business.
+The user initially requested a fix for a 500 error. The project then evolved into building a Modular Sauna Configurator.
 
-In this session, the user requested a wide range of features and bug fixes, including:
-1.  **Logistics Workflow Automation:** Implement status changes and order deletion based on actions in the app and in the amoCRM integration.
-2.  **UI/UX Improvements:** Make the price summary block in the sauna calculator sticky, which involved several design iterations.
-3.  **Data Model Enhancements:** Add the ability for certain sauna models to inherit layout variants from other models.
-4.  **Logistics Performance:** Drastically speed up the reordering of delivery stops by replacing slow up/down arrows with a direct position input and removing automatic route recalculation. A manual Build Route button was added.
-5.  **New Feature: Content Generation Service:** A major new feature was requested and built from scratch. This service provides a new Content tab in the admin panel where the user can:
-    *   Upload up to 10 sauna photos at once.
-    *   Edit an AI prompt.
-    *   Process the images using the Nano Banana Pro AI service to replace the background.
-    *   View, download, or delete the results from a gallery.
-    This feature was initially built with in-memory storage, which failed in production, and was subsequently refactored to use MongoDB for job tracking and Cloudinary for image storage.
-6.  **Various Bug Fixes:** Including incorrect price calculations, missing icon imports causing white screens, and fixing a file download issue.
+**PRODUCT REQUIREMENTS for the Modular Sauna Configurator:**
+- A dedicated screen for designing sauna layouts with a canvas supporting layouts up to 8 meters.
+- Users can select a model and sub-model (variant).
+- A left panel for managing graphical elements (heaters, benches) and saved layouts.
+- Canvas features: drag-and-drop, grid, snap-to-grid, object rotation, scaling, grouping, copy/paste, duplication, alignment.
+- A right-side properties panel to edit selected element properties.
+- Drawing tools for rectangles, lines, and adding text labels.
+- Measurement tools: on-canvas dimensions, distances to walls/between objects, and a manual ruler.
+- An Undo button (Ctrl+Z).
+- Ability to save/load layouts and export them as images.
+- **Template System:** Ability to load a pre-defined layout as a template when a model/variant is selected. Managers can create and manage these templates.
+- **Hotkeys:** Keyboard shortcuts for common actions (e.g., Ctrl+C/V for copy/paste, Ctrl+A for select all, Ctrl+D for duplicate, Delete key).
+
+**Latest User Request:**
+- **Bug Fix:** In the Sauna Calculator (), when an option Dodaj do sauny Belki podłużne (add longitudinal beams) is selected, its price is counted twice when editing the order.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-The application is a full-stack React/FastAPI/MongoDB system with calculators, logistics, and CRM integration.
+A full-stack React/FastAPI/MongoDB application. The core feature is the Modular Sauna Configurator (), built with . It's a highly interactive canvas editor with features like drawing, object manipulation, snapping, grouping, on-canvas dimensioning, and a template system.
 
-In this session, the agent successfully implemented a significant number of features and fixes:
-- **Logistics Workflows:** Automated status updates and deletion of orders based on amoCRM webhooks.
-- **Logistics UX:** Replaced slow reordering controls with a fast direct-input method and added a manual route calculation button.
-- **Content Generation Service:** A complete, new feature allowing users to upload sauna images, process them with an AI background replacement service (Nano Banana Pro via Emergent LLM Key), and manage the results. The service is robust, using MongoDB for job tracking and Cloudinary for image storage.
-- **Sauna Calculator:** Implemented a sticky summary card with internal scrolling for options, fixed a critical price calculation bug (), and added the ability for models to inherit layout variants.
-- **Admin Panel:** Added functionality to change the category of an existing option.
+A large number of features and hotkeys were added in the last session. The agent also started a major refactoring of the monolithic  by creating a new component structure, although the logic has not been fully migrated. A new critical bug in the  component was reported at the end of the session.
 
 **Last working item**:
--   **Last item agent was working**: The user deployed the latest version to their production domain () and reported a CORS error and a 500 Internal Server Error, which results in a broken image icon and prevents the gallery of processed images from loading.
+-   **Last item agent was working**: Investigating a bug in the Sauna Calculator where the price for foundation beams is being double-counted when an order is edited.
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: Backend testing agent. The agent must first inspect the backend logs to diagnose the 500 error and then review the CORS configuration in .
--   **User Testing Done**: Y
+-   **Which testing method agent to use?**: Manual testing. The agent needs to follow the user's steps: add an item with Belki podłużne to the cart, then open the order for editing and verify the total.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: CORS and 500 error on  endpoint.** (P0 - CRITICAL BLOCKER)
--   **Issue 2: Unstable user login sessions.** (P1 - RECURRING, carried over)
--   **Issue 3:  errors during deployment.** (P2 - RECURRING, carried over)
+-   **Issue 1: Sauna Calculator Double-Counting Bug (P0 - CRITICAL)**
+-   **Issue 2: Unstable user login sessions (P1 - RECURRING)**
+-   **Issue 3:  errors during deployment (P2 - RECURRING)**
 
 **Issues Detail**:
--   **Issue 1: CORS and 500 error on  endpoint.**
-    -   **Attempted fixes**: None yet.
+-   **Issue 1: Sauna Calculator Double-Counting Bug**
+    -   **Attempted fixes**: The agent investigated  and identified the likely cause:  sums all option categories, including , while  calculates the same price again separately. The final total incorrectly adds both values.
     -   **Next debug checklist**:
-        1.  Check backend logs for the 500 error details: ==> /var/log/supervisor/backend.err.log <==
-2026-02-18 16:09:27,973 - server - INFO - Admin user initialized/verified
-2026-02-18 16:09:27,977 - server - INFO - MongoDB indexes created/verified
-WARNING:  WatchFiles detected changes in 'routes/content_generator.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-2026-02-18 16:12:24,885 - server - INFO - Backup scheduler stopped
-INFO:     Application shutdown complete.
-INFO:     Finished server process [2017]
-INFO:     Started server process [2185]
-INFO:     Waiting for application startup.
-2026-02-18 16:12:26,222 - server - INFO - Instance started with JWT_SECRET hash: 88ffea06
-2026-02-18 16:12:26,222 - server - INFO - Deferred startup tasks scheduled
-2026-02-18 16:12:26,222 - server - INFO - Backup scheduler task started
-2026-02-18 16:12:26,222 - server - INFO - Backup scheduler started
-2026-02-18 16:12:26,222 - server - INFO - Backup scheduler waiting 5 minutes before first check...
-INFO:     Application startup complete.
-2026-02-18 16:12:28,227 - server - INFO - Admin user initialized/verified
-2026-02-18 16:12:28,233 - server - INFO - MongoDB indexes created/verified
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-2026-02-18 16:12:36,045 - server - INFO - Backup scheduler stopped
-INFO:     Application shutdown complete.
-INFO:     Finished server process [2185]
-INFO:     Stopping reloader process [2015]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [2251] using WatchFiles
-INFO:     Started server process [2253]
-INFO:     Waiting for application startup.
-2026-02-18 16:12:37,804 - server - INFO - Instance started with JWT_SECRET hash: 88ffea06
-2026-02-18 16:12:37,804 - server - INFO - Deferred startup tasks scheduled
-2026-02-18 16:12:37,804 - server - INFO - Backup scheduler task started
-2026-02-18 16:12:37,804 - server - INFO - Backup scheduler started
-2026-02-18 16:12:37,804 - server - INFO - Backup scheduler waiting 5 minutes before first check...
-INFO:     Application startup complete.
-2026-02-18 16:12:39,810 - server - INFO - Admin user initialized/verified
-2026-02-18 16:12:39,817 - server - INFO - MongoDB indexes created/verified
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/protocols/http/h11_impl.py", line 408, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/fastapi/applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/applications.py", line 123, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
-    raise exc
-  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
-    await self.app(scope, receive, send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/gzip.py", line 24, in __call__
-    await responder(scope, receive, send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/gzip.py", line 44, in __call__
-    await self.app(scope, receive, self.send_with_gzip)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
-    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
-    raise exc
-  File "/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
-    await app(scope, receive, sender)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 756, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 776, in app
-    await route.handle(scope, receive, send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 297, in handle
-    await self.app(scope, receive, send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 77, in app
-    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
-    raise exc
-  File "/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
-    await app(scope, receive, sender)
-  File "/root/.venv/lib/python3.11/site-packages/starlette/routing.py", line 72, in app
-    response = await func(request)
-               ^^^^^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 278, in app
-    raw_response = await run_endpoint_function(
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
-    return await dependant.call(**values)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/app/backend/routes/content_generator.py", line 260, in list_processed_images
-    for img in images_cursor:
-TypeError: 'AsyncIOMotorCursor' object is not iterable
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [49] using WatchFiles
-INFO:     Started server process [80]
-INFO:     Waiting for application startup.
-2026-02-18 16:32:10,529 - server - INFO - Instance started with JWT_SECRET hash: 88ffea06
-2026-02-18 16:32:10,530 - server - INFO - Deferred startup tasks scheduled
-2026-02-18 16:32:10,530 - server - INFO - Backup scheduler task started
-2026-02-18 16:32:10,530 - server - INFO - Backup scheduler started
-2026-02-18 16:32:10,530 - server - INFO - Backup scheduler waiting 5 minutes before first check...
-INFO:     Application startup complete.
-
-==> /var/log/supervisor/backend.out.log <==
-INFO:     10.227.8.11:45154 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:43488 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:45156 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:57596 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:47152 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:47164 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:57598 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:47172 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43002 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36318 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36332 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:60050 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:60064 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:53222 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:53826 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:53228 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:53836 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:53844 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:53236 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:53244 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:53858 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:53254 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:53872 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:53880 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:53882 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:53886 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:44366 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:56916 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:44380 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:56926 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:56938 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:44762 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:44776 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:60448 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:44788 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:44796 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36318 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36318 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/images/processed_ca591d67_photo_2026-02-18_19-38-48.jpg HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43002 - "GET /api/content/images/processed_a0b50044_photo_2026-02-18_19-38-46.jpg HTTP/1.1" 200 OK
-INFO:     10.227.8.11:44804 - "GET /api/content/images/processed_3ce046e5_photo_2026-02-18_19-38-49.jpg HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/images/processed_3862e892_photo_2026-02-18_19-38-44.jpg HTTP/1.1" 200 OK
-INFO:     10.227.8.8:60460 - "GET /api/content/images/processed_bb8edff5_photo_2026-02-18_19-38-47.jpg HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36318 - "GET /api/content/images/processed_77bf2661_photo_2026-02-18_19-38-51.jpg HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/job/c65e7c45-8363-4386-85ee-71ae65cf8cc7 HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:36308 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.11:43012 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:57750 - "GET /api/content/images/processed_bb8edff5_photo_2026-02-18_19-38-47.jpg HTTP/1.1" 200 OK
-INFO:     10.227.8.8:42770 - "GET /api/content/images/processed_ca591d67_photo_2026-02-18_19-38-48.jpg HTTP/1.1" 200 OK
-INFO:     10.227.8.8:56686 - "GET /api/content/images/processed_77bf2661_photo_2026-02-18_19-38-51.jpg HTTP/1.1" 200 OK
-INFO:     10.227.8.8:44852 - "GET /api/content/default-prompt HTTP/1.1" 200 OK
-INFO:     10.227.8.11:57878 - "GET /api/content/processed-images HTTP/1.1" 200 OK
-INFO:     10.227.8.8:35944 - "GET /api/content/processed-images HTTP/1.1" 500 Internal Server Error.
-        2.  Review  and the  setup. The user's production domain  is likely missing from the  list.
-        3.  Inspect the  route in  to ensure it handles database queries and serialization correctly.
-    -   **Why fix this issue and what will be achieved with the fix?**: This bug breaks the new Content Generation feature on the user's live site. Fixing it is essential for the feature to be usable.
+        1.  Open .
+        2.  Modify the  function to exclude the  category from its calculation loop.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical business logic bug that leads to incorrect pricing for customers. Fixing it will ensure order totals are accurate.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Should Test frontend/backend/both after fix?**: Frontend (calculation logic).
     -   **Blocked on other issue**: None.
 
 -   **Issue 2: Unstable user login sessions.**
-    -   **Status**: USER VERIFICATION PENDING. This is a recurring issue from a previous fork, awaiting user feedback after server resource allocation was increased.
+    -   **Status**: USER VERIFICATION PENDING (Recurring issue from previous sessions, suspected cause of screenshot tool failures).
 
 -   **Issue 3:  errors during deployment.**
-    -   **Status**: USER VERIFICATION PENDING. Another recurring issue awaiting user confirmation after previous fixes.
+    -   **Status**: USER VERIFICATION PENDING (Recurring issue from previous sessions).
 
 **In progress Task List**:
--   None.
+-   **Task 1: Fix Sauna Calculator Bug**
+    -   **Where to resume**: .
+    -   **What will be achieved with this?**: Corrects the total price calculation in the sauna calculator.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Frontend.
+    -   **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
+    *   **P0: Complete Refactoring of **: **CRITICAL**. The agent created the file structure for new components (, , etc.) and hooks (, ), but the logic from the 2500+ line monolithic file has not been moved. This is the most important technical debt to address for future development.
     *   **P1**: Refactor the monolithic  function in .
-    *   **P1**: Refactor the complex  hook.
-    *   **P1**: Continue development of the Wizard Calculator ().
 -   **Future Tasks**:
     *   **P2**: Add UI for importing/restoring a backup.
     *   **P2**: Replace the deprecated Google Maps Autocomplete component.
+    *   **P2**: Continue development of the Wizard Calculator () beyond the bug fix.
 
 **Completed work in this session**
--   **Feature: Content Generation Service:** Built a full-stack feature for AI image background replacement using Nano Banana Pro and Cloudinary (, ).
--   **Feature: Logistics Order Reordering:** Implemented a faster, manual input-based reordering system for delivery stops ().
--   **Feature: Change Option Category:** Added UI to move an existing sauna option to a different category ().
--   **Feature: Linked Sauna Models:** Enabled sauna models to inherit layout variants from other models (, ).
--   **Bugfix: Production Stability:** Refactored the Content Generation service to use MongoDB and Cloudinary instead of in-memory/local storage.
--   **Bugfix: Logistics Workflow:** Implemented status reset on order removal and automatic deletion based on amoCRM webhooks.
--   **Bugfix: Sauna Calculator UI & Logic:** Fixed the summary card to be sticky with internal scrolling and corrected a price calculation error for .
--   **Bugfix: File Download:** Ensured processed images are downloaded directly instead of opening in a new tab.
+-   **Feature: Layout Templates:** Implemented a system where selecting a sauna model automatically loads a corresponding layout template. Users can also manually load a template from the list of saved layouts.
+-   **Feature: Full Hotkey Suite:** Implemented hotkeys for Undo/Redo (Ctrl+Z/Y), Copy/Paste (Ctrl+C/V), Duplicate (Ctrl+D), Select All (Ctrl+A), Group/Ungroup (Ctrl+G), and Delete.
+-   **Feature: Object Grouping & Snapping:** Added functionality to group/ungroup multiple objects and a toggleable snapping feature for precise alignment.
+-   **Feature: Text Tool & Dimension Toggles:** Completed the implementation of a tool to add text to the canvas and a UI toggle to show/hide dimensions for individual objects.
+-   **Feature: Catalog Integration:** Published layouts from the configurator now appear in the main .
+-   **Bugfix: Undo Functionality:** Resolved a complex bug where object positions were not restored correctly. This involved refactoring event listeners and how history state is saved and loaded, specifically excluding the grid from the saved state.
+-   **Bugfix: Toolbar Layout:** Redesigned the configurator toolbar into a two-row layout to prevent UI overflow on smaller screens.
+-   **Bugfix: Outline Centering:** Corrected the logic to ensure the sauna model outline is always properly centered on the canvas upon loading.
+-   **Backend: Layout Schema Update:** Modified the backend API and database model to save  and the full  JSON, enabling the template feature.
+-   **UI Cleanup:** Removed the non-functional Align buttons from the toolbar at the user's request.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Monolithic PDF Generation Function**
-    -   **Debug checklist**: The  function in  is over 1500 lines and needs to be broken down into smaller, manageable functions.
-    -   **Why to solve this issue and what will be achieved with this?**: Improves code quality, maintainability, and testability.
-    -   **Should Test frontend/backend/both after fix**: Backend
-    -   **Is recurring issue?**: Y
+-   None in this session; the two recurring issues below are carried over.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Unstable user login sessions.
+-   **Issue recurrence in previous fork**: Unstable user login sessions. This has repeatedly caused testing/screenshot tools to fail by logging them out.
 -   **Recurrence count**: Very High.
 -   **Status**: USER VERIFICATION PENDING.
 
@@ -297,77 +95,72 @@ INFO:     10.227.8.8:35944 - "GET /api/content/processed-images HTTP/1.1" 500 In
 
 
 **Key Technical Concepts**
--   **3rd Party Integration (AI):** Using the  library to interact with the Nano Banana Pro image editing AI via the Emergent LLM Key.
--   **Cloud Storage:** Using Cloudinary for persistent storage of AI-generated images.
--   **Background Jobs & State Management:** Using MongoDB to track the state of asynchronous image processing jobs, which is crucial for a multi-pod production environment.
--   **CORS Configuration:** A key aspect of debugging for applications deployed on custom domains. The FastAPI  needs to be correctly configured.
--   **Optimistic UI Updates:** Improving user experience in the logistics module by updating the UI instantly while backend requests are processed asynchronously.
+-   **Fabric.js State Management:** Deep manipulation of Fabric.js objects and canvas state. The Undo fix required saving canvas state to JSON (), excluding non-serializable or unnecessary objects (like the grid), and restoring it ().
+-   **React Hooks for Complex Logic:** Started migrating logic into custom hooks (, ) to manage side effects and state related to the Fabric.js canvas, although the migration is incomplete.
+-   **Dynamic Template Loading:** Implemented a flow where changing a dropdown () triggers a search for a corresponding saved layout and loads its  onto the canvas.
+-   **Event Listener Management in React:** Refactored Fabric.js event listener subscriptions () and cleanup () inside  hooks to prevent memory leaks and duplicate event firings, which was a source of major bugs.
 
 **key DB schema**
--    (NEW):  - Tracks the status of image processing tasks.
--    (NEW):  - Stores metadata for processed images stored in Cloudinary.
--   : The  array within this collection now has an optional  field on each model object.
-
-**changes in tech stack**
--   ****: A new Python library was added to  to handle a seamless connection to Emergent-managed AI services.
+-   ****: Updated to include ,  (stores the full Fabric.js canvas JSON).
 
 **All files of reference**
--   : The main entry point for the backend, where CORS is configured. **This is a key file for the current bug.**
--   : The new service that is throwing a 500 error on the user's production environment.
--   : The frontend page making the failing API call.
--   : Contains the logic for the improved, faster order reordering.
--   : Contains the heavily modified summary card and option list.
+-   : **(Primary file for the next task)** Contains the double-counting bug.
+-   : Contains all the configurator logic. Most of the session's work was done here. It is the target for the upcoming major refactoring.
+-   : Backend API for layouts, which was modified to support saving template data.
+-   New (but mostly empty) refactoring files in  and .
 
 **Areas that need refactoring**:
--    ( function) is extremely large and needs to be broken down.
--    is complex and could be simplified.
+-    is **CRITICALLY** in need of refactoring. While the agent created the file structure for the refactor, the actual logic remains in the single monolithic file. This should be the highest priority task after the calculator bug is fixed.
 
 **key api endpoints**
--   : **(NEW, CURRENTLY FAILING)** Fetches the list of all processed images.
--   : (NEW) Submits a batch of up to 10 images for AI processing.
--   : (NEW) Checks the status of a specific processing job.
--   : Endpoint for reordering logistics items. Frontend logic was heavily optimized to improve its perceived performance.
+-   : Updated to accept and save  and .
+-   : Used to fetch all layouts to find potential templates.
 
 **Critical Info for New Agent**
 -   **You MUST respond in Russian.**
--   **Top Priority: Fix CORS/500 Error.** The new Content Generation feature is broken on the user's live domain (). Your first task is to investigate the 500 server error by checking backend logs, and then fix the CORS policy in  to include the user's domain in the  list.
--   **Production Environment Awareness:** The user is actively deploying to a live custom domain. Be mindful that issues like CORS and reliance on persistent storage (DB/Cloudinary) are critical and will be caught by the user. Avoid solutions that only work locally (e.g., in-memory storage, local file system writes).
+-   **Top Priority:** Your first task is to fix the double-counting bug in  as described in Issues Detail.
+-   **Next CRITICAL Task:** After fixing the bug, you must prioritize the refactoring of . The file structure is in place; you need to move the corresponding logic (state, effects, JSX) into the new component and hook files. Propose this to the user as the necessary next step for maintainability.
+-   **Login Instability:** Be aware of the recurring login issue. It frequently causes automated tools like the screenshot agent to fail. If tests fail with session expired or show the login page, it's likely due to this underlying problem, not a new bug in the feature you're working on.
 
 **documents and test reports created in this job**
--   None.
+-   
+-   
+-   
+-   
+-    (updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  User reports a CORS error and a 500 Internal Server error on the deployed application, preventing the image gallery from loading. (Status: PENDING FIX)
-2.  User requests that processed images be saved to Cloudinary to avoid base64 performance issues. (Status: COMPLETED)
-3.  User reports that on their hosting, processed images are not showing (broken image icon) due to 404 errors when checking job status. (Status: COMPLETED, fixed by moving jobs to MongoDB)
-4.  User reports that downloading a processed image opens it in the browser instead of saving the file. (Status: COMPLETED)
-5.  User reports that uploaded photos are not being processed and asks how the API key is handled. (Status: COMPLETED, fixed by installing )
-6.  User requests a major new feature: a Content Generation service to process sauna photos with an AI. (Status: COMPLETED)
-7.  User requests two features: 1) allow changing an existing option's category, and 2) allow manual input for order position in logistics to speed it up. (Status: COMPLETED)
-8.  User asks for clarification on a feature called moltbot. (Status: COMPLETED)
-9.  User reports that the correct option price () is not being displayed in the final summary list. (Status: COMPLETED)
-10. User asks to globally replace the term Łaźnia with Pokój parowy. (Status: COMPLETED)
+1.  **User:** Reports the Sauna Calculator double-counts the foundation price. (Status: IN PROGRESS)
+2.  **User:** Asks to make the model outline load as a template for managers to use. (Status: COMPLETED)
+3.  **User:** Asks to center the model contour on the canvas. (Status: COMPLETED)
+4.  **User:** Asks to remove the confusing align buttons. (Status: COMPLETED)
+5.  **User:** Reports that the undo action does not revert the position of a moved object. (Status: COMPLETED)
+6.  **User:** Reports the toolbar buttons are overlapping other UI elements. (Status: COMPLETED)
+7.  **User:** Requests hotkeys for select all/duplicate, object snapping, and alignment functions. (Status: COMPLETED)
+8.  **User:** Requests object grouping and copy/paste hotkeys, along with refactoring. (Status: COMPLETED)
+9.  **User:** Requests a text tool, dimension toggles, and hotkeys. (Status: COMPLETED)
+10. **Agent:** Acknowledges the initial plan to implement P0/P1 tasks.
 
 **Project Health Check:**
--   **Broken**:
-    -   The Content Generation page is non-functional on the user's production domain () due to a CORS/500 error when fetching the list of processed images.
+-   **Broken**: The Sauna Calculator has a critical pricing bug that miscalculates order totals.
+-   **Mocked**: None.
 
 **3rd Party Integrations**
--   **Nano Banana Pro (Gemini)**: (NEW) Used for AI image background replacement. This integration uses the **Emergent LLM Key**.
--   **Cloudinary**: Used for price list images and now also for storing AI-processed images.
+-   **Fabric.js**: (v5.3.0) The core of the layout configurator.
+-   **Nano Banana Pro (Gemini)**: Used for AI image background replacement. Uses **Emergent LLM Key**.
+-   **Cloudinary**: Used for price list images and AI-processed images.
 -   **amoCRM/Kommo**: Primary CRM integration for logistics.
 -   **Telegram**: Used for sending notifications.
 -   **Google Maps**: Used for calculating and displaying delivery routes.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
+-   **Testing agent used after significant changes**: YES (multiple times).
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None
--   **Known regressions**: None in this session.
+-   **Test files created**: None.
+-   **Known regressions**: The final test run for the Undo feature was inconclusive, as the testing agent (Playwright) failed to interact with the Fabric.js canvas correctly. The agent recommended manual verification.
 
 **Credentials to test flow:**
 -   Admin:  / 
--   Manager (Employee):  / 
 
 **What agent forgot to execute**
--   The agent did not proactively add the user's custom domain () to the CORS  list when implementing the new Content Generation feature, which directly led to the current production blocker. The focus was on fixing storage-related 500 errors, but the cross-origin aspect was overlooked.</analysis>
+-   The agent created the files and folders for a major refactoring of  but did not actually move the existing logic from the monolithic file into the new modular structure. This task remains incomplete and is a major piece of technical debt.</analysis>
