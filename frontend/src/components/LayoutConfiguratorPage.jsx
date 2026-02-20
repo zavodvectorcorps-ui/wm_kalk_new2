@@ -3519,6 +3519,51 @@ const LayoutConfiguratorPage = () => {
                         onCheckedChange={(checked) => toggleObjectDimensions(checked)}
                       />
                     </div>
+                    
+                    {/* Individual distance line toggles */}
+                    {selectedObject.showDimensions && (
+                      <div className="p-2 bg-red-50 border border-red-200 rounded space-y-2">
+                        <Label className="text-xs font-medium text-red-700">Линии расстояний:</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="flex items-center gap-2 text-xs cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedObject.showDistanceLeft !== false}
+                              onChange={(e) => toggleDistanceLine('left', e.target.checked)}
+                              className="rounded border-red-300 text-red-600 focus:ring-red-500"
+                            />
+                            <span>← Левая</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedObject.showDistanceRight !== false}
+                              onChange={(e) => toggleDistanceLine('right', e.target.checked)}
+                              className="rounded border-red-300 text-red-600 focus:ring-red-500"
+                            />
+                            <span>Правая →</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedObject.showDistanceTop !== false}
+                              onChange={(e) => toggleDistanceLine('top', e.target.checked)}
+                              className="rounded border-red-300 text-red-600 focus:ring-red-500"
+                            />
+                            <span>↑ Верхняя</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedObject.showDistanceBottom !== false}
+                              onChange={(e) => toggleDistanceLine('bottom', e.target.checked)}
+                              className="rounded border-red-300 text-red-600 focus:ring-red-500"
+                            />
+                            <span>Нижняя ↓</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 
