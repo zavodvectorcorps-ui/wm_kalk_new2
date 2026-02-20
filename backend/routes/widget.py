@@ -647,6 +647,38 @@ def build_preview_panel(order, section):
     """
 
 
+def build_edit_buttons_html(all_orders: dict, base_url: str, lead_id: str) -> str:
+    """Build edit buttons for each order type (sauna, balia, greenhouse)."""
+    if not all_orders:
+        return ""
+    
+    section_icons = {"sauna": "🔥", "balia": "🛁", "greenhouse": "🌿"}
+    section_names = {"sauna": "Сауна", "balia": "Купель", "greenhouse": "Теплица"}
+    calculator_paths = {"sauna": "sauna", "balia": "balia", "greenhouse": "greenhouse"}
+    
+    buttons_html = '<div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">'
+    
+    for section, order in all_orders.items():
+        order_id = order.get('id', '')
+        total = order.get('total', 0)
+        icon = section_icons.get(section, '📦')
+        name = section_names.get(section, section.capitalize())
+        calc_path = calculator_paths.get(section, section)
+        
+        buttons_html += f'''
+            <a href="{base_url}/{calc_path}/calculator?edit={order_id}" target="_blank" class="btn btn-edit" style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="display: flex; align-items: center; gap: 6px;">
+                    <span>{icon}</span>
+                    <span>Редактировать {name}</span>
+                </span>
+                <span style="font-size: 12px; opacity: 0.8;">{total:,.0f} PLN</span>
+            </a>
+        '''
+    
+    buttons_html += '</div>'
+    return buttons_html
+
+
 def build_gifts_panel(order, base_url, lead_id):
     """Build inline gifts editing panel for widget."""
     if not order:
