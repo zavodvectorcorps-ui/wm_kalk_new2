@@ -374,6 +374,19 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
                             <div className="text-sm text-muted-foreground">{order.phoneNumber || '-'}</div>
                           </div>
                         </TableCell>
+                        <TableCell>
+                          <AssignUserDropdown
+                            order={order}
+                            currentUser={user}
+                            isSauna={isSauna}
+                            lang={lang}
+                            onAssigned={(updatedOrder) => {
+                              setAllOrders(prev => prev.map(o => 
+                                o.id === updatedOrder.id ? { ...updatedOrder, _type: o._type } : o
+                              ));
+                            }}
+                          />
+                        </TableCell>
                         <TableCell>{formatDate(order.orderDate)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
