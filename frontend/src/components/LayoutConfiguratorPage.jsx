@@ -2542,7 +2542,8 @@ const LayoutConfiguratorPage = () => {
         objects: userObjects.map(obj => obj.toObject([
           'elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 
           'isMeasurement', 'isMeasurementPart', 'parentId', 'isRuler',
-          'showDimensions', 'assetId', 'assetName', 'isGroup', 'isModelOutline', 'isOutline',
+          'showDimensions', 'showDistanceLeft', 'showDistanceRight', 'showDistanceTop', 'showDistanceBottom',
+          'assetId', 'assetName', 'isGroup', 'isModelOutline', 'isOutline',
           'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
         ])),
         background: canvas.backgroundColor,
