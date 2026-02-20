@@ -1624,15 +1624,15 @@ const LayoutConfiguratorPage = () => {
     }
     
     canvas.renderAll();
-  }, [pixelsPerCm, findRoomRect, showDimensions]);
+  }, [pixelsPerCm, findRoomRect]);
 
-  // Update dimension labels when showDimensions changes
+  // Update dimension labels when showDimensions changes (global toggle)
   useEffect(() => {
     if (fabricRef.current) {
       if (showDimensions) {
         updateDimensionLabels();
       } else {
-        // Remove dimension labels
+        // Remove all dimension labels when global toggle is off
         fabricRef.current.getObjects()
           .filter(o => o.isDimensionLabel)
           .forEach(o => fabricRef.current.remove(o));
@@ -1643,14 +1643,14 @@ const LayoutConfiguratorPage = () => {
 
   // Update dimension labels when drawing finishes
   useEffect(() => {
-    if (!isDrawing && showDimensions && fabricRef.current) {
+    if (!isDrawing && fabricRef.current) {
       // Small delay to ensure the object is fully added
       const timer = setTimeout(() => {
         updateDimensionLabels();
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isDrawing, showDimensions, updateDimensionLabels]);
+  }, [isDrawing, updateDimensionLabels]);
 
   // Event handlers
   const handleObjectSelected = (e) => {
