@@ -286,6 +286,9 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
         options_data = [["Opcja", "Wartość"]]
         
         for key, value in request.selections.items():
+            # Skip fundament category - it's displayed separately as foundationPrice
+            if key == 'fundament':
+                continue
             if value and value != "none":
                 display_key = key.replace("_", " ").title()
                 display_value = str(value).replace("_", " ").title() if isinstance(value, str) else str(value)
