@@ -1521,23 +1521,23 @@ const LayoutConfiguratorPage = () => {
           const distTop = Math.round((obj.top - room.top) / pixelsPerCm);
           const distBottom = Math.round((roomBottom - objBottom) / pixelsPerCm);
           
-          // Left distance line + label
-          if (distLeft > 10) {
+          // Left distance line + label (check showDistanceLeft)
+          if (distLeft > 10 && obj.showDistanceLeft !== false) {
             drawDistanceLine(room.left, obj.top + height / 2, obj.left, obj.top + height / 2, `${distLeft}`, true, obj.id || obj._id);
           }
           
-          // Right distance line + label
-          if (distRight > 10) {
+          // Right distance line + label (check showDistanceRight)
+          if (distRight > 10 && obj.showDistanceRight !== false) {
             drawDistanceLine(objRight, obj.top + height / 2, roomRight, obj.top + height / 2, `${distRight}`, true, obj.id || obj._id);
           }
           
-          // Top distance line + label
-          if (distTop > 10) {
+          // Top distance line + label (check showDistanceTop)
+          if (distTop > 10 && obj.showDistanceTop !== false) {
             drawDistanceLine(obj.left + width / 2, room.top, obj.left + width / 2, obj.top, `${distTop}`, false, obj.id || obj._id);
           }
           
-          // Bottom distance line + label
-          if (distBottom > 10) {
+          // Bottom distance line + label (check showDistanceBottom)
+          if (distBottom > 10 && obj.showDistanceBottom !== false) {
             drawDistanceLine(obj.left + width / 2, objBottom, obj.left + width / 2, roomBottom, `${distBottom}`, false, obj.id || obj._id);
           }
         }
