@@ -347,6 +347,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     categories.forEach(category => {
       // Skip fundament category - it's calculated separately in calculateFoundationPrice
       if (category.id === 'fundament') return;
+      // Skip dostawa category - it's calculated separately in calculateDeliveryPrice
+      if (category.id === 'dostawa') return;
       
       const selection = formData.selections[category.id];
       if (!selection) return;
@@ -357,6 +359,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             const option = category.options?.find(o => o.id === optId);
             // Skip hidden options
             if (!option || !isOptionVisible(option)) return;
+            
+            // Skip if option is a gift
+            if (adminGifts.includes(optId)) return;
             
             const quantity = option.hasQuantity ? (formData.quantities[optId] || 1) : 1;
             
@@ -390,6 +395,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         // Skip hidden options
         if (!option || !isOptionVisible(option)) return;
         
+        // Skip if option is a gift
+        if (adminGifts.includes(selection)) return;
+        
         const quantity = option.hasQuantity ? (formData.quantities[selection] || 1) : 1;
         
         // Get variants (check both new 'variants' and legacy 'subOptions' fields)
@@ -417,7 +425,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     });
     
     return total;
-  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, isOptionVisible, getOptionBasePrice]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, isOptionVisible, getOptionBasePrice, adminGifts]);
 
   // Calculate foundation price
   const calculateFoundationPrice = useCallback(() => {
