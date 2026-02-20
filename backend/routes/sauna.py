@@ -1142,10 +1142,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             if cat_id == 'lawki':
                 continue
             
-            # Skip fundament category - it's displayed separately as foundationPrice
-            if cat_id == 'fundament':
-                continue
-                
             selection = request.selections.get(cat_id)
             
             if not selection:
@@ -1165,8 +1161,13 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             if has_quantity and quantity > 1:
                                 name = f"{name} (×{quantity})"
                             
-                            # Check if this option is a gift
-                            is_gift = opt_id in admin_gifts
+                            # Check if this option is a gift (including fundament)
+                            is_gift = opt_id in admin_gifts or (cat_id == 'fundament' and 'fundament_gift' in admin_gifts)
+                            
+                            # For fundament that is NOT a gift, skip
+                            if cat_id == 'fundament' and not is_gift:
+                                continue
+                            
                             if is_gift:
                                 price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
                             else:
@@ -1186,8 +1187,13 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     if has_quantity and quantity > 1:
                         name = f"{name} (×{quantity})"
                     
-                    # Check if this option is a gift
-                    is_gift = selection in admin_gifts
+                    # Check if this option is a gift (including fundament)
+                    is_gift = selection in admin_gifts or (cat_id == 'fundament' and 'fundament_gift' in admin_gifts)
+                    
+                    # For fundament that is NOT a gift, skip
+                    if cat_id == 'fundament' and not is_gift:
+                        continue
+                    
                     if is_gift:
                         price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
                     else:
