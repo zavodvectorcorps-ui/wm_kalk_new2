@@ -1126,7 +1126,8 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
     TRIP_TO_ORDER_STATUS = {
         "planned": "preparing",      # Ready to ship -> preparing (order in trip)
         "in_transit": "delivering",  # In transit -> delivering
-        "completed": "delivered"     # Completed -> delivered
+        "completed": "delivered",    # Completed -> delivered
+        "delivered": "delivered"     # Delivered -> delivered
     }
     
     # Handle status change and sync order statuses
