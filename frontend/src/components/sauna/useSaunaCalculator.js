@@ -436,13 +436,45 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     if (foundationCat) {
       const selection = formData.selections[foundationCat.id];
       if (selection && selection.includes('dodaj')) {
+        // Check if foundation is a gift
+        if (adminGifts.includes('fundament_gift') || adminGifts.includes(selection)) {
+          return 0;
+        }
         return model.foundationPrice || 0;
       }
     }
     return 0;
-  }, [getSelectedModel, prices.categories, formData.selections]);
+  }, [getSelectedModel, prices.categories, formData.selections, adminGifts]);
 
-  // Calculate subtotal
+  // Calculate delivery price (separate from subtotal)
+  const calculateDeliveryPrice = useCallback(() => {
+    const deliveryCat = prices.categories?.find(c => c.id === 'dostawa');
+    if (!deliveryCat) return 0;
+    
+    const selection = formData.selections['dostawa'];
+    if (!selection) return 0;
+    
+    // Check if delivery is a gift
+    if (adminGifts.includes(selection)) return 0;
+    
+    const option = deliveryCat.options?.find(o => o.id === selection);
+    if (!option) return 0;
+    
+    // Get variants
+    const variants = option.variants?.length > 0 ? option.variants : option.subOptions;
+    const selectedVariantId = formData.variantSelections?.[selection];
+    
+    if (selectedVariantId && variants?.length > 0) {
+      const selectedVariant = variants.find(v => v.id === selectedVariantId);
+      if (selectedVariant) return selectedVariant.price;
+    } else if (variants?.length > 0) {
+      return variants[0]?.price || option.price || 0;
+    }
+    
+    return option.price || 0;
+  }, [prices.categories, formData.selections, formData.variantSelections, adminGifts]);
+
+  // Calculate subtotal (without delivery)
   const calculateSubtotal = useCallback(() => {
     const model = getSelectedModel();
     if (!model) return 0;
