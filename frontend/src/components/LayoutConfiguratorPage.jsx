@@ -1344,7 +1344,7 @@ const LayoutConfiguratorPage = () => {
 
   // Update dimension labels on canvas
   const updateDimensionLabels = useCallback(() => {
-    if (!fabricRef.current || !showDimensions) return;
+    if (!fabricRef.current) return;
     
     const canvas = fabricRef.current;
     
