@@ -144,8 +144,8 @@ const AppContent = () => {
       const editOrderId = params.get('edit');
       const viewOrderId = params.get('view');
       
-      if (editOrderId || viewOrderId) {
-        // Load order by ID for editing or viewing
+      if ((editOrderId || viewOrderId) && user) {
+        // Load order by ID for editing or viewing (only if user is logged in)
         const orderId = editOrderId || viewOrderId;
         const endpoint = calcType === 'sauna' ? `/api/sauna/orders/${orderId}` : `/api/orders/${orderId}`;
         
@@ -160,10 +160,15 @@ const AppContent = () => {
             }
           })
           .catch(err => console.error('Error loading order:', err));
+        
+        // Clear URL params after processing
+        window.history.replaceState({}, document.title, pathname);
+      } else if (editOrderId || viewOrderId) {
+        // Store params in sessionStorage for after login
+        sessionStorage.setItem('pendingEditOrderId', editOrderId || '');
+        sessionStorage.setItem('pendingViewOrderId', viewOrderId || '');
+        sessionStorage.setItem('pendingCalcType', calcType);
       }
-      
-      // Clear URL params after processing
-      window.history.replaceState({}, document.title, pathname);
       return;
     }
     
