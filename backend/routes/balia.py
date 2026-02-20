@@ -765,6 +765,59 @@ async def delete_order(order_id: str):
     return {"message": "Order deleted successfully"}
 
 
+@router.patch("/orders/{order_id}/assign")
+async def assign_balia_order_responsible(order_id: str, data: dict):
+    """Assign a new responsible user to a balia order (admin/manager only)"""
+    new_responsible = data.get("createdBy")
+    assigned_by = data.get("assignedBy", "system")
+    
+    if not new_responsible:
+        raise HTTPException(status_code=400, detail="createdBy is required")
+    
+    # Get existing order
+    existing = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    old_responsible = existing.get("createdBy", "")
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Track change in history
+    history_entry = {
+        "timestamp": now,
+        "changes": [{
+            "field": "createdBy",
+            "oldValue": old_responsible,
+            "newValue": new_responsible
+        }],
+        "changedBy": assigned_by
+    }
+    
+    change_history = existing.get("changeHistory", []) or []
+    change_history.append(history_entry)
+    
+    # Update the order
+    result = await db.orders.update_one(
+        {"id": order_id},
+        {"$set": {
+            "createdBy": new_responsible,
+            "updatedAt": now,
+            "updatedBy": assigned_by,
+            "changeHistory": change_history
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Return updated order
+    updated = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    
+    logger.info(f"Balia order {order_id} reassigned from '{old_responsible}' to '{new_responsible}' by {assigned_by}")
+    
+    return updated
+
+
 async def generate_pdf_bytes(request: PDFRequest) -> bytes:
     """Generate PDF and return as bytes (for Telegram sending)"""
     import urllib.request
