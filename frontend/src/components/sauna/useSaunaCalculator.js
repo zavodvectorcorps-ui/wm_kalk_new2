@@ -150,6 +150,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         fullAddress: editingOrder.fullAddress || '',
         orderDate: editingOrder.orderDate || new Date().toISOString().split('T')[0],
         selectedModel: editingOrder.selectedModel || '',
+        selectedModelVariant: editingOrder.selectedModelVariant || '',
         notes: editingOrder.notes || '',
         selections: editingOrder.selections || prev.selections,
         quantities: editingOrder.quantities || {},
