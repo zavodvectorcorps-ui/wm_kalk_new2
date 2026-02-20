@@ -1713,6 +1713,11 @@ const SummaryCard = ({
                   {txt.discount}: {appliedDiscount}% ({txt.priceBeforeDiscount}: {formatPrice(subtotal)} PLN)
                 </div>
               )}
+              {deliveryPrice > 0 && !isDeliveryGift && (
+                <div className="text-xs text-amber-200 mt-2 pt-2 border-t border-amber-500">
+                  Z dostawą: <span className="font-semibold">{formatPrice(Math.round(total + deliveryPrice))} PLN</span>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
