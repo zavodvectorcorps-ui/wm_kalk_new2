@@ -1515,12 +1515,23 @@ const RadioOptions = ({ category, options, formData, foundationPrice, handleRadi
 };
 
 const SummaryCard = ({
-  model, modelVariant, modelPrice, prices, formData, appliedDiscount, subtotal, discountAmount, foundationPrice, total,
-  roomSizes, isAdminUser, isEditMode, adminGifts, toggleGift, removeOption, adminDiscountApproved, setAdminDiscountApproved,
+  model, modelVariant, modelPrice, prices, formData, appliedDiscount, subtotal, discountAmount, foundationPrice, deliveryPrice, total,
+  roomSizes, isAdminUser, canGiveGifts, isEditMode, adminGifts, toggleGift, removeOption, adminDiscountApproved, setAdminDiscountApproved,
   requestedDiscount, setRequestedDiscount, requestedDiscountNote, setRequestedDiscountNote,
   handleDiscountChange, handleApplyStandardDiscount, handleSaveAndGeneratePDF,
   handleClearForm, handleCancelEdit, getCategoryName, isOptionVisible, getOptionBasePrice, maxManagerDiscount, loading, lang, txt
-}) => (
+}) => {
+  // Check if foundation is a gift
+  const foundationSelection = formData.selections['fundament'];
+  const isFoundationGift = foundationSelection && (adminGifts.includes('fundament_gift') || adminGifts.includes(foundationSelection));
+  
+  // Get delivery info
+  const deliverySelection = formData.selections['dostawa'];
+  const isDeliveryGift = deliverySelection && adminGifts.includes(deliverySelection);
+  const deliveryCat = prices.categories?.find(c => c.id === 'dostawa');
+  const deliveryOption = deliveryCat?.options?.find(o => o.id === deliverySelection);
+  
+  return (
   <Card className="shadow-lg border-amber-200">
     <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100">
       <CardTitle className="flex items-center gap-2 text-amber-800">
@@ -1578,16 +1589,34 @@ const SummaryCard = ({
               adminGifts={adminGifts}
               toggleGift={toggleGift}
               removeOption={removeOption}
-              isAdminUser={isAdminUser}
+              canGiveGifts={canGiveGifts}
               txt={txt} 
             />
 
-            {/* Foundation */}
-            {foundationPrice > 0 && (
-              <div className="text-sm">
-                <div className="flex justify-between">
-                  <span>{txt.foundationPrice}</span>
-                  <span className="text-amber-700 font-medium">+{formatPrice(foundationPrice)} PLN</span>
+            {/* Foundation - with gift controls */}
+            {foundationSelection && foundationSelection.includes('dodaj') && (
+              <div className="text-sm group">
+                <div className="flex items-center justify-between gap-1">
+                  <span className={isFoundationGift ? 'text-green-600' : ''}>
+                    {isFoundationGift && <Gift className="h-3 w-3 inline mr-1 text-green-500" />}
+                    {txt.foundationPrice}
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className={`whitespace-nowrap font-medium ${isFoundationGift ? 'line-through text-gray-400' : 'text-amber-700'}`}>
+                      +{formatPrice(model?.foundationPrice || 0)} PLN
+                    </span>
+                    {canGiveGifts && (
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                        <button
+                          onClick={() => toggleGift(foundationSelection)}
+                          className={`p-1 rounded hover:bg-green-100 ${isFoundationGift ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`}
+                          title={isFoundationGift ? 'Убрать из подарков' : 'Сделать подарком'}
+                        >
+                          <Gift className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
