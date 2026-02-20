@@ -1247,6 +1247,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const model = getSelectedModel();
   const optionsTotal = calculateOptionsTotal();
   const foundationPrice = calculateFoundationPrice();
+  const deliveryPrice = calculateDeliveryPrice();
   const subtotal = calculateSubtotal();
   const discountAmount = subtotal * (appliedDiscount / 100);
   const total = calculateTotal();
@@ -1266,6 +1267,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     requestedDiscount,
     requestedDiscountNote,
     isAdminUser,
+    canGiveGifts,
     lang,
     txt,
     amocrmData,
@@ -1275,6 +1277,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     model,
     optionsTotal,
     foundationPrice,
+    deliveryPrice,
     subtotal,
     discountAmount,
     total,
