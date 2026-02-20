@@ -2508,9 +2508,9 @@ const LayoutConfiguratorPage = () => {
       }
       formData.append('canvasWidth', canvasWidth.toString());
       formData.append('canvasHeight', canvasHeight.toString());
-      // Get canvas state for template loading (excluding grid)
+      // Get canvas state for template loading (excluding grid and dimension elements)
       const userObjects = canvas.getObjects().filter(obj => 
-        !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel
+        !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isDimensionLine
       );
       const canvasState = {
         version: '5.3.0',
