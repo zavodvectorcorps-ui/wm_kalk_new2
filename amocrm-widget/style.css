@@ -230,3 +230,82 @@
   margin: 10px 0;
   padding: 0;
 }
+
+/* Existing orders section */
+.wm-existing-orders {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.wm-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wm-order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f9fafb;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.wm-order-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wm-order-icon {
+  font-size: 16px;
+}
+
+.wm-order-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.wm-order-total {
+  font-size: 12px;
+  color: #059669;
+  font-weight: 600;
+}
+
+.wm-order-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.wm-edit-btn,
+.wm-view-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.wm-edit-btn:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.wm-view-btn:hover {
+  border-color: #6b7280;
+  background: #f3f4f6;
+}
+
