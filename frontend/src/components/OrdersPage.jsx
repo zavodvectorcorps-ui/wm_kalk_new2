@@ -603,20 +603,6 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                             <Calculator className="h-4 w-4 mr-1" />
                             {lang === 'pl' ? 'Edytuj' : 'Редактировать'}
                           </Button>
-                          {/* Gifts/Options Edit Button - For admins and managers */}
-                          {canGiveGifts && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-green-300 text-green-700 hover:bg-green-50"
-                              onClick={() => handleEditOrder(order)}
-                              title={lang === 'pl' ? 'Prezenty i opcje' : 'Подарки и опции'}
-                              data-testid={`gifts-edit-btn-${order.id}`}
-                            >
-                              <Gift className="h-4 w-4 mr-1" />
-                              {lang === 'pl' ? 'Prezenty' : 'Подарки'}
-                            </Button>
-                          )}
                           <Button
                             size="sm"
                             variant="outline"
