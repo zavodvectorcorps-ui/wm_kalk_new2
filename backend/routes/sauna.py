@@ -1107,18 +1107,20 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             if opt.get('categoryId') == 'lawki':
                 continue
             
-            # Skip fundament category - it's displayed separately as foundationPrice
-            if opt.get('categoryId') == 'fundament':
+            opt_id = opt.get('optionId', '') or opt.get('id', '')
+            category_id = opt.get('categoryId', '')
+            
+            # Check if this option is a gift (including fundament)
+            is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
+            
+            # For fundament that is NOT a gift, skip (it's in foundationPrice)
+            if category_id == 'fundament' and not is_gift:
                 continue
             
-            opt_id = opt.get('optionId', '') or opt.get('id', '')
             name = opt.get('optionName', '') or opt.get('name', '')
             price = opt.get('price', 0)
             quantity = opt.get('quantity', 1)
             total_price = price * quantity
-            
-            # Check if this option is a gift
-            is_gift = opt_id in admin_gifts
             
             if quantity > 1:
                 name = f"{name} (×{quantity})"
