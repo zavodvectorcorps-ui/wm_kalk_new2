@@ -6,18 +6,28 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 ## Latest Updates
 
 ### Feb 20, 2025 - Order Management & amoCRM Widget Updates (COMPLETED)
-1. **Orders Page UI Changes**:
-   - Removed Quick Edit button (pencil icon) from OrdersPage.jsx and AdminOrdersPage.jsx
-   - Added new "Подарки/Prezenty" button (green Gift icon) that opens OrderFullEditModal for gift/option management
-   - Gift editing now done through main OrderFullEditModal (same as before, just different button)
+1. **Calculator Option Controls**:
+   - Added gift toggle (🎁) and remove (🗑️) buttons in SelectedOptionsList (right panel)
+   - Buttons appear on hover for each option
+   - Admin users can make any option a gift (price crossed out, shown in green)
+   - Admin users can remove any option from selection
+   - Works in both SaunaCalculator.jsx and SaunaCalculatorNew.jsx
+   - Files Modified:
+     - `/app/frontend/src/components/sauna/useSaunaCalculator.js` - Added `removeOption()` function
+     - `/app/frontend/src/components/SaunaCalculatorNew.jsx` - Updated SelectedOptionsList with controls
+     - `/app/frontend/src/components/SaunaCalculator.jsx` - Same updates
 
-2. **amoCRM Widget - Multiple Orders Support**:
+2. **Orders Page Cleanup**:
+   - Removed Quick Edit button (pencil icon) - gifts/options now managed in calculator
+   - Removed separate "Подарки" button - all editing done through calculator
+
+3. **amoCRM Widget - Multiple Orders Support**:
    - Updated `/api/widget/preview/{lead_id}` to show ALL orders for a deal (sauna + balia + greenhouse)
    - Each order type now has separate "Edit" and "View" buttons
    - Removed "Edit Gifts" standalone page link (gifts managed through main calculator edit)
    - New endpoint `/api/widget/orders-status/{lead_id}` returns all orders for a lead
 
-3. **amoCRM Widget JS Updates**:
+4. **amoCRM Widget JS Updates**:
    - Widget now loads existing orders and shows them with edit/view buttons
    - Shows section for each order type (sauna, balia, greenhouse) if exists
    - Each order has its own edit/view buttons that open correct calculator
@@ -25,8 +35,6 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
      - `/app/backend/routes/widget.py` - Added `get_orders_dict_by_amocrm_id()`, updated `preview_order()`, added `orders-status` endpoint
      - `/app/amocrm-widget/script.js` - Updated `renderCalculatorSelector()`, added `openOrderEdit()`, `openOrderView()`
      - `/app/amocrm-widget/style.css` - Added styles for order items and action buttons
-     - `/app/frontend/src/components/OrdersPage.jsx` - Replaced Quick Edit with Gifts button
-     - `/app/frontend/src/components/AdminOrdersPage.jsx` - Same changes
 
 ### Feb 20, 2025 - Sauna Calculator Foundation Price Bug Fix (COMPLETED)
 - **BUGFIX**: Fixed double-counting of foundation price ("Belki podłużne") in PDF generation
