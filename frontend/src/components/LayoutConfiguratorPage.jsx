@@ -985,6 +985,10 @@ const LayoutConfiguratorPage = () => {
         elementType: 'rect',
         isDrawnShape: true,
         showDimensions: true, // Default: show dimensions
+        showDistanceLeft: true,
+        showDistanceRight: true,
+        showDistanceTop: true,
+        showDistanceBottom: true,
       });
     } else if (currentTool === 'wall') {
       // For Line: use absolute coordinates, fabric.js will calculate left/top
@@ -997,6 +1001,10 @@ const LayoutConfiguratorPage = () => {
         elementType: 'wall',
         isDrawnShape: true,
         showDimensions: true, // Default: show dimensions
+        showDistanceLeft: true,
+        showDistanceRight: true,
+        showDistanceTop: true,
+        showDistanceBottom: true,
       });
     } else if (currentTool === 'ruler') {
       // Create measurement line - use absolute coordinates
