@@ -406,15 +406,17 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
                               {txt.edit}
                             </Button>
                             
-                            {/* Quick Edit (Admin/Manager) */}
+                            {/* Gifts/Options Edit (Admin/Manager) */}
                             {canGiveGifts && (
                               <Button
                                 size="sm"
-                                variant="ghost"
+                                variant="outline"
+                                className="border-green-300 text-green-700 hover:bg-green-50"
                                 onClick={() => handleEditOrder(order)}
-                                data-testid={`admin-quick-edit-btn-${order.id}`}
+                                title={lang === 'pl' ? 'Prezenty i opcje' : 'Подарки и опции'}
+                                data-testid={`admin-gifts-edit-btn-${order.id}`}
                               >
-                                <Edit className="h-4 w-4" />
+                                <Gift className="h-4 w-4" />
                               </Button>
                             )}
                             
