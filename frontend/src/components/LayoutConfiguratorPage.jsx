@@ -1359,101 +1359,109 @@ const LayoutConfiguratorPage = () => {
     // Find room (largest rectangle)
     const room = findRoomRect();
     
-    // Helper to draw distance line with arrows and label
-    const drawDistanceLine = (x1, y1, x2, y2, labelText, isHorizontal = true) => {
+    // Helper to draw distance line with arrows and label (as a movable group)
+    const drawDistanceLine = (x1, y1, x2, y2, labelText, isHorizontal = true, sourceObjId = null) => {
       const arrowSize = 4;
+      const groupElements = [];
       
-      // Main line
-      const line = new fabric.Line([x1, y1, x2, y2], {
+      // Calculate relative positions for group
+      const minX = Math.min(x1, x2);
+      const minY = Math.min(y1, y2);
+      
+      // Main line (relative to group origin)
+      const line = new fabric.Line([x1 - minX, y1 - minY, x2 - minX, y2 - minY], {
         stroke: '#dc2626',
         strokeWidth: 1,
         strokeDashArray: [4, 2],
-        selectable: false,
-        evented: false,
-        isDimensionLabel: true,
       });
-      canvas.add(line);
+      groupElements.push(line);
       
       // Arrow at start
       if (isHorizontal) {
         const arrow1 = new fabric.Triangle({
-          left: x1,
-          top: y1,
+          left: x1 - minX,
+          top: y1 - minY,
           width: arrowSize,
           height: arrowSize * 1.5,
           fill: '#dc2626',
           angle: -90,
           originX: 'center',
           originY: 'center',
-          selectable: false,
-          evented: false,
-          isDimensionLabel: true,
         });
-        canvas.add(arrow1);
+        groupElements.push(arrow1);
         
         const arrow2 = new fabric.Triangle({
-          left: x2,
-          top: y2,
+          left: x2 - minX,
+          top: y2 - minY,
           width: arrowSize,
           height: arrowSize * 1.5,
           fill: '#dc2626',
           angle: 90,
           originX: 'center',
           originY: 'center',
-          selectable: false,
-          evented: false,
-          isDimensionLabel: true,
         });
-        canvas.add(arrow2);
+        groupElements.push(arrow2);
       } else {
         const arrow1 = new fabric.Triangle({
-          left: x1,
-          top: y1,
+          left: x1 - minX,
+          top: y1 - minY,
           width: arrowSize,
           height: arrowSize * 1.5,
           fill: '#dc2626',
           angle: 0,
           originX: 'center',
           originY: 'center',
-          selectable: false,
-          evented: false,
-          isDimensionLabel: true,
         });
-        canvas.add(arrow1);
+        groupElements.push(arrow1);
         
         const arrow2 = new fabric.Triangle({
-          left: x2,
-          top: y2,
+          left: x2 - minX,
+          top: y2 - minY,
           width: arrowSize,
           height: arrowSize * 1.5,
           fill: '#dc2626',
           angle: 180,
           originX: 'center',
           originY: 'center',
-          selectable: false,
-          evented: false,
-          isDimensionLabel: true,
         });
-        canvas.add(arrow2);
+        groupElements.push(arrow2);
       }
       
       // Label
-      const midX = (x1 + x2) / 2;
-      const midY = (y1 + y2) / 2;
+      const midX = (x1 + x2) / 2 - minX;
+      const midY = (y1 + y2) / 2 - minY;
       const label = new fabric.Text(labelText, {
         left: midX + (isHorizontal ? 0 : 8),
         top: midY + (isHorizontal ? -12 : 0),
         fontSize: 9,
         fill: '#dc2626',
         fontWeight: 'bold',
-        backgroundColor: 'rgba(255,255,255,0.8)',
+        backgroundColor: 'rgba(255,255,255,0.9)',
         originX: 'center',
         originY: isHorizontal ? 'bottom' : 'center',
-        selectable: false,
-        evented: false,
-        isDimensionLabel: true,
       });
-      canvas.add(label);
+      groupElements.push(label);
+      
+      // Create movable group
+      const group = new fabric.Group(groupElements, {
+        left: minX,
+        top: minY,
+        selectable: true,
+        evented: true,
+        hasControls: false,
+        hasBorders: true,
+        lockRotation: true,
+        lockScalingX: true,
+        lockScalingY: true,
+        isDimensionLabel: true,
+        isDimensionLine: true,
+        sourceObjectId: sourceObjId,
+        hoverCursor: 'move',
+        borderColor: '#dc2626',
+        cornerColor: '#dc2626',
+      });
+      
+      canvas.add(group);
     };
     
     shapes.forEach(obj => {
