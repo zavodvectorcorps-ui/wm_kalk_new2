@@ -1118,6 +1118,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             # Skip lawki as it's shown separately with image
             if cat_id == 'lawki':
                 continue
+            
+            # Skip fundament category - it's displayed separately as foundationPrice
+            if cat_id == 'fundament':
+                continue
                 
             selection = request.selections.get(cat_id)
             
