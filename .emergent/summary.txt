@@ -2,165 +2,183 @@
 The user initially requested a fix for a 500 error. The project then evolved into building a Modular Sauna Configurator.
 
 **PRODUCT REQUIREMENTS for the Modular Sauna Configurator:**
-- A dedicated screen for designing sauna layouts with a canvas supporting layouts up to 8 meters.
+- A dedicated screen for designing sauna layouts.
 - Users can select a model and sub-model (variant).
-- A left panel for managing graphical elements (heaters, benches) and saved layouts.
-- Canvas features: drag-and-drop, grid, snap-to-grid, object rotation, scaling, grouping, copy/paste, duplication, alignment.
-- A right-side properties panel to edit selected element properties.
-- Drawing tools for rectangles, lines, and adding text labels.
-- Measurement tools: on-canvas dimensions, distances to walls/between objects, and a manual ruler.
-- An Undo button (Ctrl+Z).
+- A left panel for managing graphical elements and saved layouts.
+- Canvas features: drag-and-drop, grid, snap-to-grid, object rotation, scaling, etc.
+- A right-side properties panel to edit element properties.
+- Drawing tools, measurement tools, and an Undo button.
 - Ability to save/load layouts and export them as images.
-- **Template System:** Ability to load a pre-defined layout as a template when a model/variant is selected. Managers can create and manage these templates.
-- **Hotkeys:** Keyboard shortcuts for common actions (e.g., Ctrl+C/V for copy/paste, Ctrl+A for select all, Ctrl+D for duplicate, Delete key).
+- **Template System:** Ability to load a pre-defined layout as a template.
+- **Hotkeys:** Keyboard shortcuts for common actions.
 
-**Latest User Request:**
-- **Bug Fix:** In the Sauna Calculator (), when an option Dodaj do sauny Belki podłużne (add longitudinal beams) is selected, its price is counted twice when editing the order.
+**Latest User Requests (from this session):**
+1.  **Bug Fix:** In the Sauna Calculator, when an option Dodaj do sauny Belki podłużne (add longitudinal beams) is selected, its price is counted twice when editing the order. (Resolved, was a PDF generation issue).
+2.  **UI/UX:** Remove quick edit pencil icon. Add gift/delete options directly in the calculator's right-side summary list, available to admins and managers.
+3.  **amoCRM Widget:**
+    -   Remove the Gifts section.
+    -   If a lead has both a sauna and a tub order, display separate Edit and View buttons for each.
+    -   Fix a bug where the Edit button opened the calculator's main page instead of the specific order.
+4.  **Pricing Logic:**
+    -   The foundation cost (Koszt fundamentu) should be giftable.
+    -   The delivery cost (dostawa) should be a separate line item, not included in the subtotal, but added to a final Total with delivery price displayed below the main total.
+5.  **New Feature:** Add the ability for an admin to select and change the responsible employee for an order.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-A full-stack React/FastAPI/MongoDB application. The core feature is the Modular Sauna Configurator (), built with . It's a highly interactive canvas editor with features like drawing, object manipulation, snapping, grouping, on-canvas dimensioning, and a template system.
+A full-stack React/FastAPI/MongoDB application featuring a Modular Sauna Configurator built with Fabric.js and a Sauna Calculator. The application is integrated with amoCRM via a widget.
 
-A large number of features and hotkeys were added in the last session. The agent also started a major refactoring of the monolithic  by creating a new component structure, although the logic has not been fully migrated. A new critical bug in the  component was reported at the end of the session.
+In this session, a critical pricing bug related to PDF generation was fixed. Significant UI/UX improvements were made to the Sauna Calculator, including adding in-line controls for making options a gift or deleting them, and separating the delivery cost from the main total. The amoCRM widget was also overhauled to correctly handle leads with multiple order types (Sauna and Tub) and the edit functionality was fixed.
 
 **Last working item**:
--   **Last item agent was working**: Investigating a bug in the Sauna Calculator where the price for foundation beams is being double-counted when an order is edited.
--   **Status**: IN PROGRESS
+-   **Last item agent was working**: The user requested a new feature: allowing an admin to change the responsible employee assigned to an order. The agent had just acknowledged the request and started investigating the codebase.
+-   **Status**: NOT STARTED
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: Manual testing. The agent needs to follow the user's steps: add an item with Belki podłużne to the cart, then open the order for editing and verify the total.
+-   **Which testing method agent to use?**: Both. Backend testing for the new API endpoint to update the order, and Frontend testing for the new UI dropdown/selector in the order details view.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Sauna Calculator Double-Counting Bug (P0 - CRITICAL)**
+-   **Issue 1: Implement Change Responsible User Feature (P0 - BLOCKER)**
 -   **Issue 2: Unstable user login sessions (P1 - RECURRING)**
 -   **Issue 3:  errors during deployment (P2 - RECURRING)**
 
 **Issues Detail**:
--   **Issue 1: Sauna Calculator Double-Counting Bug**
-    -   **Attempted fixes**: The agent investigated  and identified the likely cause:  sums all option categories, including , while  calculates the same price again separately. The final total incorrectly adds both values.
+-   **Issue 1: Implement Change Responsible User Feature**
+    -   **Attempted fixes**: None. The task has just been requested.
     -   **Next debug checklist**:
-        1.  Open .
-        2.  Modify the  function to exclude the  category from its calculation loop.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical business logic bug that leads to incorrect pricing for customers. Fixing it will ensure order totals are accurate.
-    -   **Status**: IN PROGRESS
+        1.  Investigate the user and order models in the backend to see how the responsible user is stored (likely  or a similar field).
+        2.  Create a new API endpoint (e.g., ) that allows an admin to update this field.
+        3.  In the frontend ( and/or a modal), add a dropdown list of users for admins.
+        4.  Implement the  handler for the dropdown to call the new backend endpoint.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a blocker for the user's workflow. Admins currently cannot reassign orders, which means if an admin edits an order, the original manager might lose visibility. This feature will restore proper access control.
+    -   **Status**: NOT STARTED
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Frontend (calculation logic).
+    -   **Should Test frontend/backend/both after fix?**: Both.
     -   **Blocked on other issue**: None.
 
 -   **Issue 2: Unstable user login sessions.**
-    -   **Status**: USER VERIFICATION PENDING (Recurring issue from previous sessions, suspected cause of screenshot tool failures).
+    -   **Status**: USER VERIFICATION PENDING. This recurring issue caused multiple screenshot tool failures during this session, preventing UI verification.
 
 -   **Issue 3:  errors during deployment.**
-    -   **Status**: USER VERIFICATION PENDING (Recurring issue from previous sessions).
+    -   **Status**: USER VERIFICATION PENDING.
 
 **In progress Task List**:
--   **Task 1: Fix Sauna Calculator Bug**
-    -   **Where to resume**: .
-    -   **What will be achieved with this?**: Corrects the total price calculation in the sauna calculator.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Frontend.
+-   **Task 1: Implement Change Responsible User Feature**
+    -   **Where to resume**: Start by exploring the backend order and user schemas, then create the necessary API endpoint.
+    -   **What will be achieved with this?**: Admins will be able to manage order ownership, fixing a critical workflow issue.
+    -   **Status**: NOT STARTED
+    -   **Should Test frontend/backend/both after fix?**: Both.
     -   **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    *   **P0: Complete Refactoring of **: **CRITICAL**. The agent created the file structure for new components (, , etc.) and hooks (, ), but the logic from the 2500+ line monolithic file has not been moved. This is the most important technical debt to address for future development.
+    *   **P0: Complete Refactoring of **: **CRITICAL**. This 2500+ line monolithic file is a major source of technical debt. The file structure for refactoring exists, but the logic has not been migrated. This should be the highest priority after the current P0 task.
     *   **P1**: Refactor the monolithic  function in .
 -   **Future Tasks**:
     *   **P2**: Add UI for importing/restoring a backup.
     *   **P2**: Replace the deprecated Google Maps Autocomplete component.
-    *   **P2**: Continue development of the Wizard Calculator () beyond the bug fix.
 
 **Completed work in this session**
--   **Feature: Layout Templates:** Implemented a system where selecting a sauna model automatically loads a corresponding layout template. Users can also manually load a template from the list of saved layouts.
--   **Feature: Full Hotkey Suite:** Implemented hotkeys for Undo/Redo (Ctrl+Z/Y), Copy/Paste (Ctrl+C/V), Duplicate (Ctrl+D), Select All (Ctrl+A), Group/Ungroup (Ctrl+G), and Delete.
--   **Feature: Object Grouping & Snapping:** Added functionality to group/ungroup multiple objects and a toggleable snapping feature for precise alignment.
--   **Feature: Text Tool & Dimension Toggles:** Completed the implementation of a tool to add text to the canvas and a UI toggle to show/hide dimensions for individual objects.
--   **Feature: Catalog Integration:** Published layouts from the configurator now appear in the main .
--   **Bugfix: Undo Functionality:** Resolved a complex bug where object positions were not restored correctly. This involved refactoring event listeners and how history state is saved and loaded, specifically excluding the grid from the saved state.
--   **Bugfix: Toolbar Layout:** Redesigned the configurator toolbar into a two-row layout to prevent UI overflow on smaller screens.
--   **Bugfix: Outline Centering:** Corrected the logic to ensure the sauna model outline is always properly centered on the canvas upon loading.
--   **Backend: Layout Schema Update:** Modified the backend API and database model to save  and the full  JSON, enabling the template feature.
--   **UI Cleanup:** Removed the non-functional Align buttons from the toolbar at the user's request.
+-   **Bugfix: Double-Counting in PDF:** Resolved a bug where the foundation price appeared twice in the generated PDF (once as an option, once in the total). The fix involved adding filters in  to exclude the  category from the list of options rendered in the PDF.
+-   **Feature: Calculator UI Overhaul (, ):**
+    -   Added Make Gift (🎁) and Delete (🗑️) icons next to each item in the calculator's right-side summary list, allowing direct management of options.
+    -   Extended gift functionality to manager roles, not just admin, by adding a  check.
+    -   Made the foundation cost giftable.
+-   **Feature: Delivery Cost Separation:**
+    -   Modified the calculator logic to treat the dostawa (delivery) category price separately. It is no longer included in the main subtotal.
+    -   It is now displayed as a separate line item, with a new summary line Z dostawą: X PLN showing the grand total.
+-   **Feature: amoCRM Widget Update (, ):**
+    -   Removed the Gifts button/panel from the widget.
+    -   The widget now displays separate Edit and View buttons for Sauna and Tub orders if both exist for a single lead.
+    -   Fixed a critical bug where the Edit button would not open the specific order. This involved updating  to correctly parse the order ID from the URL, persist it in  across logins, and then load the order data.
+-   **UI Cleanup: Orders Page (, ):**
+    -   Removed the quick edit pencil icon to streamline the UI. The Edit in Calculator button is now the primary way to edit.
 
 **Earlier issues found/mentioned but not fixed**
--   None in this session; the two recurring issues below are carried over.
+-   None. The two recurring issues were carried over from the previous session.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Unstable user login sessions. This has repeatedly caused testing/screenshot tools to fail by logging them out.
--   **Recurrence count**: Very High.
+-   **Issue recurrence in previous fork**: Unstable user login sessions.
+-   **Recurrence count**: Very High. This issue manifested multiple times in this session, causing the screenshot tool to fail repeatedly by showing the login page instead of the intended application screen.
 -   **Status**: USER VERIFICATION PENDING.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Fabric.js State Management:** Deep manipulation of Fabric.js objects and canvas state. The Undo fix required saving canvas state to JSON (), excluding non-serializable or unnecessary objects (like the grid), and restoring it ().
--   **React Hooks for Complex Logic:** Started migrating logic into custom hooks (, ) to manage side effects and state related to the Fabric.js canvas, although the migration is incomplete.
--   **Dynamic Template Loading:** Implemented a flow where changing a dropdown () triggers a search for a corresponding saved layout and loads its  onto the canvas.
--   **Event Listener Management in React:** Refactored Fabric.js event listener subscriptions () and cleanup () inside  hooks to prevent memory leaks and duplicate event firings, which was a source of major bugs.
+-   **Frontend State Management (React Hooks):** The  custom hook was heavily modified to encapsulate complex business logic, including role-based permissions (), special pricing rules (delivery cost separation), and state updates for gifts and option removal.
+-   **SPA Routing & State Persistence:** Implemented logic in  to handle direct navigation to an edit order state via URL parameters (). This involved parsing the URL, using  to persist the editing intent across a login session, and triggering data fetching and UI state changes post-authentication.
+-   **Backend Template Rendering:** Modified the  file, which uses Jinja2-like templates to generate the HTML for the amoCRM widget. The logic was changed to fetch multiple orders and dynamically construct different sets of buttons based on the order types found.
 
 **key DB schema**
--   ****: Updated to include ,  (stores the full Fabric.js canvas JSON).
+-   No changes made to the database schema in this session.
 
 **All files of reference**
--   : **(Primary file for the next task)** Contains the double-counting bug.
--   : Contains all the configurator logic. Most of the session's work was done here. It is the target for the upcoming major refactoring.
--   : Backend API for layouts, which was modified to support saving template data.
--   New (but mostly empty) refactoring files in  and .
+-    (Fixed PDF bug)
+-    (Overhauled amoCRM widget logic)
+-    (Added logic to handle editing from URL)
+-    (Core calculator logic for pricing, gifts, delivery)
+-    (UI for new calculator)
+-    (UI for old calculator)
+-    (UI cleanup)
+-    (UI cleanup)
+-    (Client-side amoCRM widget logic)
 
 **Areas that need refactoring**:
--    is **CRITICALLY** in need of refactoring. While the agent created the file structure for the refactor, the actual logic remains in the single monolithic file. This should be the highest priority task after the calculator bug is fixed.
+-   ****: **CRITICAL PRIORITY**. Remains a 2500+ line monolithic component that needs to be broken down into the already-created smaller components and hooks.
+-   ** & **: These files contain large, nearly identical, duplicated components (, ). This logic should be extracted into shared components to reduce code duplication.
+-   ****: The  function is still very large and could be broken down into smaller, more manageable helper functions.
 
 **key api endpoints**
--   : Updated to accept and save  and .
--   : Used to fetch all layouts to find potential templates.
+-   : Internal logic modified to fix a display bug.
+-   : The HTML rendered by this endpoint was significantly changed to support multiple order types.
+-   ****: **New endpoint** created to get a summary of all orders (sauna, tub) for a given amoCRM lead ID.
+-   : Utilized by the new frontend logic in  to fetch order details when editing from a URL.
 
 **Critical Info for New Agent**
 -   **You MUST respond in Russian.**
--   **Top Priority:** Your first task is to fix the double-counting bug in  as described in Issues Detail.
--   **Next CRITICAL Task:** After fixing the bug, you must prioritize the refactoring of . The file structure is in place; you need to move the corresponding logic (state, effects, JSX) into the new component and hook files. Propose this to the user as the necessary next step for maintainability.
--   **Login Instability:** Be aware of the recurring login issue. It frequently causes automated tools like the screenshot agent to fail. If tests fail with session expired or show the login page, it's likely due to this underlying problem, not a new bug in the feature you're working on.
+-   **Top Priority (P0):** Your first task is to implement the new feature allowing admins to change the responsible user for an order. This is a blocker for the user's workflow.
+-   **Next CRITICAL Task (P0):** After implementing the user assignment feature, you must prioritize the refactoring of . Propose this to the user as a necessary step to improve maintainability and enable future development.
+-   **Login Instability:** Be aware of the recurring login issue. Automated tools like the screenshot agent will likely fail. Do not treat a screenshot of the login page as a new bug in your feature; it's the known session instability problem.
+-   **Calculator Logic:** Almost all pricing, gift, and option logic for the calculator is now centralized in the  hook. Start there for any calculator-related changes.
 
 **documents and test reports created in this job**
--   
--   
--   
--   
--    (updated multiple times)
+-    (updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Reports the Sauna Calculator double-counts the foundation price. (Status: IN PROGRESS)
-2.  **User:** Asks to make the model outline load as a template for managers to use. (Status: COMPLETED)
-3.  **User:** Asks to center the model contour on the canvas. (Status: COMPLETED)
-4.  **User:** Asks to remove the confusing align buttons. (Status: COMPLETED)
-5.  **User:** Reports that the undo action does not revert the position of a moved object. (Status: COMPLETED)
-6.  **User:** Reports the toolbar buttons are overlapping other UI elements. (Status: COMPLETED)
-7.  **User:** Requests hotkeys for select all/duplicate, object snapping, and alignment functions. (Status: COMPLETED)
-8.  **User:** Requests object grouping and copy/paste hotkeys, along with refactoring. (Status: COMPLETED)
-9.  **User:** Requests a text tool, dimension toggles, and hotkeys. (Status: COMPLETED)
-10. **Agent:** Acknowledges the initial plan to implement P0/P1 tasks.
+1.  **User (Pending):** Requested a feature for admins to change the responsible employee for an order because they get locked out after an admin edits it.
+2.  **User (Resolved):** Reported that the Edit button in the amoCRM widget opens the calculator's home page, not the specific order.
+3.  **User (Resolved):** Pointed out that in the amoCRM widget, the Gifts button was still visible and there weren't separate edit buttons for sauna vs. tub orders.
+4.  **User (Resolved):** Requested that a Total with delivery price be shown in small text below the main total.
+5.  **User (Resolved):** Clarified that the delivery cost should NOT be part of the main  total.
+6.  **User (Resolved):** Requested three changes: 1) Make gifts available to managers, 2) Make foundation cost giftable, 3) Separate delivery cost into its own line item.
+7.  **User (Resolved):** Requested adding gift/delete icons directly into the calculator's right-side summary list.
+8.  **User (Resolved):** Provided a screenshot clarifying where the gift/delete icons should be placed.
+9.  **User (Resolved):** Requested to remove the quick edit button and add separate edit buttons for different order types in the amoCRM widget.
+10. **Agent (Acknowledged):** Confirmed understanding of the new tasks after fixing the initial bug.
 
 **Project Health Check:**
--   **Broken**: The Sauna Calculator has a critical pricing bug that miscalculates order totals.
+-   **Broken**: The order management workflow is partially broken for admins/managers, as admins cannot reassign orders to the correct employee. The user session instability remains a critical underlying issue hampering testing and development verification.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
--   **Fabric.js**: (v5.3.0) The core of the layout configurator.
--   **Nano Banana Pro (Gemini)**: Used for AI image background replacement. Uses **Emergent LLM Key**.
--   **Cloudinary**: Used for price list images and AI-processed images.
--   **amoCRM/Kommo**: Primary CRM integration for logistics.
--   **Telegram**: Used for sending notifications.
--   **Google Maps**: Used for calculating and displaying delivery routes.
+-   **Fabric.js**: (v5.3.0) Core of the layout configurator.
+-   **Nano Banana Pro (Gemini)**: For AI image background replacement. Uses **Emergent LLM Key**.
+-   **Cloudinary**: For price list images and AI-processed images.
+-   **amoCRM/Kommo**: Primary CRM integration.
+-   **Telegram**: For notifications.
+-   **Google Maps**: For delivery routes.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (multiple times).
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: The final test run for the Undo feature was inconclusive, as the testing agent (Playwright) failed to interact with the Fabric.js canvas correctly. The agent recommended manual verification.
+-   **Known regressions**: None.
 
 **Credentials to test flow:**
 -   Admin:  / 
 
 **What agent forgot to execute**
--   The agent created the files and folders for a major refactoring of  but did not actually move the existing logic from the monolithic file into the new modular structure. This task remains incomplete and is a major piece of technical debt.</analysis>
+-   The agent has still not addressed the **critical technical debt** of refactoring , despite it being a P0 task in the initial handoff.
+-   The recurring login instability issue was encountered multiple times but no investigation or fix was attempted. It remains a significant impediment to testing.</analysis>
