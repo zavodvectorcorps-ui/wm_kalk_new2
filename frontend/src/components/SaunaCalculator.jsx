@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, Calendar,
-  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon, Check, Home, FileText
+  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon, Check, Home, FileText, Trash2
 } from 'lucide-react';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
