@@ -5,6 +5,23 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 20, 2026 - Change Responsible User Feature (COMPLETED)
+- **NEW FEATURE**: Admins can now reassign orders to different employees
+  - Added dropdown in `createdBy` column showing current responsible user
+  - Clicking opens list of admin/employee users
+  - Selecting a new user immediately updates the order
+  - Change is tracked in order history (`changeHistory` array)
+  - Works for both Sauna and Balia orders
+- **Backend Endpoints Added**:
+  - `PATCH /api/sauna/orders/{order_id}/assign` - Reassign sauna order
+  - `PATCH /api/orders/{order_id}/assign` - Reassign balia order
+- **Frontend Components**:
+  - New: `/app/frontend/src/components/orders/AssignUserDropdown.jsx`
+  - Updated: `OrdersPage.jsx` - Shows dropdown for admins
+  - Updated: `AdminOrdersPage.jsx` - Added "Ответственный" column with dropdown
+- **Bug Fixed**: `AssignUserDropdown` used wrong localStorage key (`token` instead of `authToken`)
+- **Testing**: All 8 backend tests passed, frontend verified
+
 ### Feb 20, 2025 - Order Management & amoCRM Widget Updates (COMPLETED)
 1. **Calculator Option Controls** (Updated):
    - Added gift toggle (🎁) and remove (🗑️) buttons in SelectedOptionsList (right panel)
