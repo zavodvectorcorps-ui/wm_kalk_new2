@@ -484,13 +484,13 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return modelPrice + calculateOptionsTotal() + calculateFoundationPrice();
   }, [getSelectedModel, getModelPrice, calculateOptionsTotal, calculateFoundationPrice]);
 
-  // Calculate total (subtotal with discount + delivery)
+  // Calculate total (subtotal with discount, WITHOUT delivery)
   const calculateTotal = useCallback(() => {
     const subtotal = calculateSubtotal();
     const discountAmount = subtotal * (appliedDiscount / 100);
-    const deliveryPrice = calculateDeliveryPrice();
-    return subtotal - discountAmount + deliveryPrice;
-  }, [calculateSubtotal, appliedDiscount, calculateDeliveryPrice]);
+    // Delivery is shown separately, NOT included in total
+    return subtotal - discountAmount;
+  }, [calculateSubtotal, appliedDiscount]);
 
   // Input handlers
   const handleInputChange = (e) => {
