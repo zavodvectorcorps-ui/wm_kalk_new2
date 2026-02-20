@@ -1720,6 +1720,10 @@ const LayoutConfiguratorPage = () => {
         strokeWidthCm,
         distances, // Distances to room walls
         showDimensions: obj.showDimensions !== false, // Add showDimensions flag
+        showDistanceLeft: obj.showDistanceLeft,
+        showDistanceRight: obj.showDistanceRight,
+        showDistanceTop: obj.showDistanceTop,
+        showDistanceBottom: obj.showDistanceBottom,
       });
     }
   };
