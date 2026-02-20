@@ -1101,6 +1101,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     quantities = getattr(request, 'quantities', {}) or {}
     
     # PRIMARY: Use selectedOptions if available (from saved orders)
+    # Track delivery price separately
+    delivery_price = 0
+    
     if selected_options:
         for opt in selected_options:
             # Skip lawki as it's shown separately with image
@@ -1109,6 +1112,11 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             
             opt_id = opt.get('optionId', '') or opt.get('id', '')
             category_id = opt.get('categoryId', '')
+            
+            # Skip dostawa - it will be shown separately below total
+            if category_id == 'dostawa':
+                delivery_price = opt.get('price', 0) * opt.get('quantity', 1)
+                continue
             
             # Check if this option is a gift (including fundament)
             is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
