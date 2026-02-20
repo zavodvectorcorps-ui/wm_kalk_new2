@@ -2150,11 +2150,6 @@ const SummaryCard = ({
                 {txt.discount}: {appliedDiscount}% ({txt.priceBeforeDiscount}: {formatPrice(subtotal)} PLN)
               </div>
             )}
-            {deliveryPrice > 0 && !isDeliveryGift && (
-              <div className="text-xs text-amber-100 mt-1">
-                Вкл. доставку: {formatPrice(deliveryPrice)} PLN
-              </div>
-            )}
           </div>
 
           {/* Action Buttons */}
