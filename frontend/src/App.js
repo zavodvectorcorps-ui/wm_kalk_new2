@@ -162,7 +162,7 @@ const AppContent = () => {
           .catch(err => console.error('Error loading order:', err));
       }
       
-      // Clear URL params
+      // Clear URL params after processing
       window.history.replaceState({}, document.title, pathname);
       return;
     }
