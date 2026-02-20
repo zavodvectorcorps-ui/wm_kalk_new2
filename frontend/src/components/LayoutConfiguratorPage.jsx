@@ -3767,7 +3767,7 @@ const LayoutConfiguratorPage = () => {
             {selectedModel && (
               <div className="p-3 bg-muted rounded-lg text-sm">
                 <p><strong>Модель:</strong> {selectedModel.name}</p>
-                {selectedVariant && <p><strong>Вариант:</strong> {selectedVariant.nameRu || selectedVariant.name}</p>}
+                {selectedVariant && <p><strong>Вариант:</strong> {selectedVariant.nameRu || selectedVariant.namePl || selectedVariant.name}</p>}
                 <p><strong>Размер холста:</strong> {canvasWidth} × {canvasHeight}</p>
               </div>
             )}
