@@ -220,6 +220,40 @@ const AppContent = () => {
     }
   }, []);
 
+  // Load pending order after login
+  useEffect(() => {
+    if (!user) return;
+    
+    const pendingEditOrderId = sessionStorage.getItem('pendingEditOrderId');
+    const pendingViewOrderId = sessionStorage.getItem('pendingViewOrderId');
+    const pendingCalcType = sessionStorage.getItem('pendingCalcType');
+    
+    if ((pendingEditOrderId || pendingViewOrderId) && pendingCalcType) {
+      const orderId = pendingEditOrderId || pendingViewOrderId;
+      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+      const endpoint = pendingCalcType === 'sauna' ? `/api/sauna/orders/${orderId}` : `/api/orders/${orderId}`;
+      
+      setCurrentCalculator(pendingCalcType);
+      setActiveTab('calculator');
+      
+      fetch(`${API_URL}${endpoint}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(order => {
+          if (order) {
+            setEditingOrder(order);
+            console.log(`Loaded pending order ${orderId} for editing`);
+          }
+        })
+        .catch(err => console.error('Error loading pending order:', err))
+        .finally(() => {
+          // Clear pending order from storage
+          sessionStorage.removeItem('pendingEditOrderId');
+          sessionStorage.removeItem('pendingViewOrderId');
+          sessionStorage.removeItem('pendingCalcType');
+        });
+    }
+  }, [user]);
+
   // Check for embed URL - show public calculator without auth
   const isEmbed = window.location.pathname.startsWith('/embed');
   if (isEmbed) {
