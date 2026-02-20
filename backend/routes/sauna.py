@@ -199,6 +199,11 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
         elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))
         
         for opt in request.selectedOptions:
+            # Skip fundament category - it's displayed separately as foundationPrice
+            category_id = opt.get('categoryId', '')
+            if category_id == 'fundament':
+                continue
+                
             opt_name = opt.get('optionName', '')
             base_price = opt.get('price', 0)
             quantity = opt.get('quantity', 1)
