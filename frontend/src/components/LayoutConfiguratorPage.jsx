@@ -2014,9 +2014,9 @@ const LayoutConfiguratorPage = () => {
     if (!fabricRef.current) return;
     const canvas = fabricRef.current;
     
-    // Get all selectable objects (excluding grid, dimension labels, etc.)
+    // Get all selectable objects (excluding grid, dimension labels, dimension lines, etc.)
     const selectableObjects = canvas.getObjects().filter(obj => 
-      !obj.isGridLine && !obj.isDimensionLabel && !obj.isGridLabel && obj.selectable !== false
+      !obj.isGridLine && !obj.isDimensionLabel && !obj.isDimensionLine && !obj.isGridLabel && obj.selectable !== false
     );
     
     if (selectableObjects.length === 0) {
