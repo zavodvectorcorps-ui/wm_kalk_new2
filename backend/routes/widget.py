@@ -2235,6 +2235,7 @@ async def preview_order(lead_id: str):
     
     # Get base URL
     app_domain = os.environ.get("APP_DOMAIN", "")
+    base_url = "https://wm-kalkulator.pl"  # Default fallback
     if app_domain:
         base_url = f"https://{app_domain}"
     else:
@@ -2244,8 +2245,8 @@ async def preview_order(lead_id: str):
                     if line.startswith("REACT_APP_BACKEND_URL="):
                         base_url = line.strip().split("=", 1)[1]
                         break
-        except:
-            base_url = "https://wm-kalkulator.pl"
+        except Exception as e:
+            logger.warning(f"Could not read base URL from .env: {e}")
     
     # Build HTML for each order type
     orders_html = ""
