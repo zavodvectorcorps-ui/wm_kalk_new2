@@ -5,6 +5,19 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 20, 2025 - Sauna Calculator Foundation Price Bug Fix (COMPLETED)
+- **BUGFIX**: Fixed double-counting of foundation price ("Belki podłużne") in PDF generation
+  - Problem: When "Dodaj do sauny Belki podłużne" option was selected, its price (150 PLN) appeared twice in PDF:
+    1. In the options list (from `selectedOptions`)
+    2. As a separate `foundationPrice` value in the total
+  - Solution: Added checks to skip `fundament` category in all PDF generation loops
+  - Files Modified: `/app/backend/routes/sauna.py` (4 locations)
+    - Line ~204: Skip in main selectedOptions loop
+    - Line ~290: Skip in selections fallback loop
+    - Line ~1093: Skip in options_items selectedOptions loop
+    - Line ~1126: Skip in options_items selections fallback loop
+- **Testing**: Manual verification passed
+
 ### Feb 19, 2025 - Layout Configurator Select All, Duplicate, Snap & Align (COMPLETED)
 - **NEW**: Select All (Ctrl+A)
   - Selects all objects on canvas (excluding grid and labels)
