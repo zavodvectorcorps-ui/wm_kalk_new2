@@ -1086,6 +1086,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             if opt.get('categoryId') == 'lawki':
                 continue
             
+            # Skip fundament category - it's displayed separately as foundationPrice
+            if opt.get('categoryId') == 'fundament':
+                continue
+            
             opt_id = opt.get('optionId', '') or opt.get('id', '')
             name = opt.get('optionName', '') or opt.get('name', '')
             price = opt.get('price', 0)
