@@ -552,7 +552,17 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                         </TableCell>
                       )}
                       <TableCell>
-                        {order.createdBy ? (
+                        {isAdmin && isAdmin() ? (
+                          <AssignUserDropdown
+                            order={order}
+                            currentUser={user}
+                            isSauna={isSauna}
+                            lang={lang}
+                            onAssigned={(updatedOrder) => {
+                              setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+                            }}
+                          />
+                        ) : order.createdBy ? (
                           <div className="flex items-center gap-1 text-sm">
                             <UserCircle className="h-4 w-4 text-muted-foreground" />
                             <span>{order.createdBy}</span>
