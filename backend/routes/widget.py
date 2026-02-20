@@ -1927,7 +1927,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 </button>
             </div>
             {build_edit_buttons_html(all_orders, base_url, lead_id)}
-        </div>''' if has_selections else ''}
+        </div>''' if has_any_orders else ''}
         
         <!-- Inline Preview Panel -->
         {build_preview_panel(order, section) if has_selections else ''}
