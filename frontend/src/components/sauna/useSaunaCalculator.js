@@ -30,6 +30,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const [requestedDiscountNote, setRequestedDiscountNote] = useState('');
   
   const isAdminUser = isAdmin && isAdmin();
+  // Check if user can give gifts (admin or manager)
+  const canGiveGifts = user && (user.role === 'admin' || user.role === 'manager');
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = getTranslation(lang);
   
