@@ -195,6 +195,9 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
     elements.append(Spacer(1, 6*mm))
     
     # Options section - from selectedOptions with images
+    # Track delivery price for separate display
+    delivery_price_simple = 0
+    
     if request.selectedOptions:
         elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))
         
@@ -204,6 +207,11 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
         for opt in request.selectedOptions:
             category_id = opt.get('categoryId', '')
             opt_id = opt.get('optionId', '') or opt.get('id', '')
+            
+            # Skip dostawa - it will be shown separately below total
+            if category_id == 'dostawa':
+                delivery_price_simple = opt.get('price', 0) * opt.get('quantity', 1)
+                continue
             
             # Check if this option is a gift (including fundament)
             is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
