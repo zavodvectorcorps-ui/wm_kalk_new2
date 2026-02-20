@@ -1019,9 +1019,11 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
             subtotal={subtotal}
             discountAmount={discountAmount}
             foundationPrice={foundationPrice}
+            deliveryPrice={deliveryPrice}
             total={total}
             roomSizes={roomSizes}
             isAdminUser={isAdminUser}
+            canGiveGifts={canGiveGifts}
             isEditMode={isEditMode}
             adminGifts={adminGifts}
             toggleGift={toggleGift}
