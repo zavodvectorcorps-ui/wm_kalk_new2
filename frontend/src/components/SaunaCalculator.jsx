@@ -1746,9 +1746,10 @@ const SummaryCard = ({
       )}
     </CardContent>
   </Card>
-);
+  );
+};
 
-const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisible, getOptionBasePrice, adminGifts = [], toggleGift, removeOption, isAdminUser, txt }) => {
+const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisible, getOptionBasePrice, adminGifts = [], toggleGift, removeOption, canGiveGifts, txt }) => {
   // Helper to get variant info for an option
   const getVariantInfo = (opt, optId) => {
     const variants = opt?.variants?.length > 0 ? opt.variants : opt?.subOptions;
