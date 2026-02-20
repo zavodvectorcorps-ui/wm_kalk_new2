@@ -1515,22 +1515,22 @@ const LayoutConfiguratorPage = () => {
           
           // Left distance line + label
           if (distLeft > 10) {
-            drawDistanceLine(room.left, obj.top + height / 2, obj.left, obj.top + height / 2, `${distLeft}`, true);
+            drawDistanceLine(room.left, obj.top + height / 2, obj.left, obj.top + height / 2, `${distLeft}`, true, obj.id || obj._id);
           }
           
           // Right distance line + label
           if (distRight > 10) {
-            drawDistanceLine(objRight, obj.top + height / 2, roomRight, obj.top + height / 2, `${distRight}`, true);
+            drawDistanceLine(objRight, obj.top + height / 2, roomRight, obj.top + height / 2, `${distRight}`, true, obj.id || obj._id);
           }
           
           // Top distance line + label
           if (distTop > 10) {
-            drawDistanceLine(obj.left + width / 2, room.top, obj.left + width / 2, obj.top, `${distTop}`, false);
+            drawDistanceLine(obj.left + width / 2, room.top, obj.left + width / 2, obj.top, `${distTop}`, false, obj.id || obj._id);
           }
           
           // Bottom distance line + label
           if (distBottom > 10) {
-            drawDistanceLine(obj.left + width / 2, objBottom, obj.left + width / 2, roomBottom, `${distBottom}`, false);
+            drawDistanceLine(obj.left + width / 2, objBottom, obj.left + width / 2, roomBottom, `${distBottom}`, false, obj.id || obj._id);
           }
         }
       } else if (obj.type === 'line') {
