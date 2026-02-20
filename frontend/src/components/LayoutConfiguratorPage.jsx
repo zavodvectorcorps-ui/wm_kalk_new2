@@ -1910,6 +1910,19 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Toggle individual distance line (left/right/top/bottom)
+  const toggleDistanceLine = (direction, value) => {
+    if (!fabricRef.current) return;
+    const obj = fabricRef.current.getActiveObject();
+    if (obj && obj.isDrawnShape) {
+      const propName = `showDistance${direction.charAt(0).toUpperCase() + direction.slice(1)}`;
+      obj[propName] = value;
+      updateDimensionLabels();
+      // Update selected object state
+      handleObjectSelected({ selected: [obj] });
+    }
+  };
+
   // ============ COPY/PASTE FUNCTIONALITY ============
   const copySelected = useCallback(() => {
     if (!fabricRef.current) return;
