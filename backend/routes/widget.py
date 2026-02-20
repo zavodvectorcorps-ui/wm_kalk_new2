@@ -1771,6 +1771,8 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         
         # Check if order has selections (for showing edit buttons)
         has_selections = bool(order.get('selectedOptions')) or bool(order.get('selections'))
+        # Also show edit buttons if we have any orders
+        has_any_orders = bool(all_orders)
         
         # Get total and payment info
         # Different collections use different field names:
