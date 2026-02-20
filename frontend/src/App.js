@@ -128,6 +128,41 @@ const AppContent = () => {
   // Check URL parameters for amoCRM integration and CRM prefill
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const pathname = window.location.pathname;
+    
+    // Handle direct calculator URLs: /sauna/calculator?edit=ORDER_ID or /balia/calculator?edit=ORDER_ID
+    const calcMatch = pathname.match(/^\/(sauna|balia)\/calculator/);
+    if (calcMatch) {
+      const calcType = calcMatch[1];
+      setCurrentCalculator(calcType);
+      setActiveTab('calculator');
+      
+      const editOrderId = params.get('edit');
+      const viewOrderId = params.get('view');
+      
+      if (editOrderId || viewOrderId) {
+        // Load order by ID for editing or viewing
+        const orderId = editOrderId || viewOrderId;
+        const endpoint = calcType === 'sauna' ? `/api/sauna/orders/${orderId}` : `/api/orders/${orderId}`;
+        
+        fetch(`${API_URL}${endpoint}`)
+          .then(res => res.ok ? res.json() : null)
+          .then(order => {
+            if (order) {
+              setEditingOrder(order);
+              console.log(`Loaded order ${orderId} for ${editOrderId ? 'editing' : 'viewing'}`);
+            } else {
+              console.error(`Order ${orderId} not found`);
+            }
+          })
+          .catch(err => console.error('Error loading order:', err));
+      }
+      
+      // Clear URL params
+      window.history.replaceState({}, document.title, pathname);
+      return;
+    }
+    
     const calc = params.get('calc'); // Calculator type: balia or sauna
     const amocrmId = params.get('amocrm_id'); // amoCRM lead ID
     const crmLeadId = params.get('crmLeadId'); // CRM lead ID (from Sauna CRM)
