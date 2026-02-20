@@ -603,18 +603,6 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                             <Calculator className="h-4 w-4 mr-1" />
                             {lang === 'pl' ? 'Edytuj' : 'Редактировать'}
                           </Button>
-                          {/* Quick Edit Button - For admins and managers (discount, gifts) */}
-                          {canGiveGifts && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEditOrder(order)}
-                              title={txt.edit}
-                              data-testid={`quick-edit-btn-${order.id}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
                           <Button
                             size="sm"
                             variant="outline"
