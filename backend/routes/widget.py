@@ -2187,10 +2187,11 @@ async def salesbot_handler_get(lead_id: str = ""):
 
 @router.get("/preview/{lead_id}", response_class=HTMLResponse)
 async def preview_order(lead_id: str):
-    """Preview order details for amoCRM widget."""
-    order, section = get_all_orders_by_amocrm_id(lead_id)
+    """Preview order details for amoCRM widget - shows all orders if multiple types exist."""
+    # Get ALL orders for this lead
+    all_orders = get_orders_dict_by_amocrm_id(lead_id)
     
-    if not order:
+    if not all_orders:
         return HTMLResponse(content="""
         <html>
         <head><meta charset="UTF-8"><title>Заказ не найден</title></head>
@@ -2215,51 +2216,109 @@ async def preview_order(lead_id: str):
         except:
             base_url = "https://wm-kalkulator.pl"
     
-    # Build order details HTML
-    order_id = order.get('id', '-')
-    client_name = order.get('fullName') or order.get('clientName', '-')
-    phone = order.get('phoneNumber') or order.get('phone', '-')
-    address = order.get('fullAddress') or order.get('address', '-')
-    total = order.get('total', 0)
-    discount = order.get('discountPercent', 0)
-    admin_gifts = order.get('adminGifts', [])
-    model_name = order.get('modelName', '-')
-    created_at = order.get('createdAt', '-')
+    # Build HTML for each order type
+    orders_html = ""
+    section_icons = {"sauna": "🔥", "balia": "🛁", "greenhouse": "🌿"}
+    section_names = {"sauna": "Сауна", "balia": "Купель", "greenhouse": "Теплица"}
+    section_badges = {"sauna": "badge-sauna", "balia": "badge-balia", "greenhouse": "badge-greenhouse"}
+    calculator_paths = {"sauna": "sauna", "balia": "balia", "greenhouse": "greenhouse"}
     
-    # Format created date
-    if created_at and created_at != '-':
-        try:
-            from datetime import datetime
-            dt = datetime.fromisoformat(str(created_at).replace('Z', '+00:00'))
-            created_at = dt.strftime('%d.%m.%Y %H:%M')
-        except:
-            pass
-    
-    # Build selections HTML
-    selections_html = ""
-    selections = order.get('selectedOptions', [])
-    if isinstance(selections, list):
-        for sel in selections:
-            if isinstance(sel, dict):
-                cat_name = sel.get('categoryName', '')
-                opt_name = sel.get('optionName', '')
-                opt_price = sel.get('optionPrice', 0)
-                if cat_name and opt_name:
-                    selections_html += f"""
-                    <tr>
-                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">{cat_name}</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">{opt_name}</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">{opt_price:,.0f} zł</td>
-                    </tr>"""
-    
-    # Build gifts HTML
-    gifts_html = ""
-    if admin_gifts:
-        gifts_html = "<div style='margin-top: 16px; padding: 12px; background: #dcfce7; border-radius: 8px;'>"
-        gifts_html += "<strong style='color: #166534;'>🎁 Подарки:</strong><br>"
-        for gift in admin_gifts:
-            gifts_html += f"<span style='display: inline-block; margin: 4px; padding: 4px 8px; background: #bbf7d0; border-radius: 4px; font-size: 13px;'>{gift}</span>"
-        gifts_html += "</div>"
+    for section, order in all_orders.items():
+        order_id = order.get('id', '-')
+        client_name = order.get('fullName') or order.get('clientName', '-')
+        phone = order.get('phoneNumber') or order.get('phone', '-')
+        address = order.get('fullAddress') or order.get('address', '-')
+        total = order.get('total', 0)
+        discount = order.get('discountPercent', 0)
+        admin_gifts = order.get('adminGifts', [])
+        model_name = order.get('modelName', '-')
+        created_at = order.get('createdAt', '-')
+        
+        # Format created date
+        if created_at and created_at != '-':
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(str(created_at).replace('Z', '+00:00'))
+                created_at = dt.strftime('%d.%m.%Y %H:%M')
+            except:
+                pass
+        
+        # Build selections HTML
+        selections_html = ""
+        selections = order.get('selectedOptions', [])
+        if isinstance(selections, list):
+            for sel in selections[:5]:  # Show max 5 options
+                if isinstance(sel, dict):
+                    cat_name = sel.get('categoryName', '')
+                    opt_name = sel.get('optionName', '')
+                    opt_price = sel.get('price', sel.get('optionPrice', 0))
+                    if cat_name and opt_name:
+                        selections_html += f"""
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">{cat_name}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">{opt_name}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">{opt_price:,.0f} zł</td>
+                        </tr>"""
+            if len(selections) > 5:
+                selections_html += f"""
+                <tr>
+                    <td colspan="3" style="padding: 8px; text-align: center; color: #6b7280;">
+                        ... и еще {len(selections) - 5} опций
+                    </td>
+                </tr>"""
+        
+        # Build gifts HTML
+        gifts_html = ""
+        if admin_gifts:
+            gifts_html = "<div style='margin-top: 12px; padding: 8px; background: #dcfce7; border-radius: 6px;'>"
+            gifts_html += "<strong style='color: #166534; font-size: 13px;'>🎁 Подарки:</strong> "
+            for gift in admin_gifts[:3]:
+                gifts_html += f"<span style='display: inline-block; margin: 2px; padding: 2px 6px; background: #bbf7d0; border-radius: 4px; font-size: 12px;'>{gift}</span>"
+            if len(admin_gifts) > 3:
+                gifts_html += f"<span style='font-size: 12px; color: #166534;'>+{len(admin_gifts)-3}</span>"
+            gifts_html += "</div>"
+        
+        calc_path = calculator_paths.get(section, section)
+        
+        orders_html += f"""
+        <div class="order-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <span style="font-size: 20px;">{section_icons.get(section, '📦')}</span>
+                        <h2 style="margin: 0; font-size: 18px;">{section_names.get(section, section)}</h2>
+                        <span class="badge {section_badges.get(section, '')}">{order_id}</span>
+                    </div>
+                    <div style="font-size: 14px; color: #6b7280;">{model_name}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 20px; font-weight: bold; color: #059669;">{total:,.0f} zł</div>
+                    {f'<div style="font-size: 12px; color: #dc2626;">Скидка: {discount}%</div>' if discount > 0 else ''}
+                </div>
+            </div>
+            
+            <div class="info-row">
+                <span>👤 {client_name}</span>
+                <span>📞 {phone}</span>
+                <span>📅 {created_at}</span>
+            </div>
+            
+            {gifts_html}
+            
+            {f'''<table style="margin-top: 12px; font-size: 13px;">
+                <tbody>{selections_html}</tbody>
+            </table>''' if selections_html else ''}
+            
+            <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="{base_url}/{calc_path}/calculator?edit={order_id}" class="btn btn-primary" target="_blank">
+                    ✏️ Редактировать
+                </a>
+                <a href="{base_url}/{calc_path}/calculator?view={order_id}" class="btn btn-secondary" target="_blank">
+                    👁️ Просмотр
+                </a>
+            </div>
+        </div>
+        """
     
     html = f"""
     <!DOCTYPE html>
@@ -2267,88 +2326,36 @@ async def preview_order(lead_id: str):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Заказ {order_id}</title>
+        <title>Заказы - amoCRM</title>
         <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f3f4f6; }}
-            .container {{ max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-            h1 {{ color: #1f2937; margin-bottom: 8px; }}
-            .badge {{ display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; }}
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 16px; background: #f3f4f6; }}
+            .container {{ max-width: 900px; margin: 0 auto; }}
+            h1 {{ color: #1f2937; margin-bottom: 16px; font-size: 22px; }}
+            .order-card {{ background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px; }}
+            .badge {{ display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }}
             .badge-sauna {{ background: #fef3c7; color: #92400e; }}
             .badge-balia {{ background: #dbeafe; color: #1e40af; }}
-            .info-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 20px 0; }}
-            .info-item {{ padding: 12px; background: #f9fafb; border-radius: 8px; }}
-            .info-label {{ font-size: 12px; color: #6b7280; margin-bottom: 4px; }}
-            .info-value {{ font-size: 16px; color: #1f2937; font-weight: 500; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-            th {{ background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; color: #374151; }}
-            .total-row {{ background: #fef3c7; font-weight: bold; }}
-            .discount {{ color: #dc2626; }}
-            .btn {{ display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s; }}
+            .badge-greenhouse {{ background: #d1fae5; color: #065f46; }}
+            .info-row {{ display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: #4b5563; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }}
+            table {{ width: 100%; border-collapse: collapse; }}
+            .btn {{ display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; transition: all 0.2s; }}
             .btn-primary {{ background: #2563eb; color: white; }}
             .btn-primary:hover {{ background: #1d4ed8; }}
             .btn-secondary {{ background: #e5e7eb; color: #374151; }}
             .btn-secondary:hover {{ background: #d1d5db; }}
+            .summary {{ background: #fef3c7; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }}
         </style>
     </head>
     <body>
         <div class="container">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <div>
-                    <h1>📋 Заказ {order_id}</h1>
-                    <span class="badge badge-{section}">{section.upper()}</span>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 24px; font-weight: bold; color: #059669;">{total:,.0f} zł</div>
-                    {f'<div class="discount">Скидка: {discount}%</div>' if discount > 0 else ''}
-                </div>
+            <h1>📋 Заказы для сделки</h1>
+            
+            <div class="summary">
+                <strong>Найдено заказов: {len(all_orders)}</strong>
+                {' | '.join([f"{section_icons.get(s, '📦')} {section_names.get(s, s)}" for s in all_orders.keys()])}
             </div>
             
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">👤 Клиент</div>
-                    <div class="info-value">{client_name}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">📞 Телефон</div>
-                    <div class="info-value">{phone}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">📍 Адрес</div>
-                    <div class="info-value">{address}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">📅 Создан</div>
-                    <div class="info-value">{created_at}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">🏷️ Модель</div>
-                    <div class="info-value">{model_name}</div>
-                </div>
-            </div>
-            
-            {gifts_html}
-            
-            {f'''<table>
-                <thead>
-                    <tr>
-                        <th>Категория</th>
-                        <th>Опция</th>
-                        <th style="text-align: right;">Цена</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {selections_html}
-                </tbody>
-            </table>''' if selections_html else ''}
-            
-            <div style="margin-top: 24px; display: flex; gap: 12px;">
-                <a href="{base_url}/api/widget/edit-gifts/{lead_id}" class="btn btn-primary">
-                    🎁 Редактировать подарки
-                </a>
-                <a href="{base_url}/?calc={section}&amocrm_id={lead_id}&edit=true" class="btn btn-secondary">
-                    ✏️ Редактировать полностью
-                </a>
-            </div>
+            {orders_html}
         </div>
     </body>
     </html>
