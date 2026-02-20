@@ -2215,16 +2215,6 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
     </>
   );
 };
-                  {displayPrice > 0 ? `+${formatPrice(totalPrice)} PLN` : txt.gratis}
-                </span>
-              </div>
-            </div>
-          );
-        }
-      })}
-    </>
-  );
-};
 
 const DiscountSection = ({ appliedDiscount, discountAmount, isAdminUser, adminDiscountApproved, setAdminDiscountApproved, handleDiscountChange, handleApplyStandardDiscount, maxManagerDiscount, lang, txt }) => (
   <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-3">
