@@ -6,15 +6,23 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 ## Latest Updates
 
 ### Feb 20, 2025 - Order Management & amoCRM Widget Updates (COMPLETED)
-1. **Calculator Option Controls**:
+1. **Calculator Option Controls** (Updated):
    - Added gift toggle (🎁) and remove (🗑️) buttons in SelectedOptionsList (right panel)
-   - Buttons appear on hover for each option
-   - Admin users can make any option a gift (price crossed out, shown in green)
-   - Admin users can remove any option from selection
+   - **Now available for managers AND admins** (not just admins)
+   - **Foundation (Koszt fundamentu)** can now be made a gift - shown with controls
+   - **Delivery (Dostawa)** shown as separate line, not included in subtotal
+     - Delivery added to total AFTER discount is applied
+     - Delivery can be made a gift or removed
+     - Shows in PDF with other options
    - Works in both SaunaCalculator.jsx and SaunaCalculatorNew.jsx
    - Files Modified:
-     - `/app/frontend/src/components/sauna/useSaunaCalculator.js` - Added `removeOption()` function
-     - `/app/frontend/src/components/SaunaCalculatorNew.jsx` - Updated SelectedOptionsList with controls
+     - `/app/frontend/src/components/sauna/useSaunaCalculator.js`:
+       - Added `canGiveGifts` (true for admin OR manager)
+       - Added `calculateDeliveryPrice()` - calculates delivery separately
+       - `calculateOptionsTotal()` excludes 'dostawa' category
+       - `calculateFoundationPrice()` respects gift status
+       - `calculateTotal()` = subtotal - discount + delivery
+     - `/app/frontend/src/components/SaunaCalculatorNew.jsx` - Updated SummaryCard with delivery line
      - `/app/frontend/src/components/SaunaCalculator.jsx` - Same updates
 
 2. **Orders Page Cleanup**:
