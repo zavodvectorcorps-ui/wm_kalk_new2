@@ -1138,14 +1138,15 @@ async def update_trip(trip_id: str, trip_data: TripUpdate):
         
         # For 'completed' status, always update all order statuses to 'delivered'
         # For other statuses, only sync if syncOrderStatuses flag is set
-        should_sync = (new_trip_status == "completed") or sync_order_statuses
+        should_sync = (new_trip_status in ["completed", "delivered"]) or sync_order_statuses
         
         if should_sync:
             existing_statuses = existing.get("orderStatuses", {})
             for order_id in existing.get("orderIds", []):
                 current_status = existing_statuses.get(order_id, "pending")
-                # Don't change cancelled orders
-                if current_status != "cancelled":
+                # Don't change cancelled or already delivered orders
+                # (preserve delivery status set by driver)
+                if current_status not in ["cancelled", "delivered"]:
                     existing_statuses[order_id] = new_order_status
             
             update_data["orderStatuses"] = existing_statuses
