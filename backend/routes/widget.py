@@ -33,7 +33,8 @@ delivery_photos = db["delivery_photos"]
 
 
 def get_all_orders_by_amocrm_id(amocrm_id: str):
-    """Search for order by amoCRM lead ID across all collections."""
+    """Search for order by amoCRM lead ID across all collections.
+    Returns all found orders as a dict with section keys."""
     # Search in all collections
     collections = [
         ("greenhouse", greenhouse_orders),
@@ -41,12 +42,36 @@ def get_all_orders_by_amocrm_id(amocrm_id: str):
         ("sauna", sauna_orders)
     ]
     
+    found_orders = {}
     for section, collection in collections:
         order = collection.find_one({"amocrm_id": str(amocrm_id)}, {"_id": 0})
         if order:
-            return order, section
+            found_orders[section] = order
+    
+    # For backward compatibility - return first found order and its section
+    if found_orders:
+        first_section = list(found_orders.keys())[0]
+        return found_orders[first_section], first_section
     
     return None, None
+
+
+def get_orders_dict_by_amocrm_id(amocrm_id: str):
+    """Search for ALL orders by amoCRM lead ID across all collections.
+    Returns dict with section -> order mapping."""
+    collections = [
+        ("greenhouse", greenhouse_orders),
+        ("balia", balia_orders),
+        ("sauna", sauna_orders)
+    ]
+    
+    found_orders = {}
+    for section, collection in collections:
+        order = collection.find_one({"amocrm_id": str(amocrm_id)}, {"_id": 0})
+        if order:
+            found_orders[section] = order
+    
+    return found_orders
 
 
 def build_balia_pdf_request(order: dict, admin_gifts: list = None, discount_percent: float = None) -> PDFRequest:
