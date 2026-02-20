@@ -2113,7 +2113,7 @@ const SummaryCard = ({
   </Card>
 );
 
-const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisible, txt }) => {
+const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisible, adminGifts = [], toggleGift, removeOption, isAdminUser, txt }) => {
   // Helper to get variant info for an option
   const getVariantInfo = (opt, optId) => {
     const variants = opt?.variants?.length > 0 ? opt.variants : opt?.subOptions;
@@ -2128,6 +2128,52 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
       name: selectedVariant.namePl || selectedVariant.name,
       price: selectedVariant.price
     } : null;
+  };
+
+  // Render single option row with controls
+  const renderOptionRow = (opt, category, isCheckbox = false) => {
+    const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
+    const variantInfo = getVariantInfo(opt, opt.id);
+    const displayPrice = variantInfo ? variantInfo.price : opt.price;
+    const totalPrice = displayPrice * quantity;
+    const isGift = adminGifts.includes(opt.id);
+
+    return (
+      <div key={opt.id} className="group">
+        <div className="flex items-center justify-between gap-1">
+          <span className={`truncate flex-1 ${isGift ? 'text-green-600' : ''}`}>
+            {isGift && <Gift className="h-3 w-3 inline mr-1 text-green-500" />}
+            {opt.name}
+            {variantInfo && <span className="text-amber-600 text-xs"> ({variantInfo.name})</span>}
+            {opt.hasQuantity && quantity > 1 && ` ×${quantity}`}
+          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className={`whitespace-nowrap font-medium ${isGift ? 'line-through text-gray-400' : 'text-amber-700'}`}>
+              {displayPrice > 0 ? `+${formatPrice(totalPrice)} PLN` : txt.gratis}
+            </span>
+            {/* Control buttons - visible on hover or always on mobile */}
+            {isAdminUser && (
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                <button
+                  onClick={() => toggleGift(opt.id)}
+                  className={`p-1 rounded hover:bg-green-100 ${isGift ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`}
+                  title={isGift ? 'Убрать из подарков' : 'Сделать подарком'}
+                >
+                  <Gift className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => removeOption(category.id, opt.id, isCheckbox)}
+                  className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600"
+                  title="Удалить опцию"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
   
   return (
@@ -2150,27 +2196,7 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
           return (
             <div key={category.id} className="text-sm">
               <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
-              {selectedOpts.map(opt => {
-                const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
-                const variantInfo = getVariantInfo(opt, opt.id);
-                const displayPrice = variantInfo ? variantInfo.price : opt.price;
-                const totalPrice = displayPrice * quantity;
-                
-                return (
-                  <div key={opt.id}>
-                    <div className="flex justify-between">
-                      <span className="truncate pr-2">
-                        {opt.name}
-                        {variantInfo && <span className="text-amber-600"> ({variantInfo.name})</span>}
-                        {opt.hasQuantity && quantity > 1 && ` ×${quantity}`}
-                      </span>
-                      <span className="text-amber-700 whitespace-nowrap font-medium">
-                        {displayPrice > 0 ? `+${formatPrice(totalPrice)} PLN` : txt.gratis}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+              {selectedOpts.map(opt => renderOptionRow(opt, category, true))}
             </div>
           );
         } else {
@@ -2178,21 +2204,17 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
           // Skip hidden options
           if (!opt || !isOptionVisible(opt)) return null;
           
-          const quantity = opt.hasQuantity ? (formData.quantities[opt.id] || 1) : 1;
-          const variantInfo = getVariantInfo(opt, selection);
-          const displayPrice = variantInfo ? variantInfo.price : opt.price;
-          const totalPrice = displayPrice * quantity;
-          
           return (
             <div key={category.id} className="text-sm">
               <div className="text-muted-foreground font-medium">{getCategoryName(category)}</div>
-              <div className="flex justify-between">
-                <span className="truncate pr-2">
-                  {opt.name}
-                  {variantInfo && <span className="text-amber-600"> ({variantInfo.name})</span>}
-                  {opt.hasQuantity && quantity > 1 && ` ×${quantity}`}
-                </span>
-                <span className="text-amber-700 whitespace-nowrap font-medium">
+              {renderOptionRow(opt, category, false)}
+            </div>
+          );
+        }
+      })}
+    </>
+  );
+};
                   {displayPrice > 0 ? `+${formatPrice(totalPrice)} PLN` : txt.gratis}
                 </span>
               </div>
