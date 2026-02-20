@@ -1024,6 +1024,8 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
             isAdminUser={isAdminUser}
             isEditMode={isEditMode}
             adminGifts={adminGifts}
+            toggleGift={toggleGift}
+            removeOption={removeOption}
             adminDiscountApproved={adminDiscountApproved}
             setAdminDiscountApproved={setAdminDiscountApproved}
             requestedDiscount={requestedDiscount}
