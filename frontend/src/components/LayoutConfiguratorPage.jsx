@@ -842,7 +842,7 @@ const LayoutConfiguratorPage = () => {
     }
     
     return { left: newLeft, top: newTop };
-  }, [snapEnabled, findRoomRect]);
+  }, [snapToObjects, findRoomRect]);
 
   // ============ ZOOM ============
   
