@@ -2520,6 +2520,9 @@ const LayoutConfiguratorPage = () => {
         wallBottomCm: obj.wallBottomCm,
         showOuterDimensions: obj.showOuterDimensions,
         showInnerDimensions: obj.showInnerDimensions,
+        // Visibility flag
+        isHidden: obj.isHidden || false,
+        visible: obj.visible !== false,
       });
     }
   };
