@@ -4216,7 +4216,7 @@ const LayoutConfiguratorPage = () => {
         </Card>
         
         {/* Elements Card */}
-        <Card className="flex-1 flex flex-col overflow-hidden min-h-[400px]">
+        <Card className="flex-1 flex flex-col overflow-hidden min-h-[500px]">
           <CardHeader className="py-3 px-3 border-b flex-shrink-0">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Элементы</CardTitle>
