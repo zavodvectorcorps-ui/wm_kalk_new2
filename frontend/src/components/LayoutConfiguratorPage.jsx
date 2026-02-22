@@ -2250,6 +2250,8 @@ const LayoutConfiguratorPage = () => {
         showDistanceRight: obj.showDistanceRight,
         showDistanceTop: obj.showDistanceTop,
         showDistanceBottom: obj.showDistanceBottom,
+        showElementSize: obj.showElementSize,
+        showDistances: obj.showDistances,
         // Room group properties
         isRoomGroup: obj.isRoomGroup || false,
         outerWidthCm: obj.outerWidthCm || (obj.isRoomGroup ? Math.round((obj.width * (obj.scaleX || 1)) / pixelsPerCm) : null),
