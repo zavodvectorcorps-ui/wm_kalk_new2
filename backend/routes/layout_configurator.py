@@ -810,8 +810,9 @@ async def update_variant(
     namePl: str = Form(default=None),
     nameRu: str = Form(default=None),
     elementConfigs: str = Form(default=None),
+    conditions: str = Form(default=None),
 ):
-    """Update a variant's properties or element configurations."""
+    """Update a variant's properties, element configurations, or conditions."""
     import json
     
     update_fields = {}
@@ -827,6 +828,12 @@ async def update_variant(
             update_fields["variants.$.elementConfigs"] = configs
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid elementConfigs JSON")
+    if conditions is not None:
+        try:
+            conds = json.loads(conditions)
+            update_fields["variants.$.conditions"] = conds
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid conditions JSON")
     
     update_fields["variants.$.updatedAt"] = datetime.now(timezone.utc).isoformat()
     
