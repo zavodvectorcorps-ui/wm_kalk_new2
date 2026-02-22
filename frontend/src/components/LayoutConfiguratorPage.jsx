@@ -866,6 +866,11 @@ const LayoutConfiguratorPage = () => {
     const canvas = fabricRef.current;
     if (!canvas || !variant.elementConfigs) return;
     
+    console.log(`Applying variant: ${variant.namePl || variant.name}`);
+    console.log(`Elements to change: ${variant.elementConfigs.length}`);
+    
+    let changedCount = 0;
+    
     variant.elementConfigs.forEach(config => {
       // Find matching element on canvas
       let targetObj = null;
@@ -892,6 +897,9 @@ const LayoutConfiguratorPage = () => {
       });
       
       if (targetObj && config.properties) {
+        console.log(`  Changing: ${config.assetName || config.elementType} (ID: ${config.elementId?.slice(-6)})`);
+        changedCount++;
+        
         // Apply properties
         const props = config.properties;
         if (props.left !== undefined) targetObj.set('left', props.left);
@@ -918,6 +926,8 @@ const LayoutConfiguratorPage = () => {
         }
         
         targetObj.setCoords();
+      } else if (!targetObj) {
+        console.log(`  NOT FOUND: ${config.assetName || config.elementType} (ID: ${config.elementId?.slice(-6)})`);
       }
     });
     
@@ -928,7 +938,7 @@ const LayoutConfiguratorPage = () => {
     updateDimensionLabels();
     saveToHistory();
     
-    toast.success(`Применён: ${variant.namePl || variant.name}`);
+    toast.success(`Применён: ${variant.namePl || variant.name} (${changedCount}/${variant.elementConfigs.length} элементов)`);
   };
 
   // Fetch outline for selected model/variant
