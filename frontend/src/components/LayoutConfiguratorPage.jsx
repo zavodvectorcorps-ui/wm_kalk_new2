@@ -3757,8 +3757,18 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Filter assets by selected model (show global + model-specific)
+  const filteredAssets = assets.filter(asset => {
+    // Show asset if:
+    // 1. It's a global asset (no modelId)
+    // 2. Or it belongs to the selected model
+    if (!asset.modelId) return true;
+    if (selectedModel && asset.modelId === selectedModel.id) return true;
+    return false;
+  });
+
   // Group assets by type
-  const assetsByType = assets.reduce((acc, asset) => {
+  const assetsByType = filteredAssets.reduce((acc, asset) => {
     if (!acc[asset.type]) acc[asset.type] = [];
     acc[asset.type].push(asset);
     return acc;
