@@ -578,10 +578,11 @@ const LayoutConfiguratorPage = () => {
     // Create element configuration from selected object
     const elementConfig = {
       elementType: selectedObj.elementType || selectedObj.type,
-      matchBy: selectedObj.assetId ? 'assetId' : 'type',
+      matchBy: 'elementId', // Always use elementId for precise matching
       assetId: selectedObj.assetId || null,
       assetName: selectedObj.assetName || null,
       elementId: selectedObj.elementId || null,
+      instanceName: selectedObj.instanceName || null,
       properties: {
         left: Math.round(selectedObj.left),
         top: Math.round(selectedObj.top),
@@ -594,20 +595,19 @@ const LayoutConfiguratorPage = () => {
       }
     };
     
-    // Update or add element in form
+    // Update or add element in form (match by unique elementId)
     const existingIndex = editVariantForm.elementConfigs.findIndex(el => 
-      (el.assetId && el.assetId === elementConfig.assetId) ||
-      (el.elementId && el.elementId === elementConfig.elementId)
+      el.elementId && el.elementId === elementConfig.elementId
     );
     
     let updatedConfigs;
     if (existingIndex >= 0) {
       updatedConfigs = [...editVariantForm.elementConfigs];
       updatedConfigs[existingIndex] = elementConfig;
-      toast.success(`Zaktualizowano: ${elementConfig.assetName || elementConfig.elementType}`);
+      toast.success(`Zaktualizowano: ${elementConfig.assetName || elementConfig.elementType} (ID: ${elementConfig.elementId?.slice(-6)})`);
     } else {
       updatedConfigs = [...editVariantForm.elementConfigs, elementConfig];
-      toast.success(`Dodano: ${elementConfig.assetName || elementConfig.elementType}`);
+      toast.success(`Dodano: ${elementConfig.assetName || elementConfig.elementType} (ID: ${elementConfig.elementId?.slice(-6)})`);
     }
     
     setEditVariantForm({ ...editVariantForm, elementConfigs: updatedConfigs });
