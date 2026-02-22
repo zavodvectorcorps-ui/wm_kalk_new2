@@ -4417,6 +4417,24 @@ const LayoutConfiguratorPage = () => {
                             size="icon"
                             variant="ghost"
                             className="h-5 w-5"
+                            title="Edytuj opcję"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditOptionForm({
+                                id: option.id,
+                                name: option.name,
+                                namePl: option.namePl || option.name,
+                                nameRu: option.nameRu || '',
+                              });
+                              setEditOptionDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-3 w-3 text-amber-600" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5"
                             title="Kopiuj opcję do innego modelu"
                             onClick={(e) => {
                               e.stopPropagation();
