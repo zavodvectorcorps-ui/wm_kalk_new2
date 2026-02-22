@@ -6486,10 +6486,14 @@ const LayoutConfiguratorPage = () => {
               <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
                 {editVariantForm.elementConfigs.map((config, idx) => (
                   <div key={idx} className="flex items-center justify-between text-[10px] bg-white p-1 rounded">
-                    <span className="truncate">{config.assetName || config.elementType}</span>
+                    <span className="truncate">
+                      {config.assetName || config.elementType}
+                      {config.instanceName && <span className="text-blue-500 ml-1">({config.instanceName})</span>}
+                    </span>
                     <div className="flex items-center gap-1 text-muted-foreground">
-                      <span>x:{config.properties.left}</span>
-                      <span>y:{config.properties.top}</span>
+                      <span>x:{config.properties?.left}</span>
+                      <span>y:{config.properties?.top}</span>
+                      {config.properties?.isHidden && <EyeOff className="h-2.5 w-2.5 text-amber-500" />}
                       <Button
                         size="icon"
                         variant="ghost"
@@ -6520,6 +6524,79 @@ const LayoutConfiguratorPage = () => {
               <p className="text-[9px] text-blue-600 mt-1">
                 Wybierz element na canvasie i kliknij przycisk aby zaktualizować jego pozycję
               </p>
+            </div>
+            
+            {/* Conditions section */}
+            <div className="p-2 bg-amber-50 border border-amber-200 rounded">
+              <Label className="text-xs font-medium text-amber-800">Warunki widoczności (opcjonalnie)</Label>
+              <p className="text-[9px] text-amber-600 mb-2">
+                Wariant będzie widoczny tylko gdy wybrane zostaną wskazane opcje
+              </p>
+              
+              {/* List of conditions */}
+              {editVariantForm.conditions?.map((cond, idx) => {
+                const condOpt = layoutOptions.find(o => o.id === cond.optionId);
+                const condVar = condOpt?.variants?.find(v => v.id === cond.variantId);
+                return (
+                  <div key={idx} className="flex items-center gap-1 mb-1 text-[10px] bg-white/50 p-1 rounded">
+                    <span className="text-amber-700">
+                      {condOpt?.namePl || condOpt?.name}: {condVar?.namePl || condVar?.name}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-4 w-4 ml-auto"
+                      onClick={() => {
+                        const newConds = [...editVariantForm.conditions];
+                        newConds.splice(idx, 1);
+                        setEditVariantForm({ ...editVariantForm, conditions: newConds });
+                      }}
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+              
+              {/* Add condition */}
+              <div className="flex gap-1 mt-2">
+                <Select
+                  value=""
+                  onValueChange={(val) => {
+                    // val format: "optionId:variantId"
+                    const [optId, varId] = val.split(':');
+                    if (optId && varId) {
+                      // Don't add same option twice
+                      if (!editVariantForm.conditions?.find(c => c.optionId === optId)) {
+                        setEditVariantForm({
+                          ...editVariantForm,
+                          conditions: [...(editVariantForm.conditions || []), { optionId: optId, variantId: varId }]
+                        });
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-7 text-[10px] flex-1">
+                    <SelectValue placeholder="+ Dodaj warunek" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {layoutOptions
+                      .filter(o => o.id !== editVariantForm.optionId) // Can't add condition from same option
+                      .map(opt => (
+                        <React.Fragment key={opt.id}>
+                          <SelectItem value={`header-${opt.id}`} disabled className="text-[10px] font-medium">
+                            {opt.namePl || opt.name}
+                          </SelectItem>
+                          {opt.variants?.map(v => (
+                            <SelectItem key={v.id} value={`${opt.id}:${v.id}`} className="text-[10px] pl-4">
+                              → {v.namePl || v.name}
+                            </SelectItem>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
