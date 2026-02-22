@@ -678,7 +678,10 @@ const LayoutConfiguratorPage = () => {
         if (props.scaleY !== undefined) targetObj.set('scaleY', props.scaleY);
         if (props.flipX !== undefined) targetObj.set('flipX', props.flipX);
         if (props.flipY !== undefined) targetObj.set('flipY', props.flipY);
-        if (props.visible !== undefined) targetObj.set('visible', props.visible);
+        if (props.visible !== undefined) {
+          targetObj.set('visible', props.visible);
+          targetObj.set('opacity', props.visible ? 1 : 0.3);
+        }
         
         targetObj.setCoords();
       }
