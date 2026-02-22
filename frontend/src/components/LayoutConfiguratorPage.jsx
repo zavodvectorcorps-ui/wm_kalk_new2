@@ -1781,7 +1781,7 @@ const LayoutConfiguratorPage = () => {
         const dx = (obj.x2 || 0) - (obj.x1 || 0);
         const dy = (obj.y2 || 0) - (obj.y1 || 0);
         const length = Math.sqrt(dx * dx + dy * dy);
-        const lengthCm = Math.round(length / pixelsPerCm);
+        const lengthCm = (length / pixelsPerCm).toFixed(1);
         
         const midX = obj.left + (obj.x1 + obj.x2) / 2;
         const midY = obj.top + (obj.y1 + obj.y2) / 2;
