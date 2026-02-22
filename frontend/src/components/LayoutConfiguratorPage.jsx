@@ -865,10 +865,19 @@ const LayoutConfiguratorPage = () => {
     const model = saunaModels.find(m => m.id === modelId);
     setSelectedModel(model);
     setSelectedVariant(null);
+    // Reset selected layout options variants
+    setSelectedVariants({});
+    
     if (model) {
+      // Reload layouts and options for this model
+      fetchLayouts(modelId, null);
+      fetchLayoutOptions(modelId, null);
       // Try to load template layout for this model
       loadTemplateForModel(modelId, null);
     } else {
+      // Load all layouts and options
+      fetchLayouts();
+      fetchLayoutOptions();
       setModelOutline(null);
       removeOutlineFromCanvas();
     }
@@ -879,6 +888,13 @@ const LayoutConfiguratorPage = () => {
     if (!selectedModel) return;
     const variant = selectedModel.variants?.find(v => v.id === variantId);
     setSelectedVariant(variant);
+    // Reset selected layout options variants
+    setSelectedVariants({});
+    
+    // Reload layouts and options for this model+variant
+    fetchLayouts(selectedModel.id, variantId);
+    fetchLayoutOptions(selectedModel.id, variantId);
+    
     // Try to load template layout for this model+variant
     loadTemplateForModel(selectedModel.id, variantId);
   };
