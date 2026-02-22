@@ -154,7 +154,10 @@ const LayoutConfiguratorPage = () => {
   const [roomForm, setRoomForm] = useState({
     outerWidthCm: 200,
     outerHeightCm: 150,
-    wallThicknessCm: 5,
+    wallLeftCm: 4.4,
+    wallRightCm: 4.4,
+    wallTopCm: 4.4,
+    wallBottomCm: 4.4,
     isPartition: false,
     partitionPosition: 'vertical',
     partitionOffset: 50,
