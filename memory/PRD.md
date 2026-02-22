@@ -5,6 +5,17 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 22, 2026 - Bug Fix: Hidden Elements + Copy All Options (COMPLETED)
+- **BUG FIX**: Hidden elements can now be selected again
+  - Changed from `visible=false` to `isHidden` flag with `opacity=0.25`
+  - Hidden elements remain selectable (`selectable=true`, `evented=true`)
+  - User can click on hidden element and toggle visibility back on
+- **IMPROVEMENT**: Copy ALL options at once
+  - New "Wszystkie opcje" option in copy dialog
+  - Shows total count: "(X opcji, Y wariantów)"
+  - Copies ALL options with their variants to target model
+- **Testing**: 100% (6/6 frontend features verified)
+
 ### Feb 22, 2026 - Bug Fix: Template Loading + Copy Options Feature (COMPLETED)
 - **BUG FIX**: Templates not switching when changing models
   - Root cause: Race condition - `loadTemplateForModel` used state `layouts` before it was updated by `fetchLayouts`
