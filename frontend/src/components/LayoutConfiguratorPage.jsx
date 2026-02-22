@@ -174,7 +174,8 @@ const LayoutConfiguratorPage = () => {
     name: '', 
     namePl: '', 
     nameRu: '',
-    conditions: [] // Array of { optionId, variantId }
+    conditions: [], // Array of { optionId, variantId }
+    elements: [], // Array of element configs to save (multiple elements)
   });
   
   // Save outline form
