@@ -1939,35 +1939,38 @@ const LayoutConfiguratorPage = () => {
           ? (origWidth / pixelsPerCm).toFixed(1) 
           : (origHeight / pixelsPerCm).toFixed(1);
         
-        // Width label (top center of bounding box) - shows dimension of top edge
-        const widthLabel = new fabric.Text(`${topDimensionCm} см`, {
-          left: bboxLeft + bboxWidth / 2,
-          top: bboxTop - 14,
-          fontSize: 10,
-          fill: '#1e40af',
-          fontWeight: 'bold',
-          originX: 'center',
-          selectable: false,
-          evented: false,
-          isDimensionLabel: true,
-        });
-        canvas.add(widthLabel);
-        
-        // Height label (left center of bounding box, rotated) - shows dimension of left edge
-        const heightLabel = new fabric.Text(`${leftDimensionCm} см`, {
-          left: bboxLeft - 6,
-          top: bboxTop + bboxHeight / 2,
-          fontSize: 10,
-          fill: '#1e40af',
-          fontWeight: 'bold',
-          originX: 'center',
-          originY: 'center',
-          angle: -90,
-          selectable: false,
-          evented: false,
-          isDimensionLabel: true,
-        });
-        canvas.add(heightLabel);
+        // Only show element size labels if showElementSize is not false
+        if (obj.showElementSize !== false) {
+          // Width label (top center of bounding box) - shows dimension of top edge
+          const widthLabel = new fabric.Text(`${topDimensionCm} cm`, {
+            left: bboxLeft + bboxWidth / 2,
+            top: bboxTop - 14,
+            fontSize: 10,
+            fill: '#1e40af',
+            fontWeight: 'bold',
+            originX: 'center',
+            selectable: false,
+            evented: false,
+            isDimensionLabel: true,
+          });
+          canvas.add(widthLabel);
+          
+          // Height label (left center of bounding box, rotated) - shows dimension of left edge
+          const heightLabel = new fabric.Text(`${leftDimensionCm} cm`, {
+            left: bboxLeft - 6,
+            top: bboxTop + bboxHeight / 2,
+            fontSize: 10,
+            fill: '#1e40af',
+            fontWeight: 'bold',
+            originX: 'center',
+            originY: 'center',
+            angle: -90,
+            selectable: false,
+            evented: false,
+            isDimensionLabel: true,
+          });
+          canvas.add(heightLabel);
+        }
         
         // Distance labels to room walls (if this is not the room itself and room exists)
         // Skip if obj is part of room group or is a room
