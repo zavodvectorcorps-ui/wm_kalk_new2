@@ -17,21 +17,22 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
   - When enabled, element can only be scaled horizontally (width changes, height stays fixed)
   - Uses `lockScalingY: true` and custom control visibility
   - Backend stores `fixedHeight: boolean` in asset document
+- **NEW FEATURE**: Room wall thickness editing in Properties panel (Polish UI)
+  - "Grubość ścian (cm)" section with 4 fields: Lewa, Prawa, Górna, Dolna
+  - Changes update dimension labels in real-time
+- **NEW FEATURE**: Room dimension visibility toggles
+  - "Widoczność wymiarów" section with 2 switches:
+    - "zewn. (zewnętrzne)" - toggle outer dimensions
+    - "wewn. (wewnętrzne)" - toggle inner dimensions
+- **CHANGE**: Polish dimension labels on canvas
+  - "zewn:" instead of "внеш:" for outer dimensions
+  - "wewn:" instead of "внутр:" for inner dimensions
 - **BUGFIX**: Dimension lines (red distance markers) now remain draggable when Select tool is active
-  - Fixed tool-switching logic to preserve `isDimensionLine` objects interactivity
-- **BUGFIX**: Rotation dimension labels now swap correctly
-  - When element rotated 90°/270°, width/height labels automatically swap to show correct dimensions
-  - Uses `isRotated90` boolean calculation based on angle ranges (45-135° or 225-315°)
+- **BUGFIX**: Rotation dimension labels now swap correctly when element rotated 90°/270°
 - **REFACTORING**: Created modular structure for Layout Configurator
   - New folder: `/app/frontend/src/components/layout-configurator/`
-  - Constants: `constants.js` (A4_LANDSCAPE, ELEMENT_TYPES, CANVAS_SERIALIZE_PROPS)
-  - Hooks: `useCanvasHistory.js`, `useLayoutAPI.js`, `useCanvasOperations.js`
-  - Dialogs: `AddRoomDialog.jsx`, `UploadAssetDialog.jsx`
-  - Ready for gradual migration from monolithic component
-- **Files Modified**:
-  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - UI and logic updates
-  - `/app/backend/routes/layout_configurator.py` - Added `fixedHeight` parameter
-- **Testing**: 100% pass rate (features verified)
+  - Constants, hooks, and dialog components extracted
+- **Testing**: 100% pass rate
 
 ### Feb 20, 2026 - Change Responsible User Feature (COMPLETED)
 - **NEW FEATURE**: Admins can now reassign orders to different employees
