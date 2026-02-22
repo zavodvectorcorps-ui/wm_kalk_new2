@@ -4535,30 +4535,62 @@ const LayoutConfiguratorPage = () => {
             </div>
             
             {!roomForm.isPartition ? (
-              /* Room dimensions */
+              /* Room dimensions with wall thickness */
               <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Ширина (см)</Label>
-                    <Input
-                      type="number"
-                      value={roomForm.widthCm}
-                      onChange={(e) => setRoomForm({ ...roomForm, widthCm: parseInt(e.target.value) || 0 })}
-                      placeholder="200"
-                    />
-                  </div>
-                  <div>
-                    <Label>Высота (см)</Label>
-                    <Input
-                      type="number"
-                      value={roomForm.heightCm}
-                      onChange={(e) => setRoomForm({ ...roomForm, heightCm: parseInt(e.target.value) || 0 })}
-                      placeholder="150"
-                    />
+                <div>
+                  <Label className="font-medium">Внешние размеры (см)</Label>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ширина</Label>
+                      <Input
+                        type="number"
+                        step="5"
+                        min="20"
+                        value={roomForm.outerWidthCm}
+                        onChange={(e) => setRoomForm({ ...roomForm, outerWidthCm: parseInt(e.target.value) || 0 })}
+                        placeholder="200"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Высота</Label>
+                      <Input
+                        type="number"
+                        step="5"
+                        min="20"
+                        value={roomForm.outerHeightCm}
+                        onChange={(e) => setRoomForm({ ...roomForm, outerHeightCm: parseInt(e.target.value) || 0 })}
+                        placeholder="150"
+                      />
+                    </div>
                   </div>
                 </div>
+                
+                <div>
+                  <Label className="font-medium">Толщина стенки (см)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    min="1"
+                    max="20"
+                    value={roomForm.wallThicknessCm}
+                    onChange={(e) => setRoomForm({ ...roomForm, wallThicknessCm: parseInt(e.target.value) || 5 })}
+                    placeholder="5"
+                    className="mt-2 w-24"
+                  />
+                </div>
+                
+                {/* Show calculated inner dimensions */}
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Label className="text-xs font-medium text-blue-700">Внутренние размеры (авто):</Label>
+                  <div className="flex items-center gap-4 mt-1">
+                    <span className="text-sm font-bold text-blue-900">
+                      {roomForm.outerWidthCm - (roomForm.wallThicknessCm * 2)} × {roomForm.outerHeightCm - (roomForm.wallThicknessCm * 2)} см
+                    </span>
+                  </div>
+                </div>
+                
                 <p className="text-xs text-muted-foreground">
-                  Комната будет добавлена в центр холста с заданными размерами
+                  На холсте будут показаны внешний и внутренний размеры комнаты
                 </p>
               </>
             ) : (
@@ -4591,6 +4623,7 @@ const LayoutConfiguratorPage = () => {
                   </Label>
                   <Input
                     type="number"
+                    step="5"
                     value={roomForm.partitionOffset}
                     onChange={(e) => setRoomForm({ ...roomForm, partitionOffset: parseInt(e.target.value) || 0 })}
                     placeholder="50"
