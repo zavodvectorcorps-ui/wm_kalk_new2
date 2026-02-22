@@ -4033,6 +4033,36 @@ const LayoutConfiguratorPage = () => {
               
               <TabsContent value="layouts" className="mt-0">
                 <div className="space-y-2">
+                  {/* Show hint if no model selected */}
+                  {!selectedModel && layouts.length > 0 && (
+                    <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                      Wybierz model, żeby zobaczyć planowki dla tego modelu
+                    </div>
+                  )}
+                  
+                  {/* Show current filter */}
+                  {selectedModel && (
+                    <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 flex items-center justify-between">
+                      <span>
+                        Planowki dla: <strong>{selectedModel.name}</strong>
+                        {selectedVariant && <> / {selectedVariant.nameRu || selectedVariant.namePl || selectedVariant.name}</>}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-5 text-xs px-1"
+                        onClick={() => {
+                          setSelectedModel(null);
+                          setSelectedVariant(null);
+                          fetchLayouts();
+                          fetchLayoutOptions();
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  
                   {layouts.map(layout => (
                     <div
                       key={layout.id}
