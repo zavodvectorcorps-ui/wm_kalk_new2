@@ -872,7 +872,7 @@ const LayoutConfiguratorPage = () => {
   };
 
   // Handle model selection change
-  const handleModelChange = (modelId) => {
+  const handleModelChange = async (modelId) => {
     const model = saunaModels.find(m => m.id === modelId);
     setSelectedModel(model);
     setSelectedVariant(null);
@@ -883,8 +883,8 @@ const LayoutConfiguratorPage = () => {
       // Reload layouts and options for this model
       fetchLayouts(modelId, null);
       fetchLayoutOptions(modelId, null);
-      // Try to load template layout for this model
-      loadTemplateForModel(modelId, null);
+      // Load template from API directly (don't rely on state)
+      await loadTemplateForModelFromAPI(modelId, null);
     } else {
       // Load all layouts and options
       fetchLayouts();
@@ -895,7 +895,7 @@ const LayoutConfiguratorPage = () => {
   };
 
   // Handle variant selection change
-  const handleVariantChange = (variantId) => {
+  const handleVariantChange = async (variantId) => {
     if (!selectedModel) return;
     const variant = selectedModel.variants?.find(v => v.id === variantId);
     setSelectedVariant(variant);
@@ -906,28 +906,48 @@ const LayoutConfiguratorPage = () => {
     fetchLayouts(selectedModel.id, variantId);
     fetchLayoutOptions(selectedModel.id, variantId);
     
-    // Try to load template layout for this model+variant
-    loadTemplateForModel(selectedModel.id, variantId);
+    // Load template from API directly
+    await loadTemplateForModelFromAPI(selectedModel.id, variantId);
   };
 
-  // Load template layout for model/variant, or fallback to outline
-  const loadTemplateForModel = async (modelId, variantId) => {
-    // First try to find a saved layout for this model/variant
-    const matchingLayout = layouts.find(layout => {
-      if (variantId) {
-        return layout.modelId === modelId && layout.variantId === variantId;
+  // Load template layout for model/variant from API (not from state)
+  const loadTemplateForModelFromAPI = async (modelId, variantId) => {
+    try {
+      // Fetch layouts directly from API
+      let url = `${API_URL}/api/layout-configurator/layouts?modelId=${modelId}`;
+      if (variantId) url += `&variantId=${variantId}`;
+      
+      const res = await fetch(url);
+      if (!res.ok) return;
+      
+      const data = await res.json();
+      const layoutsList = data.layouts || [];
+      
+      // Find matching layout
+      const matchingLayout = layoutsList.find(layout => {
+        if (variantId) {
+          return layout.modelId === modelId && layout.variantId === variantId;
+        }
+        return layout.modelId === modelId && !layout.variantId;
+      });
+      
+      if (matchingLayout) {
+        // Load the layout as template
+        loadTemplateLayout(matchingLayout);
+        toast.info(`Загружена планировка: ${matchingLayout.name}`);
+      } else {
+        // No saved layout, just load the outline
+        fetchOutline(modelId, variantId);
       }
-      return layout.modelId === modelId && !layout.variantId;
-    });
-    
-    if (matchingLayout) {
-      // Load the layout as template
-      loadTemplateLayout(matchingLayout);
-      toast.info(`Загружена планировка: ${matchingLayout.name}`);
-    } else {
-      // No saved layout, just load the outline
+    } catch (error) {
+      console.error('Error loading template for model:', error);
       fetchOutline(modelId, variantId);
     }
+  };
+
+  // Legacy function - kept for backwards compatibility
+  const loadTemplateForModel = async (modelId, variantId) => {
+    await loadTemplateForModelFromAPI(modelId, variantId);
   };
 
   // Upload outline
