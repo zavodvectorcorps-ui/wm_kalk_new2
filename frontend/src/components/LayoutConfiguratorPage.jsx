@@ -1586,26 +1586,26 @@ const LayoutConfiguratorPage = () => {
           
           // Left distance line + label (check showDistanceLeft)
           if (distLeft > 10 && obj.showDistanceLeft !== false) {
-            drawDistanceLine(room.left, obj.top + height / 2, obj.left, obj.top + height / 2, `${distLeft}`, true, obj.id || obj._id);
+            drawDistanceLine(leftBoundary, obj.top + height / 2, obj.left, obj.top + height / 2, `${distLeft}`, true, obj.id || obj._id);
           }
           
           // Right distance line + label (check showDistanceRight)
           if (distRight > 10 && obj.showDistanceRight !== false) {
-            drawDistanceLine(objRight, obj.top + height / 2, roomRight, obj.top + height / 2, `${distRight}`, true, obj.id || obj._id);
+            drawDistanceLine(objRight, obj.top + height / 2, rightBoundary, obj.top + height / 2, `${distRight}`, true, obj.id || obj._id);
           }
           
           // Top distance line + label (check showDistanceTop)
           if (distTop > 10 && obj.showDistanceTop !== false) {
-            drawDistanceLine(obj.left + width / 2, room.top, obj.left + width / 2, obj.top, `${distTop}`, false, obj.id || obj._id);
+            drawDistanceLine(obj.left + width / 2, topBoundary, obj.left + width / 2, obj.top, `${distTop}`, false, obj.id || obj._id);
           }
           
           // Bottom distance line + label (check showDistanceBottom)
           if (distBottom > 10 && obj.showDistanceBottom !== false) {
-            drawDistanceLine(obj.left + width / 2, objBottom, obj.left + width / 2, roomBottom, `${distBottom}`, false, obj.id || obj._id);
+            drawDistanceLine(obj.left + width / 2, objBottom, obj.left + width / 2, bottomBoundary, `${distBottom}`, false, obj.id || obj._id);
           }
         }
-      } else if (obj.type === 'line') {
-        // Line length label
+      } else if (obj.type === 'line' && !obj.isPartition) {
+        // Line length label (but not for partitions)
         const dx = (obj.x2 || 0) - (obj.x1 || 0);
         const dy = (obj.y2 || 0) - (obj.y1 || 0);
         const length = Math.sqrt(dx * dx + dy * dy);
