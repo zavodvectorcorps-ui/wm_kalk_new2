@@ -5021,6 +5021,34 @@ const LayoutConfiguratorPage = () => {
                   </div>
                 </div>
                 
+                {/* Element ID and Instance Name */}
+                {selectedObject.id && !selectedObject.isRoomGroup && (
+                  <div className="p-2 bg-slate-50 border border-slate-200 rounded space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500">ID:</span>
+                      <code className="text-[10px] font-mono bg-slate-200 px-1 rounded">{selectedObject.id?.slice(-8)}</code>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-slate-500">Nazwa instancji (opcjonalnie)</Label>
+                      <Input
+                        value={selectedObject.instanceName || ''}
+                        onChange={(e) => {
+                          const obj = fabricRef.current?.getActiveObject();
+                          if (obj) {
+                            obj.set('instanceName', e.target.value);
+                            handleObjectSelected({ selected: [obj] });
+                          }
+                        }}
+                        placeholder="np. Lewa lawa, Prawa lawa..."
+                        className="h-6 text-xs mt-1"
+                      />
+                      <p className="text-[9px] text-slate-400 mt-1">
+                        Nazwa pomaga rozróżnić identyczne elementy
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Element Visibility Toggle */}
                 {!selectedObject.isRoomGroup && !selectedObject.isGridLine && !selectedObject.isGridLabel && (
                   <div className="p-2 bg-gray-50 border border-gray-200 rounded">
