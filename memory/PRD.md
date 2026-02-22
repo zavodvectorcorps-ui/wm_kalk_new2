@@ -5,6 +5,29 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 22, 2026 - Individual Wall Thickness & Fixed Height Elements (COMPLETED)
+- **NEW FEATURE**: Individual wall thickness for rooms in Layout Configurator
+  - Add Room dialog now shows 4 separate input fields: Левая (Left), Правая (Right), Верхняя (Top), Нижняя (Bottom)
+  - Inner dimensions auto-calculate based on all 4 wall thicknesses
+  - Example: Outer 200×150 with walls 8, 4, 10, 5 = Inner 188×135 cm
+  - Room group stores `wallLeftCm`, `wallRightCm`, `wallTopCm`, `wallBottomCm` properties
+  - Backward compatible with old `wallThicknessCm` single value
+- **NEW FEATURE**: Fixed height elements (benches)
+  - New checkbox "Фиксированная высота" in Upload Asset dialog
+  - When enabled, element can only be scaled horizontally (width changes, height stays fixed)
+  - Uses `lockScalingY: true` and custom control visibility
+  - Backend stores `fixedHeight: boolean` in asset document
+- **REFACTORING**: Created modular structure for Layout Configurator
+  - New folder: `/app/frontend/src/components/layout-configurator/`
+  - Constants: `constants.js` (A4_LANDSCAPE, ELEMENT_TYPES, CANVAS_SERIALIZE_PROPS)
+  - Hooks: `useCanvasHistory.js`, `useLayoutAPI.js`, `useCanvasOperations.js`
+  - Dialogs: `AddRoomDialog.jsx`, `UploadAssetDialog.jsx`
+  - Ready for gradual migration from monolithic component
+- **Files Modified**:
+  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - UI and logic updates
+  - `/app/backend/routes/layout_configurator.py` - Added `fixedHeight` parameter
+- **Testing**: 100% pass rate (9/9 backend tests, all frontend features verified)
+
 ### Feb 20, 2026 - Change Responsible User Feature (COMPLETED)
 - **NEW FEATURE**: Admins can now reassign orders to different employees
   - Added dropdown in `createdBy` column showing current responsible user
