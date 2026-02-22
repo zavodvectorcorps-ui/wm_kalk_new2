@@ -4005,6 +4005,138 @@ const LayoutConfiguratorPage = () => {
                   </div>
                 </div>
                 
+                {/* Room properties - wall thickness and visibility */}
+                {selectedObject.isRoomGroup && (
+                  <div className="space-y-3">
+                    <div className="p-2 bg-amber-50 border border-amber-200 rounded">
+                      <Label className="text-xs font-medium text-amber-800">Grubość ścian (cm)</Label>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Lewa</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            max="50"
+                            value={selectedObject.wallLeftCm || 4.4}
+                            onChange={(e) => {
+                              const obj = fabricRef.current?.getActiveObject();
+                              if (obj && obj.isRoomGroup) {
+                                const newVal = parseFloat(e.target.value) || 4.4;
+                                obj.set('wallLeftCm', newVal);
+                                fabricRef.current.renderAll();
+                                handleObjectSelected({ selected: [obj] });
+                                updateDimensionLabels();
+                              }
+                            }}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Prawa</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            max="50"
+                            value={selectedObject.wallRightCm || 4.4}
+                            onChange={(e) => {
+                              const obj = fabricRef.current?.getActiveObject();
+                              if (obj && obj.isRoomGroup) {
+                                const newVal = parseFloat(e.target.value) || 4.4;
+                                obj.set('wallRightCm', newVal);
+                                fabricRef.current.renderAll();
+                                handleObjectSelected({ selected: [obj] });
+                                updateDimensionLabels();
+                              }
+                            }}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Górna</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            max="50"
+                            value={selectedObject.wallTopCm || 4.4}
+                            onChange={(e) => {
+                              const obj = fabricRef.current?.getActiveObject();
+                              if (obj && obj.isRoomGroup) {
+                                const newVal = parseFloat(e.target.value) || 4.4;
+                                obj.set('wallTopCm', newVal);
+                                fabricRef.current.renderAll();
+                                handleObjectSelected({ selected: [obj] });
+                                updateDimensionLabels();
+                              }
+                            }}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Dolna</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            max="50"
+                            value={selectedObject.wallBottomCm || 4.4}
+                            onChange={(e) => {
+                              const obj = fabricRef.current?.getActiveObject();
+                              if (obj && obj.isRoomGroup) {
+                                const newVal = parseFloat(e.target.value) || 4.4;
+                                obj.set('wallBottomCm', newVal);
+                                fabricRef.current.renderAll();
+                                handleObjectSelected({ selected: [obj] });
+                                updateDimensionLabels();
+                              }
+                            }}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Room dimension visibility toggles */}
+                    <div className="p-2 bg-blue-50 border border-blue-200 rounded space-y-2">
+                      <Label className="text-xs font-medium text-blue-800">Widoczność wymiarów</Label>
+                      <div className="space-y-1">
+                        <label className="flex items-center justify-between text-xs cursor-pointer">
+                          <span className="text-amber-700">zewn. (zewnętrzne)</span>
+                          <Switch
+                            checked={selectedObject.showOuterDimensions !== false}
+                            onCheckedChange={(checked) => {
+                              const obj = fabricRef.current?.getActiveObject();
+                              if (obj && obj.isRoomGroup) {
+                                obj.set('showOuterDimensions', checked);
+                                fabricRef.current.renderAll();
+                                handleObjectSelected({ selected: [obj] });
+                                updateDimensionLabels();
+                              }
+                            }}
+                          />
+                        </label>
+                        <label className="flex items-center justify-between text-xs cursor-pointer">
+                          <span className="text-green-700">wewn. (wewnętrzne)</span>
+                          <Switch
+                            checked={selectedObject.showInnerDimensions !== false}
+                            onCheckedChange={(checked) => {
+                              const obj = fabricRef.current?.getActiveObject();
+                              if (obj && obj.isRoomGroup) {
+                                obj.set('showInnerDimensions', checked);
+                                fabricRef.current.renderAll();
+                                handleObjectSelected({ selected: [obj] });
+                                updateDimensionLabels();
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Dimensions for drawn shapes - in CM with editable inputs */}
                 {selectedObject.isDrawnShape && selectedObject.widthCm && selectedObject.heightCm && (
                   <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm space-y-2">
