@@ -4339,19 +4339,50 @@ const LayoutConfiguratorPage = () => {
                     </Button>
                   )}
                   
+                  {/* Copy option button */}
+                  {layoutOptions.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-8 text-xs"
+                      onClick={() => {
+                        setCopyOptionForm({ sourceOptionId: layoutOptions[0]?.id || '', targetModelId: '', targetVariantId: '' });
+                        setCopyOptionDialogOpen(true);
+                      }}
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      Kopiuj opcję do innego modelu
+                    </Button>
+                  )}
+                  
                   {/* Options list */}
                   {layoutOptions.map(option => (
                     <div key={option.id} className="border rounded-lg overflow-hidden">
                       <div className="flex items-center justify-between bg-muted px-2 py-1.5">
                         <span className="text-xs font-medium">{option.namePl || option.name}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-5 w-5"
-                          onClick={() => deleteLayoutOption(option.id)}
-                        >
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5"
+                            title="Kopiuj opcję do innego modelu"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCopyOptionForm({ sourceOptionId: option.id, targetModelId: '', targetVariantId: '' });
+                              setCopyOptionDialogOpen(true);
+                            }}
+                          >
+                            <Copy className="h-3 w-3 text-blue-600" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5"
+                            onClick={() => deleteLayoutOption(option.id)}
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="p-1.5 space-y-1">
                         {option.variants?.filter(v => isVariantVisible(v)).map(variant => (
