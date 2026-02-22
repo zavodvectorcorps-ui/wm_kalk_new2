@@ -452,6 +452,13 @@ const LayoutConfiguratorPage = () => {
       formData.append('name', newOptionForm.name);
       formData.append('namePl', newOptionForm.namePl || newOptionForm.name);
       formData.append('nameRu', newOptionForm.nameRu || newOptionForm.name);
+      // Add current model/variant context
+      if (selectedModel) {
+        formData.append('modelId', selectedModel.id);
+      }
+      if (selectedVariant) {
+        formData.append('variantId', selectedVariant.id);
+      }
       
       const res = await fetch(`${API_URL}/api/layout-configurator/options`, {
         method: 'POST',
@@ -462,7 +469,8 @@ const LayoutConfiguratorPage = () => {
         toast.success('Опция создана');
         setCreateOptionDialogOpen(false);
         setNewOptionForm({ name: '', namePl: '', nameRu: '' });
-        fetchLayoutOptions();
+        // Reload options for current context
+        fetchLayoutOptions(selectedModel?.id, selectedVariant?.id);
       } else {
         const err = await res.json();
         toast.error(err.detail || 'Ошибка создания опции');
