@@ -529,6 +529,90 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Update existing variant
+  const updateVariant = async () => {
+    if (!editVariantForm.optionId || !editVariantForm.variantId) {
+      toast.error('Brak danych wariantu');
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      if (editVariantForm.namePl) {
+        formData.append('name', editVariantForm.name || editVariantForm.namePl);
+        formData.append('namePl', editVariantForm.namePl);
+        formData.append('nameRu', editVariantForm.nameRu || editVariantForm.namePl);
+      }
+      formData.append('elementConfigs', JSON.stringify(editVariantForm.elementConfigs));
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/options/${editVariantForm.optionId}/variants/${editVariantForm.variantId}`, {
+        method: 'PUT',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        toast.success('Wariant zaktualizowany');
+        setEditVariantDialogOpen(false);
+        setEditVariantForm({ optionId: '', variantId: '', name: '', namePl: '', nameRu: '', elementConfigs: [] });
+        fetchLayoutOptions(selectedModel?.id, selectedVariant?.id);
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || 'Błąd aktualizacji wariantu');
+      }
+    } catch (error) {
+      toast.error('Błąd sieci');
+    }
+  };
+
+  // Update variant element config from current canvas selection
+  const updateVariantElementFromCanvas = () => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    const selectedObj = canvas.getActiveObject();
+    if (!selectedObj) {
+      toast.error('Wybierz element na canvasie');
+      return;
+    }
+    
+    // Create element configuration from selected object
+    const elementConfig = {
+      elementType: selectedObj.elementType || selectedObj.type,
+      matchBy: selectedObj.assetId ? 'assetId' : 'type',
+      assetId: selectedObj.assetId || null,
+      assetName: selectedObj.assetName || null,
+      elementId: selectedObj.elementId || null,
+      properties: {
+        left: Math.round(selectedObj.left),
+        top: Math.round(selectedObj.top),
+        angle: selectedObj.angle || 0,
+        scaleX: selectedObj.scaleX || 1,
+        scaleY: selectedObj.scaleY || 1,
+        flipX: selectedObj.flipX || false,
+        flipY: selectedObj.flipY || false,
+        isHidden: selectedObj.isHidden || false,
+      }
+    };
+    
+    // Update or add element in form
+    const existingIndex = editVariantForm.elementConfigs.findIndex(el => 
+      (el.assetId && el.assetId === elementConfig.assetId) ||
+      (el.elementId && el.elementId === elementConfig.elementId)
+    );
+    
+    let updatedConfigs;
+    if (existingIndex >= 0) {
+      updatedConfigs = [...editVariantForm.elementConfigs];
+      updatedConfigs[existingIndex] = elementConfig;
+      toast.success(`Zaktualizowano: ${elementConfig.assetName || elementConfig.elementType}`);
+    } else {
+      updatedConfigs = [...editVariantForm.elementConfigs, elementConfig];
+      toast.success(`Dodano: ${elementConfig.assetName || elementConfig.elementType}`);
+    }
+    
+    setEditVariantForm({ ...editVariantForm, elementConfigs: updatedConfigs });
+  };
+
   // Delete option
   const deleteLayoutOption = async (optionId) => {
     if (!confirm('Удалить опцию и все её варианты?')) return;
