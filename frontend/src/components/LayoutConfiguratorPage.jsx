@@ -3905,6 +3905,12 @@ const LayoutConfiguratorPage = () => {
     // Temporarily hide grid
     const gridLines = fabricRef.current.getObjects().filter(o => o.isGridLine || o.isGridLabel);
     gridLines.forEach(line => line.set('visible', false));
+    
+    // Temporarily fully hide elements with isHidden flag
+    const hiddenElements = fabricRef.current.getObjects().filter(o => o.isHidden);
+    const hiddenElementsState = hiddenElements.map(el => ({ el, opacity: el.opacity }));
+    hiddenElements.forEach(el => el.set('opacity', 0));
+    
     fabricRef.current.renderAll();
     
     // Export
@@ -3916,6 +3922,10 @@ const LayoutConfiguratorPage = () => {
     
     // Restore grid
     gridLines.forEach(line => line.set('visible', showGrid));
+    
+    // Restore hidden elements opacity
+    hiddenElementsState.forEach(({ el, opacity }) => el.set('opacity', opacity));
+    
     fabricRef.current.renderAll();
     
     // Return base64 without data:image/png;base64, prefix
