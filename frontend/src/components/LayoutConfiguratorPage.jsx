@@ -784,7 +784,7 @@ const LayoutConfiguratorPage = () => {
   // Snap object position to room walls (inner walls) with tolerance
   const snapToRoomWalls = useCallback((obj, left, top) => {
     const room = findRoomRect();
-    if (!room || !snapEnabled) return { left, top };
+    if (!room || !snapToObjects) return { left, top };
     
     const snapTolerance = 10; // pixels
     const objWidth = (obj.width || 0) * (obj.scaleX || 1);
