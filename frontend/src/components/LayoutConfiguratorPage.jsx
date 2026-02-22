@@ -407,9 +407,15 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
-  const fetchLayouts = async () => {
+  const fetchLayouts = async (modelId = null, variantId = null) => {
     try {
-      const res = await fetch(`${API_URL}/api/layout-configurator/layouts`);
+      let url = `${API_URL}/api/layout-configurator/layouts`;
+      const params = new URLSearchParams();
+      if (modelId) params.append('modelId', modelId);
+      if (variantId) params.append('variantId', variantId);
+      if (params.toString()) url += `?${params.toString()}`;
+      
+      const res = await fetch(url);
       const data = await res.json();
       setLayouts(data.layouts || []);
     } catch (error) {
@@ -418,9 +424,15 @@ const LayoutConfiguratorPage = () => {
   };
 
   // Fetch layout options and variants
-  const fetchLayoutOptions = async () => {
+  const fetchLayoutOptions = async (modelId = null, variantId = null) => {
     try {
-      const res = await fetch(`${API_URL}/api/layout-configurator/options`);
+      let url = `${API_URL}/api/layout-configurator/options`;
+      const params = new URLSearchParams();
+      if (modelId) params.append('modelId', modelId);
+      if (variantId) params.append('variantId', variantId);
+      if (params.toString()) url += `?${params.toString()}`;
+      
+      const res = await fetch(url);
       const data = await res.json();
       setLayoutOptions(data.options || []);
     } catch (error) {
