@@ -4688,22 +4688,54 @@ const LayoutConfiguratorPage = () => {
                       />
                       <span className="text-xs text-muted-foreground">см</span>
                     </div>
-                    {/* Show dimensions toggle for this object */}
-                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                      <Label className="text-xs cursor-pointer" htmlFor="show-dims-toggle">
-                        Показать размеры
-                      </Label>
-                      <Switch
-                        id="show-dims-toggle"
-                        checked={selectedObject.showDimensions}
-                        onCheckedChange={(checked) => toggleObjectDimensions(checked)}
-                      />
+                    {/* Visibility toggles for dimensions */}
+                    <div className="space-y-2 p-2 bg-muted/50 rounded">
+                      <Label className="text-xs font-medium">Widoczność:</Label>
+                      
+                      {/* Element size labels toggle */}
+                      <label className="flex items-center justify-between cursor-pointer">
+                        <span className="text-xs text-blue-700">Wymiary elementu</span>
+                        <Switch
+                          checked={selectedObject.showElementSize !== false}
+                          onCheckedChange={(checked) => {
+                            const obj = fabricRef.current?.getActiveObject();
+                            if (obj) {
+                              obj.set('showElementSize', checked);
+                              fabricRef.current.renderAll();
+                              handleObjectSelected({ selected: [obj] });
+                              updateDimensionLabels();
+                            }
+                          }}
+                        />
+                      </label>
+                      
+                      {/* Distance lines toggle */}
+                      <label className="flex items-center justify-between cursor-pointer">
+                        <span className="text-xs text-red-700">Odległości do obiektów</span>
+                        <Switch
+                          checked={selectedObject.showDistances !== false}
+                          onCheckedChange={(checked) => {
+                            const obj = fabricRef.current?.getActiveObject();
+                            if (obj) {
+                              obj.set('showDistances', checked);
+                              // Also update individual distance flags
+                              obj.set('showDistanceLeft', checked);
+                              obj.set('showDistanceRight', checked);
+                              obj.set('showDistanceTop', checked);
+                              obj.set('showDistanceBottom', checked);
+                              fabricRef.current.renderAll();
+                              handleObjectSelected({ selected: [obj] });
+                              updateDimensionLabels();
+                            }
+                          }}
+                        />
+                      </label>
                     </div>
                     
-                    {/* Individual distance line toggles */}
-                    {selectedObject.showDimensions && (
+                    {/* Individual distance line toggles - only if distances enabled */}
+                    {selectedObject.showDistances !== false && (
                       <div className="p-2 bg-red-50 border border-red-200 rounded space-y-2">
-                        <Label className="text-xs font-medium text-red-700">Линии расстояний:</Label>
+                        <Label className="text-xs font-medium text-red-700">Linie odległości:</Label>
                         <div className="grid grid-cols-2 gap-2">
                           <label className="flex items-center gap-2 text-xs cursor-pointer">
                             <input
@@ -4712,7 +4744,7 @@ const LayoutConfiguratorPage = () => {
                               onChange={(e) => toggleDistanceLine('left', e.target.checked)}
                               className="rounded border-red-300 text-red-600 focus:ring-red-500"
                             />
-                            <span>← Левая</span>
+                            <span>← Lewa</span>
                           </label>
                           <label className="flex items-center gap-2 text-xs cursor-pointer">
                             <input
@@ -4721,7 +4753,7 @@ const LayoutConfiguratorPage = () => {
                               onChange={(e) => toggleDistanceLine('right', e.target.checked)}
                               className="rounded border-red-300 text-red-600 focus:ring-red-500"
                             />
-                            <span>Правая →</span>
+                            <span>Prawa →</span>
                           </label>
                           <label className="flex items-center gap-2 text-xs cursor-pointer">
                             <input
@@ -4730,7 +4762,7 @@ const LayoutConfiguratorPage = () => {
                               onChange={(e) => toggleDistanceLine('top', e.target.checked)}
                               className="rounded border-red-300 text-red-600 focus:ring-red-500"
                             />
-                            <span>↑ Верхняя</span>
+                            <span>↑ Górna</span>
                           </label>
                           <label className="flex items-center gap-2 text-xs cursor-pointer">
                             <input
@@ -4739,7 +4771,7 @@ const LayoutConfiguratorPage = () => {
                               onChange={(e) => toggleDistanceLine('bottom', e.target.checked)}
                               className="rounded border-red-300 text-red-600 focus:ring-red-500"
                             />
-                            <span>Нижняя ↓</span>
+                            <span>Dolna ↓</span>
                           </label>
                         </div>
                       </div>
