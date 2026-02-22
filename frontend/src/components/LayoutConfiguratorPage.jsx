@@ -4052,7 +4052,7 @@ const LayoutConfiguratorPage = () => {
                         </Button>
                       </div>
                       <div className="p-1.5 space-y-1">
-                        {option.variants?.map(variant => (
+                        {option.variants?.filter(v => isVariantVisible(v)).map(variant => (
                           <div
                             key={variant.id}
                             className={`flex items-center justify-between p-1.5 rounded text-xs cursor-pointer hover:bg-muted/80 transition-colors ${
@@ -4060,10 +4060,21 @@ const LayoutConfiguratorPage = () => {
                             }`}
                             onClick={() => applyVariant(option.id, variant)}
                           >
-                            <span className="truncate">{variant.namePl || variant.name}</span>
-                            <div className="flex items-center gap-1">
+                            <div className="flex-1 min-w-0">
+                              <span className="truncate block">{variant.namePl || variant.name}</span>
+                              {variant.conditions?.length > 0 && (
+                                <span className="text-[9px] text-amber-600 truncate block">
+                                  {variant.conditions.map(c => {
+                                    const opt = layoutOptions.find(o => o.id === c.optionId);
+                                    const v = opt?.variants?.find(v => v.id === c.variantId);
+                                    return v?.namePl || v?.name || c.variantId;
+                                  }).join(' + ')}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 ml-1">
                               <span className="text-[10px] text-muted-foreground">
-                                {variant.elementConfigs?.length || 0} el.
+                                {variant.elementConfigs?.length || 0}
                               </span>
                               <Button
                                 size="icon"
@@ -4079,6 +4090,12 @@ const LayoutConfiguratorPage = () => {
                             </div>
                           </div>
                         ))}
+                        {/* Show hidden variants count */}
+                        {option.variants?.filter(v => !isVariantVisible(v)).length > 0 && (
+                          <div className="text-[9px] text-muted-foreground text-center py-1 border-t">
+                            + {option.variants.filter(v => !isVariantVisible(v)).length} ukrytych (wybierz warunki)
+                          </div>
+                        )}
                         {(!option.variants || option.variants.length === 0) && (
                           <div className="text-[10px] text-muted-foreground text-center py-2">
                             Brak wariantów
@@ -4092,7 +4109,7 @@ const LayoutConfiguratorPage = () => {
                     <div className="text-center py-6 text-muted-foreground text-xs">
                       <p className="mb-2">Brak opcji konfiguracji</p>
                       <p className="text-[10px]">
-                        Utwórz opcję (np. "Strona wejścia"), potem zapisz warianty dla elementów
+                        Utwórz opcję (np. "Typ pieca"), potem zapisz warianty dla elementów
                       </p>
                     </div>
                   )}
