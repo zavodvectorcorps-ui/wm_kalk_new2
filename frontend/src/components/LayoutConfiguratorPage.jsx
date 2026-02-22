@@ -178,6 +178,7 @@ const LayoutConfiguratorPage = () => {
     nameRu: '',
     elementConfigs: [],
     conditions: [],
+    newOptionId: '',
   });
   const [saveVariantDialogOpen, setSaveVariantDialogOpen] = useState(false);
   const [copyOptionDialogOpen, setCopyOptionDialogOpen] = useState(false);
