@@ -727,10 +727,11 @@ const LayoutConfiguratorPage = () => {
     // Create element configuration from selected object
     const elementConfig = {
       elementType: selectedObj.elementType || selectedObj.type,
-      matchBy: selectedObj.assetId ? 'assetId' : 'type',
+      matchBy: 'elementId', // Always use elementId for precise matching
       assetId: selectedObj.assetId || null,
       assetName: selectedObj.assetName || null,
       elementId: selectedObj.elementId || null,
+      instanceName: selectedObj.instanceName || null,
       properties: {
         left: Math.round(selectedObj.left),
         top: Math.round(selectedObj.top),
@@ -743,10 +744,9 @@ const LayoutConfiguratorPage = () => {
       }
     };
     
-    // Check if element already added (by assetId or type)
-    const exists = newVariantForm.elements.some(el => 
-      (el.assetId && el.assetId === elementConfig.assetId) ||
-      (el.elementId && el.elementId === elementConfig.elementId)
+    // Check if element already added (by elementId - unique)
+    const existingIndex = newVariantForm.elements.findIndex(el => 
+      el.elementId && el.elementId === elementConfig.elementId
     );
     
     if (exists) {
