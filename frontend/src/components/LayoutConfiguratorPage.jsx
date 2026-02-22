@@ -4030,6 +4030,75 @@ const LayoutConfiguratorPage = () => {
                 {/* Room properties - wall thickness and visibility */}
                 {selectedObject.isRoomGroup && (
                   <div className="space-y-3">
+                    {/* Room outer dimensions */}
+                    <div className="p-2 bg-green-50 border border-green-200 rounded">
+                      <Label className="text-xs font-medium text-green-800">Wymiary zewnętrzne (cm)</Label>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Szerokość</Label>
+                          <Input
+                            type="number"
+                            step="1"
+                            min="20"
+                            value={selectedObject.outerWidthCm || 200}
+                            onChange={(e) => {
+                              const obj = fabricRef.current?.getActiveObject();
+                              if (obj && obj.isRoomGroup) {
+                                const newWidthCm = parseFloat(e.target.value) || 200;
+                                const newWidthPx = newWidthCm * pixelsPerCm;
+                                // Scale the group to new size
+                                const currentWidth = obj.width * (obj.scaleX || 1);
+                                const scale = newWidthPx / obj.width;
+                                obj.set({ 
+                                  scaleX: scale,
+                                  outerWidthCm: newWidthCm,
+                                });
+                                obj.setCoords();
+                                fabricRef.current.renderAll();
+                                handleObjectSelected({ selected: [obj] });
+                                updateDimensionLabels();
+                              }
+                            }}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Wysokość</Label>
+                          <Input
+                            type="number"
+                            step="1"
+                            min="20"
+                            value={selectedObject.outerHeightCm || 150}
+                            onChange={(e) => {
+                              const obj = fabricRef.current?.getActiveObject();
+                              if (obj && obj.isRoomGroup) {
+                                const newHeightCm = parseFloat(e.target.value) || 150;
+                                const newHeightPx = newHeightCm * pixelsPerCm;
+                                // Scale the group to new size
+                                const scale = newHeightPx / obj.height;
+                                obj.set({ 
+                                  scaleY: scale,
+                                  outerHeightCm: newHeightCm,
+                                });
+                                obj.setCoords();
+                                fabricRef.current.renderAll();
+                                handleObjectSelected({ selected: [obj] });
+                                updateDimensionLabels();
+                              }
+                            }}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                      </div>
+                      {/* Show calculated inner dimensions */}
+                      <div className="mt-2 p-2 bg-white/50 rounded text-xs">
+                        <span className="text-green-700 font-medium">Wewnętrzne: </span>
+                        <span className="text-green-900">
+                          {((selectedObject.outerWidthCm || 200) - (selectedObject.wallLeftCm || 4.4) - (selectedObject.wallRightCm || 4.4)).toFixed(1)} × {((selectedObject.outerHeightCm || 150) - (selectedObject.wallTopCm || 4.4) - (selectedObject.wallBottomCm || 4.4)).toFixed(1)} cm
+                        </span>
+                      </div>
+                    </div>
+                    
                     <div className="p-2 bg-amber-50 border border-amber-200 rounded">
                       <Label className="text-xs font-medium text-amber-800">Grubość ścian (cm)</Label>
                       <div className="grid grid-cols-2 gap-2 mt-2">
