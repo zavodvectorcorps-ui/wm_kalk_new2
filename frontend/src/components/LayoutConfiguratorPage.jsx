@@ -1916,10 +1916,28 @@ const LayoutConfiguratorPage = () => {
   const handleObjectMoving = (e) => {
     const obj = e.target;
     
+    // Skip room groups for wall snapping
+    if (obj.isRoomGroup) {
+      obj.set({
+        left: snapToGrid(obj.left),
+        top: snapToGrid(obj.top),
+      });
+      updateDimensionLabels();
+      return;
+    }
+    
     // First apply grid snap
+    let newLeft = snapToGrid(obj.left);
+    let newTop = snapToGrid(obj.top);
+    
+    // Then try to snap to room walls (inner/outer)
+    const wallSnap = snapToRoomWalls(obj, newLeft, newTop);
+    newLeft = wallSnap.left;
+    newTop = wallSnap.top;
+    
     obj.set({
-      left: snapToGrid(obj.left),
-      top: snapToGrid(obj.top),
+      left: newLeft,
+      top: newTop,
     });
     
     // Then apply object/wall snap if enabled
