@@ -538,29 +538,65 @@ const LayoutConfiguratorPage = () => {
     }
     
     try {
-      const formData = new FormData();
-      if (editVariantForm.namePl) {
-        formData.append('name', editVariantForm.name || editVariantForm.namePl);
-        formData.append('namePl', editVariantForm.namePl);
-        formData.append('nameRu', editVariantForm.nameRu || editVariantForm.namePl);
-      }
-      formData.append('elementConfigs', JSON.stringify(editVariantForm.elementConfigs));
-      formData.append('conditions', JSON.stringify(editVariantForm.conditions || []));
+      // Check if we need to move variant to different option
+      const targetOptionId = editVariantForm.newOptionId || editVariantForm.optionId;
+      const needsMove = editVariantForm.newOptionId && editVariantForm.newOptionId !== editVariantForm.optionId;
       
-      const res = await fetch(`${API_URL}/api/layout-configurator/options/${editVariantForm.optionId}/variants/${editVariantForm.variantId}`, {
-        method: 'PUT',
-        body: formData,
-      });
-      
-      if (res.ok) {
-        toast.success('Wariant zaktualizowany');
-        setEditVariantDialogOpen(false);
-        setEditVariantForm({ optionId: '', variantId: '', name: '', namePl: '', nameRu: '', elementConfigs: [], conditions: [] });
-        fetchLayoutOptions(selectedModel?.id, selectedVariant?.id);
+      if (needsMove) {
+        // Move variant: create in new option, delete from old
+        const variantData = new FormData();
+        variantData.append('name', editVariantForm.name || editVariantForm.namePl);
+        variantData.append('namePl', editVariantForm.namePl);
+        variantData.append('nameRu', editVariantForm.nameRu || editVariantForm.namePl);
+        variantData.append('elementConfigs', JSON.stringify(editVariantForm.elementConfigs));
+        variantData.append('conditions', JSON.stringify(editVariantForm.conditions || []));
+        
+        // Create in new option
+        const createRes = await fetch(`${API_URL}/api/layout-configurator/options/${targetOptionId}/variants`, {
+          method: 'POST',
+          body: variantData,
+        });
+        
+        if (!createRes.ok) {
+          const err = await createRes.json();
+          toast.error(err.detail || 'Błąd przenoszenia wariantu');
+          return;
+        }
+        
+        // Delete from old option
+        await fetch(`${API_URL}/api/layout-configurator/options/${editVariantForm.optionId}/variants/${editVariantForm.variantId}`, {
+          method: 'DELETE',
+        });
+        
+        toast.success('Wariant przeniesiony do innej opcji');
       } else {
-        const err = await res.json();
-        toast.error(err.detail || 'Błąd aktualizacji wariantu');
+        // Just update in place
+        const formData = new FormData();
+        if (editVariantForm.namePl) {
+          formData.append('name', editVariantForm.name || editVariantForm.namePl);
+          formData.append('namePl', editVariantForm.namePl);
+          formData.append('nameRu', editVariantForm.nameRu || editVariantForm.namePl);
+        }
+        formData.append('elementConfigs', JSON.stringify(editVariantForm.elementConfigs));
+        formData.append('conditions', JSON.stringify(editVariantForm.conditions || []));
+        
+        const res = await fetch(`${API_URL}/api/layout-configurator/options/${editVariantForm.optionId}/variants/${editVariantForm.variantId}`, {
+          method: 'PUT',
+          body: formData,
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          toast.error(err.detail || 'Błąd aktualizacji wariantu');
+          return;
+        }
+        
+        toast.success('Wariant zaktualizowany');
       }
+      
+      setEditVariantDialogOpen(false);
+      setEditVariantForm({ optionId: '', variantId: '', name: '', namePl: '', nameRu: '', elementConfigs: [], conditions: [], newOptionId: '' });
+      fetchLayoutOptions(selectedModel?.id, selectedVariant?.id);
     } catch (error) {
       toast.error('Błąd sieci');
     }
