@@ -555,7 +555,7 @@ const LayoutConfiguratorPage = () => {
       if (res.ok) {
         toast.success('Wariant zaktualizowany');
         setEditVariantDialogOpen(false);
-        setEditVariantForm({ optionId: '', variantId: '', name: '', namePl: '', nameRu: '', elementConfigs: [] });
+        setEditVariantForm({ optionId: '', variantId: '', name: '', namePl: '', nameRu: '', elementConfigs: [], conditions: [] });
         fetchLayoutOptions(selectedModel?.id, selectedVariant?.id);
       } else {
         const err = await res.json();
