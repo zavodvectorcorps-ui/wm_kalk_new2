@@ -3781,6 +3781,84 @@ const LayoutConfiguratorPage = () => {
     setLoading(false);
   };
 
+  // Quick update current layout (without dialog)
+  const handleQuickUpdateLayout = async () => {
+    if (!fabricRef.current || !currentLayout) {
+      toast.error('Нет загруженной планировки для обновления');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const canvas = fabricRef.current;
+      
+      // Collect elements
+      const elements = [];
+      canvas.getObjects().forEach((obj, index) => {
+        if (!obj.isGridLine && !obj.isBackground && obj.elementId) {
+          elements.push({
+            id: obj.elementId,
+            assetId: obj.assetId,
+            type: obj.elementType,
+            x: Math.round(obj.left),
+            y: Math.round(obj.top),
+            rotation: Math.round(obj.angle || 0),
+            scale: parseFloat((obj.scaleX || 1).toFixed(2)),
+            zIndex: index,
+            isHidden: obj.isHidden || false,
+          });
+        }
+      });
+      
+      // Get canvas state
+      const userObjects = canvas.getObjects().filter(obj => 
+        !obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isDimensionLine
+      );
+      const canvasState = {
+        version: '5.3.0',
+        objects: userObjects.map(obj => obj.toObject([
+          'elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 
+          'isMeasurement', 'isMeasurementPart', 'parentId', 'isRuler',
+          'showDimensions', 'showDistanceLeft', 'showDistanceRight', 'showDistanceTop', 'showDistanceBottom',
+          'assetId', 'assetName', 'isGroup', 'isModelOutline', 'isOutline',
+          'widthCm', 'heightCm', 'flipX', 'flipY', 'isHidden',
+          'isRoom', 'isRoomGroup', 'isOuterWall', 'isInnerRoom', 'isPartition', 'partitionType', 'offsetCm',
+          'outerWidthCm', 'outerHeightCm', 'innerWidthCm', 'innerHeightCm',
+          'wallLeftCm', 'wallRightCm', 'wallTopCm', 'wallBottomCm', 'wallThicknessCm',
+          'showOuterDimensions', 'showInnerDimensions',
+          'showElementSize', 'showDistances',
+          'lockScalingY', 'fixedHeightCm',
+          'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
+        ])),
+        background: canvas.backgroundColor,
+      };
+      
+      const updateData = {
+        canvasWidth,
+        canvasHeight,
+        elements,
+        canvasState,
+      };
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/layouts/${currentLayout.id}/data`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      });
+      
+      if (res.ok) {
+        toast.success('Планировка обновлена!');
+        fetchLayouts(selectedModel?.id, selectedVariant?.id);
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка обновления');
+      }
+    } catch (error) {
+      toast.error('Ошибка при обновлении');
+    }
+    setLoading(false);
+  };
+
   // Load layout
   const handleLoadLayout = async (layout) => {
     if (!fabricRef.current) return;
