@@ -1751,10 +1751,10 @@ const LayoutConfiguratorPage = () => {
             }
           });
           
-          const distLeft = Math.round((obj.left - leftBoundary) / pixelsPerCm);
-          const distRight = Math.round((rightBoundary - objRight) / pixelsPerCm);
-          const distTop = Math.round((obj.top - topBoundary) / pixelsPerCm);
-          const distBottom = Math.round((bottomBoundary - objBottom) / pixelsPerCm);
+          const distLeft = ((obj.left - leftBoundary) / pixelsPerCm).toFixed(1);
+          const distRight = ((rightBoundary - objRight) / pixelsPerCm).toFixed(1);
+          const distTop = ((obj.top - topBoundary) / pixelsPerCm).toFixed(1);
+          const distBottom = ((bottomBoundary - objBottom) / pixelsPerCm).toFixed(1);
           
           // Left distance line + label (check showDistanceLeft)
           if (distLeft > 10 && obj.showDistanceLeft !== false) {
