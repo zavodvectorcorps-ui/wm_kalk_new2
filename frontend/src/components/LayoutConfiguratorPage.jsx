@@ -1702,8 +1702,11 @@ const LayoutConfiguratorPage = () => {
         // Distance labels to room walls (if this is not the room itself and room exists)
         // Skip if obj is part of room group or is a room
         if (room && !obj.isRoomGroup && !obj.isRoom && !obj.isInnerRoom && !obj.isOuterWall) {
-          const objRight = obj.left + width;
-          const objBottom = obj.top + height;
+          // Use bounding box for distance calculations (accounts for rotation)
+          const objLeft = bboxLeft;
+          const objTop = bboxTop;
+          const objRight = bboxLeft + bboxWidth;
+          const objBottom = bboxTop + bboxHeight;
           
           // Get room boundaries - for room groups, use inner boundaries
           const roomLeft = room.left;
@@ -1719,7 +1722,7 @@ const LayoutConfiguratorPage = () => {
           partitions.forEach(p => {
             if (p.partitionType === 'vertical') {
               const px = p.left || p.x1;
-              if (px < obj.left && px > leftBoundary) {
+              if (px < objLeft && px > leftBoundary) {
                 leftBoundary = px;
               }
             }
@@ -1741,7 +1744,7 @@ const LayoutConfiguratorPage = () => {
           partitions.forEach(p => {
             if (p.partitionType === 'horizontal') {
               const py = p.top || p.y1;
-              if (py < obj.top && py > topBoundary) {
+              if (py < objTop && py > topBoundary) {
                 topBoundary = py;
               }
             }
