@@ -657,9 +657,30 @@ def get_layout_options_collection():
 
 
 @router.get("/options")
-async def get_layout_options():
-    """Get all global layout options with their variants."""
-    cursor = get_layout_options_collection().find({}, {"_id": 0}).sort("sortOrder", 1)
+async def get_layout_options(
+    modelId: str = Query(default=None),
+    variantId: str = Query(default=None),
+):
+    """Get layout options filtered by model and variant (submodel)."""
+    query = {}
+    if modelId:
+        # Get options for specific model OR global options (modelId=null)
+        query["$or"] = [
+            {"modelId": modelId},
+            {"modelId": None},
+            {"modelId": {"$exists": False}}
+        ]
+        if variantId:
+            # Also filter by variant if provided
+            query["$or"] = [
+                {"modelId": modelId, "variantId": variantId},
+                {"modelId": modelId, "variantId": None},
+                {"modelId": modelId, "variantId": {"$exists": False}},
+                {"modelId": None},
+                {"modelId": {"$exists": False}}
+            ]
+    
+    cursor = get_layout_options_collection().find(query, {"_id": 0}).sort("sortOrder", 1)
     options = await cursor.to_list(length=100)
     return {"options": options}
 
@@ -669,8 +690,10 @@ async def create_layout_option(
     name: str = Form(...),
     namePl: str = Form(default=""),
     nameRu: str = Form(default=""),
+    modelId: str = Form(default=None),
+    variantId: str = Form(default=None),
 ):
-    """Create a new layout option (e.g., 'Entrance side', 'Bench type')."""
+    """Create a new layout option for a specific model/variant."""
     option_id = f"opt-{uuid.uuid4().hex[:8]}"
     
     option_doc = {
@@ -678,6 +701,8 @@ async def create_layout_option(
         "name": name,
         "namePl": namePl or name,
         "nameRu": nameRu or name,
+        "modelId": modelId if modelId and modelId != "null" else None,
+        "variantId": variantId if variantId and variantId != "null" else None,
         "variants": [],
         "sortOrder": 0,
         "createdAt": datetime.now(timezone.utc).isoformat(),
