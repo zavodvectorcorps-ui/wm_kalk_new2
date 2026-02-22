@@ -503,6 +503,82 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Copy option with all variants to another model
+  const copyOptionToModel = async () => {
+    if (!copyOptionForm.sourceOptionId || !copyOptionForm.targetModelId) {
+      toast.error('Wybierz opcję i model docelowy');
+      return;
+    }
+    
+    try {
+      // Find the source option
+      const sourceOption = layoutOptions.find(o => o.id === copyOptionForm.sourceOptionId);
+      if (!sourceOption) {
+        toast.error('Nie znaleziono opcji źródłowej');
+        return;
+      }
+      
+      setLoading(true);
+      
+      // Create new option in target model
+      const formData = new FormData();
+      formData.append('name', sourceOption.name);
+      formData.append('namePl', sourceOption.namePl || sourceOption.name);
+      formData.append('nameRu', sourceOption.nameRu || sourceOption.name);
+      formData.append('modelId', copyOptionForm.targetModelId);
+      if (copyOptionForm.targetVariantId) {
+        formData.append('variantId', copyOptionForm.targetVariantId);
+      }
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/options`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.detail || 'Błąd tworzenia opcji');
+        return;
+      }
+      
+      const newOption = await res.json();
+      
+      // Copy all variants
+      let copiedCount = 0;
+      for (const variant of sourceOption.variants || []) {
+        const variantFormData = new FormData();
+        variantFormData.append('name', variant.name);
+        variantFormData.append('namePl', variant.namePl || variant.name);
+        variantFormData.append('nameRu', variant.nameRu || variant.name);
+        variantFormData.append('configurations', JSON.stringify(variant.configurations || []));
+        variantFormData.append('conditions', JSON.stringify(variant.conditions || []));
+        
+        const varRes = await fetch(`${API_URL}/api/layout-configurator/options/${newOption.id}/variants`, {
+          method: 'POST',
+          body: variantFormData,
+        });
+        
+        if (varRes.ok) {
+          copiedCount++;
+        }
+      }
+      
+      toast.success(`Skopiowano opcję z ${copiedCount} wariantami`);
+      setCopyOptionDialogOpen(false);
+      setCopyOptionForm({ sourceOptionId: '', targetModelId: '', targetVariantId: '' });
+      
+      // Refresh if we're viewing the target model
+      if (selectedModel?.id === copyOptionForm.targetModelId) {
+        fetchLayoutOptions(selectedModel?.id, selectedVariant?.id);
+      }
+    } catch (error) {
+      console.error('Error copying option:', error);
+      toast.error('Błąd kopiowania opcji');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Add current selected element to variant form
   const addElementToVariantForm = () => {
     const canvas = fabricRef.current;
