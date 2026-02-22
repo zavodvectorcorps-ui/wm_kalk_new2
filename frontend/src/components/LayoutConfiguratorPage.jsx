@@ -5628,7 +5628,7 @@ const LayoutConfiguratorPage = () => {
               <Input
                 value={newVariantForm.namePl}
                 onChange={(e) => setNewVariantForm({ ...newVariantForm, namePl: e.target.value, name: e.target.value })}
-                placeholder="np. Wejście proste"
+                placeholder="np. Piec zewn. lewy - zakładka 1"
                 className="h-8 text-sm"
               />
             </div>
@@ -5637,9 +5637,82 @@ const LayoutConfiguratorPage = () => {
               <Input
                 value={newVariantForm.nameRu}
                 onChange={(e) => setNewVariantForm({ ...newVariantForm, nameRu: e.target.value })}
-                placeholder="напр. Прямой вход"
+                placeholder="напр. Внеш. печь слева - закладка 1"
                 className="h-8 text-sm"
               />
+            </div>
+            
+            {/* Conditions section */}
+            <div className="p-2 bg-amber-50 border border-amber-200 rounded">
+              <Label className="text-xs font-medium text-amber-800">Warunki widoczności (opcjonalnie)</Label>
+              <p className="text-[9px] text-amber-600 mb-2">
+                Wariant będzie widoczny tylko gdy wybrane zostaną wskazane opcje
+              </p>
+              
+              {/* List of conditions */}
+              {newVariantForm.conditions?.map((cond, idx) => {
+                const condOpt = layoutOptions.find(o => o.id === cond.optionId);
+                const condVar = condOpt?.variants?.find(v => v.id === cond.variantId);
+                return (
+                  <div key={idx} className="flex items-center gap-1 mb-1 text-[10px] bg-white/50 p-1 rounded">
+                    <span className="text-amber-700">
+                      {condOpt?.namePl || condOpt?.name}: {condVar?.namePl || condVar?.name}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-4 w-4 ml-auto"
+                      onClick={() => {
+                        const newConds = [...newVariantForm.conditions];
+                        newConds.splice(idx, 1);
+                        setNewVariantForm({ ...newVariantForm, conditions: newConds });
+                      }}
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+              
+              {/* Add condition */}
+              <div className="flex gap-1 mt-2">
+                <Select
+                  value=""
+                  onValueChange={(val) => {
+                    // val format: "optionId:variantId"
+                    const [optId, varId] = val.split(':');
+                    if (optId && varId) {
+                      // Don't add same option twice
+                      if (!newVariantForm.conditions?.find(c => c.optionId === optId)) {
+                        setNewVariantForm({
+                          ...newVariantForm,
+                          conditions: [...(newVariantForm.conditions || []), { optionId: optId, variantId: varId }]
+                        });
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-7 text-[10px] flex-1">
+                    <SelectValue placeholder="+ Dodaj warunek" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {layoutOptions
+                      .filter(o => o.id !== newVariantForm.optionId) // Can't add condition from same option
+                      .map(opt => (
+                        <React.Fragment key={opt.id}>
+                          <SelectItem value={`header-${opt.id}`} disabled className="text-[10px] font-medium">
+                            {opt.namePl || opt.name}
+                          </SelectItem>
+                          {opt.variants?.map(v => (
+                            <SelectItem key={v.id} value={`${opt.id}:${v.id}`} className="text-[10px] pl-4">
+                              → {v.namePl || v.name}
+                            </SelectItem>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             {selectedObject && (
