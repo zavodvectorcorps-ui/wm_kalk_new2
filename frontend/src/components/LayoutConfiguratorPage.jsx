@@ -4364,12 +4364,12 @@ const LayoutConfiguratorPage = () => {
                       variant="outline"
                       className="w-full h-8 text-xs"
                       onClick={() => {
-                        setCopyOptionForm({ sourceOptionId: layoutOptions[0]?.id || '', targetModelId: '', targetVariantId: '' });
+                        setCopyOptionForm({ sourceOptionId: 'all', targetModelId: '', targetVariantId: '' });
                         setCopyOptionDialogOpen(true);
                       }}
                     >
                       <Copy className="h-3 w-3 mr-1" />
-                      Kopiuj opcję do innego modelu
+                      Kopiuj opcje do innego modelu
                     </Button>
                   )}
                   
