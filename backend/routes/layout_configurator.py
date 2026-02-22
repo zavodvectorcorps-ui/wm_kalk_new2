@@ -155,6 +155,7 @@ async def upload_asset(
         "height": height,
         "widthCm": widthCm,
         "heightCm": heightCm,
+        "fixedHeight": fixedHeight.lower() == "true",
         "createdAt": datetime.now(timezone.utc).isoformat()
     }
     
