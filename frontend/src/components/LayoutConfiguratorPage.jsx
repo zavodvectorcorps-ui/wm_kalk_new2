@@ -164,6 +164,8 @@ const LayoutConfiguratorPage = () => {
     type: 'other',
     modelId: null,
     file: null,
+    widthCm: '',
+    heightCm: '',
   });
   
   // Text tool state
