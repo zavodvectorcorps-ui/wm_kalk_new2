@@ -1656,15 +1656,23 @@ const LayoutConfiguratorPage = () => {
       if (obj.isRoomGroup) return;
       
       if (obj.type === 'rect' || obj.type === 'group' || obj.type === 'image') {
-        const width = obj.width * (obj.scaleX || 1);
-        const height = obj.height * (obj.scaleY || 1);
-        const widthCm = (width / pixelsPerCm).toFixed(1);
-        const heightCm = (height / pixelsPerCm).toFixed(1);
+        // Get bounding rect to account for rotation
+        const boundingRect = obj.getBoundingRect(true); // true = absolute coordinates
+        const bboxWidth = boundingRect.width;
+        const bboxHeight = boundingRect.height;
+        const bboxLeft = boundingRect.left;
+        const bboxTop = boundingRect.top;
         
-        // Width label (top center)
+        // Original dimensions (without rotation) for size labels
+        const origWidth = obj.width * (obj.scaleX || 1);
+        const origHeight = obj.height * (obj.scaleY || 1);
+        const widthCm = (origWidth / pixelsPerCm).toFixed(1);
+        const heightCm = (origHeight / pixelsPerCm).toFixed(1);
+        
+        // Width label (top center of bounding box)
         const widthLabel = new fabric.Text(`${widthCm} см`, {
-          left: obj.left + width / 2,
-          top: obj.top - 14,
+          left: bboxLeft + bboxWidth / 2,
+          top: bboxTop - 14,
           fontSize: 10,
           fill: '#1e40af',
           fontWeight: 'bold',
@@ -1675,10 +1683,10 @@ const LayoutConfiguratorPage = () => {
         });
         canvas.add(widthLabel);
         
-        // Height label (left center, rotated)
+        // Height label (left center of bounding box, rotated)
         const heightLabel = new fabric.Text(`${heightCm} см`, {
-          left: obj.left - 6,
-          top: obj.top + height / 2,
+          left: bboxLeft - 6,
+          top: bboxTop + bboxHeight / 2,
           fontSize: 10,
           fill: '#1e40af',
           fontWeight: 'bold',
