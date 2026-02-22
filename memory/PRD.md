@@ -15,6 +15,12 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
   - UI shows filter status: "Planowki dla: [Model] / [Variant]"
   - Warning message shown when no model is selected: "Wybierz model, żeby zobaczyć..."
   - Clear filter button (X) to show all layouts/options
+- **NEW FEATURE**: Model-specific element filtering in asset library
+  - Elements (assets) library now filters by selected model
+  - Shows global elements (modelId=null) + model-specific elements
+  - Model-specific elements marked with "MODEL" badge (blue ring)
+  - Tooltip shows whether element is global or model-specific
+  - Info message: "Elementy dla: [Model] + globalne"
 - **NEW FEATURE**: Element visibility toggle in Layout Configurator
   - "Widoczność elementu" switch in properties panel (Polish: "Widoczność elementu")
   - Hidden elements shown with 30% opacity (selectable but semi-transparent)
