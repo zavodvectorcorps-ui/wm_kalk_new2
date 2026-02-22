@@ -4295,6 +4295,22 @@ const LayoutConfiguratorPage = () => {
               <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={handleExportPNG} title="Экспорт PNG">
                 <Download className="h-3 w-3" />
               </Button>
+              
+              {/* Current layout info & update button */}
+              {currentLayout && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-8 text-xs bg-green-100 hover:bg-green-200 text-green-800"
+                  onClick={handleQuickUpdateLayout}
+                  disabled={loading}
+                  title={`Обновить: ${currentLayout.name}`}
+                >
+                  {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                  Обновить
+                </Button>
+              )}
+              
               <Button
                 size="sm"
                 className="flex-1 h-8 text-xs"
@@ -4308,8 +4324,31 @@ const LayoutConfiguratorPage = () => {
                 }}
               >
                 <Save className="h-3 w-3 mr-1" />
-                Сохранить
+                {currentLayout ? 'Сохранить как...' : 'Сохранить'}
               </Button>
+            </div>
+            
+            {/* Current layout indicator */}
+            {currentLayout && (
+              <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-blue-700">Редактируется:</span>
+                  <span className="text-blue-600 truncate max-w-[150px]">{currentLayout.name}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 px-1 text-blue-600 hover:text-blue-800"
+                  onClick={() => {
+                    setCurrentLayout(null);
+                    toast.info('Создание новой планировки');
+                  }}
+                  title="Создать новую планировку"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
             </div>
           </CardContent>
         </Card>
