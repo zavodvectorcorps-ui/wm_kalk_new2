@@ -6029,15 +6029,19 @@ const LayoutConfiguratorPage = () => {
           </DialogHeader>
           <div className="space-y-3 py-4">
             <div>
-              <Label className="text-xs">Opcja źródłowa</Label>
+              <Label className="text-xs">Co skopiować?</Label>
               <Select
-                value={copyOptionForm.sourceOptionId}
-                onValueChange={(val) => setCopyOptionForm({ ...copyOptionForm, sourceOptionId: val })}
+                value={copyOptionForm.sourceOptionId || "all"}
+                onValueChange={(val) => setCopyOptionForm({ ...copyOptionForm, sourceOptionId: val === "all" ? "all" : val })}
               >
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Wybierz opcję" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all" className="font-medium text-blue-600">
+                    🔄 Wszystkie opcje ({layoutOptions.length} opcji, {layoutOptions.reduce((sum, o) => sum + (o.variants?.length || 0), 0)} wariantów)
+                  </SelectItem>
+                  <div className="border-t my-1" />
                   {layoutOptions.map(opt => (
                     <SelectItem key={opt.id} value={opt.id}>
                       {opt.namePl || opt.name} ({opt.variants?.length || 0} wariantów)
