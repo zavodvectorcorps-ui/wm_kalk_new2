@@ -4878,8 +4878,8 @@ const LayoutConfiguratorPage = () => {
         </Card>
       </div>
       
-      {/* Right Panel - Properties */}
-      <div className="w-64 flex-shrink-0">
+      {/* Right Panel - Properties - STICKY */}
+      <div className="w-64 flex-shrink-0 sticky top-0 self-start h-[calc(100vh-120px)]">
         <Card className="h-full overflow-auto">
           <CardHeader className="py-3 px-4 border-b">
             <CardTitle className="text-sm flex items-center gap-2">
