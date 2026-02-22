@@ -6231,6 +6231,86 @@ const LayoutConfiguratorPage = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Edit Variant Dialog */}
+      <Dialog open={editVariantDialogOpen} onOpenChange={setEditVariantDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edytuj wariant</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Nazwa (PL)</Label>
+                <Input
+                  value={editVariantForm.namePl}
+                  onChange={(e) => setEditVariantForm({ ...editVariantForm, namePl: e.target.value, name: e.target.value })}
+                  placeholder="np. Lewa strona"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Nazwa (RU)</Label>
+                <Input
+                  value={editVariantForm.nameRu}
+                  onChange={(e) => setEditVariantForm({ ...editVariantForm, nameRu: e.target.value })}
+                  placeholder="напр. Левая сторона"
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            
+            <div className="p-2 bg-blue-50 border border-blue-200 rounded">
+              <Label className="text-xs font-medium text-blue-800">Konfiguracje elementów ({editVariantForm.elementConfigs.length})</Label>
+              <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                {editVariantForm.elementConfigs.map((config, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[10px] bg-white p-1 rounded">
+                    <span className="truncate">{config.assetName || config.elementType}</span>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <span>x:{config.properties.left}</span>
+                      <span>y:{config.properties.top}</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-4 w-4"
+                        onClick={() => {
+                          const updated = editVariantForm.elementConfigs.filter((_, i) => i !== idx);
+                          setEditVariantForm({ ...editVariantForm, elementConfigs: updated });
+                        }}
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {editVariantForm.elementConfigs.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground text-center py-2">Brak elementów</p>
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full mt-2 h-7 text-xs"
+                onClick={updateVariantElementFromCanvas}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Dodaj/aktualizuj z canvasu
+              </Button>
+              <p className="text-[9px] text-blue-600 mt-1">
+                Wybierz element na canvasie i kliknij przycisk aby zaktualizować jego pozycję
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditVariantDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button size="sm" onClick={updateVariant}>
+              Zapisz zmiany
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Copy Option to Model Dialog */}
       <Dialog open={copyOptionDialogOpen} onOpenChange={setCopyOptionDialogOpen}>
         <DialogContent className="max-w-sm">
