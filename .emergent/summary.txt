@@ -1,72 +1,62 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to fix a 500 error. The project subsequently evolved into building a Modular Sauna Configurator. Over time, the scope expanded to include a Sauna Calculator, an amoCRM integration, and extensive feature enhancements and bug fixes for all components.
+The user's initial request was to fix a 500 error. The project subsequently evolved into building a Modular Sauna Configurator. The scope has significantly expanded to include a Sauna Calculator, an amoCRM integration, and a highly sophisticated, feature-rich layout planner with a dynamic variants system for creating conditional product configurations.
 
 **PRODUCT REQUIREMENTS for the Modular Sauna Configurator:**
 - A dedicated screen for designing sauna layouts using Fabric.js.
 - Users can select a model and sub-model (variant).
-- A left panel for managing graphical elements (from a collection) and saved layouts.
+- A left panel for managing graphical elements and saved layouts.
 - Canvas features: drag-and-drop, grid, snap-to-grid, object rotation, scaling, flipping.
 - A right-side properties panel to edit element properties (size, rotation, etc.).
 - Drawing tools, measurement tools (showing distances to walls/objects), and an Undo button.
 - Ability to save/load layouts and export them as images.
-- **Room/Partition System:** Ability to add rooms with specific dimensions and wall thicknesses, and add partitions that dynamically recalculate room dimensions.
+- **Room/Partition System:** Ability to add rooms with specific dimensions and wall thicknesses (including individual thickness for each of the 4 walls), and add partitions that dynamically recalculate room dimensions.
 - **Template System:** Ability to load a pre-defined layout as a template.
 - **Hotkeys:** Keyboard shortcuts for common actions.
+- **Variants System:** A powerful system allowing managers to create layout options (e.g., Door side) and variants (e.g., Left, Right). Applying a variant can change the position, size, and rotation of one or more elements on the canvas. This system supports hierarchical/conditional logic (e.g., Stove position options only appear if Stove type: External is selected).
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-A full-stack React/FastAPI/MongoDB application featuring a Sauna Calculator and a highly detailed Modular Sauna Configurator built with Fabric.js. The application is integrated with amoCRM.
+A full-stack React/FastAPI/MongoDB application featuring a Sauna Calculator and a highly detailed Modular Sauna Configurator built with Fabric.js, integrated with amoCRM.
 
-This session saw a massive number of features and fixes implemented:
-- **Order Management:** A feature to change the responsible employee for an order was fully implemented and tested.
-- **Sauna Calculator:**
-    - A bug causing double-subtraction of gifted items was fixed.
-    - A bug preventing the sub-model (variant) from loading when editing an order was fixed.
-    - Gift/delete buttons were made visible to all user roles.
-- **Logistics:** A bug that incorrectly reset order statuses when a trip's status was changed has been resolved.
-- **PDF Generation:** PDFs were updated to show gifted items with a strikethrough price and to display the delivery cost as a separate line item, mirroring the calculator's UI.
-- **Layout Configurator:** This component received the most significant updates:
-    - Fixed a bug where model variants failed to load.
-    - Implemented element flipping (horizontal/vertical).
-    - Users can now specify an element's real-world size (in cm) when adding it to the collection.
-    - Added a Room and Partition system, allowing users to create rooms with specific dimensions and add internal walls that automatically adjust measurements.
-    - Implemented snapping of elements to the new room walls.
-    - Enabled the use of decimal values for all dimensions.
-    - Corrected distance calculations for rotated objects.
-    - Fixed two critical JavaScript errors that were causing a white screen.
-    - The last user request was to allow editing the thickness of each of a room's four walls individually. This feature is currently in progress.
+This session was highly productive, focusing on major feature enhancements for the Layout Configurator:
+- **Individual Wall Thickness:** Fully implemented and tested. Users can define a unique thickness for each of a room's four walls, both on creation and via the properties panel.
+- **Fixed Height Elements:** Implemented and tested. Assets can be marked as fixed height, allowing them to be resized horizontally without distorting their height.
+- **Advanced Variants System:** A multi-phase feature was built, allowing managers to create layout configurations. It supports conditional logic (variants appearing based on other selections) and multi-element changes from a single variant choice.
+- **Room Property Editing:** The properties panel was enhanced to allow editing a room's external dimensions and toggling the visibility of inner/outer dimension labels.
+- **Bug Fixes:** Resolved issues with non-draggable dimension lines and incorrect size display on 90-degree object rotation.
+- **Refactoring (Started):** Acknowledging the massive size of , the agent created a new directory structure (), extracted constants, and created several new custom hook and dialog component files as a foundation for a progressive refactor.
 
 **Last working item**:
--   **Last item agent was working**: Implementing the ability to define a unique thickness for each of the four walls of a Room object within the Layout Configurator. The agent had started updating the frontend state and was modifying the component logic.
+-   **Last item agent was working**: Making the Variants system specific to the selected sauna model and sub-model. The agent started by updating the backend Pydantic models and the creation endpoint in  to include  and .
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: frontend testing agent. This is a complex visual feature in the Fabric.js canvas and requires thorough UI validation.
+-   **Which testing method agent to use?**: both. The backend API needs testing to ensure filtering by model works. The frontend needs significant UI and logic changes to select the model context and pass it to the API, requiring testing agent validation.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Complete Individual Wall Thickness Feature (P0 - HIGHEST)**
+-   **Issue 1: Complete Model-Specific Variants Feature (P0 - HIGHEST)**
 -   **Issue 2: Unstable user login sessions (P1 - RECURRING)**
 -   **Issue 3:  errors during deployment (P2 - RECURRING)**
 
 **Issues Detail**:
 -   **Issue 1: Complete Individual Wall Thickness Feature**
-    -   **Attempted fixes**: The agent started modifying . It added new state properties to  for , , , and . The implementation stopped before the core drawing and logic functions were updated.
+    -   **Attempted fixes**: The agent modified  to add  and  to the  and  Pydantic models. It updated the  endpoint to accept these new fields.
     -   **Next debug checklist**:
-        1.  In , modify the Add Room dialog to include four separate input fields for the wall thicknesses.
-        2.  In the  function, change the implementation from creating a single  to creating a  of four rectangles, each representing a wall with its specific thickness.
-        3.  Update the  function to correctly calculate and display both inner and outer dimensions based on the four different wall thicknesses.
-        4.  Update the  and  functions to correctly calculate boundaries based on the new multi-wall structure.
-        5.  Ensure the new properties are saved and loaded correctly with the canvas JSON.
-    -   **Why fix this issue and what will be achieved with the fix?**: It's a direct user request to allow for more realistic and complex room designs where walls have varying thicknesses.
+        1.  **Backend:** Update the  endpoint in  to accept  and  as query parameters and filter the results accordingly.
+        2.  **Frontend ():** Add UI elements (e.g., dropdowns) to allow the user to select a model and sub-model to work on.
+        3.  **Frontend:** When fetching options (), pass the selected  and  to the backend.
+        4.  **Frontend:** When creating a new option (), include the currently selected  and .
+        5.  **Testing:** Use the testing agent to verify the entire workflow: selecting a model, seeing only relevant options, creating a new option for that model, and ensuring it doesn't appear when a different model is selected.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical user request to make the Variants system usable in a real-world scenario. Without it, all variants for all models would be mixed together, making the feature unmanageable.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Should Test frontend/backend/both after fix?**: Both
     -   **Blocked on other issue**: None
 
 -   **Issue 2: Unstable user login sessions.**
-    -   **Attempted fixes**: None in this session. The agent acknowledged the issue and worked around it.
-    -   **Why fix this issue and what will be achieved with the fix?**: This issue severely hampers development and testing, causing automated tools (like the screenshot tool) to fail by being redirected to the login page. Fixing it will improve development velocity and reliability.
+    -   **Attempted fixes**: None. The agent noted that screenshots were often blank, possibly due to this issue, but worked around it by relying on the testing agent.
+    -   **Why fix this issue and what will be achieved with the fix?**: This issue severely hampers development and testing reliability. Fixing it will improve development velocity.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
 
@@ -76,104 +66,89 @@ This session saw a massive number of features and fixes implemented:
     -   **Is recurring issue?**: Y
 
 **In progress Task List**:
--   **Task 1: Complete Individual Wall Thickness Feature**
-    -   **Where to resume**: Continue editing . The immediate next step is to update the  function to draw a room using four distinct  objects (for the walls) inside a , based on the four new thickness values.
-    -   **What will be achieved with this?**: Users will be able to create rooms with non-uniform wall thicknesses.
+-   **Task 1: Complete Refactoring of  (P0 - HIGH PRIORITY)**
+    -   **Where to resume**: The foundational structure exists in . The next step is to incrementally migrate logic from the monolithic  into the newly created hooks (e.g., move history logic to , API calls to ) and replace the original code with calls to these hooks.
+    -   **What will be achieved with this?**: Drastically improve code maintainability, reduce bug risk, and make future feature development faster and safer.
     -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on something**: None.
+    -   **Should Test frontend/backend/both after fix?**: Frontend. This is a high-risk change requiring extensive regression testing.
+    -   **Blocked on something**: The active user request (Model-Specific Variants) should be completed first.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    *   **P0: CRITICAL REFACTOR of **: This file has grown to an unmanageable size (over 2500 lines before this session, much more now). It is the source of recurring bugs and is extremely difficult to maintain. This technical debt is now a major blocker for stable development and MUST be addressed immediately after the current feature is complete. The work involves breaking the component into smaller, manageable components and custom hooks.
+- **Upcoming Tasks**:
+    *   **P1**: Connect the new variants system to the Sauna Calculator, so that calculator selections can automatically configure the layout based on the saved variants.
+- **Future Tasks**:
     *   **P1**: Refactor the monolithic  function in .
--   **Future Tasks**:
     *   **P2**: Add UI for importing/restoring a backup.
     *   **P2**: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
--   **Feature: Change Responsible User:** Implemented backend endpoints (, ) and frontend dropdowns (, ) to allow admins to reassign orders.
--   **Bugfix: Calculator Gift Logic:** Removed role-based restrictions on gift/delete buttons in the calculator ().
--   **Bugfix: Calculator Pricing:** Fixed a bug where the price of a gifted foundation was being subtracted twice from the total ().
--   **Bugfix: Calculator Order Loading:** Fixed a bug where the selected sub-model (variant) was not being loaded when editing an existing order ().
--   **Bugfix: Logistics Status Sync:** Corrected the logic in  to prevent order statuses from being incorrectly reset when a trip's status is updated.
--   **Feature: PDF Generation Enhancements ():**
-    -   Gifted foundation now appears in the PDF with a strikethrough price instead of being hidden.
-    -   Delivery cost is now excluded from the main options list and displayed as a separate line item below the total, matching the calculator UI.
--   **Feature: Layout Configurator Enhancements ():**
-    -   Fixed a bug preventing model variants from loading in the dropdown.
-    -   Added tools to flip elements horizontally and vertically.
-    -   Added fields to the asset upload form to specify real-world dimensions (, ).
-    -   Implemented a Room and Partition system with automatic dimension recalculation.
-    -   Enabled snapping of elements to room walls.
-    -   Enabled support for decimal values in all dimension inputs and displays.
-    -   Corrected distance calculation for rotated elements by using their bounding boxes.
-    -   Fixed two critical JS errors ( and a function initialization order bug) that caused a white screen.
+-   **Feature: Individual Wall Thickness:** Implemented UI for 4 wall thickness inputs, updated canvas drawing logic, and added properties panel editing ().
+-   **Feature: Fixed Height Elements:** Implemented a  flag for assets, allowing them to scale only by width (, , ).
+-   **Feature: Advanced Variants System:** Created a full CRUD system for layout Options and Variants, including conditional visibility and multi-element configurations (, ).
+-   **Feature: Room Property & Dimension Editing:** Added UI to edit a room's outer dimensions and toggle dimension label visibility from the properties panel ().
+-   **Bugfix: Dimension Lines & Rotation:** Fixed non-draggable dimension lines and incorrect size display on 90-degree object rotation ().
+-   **Refactoring (Started):** Created a new directory structure, hooks, and components in  to begin breaking down .
 
 **Earlier issues found/mentioned but not fixed**
 -   The two recurring issues (login instability, deployment timeouts) were carried over and remain unfixed.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Unstable user login sessions.
--   **Recurrence count**: High. This issue occurred again during this session, causing the screenshot tool to fail by capturing the login page.
--   **Status**: NOT STARTED. No investigation was performed.
+-   **Recurrence count**: High. This issue may have caused blank screenshots during this session.
+-   **Status**: NOT STARTED.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Advanced Fabric.js Manipulation:** The session heavily involved direct manipulation of the Fabric.js canvas. This included creating custom object properties (e.g., , , ), grouping objects to create movable dimension lines, overriding object serialization (), handling complex events (), and dynamically drawing and updating dimension labels based on object positions and rotations.
--   **Complex Frontend State Management:**  now manages an extremely large and coupled state using  and  for the canvas, selected objects, numerous dialogs, and various tool settings.
--   **Backend API Development:** Created new RESTful endpoints () and significantly modified existing ones to support new frontend features and fix bugs.
--   **Live JavaScript Debugging:** Successfully diagnosed and fixed two different runtime JavaScript errors ( and ) in a large, complex component, restoring functionality from a white screen state.
+-   **Advanced Fabric.js Manipulation:** Continued deep manipulation of Fabric.js, including creating custom object properties, grouping objects, complex event handling, and dynamic drawing.
+-   **Complex Frontend State Management:** The state in  has become even more complex with the addition of the variants system. The ongoing refactor aims to manage this complexity with custom hooks.
+-   **Dynamic Variant System with Conditional Logic:** A new system was built from scratch involving backend models (options, variants, configurations, conditions) and a complex frontend UI to manage and apply these variants with filtering.
+-   **Progressive Refactoring:** The strategy of creating a target file structure and incrementally migrating code has begun, laying the groundwork to dismantle a monolithic component safely.
 
 **key DB schema**
--   **assets**: The  collection documents now include  and  fields to store real-world dimensions.
+-   **assets**: Added .
+-   **layout_options**: **New collection**. Stores configurable options. 
+-   **layout_variants**: **New collection**. Stores choices for options, including element configurations and visibility conditions. 
 
 **All files of reference**
--    (Primary file for all new configurator features)
--    (Primary file for PDF generation and sauna order logic)
--    (Logistics status logic)
--    (Calculator pricing logic)
--    &  (Order management UI)
--    (DB Model for assets)
--    (API for assets)
+-    (Primary file for all configurator features)
+-    (New file for the variants system)
+-    (New directory for refactored components)
+-   
+-   
 
 **Areas that need refactoring**:
--   ****: **CRITICAL PRIORITY**. This monolithic component has absorbed numerous complex features this session, making it extremely fragile and nearly impossible to maintain. It is responsible for the recent JS errors and is a huge risk. It MUST be broken down into smaller components and custom hooks before any further features are added.
--   ****: The PDF generation functions (, ) are massive and convoluted. They should be broken down into smaller, single-responsibility helper functions.
+-   ****: **CRITICAL PRIORITY**. The refactoring has begun, but it is far from complete. This task must be continued to ensure the project's long-term health. The file is currently almost 5,000 lines long.
 
 **key api endpoints**
--   : **New**, assigns a responsible user to a sauna order.
--   : **New**, assigns a responsible user to a tub order.
--   : **Modified**, fixed order status synchronization logic.
--   : **Modified**, now accepts  and .
--   : **Modified**, logic updated for displaying gifted foundation and separate delivery costs.
+-   : **New**, for managing layout options.
+-   : **New**, for managing layout variants.
+-   : **Modified**, now accepts .
 
 **Critical Info for New Agent**
 -   **You MUST respond in Russian.**
--   **Top Priority (P0 - In Progress):** Your first task is to complete the individual wall thickness feature in .
--   **Next CRITICAL Task (P0):** Immediately after finishing the current feature, you MUST propose and begin the refactoring of . Do not add any more features to this file until it is broken down. The current state is unsustainable and a major source of bugs.
--   **Login Instability:** Be aware of the recurring session instability. UI tests or screenshots may fail by showing the login screen. This is a known, underlying platform issue, not a bug in your feature code. Test backend changes via  to confirm their validity independently.
+-   **Top Priority (P0 - In Progress):** Your first task is to complete the model-specific variants feature. Finish the backend endpoints in  and then implement the necessary UI and logic changes on the frontend ().
+-   **Next CRITICAL Task (P0):** Immediately after, you MUST continue the refactoring of . Migrate logic incrementally into the new hooks and components in the  directory. Use the testing agent after each significant migration step to ensure no regressions.
+-   **Trust the Testing Agent:** The agent in this session frequently encountered blank screenshots for the configurator page, but the  was able to successfully test the functionality. For this complex component, rely on the testing agent's detailed reports over simple screenshots.
 
 **documents and test reports created in this job**
--   
--   
+-    (Updated)
+-   Multiple test reports in , with the latest one containing the most recent test results for the variants system.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (In Progress):** Request to edit the thickness of each wall of a room individually.
-2.  **User (Resolved):** Reported a JS error () causing a white screen in the layout planner.
-3.  **User (Resolved):** Reported a JS error () causing a white screen in the layout planner.
-4.  **User (Resolved):** Reported that distance calculations are incorrect for rotated elements.
-5.  **User (Resolved):** Requested support for decimal values (e.g., 4.4 cm) in all dimension fields.
-6.  **User (Resolved):** Multi-part request: implement room wall thickness, fix element-to-room distance display, add a precise 90-degree rotation button, and enable snapping elements to room walls.
-7.  **User (Resolved):** Requested a feature to add Rooms and Partitions that automatically recalculate dimensions.
-8.  **User (Resolved):** Requested the ability to toggle the visibility of each of the four dimension lines (top, bottom, left, right) for an element.
-9.  **User (Resolved):** Multi-part request: add element flipping (horizontal/vertical) and the ability to specify an element's real size in cm during upload.
-10. **User (Resolved):** Requested movable dimension lines and individual dimension visibility toggles for each element on the canvas.
+1.  **User (Pending):** Requested that variants in the configurator be individual for the selected model and sub-model.
+2.  **User (Done):** Requested the ability for one variant to control multiple objects (e.g., move a door and resize a bench at the same time).
+3.  **User (Done):** Requested separate toggles for an element's own dimensions versus its distance to other objects.
+4.  **User (Done):** Described the need for a hierarchical/conditional variant system.
+5.  **User (Done):** Clarified the logic for conditional variants, confirming a filtering approach.
+6.  **User (Done):** Requested a system to create layout variants linked to options.
+7.  **User (Done):** Requested the ability to change a room's size directly from the properties panel.
+8.  **User (Done):** Requested editing room wall thickness in the properties panel, toggling dimension visibility, and translating labels to Polish.
+9.  **User (Done):** Reported bugs with non-draggable dimension lines and incorrect size display on 90-degree rotation.
 
 **Project Health Check:**
--   **Broken**: The new individual wall thickness feature is incomplete. The  component is extremely fragile and at high risk of breaking. The underlying user session instability remains a critical issue that impedes testing.
+-   **Broken**: The model-specific variants feature is incomplete. The backend models have been changed, but the API logic and the entire frontend implementation are missing.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
@@ -185,14 +160,14 @@ This session saw a massive number of features and fixes implemented:
 -   **Google Maps**: For delivery routes.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. It was used to test the change responsible user feature and successfully found and fixed an authorization token bug.
+-   **Testing agent used after significant changes**: YES. The testing agent was used multiple times to validate complex new features in the layout configurator. It proved essential for confirming functionality when manual screenshots were unreliable and also caught/fixed several bugs.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: None have been reported, but the sheer volume of untested changes in  poses a high regression risk.
+-   **Known regressions**: None reported, but the high complexity and partially-refactored state of  means the risk is high.
 
 **Credentials to test flow:**
 -   Admin:  / 
 
 **What agent forgot to execute**
--   **CRITICAL:** The agent repeatedly deferred the P0 task of refactoring . Instead of addressing the massive technical debt, it continued to add numerous complex features to the same monolithic file, making the problem exponentially worse. This must be the next agent's top priority after the current small feature.
--   The recurring login instability issue was acknowledged but never investigated or addressed. The agent simply worked around it, which is not a long-term solution.</analysis>
+-   The agent did not address the long-standing recurring issues of unstable user login sessions and  errors during deployment.
+-   The critical refactoring of  was started but is the largest piece of pending technical debt. The previous agent correctly prioritized user features but the next agent must continue this refactoring work.</analysis>

@@ -8,7 +8,7 @@ import os
 import io
 from PIL import Image
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://room-designer-25.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sauna-config-3.preview.emergentagent.com')
 
 
 class TestUploadEndpoint:

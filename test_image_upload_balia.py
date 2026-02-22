@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://room-designer-25.preview.emergentagent.com/api"
+BACKEND_URL = "https://sauna-config-3.preview.emergentagent.com/api"
 
 def test_upload_image():
     """Test POST /api/upload/image - Upload image file"""
