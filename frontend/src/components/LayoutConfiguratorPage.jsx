@@ -4735,6 +4735,19 @@ const LayoutConfiguratorPage = () => {
                     </Button>
                   )}
                   
+                  {/* Show hidden variants toggle */}
+                  {layoutOptions.some(opt => opt.variants?.some(v => !isVariantVisible(v))) && (
+                    <Button
+                      size="sm"
+                      variant={showHiddenVariants ? "default" : "outline"}
+                      className={`w-full h-8 text-xs ${showHiddenVariants ? 'bg-red-500 hover:bg-red-600' : 'text-red-500 border-red-200 hover:bg-red-50'}`}
+                      onClick={() => setShowHiddenVariants(!showHiddenVariants)}
+                    >
+                      {showHiddenVariants ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
+                      {showHiddenVariants ? 'Ukryj niedostępne' : 'Pokaż ukryte warianty'}
+                    </Button>
+                  )}
+                  
                   {/* Options list */}
                   {layoutOptions.map(option => (
                     <div key={option.id} className="border rounded-lg overflow-hidden">
