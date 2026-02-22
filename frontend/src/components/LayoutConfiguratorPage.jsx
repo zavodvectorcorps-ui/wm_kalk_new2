@@ -6073,6 +6073,43 @@ const LayoutConfiguratorPage = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Edit Option Dialog */}
+      <Dialog open={editOptionDialogOpen} onOpenChange={setEditOptionDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edytuj opcję</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div>
+              <Label className="text-xs">Nazwa (PL)</Label>
+              <Input
+                value={editOptionForm.namePl}
+                onChange={(e) => setEditOptionForm({ ...editOptionForm, namePl: e.target.value, name: e.target.value })}
+                placeholder="np. Strona wejścia"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Nazwa (RU)</Label>
+              <Input
+                value={editOptionForm.nameRu}
+                onChange={(e) => setEditOptionForm({ ...editOptionForm, nameRu: e.target.value })}
+                placeholder="напр. Сторона входа"
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditOptionDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button size="sm" onClick={updateLayoutOption}>
+              Zapisz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Copy Option to Model Dialog */}
       <Dialog open={copyOptionDialogOpen} onOpenChange={setCopyOptionDialogOpen}>
         <DialogContent className="max-w-sm">
