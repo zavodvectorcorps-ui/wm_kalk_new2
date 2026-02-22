@@ -1798,8 +1798,18 @@ const LayoutConfiguratorPage = () => {
           return;
         }
         
-        // Set initial properties
-        const scale = Math.min(asset.width / img.width, asset.height / img.height, 1);
+        // Calculate scale based on real dimensions in CM (if provided)
+        let scale = 1;
+        if (asset.widthCm && asset.heightCm && pixelsPerCm) {
+          // Scale to match real dimensions
+          const targetWidthPx = asset.widthCm * pixelsPerCm;
+          const targetHeightPx = asset.heightCm * pixelsPerCm;
+          scale = Math.min(targetWidthPx / img.width, targetHeightPx / img.height);
+        } else {
+          // Fallback to pixel dimensions
+          scale = Math.min(asset.width / img.width, asset.height / img.height, 1);
+        }
+        
         img.set({
           left: snapToGrid(canvasWidth / 2 - (img.width * scale) / 2),
           top: snapToGrid(canvasHeight / 2 - (img.height * scale) / 2),
@@ -1809,6 +1819,14 @@ const LayoutConfiguratorPage = () => {
           elementType: asset.type,
           assetId: asset.id,
           assetName: asset.name,
+          widthCm: asset.widthCm || null,
+          heightCm: asset.heightCm || null,
+          isDrawnShape: true, // Enable dimensions for assets too
+          showDimensions: true,
+          showDistanceLeft: true,
+          showDistanceRight: true,
+          showDistanceTop: true,
+          showDistanceBottom: true,
         });
         
         // Add controls
@@ -1822,6 +1840,7 @@ const LayoutConfiguratorPage = () => {
         canvas.add(img);
         canvas.setActiveObject(img);
         canvas.renderAll();
+        updateDimensionLabels();
         
         toast.success(`Добавлен: ${asset.name}`);
       }, { crossOrigin: 'anonymous' });
