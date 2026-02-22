@@ -2459,6 +2459,13 @@ const LayoutConfiguratorPage = () => {
       if (uploadForm.modelId) {
         formData.append('modelId', uploadForm.modelId);
       }
+      // Add real dimensions in cm if provided
+      if (uploadForm.widthCm) {
+        formData.append('widthCm', uploadForm.widthCm);
+      }
+      if (uploadForm.heightCm) {
+        formData.append('heightCm', uploadForm.heightCm);
+      }
       
       const res = await fetch(`${API_URL}/api/layout-configurator/assets`, {
         method: 'POST',
@@ -2468,7 +2475,7 @@ const LayoutConfiguratorPage = () => {
       if (res.ok) {
         toast.success('Элемент загружен!');
         setUploadAssetDialogOpen(false);
-        setUploadForm({ name: '', type: 'other', modelId: null, file: null });
+        setUploadForm({ name: '', type: 'other', modelId: null, file: null, widthCm: '', heightCm: '' });
         fetchAssets();
       } else {
         const error = await res.json();
