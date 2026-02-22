@@ -17,6 +17,11 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
   - When enabled, element can only be scaled horizontally (width changes, height stays fixed)
   - Uses `lockScalingY: true` and custom control visibility
   - Backend stores `fixedHeight: boolean` in asset document
+- **BUGFIX**: Dimension lines (red distance markers) now remain draggable when Select tool is active
+  - Fixed tool-switching logic to preserve `isDimensionLine` objects interactivity
+- **BUGFIX**: Rotation dimension labels now swap correctly
+  - When element rotated 90°/270°, width/height labels automatically swap to show correct dimensions
+  - Uses `isRotated90` boolean calculation based on angle ranges (45-135° or 225-315°)
 - **REFACTORING**: Created modular structure for Layout Configurator
   - New folder: `/app/frontend/src/components/layout-configurator/`
   - Constants: `constants.js` (A4_LANDSCAPE, ELEMENT_TYPES, CANVAS_SERIALIZE_PROPS)
@@ -26,7 +31,7 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 - **Files Modified**:
   - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - UI and logic updates
   - `/app/backend/routes/layout_configurator.py` - Added `fixedHeight` parameter
-- **Testing**: 100% pass rate (9/9 backend tests, all frontend features verified)
+- **Testing**: 100% pass rate (features verified)
 
 ### Feb 20, 2026 - Change Responsible User Feature (COMPLETED)
 - **NEW FEATURE**: Admins can now reassign orders to different employees
