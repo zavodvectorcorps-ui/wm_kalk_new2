@@ -280,6 +280,7 @@ const LayoutConfiguratorPage = () => {
     fetchSaunaModels();
     fetchAssets();
     fetchLayouts();
+    fetchLayoutOptions();
   }, []);
 
   // Redraw grid when scale or grid size changes
