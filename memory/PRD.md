@@ -5,6 +5,25 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 22, 2026 - Model-Specific Layouts & Variants + Element Visibility (COMPLETED)
+- **NEW FEATURE**: Model/Variant-specific layouts and configuration options
+  - Layouts and Options are now bound to specific sauna models and submodels (variants)
+  - Backend API supports filtering by `modelId` and `variantId` query parameters:
+    - `GET /api/layout-configurator/layouts?modelId=xxx&variantId=yyy`
+    - `GET /api/layout-configurator/options?modelId=xxx&variantId=yyy`
+  - Frontend automatically reloads layouts/options when model or variant selection changes
+  - UI shows filter status: "Planowki dla: [Model] / [Variant]"
+  - Warning message shown when no model is selected: "Wybierz model, żeby zobaczyć..."
+  - Clear filter button (X) to show all layouts/options
+- **NEW FEATURE**: Element visibility toggle in Layout Configurator
+  - "Widoczność elementu" switch in properties panel (Polish: "Widoczność elementu")
+  - Hidden elements shown with 30% opacity (selectable but semi-transparent)
+  - Warning text when element is hidden: "Element jest ukryty (półprzezroczysty)"
+  - Visibility state saved in variant configurations (visible: true/false)
+  - `applyVariant()` function applies visibility changes when variant is selected
+- **Use case**: Manager selects model "Sauna 2.5m" → submodel "Standard" → sees only layouts/options for that configuration → can hide table element in one variant and show it in another
+- **Testing**: 100% (13/13 backend tests, all frontend features verified)
+
 ### Feb 22, 2026 - Layout Options & Variants System (COMPLETED)
 - **NEW FEATURE**: Configuration variants system for layouts
   - Global **Options** (e.g., "Strona wejścia", "Typ ławek") group related variants
