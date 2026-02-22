@@ -1691,22 +1691,26 @@ const LayoutConfiguratorPage = () => {
         });
         canvas.add(heightLabel);
         
-        // Distance labels to room walls (if this is not the room itself)
-        if (room && obj !== room) {
+        // Distance labels to room walls (if this is not the room itself and room exists)
+        // Skip if obj is part of room group or is a room
+        if (room && !obj.isRoomGroup && !obj.isRoom && !obj.isInnerRoom && !obj.isOuterWall) {
           const objRight = obj.left + width;
           const objBottom = obj.top + height;
-          const roomRight = room.left + room.width * (room.scaleX || 1);
-          const roomBottom = room.top + room.height * (room.scaleY || 1);
+          
+          // Get room boundaries - for room groups, use inner boundaries
+          const roomLeft = room.left;
+          const roomTop = room.top;
+          const roomRight = roomLeft + room.width * (room.scaleX || 1);
+          const roomBottom = roomTop + room.height * (room.scaleY || 1);
           
           // Find partitions that may affect distances
           const partitions = canvas.getObjects().filter(o => o.isPartition);
           
           // Find closest left boundary (room wall or partition)
-          let leftBoundary = room.left;
+          let leftBoundary = roomLeft;
           partitions.forEach(p => {
             if (p.partitionType === 'vertical') {
               const px = p.left || p.x1;
-              // If partition is to the left of object and to the right of current boundary
               if (px < obj.left && px > leftBoundary) {
                 leftBoundary = px;
               }
@@ -1718,7 +1722,6 @@ const LayoutConfiguratorPage = () => {
           partitions.forEach(p => {
             if (p.partitionType === 'vertical') {
               const px = p.left || p.x1;
-              // If partition is to the right of object and to the left of current boundary
               if (px > objRight && px < rightBoundary) {
                 rightBoundary = px;
               }
@@ -1726,11 +1729,10 @@ const LayoutConfiguratorPage = () => {
           });
           
           // Find closest top boundary (room wall or partition)
-          let topBoundary = room.top;
+          let topBoundary = roomTop;
           partitions.forEach(p => {
             if (p.partitionType === 'horizontal') {
               const py = p.top || p.y1;
-              // If partition is above object and below current boundary
               if (py < obj.top && py > topBoundary) {
                 topBoundary = py;
               }
