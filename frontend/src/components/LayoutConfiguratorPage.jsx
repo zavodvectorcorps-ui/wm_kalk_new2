@@ -5819,28 +5819,77 @@ const LayoutConfiguratorPage = () => {
               </div>
             </div>
             
-            {selectedObject && (
-              <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                <p className="font-medium text-blue-800 mb-1">Wybrany element:</p>
-                <p className="text-blue-700">
-                  {selectedObject.assetName || selectedObject.type} @ ({selectedObject.x}, {selectedObject.y})
+            {/* Elements to save in variant */}
+            <div className="p-2 bg-green-50 border border-green-200 rounded">
+              <Label className="text-xs font-medium text-green-800">Elementy w wariancie:</Label>
+              
+              {/* List of accumulated elements */}
+              {newVariantForm.elements?.length > 0 ? (
+                <div className="space-y-1 mt-2">
+                  {newVariantForm.elements.map((el, idx) => (
+                    <div key={idx} className="flex items-center gap-1 text-[10px] bg-white/50 p-1 rounded">
+                      <span className="text-green-700 flex-1 truncate">
+                        {el.assetName || el.elementType} @ ({el.properties.left}, {el.properties.top})
+                      </span>
+                      <span className="text-green-600 text-[9px]">
+                        {el.properties.angle}° {Math.round(el.properties.scaleX * 100)}%
+                      </span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-4 w-4"
+                        onClick={() => {
+                          const updated = [...newVariantForm.elements];
+                          updated.splice(idx, 1);
+                          setNewVariantForm({ ...newVariantForm, elements: updated });
+                        }}
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[9px] text-green-600 mt-1">
+                  Brak elementów. Wybierz element na płótnie i kliknij "Dodaj element".
                 </p>
-                <p className="text-blue-600 text-[10px] mt-1">
-                  Obrót: {selectedObject.rotation}°, Skala: {(selectedObject.scale * 100).toFixed(0)}%
-                </p>
-              </div>
-            )}
+              )}
+              
+              {/* Add current element button */}
+              {selectedObject && (
+                <div className="mt-2 p-2 bg-white/50 rounded">
+                  <p className="text-[9px] text-green-700 mb-1">Aktualnie wybrany:</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-green-800 flex-1 truncate">
+                      {selectedObject.assetName || selectedObject.type} @ ({selectedObject.x}, {selectedObject.y})
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-[10px] px-2"
+                      onClick={addElementToVariantForm}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Dodaj
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
             
             <p className="text-[10px] text-muted-foreground">
-              Aktualna pozycja i właściwości wybranego elementu zostaną zapisane jako wariant.
+              Dodaj wiele elementów (np. drzwi + ławka) aby zapisać ich pozycje jako jeden wariant.
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setSaveVariantDialogOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => {
+              setSaveVariantDialogOpen(false);
+              setNewVariantForm({ optionId: '', name: '', namePl: '', nameRu: '', conditions: [], elements: [] });
+            }}>
               Anuluj
             </Button>
-            <Button size="sm" onClick={saveAsVariant}>
-              Zapisz
+            <Button size="sm" onClick={saveAsVariant} disabled={newVariantForm.elements.length === 0 && !selectedObject}>
+              Zapisz ({newVariantForm.elements.length || 1} el.)
             </Button>
           </DialogFooter>
         </DialogContent>
