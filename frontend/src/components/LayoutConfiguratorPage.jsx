@@ -1626,7 +1626,7 @@ const LayoutConfiguratorPage = () => {
       const innerHeightCm = (innerHeight / pixelsPerCm).toFixed(1);
       
       // Outer width label (top, outside)
-      const outerWidthLabel = new fabric.Text(`внеш: ${outerWidthCm} см`, {
+      const outerWidthLabel = new fabric.Text(`zewn: ${outerWidthCm} cm`, {
         left: roomGroup.left + outerWidth / 2,
         top: roomGroup.top - 20,
         fontSize: 10,
@@ -1640,7 +1640,7 @@ const LayoutConfiguratorPage = () => {
       canvas.add(outerWidthLabel);
       
       // Inner width label (top, inside)
-      const innerWidthLabel = new fabric.Text(`внутр: ${innerWidthCm} см`, {
+      const innerWidthLabel = new fabric.Text(`wewn: ${innerWidthCm} cm`, {
         left: roomGroup.left + outerWidth / 2,
         top: roomGroup.top + wallTopPx + 5,
         fontSize: 9,
@@ -1654,7 +1654,7 @@ const LayoutConfiguratorPage = () => {
       canvas.add(innerWidthLabel);
       
       // Outer height label (left, outside)
-      const outerHeightLabel = new fabric.Text(`внеш: ${outerHeightCm} см`, {
+      const outerHeightLabel = new fabric.Text(`zewn: ${outerHeightCm} cm`, {
         left: roomGroup.left - 25,
         top: roomGroup.top + outerHeight / 2,
         fontSize: 10,
@@ -1670,7 +1670,7 @@ const LayoutConfiguratorPage = () => {
       canvas.add(outerHeightLabel);
       
       // Inner height label (left inside)
-      const innerHeightLabel = new fabric.Text(`внутр: ${innerHeightCm} см`, {
+      const innerHeightLabel = new fabric.Text(`wewn: ${innerHeightCm} cm`, {
         left: roomGroup.left + wallLeftPx + 8,
         top: roomGroup.top + outerHeight / 2,
         fontSize: 9,
