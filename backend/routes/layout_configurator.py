@@ -28,6 +28,7 @@ class ElementAsset(BaseModel):
     height: int = 100  # Default height in pixels (for display)
     widthCm: Optional[float] = None  # Real width in centimeters
     heightCm: Optional[float] = None  # Real height in centimeters
+    fixedHeight: bool = False  # If true, only width can be scaled (for benches)
     createdAt: str
 
 
