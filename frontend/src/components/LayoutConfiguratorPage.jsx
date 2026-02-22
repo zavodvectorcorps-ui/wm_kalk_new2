@@ -1698,14 +1698,27 @@ const LayoutConfiguratorPage = () => {
         const bboxLeft = boundingRect.left;
         const bboxTop = boundingRect.top;
         
-        // Original dimensions (without rotation) for size labels
+        // Original dimensions (without rotation)
         const origWidth = obj.width * (obj.scaleX || 1);
         const origHeight = obj.height * (obj.scaleY || 1);
-        const widthCm = (origWidth / pixelsPerCm).toFixed(1);
-        const heightCm = (origHeight / pixelsPerCm).toFixed(1);
         
-        // Width label (top center of bounding box)
-        const widthLabel = new fabric.Text(`${widthCm} см`, {
+        // Normalize angle to 0-360
+        const angle = ((obj.angle || 0) % 360 + 360) % 360;
+        
+        // Determine if rotated by approximately 90 or 270 degrees (swap width/height)
+        const isRotated90 = (angle > 45 && angle < 135) || (angle > 225 && angle < 315);
+        
+        // For dimension labels, show dimensions relative to current orientation
+        // If rotated 90°/270° - the "top" label shows original height, "left" label shows original width
+        const topDimensionCm = isRotated90 
+          ? (origHeight / pixelsPerCm).toFixed(1) 
+          : (origWidth / pixelsPerCm).toFixed(1);
+        const leftDimensionCm = isRotated90 
+          ? (origWidth / pixelsPerCm).toFixed(1) 
+          : (origHeight / pixelsPerCm).toFixed(1);
+        
+        // Width label (top center of bounding box) - shows dimension of top edge
+        const widthLabel = new fabric.Text(`${topDimensionCm} см`, {
           left: bboxLeft + bboxWidth / 2,
           top: bboxTop - 14,
           fontSize: 10,
@@ -1718,8 +1731,8 @@ const LayoutConfiguratorPage = () => {
         });
         canvas.add(widthLabel);
         
-        // Height label (left center of bounding box, rotated)
-        const heightLabel = new fabric.Text(`${heightCm} см`, {
+        // Height label (left center of bounding box, rotated) - shows dimension of left edge
+        const heightLabel = new fabric.Text(`${leftDimensionCm} см`, {
           left: bboxLeft - 6,
           top: bboxTop + bboxHeight / 2,
           fontSize: 10,
