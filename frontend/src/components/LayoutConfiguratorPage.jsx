@@ -671,7 +671,7 @@ const LayoutConfiguratorPage = () => {
           scaleY: selectedObj.scaleY || 1,
           flipX: selectedObj.flipX || false,
           flipY: selectedObj.flipY || false,
-          visible: selectedObj.visible !== false,
+          isHidden: selectedObj.isHidden || false,
         }
       }];
     }
