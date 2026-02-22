@@ -163,6 +163,14 @@ const LayoutConfiguratorPage = () => {
     partitionOffset: 50,
   });
   
+  // Layout options & variants state
+  const [layoutOptions, setLayoutOptions] = useState([]);
+  const [selectedVariants, setSelectedVariants] = useState({}); // { optionId: variantId }
+  const [createOptionDialogOpen, setCreateOptionDialogOpen] = useState(false);
+  const [saveVariantDialogOpen, setSaveVariantDialogOpen] = useState(false);
+  const [newOptionForm, setNewOptionForm] = useState({ name: '', namePl: '', nameRu: '' });
+  const [newVariantForm, setNewVariantForm] = useState({ optionId: '', name: '', namePl: '', nameRu: '' });
+  
   // Save outline form
   const [saveOutlineForm, setSaveOutlineForm] = useState({
     outerLength: 400,
