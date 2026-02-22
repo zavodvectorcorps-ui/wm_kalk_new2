@@ -5522,6 +5522,117 @@ const LayoutConfiguratorPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Create Option Dialog */}
+      <Dialog open={createOptionDialogOpen} onOpenChange={setCreateOptionDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nowa opcja konfiguracji</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div>
+              <Label className="text-xs">Nazwa (PL)</Label>
+              <Input
+                value={newOptionForm.namePl}
+                onChange={(e) => setNewOptionForm({ ...newOptionForm, namePl: e.target.value, name: e.target.value })}
+                placeholder="np. Strona wejścia"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Nazwa (RU)</Label>
+              <Input
+                value={newOptionForm.nameRu}
+                onChange={(e) => setNewOptionForm({ ...newOptionForm, nameRu: e.target.value })}
+                placeholder="напр. Сторона входа"
+                className="h-8 text-sm"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Opcja grupuje warianty konfiguracji. Np. opcja "Strona wejścia" może mieć warianty "Prosto" i "Z boku".
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setCreateOptionDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button size="sm" onClick={createLayoutOption}>
+              Utwórz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Save Variant Dialog */}
+      <Dialog open={saveVariantDialogOpen} onOpenChange={setSaveVariantDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Zapisz wariant</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div>
+              <Label className="text-xs">Opcja</Label>
+              <Select
+                value={newVariantForm.optionId}
+                onValueChange={(val) => setNewVariantForm({ ...newVariantForm, optionId: val })}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Wybierz opcję" />
+                </SelectTrigger>
+                <SelectContent>
+                  {layoutOptions.map(opt => (
+                    <SelectItem key={opt.id} value={opt.id}>
+                      {opt.namePl || opt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Nazwa wariantu (PL)</Label>
+              <Input
+                value={newVariantForm.namePl}
+                onChange={(e) => setNewVariantForm({ ...newVariantForm, namePl: e.target.value, name: e.target.value })}
+                placeholder="np. Wejście proste"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Nazwa wariantu (RU)</Label>
+              <Input
+                value={newVariantForm.nameRu}
+                onChange={(e) => setNewVariantForm({ ...newVariantForm, nameRu: e.target.value })}
+                placeholder="напр. Прямой вход"
+                className="h-8 text-sm"
+              />
+            </div>
+            
+            {selectedObject && (
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                <p className="font-medium text-blue-800 mb-1">Wybrany element:</p>
+                <p className="text-blue-700">
+                  {selectedObject.assetName || selectedObject.type} @ ({selectedObject.x}, {selectedObject.y})
+                </p>
+                <p className="text-blue-600 text-[10px] mt-1">
+                  Obrót: {selectedObject.rotation}°, Skala: {(selectedObject.scale * 100).toFixed(0)}%
+                </p>
+              </div>
+            )}
+            
+            <p className="text-[10px] text-muted-foreground">
+              Aktualna pozycja i właściwości wybranego elementu zostaną zapisane jako wariant.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSaveVariantDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button size="sm" onClick={saveAsVariant}>
+              Zapisz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
