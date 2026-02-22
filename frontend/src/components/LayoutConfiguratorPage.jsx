@@ -4027,6 +4027,27 @@ const LayoutConfiguratorPage = () => {
                   </div>
                 ))}
                 
+                {/* Show filter status */}
+                {selectedModel && filteredAssets.length > 0 && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 mb-2">
+                    Elementy dla: <strong>{selectedModel.name}</strong> + globalne
+                  </div>
+                )}
+                
+                {filteredAssets.length === 0 && assets.length > 0 && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    <p>Brak elementów dla wybranego modelu</p>
+                    <p className="text-xs mt-1">Globalne elementy i elementy dla "{selectedModel?.name || 'модели'}" będą widoczne</p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => setUploadAssetDialogOpen(true)}
+                    >
+                      Dodaj element
+                    </Button>
+                  </div>
+                )}
+                
                 {assets.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground text-sm">
                     <p>Нет загруженных элементов</p>
