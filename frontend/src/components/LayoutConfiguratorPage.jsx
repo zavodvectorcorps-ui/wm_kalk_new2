@@ -180,6 +180,7 @@ const LayoutConfiguratorPage = () => {
     file: null,
     widthCm: '',
     heightCm: '',
+    fixedHeight: false,
   });
   
   // Text tool state
