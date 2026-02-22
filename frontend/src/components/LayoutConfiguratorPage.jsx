@@ -1329,19 +1329,26 @@ const LayoutConfiguratorPage = () => {
     const roomGroups = canvas.getObjects().filter(o => o.isRoomGroup);
     if (roomGroups.length > 0) {
       const roomGroup = roomGroups[0];
-      // Get inner room boundaries (accounting for wall thickness)
-      const wallThicknessPx = (roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      // Get wall thicknesses (support both old single thickness and new per-wall)
+      const wallLeftPx = (roomGroup.wallLeftCm || roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      const wallRightPx = (roomGroup.wallRightCm || roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      const wallTopPx = (roomGroup.wallTopCm || roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      const wallBottomPx = (roomGroup.wallBottomCm || roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      
       const groupWidth = roomGroup.width * (roomGroup.scaleX || 1);
       const groupHeight = roomGroup.height * (roomGroup.scaleY || 1);
       
       return {
-        left: roomGroup.left + wallThicknessPx,
-        top: roomGroup.top + wallThicknessPx,
-        width: groupWidth - wallThicknessPx * 2,
-        height: groupHeight - wallThicknessPx * 2,
+        left: roomGroup.left + wallLeftPx,
+        top: roomGroup.top + wallTopPx,
+        width: groupWidth - wallLeftPx - wallRightPx,
+        height: groupHeight - wallTopPx - wallBottomPx,
         scaleX: 1,
         scaleY: 1,
-        wallThicknessPx,
+        wallLeftPx,
+        wallRightPx,
+        wallTopPx,
+        wallBottomPx,
         outerLeft: roomGroup.left,
         outerTop: roomGroup.top,
         outerWidth: groupWidth,
