@@ -1310,6 +1310,14 @@ const LayoutConfiguratorPage = () => {
     const obj = e.target;
     if (!obj || !obj.isDrawnShape) return;
     
+    // Handle fixedHeight elements - restore original scaleY
+    if (obj.fixedHeightCm && obj.lockScalingY) {
+      // Calculate original scaleY based on fixedHeightCm
+      const originalHeightPx = obj.fixedHeightCm * pixelsPerCm;
+      const originalScaleY = originalHeightPx / obj.height;
+      obj.set({ scaleY: originalScaleY });
+    }
+    
     // Snap scale to grid
     if (obj.type === 'rect') {
       const gridPx = gridSizeCm * pixelsPerCm;
