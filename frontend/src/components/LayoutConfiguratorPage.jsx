@@ -2221,16 +2221,19 @@ const LayoutConfiguratorPage = () => {
     if (!fabricRef.current) return;
     
     const canvas = fabricRef.current;
-    const { outerWidthCm, outerHeightCm, wallThicknessCm } = roomForm;
+    const { outerWidthCm, outerHeightCm, wallLeftCm, wallRightCm, wallTopCm, wallBottomCm } = roomForm;
     
     // Calculate inner dimensions
-    const innerWidthCm = outerWidthCm - (wallThicknessCm * 2);
-    const innerHeightCm = outerHeightCm - (wallThicknessCm * 2);
+    const innerWidthCm = outerWidthCm - wallLeftCm - wallRightCm;
+    const innerHeightCm = outerHeightCm - wallTopCm - wallBottomCm;
     
     // Convert to pixels
     const outerWidthPx = outerWidthCm * pixelsPerCm;
     const outerHeightPx = outerHeightCm * pixelsPerCm;
-    const wallThicknessPx = wallThicknessCm * pixelsPerCm;
+    const wallLeftPx = wallLeftCm * pixelsPerCm;
+    const wallRightPx = wallRightCm * pixelsPerCm;
+    const wallTopPx = wallTopCm * pixelsPerCm;
+    const wallBottomPx = wallBottomCm * pixelsPerCm;
     
     // Center the room on canvas (don't snap to grid for precise positioning)
     const left = Math.round((canvasWidth - outerWidthPx) / 2);
@@ -2254,7 +2257,10 @@ const LayoutConfiguratorPage = () => {
       outerHeightCm,
       innerWidthCm,
       innerHeightCm,
-      wallThicknessCm,
+      wallLeftCm,
+      wallRightCm,
+      wallTopCm,
+      wallBottomCm,
       showDimensions: true,
       showDistanceLeft: false,
       showDistanceRight: false,
@@ -2266,10 +2272,10 @@ const LayoutConfiguratorPage = () => {
     
     // Create inner rectangle (floor/interior)
     const innerRoom = new fabric.Rect({
-      left: left + wallThicknessPx,
-      top: top + wallThicknessPx,
-      width: outerWidthPx - wallThicknessPx * 2,
-      height: outerHeightPx - wallThicknessPx * 2,
+      left: left + wallLeftPx,
+      top: top + wallTopPx,
+      width: outerWidthPx - wallLeftPx - wallRightPx,
+      height: outerHeightPx - wallTopPx - wallBottomPx,
       fill: 'rgba(255, 248, 240, 0.7)',
       stroke: 'transparent',
       strokeWidth: 0,
@@ -2281,7 +2287,10 @@ const LayoutConfiguratorPage = () => {
       parentOuterId: outerRoom.elementId,
       innerWidthCm,
       innerHeightCm,
-      wallThicknessCm,
+      wallLeftCm,
+      wallRightCm,
+      wallTopCm,
+      wallBottomCm,
       showDimensions: true,
       showDistanceLeft: true,
       showDistanceRight: true,
@@ -2304,7 +2313,10 @@ const LayoutConfiguratorPage = () => {
       outerHeightCm,
       innerWidthCm,
       innerHeightCm,
-      wallThicknessCm,
+      wallLeftCm,
+      wallRightCm,
+      wallTopCm,
+      wallBottomCm,
       showDimensions: true,
       showDistanceLeft: false,
       showDistanceRight: false,
