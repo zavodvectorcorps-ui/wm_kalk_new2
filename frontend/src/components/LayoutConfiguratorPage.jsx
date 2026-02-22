@@ -152,11 +152,12 @@ const LayoutConfiguratorPage = () => {
   // Add room dialog state
   const [addRoomDialogOpen, setAddRoomDialogOpen] = useState(false);
   const [roomForm, setRoomForm] = useState({
-    widthCm: 200,
-    heightCm: 150,
-    isPartition: false, // true = partition inside existing room
-    partitionPosition: 'vertical', // vertical or horizontal
-    partitionOffset: 50, // offset in cm from left/top
+    outerWidthCm: 200,
+    outerHeightCm: 150,
+    wallThicknessCm: 5,
+    isPartition: false,
+    partitionPosition: 'vertical',
+    partitionOffset: 50,
   });
   
   // Save outline form
