@@ -4349,7 +4349,6 @@ const LayoutConfiguratorPage = () => {
                 </Button>
               </div>
             )}
-            </div>
           </CardContent>
         </Card>
         
