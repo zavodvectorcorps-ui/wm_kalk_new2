@@ -1576,8 +1576,86 @@ const LayoutConfiguratorPage = () => {
       canvas.add(group);
     };
     
+    // First, add room dimension labels if it's a room group
+    const roomGroups = canvas.getObjects().filter(o => o.isRoomGroup);
+    roomGroups.forEach(roomGroup => {
+      const outerWidth = roomGroup.width * (roomGroup.scaleX || 1);
+      const outerHeight = roomGroup.height * (roomGroup.scaleY || 1);
+      const wallThicknessPx = (roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      const innerWidth = outerWidth - wallThicknessPx * 2;
+      const innerHeight = outerHeight - wallThicknessPx * 2;
+      
+      const outerWidthCm = Math.round(outerWidth / pixelsPerCm);
+      const outerHeightCm = Math.round(outerHeight / pixelsPerCm);
+      const innerWidthCm = Math.round(innerWidth / pixelsPerCm);
+      const innerHeightCm = Math.round(innerHeight / pixelsPerCm);
+      
+      // Outer width label (top, outside)
+      const outerWidthLabel = new fabric.Text(`внеш: ${outerWidthCm} см`, {
+        left: roomGroup.left + outerWidth / 2,
+        top: roomGroup.top - 20,
+        fontSize: 10,
+        fill: '#8B4513',
+        fontWeight: 'bold',
+        originX: 'center',
+        selectable: false,
+        evented: false,
+        isDimensionLabel: true,
+      });
+      canvas.add(outerWidthLabel);
+      
+      // Inner width label (top, inside)
+      const innerWidthLabel = new fabric.Text(`внутр: ${innerWidthCm} см`, {
+        left: roomGroup.left + outerWidth / 2,
+        top: roomGroup.top + wallThicknessPx + 5,
+        fontSize: 9,
+        fill: '#059669',
+        fontWeight: 'bold',
+        originX: 'center',
+        selectable: false,
+        evented: false,
+        isDimensionLabel: true,
+      });
+      canvas.add(innerWidthLabel);
+      
+      // Outer height label (left, outside)
+      const outerHeightLabel = new fabric.Text(`внеш: ${outerHeightCm} см`, {
+        left: roomGroup.left - 25,
+        top: roomGroup.top + outerHeight / 2,
+        fontSize: 10,
+        fill: '#8B4513',
+        fontWeight: 'bold',
+        originX: 'center',
+        originY: 'center',
+        angle: -90,
+        selectable: false,
+        evented: false,
+        isDimensionLabel: true,
+      });
+      canvas.add(outerHeightLabel);
+      
+      // Inner height label (left inside)
+      const innerHeightLabel = new fabric.Text(`внутр: ${innerHeightCm} см`, {
+        left: roomGroup.left + wallThicknessPx + 8,
+        top: roomGroup.top + outerHeight / 2,
+        fontSize: 9,
+        fill: '#059669',
+        fontWeight: 'bold',
+        originX: 'center',
+        originY: 'center',
+        angle: -90,
+        selectable: false,
+        evented: false,
+        isDimensionLabel: true,
+      });
+      canvas.add(innerHeightLabel);
+    });
+    
     shapes.forEach(obj => {
-      if (obj.type === 'rect') {
+      // Skip room groups - they have special labels above
+      if (obj.isRoomGroup) return;
+      
+      if (obj.type === 'rect' || obj.type === 'group') {
         const width = obj.width * (obj.scaleX || 1);
         const height = obj.height * (obj.scaleY || 1);
         const widthCm = Math.round(width / pixelsPerCm);
