@@ -3432,6 +3432,7 @@ const LayoutConfiguratorPage = () => {
           'outerWidthCm', 'outerHeightCm', 'innerWidthCm', 'innerHeightCm',
           'wallLeftCm', 'wallRightCm', 'wallTopCm', 'wallBottomCm', 'wallThicknessCm',
           'showOuterDimensions', 'showInnerDimensions',
+          'showElementSize', 'showDistances',
           'lockScalingY', 'fixedHeightCm',
           'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
         ])),
