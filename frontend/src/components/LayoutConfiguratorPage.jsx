@@ -827,6 +827,10 @@ const LayoutConfiguratorPage = () => {
         'elementId', 'elementType', 'isDrawnShape', 'strokeWidthCm', 
         'isMeasurement', 'isMeasurementPart', 'parentId', 'isRuler',
         'showDimensions', 'assetId', 'assetName', 'isGroup', 'isModelOutline',
+        'isRoom', 'isRoomGroup', 'isOuterWall', 'isInnerRoom', 'isPartition', 'partitionType',
+        'outerWidthCm', 'outerHeightCm', 'innerWidthCm', 'innerHeightCm',
+        'wallLeftCm', 'wallRightCm', 'wallTopCm', 'wallBottomCm', 'wallThicknessCm',
+        'lockScalingY', 'fixedHeightCm',
         'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
       ])),
       background: canvas.backgroundColor,
@@ -3085,7 +3089,10 @@ const LayoutConfiguratorPage = () => {
           'showDimensions', 'showDistanceLeft', 'showDistanceRight', 'showDistanceTop', 'showDistanceBottom',
           'assetId', 'assetName', 'isGroup', 'isModelOutline', 'isOutline',
           'widthCm', 'heightCm', 'flipX', 'flipY',
-          'isRoom', 'isPartition', 'partitionType', 'offsetCm',
+          'isRoom', 'isRoomGroup', 'isOuterWall', 'isInnerRoom', 'isPartition', 'partitionType', 'offsetCm',
+          'outerWidthCm', 'outerHeightCm', 'innerWidthCm', 'innerHeightCm',
+          'wallLeftCm', 'wallRightCm', 'wallTopCm', 'wallBottomCm', 'wallThicknessCm',
+          'lockScalingY', 'fixedHeightCm',
           'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
         ])),
         background: canvas.backgroundColor,
