@@ -5,6 +5,23 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 22, 2026 - Layout Options & Variants System (COMPLETED)
+- **NEW FEATURE**: Configuration variants system for layouts
+  - Global **Options** (e.g., "Strona wejścia", "Typ ławek") group related variants
+  - **Variants** store element positions, rotation, scale for quick application
+  - Left panel has new "Варианты" tab with:
+    - "Nowa opcja" button to create configuration options
+    - "Zapisz jako wariant" button (when element selected) to save current position
+    - List of options with their variants, click to apply
+  - `applyVariant()` function moves/transforms elements to saved positions
+  - Backend API: full CRUD for options and variants
+    - `GET/POST /api/layout-configurator/options`
+    - `PUT/DELETE /api/layout-configurator/options/{id}`
+    - `POST /api/layout-configurator/options/{id}/variants`
+    - `PUT/DELETE /api/layout-configurator/options/{id}/variants/{variantId}`
+- **Use case**: Create "Strona wejścia" option → Add door element → Position it for "Wejście proste" → Save variant → Reposition for "Wejście boczne" → Save variant. Now click variants to instantly reposition door.
+- **Testing**: 100% (14/14 backend tests, all frontend features verified)
+
 ### Feb 22, 2026 - Individual Wall Thickness & Fixed Height Elements (COMPLETED)
 - **NEW FEATURE**: Individual wall thickness for rooms in Layout Configurator
   - Add Room dialog now shows 4 separate input fields: Левая (Left), Правая (Right), Верхняя (Top), Нижняя (Bottom)
