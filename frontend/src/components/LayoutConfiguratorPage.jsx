@@ -3716,6 +3716,28 @@ const LayoutConfiguratorPage = () => {
                 </div>
                 
                 <div>
+                  <Label className="text-xs">Отражение</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-7 px-3 text-xs flex-1"
+                      onClick={flipHorizontal}
+                    >
+                      ↔ По горизонтали
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-7 px-3 text-xs flex-1"
+                      onClick={flipVertical}
+                    >
+                      ↕ По вертикали
+                    </Button>
+                  </div>
+                </div>
+                
+                <div>
                   <Label className="text-xs">Масштаб: {(selectedObject.scale * 100).toFixed(0)}%</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => scaleSelected(-0.1)}>
