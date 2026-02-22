@@ -793,10 +793,11 @@ const LayoutConfiguratorPage = () => {
       // Create element configuration from selected object
       elementsToSave = [{
         elementType: selectedObj.elementType || selectedObj.type,
-        matchBy: selectedObj.assetId ? 'assetId' : 'type',
+        matchBy: 'elementId', // Always use elementId for precise matching
         assetId: selectedObj.assetId || null,
         assetName: selectedObj.assetName || null,
         elementId: selectedObj.elementId || null,
+        instanceName: selectedObj.instanceName || null,
         properties: {
           left: Math.round(selectedObj.left),
           top: Math.round(selectedObj.top),
