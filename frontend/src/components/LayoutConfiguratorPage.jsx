@@ -4683,17 +4683,57 @@ const LayoutConfiguratorPage = () => {
                 </div>
                 
                 <div>
-                  <Label className="font-medium">Толщина стенки (см)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0.5"
-                    max="20"
-                    value={roomForm.wallThicknessCm}
-                    onChange={(e) => setRoomForm({ ...roomForm, wallThicknessCm: parseFloat(e.target.value) || 5 })}
-                    placeholder="4.4"
-                    className="mt-2 w-24"
-                  />
+                  <Label className="font-medium">Толщина стен (см)</Label>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Левая</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="50"
+                        value={roomForm.wallLeftCm}
+                        onChange={(e) => setRoomForm({ ...roomForm, wallLeftCm: parseFloat(e.target.value) || 4.4 })}
+                        placeholder="4.4"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Правая</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="50"
+                        value={roomForm.wallRightCm}
+                        onChange={(e) => setRoomForm({ ...roomForm, wallRightCm: parseFloat(e.target.value) || 4.4 })}
+                        placeholder="4.4"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Верхняя</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="50"
+                        value={roomForm.wallTopCm}
+                        onChange={(e) => setRoomForm({ ...roomForm, wallTopCm: parseFloat(e.target.value) || 4.4 })}
+                        placeholder="4.4"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Нижняя</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="50"
+                        value={roomForm.wallBottomCm}
+                        onChange={(e) => setRoomForm({ ...roomForm, wallBottomCm: parseFloat(e.target.value) || 4.4 })}
+                        placeholder="4.4"
+                      />
+                    </div>
+                  </div>
                 </div>
                 
                 {/* Show calculated inner dimensions */}
@@ -4701,7 +4741,7 @@ const LayoutConfiguratorPage = () => {
                   <Label className="text-xs font-medium text-blue-700">Внутренние размеры (авто):</Label>
                   <div className="flex items-center gap-4 mt-1">
                     <span className="text-sm font-bold text-blue-900">
-                      {(roomForm.outerWidthCm - (roomForm.wallThicknessCm * 2)).toFixed(1)} × {(roomForm.outerHeightCm - (roomForm.wallThicknessCm * 2)).toFixed(1)} см
+                      {(roomForm.outerWidthCm - roomForm.wallLeftCm - roomForm.wallRightCm).toFixed(1)} × {(roomForm.outerHeightCm - roomForm.wallTopCm - roomForm.wallBottomCm).toFixed(1)} см
                     </span>
                   </div>
                 </div>
