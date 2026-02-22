@@ -1826,7 +1826,7 @@ const LayoutConfiguratorPage = () => {
             // obj1 is to the left of obj2
             distPx = obj2.left - (obj1.left + w1);
             if (distPx > 10 * pixelsPerCm) {
-              const distCm = Math.round(distPx / pixelsPerCm);
+              const distCm = (distPx / pixelsPerCm).toFixed(1);
               const y = (c1y + c2y) / 2;
               drawDistanceLine(obj1.left + w1, y, obj2.left, y, `${distCm}`, true);
             }
@@ -1834,7 +1834,7 @@ const LayoutConfiguratorPage = () => {
             // obj2 is to the left of obj1
             distPx = obj1.left - (obj2.left + w2);
             if (distPx > 10 * pixelsPerCm) {
-              const distCm = Math.round(distPx / pixelsPerCm);
+              const distCm = (distPx / pixelsPerCm).toFixed(1);
               const y = (c1y + c2y) / 2;
               drawDistanceLine(obj2.left + w2, y, obj1.left, y, `${distCm}`, true);
             }
