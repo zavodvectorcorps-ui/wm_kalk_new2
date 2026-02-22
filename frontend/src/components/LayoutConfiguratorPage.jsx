@@ -5999,6 +5999,94 @@ const LayoutConfiguratorPage = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Copy Option to Model Dialog */}
+      <Dialog open={copyOptionDialogOpen} onOpenChange={setCopyOptionDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Kopiuj opcję do innego modelu</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div>
+              <Label className="text-xs">Opcja źródłowa</Label>
+              <Select
+                value={copyOptionForm.sourceOptionId}
+                onValueChange={(val) => setCopyOptionForm({ ...copyOptionForm, sourceOptionId: val })}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Wybierz opcję" />
+                </SelectTrigger>
+                <SelectContent>
+                  {layoutOptions.map(opt => (
+                    <SelectItem key={opt.id} value={opt.id}>
+                      {opt.namePl || opt.name} ({opt.variants?.length || 0} wariantów)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-xs">Model docelowy</Label>
+              <Select
+                value={copyOptionForm.targetModelId}
+                onValueChange={(val) => setCopyOptionForm({ ...copyOptionForm, targetModelId: val, targetVariantId: '' })}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Wybierz model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {saunaModels.map(model => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {copyOptionForm.targetModelId && (
+              <div>
+                <Label className="text-xs">Podmodel docelowy (opcjonalnie)</Label>
+                <Select
+                  value={copyOptionForm.targetVariantId}
+                  onValueChange={(val) => setCopyOptionForm({ ...copyOptionForm, targetVariantId: val })}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Wszystkie podmodele" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Wszystkie podmodele</SelectItem>
+                    {saunaModels.find(m => m.id === copyOptionForm.targetModelId)?.variants?.map(v => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.namePl || v.nameRu || v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+              <p className="font-medium mb-1">Co zostanie skopiowane:</p>
+              <ul className="list-disc list-inside text-[10px] space-y-0.5">
+                <li>Nazwa opcji (PL + RU)</li>
+                <li>Wszystkie warianty z konfiguracjami elementów</li>
+                <li>Warunki widoczności wariantów</li>
+              </ul>
+              <p className="mt-1 text-amber-600">Pozycje elementów pozostaną takie same - dostosuj je po skopiowaniu.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setCopyOptionDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button size="sm" onClick={copyOptionToModel} disabled={loading}>
+              {loading ? 'Kopiowanie...' : 'Kopiuj'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Save Variant Dialog */}
       <Dialog open={saveVariantDialogOpen} onOpenChange={setSaveVariantDialogOpen}>
         <DialogContent className="max-w-sm">
