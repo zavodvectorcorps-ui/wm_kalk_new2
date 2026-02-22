@@ -611,7 +611,7 @@ const LayoutConfiguratorPage = () => {
         toast.success('Wariant zapisany');
         setSaveVariantDialogOpen(false);
         setNewVariantForm({ optionId: '', name: '', namePl: '', nameRu: '', conditions: [], elements: [] });
-        fetchLayoutOptions();
+        fetchLayoutOptions(selectedModel?.id, selectedVariant?.id);
       } else {
         const err = await res.json();
         toast.error(err.detail || 'Ошибка сохранения варианта');
