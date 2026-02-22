@@ -4149,12 +4149,31 @@ const LayoutConfiguratorPage = () => {
               {/* Variants Tab */}
               <TabsContent value="variants" className="mt-0">
                 <div className="space-y-3">
+                  {/* Show hint if no model selected */}
+                  {!selectedModel && (
+                    <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                      Wybierz model, żeby zobaczyć warianty dla tego modelu
+                    </div>
+                  )}
+                  
+                  {/* Show current filter */}
+                  {selectedModel && (
+                    <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                      <span>
+                        Warianty dla: <strong>{selectedModel.name}</strong>
+                        {selectedVariant && <> / {selectedVariant.nameRu || selectedVariant.namePl || selectedVariant.name}</>}
+                      </span>
+                    </div>
+                  )}
+                  
                   {/* Create new option button */}
                   <Button
                     size="sm"
                     variant="outline"
                     className="w-full h-8 text-xs"
                     onClick={() => setCreateOptionDialogOpen(true)}
+                    disabled={!selectedModel}
+                    title={!selectedModel ? 'Najpierw wybierz model' : 'Dodaj nową opcję'}
                   >
                     <Plus className="h-3 w-3 mr-1" />
                     Nowa opcja
