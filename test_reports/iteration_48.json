@@ -1,0 +1,61 @@
+{
+  "summary": "Tested conditional variants (Warunki widoczności) for Layout Configurator. All 5 requested features verified and working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "critical": [],
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_tested": [
+    {
+      "feature": "При сохранении варианта можно добавить условия видимости (Warunki widoczności)",
+      "status": "PASS",
+      "details": "Save variant dialog includes 'Warunki widoczności (opcjonalnie)' section with amber background. Description: 'Wariant będzie widoczny tylko gdy wybrane zostaną wskazane opcje'"
+    },
+    {
+      "feature": "Условие выбирается из списка других опций и их вариантов",
+      "status": "PASS",
+      "details": "Dropdown '+ Dodaj warunek' shows list of OTHER options (excluding current option) with their variants nested under each option name. Format: Option header -> variant items with arrow prefix"
+    },
+    {
+      "feature": "Варианты с условиями показываются только когда условия выполнены",
+      "status": "PASS",
+      "details": "isVariantVisible() function checks if all conditions are met (variant.conditions.every(cond => selectedVariants[cond.optionId] === cond.variantId)). When condition (TEST_Zewnętrzny) is selected, the hidden variant becomes visible"
+    },
+    {
+      "feature": "Скрытые варианты показывают счётчик '+ N ukrytych'",
+      "status": "PASS",
+      "details": "When conditions are not met, variants are hidden and counter shows '+ 1 ukrytych (wybierz warunki)' message under the option name"
+    },
+    {
+      "feature": "Backend API сохраняет conditions в варианте",
+      "status": "PASS",
+      "details": "POST /api/layout-configurator/options/{optionId}/variants accepts 'conditions' JSON field with array of {optionId, variantId} objects. GET returns conditions correctly. PUT can update conditions. 12/12 backend tests passed"
+    }
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_variant_conditions.py",
+    "/app/test_reports/pytest/pytest_results_iteration48.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "isVariantVisible() function at line ~541 correctly implements condition checking logic",
+    "Conditions dropdown filters out current option (line 5700: filter(o => o.id !== newVariantForm.optionId))",
+    "Backend correctly stores and returns conditions in variant documents",
+    "All UI components properly handle conditions: save dialog, variant display, hidden counter"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (all features working)"
+  },
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "Test data created and cleaned up via API during testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Conditional variants feature fully functional. Test flow: 1) Create options (Typ pieca, Położenie, Pozycja zakładki), 2) Add variants to first two options, 3) Add element to canvas, 4) Save as variant in third option with conditions, 5) Verify hidden counter shows when condition not met, 6) Select condition variant and verify hidden variant becomes visible. Path: Login -> Panel administracyjny -> Планировки -> Варианты tab"
+}
