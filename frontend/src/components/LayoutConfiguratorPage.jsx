@@ -4703,9 +4703,9 @@ const LayoutConfiguratorPage = () => {
                   </Label>
                   <Input
                     type="number"
-                    step="5"
+                    step="0.1"
                     value={roomForm.partitionOffset}
-                    onChange={(e) => setRoomForm({ ...roomForm, partitionOffset: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setRoomForm({ ...roomForm, partitionOffset: parseFloat(e.target.value) || 0 })}
                     placeholder="50"
                   />
                 </div>
