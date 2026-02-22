@@ -760,9 +760,20 @@ const LayoutConfiguratorPage = () => {
         if (props.scaleY !== undefined) targetObj.set('scaleY', props.scaleY);
         if (props.flipX !== undefined) targetObj.set('flipX', props.flipX);
         if (props.flipY !== undefined) targetObj.set('flipY', props.flipY);
+        // Handle visibility - use isHidden flag instead of visible
         if (props.visible !== undefined) {
-          targetObj.set('visible', props.visible);
-          targetObj.set('opacity', props.visible ? 1 : 0.3);
+          const isHidden = !props.visible;
+          targetObj.set('isHidden', isHidden);
+          targetObj.set('opacity', isHidden ? 0.25 : 1);
+          // Keep selectable
+          targetObj.set('selectable', true);
+          targetObj.set('evented', true);
+        }
+        if (props.isHidden !== undefined) {
+          targetObj.set('isHidden', props.isHidden);
+          targetObj.set('opacity', props.isHidden ? 0.25 : 1);
+          targetObj.set('selectable', true);
+          targetObj.set('evented', true);
         }
         
         targetObj.setCoords();
