@@ -2009,46 +2009,109 @@ const LayoutConfiguratorPage = () => {
     toast.success('Текст добавлен');
   };
   
-  // Add room to canvas with specified dimensions
+  // Add room to canvas with specified dimensions (outer wall with thickness)
   const addRoomToCanvas = () => {
     if (!fabricRef.current) return;
     
     const canvas = fabricRef.current;
-    const widthPx = roomForm.widthCm * pixelsPerCm;
-    const heightPx = roomForm.heightCm * pixelsPerCm;
+    const { outerWidthCm, outerHeightCm, wallThicknessCm } = roomForm;
     
-    // Center the room on canvas
-    const left = snapToGrid((canvasWidth - widthPx) / 2);
-    const top = snapToGrid((canvasHeight - heightPx) / 2);
+    // Calculate inner dimensions
+    const innerWidthCm = outerWidthCm - (wallThicknessCm * 2);
+    const innerHeightCm = outerHeightCm - (wallThicknessCm * 2);
     
-    const room = new fabric.Rect({
+    // Convert to pixels
+    const outerWidthPx = outerWidthCm * pixelsPerCm;
+    const outerHeightPx = outerHeightCm * pixelsPerCm;
+    const wallThicknessPx = wallThicknessCm * pixelsPerCm;
+    
+    // Center the room on canvas (don't snap to grid for precise positioning)
+    const left = Math.round((canvasWidth - outerWidthPx) / 2);
+    const top = Math.round((canvasHeight - outerHeightPx) / 2);
+    
+    // Create outer rectangle (wall)
+    const outerRoom = new fabric.Rect({
       left,
       top,
-      width: widthPx,
-      height: heightPx,
-      fill: 'rgba(255, 248, 240, 0.5)',
-      stroke: '#8B4513',
-      strokeWidth: 2,
-      elementId: `room-${Date.now()}`,
-      elementType: 'room',
+      width: outerWidthPx,
+      height: outerHeightPx,
+      fill: '#8B4513', // Wall color
+      stroke: '#5D3A1A',
+      strokeWidth: 1,
+      elementId: `room-outer-${Date.now()}`,
+      elementType: 'room-outer',
       isDrawnShape: true,
       isRoom: true,
-      widthCm: roomForm.widthCm,
-      heightCm: roomForm.heightCm,
+      isOuterWall: true,
+      outerWidthCm,
+      outerHeightCm,
+      innerWidthCm,
+      innerHeightCm,
+      wallThicknessCm,
+      showDimensions: true,
+      showDistanceLeft: false,
+      showDistanceRight: false,
+      showDistanceTop: false,
+      showDistanceBottom: false,
+      selectable: true,
+      evented: true,
+    });
+    
+    // Create inner rectangle (floor/interior)
+    const innerRoom = new fabric.Rect({
+      left: left + wallThicknessPx,
+      top: top + wallThicknessPx,
+      width: outerWidthPx - wallThicknessPx * 2,
+      height: outerHeightPx - wallThicknessPx * 2,
+      fill: 'rgba(255, 248, 240, 0.7)',
+      stroke: 'transparent',
+      strokeWidth: 0,
+      elementId: `room-inner-${Date.now()}`,
+      elementType: 'room-inner',
+      isDrawnShape: true,
+      isRoom: true,
+      isInnerRoom: true,
+      parentOuterId: outerRoom.elementId,
+      innerWidthCm,
+      innerHeightCm,
+      wallThicknessCm,
       showDimensions: true,
       showDistanceLeft: true,
       showDistanceRight: true,
       showDistanceTop: true,
       showDistanceBottom: true,
+      selectable: false, // Inner room moves with outer
+      evented: false,
     });
     
-    canvas.add(room);
-    canvas.setActiveObject(room);
+    // Group outer and inner together
+    const roomGroup = new fabric.Group([outerRoom, innerRoom], {
+      left,
+      top,
+      elementId: `room-${Date.now()}`,
+      elementType: 'room',
+      isDrawnShape: true,
+      isRoom: true,
+      isRoomGroup: true,
+      outerWidthCm,
+      outerHeightCm,
+      innerWidthCm,
+      innerHeightCm,
+      wallThicknessCm,
+      showDimensions: true,
+      showDistanceLeft: false,
+      showDistanceRight: false,
+      showDistanceTop: false,
+      showDistanceBottom: false,
+    });
+    
+    canvas.add(roomGroup);
+    canvas.setActiveObject(roomGroup);
     canvas.renderAll();
     updateDimensionLabels();
     
     setAddRoomDialogOpen(false);
-    toast.success(`Комната ${roomForm.widthCm}×${roomForm.heightCm} см добавлена`);
+    toast.success(`Комната: внешний ${outerWidthCm}×${outerHeightCm} см, внутренний ${innerWidthCm}×${innerHeightCm} см`);
   };
   
   // Add partition inside a room - splits room into two sections
