@@ -1092,10 +1092,10 @@ const LayoutConfiguratorPage = () => {
           drawGrid();
           canvas.requestRenderAll();
           
-          // Don't set currentLayout - this is a template, not editing existing
-          setCurrentLayout(null);
+          // Set currentLayout so user can update the template
+          setCurrentLayout(layout);
           
-          toast.success(`Шаблон "${layout.name}" загружен. Измените и сохраните как новую планировку.`);
+          toast.success(`Загружена планировка: "${layout.name}"`);
         });
       } catch (error) {
         console.error('Error loading template:', error);
