@@ -167,6 +167,8 @@ const LayoutConfiguratorPage = () => {
   const [layoutOptions, setLayoutOptions] = useState([]);
   const [selectedVariants, setSelectedVariants] = useState({}); // { optionId: variantId }
   const [createOptionDialogOpen, setCreateOptionDialogOpen] = useState(false);
+  const [editOptionDialogOpen, setEditOptionDialogOpen] = useState(false);
+  const [editOptionForm, setEditOptionForm] = useState({ id: '', name: '', namePl: '', nameRu: '' });
   const [saveVariantDialogOpen, setSaveVariantDialogOpen] = useState(false);
   const [copyOptionDialogOpen, setCopyOptionDialogOpen] = useState(false);
   const [copyOptionForm, setCopyOptionForm] = useState({
