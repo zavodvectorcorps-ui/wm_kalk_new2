@@ -749,15 +749,10 @@ const LayoutConfiguratorPage = () => {
       el.elementId && el.elementId === elementConfig.elementId
     );
     
-    if (exists) {
+    if (existingIndex >= 0) {
       // Update existing
-      const updated = newVariantForm.elements.map(el => {
-        if ((el.assetId && el.assetId === elementConfig.assetId) ||
-            (el.elementId && el.elementId === elementConfig.elementId)) {
-          return elementConfig;
-        }
-        return el;
-      });
+      const updated = [...newVariantForm.elements];
+      updated[existingIndex] = elementConfig;
       setNewVariantForm({ ...newVariantForm, elements: updated });
       toast.success('Zaktualizowano element');
     } else {
@@ -765,7 +760,7 @@ const LayoutConfiguratorPage = () => {
         ...newVariantForm, 
         elements: [...newVariantForm.elements, elementConfig] 
       });
-      toast.success(`Dodano: ${elementConfig.assetName || elementConfig.elementType}`);
+      toast.success(`Dodano: ${elementConfig.assetName || elementConfig.elementType} (ID: ${elementConfig.elementId?.slice(-6)})`);
     }
   };
 
