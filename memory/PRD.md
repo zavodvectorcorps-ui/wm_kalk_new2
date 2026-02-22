@@ -5,6 +5,18 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 22, 2026 - Edit Variants + Larger Canvas (COMPLETED)
+- **NEW FEATURE**: Edit existing variants
+  - Yellow pencil icon on each variant
+  - Dialog shows: name (PL/RU), list of element configurations
+  - "Dodaj/aktualizuj z canvasu" button - select element on canvas, click to update its position in variant
+  - Can remove individual element configs
+  - Saves updated element positions via PUT /api/layout-configurator/options/{id}/variants/{id}
+- **UI IMPROVEMENT**: Increased canvas and panels height
+  - Changed from `calc(100vh-200px)` to `calc(100vh-120px)` - 80px more space
+  - Elements card min-height increased from 400px to 500px
+  - Less scrolling needed
+
 ### Feb 22, 2026 - Edit Options Feature (COMPLETED)
 - **NEW FEATURE**: Edit existing options
   - Yellow pencil icon button on each option header
