@@ -4785,6 +4785,7 @@ const LayoutConfiguratorPage = () => {
                                     namePl: variant.namePl || variant.name,
                                     nameRu: variant.nameRu || '',
                                     elementConfigs: variant.elementConfigs || [],
+                                    conditions: variant.conditions || [],
                                   });
                                   setEditVariantDialogOpen(true);
                                 }}
