@@ -490,7 +490,7 @@ const LayoutConfiguratorPage = () => {
       });
       if (res.ok) {
         toast.success('Опция удалена');
-        fetchLayoutOptions();
+        fetchLayoutOptions(selectedModel?.id, selectedVariant?.id);
       }
     } catch (error) {
       toast.error('Ошибка удаления');
