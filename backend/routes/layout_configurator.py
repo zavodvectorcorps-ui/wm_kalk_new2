@@ -647,3 +647,193 @@ async def get_published_layouts(model_size: str = None):
     
     return result
 
+
+
+# ============ LAYOUT OPTIONS & VARIANTS ============
+# Global configuration options that can change element positions/properties
+
+def get_layout_options_collection():
+    return db.layout_options
+
+
+@router.get("/options")
+async def get_layout_options():
+    """Get all global layout options with their variants."""
+    cursor = get_layout_options_collection().find({}, {"_id": 0}).sort("sortOrder", 1)
+    options = await cursor.to_list(length=100)
+    return {"options": options}
+
+
+@router.post("/options")
+async def create_layout_option(
+    name: str = Form(...),
+    namePl: str = Form(default=""),
+    nameRu: str = Form(default=""),
+):
+    """Create a new layout option (e.g., 'Entrance side', 'Bench type')."""
+    option_id = f"opt-{uuid.uuid4().hex[:8]}"
+    
+    option_doc = {
+        "id": option_id,
+        "name": name,
+        "namePl": namePl or name,
+        "nameRu": nameRu or name,
+        "variants": [],
+        "sortOrder": 0,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    
+    await get_layout_options_collection().insert_one(option_doc)
+    
+    # Return without _id
+    del option_doc["_id"] if "_id" in option_doc else None
+    return option_doc
+
+
+@router.put("/options/{option_id}")
+async def update_layout_option(
+    option_id: str,
+    name: str = Form(default=None),
+    namePl: str = Form(default=None),
+    nameRu: str = Form(default=None),
+    sortOrder: int = Form(default=None),
+):
+    """Update a layout option."""
+    update_data = {"updatedAt": datetime.now(timezone.utc).isoformat()}
+    if name is not None:
+        update_data["name"] = name
+    if namePl is not None:
+        update_data["namePl"] = namePl
+    if nameRu is not None:
+        update_data["nameRu"] = nameRu
+    if sortOrder is not None:
+        update_data["sortOrder"] = sortOrder
+    
+    result = await get_layout_options_collection().update_one(
+        {"id": option_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Option not found")
+    
+    updated = await get_layout_options_collection().find_one({"id": option_id}, {"_id": 0})
+    return updated
+
+
+@router.delete("/options/{option_id}")
+async def delete_layout_option(option_id: str):
+    """Delete a layout option and all its variants."""
+    result = await get_layout_options_collection().delete_one({"id": option_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Option not found")
+    return {"success": True, "deleted": option_id}
+
+
+@router.post("/options/{option_id}/variants")
+async def add_variant_to_option(
+    option_id: str,
+    name: str = Form(...),
+    namePl: str = Form(default=""),
+    nameRu: str = Form(default=""),
+    elementConfigs: str = Form(...),  # JSON string of element configurations
+):
+    """
+    Add a variant to an option.
+    elementConfigs should be JSON array like:
+    [
+        {
+            "elementType": "door",  // or assetId
+            "matchBy": "type",  // "type", "assetId", "elementId"
+            "assetId": "...",   // optional, for more precise matching
+            "properties": {
+                "left": 100,
+                "top": 200,
+                "angle": 90,
+                "scaleX": 1,
+                "scaleY": 1,
+                "visible": true
+            }
+        }
+    ]
+    """
+    import json
+    
+    option = await get_layout_options_collection().find_one({"id": option_id})
+    if not option:
+        raise HTTPException(status_code=404, detail="Option not found")
+    
+    try:
+        configs = json.loads(elementConfigs)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid elementConfigs JSON")
+    
+    variant_id = f"var-{uuid.uuid4().hex[:8]}"
+    variant = {
+        "id": variant_id,
+        "name": name,
+        "namePl": namePl or name,
+        "nameRu": nameRu or name,
+        "elementConfigs": configs,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    
+    await get_layout_options_collection().update_one(
+        {"id": option_id},
+        {"$push": {"variants": variant}}
+    )
+    
+    return {"success": True, "variant": variant}
+
+
+@router.put("/options/{option_id}/variants/{variant_id}")
+async def update_variant(
+    option_id: str,
+    variant_id: str,
+    name: str = Form(default=None),
+    namePl: str = Form(default=None),
+    nameRu: str = Form(default=None),
+    elementConfigs: str = Form(default=None),
+):
+    """Update a variant's properties or element configurations."""
+    import json
+    
+    update_fields = {}
+    if name is not None:
+        update_fields["variants.$.name"] = name
+    if namePl is not None:
+        update_fields["variants.$.namePl"] = namePl
+    if nameRu is not None:
+        update_fields["variants.$.nameRu"] = nameRu
+    if elementConfigs is not None:
+        try:
+            configs = json.loads(elementConfigs)
+            update_fields["variants.$.elementConfigs"] = configs
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid elementConfigs JSON")
+    
+    update_fields["variants.$.updatedAt"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await get_layout_options_collection().update_one(
+        {"id": option_id, "variants.id": variant_id},
+        {"$set": update_fields}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Option or variant not found")
+    
+    return {"success": True, "updated": variant_id}
+
+
+@router.delete("/options/{option_id}/variants/{variant_id}")
+async def delete_variant(option_id: str, variant_id: str):
+    """Delete a variant from an option."""
+    result = await get_layout_options_collection().update_one(
+        {"id": option_id},
+        {"$pull": {"variants": {"id": variant_id}}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Option not found")
+    
+    return {"success": True, "deleted": variant_id}
