@@ -4487,6 +4487,24 @@ const LayoutConfiguratorPage = () => {
                 />
               </div>
             </div>
+            
+            {/* Fixed height option for benches etc */}
+            <div className="flex items-center space-x-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <Switch
+                id="fixedHeight"
+                checked={uploadForm.fixedHeight}
+                onCheckedChange={(checked) => setUploadForm({ ...uploadForm, fixedHeight: checked })}
+              />
+              <div className="flex-1">
+                <Label htmlFor="fixedHeight" className="text-sm font-medium cursor-pointer">
+                  Фиксированная высота
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Для лавок и элементов, где меняется только ширина
+                </p>
+              </div>
+            </div>
+            
             <p className="text-xs text-muted-foreground">
               Укажите фактические размеры элемента для корректного масштабирования
             </p>
