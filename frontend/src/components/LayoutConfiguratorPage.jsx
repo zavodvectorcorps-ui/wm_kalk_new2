@@ -4257,6 +4257,117 @@ const LayoutConfiguratorPage = () => {
       </Dialog>
       
       {/* Text Input Dialog */}
+      {/* Add Room Dialog */}
+      <Dialog open={addRoomDialogOpen} onOpenChange={setAddRoomDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {roomForm.isPartition ? 'Добавить перегородку' : 'Добавить комнату'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Toggle between room and partition */}
+            <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+              <Button
+                variant={!roomForm.isPartition ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setRoomForm({ ...roomForm, isPartition: false })}
+                className="flex-1"
+              >
+                Новая комната
+              </Button>
+              <Button
+                variant={roomForm.isPartition ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setRoomForm({ ...roomForm, isPartition: true })}
+                className="flex-1"
+              >
+                Перегородка
+              </Button>
+            </div>
+            
+            {!roomForm.isPartition ? (
+              /* Room dimensions */
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Ширина (см)</Label>
+                    <Input
+                      type="number"
+                      value={roomForm.widthCm}
+                      onChange={(e) => setRoomForm({ ...roomForm, widthCm: parseInt(e.target.value) || 0 })}
+                      placeholder="200"
+                    />
+                  </div>
+                  <div>
+                    <Label>Высота (см)</Label>
+                    <Input
+                      type="number"
+                      value={roomForm.heightCm}
+                      onChange={(e) => setRoomForm({ ...roomForm, heightCm: parseInt(e.target.value) || 0 })}
+                      placeholder="150"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Комната будет добавлена в центр холста с заданными размерами
+                </p>
+              </>
+            ) : (
+              /* Partition settings */
+              <>
+                <div>
+                  <Label>Направление перегородки</Label>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Button
+                      variant={roomForm.partitionPosition === 'vertical' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setRoomForm({ ...roomForm, partitionPosition: 'vertical' })}
+                      className="flex-1"
+                    >
+                      │ Вертикальная
+                    </Button>
+                    <Button
+                      variant={roomForm.partitionPosition === 'horizontal' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setRoomForm({ ...roomForm, partitionPosition: 'horizontal' })}
+                      className="flex-1"
+                    >
+                      ─ Горизонтальная
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label>
+                    Отступ от {roomForm.partitionPosition === 'vertical' ? 'левого края' : 'верха'} (см)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={roomForm.partitionOffset}
+                    onChange={(e) => setRoomForm({ ...roomForm, partitionOffset: parseInt(e.target.value) || 0 })}
+                    placeholder="50"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Перегородка разделит основную комнату на две части. 
+                  {roomForm.partitionPosition === 'vertical' 
+                    ? ` Левая часть: ${roomForm.partitionOffset} см` 
+                    : ` Верхняя часть: ${roomForm.partitionOffset} см`}
+                </p>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddRoomDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={roomForm.isPartition ? addPartitionToRoom : addRoomToCanvas}>
+              Добавить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={textDialogOpen} onOpenChange={setTextDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
