@@ -4027,7 +4027,7 @@ const LayoutConfiguratorPage = () => {
   }, {});
 
   return (
-    <div className="h-[calc(100vh-200px)] flex gap-4">
+    <div className="h-[calc(100vh-120px)] flex gap-4">
       {/* Left Panel - Settings & Elements */}
       <div className="w-80 flex-shrink-0 flex flex-col gap-2">
         {/* Settings Card */}
