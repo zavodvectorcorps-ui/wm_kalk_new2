@@ -168,6 +168,12 @@ const LayoutConfiguratorPage = () => {
   const [selectedVariants, setSelectedVariants] = useState({}); // { optionId: variantId }
   const [createOptionDialogOpen, setCreateOptionDialogOpen] = useState(false);
   const [saveVariantDialogOpen, setSaveVariantDialogOpen] = useState(false);
+  const [copyOptionDialogOpen, setCopyOptionDialogOpen] = useState(false);
+  const [copyOptionForm, setCopyOptionForm] = useState({
+    sourceOptionId: '',
+    targetModelId: '',
+    targetVariantId: '',
+  });
   const [newOptionForm, setNewOptionForm] = useState({ name: '', namePl: '', nameRu: '' });
   const [newVariantForm, setNewVariantForm] = useState({ 
     optionId: '', 
