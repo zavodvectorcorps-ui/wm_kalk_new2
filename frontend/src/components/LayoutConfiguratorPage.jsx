@@ -2037,6 +2037,8 @@ const LayoutConfiguratorPage = () => {
         showDistanceBottom: obj.showDistanceBottom,
         // Room group properties
         isRoomGroup: obj.isRoomGroup || false,
+        outerWidthCm: obj.outerWidthCm || (obj.isRoomGroup ? Math.round((obj.width * (obj.scaleX || 1)) / pixelsPerCm) : null),
+        outerHeightCm: obj.outerHeightCm || (obj.isRoomGroup ? Math.round((obj.height * (obj.scaleY || 1)) / pixelsPerCm) : null),
         wallLeftCm: obj.wallLeftCm,
         wallRightCm: obj.wallRightCm,
         wallTopCm: obj.wallTopCm,
