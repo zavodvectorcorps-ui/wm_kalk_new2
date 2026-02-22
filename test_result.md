@@ -3,7 +3,7 @@
 ## Logistics Module "Sync Missing Orders" Feature Fix Testing Results - January 8, 2026
 
 ### Test Environment:
-- Backend URL: https://sauna-config-2.preview.emergentagent.com/api
+- Backend URL: https://room-designer-25.preview.emergentagent.com/api
 - Test Date: January 8, 2026
 - Testing Agent: Backend Testing Agent
 - Admin credentials: testuser / test123
@@ -87,7 +87,7 @@
 ## Warehouse Module API Testing Results - January 8, 2026
 
 ### Test Environment:
-- Backend URL: https://sauna-config-2.preview.emergentagent.com/api
+- Backend URL: https://room-designer-25.preview.emergentagent.com/api
 - Test Date: January 8, 2026
 - Testing Agent: Backend Testing Agent
 - Admin credentials: testuser / test123
@@ -193,7 +193,7 @@
 ### Order Full Edit Functionality Tests
 
 #### Test Environment:
-- Backend URL: https://sauna-config-2.preview.emergentagent.com/api
+- Backend URL: https://room-designer-25.preview.emergentagent.com/api
 - Admin credentials: admin / 159357
 
 #### Test Scenarios Completed:
@@ -236,7 +236,7 @@
 
 7. **✅ PDF Generation with Model Images (NEW):**
    - Balia PDF with MongoDB model image (full URL): ✅ PASS
-     - modelImageUrl: "https://sauna-config-2.preview.emergentagent.com/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg"
+     - modelImageUrl: "https://room-designer-25.preview.emergentagent.com/api/uploads/a1f675940c1c4133bc3719673494cf1e.jpg"
      - PDF generated successfully (132,582 bytes)
      - PDF size > 100KB indicates image is included
    - Balia PDF with relative MongoDB path: ✅ PASS
@@ -353,7 +353,7 @@
 ## Frontend Testing Summary - December 31, 2025
 
 ### Test Environment:
-- Frontend URL: https://sauna-config-2.preview.emergentagent.com
+- Frontend URL: https://room-designer-25.preview.emergentagent.com
 - Admin credentials: admin / 159357
 - Browser: Playwright automation
 - Language: Polish (PL)
@@ -437,7 +437,7 @@ The Order Full Edit functionality is **WORKING CORRECTLY** with all major featur
 ## Sauna Order Creation 422 Error Fix Testing Results - COMPLETED ✅
 
 ### Test Environment:
-- Backend URL: https://sauna-config-2.preview.emergentagent.com/api
+- Backend URL: https://room-designer-25.preview.emergentagent.com/api
 - Test Date: December 31, 2025
 
 ### Test Scenarios Completed:
@@ -556,7 +556,7 @@ setRequestedDiscountNote(editingOrder.requestedDiscountNote || '');
 ### Backend Testing Results (Dec 31, 2025 - Session 2):
 
 #### Test Environment:
-- Backend URL: https://sauna-config-2.preview.emergentagent.com/api
+- Backend URL: https://room-designer-25.preview.emergentagent.com/api
 - Test Date: December 31, 2025
 
 #### Test Scenarios Completed:
@@ -641,7 +641,7 @@ setRequestedDiscountNote(editingOrder.requestedDiscountNote || '');
 ## Review Request Testing Results - January 2, 2025
 
 ### Test Environment:
-- Backend URL: https://sauna-config-2.preview.emergentagent.com/api
+- Backend URL: https://room-designer-25.preview.emergentagent.com/api
 - Test Date: January 2, 2025
 - Testing Agent: Backend Testing Agent
 
@@ -784,7 +784,7 @@ curl -s "API_URL/api/notifications/debug/driver/{driver_id}" -H "Authorization: 
 ## Logistics System Fixes Testing Results - January 7, 2025
 
 ### Test Environment:
-- Backend URL: https://sauna-config-2.preview.emergentagent.com/api
+- Backend URL: https://room-designer-25.preview.emergentagent.com/api
 - Test Date: January 7, 2025
 - Testing Agent: Backend Testing Agent
 - Admin credentials: testuser / test123
@@ -930,7 +930,7 @@ curl -s "API_URL/api/notifications/debug/driver/{driver_id}" -H "Authorization: 
 ## Review Request Logistics Fixes Testing Results - January 7, 2025
 
 ### Test Environment:
-- Backend URL: https://sauna-config-2.preview.emergentagent.com/api
+- Backend URL: https://room-designer-25.preview.emergentagent.com/api
 - Test Date: January 7, 2025
 - Testing Agent: Backend Testing Agent
 - Admin credentials: testuser / test123
