@@ -4783,23 +4783,36 @@ const LayoutConfiguratorPage = () => {
                         </div>
                       </div>
                       <div className="p-1.5 space-y-1">
-                        {option.variants?.filter(v => isVariantVisible(v)).map(variant => (
+                        {option.variants?.filter(v => showHiddenVariants || isVariantVisible(v)).map(variant => {
+                          const isHiddenByConditions = !isVariantVisible(variant);
+                          return (
                           <div
                             key={variant.id}
                             className={`flex items-center justify-between p-1.5 rounded text-xs cursor-pointer hover:bg-muted/80 transition-colors ${
-                              selectedVariants[option.id] === variant.id ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'
+                              selectedVariants[option.id] === variant.id ? 'bg-primary/10 border border-primary/30' : 
+                              isHiddenByConditions ? 'bg-red-50 border border-red-200 opacity-70' : 'bg-muted/30'
                             }`}
                             onClick={() => applyVariant(option.id, variant)}
                           >
                             <div className="flex-1 min-w-0">
-                              <span className="truncate block">{variant.namePl || variant.name}</span>
+                              <div className="flex items-center gap-1">
+                                {isHiddenByConditions && (
+                                  <EyeOff className="h-3 w-3 text-red-400 flex-shrink-0" />
+                                )}
+                                <span className="truncate block">{variant.namePl || variant.name}</span>
+                              </div>
                               {variant.conditions?.length > 0 && (
-                                <span className="text-[9px] text-amber-600 truncate block">
+                                <span className={`text-[9px] truncate block ${isHiddenByConditions ? 'text-red-500' : 'text-amber-600'}`}>
                                   {variant.conditions.map(c => {
                                     const opt = layoutOptions.find(o => o.id === c.optionId);
                                     const v = opt?.variants?.find(v => v.id === c.variantId);
-                                    return v?.namePl || v?.name || c.variantId;
-                                  }).join(' + ')}
+                                    const conditionMet = selectedVariants[c.optionId] === c.variantId;
+                                    return (
+                                      <span key={`${c.optionId}-${c.variantId}`} className={conditionMet ? 'text-green-600' : ''}>
+                                        {v?.namePl || v?.name || '???'}
+                                      </span>
+                                    );
+                                  }).reduce((prev, curr, i) => i === 0 ? [curr] : [...prev, ' + ', curr], [])}
                                 </span>
                               )}
                             </div>
@@ -4844,12 +4857,18 @@ const LayoutConfiguratorPage = () => {
                               </Button>
                             </div>
                           </div>
-                        ))}
-                        {/* Show hidden variants count */}
-                        {option.variants?.filter(v => !isVariantVisible(v)).length > 0 && (
-                          <div className="text-[9px] text-muted-foreground text-center py-1 border-t">
-                            + {option.variants.filter(v => !isVariantVisible(v)).length} ukrytych (wybierz warunki)
-                          </div>
+                        )})}
+                        {/* Show hidden variants toggle */}
+                        {!showHiddenVariants && option.variants?.filter(v => !isVariantVisible(v)).length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full h-6 text-[10px] text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => setShowHiddenVariants(true)}
+                          >
+                            <EyeOff className="h-3 w-3 mr-1" />
+                            Pokaż {option.variants.filter(v => !isVariantVisible(v)).length} ukrytych
+                          </Button>
                         )}
                         {(!option.variants || option.variants.length === 0) && (
                           <div className="text-[10px] text-muted-foreground text-center py-2">
