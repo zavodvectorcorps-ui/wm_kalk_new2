@@ -488,6 +488,38 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Update existing option
+  const updateLayoutOption = async () => {
+    if (!editOptionForm.id || !editOptionForm.namePl) {
+      toast.error('Wprowadź nazwę opcji');
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append('name', editOptionForm.name || editOptionForm.namePl);
+      formData.append('namePl', editOptionForm.namePl);
+      formData.append('nameRu', editOptionForm.nameRu || editOptionForm.namePl);
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/options/${editOptionForm.id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        toast.success('Opcja zaktualizowana');
+        setEditOptionDialogOpen(false);
+        setEditOptionForm({ id: '', name: '', namePl: '', nameRu: '' });
+        fetchLayoutOptions(selectedModel?.id, selectedVariant?.id);
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || 'Błąd aktualizacji opcji');
+      }
+    } catch (error) {
+      toast.error('Błąd sieci');
+    }
+  };
+
   // Delete option
   const deleteLayoutOption = async (optionId) => {
     if (!confirm('Удалить опцию и все её варианты?')) return;
