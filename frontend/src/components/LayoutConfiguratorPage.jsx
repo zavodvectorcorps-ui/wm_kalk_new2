@@ -781,6 +781,69 @@ const LayoutConfiguratorPage = () => {
     return Math.round(valueCm / gridSizeCm) * gridSizeCm;
   }, [gridSizeCm]);
 
+  // Snap object position to room walls (inner walls) with tolerance
+  const snapToRoomWalls = useCallback((obj, left, top) => {
+    const room = findRoomRect();
+    if (!room || !snapEnabled) return { left, top };
+    
+    const snapTolerance = 10; // pixels
+    const objWidth = (obj.width || 0) * (obj.scaleX || 1);
+    const objHeight = (obj.height || 0) * (obj.scaleY || 1);
+    
+    let newLeft = left;
+    let newTop = top;
+    
+    // Room boundaries (inner walls)
+    const roomLeft = room.left;
+    const roomTop = room.top;
+    const roomRight = roomLeft + room.width * (room.scaleX || 1);
+    const roomBottom = roomTop + room.height * (room.scaleY || 1);
+    
+    // Snap to left inner wall
+    if (Math.abs(left - roomLeft) < snapTolerance) {
+      newLeft = roomLeft;
+    }
+    // Snap to right inner wall
+    if (Math.abs(left + objWidth - roomRight) < snapTolerance) {
+      newLeft = roomRight - objWidth;
+    }
+    // Snap to top inner wall
+    if (Math.abs(top - roomTop) < snapTolerance) {
+      newTop = roomTop;
+    }
+    // Snap to bottom inner wall
+    if (Math.abs(top + objHeight - roomBottom) < snapTolerance) {
+      newTop = roomBottom - objHeight;
+    }
+    
+    // Also snap to outer walls if room has wall thickness
+    if (room.isRoomGroup && room.wallThicknessPx) {
+      const outerLeft = room.outerLeft;
+      const outerTop = room.outerTop;
+      const outerRight = outerLeft + room.outerWidth;
+      const outerBottom = outerTop + room.outerHeight;
+      
+      // Snap to outer left wall
+      if (Math.abs(left - outerLeft) < snapTolerance) {
+        newLeft = outerLeft;
+      }
+      // Snap to outer right wall
+      if (Math.abs(left + objWidth - outerRight) < snapTolerance) {
+        newLeft = outerRight - objWidth;
+      }
+      // Snap to outer top wall
+      if (Math.abs(top - outerTop) < snapTolerance) {
+        newTop = outerTop;
+      }
+      // Snap to outer bottom wall
+      if (Math.abs(top + objHeight - outerBottom) < snapTolerance) {
+        newTop = outerBottom - objHeight;
+      }
+    }
+    
+    return { left: newLeft, top: newTop };
+  }, [snapEnabled, findRoomRect]);
+
   // ============ ZOOM ============
   
   const handleZoom = useCallback((delta) => {
