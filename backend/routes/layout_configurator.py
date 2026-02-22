@@ -686,7 +686,8 @@ async def create_layout_option(
     await get_layout_options_collection().insert_one(option_doc)
     
     # Return without _id
-    del option_doc["_id"] if "_id" in option_doc else None
+    if "_id" in option_doc:
+        del option_doc["_id"]
     return option_doc
 
 
