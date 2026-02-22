@@ -24,8 +24,10 @@ class ElementAsset(BaseModel):
     type: str  # heater, bench, door, window, shower, divider, other
     modelId: Optional[str] = None  # null = global, or specific model ID
     imageUrl: str
-    width: int = 100
-    height: int = 100
+    width: int = 100  # Default width in pixels (for display)
+    height: int = 100  # Default height in pixels (for display)
+    widthCm: Optional[float] = None  # Real width in centimeters
+    heightCm: Optional[float] = None  # Real height in centimeters
     createdAt: str
 
 
