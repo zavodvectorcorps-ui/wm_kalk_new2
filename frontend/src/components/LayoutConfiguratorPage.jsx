@@ -2044,24 +2044,27 @@ const LayoutConfiguratorPage = () => {
           const centerY = objTop + bboxHeight / 2;
           const centerX = objLeft + bboxWidth / 2;
           
-          // Left distance line + label (check showDistanceLeft)
-          if (parseFloat(distLeft) > 0.5 && obj.showDistanceLeft !== false) {
-            drawDistanceLine(leftBoundary, centerY, objLeft, centerY, `${distLeft}`, true, obj.id || obj._id);
-          }
-          
-          // Right distance line + label (check showDistanceRight)
-          if (parseFloat(distRight) > 0.5 && obj.showDistanceRight !== false) {
-            drawDistanceLine(objRight, centerY, rightBoundary, centerY, `${distRight}`, true, obj.id || obj._id);
-          }
-          
-          // Top distance line + label (check showDistanceTop)
-          if (parseFloat(distTop) > 0.5 && obj.showDistanceTop !== false) {
-            drawDistanceLine(centerX, topBoundary, centerX, objTop, `${distTop}`, false, obj.id || obj._id);
-          }
-          
-          // Bottom distance line + label (check showDistanceBottom)
-          if (parseFloat(distBottom) > 0.5 && obj.showDistanceBottom !== false) {
-            drawDistanceLine(centerX, objBottom, centerX, bottomBoundary, `${distBottom}`, false, obj.id || obj._id);
+          // Only draw distances if showDistances is not false
+          if (obj.showDistances !== false) {
+            // Left distance line + label (check showDistanceLeft)
+            if (parseFloat(distLeft) > 0.5 && obj.showDistanceLeft !== false) {
+              drawDistanceLine(leftBoundary, centerY, objLeft, centerY, `${distLeft}`, true, obj.id || obj._id);
+            }
+            
+            // Right distance line + label (check showDistanceRight)
+            if (parseFloat(distRight) > 0.5 && obj.showDistanceRight !== false) {
+              drawDistanceLine(objRight, centerY, rightBoundary, centerY, `${distRight}`, true, obj.id || obj._id);
+            }
+            
+            // Top distance line + label (check showDistanceTop)
+            if (parseFloat(distTop) > 0.5 && obj.showDistanceTop !== false) {
+              drawDistanceLine(centerX, topBoundary, centerX, objTop, `${distTop}`, false, obj.id || obj._id);
+            }
+            
+            // Bottom distance line + label (check showDistanceBottom)
+            if (parseFloat(distBottom) > 0.5 && obj.showDistanceBottom !== false) {
+              drawDistanceLine(centerX, objBottom, centerX, bottomBoundary, `${distBottom}`, false, obj.id || obj._id);
+            }
           }
         }
       } else if (obj.type === 'line' && !obj.isPartition) {
