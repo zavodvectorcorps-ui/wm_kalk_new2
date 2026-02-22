@@ -409,6 +409,188 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Fetch layout options and variants
+  const fetchLayoutOptions = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/options`);
+      const data = await res.json();
+      setLayoutOptions(data.options || []);
+    } catch (error) {
+      console.error('Error fetching layout options:', error);
+    }
+  };
+
+  // Create new option
+  const createLayoutOption = async () => {
+    if (!newOptionForm.name) {
+      toast.error('Введите название опции');
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append('name', newOptionForm.name);
+      formData.append('namePl', newOptionForm.namePl || newOptionForm.name);
+      formData.append('nameRu', newOptionForm.nameRu || newOptionForm.name);
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/options`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        toast.success('Опция создана');
+        setCreateOptionDialogOpen(false);
+        setNewOptionForm({ name: '', namePl: '', nameRu: '' });
+        fetchLayoutOptions();
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || 'Ошибка создания опции');
+      }
+    } catch (error) {
+      toast.error('Ошибка сети');
+    }
+  };
+
+  // Delete option
+  const deleteLayoutOption = async (optionId) => {
+    if (!confirm('Удалить опцию и все её варианты?')) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/options/${optionId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        toast.success('Опция удалена');
+        fetchLayoutOptions();
+      }
+    } catch (error) {
+      toast.error('Ошибка удаления');
+    }
+  };
+
+  // Save current element configuration as variant
+  const saveAsVariant = async () => {
+    if (!newVariantForm.optionId || !newVariantForm.name) {
+      toast.error('Выберите опцию и введите название варианта');
+      return;
+    }
+    
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    const selectedObj = canvas.getActiveObject();
+    if (!selectedObj) {
+      toast.error('Выберите элемент для сохранения');
+      return;
+    }
+    
+    // Create element configuration from selected object
+    const elementConfig = {
+      elementType: selectedObj.elementType || selectedObj.type,
+      matchBy: selectedObj.assetId ? 'assetId' : 'type',
+      assetId: selectedObj.assetId || null,
+      assetName: selectedObj.assetName || null,
+      properties: {
+        left: Math.round(selectedObj.left),
+        top: Math.round(selectedObj.top),
+        angle: selectedObj.angle || 0,
+        scaleX: selectedObj.scaleX || 1,
+        scaleY: selectedObj.scaleY || 1,
+        flipX: selectedObj.flipX || false,
+        flipY: selectedObj.flipY || false,
+        visible: selectedObj.visible !== false,
+      }
+    };
+    
+    try {
+      const formData = new FormData();
+      formData.append('name', newVariantForm.name);
+      formData.append('namePl', newVariantForm.namePl || newVariantForm.name);
+      formData.append('nameRu', newVariantForm.nameRu || newVariantForm.name);
+      formData.append('elementConfigs', JSON.stringify([elementConfig]));
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/options/${newVariantForm.optionId}/variants`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        toast.success('Вариант сохранён');
+        setSaveVariantDialogOpen(false);
+        setNewVariantForm({ optionId: '', name: '', namePl: '', nameRu: '' });
+        fetchLayoutOptions();
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || 'Ошибка сохранения варианта');
+      }
+    } catch (error) {
+      toast.error('Ошибка сети');
+    }
+  };
+
+  // Delete variant
+  const deleteVariant = async (optionId, variantId) => {
+    if (!confirm('Удалить вариант?')) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/layout-configurator/options/${optionId}/variants/${variantId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        toast.success('Вариант удалён');
+        fetchLayoutOptions();
+      }
+    } catch (error) {
+      toast.error('Ошибка удаления');
+    }
+  };
+
+  // Apply variant to canvas - move/transform elements according to variant config
+  const applyVariant = (optionId, variant) => {
+    const canvas = fabricRef.current;
+    if (!canvas || !variant.elementConfigs) return;
+    
+    variant.elementConfigs.forEach(config => {
+      // Find matching element on canvas
+      let targetObj = null;
+      
+      canvas.getObjects().forEach(obj => {
+        if (config.matchBy === 'assetId' && obj.assetId === config.assetId) {
+          targetObj = obj;
+        } else if (config.matchBy === 'type' && obj.elementType === config.elementType) {
+          targetObj = obj;
+        } else if (config.matchBy === 'elementId' && obj.elementId === config.elementId) {
+          targetObj = obj;
+        }
+      });
+      
+      if (targetObj && config.properties) {
+        // Apply properties
+        const props = config.properties;
+        if (props.left !== undefined) targetObj.set('left', props.left);
+        if (props.top !== undefined) targetObj.set('top', props.top);
+        if (props.angle !== undefined) targetObj.set('angle', props.angle);
+        if (props.scaleX !== undefined) targetObj.set('scaleX', props.scaleX);
+        if (props.scaleY !== undefined) targetObj.set('scaleY', props.scaleY);
+        if (props.flipX !== undefined) targetObj.set('flipX', props.flipX);
+        if (props.flipY !== undefined) targetObj.set('flipY', props.flipY);
+        if (props.visible !== undefined) targetObj.set('visible', props.visible);
+        
+        targetObj.setCoords();
+      }
+    });
+    
+    // Update selected variants state
+    setSelectedVariants(prev => ({ ...prev, [optionId]: variant.id }));
+    
+    canvas.renderAll();
+    updateDimensionLabels();
+    saveToHistory();
+    
+    toast.success(`Применён: ${variant.namePl || variant.name}`);
+  };
+
   // Fetch outline for selected model/variant
   const fetchOutline = async (modelId, variantId = null) => {
     try {
