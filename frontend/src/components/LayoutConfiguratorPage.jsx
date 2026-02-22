@@ -2035,6 +2035,14 @@ const LayoutConfiguratorPage = () => {
         showDistanceRight: obj.showDistanceRight,
         showDistanceTop: obj.showDistanceTop,
         showDistanceBottom: obj.showDistanceBottom,
+        // Room group properties
+        isRoomGroup: obj.isRoomGroup || false,
+        wallLeftCm: obj.wallLeftCm,
+        wallRightCm: obj.wallRightCm,
+        wallTopCm: obj.wallTopCm,
+        wallBottomCm: obj.wallBottomCm,
+        showOuterDimensions: obj.showOuterDimensions,
+        showInnerDimensions: obj.showInnerDimensions,
       });
     }
   };
