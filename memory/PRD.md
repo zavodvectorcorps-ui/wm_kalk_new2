@@ -5,6 +5,14 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 22, 2026 - Edit Options Feature (COMPLETED)
+- **NEW FEATURE**: Edit existing options
+  - Yellow pencil icon button on each option header
+  - Dialog to edit option name (PL + RU)
+  - Uses existing PUT /api/layout-configurator/options/{id} endpoint
+  - No need to delete and recreate options anymore
+- **Testing**: API verified, frontend lint passed
+
 ### Feb 22, 2026 - Bug Fix: Hidden Elements + Copy All Options (COMPLETED)
 - **BUG FIX**: Hidden elements can now be selected again
   - Changed from `visible=false` to `isHidden` flag with `opacity=0.25`
