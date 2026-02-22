@@ -738,15 +738,17 @@ async def add_variant_to_option(
     namePl: str = Form(default=""),
     nameRu: str = Form(default=""),
     elementConfigs: str = Form(...),  # JSON string of element configurations
+    conditions: str = Form(default="[]"),  # JSON array of conditions
 ):
     """
     Add a variant to an option.
+    
     elementConfigs should be JSON array like:
     [
         {
-            "elementType": "door",  // or assetId
-            "matchBy": "type",  // "type", "assetId", "elementId"
-            "assetId": "...",   // optional, for more precise matching
+            "elementType": "door",
+            "matchBy": "type",
+            "assetId": "...",
             "properties": {
                 "left": 100,
                 "top": 200,
@@ -757,6 +759,13 @@ async def add_variant_to_option(
             }
         }
     ]
+    
+    conditions should be JSON array like:
+    [
+        { "optionId": "heater-type", "variantId": "external" },
+        { "optionId": "heater-location", "variantId": "left" }
+    ]
+    Variant will only be shown when ALL conditions are met.
     """
     import json
     
@@ -769,6 +778,11 @@ async def add_variant_to_option(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid elementConfigs JSON")
     
+    try:
+        conds = json.loads(conditions) if conditions else []
+    except json.JSONDecodeError:
+        conds = []
+    
     variant_id = f"var-{uuid.uuid4().hex[:8]}"
     variant = {
         "id": variant_id,
@@ -776,6 +790,7 @@ async def add_variant_to_option(
         "namePl": namePl or name,
         "nameRu": nameRu or name,
         "elementConfigs": configs,
+        "conditions": conds,  # Array of {optionId, variantId} conditions
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
     
