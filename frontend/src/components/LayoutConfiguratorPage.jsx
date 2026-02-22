@@ -545,6 +545,7 @@ const LayoutConfiguratorPage = () => {
         formData.append('nameRu', editVariantForm.nameRu || editVariantForm.namePl);
       }
       formData.append('elementConfigs', JSON.stringify(editVariantForm.elementConfigs));
+      formData.append('conditions', JSON.stringify(editVariantForm.conditions || []));
       
       const res = await fetch(`${API_URL}/api/layout-configurator/options/${editVariantForm.optionId}/variants/${editVariantForm.variantId}`, {
         method: 'PUT',
