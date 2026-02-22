@@ -6048,14 +6048,14 @@ const LayoutConfiguratorPage = () => {
               <div>
                 <Label className="text-xs">Podmodel docelowy (opcjonalnie)</Label>
                 <Select
-                  value={copyOptionForm.targetVariantId}
-                  onValueChange={(val) => setCopyOptionForm({ ...copyOptionForm, targetVariantId: val })}
+                  value={copyOptionForm.targetVariantId || "all"}
+                  onValueChange={(val) => setCopyOptionForm({ ...copyOptionForm, targetVariantId: val === "all" ? "" : val })}
                 >
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="Wszystkie podmodele" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Wszystkie podmodele</SelectItem>
+                    <SelectItem value="all">Wszystkie podmodele</SelectItem>
                     {saunaModels.find(m => m.id === copyOptionForm.targetModelId)?.variants?.map(v => (
                       <SelectItem key={v.id} value={v.id}>
                         {v.namePl || v.nameRu || v.name}
