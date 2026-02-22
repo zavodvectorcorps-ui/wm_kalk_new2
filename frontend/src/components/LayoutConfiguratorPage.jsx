@@ -4097,18 +4097,62 @@ const LayoutConfiguratorPage = () => {
                 <div>
                   <Label className="text-xs">Поворот: {selectedObject.rotation}°</Label>
                   <div className="flex items-center gap-1 mt-1 flex-wrap">
-                    <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => rotateSelected(-90)}>
+                    <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => rotateSelected(-90)} title="Повернуть на -90°">
                       <RotateCcw className="h-3 w-3" />
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => rotateSelected(-15)}>
                       -15°
                     </Button>
+                    <Button size="sm" variant="default" className="h-7 px-2 text-xs font-bold" onClick={() => {
+                      const obj = fabricRef.current?.getActiveObject();
+                      if (obj) {
+                        obj.set('angle', 90);
+                        fabricRef.current.renderAll();
+                        handleObjectSelected({ selected: [obj] });
+                      }
+                    }} title="Установить точно 90°">
+                      90°
+                    </Button>
                     <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => rotateSelected(15)}>
                       +15°
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => rotateSelected(90)}>
+                    <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => rotateSelected(90)} title="Повернуть на +90°">
                       <RotateCw className="h-3 w-3" />
                     </Button>
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => {
+                      const obj = fabricRef.current?.getActiveObject();
+                      if (obj) {
+                        obj.set('angle', 0);
+                        fabricRef.current.renderAll();
+                        handleObjectSelected({ selected: [obj] });
+                      }
+                    }}>0°</Button>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => {
+                      const obj = fabricRef.current?.getActiveObject();
+                      if (obj) {
+                        obj.set('angle', 90);
+                        fabricRef.current.renderAll();
+                        handleObjectSelected({ selected: [obj] });
+                      }
+                    }}>90°</Button>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => {
+                      const obj = fabricRef.current?.getActiveObject();
+                      if (obj) {
+                        obj.set('angle', 180);
+                        fabricRef.current.renderAll();
+                        handleObjectSelected({ selected: [obj] });
+                      }
+                    }}>180°</Button>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => {
+                      const obj = fabricRef.current?.getActiveObject();
+                      if (obj) {
+                        obj.set('angle', 270);
+                        fabricRef.current.renderAll();
+                        handleObjectSelected({ selected: [obj] });
+                      }
+                    }}>270°</Button>
                   </div>
                 </div>
                 
