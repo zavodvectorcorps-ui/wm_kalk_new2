@@ -111,6 +111,7 @@ async def upload_asset(
     height: int = Form(default=100),
     widthCm: float = Form(default=None),
     heightCm: float = Form(default=None),
+    fixedHeight: str = Form(default="false"),
 ):
     """Upload a new element asset (PNG/SVG)."""
     # Validate file type
