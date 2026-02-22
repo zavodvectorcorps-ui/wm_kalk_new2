@@ -2596,6 +2596,7 @@ const LayoutConfiguratorPage = () => {
           'isMeasurement', 'isMeasurementPart', 'parentId', 'isRuler',
           'showDimensions', 'showDistanceLeft', 'showDistanceRight', 'showDistanceTop', 'showDistanceBottom',
           'assetId', 'assetName', 'isGroup', 'isModelOutline', 'isOutline',
+          'widthCm', 'heightCm', 'flipX', 'flipY',
           'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
         ])),
         background: canvas.backgroundColor,
