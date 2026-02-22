@@ -108,6 +108,8 @@ async def upload_asset(
     modelId: str = Form(default=None),
     width: int = Form(default=100),
     height: int = Form(default=100),
+    widthCm: float = Form(default=None),
+    heightCm: float = Form(default=None),
 ):
     """Upload a new element asset (PNG/SVG)."""
     # Validate file type
@@ -149,6 +151,8 @@ async def upload_asset(
         "imageUrl": image_url,
         "width": width,
         "height": height,
+        "widthCm": widthCm,
+        "heightCm": heightCm,
         "createdAt": datetime.now(timezone.utc).isoformat()
     }
     
