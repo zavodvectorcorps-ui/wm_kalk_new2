@@ -6455,11 +6455,37 @@ const LayoutConfiguratorPage = () => {
       
       {/* Edit Variant Dialog */}
       <Dialog open={editVariantDialogOpen} onOpenChange={setEditVariantDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edytuj wariant</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-4">
+            {/* Move to different option */}
+            <div className="p-2 bg-slate-50 border border-slate-200 rounded">
+              <Label className="text-xs font-medium text-slate-700">Opcja</Label>
+              <Select
+                value={editVariantForm.optionId}
+                onValueChange={(val) => setEditVariantForm({ ...editVariantForm, newOptionId: val })}
+              >
+                <SelectTrigger className="h-8 text-sm mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {layoutOptions.map(opt => (
+                    <SelectItem key={opt.id} value={opt.id}>
+                      {opt.namePl || opt.name}
+                      {opt.id === editVariantForm.optionId && ' (obecna)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {editVariantForm.newOptionId && editVariantForm.newOptionId !== editVariantForm.optionId && (
+                <p className="text-[10px] text-amber-600 mt-1">
+                  ⚠️ Wariant zostanie przeniesiony do innej opcji
+                </p>
+              )}
+            </div>
+            
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Nazwa (PL)</Label>
