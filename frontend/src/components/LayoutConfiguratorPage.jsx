@@ -4462,6 +4462,42 @@ const LayoutConfiguratorPage = () => {
                   </div>
                 </div>
                 
+                {/* Element Visibility Toggle */}
+                {!selectedObject.isRoomGroup && !selectedObject.isGridLine && !selectedObject.isGridLabel && (
+                  <div className="p-2 bg-gray-50 border border-gray-200 rounded">
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className="text-xs font-medium flex items-center gap-1">
+                        {selectedObject.visible !== false ? (
+                          <Eye className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <EyeOff className="h-3 w-3 text-gray-400" />
+                        )}
+                        Widoczność elementu
+                      </span>
+                      <Switch
+                        checked={selectedObject.visible !== false}
+                        onCheckedChange={(checked) => {
+                          const obj = fabricRef.current?.getActiveObject();
+                          if (obj) {
+                            obj.set('visible', checked);
+                            obj.set('opacity', checked ? 1 : 0.3);
+                            fabricRef.current.renderAll();
+                            handleObjectSelected({ selected: [obj] });
+                            updateDimensionLabels();
+                            saveToHistory();
+                            toast.success(checked ? 'Element widoczny' : 'Element ukryty');
+                          }
+                        }}
+                      />
+                    </label>
+                    {selectedObject.visible === false && (
+                      <p className="text-[10px] text-amber-600 mt-1">
+                        Element jest ukryty (półprzezroczysty)
+                      </p>
+                    )}
+                  </div>
+                )}
+                
                 {/* Room properties - wall thickness and visibility */}
                 {selectedObject.isRoomGroup && (
                   <div className="space-y-3">
