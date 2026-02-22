@@ -3002,6 +3002,10 @@ const LayoutConfiguratorPage = () => {
       if (uploadForm.heightCm) {
         formData.append('heightCm', uploadForm.heightCm);
       }
+      // Add fixed height flag (for benches etc.)
+      if (uploadForm.fixedHeight) {
+        formData.append('fixedHeight', 'true');
+      }
       
       const res = await fetch(`${API_URL}/api/layout-configurator/assets`, {
         method: 'POST',
@@ -3011,7 +3015,7 @@ const LayoutConfiguratorPage = () => {
       if (res.ok) {
         toast.success('Элемент загружен!');
         setUploadAssetDialogOpen(false);
-        setUploadForm({ name: '', type: 'other', modelId: null, file: null, widthCm: '', heightCm: '' });
+        setUploadForm({ name: '', type: 'other', modelId: null, file: null, widthCm: '', heightCm: '', fixedHeight: false });
         fetchAssets();
       } else {
         const error = await res.json();
