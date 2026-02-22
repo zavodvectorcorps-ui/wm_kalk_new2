@@ -1585,10 +1585,10 @@ const LayoutConfiguratorPage = () => {
       const innerWidth = outerWidth - wallThicknessPx * 2;
       const innerHeight = outerHeight - wallThicknessPx * 2;
       
-      const outerWidthCm = Math.round(outerWidth / pixelsPerCm);
-      const outerHeightCm = Math.round(outerHeight / pixelsPerCm);
-      const innerWidthCm = Math.round(innerWidth / pixelsPerCm);
-      const innerHeightCm = Math.round(innerHeight / pixelsPerCm);
+      const outerWidthCm = (outerWidth / pixelsPerCm).toFixed(1);
+      const outerHeightCm = (outerHeight / pixelsPerCm).toFixed(1);
+      const innerWidthCm = (innerWidth / pixelsPerCm).toFixed(1);
+      const innerHeightCm = (innerHeight / pixelsPerCm).toFixed(1);
       
       // Outer width label (top, outside)
       const outerWidthLabel = new fabric.Text(`внеш: ${outerWidthCm} см`, {
