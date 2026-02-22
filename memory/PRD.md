@@ -5,6 +5,21 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 22, 2026 - Bug Fix: Template Loading + Copy Options Feature (COMPLETED)
+- **BUG FIX**: Templates not switching when changing models
+  - Root cause: Race condition - `loadTemplateForModel` used state `layouts` before it was updated by `fetchLayouts`
+  - Solution: New `loadTemplateForModelFromAPI` function fetches layouts directly from API
+  - Now `handleModelChange` and `handleVariantChange` properly load templates immediately
+- **NEW FEATURE**: Copy option with variants to another model
+  - Button "Kopiuj opcję do innego modelu" on each option card
+  - Dialog to select: source option, target model, optional target variant
+  - Copies option name (PL+RU), all variants with configurations and conditions
+  - Info panel explains what gets copied
+  - Use case: Created variants for 2m sauna → copy to 3m sauna → adjust positions
+- **BUG FIX**: SelectItem empty value error (fixed by testing agent)
+  - Changed `value=""` to `value="all"` in target variant selector
+- **Testing**: 100% (6/6 frontend features verified)
+
 ### Feb 22, 2026 - Model-Specific Layouts & Variants + Element Visibility (COMPLETED)
 - **NEW FEATURE**: Model/Variant-specific layouts and configuration options
   - Layouts and Options are now bound to specific sauna models and submodels (variants)
