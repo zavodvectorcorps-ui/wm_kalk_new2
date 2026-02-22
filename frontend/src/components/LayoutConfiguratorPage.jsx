@@ -1862,6 +1862,30 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
+  // Flip selected object horizontally
+  const flipHorizontal = () => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    const obj = canvas.getActiveObject();
+    if (obj && !obj.isGridLine) {
+      obj.set('flipX', !obj.flipX);
+      canvas.renderAll();
+      handleObjectSelected({ selected: [obj] });
+    }
+  };
+
+  // Flip selected object vertically
+  const flipVertical = () => {
+    if (!fabricRef.current) return;
+    const canvas = fabricRef.current;
+    const obj = canvas.getActiveObject();
+    if (obj && !obj.isGridLine) {
+      obj.set('flipY', !obj.flipY);
+      canvas.renderAll();
+      handleObjectSelected({ selected: [obj] });
+    }
+  };
+
   // Scale selected object
   const scaleSelected = (delta) => {
     if (!fabricRef.current) return;
