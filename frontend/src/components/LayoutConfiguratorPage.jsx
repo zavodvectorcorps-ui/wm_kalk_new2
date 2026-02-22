@@ -516,6 +516,7 @@ const LayoutConfiguratorPage = () => {
       formData.append('namePl', newVariantForm.namePl || newVariantForm.name);
       formData.append('nameRu', newVariantForm.nameRu || newVariantForm.name);
       formData.append('elementConfigs', JSON.stringify([elementConfig]));
+      formData.append('conditions', JSON.stringify(newVariantForm.conditions || []));
       
       const res = await fetch(`${API_URL}/api/layout-configurator/options/${newVariantForm.optionId}/variants`, {
         method: 'POST',
@@ -525,7 +526,7 @@ const LayoutConfiguratorPage = () => {
       if (res.ok) {
         toast.success('Вариант сохранён');
         setSaveVariantDialogOpen(false);
-        setNewVariantForm({ optionId: '', name: '', namePl: '', nameRu: '' });
+        setNewVariantForm({ optionId: '', name: '', namePl: '', nameRu: '', conditions: [] });
         fetchLayoutOptions();
       } else {
         const err = await res.json();
@@ -534,6 +535,17 @@ const LayoutConfiguratorPage = () => {
     } catch (error) {
       toast.error('Ошибка сети');
     }
+  };
+
+  // Check if variant conditions are met
+  const isVariantVisible = (variant) => {
+    if (!variant.conditions || variant.conditions.length === 0) {
+      return true; // No conditions = always visible
+    }
+    // All conditions must be met
+    return variant.conditions.every(cond => 
+      selectedVariants[cond.optionId] === cond.variantId
+    );
   };
 
   // Delete variant
