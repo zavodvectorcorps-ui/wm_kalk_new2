@@ -1591,9 +1591,15 @@ const LayoutConfiguratorPage = () => {
     roomGroups.forEach(roomGroup => {
       const outerWidth = roomGroup.width * (roomGroup.scaleX || 1);
       const outerHeight = roomGroup.height * (roomGroup.scaleY || 1);
-      const wallThicknessPx = (roomGroup.wallThicknessCm || 0) * pixelsPerCm;
-      const innerWidth = outerWidth - wallThicknessPx * 2;
-      const innerHeight = outerHeight - wallThicknessPx * 2;
+      
+      // Support individual wall thicknesses (new) or fallback to single thickness (legacy)
+      const wallLeftPx = (roomGroup.wallLeftCm || roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      const wallRightPx = (roomGroup.wallRightCm || roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      const wallTopPx = (roomGroup.wallTopCm || roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      const wallBottomPx = (roomGroup.wallBottomCm || roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      
+      const innerWidth = outerWidth - wallLeftPx - wallRightPx;
+      const innerHeight = outerHeight - wallTopPx - wallBottomPx;
       
       const outerWidthCm = (outerWidth / pixelsPerCm).toFixed(1);
       const outerHeightCm = (outerHeight / pixelsPerCm).toFixed(1);
@@ -1617,7 +1623,7 @@ const LayoutConfiguratorPage = () => {
       // Inner width label (top, inside)
       const innerWidthLabel = new fabric.Text(`внутр: ${innerWidthCm} см`, {
         left: roomGroup.left + outerWidth / 2,
-        top: roomGroup.top + wallThicknessPx + 5,
+        top: roomGroup.top + wallTopPx + 5,
         fontSize: 9,
         fill: '#059669',
         fontWeight: 'bold',
@@ -1646,7 +1652,7 @@ const LayoutConfiguratorPage = () => {
       
       // Inner height label (left inside)
       const innerHeightLabel = new fabric.Text(`внутр: ${innerHeightCm} см`, {
-        left: roomGroup.left + wallThicknessPx + 8,
+        left: roomGroup.left + wallLeftPx + 8,
         top: roomGroup.top + outerHeight / 2,
         fontSize: 9,
         fill: '#059669',
