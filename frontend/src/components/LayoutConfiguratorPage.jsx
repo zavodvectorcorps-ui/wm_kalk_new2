@@ -1957,6 +1957,137 @@ const LayoutConfiguratorPage = () => {
     toast.success('Текст добавлен');
   };
   
+  // Add room to canvas with specified dimensions
+  const addRoomToCanvas = () => {
+    if (!fabricRef.current) return;
+    
+    const canvas = fabricRef.current;
+    const widthPx = roomForm.widthCm * pixelsPerCm;
+    const heightPx = roomForm.heightCm * pixelsPerCm;
+    
+    // Center the room on canvas
+    const left = snapToGrid((canvasWidth - widthPx) / 2);
+    const top = snapToGrid((canvasHeight - heightPx) / 2);
+    
+    const room = new fabric.Rect({
+      left,
+      top,
+      width: widthPx,
+      height: heightPx,
+      fill: 'rgba(255, 248, 240, 0.5)',
+      stroke: '#8B4513',
+      strokeWidth: 2,
+      elementId: `room-${Date.now()}`,
+      elementType: 'room',
+      isDrawnShape: true,
+      isRoom: true,
+      widthCm: roomForm.widthCm,
+      heightCm: roomForm.heightCm,
+      showDimensions: true,
+      showDistanceLeft: true,
+      showDistanceRight: true,
+      showDistanceTop: true,
+      showDistanceBottom: true,
+    });
+    
+    canvas.add(room);
+    canvas.setActiveObject(room);
+    canvas.renderAll();
+    updateDimensionLabels();
+    
+    setAddRoomDialogOpen(false);
+    toast.success(`Комната ${roomForm.widthCm}×${roomForm.heightCm} см добавлена`);
+  };
+  
+  // Add partition inside a room - splits room into two sections
+  const addPartitionToRoom = () => {
+    if (!fabricRef.current) return;
+    
+    const canvas = fabricRef.current;
+    
+    // Find the main room (largest room or first room)
+    const rooms = canvas.getObjects().filter(obj => obj.isRoom || obj.isBackground);
+    if (rooms.length === 0) {
+      toast.error('Сначала добавьте комнату');
+      return;
+    }
+    
+    // Use the first/main room
+    const mainRoom = rooms[0];
+    const roomLeft = mainRoom.left;
+    const roomTop = mainRoom.top;
+    const roomWidth = mainRoom.width * (mainRoom.scaleX || 1);
+    const roomHeight = mainRoom.height * (mainRoom.scaleY || 1);
+    
+    const offsetPx = roomForm.partitionOffset * pixelsPerCm;
+    const partitionThickness = 2; // Wall thickness in pixels
+    
+    if (roomForm.partitionPosition === 'vertical') {
+      // Vertical partition - splits room left/right
+      const partitionX = snapToGrid(roomLeft + offsetPx);
+      
+      // Create partition line
+      const partition = new fabric.Line([partitionX, roomTop, partitionX, roomTop + roomHeight], {
+        stroke: '#8B4513',
+        strokeWidth: partitionThickness,
+        elementId: `partition-${Date.now()}`,
+        elementType: 'partition',
+        isDrawnShape: true,
+        isPartition: true,
+        partitionType: 'vertical',
+        offsetCm: roomForm.partitionOffset,
+        selectable: true,
+        hasControls: false,
+        lockMovementY: true, // Can only move horizontally
+        lockRotation: true,
+        lockScalingX: true,
+        lockScalingY: true,
+      });
+      
+      canvas.add(partition);
+      canvas.setActiveObject(partition);
+      
+      // Calculate room sizes
+      const leftRoomCm = roomForm.partitionOffset;
+      const rightRoomCm = Math.round(roomWidth / pixelsPerCm) - roomForm.partitionOffset;
+      
+      toast.success(`Перегородка добавлена: левая часть ${leftRoomCm} см, правая ${rightRoomCm} см`);
+    } else {
+      // Horizontal partition - splits room top/bottom
+      const partitionY = snapToGrid(roomTop + offsetPx);
+      
+      const partition = new fabric.Line([roomLeft, partitionY, roomLeft + roomWidth, partitionY], {
+        stroke: '#8B4513',
+        strokeWidth: partitionThickness,
+        elementId: `partition-${Date.now()}`,
+        elementType: 'partition',
+        isDrawnShape: true,
+        isPartition: true,
+        partitionType: 'horizontal',
+        offsetCm: roomForm.partitionOffset,
+        selectable: true,
+        hasControls: false,
+        lockMovementX: true, // Can only move vertically
+        lockRotation: true,
+        lockScalingX: true,
+        lockScalingY: true,
+      });
+      
+      canvas.add(partition);
+      canvas.setActiveObject(partition);
+      
+      // Calculate room sizes
+      const topRoomCm = roomForm.partitionOffset;
+      const bottomRoomCm = Math.round(roomHeight / pixelsPerCm) - roomForm.partitionOffset;
+      
+      toast.success(`Перегородка добавлена: верхняя часть ${topRoomCm} см, нижняя ${bottomRoomCm} см`);
+    }
+    
+    canvas.renderAll();
+    updateDimensionLabels();
+    setAddRoomDialogOpen(false);
+  };
+
   // Toggle dimension display for selected object
   const toggleObjectDimensions = (value) => {
     if (!fabricRef.current) return;
