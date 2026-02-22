@@ -1655,7 +1655,7 @@ const LayoutConfiguratorPage = () => {
       // Skip room groups - they have special labels above
       if (obj.isRoomGroup) return;
       
-      if (obj.type === 'rect' || obj.type === 'group') {
+      if (obj.type === 'rect' || obj.type === 'group' || obj.type === 'image') {
         const width = obj.width * (obj.scaleX || 1);
         const height = obj.height * (obj.scaleY || 1);
         const widthCm = Math.round(width / pixelsPerCm);
