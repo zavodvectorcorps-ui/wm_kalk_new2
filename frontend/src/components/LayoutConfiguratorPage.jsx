@@ -2484,6 +2484,8 @@ const LayoutConfiguratorPage = () => {
       setSelectedObject({
         id: obj.elementId,
         type: obj.elementType,
+        assetId: obj.assetId,
+        assetName: obj.assetName,
         x: Math.round(obj.left),
         y: Math.round(obj.top),
         xCm,
