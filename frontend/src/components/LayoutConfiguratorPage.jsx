@@ -2625,6 +2625,8 @@ const LayoutConfiguratorPage = () => {
         // Visibility flag
         isHidden: obj.isHidden || false,
         visible: obj.visible !== false,
+        // Instance identification
+        instanceName: obj.instanceName || '',
       });
     }
   };
