@@ -2108,6 +2108,9 @@ const LayoutConfiguratorPage = () => {
           assetName: asset.name,
           widthCm: asset.widthCm || null,
           heightCm: asset.heightCm || null,
+          fixedHeightCm: asset.fixedHeight ? asset.heightCm : null,
+          lockScalingY: asset.fixedHeight || false,
+          lockUniScaling: !asset.fixedHeight, // If not fixed height, maintain aspect ratio
           isDrawnShape: true, // Enable dimensions for assets too
           showDimensions: true,
           showDistanceLeft: true,
@@ -2116,12 +2119,12 @@ const LayoutConfiguratorPage = () => {
           showDistanceBottom: true,
         });
         
-        // Add controls
+        // Add controls - hide vertical scale controls if fixedHeight
         img.setControlsVisibility({
           mt: false,
           mb: false,
-          ml: false,
-          mr: false,
+          ml: asset.fixedHeight ? true : false, // Allow horizontal resize for fixed height
+          mr: asset.fixedHeight ? true : false, // Allow horizontal resize for fixed height
         });
         
         canvas.add(img);
