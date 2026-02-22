@@ -3840,9 +3840,10 @@ const LayoutConfiguratorPage = () => {
           </CardHeader>
           <CardContent className="p-3 flex-1 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full grid grid-cols-2 mb-3 h-9">
-                <TabsTrigger value="elements" className="text-sm">Библиотека</TabsTrigger>
-                <TabsTrigger value="layouts" className="text-sm">Планировки</TabsTrigger>
+              <TabsList className="w-full grid grid-cols-3 mb-3 h-9">
+                <TabsTrigger value="elements" className="text-xs">Библиотека</TabsTrigger>
+                <TabsTrigger value="layouts" className="text-xs">Планировки</TabsTrigger>
+                <TabsTrigger value="variants" className="text-xs">Варианты</TabsTrigger>
               </TabsList>
               
               <TabsContent value="elements" className="mt-0">
