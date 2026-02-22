@@ -875,12 +875,23 @@ const LayoutConfiguratorPage = () => {
       let targetObj = null;
       
       canvas.getObjects().forEach(obj => {
-        if (config.matchBy === 'assetId' && obj.assetId === config.assetId) {
+        // Priority 1: Match by unique elementId (most precise)
+        if (config.elementId && obj.elementId === config.elementId) {
           targetObj = obj;
-        } else if (config.matchBy === 'type' && obj.elementType === config.elementType) {
+          return;
+        }
+        // Priority 2: Match by instanceName (user-defined name for this specific instance)
+        if (config.instanceName && obj.instanceName === config.instanceName) {
           targetObj = obj;
-        } else if (config.matchBy === 'elementId' && obj.elementId === config.elementId) {
-          targetObj = obj;
+          return;
+        }
+        // Priority 3: Legacy matching by assetId or type (finds first match - may be wrong!)
+        if (!targetObj) {
+          if (config.matchBy === 'assetId' && obj.assetId === config.assetId) {
+            targetObj = obj;
+          } else if (config.matchBy === 'type' && obj.elementType === config.elementType) {
+            targetObj = obj;
+          }
         }
       });
       
