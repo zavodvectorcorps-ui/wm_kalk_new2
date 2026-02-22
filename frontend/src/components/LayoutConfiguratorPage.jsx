@@ -1762,29 +1762,33 @@ const LayoutConfiguratorPage = () => {
             }
           });
           
-          const distLeft = ((obj.left - leftBoundary) / pixelsPerCm).toFixed(1);
+          const distLeft = ((objLeft - leftBoundary) / pixelsPerCm).toFixed(1);
           const distRight = ((rightBoundary - objRight) / pixelsPerCm).toFixed(1);
-          const distTop = ((obj.top - topBoundary) / pixelsPerCm).toFixed(1);
+          const distTop = ((objTop - topBoundary) / pixelsPerCm).toFixed(1);
           const distBottom = ((bottomBoundary - objBottom) / pixelsPerCm).toFixed(1);
           
+          // Center of bounding box for line positioning
+          const centerY = objTop + bboxHeight / 2;
+          const centerX = objLeft + bboxWidth / 2;
+          
           // Left distance line + label (check showDistanceLeft)
-          if (distLeft > 10 && obj.showDistanceLeft !== false) {
-            drawDistanceLine(leftBoundary, obj.top + height / 2, obj.left, obj.top + height / 2, `${distLeft}`, true, obj.id || obj._id);
+          if (parseFloat(distLeft) > 0.5 && obj.showDistanceLeft !== false) {
+            drawDistanceLine(leftBoundary, centerY, objLeft, centerY, `${distLeft}`, true, obj.id || obj._id);
           }
           
           // Right distance line + label (check showDistanceRight)
-          if (distRight > 10 && obj.showDistanceRight !== false) {
-            drawDistanceLine(objRight, obj.top + height / 2, rightBoundary, obj.top + height / 2, `${distRight}`, true, obj.id || obj._id);
+          if (parseFloat(distRight) > 0.5 && obj.showDistanceRight !== false) {
+            drawDistanceLine(objRight, centerY, rightBoundary, centerY, `${distRight}`, true, obj.id || obj._id);
           }
           
           // Top distance line + label (check showDistanceTop)
-          if (distTop > 10 && obj.showDistanceTop !== false) {
-            drawDistanceLine(obj.left + width / 2, topBoundary, obj.left + width / 2, obj.top, `${distTop}`, false, obj.id || obj._id);
+          if (parseFloat(distTop) > 0.5 && obj.showDistanceTop !== false) {
+            drawDistanceLine(centerX, topBoundary, centerX, objTop, `${distTop}`, false, obj.id || obj._id);
           }
           
           // Bottom distance line + label (check showDistanceBottom)
-          if (distBottom > 10 && obj.showDistanceBottom !== false) {
-            drawDistanceLine(obj.left + width / 2, objBottom, obj.left + width / 2, bottomBoundary, `${distBottom}`, false, obj.id || obj._id);
+          if (parseFloat(distBottom) > 0.5 && obj.showDistanceBottom !== false) {
+            drawDistanceLine(centerX, objBottom, centerX, bottomBoundary, `${distBottom}`, false, obj.id || obj._id);
           }
         }
       } else if (obj.type === 'line' && !obj.isPartition) {
