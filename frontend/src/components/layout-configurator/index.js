@@ -1,8 +1,10 @@
-export { DRAWING_TOOLS, ELEMENT_TYPES, A4_LANDSCAPE, DEFAULT_CANVAS_REAL_SIZE, MAX_HISTORY } from './constants';
-export { DrawingToolbar } from './DrawingToolbar';
-export { PropertiesPanel } from './PropertiesPanel';
-export { SettingsPanel } from './SettingsPanel';
-export { ElementsLibrary } from './ElementsLibrary';
-export { useCanvasHistory } from './useCanvasHistory';
-export { useClipboard } from './useClipboard';
-export { useKeyboardShortcuts } from './useKeyboardShortcuts';
+// Export hooks
+export { useCanvasHistory } from './hooks/useCanvasHistory';
+export { useLayoutAPI } from './hooks/useLayoutAPI';
+
+// Export dialogs
+export { default as AddRoomDialog } from './components/dialogs/AddRoomDialog';
+export { default as UploadAssetDialog } from './components/dialogs/UploadAssetDialog';
+
+// Export constants
+export * from './constants';
