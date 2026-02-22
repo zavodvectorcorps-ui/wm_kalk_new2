@@ -1465,7 +1465,7 @@ const LayoutConfiguratorPage = () => {
     
     // Get all drawn shapes (except grid) that have showDimensions enabled
     const shapes = canvas.getObjects().filter(o => 
-      o.isDrawnShape && !o.isGridLine && !o.isGridLabel && o.showDimensions !== false
+      (o.isDrawnShape || o.type === 'image') && !o.isGridLine && !o.isGridLabel && o.showDimensions !== false
     );
     
     // Find room (largest rectangle)
