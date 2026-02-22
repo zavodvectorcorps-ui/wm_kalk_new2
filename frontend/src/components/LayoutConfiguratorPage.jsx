@@ -3998,10 +3998,17 @@ const LayoutConfiguratorPage = () => {
                       {typeAssets.map(asset => (
                         <div
                           key={asset.id}
-                          className="group relative aspect-square bg-muted rounded-lg border-2 cursor-pointer hover:border-primary hover:shadow-md transition-all"
+                          className={`group relative aspect-square bg-muted rounded-lg border-2 cursor-pointer hover:border-primary hover:shadow-md transition-all ${
+                            asset.modelId ? 'ring-1 ring-blue-300' : ''
+                          }`}
                           onClick={() => addElementToCanvas(asset)}
-                          title={`Нажмите чтобы добавить: ${asset.name}`}
+                          title={`Нажмите чтобы добавить: ${asset.name}${asset.modelId ? ' (для этой модели)' : ' (глобальный)'}`}
                         >
+                          {asset.modelId && (
+                            <div className="absolute top-1 left-1 bg-blue-500 text-white text-[8px] px-1 rounded z-10">
+                              MODEL
+                            </div>
+                          )}
                           <img
                             src={asset.imageUrl.startsWith('http') ? asset.imageUrl : `${API_URL}${asset.imageUrl}`}
                             alt={asset.name}
