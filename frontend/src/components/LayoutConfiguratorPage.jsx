@@ -3888,9 +3888,7 @@ const LayoutConfiguratorPage = () => {
       if (!res.ok) throw new Error('Layout not found');
       
       const data = await res.json();
-      
-      // Clear canvas
-      clearCanvas();
+      const canvas = fabricRef.current;
       
       // Set canvas size
       setCanvasWidth(data.canvasWidth || 800);
@@ -3900,19 +3898,55 @@ const LayoutConfiguratorPage = () => {
       const model = saunaModels.find(m => m.id === data.modelId);
       if (model) setSelectedModel(model);
       
-      // Load elements
-      for (const el of data.elements || []) {
-        const asset = assets.find(a => a.id === el.assetId);
-        if (asset) {
-          await loadElementToCanvas(asset, el);
+      // If we have canvasState, use it (includes rooms and all objects)
+      if (data.canvasState) {
+        // Clear existing user objects (keep grid)
+        const objectsToRemove = canvas.getObjects().filter(obj => 
+          !obj.isGridLine && !obj.isGridLabel
+        );
+        objectsToRemove.forEach(obj => canvas.remove(obj));
+        
+        const state = typeof data.canvasState === 'string' 
+          ? JSON.parse(data.canvasState) 
+          : data.canvasState;
+        
+        canvas.loadFromJSON(state, () => {
+          // Re-apply interactivity settings
+          canvas.getObjects().forEach(obj => {
+            if (obj.isGridLine || obj.isGridLabel || obj.isDimensionLabel) {
+              obj.selectable = false;
+              obj.evented = false;
+            } else if (obj.isOutline) {
+              obj.selectable = false;
+              obj.evented = false;
+            } else {
+              obj.selectable = true;
+              obj.evented = true;
+              obj.hoverCursor = 'move';
+            }
+          });
+          
+          // Redraw grid
+          drawGrid();
+          canvas.requestRenderAll();
+        });
+      } else {
+        // Fallback: Load elements only (legacy layouts)
+        clearCanvas();
+        for (const el of data.elements || []) {
+          const asset = assets.find(a => a.id === el.assetId);
+          if (asset) {
+            await loadElementToCanvas(asset, el);
+          }
         }
       }
       
       setCurrentLayout(data);
       setLayoutName(data.name);
       setLoadDialogOpen(false);
-      toast.success('Планировка загружена');
+      toast.success(`Загружена: "${data.name}"`);
     } catch (error) {
+      console.error('Error loading layout:', error);
       toast.error('Ошибка при загрузке планировки');
     }
     setLoading(false);
