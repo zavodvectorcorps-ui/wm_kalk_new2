@@ -477,19 +477,14 @@ const LayoutConfiguratorPage = () => {
     }
   };
 
-  // Save current element configuration as variant
-  const saveAsVariant = async () => {
-    if (!newVariantForm.optionId || !newVariantForm.name) {
-      toast.error('Выберите опцию и введите название варианта');
-      return;
-    }
-    
+  // Add current selected element to variant form
+  const addElementToVariantForm = () => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     
     const selectedObj = canvas.getActiveObject();
     if (!selectedObj) {
-      toast.error('Выберите элемент для сохранения');
+      toast.error('Wybierz element');
       return;
     }
     
@@ -499,6 +494,7 @@ const LayoutConfiguratorPage = () => {
       matchBy: selectedObj.assetId ? 'assetId' : 'type',
       assetId: selectedObj.assetId || null,
       assetName: selectedObj.assetName || null,
+      elementId: selectedObj.elementId || null,
       properties: {
         left: Math.round(selectedObj.left),
         top: Math.round(selectedObj.top),
@@ -511,12 +507,79 @@ const LayoutConfiguratorPage = () => {
       }
     };
     
+    // Check if element already added (by assetId or type)
+    const exists = newVariantForm.elements.some(el => 
+      (el.assetId && el.assetId === elementConfig.assetId) ||
+      (el.elementId && el.elementId === elementConfig.elementId)
+    );
+    
+    if (exists) {
+      // Update existing
+      const updated = newVariantForm.elements.map(el => {
+        if ((el.assetId && el.assetId === elementConfig.assetId) ||
+            (el.elementId && el.elementId === elementConfig.elementId)) {
+          return elementConfig;
+        }
+        return el;
+      });
+      setNewVariantForm({ ...newVariantForm, elements: updated });
+      toast.success('Zaktualizowano element');
+    } else {
+      setNewVariantForm({ 
+        ...newVariantForm, 
+        elements: [...newVariantForm.elements, elementConfig] 
+      });
+      toast.success(`Dodano: ${elementConfig.assetName || elementConfig.elementType}`);
+    }
+  };
+
+  // Save current element configuration as variant
+  const saveAsVariant = async () => {
+    if (!newVariantForm.optionId || !newVariantForm.name) {
+      toast.error('Выберите опцию и введите название варианта');
+      return;
+    }
+    
+    // Use accumulated elements or create from current selection
+    let elementsToSave = newVariantForm.elements;
+    
+    if (elementsToSave.length === 0) {
+      // If no elements accumulated, try to use current selection
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      
+      const selectedObj = canvas.getActiveObject();
+      if (!selectedObj) {
+        toast.error('Dodaj elementy do wariantu');
+        return;
+      }
+      
+      // Create element configuration from selected object
+      elementsToSave = [{
+        elementType: selectedObj.elementType || selectedObj.type,
+        matchBy: selectedObj.assetId ? 'assetId' : 'type',
+        assetId: selectedObj.assetId || null,
+        assetName: selectedObj.assetName || null,
+        elementId: selectedObj.elementId || null,
+        properties: {
+          left: Math.round(selectedObj.left),
+          top: Math.round(selectedObj.top),
+          angle: selectedObj.angle || 0,
+          scaleX: selectedObj.scaleX || 1,
+          scaleY: selectedObj.scaleY || 1,
+          flipX: selectedObj.flipX || false,
+          flipY: selectedObj.flipY || false,
+          visible: selectedObj.visible !== false,
+        }
+      }];
+    }
+    
     try {
       const formData = new FormData();
       formData.append('name', newVariantForm.name);
       formData.append('namePl', newVariantForm.namePl || newVariantForm.name);
       formData.append('nameRu', newVariantForm.nameRu || newVariantForm.name);
-      formData.append('elementConfigs', JSON.stringify([elementConfig]));
+      formData.append('elementConfigs', JSON.stringify(elementsToSave));
       formData.append('conditions', JSON.stringify(newVariantForm.conditions || []));
       
       const res = await fetch(`${API_URL}/api/layout-configurator/options/${newVariantForm.optionId}/variants`, {
@@ -525,9 +588,9 @@ const LayoutConfiguratorPage = () => {
       });
       
       if (res.ok) {
-        toast.success('Вариант сохранён');
+        toast.success('Wariant zapisany');
         setSaveVariantDialogOpen(false);
-        setNewVariantForm({ optionId: '', name: '', namePl: '', nameRu: '', conditions: [] });
+        setNewVariantForm({ optionId: '', name: '', namePl: '', nameRu: '', conditions: [], elements: [] });
         fetchLayoutOptions();
       } else {
         const err = await res.json();
