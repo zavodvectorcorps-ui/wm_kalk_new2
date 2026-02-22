@@ -3474,6 +3474,36 @@ const LayoutConfiguratorPage = () => {
                 })}
               </div>
               
+              {/* Room & Partition */}
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs gap-1"
+                  onClick={() => {
+                    setRoomForm({ ...roomForm, isPartition: false });
+                    setAddRoomDialogOpen(true);
+                  }}
+                  title="Добавить комнату с заданными размерами"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  Комната
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs gap-1"
+                  onClick={() => {
+                    setRoomForm({ ...roomForm, isPartition: true });
+                    setAddRoomDialogOpen(true);
+                  }}
+                  title="Добавить перегородку внутри комнаты"
+                >
+                  <SplitSquareVertical className="h-3.5 w-3.5" />
+                  Перегородка
+                </Button>
+              </div>
+              
               {/* Drawing options (when drawing tool is active and not ruler) */}
               {activeTool !== 'select' && activeTool !== 'ruler' && activeTool !== 'text' && (
                 <div className="flex items-center gap-2">
