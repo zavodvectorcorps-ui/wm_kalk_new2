@@ -3829,6 +3829,30 @@ const LayoutConfiguratorPage = () => {
                 </p>
               )}
             </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Ширина (см)</Label>
+                <Input
+                  type="number"
+                  value={uploadForm.widthCm}
+                  onChange={(e) => setUploadForm({ ...uploadForm, widthCm: e.target.value })}
+                  placeholder="60"
+                />
+              </div>
+              <div>
+                <Label>Высота (см)</Label>
+                <Input
+                  type="number"
+                  value={uploadForm.heightCm}
+                  onChange={(e) => setUploadForm({ ...uploadForm, heightCm: e.target.value })}
+                  placeholder="80"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Укажите фактические размеры элемента для корректного масштабирования
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setUploadAssetDialogOpen(false)}>
