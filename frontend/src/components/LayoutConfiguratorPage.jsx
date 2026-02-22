@@ -831,6 +831,7 @@ const LayoutConfiguratorPage = () => {
         'isRoom', 'isRoomGroup', 'isOuterWall', 'isInnerRoom', 'isPartition', 'partitionType',
         'outerWidthCm', 'outerHeightCm', 'innerWidthCm', 'innerHeightCm',
         'wallLeftCm', 'wallRightCm', 'wallTopCm', 'wallBottomCm', 'wallThicknessCm',
+        'showOuterDimensions', 'showInnerDimensions',
         'lockScalingY', 'fixedHeightCm',
         'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
       ])),
