@@ -1625,65 +1625,77 @@ const LayoutConfiguratorPage = () => {
       const innerWidthCm = (innerWidth / pixelsPerCm).toFixed(1);
       const innerHeightCm = (innerHeight / pixelsPerCm).toFixed(1);
       
+      // Check visibility settings
+      const showOuter = roomGroup.showOuterDimensions !== false;
+      const showInner = roomGroup.showInnerDimensions !== false;
+      
       // Outer width label (top, outside)
-      const outerWidthLabel = new fabric.Text(`zewn: ${outerWidthCm} cm`, {
-        left: roomGroup.left + outerWidth / 2,
-        top: roomGroup.top - 20,
-        fontSize: 10,
-        fill: '#8B4513',
-        fontWeight: 'bold',
-        originX: 'center',
-        selectable: false,
-        evented: false,
-        isDimensionLabel: true,
-      });
-      canvas.add(outerWidthLabel);
+      if (showOuter) {
+        const outerWidthLabel = new fabric.Text(`zewn: ${outerWidthCm} cm`, {
+          left: roomGroup.left + outerWidth / 2,
+          top: roomGroup.top - 20,
+          fontSize: 10,
+          fill: '#8B4513',
+          fontWeight: 'bold',
+          originX: 'center',
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(outerWidthLabel);
+      }
       
       // Inner width label (top, inside)
-      const innerWidthLabel = new fabric.Text(`wewn: ${innerWidthCm} cm`, {
-        left: roomGroup.left + outerWidth / 2,
-        top: roomGroup.top + wallTopPx + 5,
-        fontSize: 9,
-        fill: '#059669',
-        fontWeight: 'bold',
-        originX: 'center',
-        selectable: false,
-        evented: false,
-        isDimensionLabel: true,
-      });
-      canvas.add(innerWidthLabel);
+      if (showInner) {
+        const innerWidthLabel = new fabric.Text(`wewn: ${innerWidthCm} cm`, {
+          left: roomGroup.left + outerWidth / 2,
+          top: roomGroup.top + wallTopPx + 5,
+          fontSize: 9,
+          fill: '#059669',
+          fontWeight: 'bold',
+          originX: 'center',
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(innerWidthLabel);
+      }
       
       // Outer height label (left, outside)
-      const outerHeightLabel = new fabric.Text(`zewn: ${outerHeightCm} cm`, {
-        left: roomGroup.left - 25,
-        top: roomGroup.top + outerHeight / 2,
-        fontSize: 10,
-        fill: '#8B4513',
-        fontWeight: 'bold',
-        originX: 'center',
-        originY: 'center',
-        angle: -90,
-        selectable: false,
-        evented: false,
-        isDimensionLabel: true,
-      });
-      canvas.add(outerHeightLabel);
+      if (showOuter) {
+        const outerHeightLabel = new fabric.Text(`zewn: ${outerHeightCm} cm`, {
+          left: roomGroup.left - 25,
+          top: roomGroup.top + outerHeight / 2,
+          fontSize: 10,
+          fill: '#8B4513',
+          fontWeight: 'bold',
+          originX: 'center',
+          originY: 'center',
+          angle: -90,
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(outerHeightLabel);
+      }
       
       // Inner height label (left inside)
-      const innerHeightLabel = new fabric.Text(`wewn: ${innerHeightCm} cm`, {
-        left: roomGroup.left + wallLeftPx + 8,
-        top: roomGroup.top + outerHeight / 2,
-        fontSize: 9,
-        fill: '#059669',
-        fontWeight: 'bold',
-        originX: 'center',
-        originY: 'center',
-        angle: -90,
-        selectable: false,
-        evented: false,
-        isDimensionLabel: true,
-      });
-      canvas.add(innerHeightLabel);
+      if (showInner) {
+        const innerHeightLabel = new fabric.Text(`wewn: ${innerHeightCm} cm`, {
+          left: roomGroup.left + wallLeftPx + 8,
+          top: roomGroup.top + outerHeight / 2,
+          fontSize: 9,
+          fill: '#059669',
+          fontWeight: 'bold',
+          originX: 'center',
+          originY: 'center',
+          angle: -90,
+          selectable: false,
+          evented: false,
+          isDimensionLabel: true,
+        });
+        canvas.add(innerHeightLabel);
+      }
     });
     
     shapes.forEach(obj => {
