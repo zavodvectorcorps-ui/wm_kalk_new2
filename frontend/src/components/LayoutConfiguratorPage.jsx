@@ -4047,9 +4047,9 @@ const LayoutConfiguratorPage = () => {
   }, {});
 
   return (
-    <div className="h-[calc(100vh-120px)] flex gap-4">
+    <div className="h-[calc(100vh-120px)] flex gap-4 overflow-hidden">
       {/* Left Panel - Settings & Elements - SCROLLABLE */}
-      <div className="w-80 flex-shrink-0 overflow-y-auto">
+      <div className="w-80 flex-shrink-0 overflow-y-auto h-full">
         <div className="flex flex-col gap-2 pr-1">
         {/* Settings Card */}
         <Card>
