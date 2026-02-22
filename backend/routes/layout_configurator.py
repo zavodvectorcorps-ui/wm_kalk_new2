@@ -264,11 +264,17 @@ async def create_layout(
 
 
 @router.get("/layouts")
-async def list_layouts(modelId: Optional[str] = None, isPublished: Optional[bool] = None):
-    """List all layouts, optionally filtered."""
+async def list_layouts(
+    modelId: Optional[str] = Query(default=None),
+    variantId: Optional[str] = Query(default=None),
+    isPublished: Optional[bool] = Query(default=None),
+):
+    """List all layouts, optionally filtered by model and variant."""
     query = {}
     if modelId:
         query["modelId"] = modelId
+    if variantId:
+        query["variantId"] = variantId
     if isPublished is not None:
         query["isPublished"] = isPublished
     
