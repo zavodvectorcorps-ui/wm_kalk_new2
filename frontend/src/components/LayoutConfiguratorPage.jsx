@@ -4690,20 +4690,24 @@ const LayoutConfiguratorPage = () => {
                   <div className="p-2 bg-gray-50 border border-gray-200 rounded">
                     <label className="flex items-center justify-between cursor-pointer">
                       <span className="text-xs font-medium flex items-center gap-1">
-                        {selectedObject.visible !== false ? (
-                          <Eye className="h-3 w-3 text-green-600" />
-                        ) : (
+                        {selectedObject.isHidden ? (
                           <EyeOff className="h-3 w-3 text-gray-400" />
+                        ) : (
+                          <Eye className="h-3 w-3 text-green-600" />
                         )}
                         Widoczność elementu
                       </span>
                       <Switch
-                        checked={selectedObject.visible !== false}
+                        checked={!selectedObject.isHidden}
                         onCheckedChange={(checked) => {
                           const obj = fabricRef.current?.getActiveObject();
                           if (obj) {
-                            obj.set('visible', checked);
-                            obj.set('opacity', checked ? 1 : 0.3);
+                            const isHidden = !checked;
+                            obj.set('isHidden', isHidden);
+                            obj.set('opacity', isHidden ? 0.25 : 1);
+                            // Keep object selectable!
+                            obj.set('selectable', true);
+                            obj.set('evented', true);
                             fabricRef.current.renderAll();
                             handleObjectSelected({ selected: [obj] });
                             updateDimensionLabels();
@@ -4713,9 +4717,9 @@ const LayoutConfiguratorPage = () => {
                         }}
                       />
                     </label>
-                    {selectedObject.visible === false && (
+                    {selectedObject.isHidden && (
                       <p className="text-[10px] text-amber-600 mt-1">
-                        Element jest ukryty (półprzezroczysty)
+                        Element jest ukryty (półprzezroczysty). Kliknij aby wybrać i włączyć widoczność.
                       </p>
                     )}
                   </div>
