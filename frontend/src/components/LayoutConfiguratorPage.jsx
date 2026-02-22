@@ -3984,6 +3984,102 @@ const LayoutConfiguratorPage = () => {
                   )}
                 </div>
               </TabsContent>
+              
+              {/* Variants Tab */}
+              <TabsContent value="variants" className="mt-0">
+                <div className="space-y-3">
+                  {/* Create new option button */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-8 text-xs"
+                    onClick={() => setCreateOptionDialogOpen(true)}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Nowa opcja
+                  </Button>
+                  
+                  {/* Save selected element as variant */}
+                  {selectedObject && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="w-full h-8 text-xs"
+                      onClick={() => {
+                        if (layoutOptions.length === 0) {
+                          toast.error('Сначала создайте опцию');
+                          return;
+                        }
+                        setNewVariantForm({ ...newVariantForm, optionId: layoutOptions[0]?.id || '' });
+                        setSaveVariantDialogOpen(true);
+                      }}
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      Zapisz jako wariant
+                    </Button>
+                  )}
+                  
+                  {/* Options list */}
+                  {layoutOptions.map(option => (
+                    <div key={option.id} className="border rounded-lg overflow-hidden">
+                      <div className="flex items-center justify-between bg-muted px-2 py-1.5">
+                        <span className="text-xs font-medium">{option.namePl || option.name}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-5 w-5"
+                          onClick={() => deleteLayoutOption(option.id)}
+                        >
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </Button>
+                      </div>
+                      <div className="p-1.5 space-y-1">
+                        {option.variants?.map(variant => (
+                          <div
+                            key={variant.id}
+                            className={`flex items-center justify-between p-1.5 rounded text-xs cursor-pointer hover:bg-muted/80 transition-colors ${
+                              selectedVariants[option.id] === variant.id ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30'
+                            }`}
+                            onClick={() => applyVariant(option.id, variant)}
+                          >
+                            <span className="truncate">{variant.namePl || variant.name}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-muted-foreground">
+                                {variant.elementConfigs?.length || 0} el.
+                              </span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-4 w-4"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteVariant(option.id, variant.id);
+                                }}
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                        {(!option.variants || option.variants.length === 0) && (
+                          <div className="text-[10px] text-muted-foreground text-center py-2">
+                            Brak wariantów
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {layoutOptions.length === 0 && (
+                    <div className="text-center py-6 text-muted-foreground text-xs">
+                      <p className="mb-2">Brak opcji konfiguracji</p>
+                      <p className="text-[10px]">
+                        Utwórz opcję (np. "Strona wejścia"), potem zapisz warianty dla elementów
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
