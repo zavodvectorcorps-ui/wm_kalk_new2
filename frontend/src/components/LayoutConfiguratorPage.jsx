@@ -166,6 +166,7 @@ const LayoutConfiguratorPage = () => {
   // Layout options & variants state
   const [layoutOptions, setLayoutOptions] = useState([]);
   const [selectedVariants, setSelectedVariants] = useState({}); // { optionId: variantId }
+  const [showHiddenVariants, setShowHiddenVariants] = useState(false);
   const [createOptionDialogOpen, setCreateOptionDialogOpen] = useState(false);
   const [editOptionDialogOpen, setEditOptionDialogOpen] = useState(false);
   const [editOptionForm, setEditOptionForm] = useState({ id: '', name: '', namePl: '', nameRu: '' });
