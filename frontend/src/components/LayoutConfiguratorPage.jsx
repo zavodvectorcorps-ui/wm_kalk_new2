@@ -1317,9 +1317,37 @@ const LayoutConfiguratorPage = () => {
   };
 
   // Find the main room rectangle (largest rect that could be the room outline)
+  // Find inner room rect for distance calculations
   const findRoomRect = useCallback(() => {
     if (!fabricRef.current) return null;
     const canvas = fabricRef.current;
+    
+    // First try to find a room group (new room with walls)
+    const roomGroups = canvas.getObjects().filter(o => o.isRoomGroup);
+    if (roomGroups.length > 0) {
+      const roomGroup = roomGroups[0];
+      // Get inner room boundaries (accounting for wall thickness)
+      const wallThicknessPx = (roomGroup.wallThicknessCm || 0) * pixelsPerCm;
+      const groupWidth = roomGroup.width * (roomGroup.scaleX || 1);
+      const groupHeight = roomGroup.height * (roomGroup.scaleY || 1);
+      
+      return {
+        left: roomGroup.left + wallThicknessPx,
+        top: roomGroup.top + wallThicknessPx,
+        width: groupWidth - wallThicknessPx * 2,
+        height: groupHeight - wallThicknessPx * 2,
+        scaleX: 1,
+        scaleY: 1,
+        wallThicknessPx,
+        outerLeft: roomGroup.left,
+        outerTop: roomGroup.top,
+        outerWidth: groupWidth,
+        outerHeight: groupHeight,
+        isRoomGroup: true,
+      };
+    }
+    
+    // Fallback to finding largest rectangle
     const rects = canvas.getObjects().filter(o => 
       o.isDrawnShape && o.type === 'rect' && !o.isOutline
     );
@@ -1338,7 +1366,7 @@ const LayoutConfiguratorPage = () => {
     });
     
     return largest;
-  }, []);
+  }, [pixelsPerCm]);
 
   // Calculate distances from object to room walls
   const calculateDistances = useCallback((obj) => {
