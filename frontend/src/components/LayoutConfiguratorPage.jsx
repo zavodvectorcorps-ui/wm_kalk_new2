@@ -924,9 +924,9 @@ const LayoutConfiguratorPage = () => {
       canvas.defaultCursor = 'crosshair';
       canvas.hoverCursor = 'crosshair';
       
-      // Make all existing objects non-interactive
+      // Make all existing objects non-interactive (except dimension lines which stay interactive)
       canvas.getObjects().forEach(obj => {
-        if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
+        if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel && !obj.isDimensionLine) {
           obj.selectable = false;
           obj.evented = false;
           obj.hoverCursor = 'crosshair';
@@ -939,12 +939,18 @@ const LayoutConfiguratorPage = () => {
       canvas.defaultCursor = 'default';
       canvas.hoverCursor = 'move';
       
-      // Make all objects interactive again
+      // Make all objects interactive again (including dimension lines)
       canvas.getObjects().forEach(obj => {
-        if (!obj.isGridLine && !obj.isGridLabel && !obj.isDimensionLabel) {
-          obj.selectable = true;
-          obj.evented = true;
-          obj.hoverCursor = 'move';
+        if (!obj.isGridLine && !obj.isGridLabel) {
+          // Dimension labels (text) stay non-selectable, but dimension lines (groups) are selectable
+          if (obj.isDimensionLabel && !obj.isDimensionLine) {
+            obj.selectable = false;
+            obj.evented = false;
+          } else {
+            obj.selectable = true;
+            obj.evented = true;
+            obj.hoverCursor = 'move';
+          }
         }
       });
     }
