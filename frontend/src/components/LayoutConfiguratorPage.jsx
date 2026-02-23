@@ -361,34 +361,55 @@ const LayoutConfiguratorPage = ({
     }
   }, [saunaModels, initialModelId, initialVariantId]);
 
-  // Auto-apply variants based on calculator selections
+  // Auto-load first layout when coming from calculator and layouts are fetched
+  useEffect(() => {
+    if (!calculatorSelections || !initialModelId) return;
+    if (layoutLoadedForCalculator) return; // Already loaded
+    if (layouts.length === 0) return;
+    
+    // Find a layout for this model
+    const layoutForModel = layouts.find(l => l.modelId === initialModelId);
+    if (layoutForModel && fabricRef.current) {
+      console.log('Auto-loading layout for calculator integration:', layoutForModel.name);
+      loadLayout(layoutForModel);
+      setLayoutLoadedForCalculator(true);
+    }
+  }, [layouts, calculatorSelections, initialModelId, layoutLoadedForCalculator]);
+
+  // Auto-apply variants based on calculator selections AFTER layout is loaded
   useEffect(() => {
     if (!calculatorSelections || !layoutOptions.length) return;
+    if (!layoutLoadedForCalculator) return; // Wait for layout to load first
     
-    // Find variants that match calculator selections
-    const variantsToApply = [];
-    
-    layoutOptions.forEach(option => {
-      option.variants?.forEach(variant => {
-        if (variant.calculatorMapping) {
-          const { categoryId, optionId } = variant.calculatorMapping;
-          // Check if calculator has this option selected
-          if (calculatorSelections[categoryId] === optionId) {
-            variantsToApply.push({ option, variant });
+    // Small delay to ensure canvas is fully rendered
+    const timeoutId = setTimeout(() => {
+      // Find variants that match calculator selections
+      const variantsToApply = [];
+      
+      layoutOptions.forEach(option => {
+        option.variants?.forEach(variant => {
+          if (variant.calculatorMapping) {
+            const { categoryId, optionId } = variant.calculatorMapping;
+            // Check if calculator has this option selected
+            if (calculatorSelections[categoryId] === optionId) {
+              variantsToApply.push({ option, variant });
+            }
           }
-        }
+        });
       });
-    });
+      
+      // Apply matching variants
+      if (variantsToApply.length > 0 && fabricRef.current) {
+        console.log('Auto-applying variants from calculator:', variantsToApply);
+        variantsToApply.forEach(({ option, variant }) => {
+          applyVariant(option.id, variant);
+        });
+        toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
+      }
+    }, 500); // Wait 500ms for canvas to fully render
     
-    // Apply matching variants
-    if (variantsToApply.length > 0 && fabricRef.current) {
-      console.log('Auto-applying variants from calculator:', variantsToApply);
-      variantsToApply.forEach(({ option, variant }) => {
-        applyVariant(option.id, variant);
-      });
-      toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
-    }
-  }, [calculatorSelections, layoutOptions]);
+    return () => clearTimeout(timeoutId);
+  }, [calculatorSelections, layoutOptions, layoutLoadedForCalculator]);
 
   // Redraw grid when scale or grid size changes
   useEffect(() => {
