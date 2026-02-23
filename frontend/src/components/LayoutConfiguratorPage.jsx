@@ -320,7 +320,24 @@ const LayoutConfiguratorPage = ({
     fetchAssets();
     fetchLayouts();
     fetchLayoutOptions();
+    // Fetch calculator categories for admin mapping feature
+    if (isAdminMode) {
+      fetchCalculatorCategories();
+    }
   }, []);
+
+  // Fetch calculator categories (for admin variant mapping)
+  const fetchCalculatorCategories = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/layout-configurator/calculator-categories`);
+      if (response.ok) {
+        const data = await response.json();
+        setCalculatorCategories(data.categories || []);
+      }
+    } catch (error) {
+      console.error('Error fetching calculator categories:', error);
+    }
+  };
 
   // Apply initial model/variant from props (for integration with calculator)
   useEffect(() => {
@@ -341,6 +358,35 @@ const LayoutConfiguratorPage = ({
       }
     }
   }, [saunaModels, initialModelId, initialVariantId]);
+
+  // Auto-apply variants based on calculator selections
+  useEffect(() => {
+    if (!calculatorSelections || !layoutOptions.length) return;
+    
+    // Find variants that match calculator selections
+    const variantsToApply = [];
+    
+    layoutOptions.forEach(option => {
+      option.variants?.forEach(variant => {
+        if (variant.calculatorMapping) {
+          const { categoryId, optionId } = variant.calculatorMapping;
+          // Check if calculator has this option selected
+          if (calculatorSelections[categoryId] === optionId) {
+            variantsToApply.push({ option, variant });
+          }
+        }
+      });
+    });
+    
+    // Apply matching variants
+    if (variantsToApply.length > 0 && fabricRef.current) {
+      console.log('Auto-applying variants from calculator:', variantsToApply);
+      variantsToApply.forEach(({ option, variant }) => {
+        applyVariant(option.id, variant);
+      });
+      toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
+    }
+  }, [calculatorSelections, layoutOptions]);
 
   // Redraw grid when scale or grid size changes
   useEffect(() => {
