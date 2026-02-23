@@ -235,6 +235,98 @@ async def assign_order_responsible(order_id: str, data: dict):
 
 
 # =============================================
+# LAYOUT CONFIGURATOR ENDPOINTS
+# =============================================
+
+@router.put("/orders/{order_id}/layout-config")
+async def save_order_layout_config(order_id: str, config: dict):
+    """Save layout configurator data to an order.
+    
+    Expected config:
+    {
+        "imageData": "base64...",  # PNG image of canvas
+        "canvasJson": {...},       # Canvas state for editing later
+        "selectedVariants": {"optionId": "variantId", ...},  # Applied variants
+        "configuredBy": "username"
+    }
+    """
+    from services.cloudinary_service import upload_base64_image, is_cloudinary_configured
+    
+    existing = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    update_data = {
+        "layoutConfiguredAt": now,
+        "layoutConfiguredBy": config.get("configuredBy", "system"),
+        "updatedAt": now,
+    }
+    
+    # Upload image to Cloudinary if available
+    image_data = config.get("imageData")
+    if image_data:
+        if is_cloudinary_configured():
+            result = await upload_base64_image(
+                image_data,
+                f"order-layout-{order_id}",
+                folder="order-layouts"
+            )
+            if result:
+                update_data["layoutConfigImage"] = result["url"]
+        else:
+            # Store as data URL (not recommended for production)
+            update_data["layoutConfigImage"] = f"data:image/png;base64,{image_data}"
+    
+    # Store canvas JSON
+    canvas_json = config.get("canvasJson")
+    if canvas_json:
+        import json
+        update_data["layoutConfigJson"] = json.dumps(canvas_json)
+    
+    # Store selected variants
+    variants = config.get("selectedVariants")
+    if variants:
+        update_data["layoutConfigVariants"] = variants
+    
+    # Update order
+    await db.sauna_orders.update_one(
+        {"id": order_id},
+        {"$set": update_data}
+    )
+    
+    # Return updated order
+    updated = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    logger.info(f"Layout config saved for order {order_id}")
+    
+    return {"success": True, "order": updated}
+
+
+@router.get("/orders/{order_id}/layout-config")
+async def get_order_layout_config(order_id: str):
+    """Get layout configurator data for an order."""
+    order = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    import json
+    canvas_json = None
+    if order.get("layoutConfigJson"):
+        try:
+            canvas_json = json.loads(order["layoutConfigJson"])
+        except:
+            pass
+    
+    return {
+        "imageUrl": order.get("layoutConfigImage"),
+        "canvasJson": canvas_json,
+        "selectedVariants": order.get("layoutConfigVariants", {}),
+        "configuredAt": order.get("layoutConfiguredAt"),
+        "configuredBy": order.get("layoutConfiguredBy"),
+    }
+
+
+# =============================================
 # TECH SPEC ENDPOINTS
 # =============================================
 
