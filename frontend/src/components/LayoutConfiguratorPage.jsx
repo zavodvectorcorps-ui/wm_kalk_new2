@@ -1508,22 +1508,20 @@ const LayoutConfiguratorPage = ({
     }
     
     // Log variants that will be applied
+    console.log('Applying all calculator variants for model', selectedModel.id, 'submodel', selectedVariant?.id || 'none');
+    console.log('Room offset:', roomOffset);
     console.log('Variants to apply:', variantsToApply.length);
     variantsToApply.forEach(({ option, variant }) => {
       console.log(`  - ${variant.namePl} from ${option.namePl}`);
     });
     
-    console.log('Applying all calculator variants for model', selectedModel.id, 'submodel', selectedVariant?.id || 'none');
-    console.log('Room offset:', roomOffset);
-    console.log(`Variants to apply: ${uniqueVariants.length} (removed ${variantsToApply.length - uniqueVariants.length} duplicates)`);
-    
     // Apply variants SEQUENTIALLY - each variant fully applies before the next
-    uniqueVariants.forEach(({ option, variant }) => {
+    variantsToApply.forEach(({ option, variant }) => {
       console.log(`Applying variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name}`);
       applyVariant(option.id, variant, roomOffset);
     });
     
-    toast.success(`Применено ${uniqueVariants.length} вариантов из калькулятора`);
+    toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
   };
 
   // Fetch outline for selected model/variant
