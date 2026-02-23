@@ -115,6 +115,7 @@ const LayoutConfiguratorPage = ({
   const [showDimensions, setShowDimensions] = useState(true);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('elements');
+  const [layoutLoadedForCalculator, setLayoutLoadedForCalculator] = useState(false); // Track if layout loaded for calculator integration
   
   // Undo history
   const [canvasHistory, setCanvasHistory] = useState([]);
