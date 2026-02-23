@@ -378,16 +378,35 @@ const LayoutConfiguratorPage = ({
   }, [saunaModels, initialModelId, initialVariantId]);
 
   // Auto-apply variants based on calculator selections AFTER layout is loaded
-  // Only applies variants that:
-  // 1. Have room position saved (for correct coordinate offset)
-  // 2. Belong to the currently selected model AND submodel (filtered by modelId and variantId)
+  // Variants will be applied even without saved room position (coordinates may need manual adjustment)
   useEffect(() => {
-    if (!calculatorSelections || !layoutOptions.length) return;
-    if (!layoutLoadedForCalculator) return;
-    if (!selectedModel) return; // Must have a model selected
+    console.log('Auto-apply variants check:', {
+      hasCalculatorSelections: !!calculatorSelections,
+      calculatorSelections,
+      layoutOptionsCount: layoutOptions.length,
+      layoutLoadedForCalculator,
+      selectedModelId: selectedModel?.id,
+      selectedVariantId: selectedVariant?.id,
+    });
+    
+    if (!calculatorSelections || !layoutOptions.length) {
+      console.log('Skipping auto-apply: no calculator selections or no layout options');
+      return;
+    }
+    if (!layoutLoadedForCalculator) {
+      console.log('Skipping auto-apply: layout not loaded for calculator yet');
+      return;
+    }
+    if (!selectedModel) {
+      console.log('Skipping auto-apply: no model selected');
+      return;
+    }
     
     const canvas = fabricRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.log('Skipping auto-apply: no canvas');
+      return;
+    }
     
     // Small delay to ensure canvas is fully rendered
     const timeoutId = setTimeout(() => {
