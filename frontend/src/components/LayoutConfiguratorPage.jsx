@@ -4690,6 +4690,32 @@ const LayoutConfiguratorPage = ({
               </div>
             </div>
             
+            {/* Apply calculator variants button - prominent placement */}
+            {calculatorSelections && layoutOptions.some(opt => 
+              opt.variants?.some(v => v.calculatorMapping && 
+                calculatorSelections[v.calculatorMapping.categoryId] === v.calculatorMapping.optionId
+              )
+            ) && (
+              <div className="border-t pt-3">
+                <Button
+                  size="sm"
+                  className="w-full h-9 text-xs bg-green-600 hover:bg-green-700 font-medium"
+                  onClick={applyAllCalculatorVariants}
+                  data-testid="apply-calculator-variants-main-btn"
+                >
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Применить варианты из калькулятора
+                </Button>
+                <p className="text-[10px] text-muted-foreground mt-1 text-center">
+                  Найдено вариантов: {layoutOptions.reduce((count, opt) => 
+                    count + (opt.variants?.filter(v => v.calculatorMapping && 
+                      calculatorSelections[v.calculatorMapping.categoryId] === v.calculatorMapping.optionId
+                    ).length || 0), 0
+                  )}
+                </p>
+              </div>
+            )}
+            
             {/* Actions */}
             <div className="border-t pt-3 flex gap-2">
               <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={clearCanvas}>
