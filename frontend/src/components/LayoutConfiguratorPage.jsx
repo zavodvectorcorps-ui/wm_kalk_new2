@@ -316,6 +316,26 @@ const LayoutConfiguratorPage = ({
     fetchLayoutOptions();
   }, []);
 
+  // Apply initial model/variant from props (for integration with calculator)
+  useEffect(() => {
+    if (saunaModels.length > 0 && initialModelId) {
+      const model = saunaModels.find(m => m.id === initialModelId);
+      if (model) {
+        setSelectedModel(model);
+        fetchLayouts(initialModelId, null);
+        
+        // If initial variant is specified, select it too
+        if (initialVariantId && model.variants?.length > 0) {
+          const variant = model.variants.find(v => v.id === initialVariantId);
+          if (variant) {
+            setSelectedVariant(variant);
+            fetchLayouts(initialModelId, initialVariantId);
+          }
+        }
+      }
+    }
+  }, [saunaModels, initialModelId, initialVariantId]);
+
   // Redraw grid when scale or grid size changes
   useEffect(() => {
     if (fabricRef.current) {
