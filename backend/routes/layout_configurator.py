@@ -912,3 +912,36 @@ async def delete_variant(option_id: str, variant_id: str):
         raise HTTPException(status_code=404, detail="Option not found")
     
     return {"success": True, "deleted": variant_id}
+
+
+# ============ CALCULATOR CATEGORIES (for variant mapping) ============
+
+@router.get("/calculator-categories")
+async def get_calculator_categories():
+    """Get sauna calculator categories and their options for variant mapping."""
+    prices_doc = await db.sauna_prices.find_one({}, {"_id": 0, "categories": 1})
+    
+    if not prices_doc or not prices_doc.get("categories"):
+        return {"categories": []}
+    
+    # Return categories with their options
+    categories = []
+    for cat in prices_doc["categories"]:
+        options = []
+        for opt in cat.get("options", []):
+            options.append({
+                "id": opt.get("id"),
+                "name": opt.get("name"),
+                "namePl": opt.get("namePl", opt.get("name")),
+                "nameRu": opt.get("nameRu", opt.get("name")),
+            })
+        
+        categories.append({
+            "id": cat.get("id"),
+            "name": cat.get("name"),
+            "namePl": cat.get("namePl", cat.get("name")),
+            "nameRu": cat.get("nameRu", cat.get("name")),
+            "options": options,
+        })
+    
+    return {"categories": categories}
