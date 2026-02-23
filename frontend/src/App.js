@@ -512,6 +512,10 @@ const AppContent = () => {
           <Suspense fallback={<PageLoader />}>
             <PDFTemplateEditor calculatorType="sauna" />
           </Suspense>
+        ) : activeTab === 'layout-configurator' ? (
+          <Suspense fallback={<PageLoader />}>
+            <LayoutConfiguratorPage isAdminMode={isAdmin()} />
+          </Suspense>
         ) : activeTab === 'training' ? (
           <Suspense fallback={<PageLoader />}>
             <TrainingPage user={user} />
