@@ -952,6 +952,21 @@ const LayoutConfiguratorPage = ({
       }];
     }
     
+    // Also save room position for coordinate normalization
+    const roomObj = fabricRef.current?.getObjects().find(obj => obj.isRoom);
+    if (roomObj) {
+      elementsToSave.push({
+        elementType: 'room',
+        isRoom: true,
+        properties: {
+          left: Math.round(roomObj.left),
+          top: Math.round(roomObj.top),
+          width: roomObj.width,
+          height: roomObj.height,
+        }
+      });
+    }
+    
     try {
       const formData = new FormData();
       formData.append('name', newVariantForm.name);
