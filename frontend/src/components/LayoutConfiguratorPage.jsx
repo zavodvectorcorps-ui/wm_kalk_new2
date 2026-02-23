@@ -4778,8 +4778,8 @@ const LayoutConfiguratorPage = ({
                     </Button>
                   )}
                   
-                  {/* Copy option button */}
-                  {layoutOptions.length > 0 && (
+                  {/* Copy option button - ADMIN ONLY */}
+                  {isAdminMode && layoutOptions.length > 0 && (
                     <Button
                       size="sm"
                       variant="outline"
