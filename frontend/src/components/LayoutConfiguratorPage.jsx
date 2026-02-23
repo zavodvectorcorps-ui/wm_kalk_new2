@@ -450,9 +450,15 @@ const LayoutConfiguratorPage = ({
           if (variant.calculatorMapping) {
             const { categoryId, optionId } = variant.calculatorMapping;
             if (calculatorSelections[categoryId] === optionId) {
-              // Skip if we already have this variant (by ID)
-              if (variantsToApply.some(v => v.variant.id === variant.id)) {
-                console.log(`Skipping duplicate variant "${variant.namePl}" (already added)`);
+              // Skip if we already have a variant with same calculatorMapping
+              // This handles the case where global option and submodel-specific option 
+              // both have the same variant (e.g., "Lewo" in "Strona pieca")
+              const mappingKey = `${categoryId}_${optionId}`;
+              if (variantsToApply.some(v => {
+                const existingKey = `${v.variant.calculatorMapping?.categoryId}_${v.variant.calculatorMapping?.optionId}`;
+                return existingKey === mappingKey;
+              })) {
+                console.log(`Skipping duplicate variant "${variant.namePl}" - same calculatorMapping already added`);
                 return;
               }
               
@@ -470,7 +476,7 @@ const LayoutConfiguratorPage = ({
               }
               // Always add variant to apply list (even without room position)
               variantsToApply.push({ option, variant });
-              console.log(`Will apply variant "${variant.namePl}" from option "${option.namePl}" (has room position: ${!!variantRoomConfig?.properties})`);
+              console.log(`Will apply variant "${variant.namePl}" from option "${option.namePl}" (optionId: ${option.id}, variantId: ${option.variantId || 'global'})`);
             }
           }
         });
