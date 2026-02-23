@@ -1291,6 +1291,9 @@ const LayoutConfiguratorPage = ({
     
     // Merge all element configs from all variants
     // Key = unique identifier for element, Value = final config to apply
+    // PRIORITY: FIRST variant that changes an element WINS (don't override)
+    // This ensures that specific options like "Strona pieca" (heater side) 
+    // have priority over generic options that also move the heater
     const mergedConfigs = new Map();
     
     variants.forEach(({ option, variant }) => {
@@ -1303,12 +1306,17 @@ const LayoutConfiguratorPage = ({
         const elementKey = config.elementId || config.instanceName || `${config.assetId}_${config.assetName}` || config.elementType;
         
         if (elementKey && config.properties) {
-          // Store/override with this config
-          mergedConfigs.set(elementKey, {
-            config,
-            fromOption: option.namePl || option.name,
-            fromVariant: variant.namePl || variant.name
-          });
+          // FIRST variant wins - don't override if already set
+          if (!mergedConfigs.has(elementKey)) {
+            mergedConfigs.set(elementKey, {
+              config,
+              fromOption: option.namePl || option.name,
+              fromVariant: variant.namePl || variant.name
+            });
+            console.log(`  Element "${config.assetName || config.elementType}" will be controlled by: ${variant.namePl || variant.name}`);
+          } else {
+            console.log(`  Skipping element "${config.assetName || config.elementType}" - already set by: ${mergedConfigs.get(elementKey).fromVariant}`);
+          }
         }
       });
     });
