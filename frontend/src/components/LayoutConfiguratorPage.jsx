@@ -1260,6 +1260,67 @@ const LayoutConfiguratorPage = ({
     }
   }, [drawGrid]);
 
+  // Save layout configuration to order
+  const saveLayoutToOrder = async () => {
+    if (!orderId) {
+      toast.error('Не указан ID заказа');
+      return;
+    }
+    
+    if (!fabricRef.current) {
+      toast.error('Ошибка: canvas не инициализирован');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const canvas = fabricRef.current;
+      
+      // Export canvas to PNG
+      const imageData = canvas.toDataURL({
+        format: 'png',
+        quality: 0.8,
+        multiplier: 2, // Higher resolution
+      }).split(',')[1]; // Get base64 part only
+      
+      // Get canvas JSON state
+      const canvasJson = canvas.toJSON(['elementId', 'assetId', 'elementType', 'realWidthCm', 'realHeightCm', 'fixedHeight', 'isOutline', 'isRoom', 'roomData', 'instanceName', 'isHidden']);
+      
+      // Get selected variants
+      const selectedVariantsCopy = { ...selectedVariants };
+      
+      // Send to backend
+      const response = await fetch(`${API_URL}/api/sauna/orders/${orderId}/layout-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageData,
+          canvasJson,
+          selectedVariants: selectedVariantsCopy,
+          configuredBy: 'manager', // TODO: get from auth context
+        }),
+      });
+      
+      if (!response.ok) {
+        const err = await response.json();
+        toast.error(err.detail || 'Ошибка сохранения');
+        return;
+      }
+      
+      const result = await response.json();
+      toast.success('Планировка сохранена в заказ');
+      
+      if (onLayoutSaved) {
+        onLayoutSaved(result);
+      }
+    } catch (error) {
+      console.error('Error saving layout to order:', error);
+      toast.error('Ошибка сохранения планировки');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Remove outline from canvas
   const removeOutlineFromCanvas = () => {
     if (!fabricRef.current) return;
