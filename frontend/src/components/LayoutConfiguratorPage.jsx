@@ -4794,8 +4794,8 @@ const LayoutConfiguratorPage = ({
                     </Button>
                   )}
                   
-                  {/* Show hidden variants toggle */}
-                  {layoutOptions.some(opt => opt.variants?.some(v => !isVariantVisible(v))) && (
+                  {/* Show hidden variants toggle - ADMIN ONLY */}
+                  {isAdminMode && layoutOptions.some(opt => opt.variants?.some(v => !isVariantVisible(v))) && (
                     <Button
                       size="sm"
                       variant={showHiddenVariants ? "default" : "outline"}
