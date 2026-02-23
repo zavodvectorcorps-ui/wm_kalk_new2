@@ -7446,6 +7446,167 @@ const LayoutConfiguratorPage = ({
         </DialogContent>
       </Dialog>
       
+      {/* Clone Layout to Another Model Dialog */}
+      <Dialog open={cloneLayoutDialogOpen} onOpenChange={setCloneLayoutDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Клонировать планировку для другой модели</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Source layout info */}
+            <div className="p-3 bg-slate-50 border rounded">
+              <Label className="text-xs text-muted-foreground">Исходная планировка:</Label>
+              <p className="font-medium">{cloneLayoutForm.sourceLayoutName}</p>
+              {selectedModel && (
+                <p className="text-xs text-muted-foreground">
+                  Модель: {selectedModel.name}
+                </p>
+              )}
+            </div>
+            
+            {/* Target model */}
+            <div>
+              <Label className="text-sm font-medium">Целевая модель</Label>
+              <Select
+                value={cloneLayoutForm.targetModelId}
+                onValueChange={(val) => setCloneLayoutForm({ 
+                  ...cloneLayoutForm, 
+                  targetModelId: val, 
+                  targetVariantId: '',
+                  // Auto-generate new name
+                  newName: `Планировка ${saunaModels.find(m => m.id === val)?.name || val}`
+                })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Выберите модель" />
+                </SelectTrigger>
+                <SelectContent>
+                  {saunaModels.filter(m => m.id !== selectedModel?.id).map(model => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Target submodel (variant) */}
+            {cloneLayoutForm.targetModelId && (
+              <div>
+                <Label className="text-sm font-medium">Подмодель (опционально)</Label>
+                <Select
+                  value={cloneLayoutForm.targetVariantId || "none"}
+                  onValueChange={(val) => setCloneLayoutForm({ 
+                    ...cloneLayoutForm, 
+                    targetVariantId: val === "none" ? "" : val 
+                  })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Все подмодели" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Для всех подмоделей</SelectItem>
+                    {saunaModels.find(m => m.id === cloneLayoutForm.targetModelId)?.variants?.map(v => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.nameRu || v.namePl || v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {/* New name */}
+            <div>
+              <Label className="text-sm font-medium">Название новой планировки</Label>
+              <Input
+                className="mt-1"
+                value={cloneLayoutForm.newName}
+                onChange={(e) => setCloneLayoutForm({ ...cloneLayoutForm, newName: e.target.value })}
+                placeholder="Название планировки"
+              />
+            </div>
+            
+            {/* Auto-scale option */}
+            <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded">
+              <div>
+                <Label className="text-sm font-medium">Автомасштабирование</Label>
+                <p className="text-xs text-muted-foreground">
+                  Автоматически подогнать позиции элементов под размер модели
+                </p>
+              </div>
+              <Switch
+                checked={cloneLayoutForm.autoScale}
+                onCheckedChange={(checked) => setCloneLayoutForm({ ...cloneLayoutForm, autoScale: checked })}
+              />
+            </div>
+            
+            {/* Manual scale (if not auto) */}
+            {!cloneLayoutForm.autoScale && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Масштаб X</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    max="5"
+                    value={cloneLayoutForm.scaleX}
+                    onChange={(e) => setCloneLayoutForm({ ...cloneLayoutForm, scaleX: parseFloat(e.target.value) || 1 })}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Масштаб Y</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    max="5"
+                    value={cloneLayoutForm.scaleY}
+                    onChange={(e) => setCloneLayoutForm({ ...cloneLayoutForm, scaleY: parseFloat(e.target.value) || 1 })}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Info box */}
+            <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+              <p className="font-medium mb-1">Что будет скопировано:</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>Все элементы планировки (печь, лавки, и т.д.)</li>
+                <li>Размеры и контур комнаты</li>
+                <li>Позиции элементов (с масштабированием)</li>
+              </ul>
+              <p className="mt-2 font-medium text-blue-600">
+                После клонирования проверьте и подкорректируйте позиции элементов!
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCloneLayoutDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button 
+              onClick={handleCloneLayout} 
+              disabled={loading || !cloneLayoutForm.targetModelId}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Клонирование...
+                </>
+              ) : (
+                <>
+                  <CopyPlus className="h-4 w-4 mr-2" />
+                  Клонировать
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Save Variant Dialog */}
       <Dialog open={saveVariantDialogOpen} onOpenChange={setSaveVariantDialogOpen}>
         <DialogContent className="max-w-sm">
