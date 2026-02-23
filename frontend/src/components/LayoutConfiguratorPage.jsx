@@ -1132,6 +1132,58 @@ const LayoutConfiguratorPage = ({
     toast.success(`Применён: ${variant.namePl || variant.name} (${changedCount}/${variant.elementConfigs.length} элементов)`);
   };
 
+  // Apply all variants that match calculator selections
+  const applyAllCalculatorVariants = () => {
+    if (!calculatorSelections || !layoutOptions.length) {
+      toast.error('Нет данных для применения вариантов');
+      return;
+    }
+    
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    // Calculate room offset once for all variants
+    let roomOffset = { x: 0, y: 0 };
+    const roomObj = canvas.getObjects().find(obj => obj.isRoom);
+    
+    // Find variants that match calculator selections
+    const variantsToApply = [];
+    
+    layoutOptions.forEach(option => {
+      option.variants?.forEach(variant => {
+        if (variant.calculatorMapping) {
+          const { categoryId, optionId } = variant.calculatorMapping;
+          if (calculatorSelections[categoryId] === optionId) {
+            // Check if variant has room position info
+            const variantRoomConfig = variant.elementConfigs?.find(c => c.isRoom);
+            if (roomObj && variantRoomConfig && variantRoomConfig.properties) {
+              roomOffset = {
+                x: roomObj.left - (variantRoomConfig.properties.left || 0),
+                y: roomObj.top - (variantRoomConfig.properties.top || 0),
+              };
+            }
+            variantsToApply.push({ option, variant });
+          }
+        }
+      });
+    });
+    
+    if (variantsToApply.length === 0) {
+      toast.info('Нет вариантов, соответствующих выборам в калькуляторе');
+      return;
+    }
+    
+    console.log('Applying all calculator variants with room offset:', roomOffset);
+    console.log('Variants to apply:', variantsToApply.length);
+    
+    // Apply variants sequentially with shared room offset
+    variantsToApply.forEach(({ option, variant }) => {
+      applyVariant(option.id, variant, roomOffset);
+    });
+    
+    toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
+  };
+
   // Fetch outline for selected model/variant
   const fetchOutline = async (modelId, variantId = null) => {
     try {
