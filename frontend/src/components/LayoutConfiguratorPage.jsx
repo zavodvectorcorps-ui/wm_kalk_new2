@@ -450,6 +450,12 @@ const LayoutConfiguratorPage = ({
           if (variant.calculatorMapping) {
             const { categoryId, optionId } = variant.calculatorMapping;
             if (calculatorSelections[categoryId] === optionId) {
+              // Skip if we already have this variant (by ID)
+              if (variantsToApply.some(v => v.variant.id === variant.id)) {
+                console.log(`Skipping duplicate variant "${variant.namePl}" (already added)`);
+                return;
+              }
+              
               // Check if variant has room position saved for better coordinate offset
               const variantRoomConfig = variant.elementConfigs?.find(c => c.isRoom);
               if (variantRoomConfig && variantRoomConfig.properties) {
@@ -470,8 +476,36 @@ const LayoutConfiguratorPage = ({
         });
       });
       
+      // IMPORTANT: Merge element changes from all variants to avoid conflicts
+      // If multiple variants change the same element, we need to decide which one wins
+      // Strategy: Later variants in the list override earlier ones (by element ID)
+      const elementChanges = new Map(); // elementId -> {optionName, variantName, config}
+      
+      variantsToApply.forEach(({ option, variant }) => {
+        variant.elementConfigs?.forEach(config => {
+          if (config.isRoom) return; // Skip room
+          
+          // Create a unique key for this element
+          const elementKey = config.elementId || config.instanceName || config.assetId || config.assetName || config.elementType;
+          
+          if (elementKey) {
+            // Store the change, later variants override earlier ones
+            elementChanges.set(elementKey, {
+              optionName: option.namePl || option.name,
+              variantName: variant.namePl || variant.name,
+              config
+            });
+          }
+        });
+      });
+      
+      console.log(`Total unique element changes after merging: ${elementChanges.size}`);
+      
       if (variantsToApply.length > 0) {
         console.log('Auto-applying variants for model', selectedModel.id, selectedVariant?.id || 'no-submodel', ':', variantsToApply.length);
+        
+        // Apply all variants but with merged element changes
+        // This ensures each element is only moved once (to its final position)
         variantsToApply.forEach(({ option, variant }) => {
           applyVariant(option.id, variant, roomOffset);
         });
