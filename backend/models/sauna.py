@@ -267,6 +267,12 @@ class SaunaOrder(BaseModel):
     relaxRoomSize: Optional[str] = None  # e.g., "2.5 x 3.0 m"
     steamRoomSize: Optional[str] = None  # e.g., "2.0 x 2.0 m"
     hasTerrace: Optional[bool] = False  # Whether terrace option is selected
+    # === LAYOUT CONFIGURATOR FIELDS ===
+    layoutConfigImage: Optional[str] = None  # Exported PNG image URL of configured layout
+    layoutConfigJson: Optional[str] = None  # JSON string of canvas state for editing
+    layoutConfigVariants: Optional[Dict[str, str]] = {}  # Applied variants: {optionId: variantId}
+    layoutConfiguredAt: Optional[str] = None  # When layout was configured
+    layoutConfiguredBy: Optional[str] = None  # Who configured it
 
 
 class SaunaPDFRequest(BaseModel):
