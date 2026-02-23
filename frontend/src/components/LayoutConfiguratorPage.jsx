@@ -1262,6 +1262,145 @@ const LayoutConfiguratorPage = ({
     toast.success(`Применён: ${variant.namePl || variant.name} (${changedCount}/${variant.elementConfigs.length} элементов)`);
   };
 
+  // Apply multiple variants with MERGED element changes
+  // This prevents conflicts when multiple variants change the same element
+  // The LAST variant's changes for an element will be used
+  const applyVariantsMerged = (variants, roomOffset = null) => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    
+    // Calculate room offset once
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    if (roomOffset) {
+      offsetX = roomOffset.x;
+      offsetY = roomOffset.y;
+    } else {
+      const roomObj = canvas.getObjects().find(obj => obj.isRoom);
+      if (roomObj) {
+        // Try to find room config from first variant that has it
+        for (const { variant } of variants) {
+          const variantRoomConfig = variant.elementConfigs?.find(c => c.isRoom);
+          if (variantRoomConfig && variantRoomConfig.properties) {
+            offsetX = roomObj.left - (variantRoomConfig.properties.left || 0);
+            offsetY = roomObj.top - (variantRoomConfig.properties.top || 0);
+            console.log(`Room offset calculated: X=${offsetX.toFixed(0)}, Y=${offsetY.toFixed(0)}`);
+            break;
+          }
+        }
+      }
+    }
+    
+    // Merge all element configs from all variants
+    // Key = unique identifier for element, Value = final config to apply
+    const mergedConfigs = new Map();
+    
+    variants.forEach(({ option, variant }) => {
+      console.log(`Processing variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name}`);
+      
+      variant.elementConfigs?.forEach(config => {
+        if (config.isRoom) return; // Skip room
+        
+        // Create unique key for element matching (priority order)
+        const elementKey = config.elementId || config.instanceName || `${config.assetId}_${config.assetName}` || config.elementType;
+        
+        if (elementKey && config.properties) {
+          // Store/override with this config
+          mergedConfigs.set(elementKey, {
+            config,
+            fromOption: option.namePl || option.name,
+            fromVariant: variant.namePl || variant.name
+          });
+        }
+      });
+    });
+    
+    console.log(`Merged ${mergedConfigs.size} unique element changes from ${variants.length} variants`);
+    
+    // Now apply all merged configs
+    let changedCount = 0;
+    
+    mergedConfigs.forEach(({ config, fromOption, fromVariant }, elementKey) => {
+      // Find matching element on canvas
+      let targetObj = null;
+      
+      // Try different matching strategies
+      if (config.elementId) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.elementId === config.elementId) targetObj = obj;
+        });
+      }
+      
+      if (!targetObj && config.instanceName) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.instanceName === config.instanceName) targetObj = obj;
+        });
+      }
+      
+      if (!targetObj && config.assetId) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.assetId === config.assetId && !targetObj) targetObj = obj;
+        });
+      }
+      
+      if (!targetObj && config.assetName) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.assetName === config.assetName && !targetObj) targetObj = obj;
+        });
+      }
+      
+      if (!targetObj && config.elementType) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.elementType === config.elementType && !targetObj) targetObj = obj;
+        });
+      }
+      
+      if (targetObj && config.properties) {
+        console.log(`  Applying MERGED change to: ${config.assetName || config.elementType} (from: ${fromVariant})`);
+        changedCount++;
+        
+        // Apply properties with coordinate offset
+        const props = config.properties;
+        if (props.left !== undefined) targetObj.set('left', props.left + offsetX);
+        if (props.top !== undefined) targetObj.set('top', props.top + offsetY);
+        if (props.angle !== undefined) targetObj.set('angle', props.angle);
+        if (props.scaleX !== undefined) targetObj.set('scaleX', props.scaleX);
+        if (props.scaleY !== undefined) targetObj.set('scaleY', props.scaleY);
+        if (props.flipX !== undefined) targetObj.set('flipX', props.flipX);
+        if (props.flipY !== undefined) targetObj.set('flipY', props.flipY);
+        if (props.visible !== undefined) {
+          const isHidden = !props.visible;
+          targetObj.set('isHidden', isHidden);
+          targetObj.set('opacity', isHidden ? 0.25 : 1);
+          targetObj.set('selectable', true);
+          targetObj.set('evented', true);
+        }
+        if (props.isHidden !== undefined) {
+          targetObj.set('isHidden', props.isHidden);
+          targetObj.set('opacity', props.isHidden ? 0.25 : 1);
+          targetObj.set('selectable', true);
+          targetObj.set('evented', true);
+        }
+        
+        targetObj.setCoords();
+      }
+    });
+    
+    // Update selected variants state for all applied variants
+    const newSelectedVariants = {};
+    variants.forEach(({ option, variant }) => {
+      newSelectedVariants[option.id] = variant.id;
+    });
+    setSelectedVariants(prev => ({ ...prev, ...newSelectedVariants }));
+    
+    canvas.renderAll();
+    updateDimensionLabels();
+    saveToHistory();
+    
+    return changedCount;
+  };
+
   // Apply all variants that match calculator selections
   // Filters by current model AND submodel
   const applyAllCalculatorVariants = () => {
