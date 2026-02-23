@@ -1507,13 +1507,9 @@ const LayoutConfiguratorPage = ({
         if (variant.calculatorMapping) {
           const { categoryId, optionId } = variant.calculatorMapping;
           if (calculatorSelections[categoryId] === optionId) {
-            // Skip if we already have a variant with same calculatorMapping
-            const mappingKey = `${categoryId}_${optionId}`;
-            if (variantsToApply.some(v => {
-              const existingKey = `${v.variant.calculatorMapping?.categoryId}_${v.variant.calculatorMapping?.optionId}`;
-              return existingKey === mappingKey;
-            })) {
-              console.log(`Skipping duplicate variant "${variant.namePl}" - same calculatorMapping already added`);
+            // Only skip true duplicates (same variant.id)
+            if (variantsToApply.some(v => v.variant.id === variant.id)) {
+              console.log(`Skipping true duplicate variant "${variant.namePl}" (same variant.id)`);
               return;
             }
             
