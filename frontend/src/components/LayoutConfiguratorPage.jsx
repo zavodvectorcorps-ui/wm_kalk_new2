@@ -474,27 +474,58 @@ const LayoutConfiguratorPage = ({
                   console.log('Room offset calculated:', roomOffset);
                 }
               }
-              // Always add variant to apply list (even without room position)
+              // Add variant to apply list with its conditions for later filtering
               variantsToApply.push({ option, variant });
-              console.log(`Will apply variant "${variant.namePl}" from option "${option.namePl}" (optionId: ${option.id}, variantId: ${option.variantId || 'global'})`);
+              console.log(`Will apply variant "${variant.namePl}" from option "${option.namePl}" (conditions: ${variant.conditions?.length || 0})`);
             }
           }
         });
       });
       
-      console.log(`Variants to apply (after dedup): ${variantsToApply.length}`);
+      // Now apply variants ITERATIVELY - checking conditions after each application
+      // This ensures that conditional variants (like "Załadunek" for left/right heater)
+      // are only applied if their conditions are met by previously applied variants
+      const appliedVariantsMap = {}; // optionId -> variantId (tracks what's been applied)
       
-      if (variantsToApply.length > 0) {
-        console.log('Auto-applying variants for model', selectedModel.id, selectedVariant?.id || 'no-submodel');
+      // Helper to check if variant conditions are met based on already applied variants
+      const areConditionsMet = (variant) => {
+        if (!variant.conditions || variant.conditions.length === 0) {
+          return true; // No conditions = always apply
+        }
+        return variant.conditions.every(cond => 
+          appliedVariantsMap[cond.optionId] === cond.variantId
+        );
+      };
+      
+      // Sort variants: unconditional first, then conditional
+      // This ensures base variants are applied before dependent ones
+      const sortedVariants = [...variantsToApply].sort((a, b) => {
+        const aHasConditions = (a.variant.conditions?.length || 0) > 0;
+        const bHasConditions = (b.variant.conditions?.length || 0) > 0;
+        if (aHasConditions === bHasConditions) return 0;
+        return aHasConditions ? 1 : -1; // Unconditional first
+      });
+      
+      let appliedCount = 0;
+      console.log(`Variants to check: ${sortedVariants.length} (sorted: unconditional first)`);
+      
+      sortedVariants.forEach(({ option, variant }) => {
+        // Check if this variant's conditions are met
+        if (!areConditionsMet(variant)) {
+          console.log(`Skipping variant "${variant.namePl}" - conditions not met (requires: ${JSON.stringify(variant.conditions)})`);
+          return;
+        }
         
-        // Apply variants SEQUENTIALLY - each variant fully applies before the next
-        // This mimics clicking them one by one
-        variantsToApply.forEach(({ option, variant }) => {
-          console.log(`Applying variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name}`);
-          applyVariant(option.id, variant, roomOffset);
-        });
+        console.log(`Applying variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name}`);
+        applyVariant(option.id, variant, roomOffset);
         
-        toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
+        // Track this variant as applied (for condition checking)
+        appliedVariantsMap[option.id] = variant.id;
+        appliedCount++;
+      });
+      
+      if (appliedCount > 0) {
+        toast.success(`Применено ${appliedCount} вариантов из калькулятора`);
       }
     }, 500);
     
