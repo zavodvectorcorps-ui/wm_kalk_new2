@@ -364,7 +364,7 @@ const LayoutConfiguratorPage = ({
   // Auto-apply variants based on calculator selections AFTER layout is loaded
   // Only applies variants that:
   // 1. Have room position saved (for correct coordinate offset)
-  // 2. Belong to the currently selected model (filtered by modelId)
+  // 2. Belong to the currently selected model AND submodel (filtered by modelId and variantId)
   useEffect(() => {
     if (!calculatorSelections || !layoutOptions.length) return;
     if (!layoutLoadedForCalculator) return;
@@ -382,14 +382,32 @@ const LayoutConfiguratorPage = ({
       }
       
       // Find variants that match calculator selections AND have room position saved
-      // AND belong to the current model
+      // AND belong to the current model AND submodel
       const variantsToApply = [];
       let roomOffset = { x: 0, y: 0 };
       
-      layoutOptions.forEach(option => {
-        // Skip options that don't belong to current model
+      // Helper: Check if option belongs to current model/submodel context
+      const isOptionForCurrentContext = (option) => {
+        // If option has modelId, it must match current model
         if (option.modelId && option.modelId !== selectedModel.id) {
-          console.log(`Skipping option "${option.namePl}" - belongs to different model (${option.modelId})`);
+          return false;
+        }
+        // If option has variantId (submodel), it must match current submodel
+        // or we should have the same submodel selected
+        if (option.variantId && selectedVariant && option.variantId !== selectedVariant.id) {
+          return false;
+        }
+        // If option has variantId but no submodel is selected, skip it
+        if (option.variantId && !selectedVariant) {
+          return false;
+        }
+        return true;
+      };
+      
+      layoutOptions.forEach(option => {
+        // Skip options that don't belong to current model/submodel context
+        if (!isOptionForCurrentContext(option)) {
+          console.log(`Skipping option "${option.namePl}" - belongs to different model/submodel (modelId: ${option.modelId}, variantId: ${option.variantId})`);
           return;
         }
         
@@ -418,7 +436,7 @@ const LayoutConfiguratorPage = ({
       });
       
       if (variantsToApply.length > 0) {
-        console.log('Auto-applying variants for model', selectedModel.id, ':', variantsToApply.length);
+        console.log('Auto-applying variants for model', selectedModel.id, selectedVariant?.id || 'no-submodel', ':', variantsToApply.length);
         variantsToApply.forEach(({ option, variant }) => {
           applyVariant(option.id, variant, roomOffset);
         });
@@ -427,7 +445,7 @@ const LayoutConfiguratorPage = ({
     }, 500);
     
     return () => clearTimeout(timeoutId);
-  }, [calculatorSelections, layoutOptions, layoutLoadedForCalculator, selectedModel]);
+  }, [calculatorSelections, layoutOptions, layoutLoadedForCalculator, selectedModel, selectedVariant]);
 
   // Redraw grid when scale or grid size changes
   useEffect(() => {
