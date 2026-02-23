@@ -4897,46 +4897,51 @@ const LayoutConfiguratorPage = ({
                               <span className="text-[10px] text-muted-foreground">
                                 {variant.elementConfigs?.length || 0}
                               </span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-4 w-4"
-                                title="Edytuj wariant"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Apply variant first to load its configuration
-                                  applyVariant(option.id, variant);
-                                  // Open edit dialog
-                                  setEditVariantForm({
-                                    optionId: option.id,
-                                    variantId: variant.id,
-                                    name: variant.name,
-                                    namePl: variant.namePl || variant.name,
-                                    nameRu: variant.nameRu || '',
-                                    elementConfigs: variant.elementConfigs || [],
-                                    conditions: variant.conditions || [],
-                                  });
-                                  setEditVariantDialogOpen(true);
-                                }}
-                              >
-                                <Pencil className="h-2.5 w-2.5 text-amber-600" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-4 w-4"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteVariant(option.id, variant.id);
-                                }}
-                              >
-                                <X className="h-2.5 w-2.5" />
-                              </Button>
+                              {/* Variant edit/delete buttons - ADMIN ONLY */}
+                              {isAdminMode && (
+                                <>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-4 w-4"
+                                    title="Edytuj wariant"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Apply variant first to load its configuration
+                                      applyVariant(option.id, variant);
+                                      // Open edit dialog
+                                      setEditVariantForm({
+                                        optionId: option.id,
+                                        variantId: variant.id,
+                                        name: variant.name,
+                                        namePl: variant.namePl || variant.name,
+                                        nameRu: variant.nameRu || '',
+                                        elementConfigs: variant.elementConfigs || [],
+                                        conditions: variant.conditions || [],
+                                      });
+                                      setEditVariantDialogOpen(true);
+                                    }}
+                                  >
+                                    <Pencil className="h-2.5 w-2.5 text-amber-600" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-4 w-4"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteVariant(option.id, variant.id);
+                                    }}
+                                  >
+                                    <X className="h-2.5 w-2.5" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </div>
                         )})}
-                        {/* Show hidden variants toggle */}
-                        {!showHiddenVariants && option.variants?.filter(v => !isVariantVisible(v)).length > 0 && (
+                        {/* Show hidden variants toggle - ADMIN ONLY */}
+                        {isAdminMode && !showHiddenVariants && option.variants?.filter(v => !isVariantVisible(v)).length > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
