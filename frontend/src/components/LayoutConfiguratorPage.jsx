@@ -362,56 +362,34 @@ const LayoutConfiguratorPage = ({
   }, [saunaModels, initialModelId, initialVariantId]);
 
   // Auto-apply variants based on calculator selections AFTER layout is loaded
-  // Uses room offset to correct coordinates
+  // DISABLED: Old variants don't have room position saved, causing coordinate issues
+  // User can use the "Apply all from calculator" button manually
+  // After re-saving variants with room position, this can be re-enabled
   useEffect(() => {
     if (!calculatorSelections || !layoutOptions.length) return;
-    if (!layoutLoadedForCalculator) return; // Wait for layout to load first
+    if (!layoutLoadedForCalculator) return;
     
     const canvas = fabricRef.current;
     if (!canvas) return;
     
-    // Small delay to ensure canvas is fully rendered
-    const timeoutId = setTimeout(() => {
-      // Calculate room offset once for all variants
-      let roomOffset = { x: 0, y: 0 };
-      const roomObj = canvas.getObjects().find(obj => obj.isRoom);
-      
-      // Find variants that match calculator selections
-      const variantsToApply = [];
-      
-      layoutOptions.forEach(option => {
-        option.variants?.forEach(variant => {
-          if (variant.calculatorMapping) {
-            const { categoryId, optionId } = variant.calculatorMapping;
-            if (calculatorSelections[categoryId] === optionId) {
-              // Calculate room offset from first variant that has room data
-              if (roomOffset.x === 0 && roomOffset.y === 0 && roomObj) {
-                const variantRoomConfig = variant.elementConfigs?.find(c => c.isRoom);
-                if (variantRoomConfig && variantRoomConfig.properties) {
-                  roomOffset = {
-                    x: roomObj.left - (variantRoomConfig.properties.left || 0),
-                    y: roomObj.top - (variantRoomConfig.properties.top || 0),
-                  };
-                  console.log('Calculated room offset:', roomOffset);
-                }
-              }
-              variantsToApply.push({ option, variant });
-            }
-          }
-        });
-      });
-      
-      // Apply matching variants with room offset
-      if (variantsToApply.length > 0) {
-        console.log('Auto-applying variants from calculator:', variantsToApply.length);
-        variantsToApply.forEach(({ option, variant }) => {
-          applyVariant(option.id, variant, roomOffset);
-        });
-        toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
-      }
-    }, 800); // Wait 800ms for canvas to fully render
+    // Check if there are matching variants
+    const hasMatchingVariants = layoutOptions.some(option => 
+      option.variants?.some(variant => {
+        if (variant.calculatorMapping) {
+          const { categoryId, optionId } = variant.calculatorMapping;
+          return calculatorSelections[categoryId] === optionId;
+        }
+        return false;
+      })
+    );
     
-    return () => clearTimeout(timeoutId);
+    if (hasMatchingVariants) {
+      // Show notification about available variants instead of auto-applying
+      toast.info(
+        'Доступны варианты из калькулятора. Нажмите "Применить все из калькулятора" во вкладке Варианты.',
+        { duration: 5000 }
+      );
+    }
   }, [calculatorSelections, layoutOptions, layoutLoadedForCalculator]);
 
   // Redraw grid when scale or grid size changes
