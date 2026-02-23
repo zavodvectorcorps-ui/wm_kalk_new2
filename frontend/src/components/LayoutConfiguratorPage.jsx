@@ -192,6 +192,7 @@ const LayoutConfiguratorPage = ({
     elementConfigs: [],
     conditions: [],
     newOptionId: '',
+    calculatorMapping: null,  // {categoryId, optionId} for auto-apply from calculator
   });
   const [saveVariantDialogOpen, setSaveVariantDialogOpen] = useState(false);
   const [copyOptionDialogOpen, setCopyOptionDialogOpen] = useState(false);
