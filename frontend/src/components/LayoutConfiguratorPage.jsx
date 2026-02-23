@@ -912,26 +912,66 @@ const LayoutConfiguratorPage = () => {
     let changedCount = 0;
     
     variant.elementConfigs.forEach(config => {
-      // Find matching element on canvas
+      // Find matching element on canvas with fallback strategy
       let targetObj = null;
       
-      canvas.getObjects().forEach(obj => {
-        // Priority 1: Match by unique elementId (most precise)
-        if (config.elementId && obj.elementId === config.elementId) {
-          targetObj = obj;
-          return;
-        }
-        // Priority 2: Match by instanceName (user-defined name for this specific instance)
-        if (config.instanceName && obj.instanceName === config.instanceName) {
-          targetObj = obj;
-          return;
-        }
-        // Priority 3: Legacy matching by assetId or type (finds first match - may be wrong!)
-        if (!targetObj) {
-          if (config.matchBy === 'assetId' && obj.assetId === config.assetId) {
+      // Step 1: Try exact elementId match
+      if (config.elementId) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.elementId === config.elementId) {
             targetObj = obj;
-          } else if (config.matchBy === 'type' && obj.elementType === config.elementType) {
+          }
+        });
+      }
+      
+      // Step 2: Try instanceName match
+      if (!targetObj && config.instanceName) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.instanceName === config.instanceName) {
             targetObj = obj;
+          }
+        });
+      }
+      
+      // Step 3: Fallback to assetId (for copied variants or different layouts)
+      if (!targetObj && config.assetId) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.assetId === config.assetId && !targetObj) {
+            targetObj = obj;
+          }
+        });
+        if (targetObj) {
+          console.log(`  Fallback match by assetId: ${config.assetName}`);
+        }
+      }
+      
+      // Step 4: Fallback to assetName
+      if (!targetObj && config.assetName) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.assetName === config.assetName && !targetObj) {
+            targetObj = obj;
+          }
+        });
+        if (targetObj) {
+          console.log(`  Fallback match by assetName: ${config.assetName}`);
+        }
+      }
+      
+      // Step 5: Fallback to elementType
+      if (!targetObj && config.elementType) {
+        canvas.getObjects().forEach(obj => {
+          if (obj.elementType === config.elementType && !targetObj) {
+            targetObj = obj;
+          }
+        });
+        if (targetObj) {
+          console.log(`  Fallback match by type: ${config.elementType}`);
+        }
+      }
+      
+      if (targetObj && config.properties) {
+        console.log(`  Changing: ${config.assetName || config.elementType} (ID: ${config.elementId?.slice(-6) || 'none'})`);
+        changedCount++;
           }
         }
       });
