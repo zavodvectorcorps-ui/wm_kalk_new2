@@ -5049,17 +5049,25 @@ const LayoutConfiguratorPage = ({
                       <div className="p-1.5 space-y-1">
                         {option.variants?.filter(v => showHiddenVariants || isVariantVisible(v)).map(variant => {
                           const isHiddenByConditions = !isVariantVisible(variant);
+                          // Check if this variant matches calculator selection
+                          const matchesCalculator = calculatorSelections && variant.calculatorMapping && 
+                            calculatorSelections[variant.calculatorMapping.categoryId] === variant.calculatorMapping.optionId;
                           return (
                           <div
                             key={variant.id}
                             className={`flex items-center justify-between p-1.5 rounded text-xs cursor-pointer hover:bg-muted/80 transition-colors ${
                               selectedVariants[option.id] === variant.id ? 'bg-primary/10 border border-primary/30' : 
+                              matchesCalculator ? 'bg-green-50 border border-green-300' :
                               isHiddenByConditions ? 'bg-red-50 border border-red-200 opacity-70' : 'bg-muted/30'
                             }`}
                             onClick={() => applyVariant(option.id, variant)}
+                            title={matchesCalculator ? 'Соответствует выбору в калькуляторе' : ''}
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1">
+                                {matchesCalculator && (
+                                  <Calculator className="h-3 w-3 text-green-600 flex-shrink-0" />
+                                )}
                                 {isHiddenByConditions && (
                                   <EyeOff className="h-3 w-3 text-red-400 flex-shrink-0" />
                                 )}
