@@ -362,7 +362,10 @@ const LayoutConfiguratorPage = ({
   }, [saunaModels, initialModelId, initialVariantId]);
 
   // Auto-apply variants based on calculator selections AFTER layout is loaded
-  // This effect is triggered by layoutLoadedForCalculator which is set after layout loads
+  // DISABLED: Auto-applying all matching variants causes position conflicts
+  // Instead, just load the base layout and let user apply variants manually
+  // The matching variants are highlighted in the Variants tab for easy access
+  /*
   useEffect(() => {
     if (!calculatorSelections || !layoutOptions.length) return;
     if (!layoutLoadedForCalculator) return; // Wait for layout to load first
@@ -396,6 +399,7 @@ const LayoutConfiguratorPage = ({
     
     return () => clearTimeout(timeoutId);
   }, [calculatorSelections, layoutOptions, layoutLoadedForCalculator]);
+  */
 
   // Redraw grid when scale or grid size changes
   useEffect(() => {
