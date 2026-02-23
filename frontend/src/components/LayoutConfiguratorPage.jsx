@@ -4745,21 +4745,23 @@ const LayoutConfiguratorPage = ({
                     </div>
                   )}
                   
-                  {/* Create new option button */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full h-8 text-xs"
-                    onClick={() => setCreateOptionDialogOpen(true)}
-                    disabled={!selectedModel}
-                    title={!selectedModel ? 'Najpierw wybierz model' : 'Dodaj nową opcję'}
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Nowa opcja
-                  </Button>
+                  {/* Create new option button - ADMIN ONLY */}
+                  {isAdminMode && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-8 text-xs"
+                      onClick={() => setCreateOptionDialogOpen(true)}
+                      disabled={!selectedModel}
+                      title={!selectedModel ? 'Najpierw wybierz model' : 'Dodaj nową opcję'}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Nowa opcja
+                    </Button>
+                  )}
                   
-                  {/* Save selected element as variant */}
-                  {selectedObject && (
+                  {/* Save selected element as variant - ADMIN ONLY */}
+                  {isAdminMode && selectedObject && (
                     <Button
                       size="sm"
                       variant="secondary"
