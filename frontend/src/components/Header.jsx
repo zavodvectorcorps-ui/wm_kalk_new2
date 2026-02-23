@@ -182,6 +182,19 @@ export const Header = ({
                   {i18n.language === 'pl' ? 'Szablon PDF' : 'Шаблон PDF'}
                 </Button>
               )}
+              {/* Layout Configurator - for all sauna users */}
+              {calculatorType === 'sauna' && (
+                <Button
+                  variant={activeTab === 'layout-configurator' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('layout-configurator')}
+                  className="flex items-center gap-2"
+                  data-testid="layout-configurator-menu-btn"
+                >
+                  <Settings className="h-4 w-4" />
+                  {i18n.language === 'pl' ? 'Planowki' : 'Планировки'}
+                </Button>
+              )}
             </>
           )}
           {showUsers && isAdminAuthenticated && (
