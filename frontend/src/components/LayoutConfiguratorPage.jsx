@@ -476,37 +476,31 @@ const LayoutConfiguratorPage = ({
         });
       });
       
-      // IMPORTANT: Merge element changes from all variants to avoid conflicts
-      // If multiple variants change the same element, we need to decide which one wins
-      // Strategy: Later variants in the list override earlier ones (by element ID)
-      const elementChanges = new Map(); // elementId -> {optionName, variantName, config}
-      
-      variantsToApply.forEach(({ option, variant }) => {
-        variant.elementConfigs?.forEach(config => {
-          if (config.isRoom) return; // Skip room
-          
-          // Create a unique key for this element
-          const elementKey = config.elementId || config.instanceName || config.assetId || config.assetName || config.elementType;
-          
-          if (elementKey) {
-            // Store the change, later variants override earlier ones
-            elementChanges.set(elementKey, {
-              optionName: option.namePl || option.name,
-              variantName: variant.namePl || variant.name,
-              config
-            });
-          }
-        });
+      // Remove duplicate variants (same variant.id)
+      const uniqueVariants = [];
+      const seenVariantIds = new Set();
+      variantsToApply.forEach(item => {
+        if (!seenVariantIds.has(item.variant.id)) {
+          seenVariantIds.add(item.variant.id);
+          uniqueVariants.push(item);
+        } else {
+          console.log(`Skipping duplicate variant: ${item.variant.namePl || item.variant.name}`);
+        }
       });
       
-      console.log(`Total unique element changes after merging: ${elementChanges.size}`);
+      console.log(`Variants to apply: ${uniqueVariants.length} (removed ${variantsToApply.length - uniqueVariants.length} duplicates)`);
       
-      if (variantsToApply.length > 0) {
-        console.log('Auto-applying variants for model', selectedModel.id, selectedVariant?.id || 'no-submodel', ':', variantsToApply.length);
+      if (uniqueVariants.length > 0) {
+        console.log('Auto-applying variants for model', selectedModel.id, selectedVariant?.id || 'no-submodel');
         
-        // Use merged application to avoid conflicts when multiple variants change the same element
-        const changedCount = applyVariantsMerged(variantsToApply, roomOffset);
-        toast.success(`Применено ${variantsToApply.length} вариантов (${changedCount} элементов изменено)`);
+        // Apply variants SEQUENTIALLY - each variant fully applies before the next
+        // This mimics clicking them one by one
+        uniqueVariants.forEach(({ option, variant }) => {
+          console.log(`Applying variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name}`);
+          applyVariant(option.id, variant, roomOffset);
+        });
+        
+        toast.success(`Применено ${uniqueVariants.length} вариантов из калькулятора`);
       }
     }, 500);
     
