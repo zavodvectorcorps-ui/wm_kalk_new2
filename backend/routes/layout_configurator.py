@@ -770,6 +770,7 @@ async def add_variant_to_option(
     nameRu: str = Form(default=""),
     elementConfigs: str = Form(...),  # JSON string of element configurations
     conditions: str = Form(default="[]"),  # JSON array of conditions
+    calculatorMapping: str = Form(default=""),  # JSON: {"categoryId": "...", "optionId": "..."}
 ):
     """
     Add a variant to an option.
@@ -797,6 +798,10 @@ async def add_variant_to_option(
         { "optionId": "heater-location", "variantId": "left" }
     ]
     Variant will only be shown when ALL conditions are met.
+    
+    calculatorMapping links this variant to a calculator option:
+    { "categoryId": "strona-pieca", "optionId": "piec-lewo" }
+    When calculator has this option selected, this variant auto-applies.
     """
     import json
     
@@ -814,6 +819,14 @@ async def add_variant_to_option(
     except json.JSONDecodeError:
         conds = []
     
+    # Parse calculator mapping
+    calc_mapping = None
+    if calculatorMapping:
+        try:
+            calc_mapping = json.loads(calculatorMapping)
+        except json.JSONDecodeError:
+            calc_mapping = None
+    
     variant_id = f"var-{uuid.uuid4().hex[:8]}"
     variant = {
         "id": variant_id,
@@ -822,6 +835,7 @@ async def add_variant_to_option(
         "nameRu": nameRu or name,
         "elementConfigs": configs,
         "conditions": conds,  # Array of {optionId, variantId} conditions
+        "calculatorMapping": calc_mapping,  # Link to calculator option
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
     
