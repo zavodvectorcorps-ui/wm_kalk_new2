@@ -5,6 +5,18 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 23, 2026 - FEATURE: Clone Layout to Another Model (COMPLETED)
+- **NEW FEATURE**: Added ability to clone layouts to different sauna models with auto-scaling
+  - Backend endpoint: `POST /api/layout-configurator/layouts/{layout_id}/clone`
+  - Frontend: Clone button (blue CopyPlus icon) added to layout list in admin mode
+  - Auto-scaling: Automatically calculates scale factors based on model dimensions (e.g., 200cm → 250cm = 1.25x scale)
+  - Manual scaling: Option to disable auto-scale and set custom scaleX/scaleY values
+  - Scaled properties: element positions (left, top), room dimensions (width, height, CM dimensions)
+- **Files changed**:
+  - `/app/backend/routes/layout_configurator.py` - Added clone endpoint with scaling logic
+  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - Added clone dialog, button, and handlers
+- **Testing**: API tested via curl - successfully cloned 200cm layout to 250cm with 1.25x scaling
+
 ### Feb 23, 2026 - BUG FIX: Variant Model Filtering (COMPLETED)
 - **BUG FIX**: Elements "flying apart" when auto-applying variants from calculator
   - **Root Cause**: Variants from one sauna model (e.g., 3.5m) were incorrectly applied to another model (e.g., 2m) because filtering only checked calculator option match, not modelId/variantId
