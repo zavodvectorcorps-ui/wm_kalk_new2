@@ -1526,21 +1526,44 @@ const LayoutConfiguratorPage = ({
       return;
     }
     
-    // Log variants that will be applied
+    // Apply variants ITERATIVELY - checking conditions after each application
+    const appliedVariantsMap = {}; // optionId -> variantId
+    
+    const areConditionsMet = (variant) => {
+      if (!variant.conditions || variant.conditions.length === 0) {
+        return true;
+      }
+      return variant.conditions.every(cond => 
+        appliedVariantsMap[cond.optionId] === cond.variantId
+      );
+    };
+    
+    // Sort: unconditional first
+    const sortedVariants = [...variantsToApply].sort((a, b) => {
+      const aHasConditions = (a.variant.conditions?.length || 0) > 0;
+      const bHasConditions = (b.variant.conditions?.length || 0) > 0;
+      if (aHasConditions === bHasConditions) return 0;
+      return aHasConditions ? 1 : -1;
+    });
+    
     console.log('Applying all calculator variants for model', selectedModel.id, 'submodel', selectedVariant?.id || 'none');
     console.log('Room offset:', roomOffset);
-    console.log('Variants to apply:', variantsToApply.length);
-    variantsToApply.forEach(({ option, variant }) => {
-      console.log(`  - ${variant.namePl} from ${option.namePl}`);
-    });
+    console.log('Variants to check:', sortedVariants.length);
     
-    // Apply variants SEQUENTIALLY - each variant fully applies before the next
-    variantsToApply.forEach(({ option, variant }) => {
+    let appliedCount = 0;
+    sortedVariants.forEach(({ option, variant }) => {
+      if (!areConditionsMet(variant)) {
+        console.log(`Skipping variant "${variant.namePl}" - conditions not met`);
+        return;
+      }
+      
       console.log(`Applying variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name}`);
       applyVariant(option.id, variant, roomOffset);
+      appliedVariantsMap[option.id] = variant.id;
+      appliedCount++;
     });
     
-    toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
+    toast.success(`Применено ${appliedCount} вариантов из калькулятора`);
   };
 
   // Fetch outline for selected model/variant
