@@ -1,56 +1,57 @@
 <analysis>**original_problem_statement:**
 The user's initial request was to fix a 500 error. The project subsequently evolved into building a Modular Sauna Configurator. The scope has significantly expanded to include a Sauna Calculator, an amoCRM integration, and a highly sophisticated, feature-rich layout planner with a dynamic variants system.
 
-The latest major user request is to:
-1.  Move the Layout Configurator from the Admin Panel to the main Saunas section of the site, making it accessible to managers, not just admins.
-2.  Integrate the Sauna Calculator with the Layout Configurator. Selections made in the calculator should pre-configure the layout when the user clicks an Open Configurator button.
+In the current session, the user requested to:
+1.  Save a configured layout to a specific order.
+2.  Add a direct link to the layout configurator in the application's top menu for managers.
+3.  Create a system to link options selected in the Sauna Calculator to corresponding variants in the layout configurator, so that opening the configurator from the calculator automatically applies the user's choices.
+
+During implementation and testing of the third point, a critical bug emerged where the automatic application of variants caused layout elements to misalign or fly apart.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-A full-stack React/FastAPI/MongoDB application featuring a Sauna Calculator and a highly detailed Modular Sauna Configurator built with Fabric.js. The application supports a complex Variants system for creating conditional product configurations, which has been significantly enhanced in the last session with features like editing, copying, unique element IDs, and improved visibility controls. The agent was in the initial exploration phase of the major task of integrating the calculator with the configurator.
+A full-stack React/FastAPI/MongoDB application with a Sauna Calculator and a detailed Layout Configurator. The configurator is now accessible to managers via a modal in the calculator and a direct top-menu link (Planowki). The backend and frontend have been updated to support linking calculator options to layout variants ( field) and saving a layout's configuration to an order. However, the core feature of automatically applying these linked variants is buggy.
 
 **Last working item**:
--   **Last item agent was working**: The agent had just begun the exploration phase for a major new feature: moving the Layout Configurator out of the admin panel and integrating it with the Sauna Calculator. The agent was viewing  and  to understand the existing structure before implementation.
--   **Status**: NOT STARTED
+-   **Last item agent was working**: Debugging a critical bug where layout elements are misplaced upon automatically applying variants when the configurator is opened from the calculator. The agent identified that variants from one sauna model were being incorrectly applied to another because the logic only checked for a matching calculator option, not the sauna model itself. The agent implemented a fix to filter variants by the current  before application.
+-   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both. This is a large-scale change involving routing, significant state management between pages, and core UI changes. The frontend testing agent is crucial to validate the new user flow, and backend testing may be needed if new endpoints are required to map calculator options to layout variants.
+-   **Which testing method agent to use?**: frontend testing agent. This is a complex visual and state-driven bug. The test must verify that when the configurator is opened for a specific model (e.g., 2m), only variants belonging to that model are applied and that the layout elements render in their correct positions without flying apart.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Integrate Sauna Calculator with Layout Configurator (P0 - HIGHEST)**
+-   **Issue 1: Misaligned elements on automatic variant application (P0 - HIGHEST)**
 -   **Issue 2: Variant application resets unrelated elements (P1 - CRITICAL BUG)**
 -   **Issue 3: Unstable user login sessions (P1 - RECURRING)**
 -   **Issue 4:  errors during deployment (P2 - RECURRING)**
 
 **Issues Detail**:
--   **Issue 1: Integrate Sauna Calculator with Layout Configurator**
-    -   **Attempted fixes**: The agent started exploring  and . No code has been modified yet.
+-   **Issue 1: Misaligned elements on automatic variant application**
+    -   **Attempted fixes**:
+        1.  Added logic to save the room object's position with each variant and calculate an offset on application. This failed as old variants lacked this data.
+        2.  Added a filter to only auto-apply variants that belong to the currently selected sauna model. This was the last action taken.
     -   **Next debug checklist**:
-        1.  **Routing:** In , create a new public route for the configurator (e.g., ).
-        2.  **UI:** In  or a relevant component, add an Open Configurator button.
-        3.  **State Management:** Decide on and implement a method (React Context, Zustand, or URL query parameters) to pass the selected calculator options to the new configurator route.
-        4.  **Configurator Logic:** Modify  to read the incoming state on load, and automatically apply the corresponding model, sub-model, and layout variants.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a top-priority user request to make the configurator a core sales tool for managers, moving it beyond a simple admin utility.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Both
+        1.  **Verify the latest fix**: Test the flow of opening the configurator from the calculator. Check if the layout for a model (e.g., 2m) now loads correctly without variants from other models (e.g., 3.5m) being applied.
+        2.  **Check Coordinate Logic**: If misalignment persists, the issue is likely in the coordinate correction logic within the  function in . The calculation of  and  based on the saved  may be flawed.
+        3.  **Confirm User Workflow**: The current coordinate fix requires the user to re-save every existing variant to store its room's position. The next agent must be aware of this dependency and guide the user if necessary.
+    -   **Why fix this issue and what will be achieved with the fix?**: This bug makes the primary new feature (calculator-to-configurator integration) unusable. Fixing it is the main blocker for progress.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend
     -   **Blocked on other issue**: None
 
 -   **Issue 2: Variant application resets unrelated elements**
-    -   **Attempted fixes**: The user reported that applying a variant for one option (e.g., door position) incorrectly resets elements changed by a different option (e.g., stove position). The agent investigated , believed the logic was correct, and added a  message for debugging, but did not find the root cause.
-    -   **Next debug checklist**:
-        1.  **Reproduce:** Follow the user's steps: apply variant A (changes element X), then apply variant B (changes element Y). Go back and apply variant C (which should only change element X) and observe if element Y is reset to its original state.
-        2.  **Investigate State Flow:** The issue is likely not in  itself, but a side effect where changing  triggers a parent component to reload the base layout from a template, thus wiping out previous modifications before the new variant is applied.
-    -   **Why fix this issue and what will be achieved with the fix?**: The variants system is fundamentally broken if applying one choice negates another. Fixing this is critical for the feature to be usable.
+    -   **Attempted fixes**: None in this session.
+    -   **Next debug checklist**: Follow the steps from the previous handoff. The root cause is likely a parent component re-rendering and wiping out previous state, not the  function itself.
+    -   **Why fix this issue and what will be achieved with the fix?**: The variants system is fundamentally flawed if applying one choice negates another.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Frontend
     -   **Blocked on other issue**: None
 
 -   **Issue 3: Unstable user login sessions.**
-    -   **Attempted fixes**: None. This issue persists from previous sessions and was observed again when manual screenshots failed due to session resets.
-    -   **Why fix this issue and what will be achieved with the fix?**: This issue severely hampers development and testing reliability. Fixing it will improve development velocity and allow for reliable manual checks.
+    -   **Attempted fixes**: None. The issue was observed again during this session, hampering manual screenshot testing.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
 
@@ -61,34 +62,33 @@ A full-stack React/FastAPI/MongoDB application featuring a Sauna Calculator and 
 
 **In progress Task List**:
 -   **Task 1: Complete Refactoring of  (P0 - URGENT)**
-    -   **Where to resume**: The target structure exists in . The agent has continued to add features to the monolithic , making this technical debt more severe. The next step is to aggressively migrate logic (state, effects, handlers) from the main file into the prepared custom hooks (, , etc.).
+    -   **Where to resume**: This file has become even more monolithic after adding logic for calculator integration, role-based UI, order saving, and variant application. This technical debt is severe. The next agent must prioritize extracting this new logic into dedicated custom hooks (e.g., , ) and smaller components.
     -   **What will be achieved with this?**: Drastically improve code maintainability, reduce the risk of regressions, and enable faster, safer feature development.
-    -   **Status**: IN PROGRESS (Stalled for multiple sessions)
+    -   **Status**: IN PROGRESS (Stalled)
     -   **Should Test frontend/backend/both after fix?**: Frontend (extensive regression testing required)
-    -   **Blocked on something**: This should be done in parallel with the new feature development.
+    -   **Blocked on something**: High technical debt is blocking reliable feature development.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    *   **P1**: Connect the configured layout to the order creation process (e.g., amoCRM).
+    *   **P1**: Finalize and test the Save layout to order feature. The backend endpoints () and frontend function () are implemented, but the end-to-end flow of saving and retrieving the layout data has not been verified.
 - **Future Tasks**:
-    *   **P1**: Refactor the monolithic  function in .
+    *   **P1**: Refactor the monolithic  function.
     *   **P2**: Add UI for importing/restoring a backup.
     *   **P2**: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
--   **Feature: Full CRUD for Variants/Options:** Implemented editing and updating for both layout options and variants, including their conditional dependencies.
--   **Feature: Copy/Clone System:** Added functionality to copy a single option or all options from one sauna model to another.
--   **Feature: Unique Element IDs & Instance Names:** Refactored the variant system to use a unique  generated on object creation, solving conflicts with multiple identical items. The properties panel now shows this ID and allows for a custom instance name.
--   **Feature: Sticky Canvas Layout:** Reworked the CSS to allow the left-side options panel to scroll independently, keeping the main canvas and right-side properties panel always in view.
--   **Feature: Quick Update for Layouts:** Added a button to quickly update the current layout, bypassing the Save As dialog.
--   **Feature: Show Hidden Variants Toggle:** Added a switch to reveal variants whose dependency conditions are not met, which is essential for editing configurations copied from other models.
--   **Bugfix: Element Visibility:** Fixed a bug where making an element invisible made it impossible to select and make visible again. The fix uses a custom  property and opacity instead of Fabric.js's native  property.
--   **Bugfix: Hidden Elements in Export:** Ensured that elements marked as  are completely transparent in exported images.
--   **Bugfix: Layout/Template Loading:** Fixed bugs where loading a layout would either miss the room data or fail to set it as the current updatable layout.
--   **Bugfix: Variant Application Fallback:** Improved  logic to successfully find elements in copied variants by falling back from  to  or .
+-   **Feature: Configurator Integration**: Moved the Layout Configurator from admin-only to a public modal in the Sauna Calculator and a direct link (Planowki) in the main header.
+-   **Feature: Role-Based UI**: Implemented an  prop in the configurator to hide admin-specific controls from regular managers.
+-   **Feature: Calculator to Variant Linking**:
+    -   Added a  field to the  model and API.
+    -   Created a UI in the Edit Variant dialog for admins to link variants to calculator options.
+-   **Feature: Save Layout to Order (Partial)**:
+    -   Updated the backend  model and created an API endpoint to store layout data.
+    -   Added a Save to Order button and corresponding function to the configurator UI.
+-   **Bug Fix**: Fixed an issue where the configurator would fail to load a base layout by implementing automatic loading of the first available layout for a selected model.
 
 **Earlier issues found/mentioned but not fixed**
--   The critical bug where applying one variant resets changes from another (user message 508).
+-   The critical bug where applying one variant resets changes from another.
 -   The two recurring platform issues: unstable login sessions and deployment timeouts.
 
 **Known issue recurrence from previous fork**
@@ -100,52 +100,53 @@ A full-stack React/FastAPI/MongoDB application featuring a Sauna Calculator and 
 
 
 **Key Technical Concepts**
--   **Resilient Variant Application:** The  logic was enhanced with a fallback mechanism (elementId -> assetId -> name) to make variants more portable between layouts with different underlying element IDs.
--   **Custom Object Properties for State:** A custom  flag was used on Fabric.js objects to manage a state (visibility) that the default object properties couldn't handle gracefully (as  makes objects non-interactive).
--   **Independent Panel Scrolling:** CSS , , and fixed heights were used to create a complex layout where side panels scroll independently of the main content area.
+-   **Coordinate Normalization**: The implemented strategy to make variant coordinates relative to the room object by saving the room's position () when a variant is created/updated and then calculating an offset (, ) during application. This is a key area for debugging.
+-   **Model-Specific Variant Filtering**: The latest fix filters variants by the  before auto-application to prevent variants from one model from being applied to another.
+-   **State Passing**: The  passes , , and  as props to the  component when it's opened in a modal.
 
 **key DB schema**
--   No schema changes were made. The existing  and  collections were used for the new editing and copying features.
+-   : Added a  (String) field to link to calculator options. Added a  (Object) field inside the  array to store coordinates.
+-   : Added  (String) and  (String) fields.
 
 **All files of reference**
--    (**CRITICAL**): This file was modified for every feature, bug fix, and UI change in this session. It is the primary file to understand the current state but is in desperate need of refactoring.
--   : The PUT endpoints in this file were used to enable editing of options and variants.
--   : To be used in the next task.
--   : To be used in the next task.
+-    (**CRITICAL**): The central file for all recent features and bugs. Contains the logic for calculator integration, variant auto-application, coordinate correction, and role-based UI.
+-   : Modified to host and launch the configurator modal.
+-   : Modified to handle the  and  data for variants.
+-   : Contains the new endpoint for saving layouts to orders.
+-   : Modified to add the new Planowki menu link.
 
 **Areas that need refactoring**:
--   ****: **URGENT PRIORITY**. This file has grown to an unmanageable size. The planned refactor has been stalled and is now the project's most significant piece of technical debt. It must be addressed.
+-   ****: **URGENT PRIORITY**. This file's complexity has increased dramatically and is the source of ongoing bugs. It must be broken down into smaller, manageable hooks and components.
 
 **key api endpoints**
--   : Used for the new edit option feature.
--   : Used for the new edit variant feature, including moving it to a new parent option.
--   : Used for the update layout feature.
+-   : Updated to handle  and .
+-   : New endpoint to populate the mapping UI.
+-   : New endpoint to save a configured layout to an order.
 
 **Critical Info for New Agent**
 -   **You MUST respond in Russian.**
--   **Top Priority (P0 - New Task):** Your first task is the user's latest request: move the Layout Configurator from admin to a public route and integrate it with the Sauna Calculator. This involves routing, state management, and modifying the configurator to accept an initial state.
--   **Critical Bug (P1):** You must investigate and fix the bug where applying one variant resets changes made by another (user message 508). The previous agent's investigation was inconclusive. The feature is not viable until this is fixed.
--   **Technical Debt (P0):** The refactoring of  is more critical than ever. As you implement the new integration feature, you MUST prioritize moving logic out of the monolith and into the prepared hooks and components in .
--   **Session Instability:** Be aware that manual testing via screenshots is unreliable due to session issues. Rely on the testing agent for end-to-end validation.
+-   **Top Priority (P0):** Verify the latest fix for the objects flying apart bug. The agent just added model-ID-based filtering in . Test this flow thoroughly. If it still fails, the bug is likely in the coordinate correction logic (/) inside the  function.
+-   **User Workflow for Variants:** Remember that the coordinate fix requires the user to **manually re-save all existing variants** to capture the room's position. Old variants will not apply correctly automatically. This is a critical piece of context for debugging and communicating with the user.
+-   **Technical Debt:** The refactoring of  is no longer optional; it is a critical task to ensure the project's stability. Any new work should be done with this refactoring in mind.
 
 **documents and test reports created in this job**
 -    (Updated)
--   Multiple test reports in  (e.g., ).
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   : **(NEXT TASK)** Request to move configurator out of admin and integrate with calculator.
--   : (Bug Report) Stove position not saving for a specific model variant. (Fixed)
--   : (Bug Report) Copied variants are hidden and can't be edited. (Fixed by adding Show Hidden toggle).
--   : (Feature Request) Request to move a variant to a different option. (Implemented)
--   : (Feature Request) Request to edit variant dependencies, not just coordinates. (Implemented)
--   : (Bug Report) Update button missing for templates; room disappears on manual load. (Fixed)
--   : **(UNRESOLVED BUG)** Critical bug: Applying one variant resets changes made by another.
--   : (Feature Request) Request for unique IDs for canvas elements to avoid conflicts. (Implemented)
--   : (Feature Request) Request to add an Update button for existing layouts. (Implemented)
--   : (Feature Request) Request to make the canvas sticky during scroll. (Implemented)
+-   : User identifies the core bug: a variant from a 3.5m model is incorrectly applied to a 2m model because the system doesn't filter by model, only by the calculator option. This prompted the agent's last fix.
+-   : User agrees to re-enable auto-apply and notes that the layout breaks even when they just select a model without explicitly choosing any variants (due to default calculator options).
+-   : User rejects adding another new button and asks for clear instructions on how to configure variants correctly.
+-   : User reports the main bug: the 2m model loads correctly, but then the objects fly apart after a second.
+-   : User insists that auto-application must work and suggests a zero point for all layouts to solve the coordinate issue.
+-   : User provides screenshots clearly showing the layout misalignment bug.
+-   : User clarifies that their production database has layouts, confirming the empty preview DB was the cause of an earlier loading issue.
+-   : User reports the initial bug where the layout failed to load from the calculator, providing console logs showing elements were NOT FOUND.
+-   : User message: continue.
+-   : User approves the agent's proposed plan for the new features (save to order, menu link, option mapping).
 
 **Project Health Check:**
--   **Broken**: The core variants system has a critical usability bug where applying one variant can reset others. The major integration with the Sauna Calculator is not yet started.
+-   **Broken**: The core feature of automatically applying variants from the calculator is not working correctly, causing severe visual bugs.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
@@ -157,15 +158,15 @@ A full-stack React/FastAPI/MongoDB application featuring a Sauna Calculator and 
 -   **Google Maps**: For delivery routes.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. The testing agent was used successfully after each major feature implementation to validate functionality.
+-   **Testing agent used after significant changes**: YES, for the initial modal implementation.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: The variant state reset bug (user message 508) is a major issue that impacts the core functionality of the variant system.
+-   **Known regressions**: The automatic variant application causes visual layout bugs, which is a regression from a simpler (but less functional) state.
 
 **Credentials to test flow:**
 -   Admin:  / 
 
 **What agent forgot to execute**
--   The critical refactoring of  was not progressed.
--   The root cause of the variant state reset bug (user message 508) was not found or fixed.
--   The recurring issues of unstable login sessions and deployment timeouts were not addressed.</analysis>
+-   The critical refactoring of  was once again postponed, while more complexity was added to it.
+-   The long-standing bug where applying one variant resets another was not addressed.
+-   The recurring platform issues (unstable login sessions, deployment timeouts) were not addressed.</analysis>
