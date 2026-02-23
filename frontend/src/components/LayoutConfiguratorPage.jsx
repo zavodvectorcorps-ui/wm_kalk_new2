@@ -450,15 +450,14 @@ const LayoutConfiguratorPage = ({
           if (variant.calculatorMapping) {
             const { categoryId, optionId } = variant.calculatorMapping;
             if (calculatorSelections[categoryId] === optionId) {
-              // Skip if we already have a variant with same calculatorMapping
-              // This handles the case where global option and submodel-specific option 
-              // both have the same variant (e.g., "Lewo" in "Strona pieca")
-              const mappingKey = `${categoryId}_${optionId}`;
-              if (variantsToApply.some(v => {
-                const existingKey = `${v.variant.calculatorMapping?.categoryId}_${v.variant.calculatorMapping?.optionId}`;
-                return existingKey === mappingKey;
-              })) {
-                console.log(`Skipping duplicate variant "${variant.namePl}" - same calculatorMapping already added`);
+              // DON'T deduplicate by calculatorMapping!
+              // Variants with same calculatorMapping but different conditions are NOT duplicates
+              // Example: "Prawo" and "Lewo" both map to same calculator option "Strona pieca"
+              // but have different conditions - let conditions filtering handle it
+              
+              // Only skip true duplicates (same variant.id)
+              if (variantsToApply.some(v => v.variant.id === variant.id)) {
+                console.log(`Skipping true duplicate variant "${variant.namePl}" (same variant.id)`);
                 return;
               }
               
