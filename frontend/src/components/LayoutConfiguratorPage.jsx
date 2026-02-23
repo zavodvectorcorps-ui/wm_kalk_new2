@@ -4973,6 +4973,7 @@ const LayoutConfiguratorPage = ({
                                         nameRu: variant.nameRu || '',
                                         elementConfigs: variant.elementConfigs || [],
                                         conditions: variant.conditions || [],
+                                        calculatorMapping: variant.calculatorMapping || null,
                                       });
                                       setEditVariantDialogOpen(true);
                                     }}
