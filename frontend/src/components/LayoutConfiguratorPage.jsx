@@ -1475,12 +1475,10 @@ const LayoutConfiguratorPage = ({
     console.log('Room offset:', roomOffset);
     console.log('Variants to apply:', variantsToApply.length);
     
-    // Apply variants sequentially with shared room offset
-    variantsToApply.forEach(({ option, variant }) => {
-      applyVariant(option.id, variant, roomOffset);
-    });
+    // Use merged application to avoid conflicts when multiple variants change the same element
+    const changedCount = applyVariantsMerged(variantsToApply, roomOffset);
     
-    toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
+    toast.success(`Применено ${variantsToApply.length} вариантов (${changedCount} элементов изменено)`);
   };
 
   // Fetch outline for selected model/variant
