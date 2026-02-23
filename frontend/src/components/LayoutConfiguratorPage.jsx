@@ -348,6 +348,8 @@ const LayoutConfiguratorPage = ({
       if (model) {
         setSelectedModel(model);
         fetchLayouts(initialModelId, null);
+        // IMPORTANT: Also fetch layout options for this specific model
+        fetchLayoutOptions(initialModelId, null);
         
         // If initial variant is specified, select it too
         if (initialVariantId && model.variants?.length > 0) {
@@ -355,6 +357,8 @@ const LayoutConfiguratorPage = ({
           if (variant) {
             setSelectedVariant(variant);
             fetchLayouts(initialModelId, initialVariantId);
+            // IMPORTANT: Fetch layout options for this specific model + submodel
+            fetchLayoutOptions(initialModelId, initialVariantId);
           }
         }
       }
