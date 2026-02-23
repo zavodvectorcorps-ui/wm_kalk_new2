@@ -362,10 +362,13 @@ const LayoutConfiguratorPage = ({
   }, [saunaModels, initialModelId, initialVariantId]);
 
   // Auto-apply variants based on calculator selections AFTER layout is loaded
-  // Only applies variants that have room position saved (to ensure correct coordinate offset)
+  // Only applies variants that:
+  // 1. Have room position saved (for correct coordinate offset)
+  // 2. Belong to the currently selected model (filtered by modelId)
   useEffect(() => {
     if (!calculatorSelections || !layoutOptions.length) return;
     if (!layoutLoadedForCalculator) return;
+    if (!selectedModel) return; // Must have a model selected
     
     const canvas = fabricRef.current;
     if (!canvas) return;
@@ -379,10 +382,17 @@ const LayoutConfiguratorPage = ({
       }
       
       // Find variants that match calculator selections AND have room position saved
+      // AND belong to the current model
       const variantsToApply = [];
       let roomOffset = { x: 0, y: 0 };
       
       layoutOptions.forEach(option => {
+        // Skip options that don't belong to current model
+        if (option.modelId && option.modelId !== selectedModel.id) {
+          console.log(`Skipping option "${option.namePl}" - belongs to different model (${option.modelId})`);
+          return;
+        }
+        
         option.variants?.forEach(variant => {
           if (variant.calculatorMapping) {
             const { categoryId, optionId } = variant.calculatorMapping;
@@ -408,7 +418,7 @@ const LayoutConfiguratorPage = ({
       });
       
       if (variantsToApply.length > 0) {
-        console.log('Auto-applying variants:', variantsToApply.length);
+        console.log('Auto-applying variants for model', selectedModel.id, ':', variantsToApply.length);
         variantsToApply.forEach(({ option, variant }) => {
           applyVariant(option.id, variant, roomOffset);
         });
@@ -417,7 +427,7 @@ const LayoutConfiguratorPage = ({
     }, 500);
     
     return () => clearTimeout(timeoutId);
-  }, [calculatorSelections, layoutOptions, layoutLoadedForCalculator]);
+  }, [calculatorSelections, layoutOptions, layoutLoadedForCalculator, selectedModel]);
 
   // Redraw grid when scale or grid size changes
   useEffect(() => {
