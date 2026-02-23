@@ -1475,6 +1475,16 @@ const LayoutConfiguratorPage = ({
         if (variant.calculatorMapping) {
           const { categoryId, optionId } = variant.calculatorMapping;
           if (calculatorSelections[categoryId] === optionId) {
+            // Skip if we already have a variant with same calculatorMapping
+            const mappingKey = `${categoryId}_${optionId}`;
+            if (variantsToApply.some(v => {
+              const existingKey = `${v.variant.calculatorMapping?.categoryId}_${v.variant.calculatorMapping?.optionId}`;
+              return existingKey === mappingKey;
+            })) {
+              console.log(`Skipping duplicate variant "${variant.namePl}" - same calculatorMapping already added`);
+              return;
+            }
+            
             // Check if variant has room position info
             const variantRoomConfig = variant.elementConfigs?.find(c => c.isRoom);
             if (roomObj && variantRoomConfig && variantRoomConfig.properties) {
@@ -1497,16 +1507,10 @@ const LayoutConfiguratorPage = ({
       return;
     }
     
-    // Remove duplicate variants (same variant.id)
-    const uniqueVariants = [];
-    const seenVariantIds = new Set();
-    variantsToApply.forEach(item => {
-      if (!seenVariantIds.has(item.variant.id)) {
-        seenVariantIds.add(item.variant.id);
-        uniqueVariants.push(item);
-      } else {
-        console.log(`Skipping duplicate variant: ${item.variant.namePl || item.variant.name}`);
-      }
+    // Log variants that will be applied
+    console.log('Variants to apply:', variantsToApply.length);
+    variantsToApply.forEach(({ option, variant }) => {
+      console.log(`  - ${variant.namePl} from ${option.namePl}`);
     });
     
     console.log('Applying all calculator variants for model', selectedModel.id, 'submodel', selectedVariant?.id || 'none');
