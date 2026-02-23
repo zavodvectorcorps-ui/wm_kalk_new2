@@ -371,7 +371,7 @@ const LayoutConfiguratorPage = ({
     const layoutForModel = layouts.find(l => l.modelId === initialModelId);
     if (layoutForModel && fabricRef.current) {
       console.log('Auto-loading layout for calculator integration:', layoutForModel.name);
-      loadLayout(layoutForModel);
+      loadTemplateLayout(layoutForModel);
       setLayoutLoadedForCalculator(true);
     }
   }, [layouts, calculatorSelections, initialModelId, layoutLoadedForCalculator]);
