@@ -1272,8 +1272,21 @@ const LayoutConfiguratorPage = ({
   useEffect(() => {
     if (!calculatorSelections || !initialModelId) return;
     if (layoutLoadedForCalculator) return; // Already loaded
-    if (layouts.length === 0) return;
     if (!fabricRef.current) return;
+    
+    // Wait a bit for layouts to be fetched
+    if (layouts.length === 0) {
+      // Check if we've waited long enough
+      const checkTimeout = setTimeout(() => {
+        if (layouts.length === 0) {
+          console.log('No layouts found for calculator integration. Need to create a layout first.');
+          toast.info('Для этой модели нет сохранённых планировок. Создайте планировку вручную.', {
+            duration: 5000,
+          });
+        }
+      }, 2000);
+      return () => clearTimeout(checkTimeout);
+    }
     
     // Find a layout for this model (try with variant first, then without)
     let layoutForModel = initialVariantId 
@@ -1290,6 +1303,9 @@ const LayoutConfiguratorPage = ({
       setLayoutLoadedForCalculator(true);
     } else {
       console.log('No layout found for model:', initialModelId);
+      toast.info('Для этой модели нет сохранённых планировок. Выберите планировку вручную во вкладке "Планировки".', {
+        duration: 5000,
+      });
     }
   }, [layouts, calculatorSelections, initialModelId, initialVariantId, layoutLoadedForCalculator, loadTemplateLayout]);
 
