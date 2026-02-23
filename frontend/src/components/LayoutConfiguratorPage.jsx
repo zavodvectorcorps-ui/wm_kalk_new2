@@ -4333,6 +4333,105 @@ const LayoutConfiguratorPage = ({
     setLoading(false);
   };
 
+  // Clone layout to another model
+  const handleCloneLayout = async () => {
+    if (!cloneLayoutForm.sourceLayoutId || !cloneLayoutForm.targetModelId) {
+      toast.error('Выберите исходную планировку и целевую модель');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const targetModel = saunaModels.find(m => m.id === cloneLayoutForm.targetModelId);
+      const targetVariant = targetModel?.variants?.find(v => v.id === cloneLayoutForm.targetVariantId);
+      
+      // Calculate scale if autoScale enabled
+      let scaleX = cloneLayoutForm.scaleX;
+      let scaleY = cloneLayoutForm.scaleY;
+      
+      if (cloneLayoutForm.autoScale && selectedModel && targetModel) {
+        // Try to extract size from model name (e.g., "235x200" -> 235, 200)
+        const sourceMatch = selectedModel.name?.match(/(\d+)[x×](\d+)/);
+        const targetMatch = targetModel.name?.match(/(\d+)[x×](\d+)/);
+        
+        if (sourceMatch && targetMatch) {
+          const sourceWidth = parseInt(sourceMatch[1]);
+          const sourceHeight = parseInt(sourceMatch[2]);
+          const targetWidth = parseInt(targetMatch[1]);
+          const targetHeight = parseInt(targetMatch[2]);
+          
+          scaleX = targetWidth / sourceWidth;
+          scaleY = targetHeight / sourceHeight;
+        }
+      }
+      
+      const formData = new FormData();
+      formData.append('targetModelId', cloneLayoutForm.targetModelId);
+      formData.append('targetModelName', targetModel?.name || '');
+      if (cloneLayoutForm.targetVariantId) {
+        formData.append('targetVariantId', cloneLayoutForm.targetVariantId);
+        formData.append('targetVariantName', targetVariant?.nameRu || targetVariant?.namePl || targetVariant?.name || '');
+      }
+      if (cloneLayoutForm.newName) {
+        formData.append('newName', cloneLayoutForm.newName);
+      }
+      formData.append('scaleX', scaleX.toString());
+      formData.append('scaleY', scaleY.toString());
+      
+      const res = await fetch(`${API_URL}/api/layout-configurator/layouts/${cloneLayoutForm.sourceLayoutId}/clone`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (res.ok) {
+        const result = await res.json();
+        toast.success(`Планировка клонирована! Масштаб: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
+        setCloneLayoutDialogOpen(false);
+        setCloneLayoutForm({
+          sourceLayoutId: '',
+          sourceLayoutName: '',
+          targetModelId: '',
+          targetVariantId: '',
+          newName: '',
+          autoScale: true,
+          scaleX: 1.0,
+          scaleY: 1.0,
+        });
+        // Refresh layouts if we're viewing the target model
+        if (selectedModel?.id === cloneLayoutForm.targetModelId) {
+          fetchLayouts(selectedModel?.id, selectedVariant?.id);
+        }
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Ошибка клонирования');
+      }
+    } catch (error) {
+      console.error('Clone error:', error);
+      toast.error('Ошибка при клонировании планировки');
+    }
+    setLoading(false);
+  };
+
+  // Open clone dialog with current layout
+  const openCloneLayoutDialog = (layout = null) => {
+    const sourceLayout = layout || currentLayout;
+    if (!sourceLayout) {
+      toast.error('Сначала загрузите или выберите планировку');
+      return;
+    }
+    setCloneLayoutForm({
+      sourceLayoutId: sourceLayout.id,
+      sourceLayoutName: sourceLayout.name || sourceLayout.namePl || sourceLayout.nameRu,
+      targetModelId: '',
+      targetVariantId: '',
+      newName: '',
+      autoScale: true,
+      scaleX: 1.0,
+      scaleY: 1.0,
+    });
+    setCloneLayoutDialogOpen(true);
+  };
+
   // Load layout
   const handleLoadLayout = async (layout) => {
     if (!fabricRef.current) return;
