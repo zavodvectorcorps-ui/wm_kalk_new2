@@ -62,7 +62,13 @@ const ELEMENT_TYPES = {
   wall: { icon: '➖', color: '#1f2937', name: 'Стена', namePl: 'Ściana' },
 };
 
-const LayoutConfiguratorPage = () => {
+const LayoutConfiguratorPage = ({ 
+  isAdminMode = true,  // Controls admin features like "show hidden variants"
+  initialModelId = null,  // Pre-select model from calculator
+  initialVariantId = null,  // Pre-select variant from calculator
+  onClose = null,  // Close callback for modal mode
+  isModal = false  // If true, shows close button and compact layout
+}) => {
   // Canvas ref and state
   const canvasRef = useRef(null);
   const fabricRef = useRef(null);
