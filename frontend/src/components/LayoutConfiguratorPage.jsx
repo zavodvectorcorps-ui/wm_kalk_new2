@@ -5153,6 +5153,20 @@ const LayoutConfiguratorPage = ({
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
+                          {isAdminMode && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-blue-600 hover:text-blue-700"
+                              title="Клонировать для другой модели"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openCloneLayoutDialog(layout);
+                              }}
+                            >
+                              <CopyPlus className="h-3 w-3" />
+                            </Button>
+                          )}
                           <Button
                             size="icon"
                             variant="ghost"
