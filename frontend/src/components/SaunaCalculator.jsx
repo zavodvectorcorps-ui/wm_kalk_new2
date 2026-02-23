@@ -690,8 +690,14 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
               isAdminMode={isAdmin()}
               initialModelId={formData.selectedModel}
               initialVariantId={formData.selectedModelVariant}
+              calculatorSelections={formData.selections}
+              orderId={editOrderId}
               onClose={() => setShowLayoutConfigurator(false)}
               isModal={true}
+              onLayoutSaved={() => {
+                toast.success('Планировка сохранена в заказ');
+                setShowLayoutConfigurator(false);
+              }}
             />
           </Suspense>
         </div>
