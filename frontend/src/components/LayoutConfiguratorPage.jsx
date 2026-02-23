@@ -1380,7 +1380,7 @@ const LayoutConfiguratorPage = ({
       }
       
       if (targetObj && config.properties) {
-        console.log(`  Applying MERGED change to: ${config.assetName || config.elementType} (from: ${fromVariant})`);
+        console.log(`  Applying MERGED change to: ${config.assetName || config.elementType} (from: [${fromVariants.join(', ')}])`);
         changedCount++;
         
         // Apply properties with coordinate offset
