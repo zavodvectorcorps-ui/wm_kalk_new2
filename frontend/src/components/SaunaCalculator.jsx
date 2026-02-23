@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { InputOrange } from './ui/input-orange';
@@ -11,11 +11,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, Calendar,
-  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon, Check, Home, FileText, Trash2
+  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon, Check, Home, FileText, Trash2, Layout
 } from 'lucide-react';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
 import { LayoutCatalog } from './sauna/LayoutCatalog';
+import { useAuth } from '../context/AuthContext';
+
+// Lazy load Layout Configurator for performance
+const LayoutConfiguratorPage = lazy(() => import('./LayoutConfiguratorPage'));
 
 // Component to display hint with optional media (image/video)
 const HintContent = ({ hint, hintImageUrl, hintVideoUrl, expanded = false }) => {
