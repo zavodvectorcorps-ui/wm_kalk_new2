@@ -361,22 +361,8 @@ const LayoutConfiguratorPage = ({
     }
   }, [saunaModels, initialModelId, initialVariantId]);
 
-  // Auto-load first layout when coming from calculator and layouts are fetched
-  useEffect(() => {
-    if (!calculatorSelections || !initialModelId) return;
-    if (layoutLoadedForCalculator) return; // Already loaded
-    if (layouts.length === 0) return;
-    
-    // Find a layout for this model
-    const layoutForModel = layouts.find(l => l.modelId === initialModelId);
-    if (layoutForModel && fabricRef.current) {
-      console.log('Auto-loading layout for calculator integration:', layoutForModel.name);
-      loadTemplateLayout(layoutForModel);
-      setLayoutLoadedForCalculator(true);
-    }
-  }, [layouts, calculatorSelections, initialModelId, layoutLoadedForCalculator]);
-
   // Auto-apply variants based on calculator selections AFTER layout is loaded
+  // This effect is triggered by layoutLoadedForCalculator which is set after layout loads
   useEffect(() => {
     if (!calculatorSelections || !layoutOptions.length) return;
     if (!layoutLoadedForCalculator) return; // Wait for layout to load first
