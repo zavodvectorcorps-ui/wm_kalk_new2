@@ -431,7 +431,7 @@ const LayoutConfiguratorPage = ({
           if (variant.calculatorMapping) {
             const { categoryId, optionId } = variant.calculatorMapping;
             if (calculatorSelections[categoryId] === optionId) {
-              // Check if variant has room position saved
+              // Check if variant has room position saved for better coordinate offset
               const variantRoomConfig = variant.elementConfigs?.find(c => c.isRoom);
               if (variantRoomConfig && variantRoomConfig.properties) {
                 // Calculate room offset (use first variant's room position)
@@ -442,10 +442,10 @@ const LayoutConfiguratorPage = ({
                   };
                   console.log('Room offset calculated:', roomOffset);
                 }
-                variantsToApply.push({ option, variant });
-              } else {
-                console.log(`Skipping variant "${variant.namePl}" - no room position saved (needs re-save)`);
               }
+              // Always add variant to apply list (even without room position)
+              variantsToApply.push({ option, variant });
+              console.log(`Will apply variant "${variant.namePl}" from option "${option.namePl}" (has room position: ${!!variantRoomConfig?.properties})`);
             }
           }
         });
