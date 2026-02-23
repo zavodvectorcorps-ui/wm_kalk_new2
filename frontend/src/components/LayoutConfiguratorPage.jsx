@@ -4594,6 +4594,24 @@ const LayoutConfiguratorPage = ({
                 <Save className="h-3 w-3 mr-1" />
                 {currentLayout ? 'Сохранить как...' : 'Сохранить'}
               </Button>
+              
+              {/* Save to Order button - only when orderId is provided */}
+              {orderId && (
+                <Button
+                  size="sm"
+                  className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                  onClick={saveLayoutToOrder}
+                  disabled={loading}
+                  data-testid="save-layout-to-order-btn"
+                >
+                  {loading ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Save className="h-3 w-3 mr-1" />
+                  )}
+                  В заказ
+                </Button>
+              )}
             </div>
             
             {/* Current layout indicator */}
