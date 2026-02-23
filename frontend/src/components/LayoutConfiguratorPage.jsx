@@ -16,7 +16,7 @@ import {
   ZoomIn, ZoomOut, Grid3X3, Eye, EyeOff, Layers, Settings2,
   FolderOpen, Copy, Move, Loader2, RefreshCw, GripVertical,
   Square, Minus, MousePointer, Pencil, Ruler, Undo2, Type,
-  Magnet, CopyPlus, FileInput, LayoutGrid, SplitSquareVertical, X
+  Magnet, CopyPlus, FileInput, LayoutGrid, SplitSquareVertical, X, Calculator
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
