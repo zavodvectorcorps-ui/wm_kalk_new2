@@ -67,7 +67,10 @@ const LayoutConfiguratorPage = ({
   initialModelId = null,  // Pre-select model from calculator
   initialVariantId = null,  // Pre-select variant from calculator
   onClose = null,  // Close callback for modal mode
-  isModal = false  // If true, shows close button and compact layout
+  isModal = false,  // If true, shows close button and compact layout
+  calculatorSelections = null,  // Selected options from calculator: {categoryId: optionId}
+  orderId = null,  // Order ID to save layout config to
+  onLayoutSaved = null,  // Callback when layout is saved to order
 }) => {
   // Canvas ref and state
   const canvasRef = useRef(null);
@@ -84,6 +87,9 @@ const LayoutConfiguratorPage = ({
   const [assets, setAssets] = useState([]);
   const [layouts, setLayouts] = useState([]);
   const [currentLayout, setCurrentLayout] = useState(null);
+  
+  // Calculator categories for variant mapping (admin feature)
+  const [calculatorCategories, setCalculatorCategories] = useState([]);
   
   // Canvas state - A4 landscape fixed size
   const [canvasWidth, setCanvasWidth] = useState(A4_LANDSCAPE.widthPx);
