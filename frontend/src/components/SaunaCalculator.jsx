@@ -655,6 +655,48 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
         </div>
       </div>
     </div>
+    
+    {/* Layout Configurator Modal */}
+    <Dialog open={showLayoutConfigurator} onOpenChange={setShowLayoutConfigurator}>
+      <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 overflow-hidden">
+        <DialogHeader className="p-4 pb-0">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <Layout className="h-5 w-5 text-green-600" />
+              {lang === 'pl' ? 'Konfigurator planowek' : 'Конфигуратор планировок'}
+              {selectedModel && (
+                <span className="text-muted-foreground text-sm">
+                  — {selectedModel.name}
+                </span>
+              )}
+            </DialogTitle>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setShowLayoutConfigurator(false)}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+        <div className="flex-1 overflow-auto p-0" style={{ height: 'calc(95vh - 60px)' }}>
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          }>
+            <LayoutConfiguratorPage
+              isAdminMode={isAdmin()}
+              initialModelId={formData.selectedModel}
+              initialVariantId={formData.selectedModelVariant}
+              onClose={() => setShowLayoutConfigurator(false)}
+              isModal={true}
+            />
+          </Suspense>
+        </div>
+      </DialogContent>
+    </Dialog>
     </TooltipProvider>
   );
 };
