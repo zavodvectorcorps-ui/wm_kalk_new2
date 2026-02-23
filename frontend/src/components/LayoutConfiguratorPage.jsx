@@ -1290,10 +1290,9 @@ const LayoutConfiguratorPage = ({
     }
     
     // Merge all element configs from all variants
-    // Key = unique identifier for element, Value = final config to apply
-    // PRIORITY: FIRST variant that changes an element WINS (don't override)
-    // This ensures that specific options like "Strona pieca" (heater side) 
-    // have priority over generic options that also move the heater
+    // Key = unique identifier for element, Value = merged properties from all variants
+    // STRATEGY: Combine properties from all variants that affect the same element
+    // If multiple variants set the SAME property, FIRST one wins
     const mergedConfigs = new Map();
     
     variants.forEach(({ option, variant }) => {
@@ -1306,22 +1305,41 @@ const LayoutConfiguratorPage = ({
         const elementKey = config.elementId || config.instanceName || `${config.assetId}_${config.assetName}` || config.elementType;
         
         if (elementKey && config.properties) {
-          // FIRST variant wins - don't override if already set
           if (!mergedConfigs.has(elementKey)) {
+            // First time seeing this element - initialize
             mergedConfigs.set(elementKey, {
-              config,
-              fromOption: option.namePl || option.name,
-              fromVariant: variant.namePl || variant.name
+              config: { ...config, properties: { ...config.properties } },
+              fromVariants: [variant.namePl || variant.name],
+              propertySourcesLog: []
             });
-            console.log(`  Element "${config.assetName || config.elementType}" will be controlled by: ${variant.namePl || variant.name}`);
+            // Log which variant controls which properties
+            Object.keys(config.properties).forEach(prop => {
+              mergedConfigs.get(elementKey).propertySourcesLog.push(`${prop}: ${variant.namePl || variant.name}`);
+            });
           } else {
-            console.log(`  Skipping element "${config.assetName || config.elementType}" - already set by: ${mergedConfigs.get(elementKey).fromVariant}`);
+            // Element already exists - MERGE properties (first wins for each property)
+            const existing = mergedConfigs.get(elementKey);
+            existing.fromVariants.push(variant.namePl || variant.name);
+            
+            // Merge each property - only add if not already set
+            Object.keys(config.properties).forEach(prop => {
+              if (existing.config.properties[prop] === undefined) {
+                existing.config.properties[prop] = config.properties[prop];
+                existing.propertySourcesLog.push(`${prop}: ${variant.namePl || variant.name}`);
+                console.log(`  Adding property "${prop}" to element "${config.assetName || config.elementType}" from: ${variant.namePl || variant.name}`);
+              } else {
+                console.log(`  Skipping property "${prop}" for "${config.assetName || config.elementType}" - already set`);
+              }
+            });
           }
         }
       });
     });
     
-    console.log(`Merged ${mergedConfigs.size} unique element changes from ${variants.length} variants`);
+    console.log(`Merged ${mergedConfigs.size} unique elements from ${variants.length} variants`);
+    mergedConfigs.forEach((data, key) => {
+      console.log(`  Element "${data.config.assetName || data.config.elementType}": properties from [${data.fromVariants.join(', ')}]`);
+    });
     
     // Now apply all merged configs
     let changedCount = 0;
