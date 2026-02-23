@@ -856,8 +856,9 @@ async def update_variant(
     nameRu: str = Form(default=None),
     elementConfigs: str = Form(default=None),
     conditions: str = Form(default=None),
+    calculatorMapping: str = Form(default=None),  # JSON: {"categoryId": "...", "optionId": "..."}
 ):
-    """Update a variant's properties, element configurations, or conditions."""
+    """Update a variant's properties, element configurations, conditions, or calculator mapping."""
     import json
     
     update_fields = {}
@@ -879,6 +880,12 @@ async def update_variant(
             update_fields["variants.$.conditions"] = conds
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid conditions JSON")
+    if calculatorMapping is not None:
+        try:
+            calc_mapping = json.loads(calculatorMapping) if calculatorMapping else None
+            update_fields["variants.$.calculatorMapping"] = calc_mapping
+        except json.JSONDecodeError:
+            update_fields["variants.$.calculatorMapping"] = None
     
     update_fields["variants.$.updatedAt"] = datetime.now(timezone.utc).isoformat()
     
