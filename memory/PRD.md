@@ -5,6 +5,24 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 23, 2026 - Layout Configurator Integration with Sauna Calculator (COMPLETED)
+- **NEW FEATURE**: Layout Configurator accessible from Sauna Calculator
+  - New "Konfigurator planowek" section appears after selecting a sauna model
+  - Green button "Otwórz konfigurator" opens full configurator in modal window
+  - Model and variant from calculator are automatically pre-selected in configurator
+  - Configurator receives props: `isAdminMode`, `initialModelId`, `initialVariantId`
+- **ADMIN-ONLY CONTROLS**: Hidden for non-admin users
+  - "+ Nowa opcja" (Create new option) - hidden for managers
+  - "Zapisz jako wariant" (Save as variant) - hidden for managers  
+  - "Kopiuj opcje do innego modelu" (Copy options) - hidden for managers
+  - "Pokaż ukryte warianty" (Show hidden variants) - hidden for managers
+  - Edit/delete buttons on options and variants - hidden for managers
+  - Managers can only VIEW and APPLY variants, not edit them
+- **Files changed**:
+  - `/app/frontend/src/components/SaunaCalculator.jsx` - added button, modal, lazy-load
+  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - added isAdminMode prop checks
+- **Testing**: 100% (5/5 frontend features verified)
+
 ### Feb 22, 2026 - Edit Variants + Larger Canvas (COMPLETED)
 - **NEW FEATURE**: Edit existing variants
   - Yellow pencil icon on each variant
