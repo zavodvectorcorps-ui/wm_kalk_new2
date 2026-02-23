@@ -4814,47 +4814,50 @@ const LayoutConfiguratorPage = ({
                     <div key={option.id} className="border rounded-lg overflow-hidden">
                       <div className="flex items-center justify-between bg-muted px-2 py-1.5">
                         <span className="text-xs font-medium">{option.namePl || option.name}</span>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            title="Edytuj opcję"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditOptionForm({
-                                id: option.id,
-                                name: option.name,
-                                namePl: option.namePl || option.name,
-                                nameRu: option.nameRu || '',
-                              });
-                              setEditOptionDialogOpen(true);
-                            }}
-                          >
-                            <Pencil className="h-3 w-3 text-amber-600" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            title="Kopiuj opcję do innego modelu"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCopyOptionForm({ sourceOptionId: option.id, targetModelId: '', targetVariantId: '' });
-                              setCopyOptionDialogOpen(true);
-                            }}
-                          >
-                            <Copy className="h-3 w-3 text-blue-600" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            onClick={() => deleteLayoutOption(option.id)}
-                          >
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </Button>
-                        </div>
+                        {/* Admin controls for option - ADMIN ONLY */}
+                        {isAdminMode && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5"
+                              title="Edytuj opcję"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditOptionForm({
+                                  id: option.id,
+                                  name: option.name,
+                                  namePl: option.namePl || option.name,
+                                  nameRu: option.nameRu || '',
+                                });
+                                setEditOptionDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3 text-amber-600" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5"
+                              title="Kopiuj opcję do innego modelu"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCopyOptionForm({ sourceOptionId: option.id, targetModelId: '', targetVariantId: '' });
+                                setCopyOptionDialogOpen(true);
+                              }}
+                            >
+                              <Copy className="h-3 w-3 text-blue-600" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5"
+                              onClick={() => deleteLayoutOption(option.id)}
+                            >
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       <div className="p-1.5 space-y-1">
                         {option.variants?.filter(v => showHiddenVariants || isVariantVisible(v)).map(variant => {
