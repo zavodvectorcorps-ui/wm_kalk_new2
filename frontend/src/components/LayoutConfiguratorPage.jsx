@@ -6818,6 +6818,72 @@ const LayoutConfiguratorPage = ({
                 </Select>
               </div>
             </div>
+            
+            {/* Calculator Mapping - ADMIN ONLY */}
+            {isAdminMode && calculatorCategories.length > 0 && (
+              <div className="p-2 bg-green-50 border border-green-200 rounded">
+                <Label className="text-xs font-medium text-green-800">Привязка к калькулятору (опционально)</Label>
+                <p className="text-[9px] text-green-600 mb-2">
+                  Вариант автоматически применится, когда в калькуляторе выбрана указанная опция
+                </p>
+                
+                {/* Current mapping display */}
+                {editVariantForm.calculatorMapping && (
+                  <div className="flex items-center gap-1 mb-2 text-[10px] bg-white/50 p-1.5 rounded">
+                    <span className="text-green-700">
+                      {calculatorCategories.find(c => c.id === editVariantForm.calculatorMapping?.categoryId)?.namePl || editVariantForm.calculatorMapping?.categoryId}
+                      {' → '}
+                      {calculatorCategories
+                        .find(c => c.id === editVariantForm.calculatorMapping?.categoryId)
+                        ?.options?.find(o => o.id === editVariantForm.calculatorMapping?.optionId)?.namePl || editVariantForm.calculatorMapping?.optionId}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-4 w-4 ml-auto"
+                      onClick={() => setEditVariantForm({ ...editVariantForm, calculatorMapping: null })}
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Set mapping */}
+                {!editVariantForm.calculatorMapping && (
+                  <Select
+                    value=""
+                    onValueChange={(val) => {
+                      // val format: "categoryId:optionId"
+                      const [catId, optId] = val.split(':');
+                      if (catId && optId) {
+                        setEditVariantForm({
+                          ...editVariantForm,
+                          calculatorMapping: { categoryId: catId, optionId: optId }
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-7 text-[10px]">
+                      <SelectValue placeholder="+ Выберите опцию калькулятора" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {calculatorCategories.map(cat => (
+                        <React.Fragment key={cat.id}>
+                          <SelectItem value={`header-${cat.id}`} disabled className="text-[10px] font-medium text-green-700">
+                            {cat.namePl || cat.name}
+                          </SelectItem>
+                          {cat.options?.map(opt => (
+                            <SelectItem key={opt.id} value={`${cat.id}:${opt.id}`} className="text-[10px] pl-4">
+                              → {opt.namePl || opt.name}
+                            </SelectItem>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setEditVariantDialogOpen(false)}>
