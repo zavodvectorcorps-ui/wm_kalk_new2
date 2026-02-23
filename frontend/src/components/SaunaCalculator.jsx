@@ -562,6 +562,37 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             lang={lang}
           />
 
+          {/* Open Layout Configurator Button */}
+          {formData.selectedModel && (
+            <Card className="shadow-md border-2 border-green-200">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Layout className="h-6 w-6 text-green-600" />
+                    <div>
+                      <h3 className="font-medium text-green-800">
+                        {lang === 'pl' ? 'Konfigurator planowek' : 'Конфигуратор планировок'}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {lang === 'pl' 
+                          ? 'Otwórz interaktywny konfigurator aby dostosować układ sauny' 
+                          : 'Откройте интерактивный конфигуратор для настройки планировки сауны'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setShowLayoutConfigurator(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                    data-testid="open-layout-configurator-btn"
+                  >
+                    <Layout className="h-4 w-4 mr-2" />
+                    {lang === 'pl' ? 'Otwórz konfigurator' : 'Открыть конфигуратор'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Notes */}
           <Card className="shadow-md">
             <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
