@@ -1344,7 +1344,7 @@ const LayoutConfiguratorPage = ({
     // Now apply all merged configs
     let changedCount = 0;
     
-    mergedConfigs.forEach(({ config, fromOption, fromVariant }, elementKey) => {
+    mergedConfigs.forEach(({ config, fromVariants }, elementKey) => {
       // Find matching element on canvas
       let targetObj = null;
       
