@@ -1268,6 +1268,31 @@ const LayoutConfiguratorPage = ({
     }
   }, [drawGrid]);
 
+  // Auto-load first layout when coming from calculator and layouts are fetched
+  useEffect(() => {
+    if (!calculatorSelections || !initialModelId) return;
+    if (layoutLoadedForCalculator) return; // Already loaded
+    if (layouts.length === 0) return;
+    if (!fabricRef.current) return;
+    
+    // Find a layout for this model (try with variant first, then without)
+    let layoutForModel = initialVariantId 
+      ? layouts.find(l => l.modelId === initialModelId && l.variantId === initialVariantId)
+      : null;
+    
+    if (!layoutForModel) {
+      layoutForModel = layouts.find(l => l.modelId === initialModelId);
+    }
+    
+    if (layoutForModel) {
+      console.log('Auto-loading layout for calculator integration:', layoutForModel.name);
+      loadTemplateLayout(layoutForModel);
+      setLayoutLoadedForCalculator(true);
+    } else {
+      console.log('No layout found for model:', initialModelId);
+    }
+  }, [layouts, calculatorSelections, initialModelId, initialVariantId, layoutLoadedForCalculator, loadTemplateLayout]);
+
   // Save layout configuration to order
   const saveLayoutToOrder = async () => {
     if (!orderId) {
