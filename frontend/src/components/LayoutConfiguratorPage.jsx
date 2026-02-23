@@ -504,12 +504,9 @@ const LayoutConfiguratorPage = ({
       if (variantsToApply.length > 0) {
         console.log('Auto-applying variants for model', selectedModel.id, selectedVariant?.id || 'no-submodel', ':', variantsToApply.length);
         
-        // Apply all variants but with merged element changes
-        // This ensures each element is only moved once (to its final position)
-        variantsToApply.forEach(({ option, variant }) => {
-          applyVariant(option.id, variant, roomOffset);
-        });
-        toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
+        // Use merged application to avoid conflicts when multiple variants change the same element
+        const changedCount = applyVariantsMerged(variantsToApply, roomOffset);
+        toast.success(`Применено ${variantsToApply.length} вариантов (${changedCount} элементов изменено)`);
       }
     }, 500);
     
