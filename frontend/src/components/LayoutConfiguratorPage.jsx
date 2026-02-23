@@ -1491,14 +1491,29 @@ const LayoutConfiguratorPage = ({
       return;
     }
     
+    // Remove duplicate variants (same variant.id)
+    const uniqueVariants = [];
+    const seenVariantIds = new Set();
+    variantsToApply.forEach(item => {
+      if (!seenVariantIds.has(item.variant.id)) {
+        seenVariantIds.add(item.variant.id);
+        uniqueVariants.push(item);
+      } else {
+        console.log(`Skipping duplicate variant: ${item.variant.namePl || item.variant.name}`);
+      }
+    });
+    
     console.log('Applying all calculator variants for model', selectedModel.id, 'submodel', selectedVariant?.id || 'none');
     console.log('Room offset:', roomOffset);
-    console.log('Variants to apply:', variantsToApply.length);
+    console.log(`Variants to apply: ${uniqueVariants.length} (removed ${variantsToApply.length - uniqueVariants.length} duplicates)`);
     
-    // Use merged application to avoid conflicts when multiple variants change the same element
-    const changedCount = applyVariantsMerged(variantsToApply, roomOffset);
+    // Apply variants SEQUENTIALLY - each variant fully applies before the next
+    uniqueVariants.forEach(({ option, variant }) => {
+      console.log(`Applying variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name}`);
+      applyVariant(option.id, variant, roomOffset);
+    });
     
-    toast.success(`Применено ${variantsToApply.length} вариантов (${changedCount} элементов изменено)`);
+    toast.success(`Применено ${uniqueVariants.length} вариантов из калькулятора`);
   };
 
   // Fetch outline for selected model/variant
