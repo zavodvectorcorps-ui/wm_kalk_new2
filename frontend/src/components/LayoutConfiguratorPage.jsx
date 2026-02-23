@@ -482,31 +482,19 @@ const LayoutConfiguratorPage = ({
         });
       });
       
-      // Remove duplicate variants (same variant.id)
-      const uniqueVariants = [];
-      const seenVariantIds = new Set();
-      variantsToApply.forEach(item => {
-        if (!seenVariantIds.has(item.variant.id)) {
-          seenVariantIds.add(item.variant.id);
-          uniqueVariants.push(item);
-        } else {
-          console.log(`Skipping duplicate variant: ${item.variant.namePl || item.variant.name}`);
-        }
-      });
+      console.log(`Variants to apply (after dedup): ${variantsToApply.length}`);
       
-      console.log(`Variants to apply: ${uniqueVariants.length} (removed ${variantsToApply.length - uniqueVariants.length} duplicates)`);
-      
-      if (uniqueVariants.length > 0) {
+      if (variantsToApply.length > 0) {
         console.log('Auto-applying variants for model', selectedModel.id, selectedVariant?.id || 'no-submodel');
         
         // Apply variants SEQUENTIALLY - each variant fully applies before the next
         // This mimics clicking them one by one
-        uniqueVariants.forEach(({ option, variant }) => {
+        variantsToApply.forEach(({ option, variant }) => {
           console.log(`Applying variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name}`);
           applyVariant(option.id, variant, roomOffset);
         });
         
-        toast.success(`Применено ${uniqueVariants.length} вариантов из калькулятора`);
+        toast.success(`Применено ${variantsToApply.length} вариантов из калькулятора`);
       }
     }, 500);
     
