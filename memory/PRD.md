@@ -5,6 +5,18 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 23, 2026 - BUG FIX: Variant Model Filtering (COMPLETED)
+- **BUG FIX**: Elements "flying apart" when auto-applying variants from calculator
+  - **Root Cause**: Variants from one sauna model (e.g., 3.5m) were incorrectly applied to another model (e.g., 2m) because filtering only checked calculator option match, not modelId/variantId
+  - **Solution**: Added `isOptionForCurrentContext()` helper function that filters variants by:
+    1. `option.modelId` must match `selectedModel.id` (or be null for global)
+    2. `option.variantId` must match `selectedVariant.id` (or be null for all submodels)
+  - Applied filtering to both auto-apply useEffect and `applyAllCalculatorVariants` function
+  - Also added `fetchLayoutOptions(initialModelId, initialVariantId)` call in initialModelId useEffect
+- **Files changed**:
+  - `/app/frontend/src/components/LayoutConfiguratorPage.jsx` - lines 344-450, 1196-1280
+- **Testing**: 100% (5/5 tests passed - variant filtering by modelId/variantId verified)
+
 ### Feb 23, 2026 - Phase 2: Extended Configurator Integration (COMPLETED)
 - **NEW FEATURE**: "Planowki" menu link for direct configurator access
   - Added to top navigation menu (data-testid="layout-configurator-menu-btn")
