@@ -330,6 +330,106 @@ async def delete_layout(layout_id: str):
     return {"success": True, "deleted": layout_id}
 
 
+@router.post("/layouts/{layout_id}/clone")
+async def clone_layout(
+    layout_id: str,
+    targetModelId: str = Form(...),
+    targetModelName: str = Form(default=""),
+    targetVariantId: str = Form(default=None),
+    targetVariantName: str = Form(default=None),
+    newName: str = Form(default=None),
+    scaleX: float = Form(default=1.0),  # Scale factor for X coordinates
+    scaleY: float = Form(default=1.0),  # Scale factor for Y coordinates
+):
+    """Clone a layout to another model with optional scaling.
+    
+    Use scaleX/scaleY to proportionally adjust element positions:
+    - scaleX = targetWidth / sourceWidth
+    - scaleY = targetHeight / sourceHeight
+    
+    Example: Clone from 2m (200cm) to 3m (300cm) sauna:
+    scaleX = 300/200 = 1.5, scaleY = 1.5
+    """
+    import json
+    import copy
+    
+    # Get source layout
+    source = await get_layouts_collection().find_one({"id": layout_id}, {"_id": 0})
+    if not source:
+        raise HTTPException(status_code=404, detail="Source layout not found")
+    
+    # Create new layout ID
+    new_layout_id = f"layout-{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Deep copy source layout
+    new_layout = copy.deepcopy(source)
+    new_layout["id"] = new_layout_id
+    new_layout["modelId"] = targetModelId
+    new_layout["modelName"] = targetModelName or targetModelId
+    new_layout["variantId"] = targetVariantId if targetVariantId and targetVariantId != "null" else None
+    new_layout["variantName"] = targetVariantName if targetVariantName and targetVariantName != "null" else None
+    new_layout["createdAt"] = now
+    new_layout["updatedAt"] = now
+    
+    # Generate new name
+    if newName:
+        new_layout["name"] = newName
+        new_layout["namePl"] = newName
+        new_layout["nameRu"] = newName
+    else:
+        suffix = f" (клон для {targetModelName or targetModelId})"
+        new_layout["name"] = source.get("name", "Layout") + suffix
+        new_layout["namePl"] = source.get("namePl", source.get("name", "Layout")) + suffix
+        new_layout["nameRu"] = source.get("nameRu", source.get("name", "Layout")) + suffix
+    
+    # Scale elements positions if scale factors provided
+    if scaleX != 1.0 or scaleY != 1.0:
+        # Scale elements array
+        if new_layout.get("elements"):
+            for elem in new_layout["elements"]:
+                if "x" in elem:
+                    elem["x"] = round(elem["x"] * scaleX)
+                if "y" in elem:
+                    elem["y"] = round(elem["y"] * scaleY)
+        
+        # Scale canvasState objects
+        if new_layout.get("canvasState") and new_layout["canvasState"].get("objects"):
+            for obj in new_layout["canvasState"]["objects"]:
+                # Scale position
+                if "left" in obj:
+                    obj["left"] = round(obj["left"] * scaleX)
+                if "top" in obj:
+                    obj["top"] = round(obj["top"] * scaleY)
+                # Optionally scale dimensions for room/outline objects
+                if obj.get("isRoom") or obj.get("isOutline"):
+                    if "width" in obj:
+                        obj["width"] = round(obj["width"] * scaleX)
+                    if "height" in obj:
+                        obj["height"] = round(obj["height"] * scaleY)
+                    # Scale CM dimensions
+                    if "outerWidthCm" in obj:
+                        obj["outerWidthCm"] = round(obj["outerWidthCm"] * scaleX)
+                    if "outerHeightCm" in obj:
+                        obj["outerHeightCm"] = round(obj["outerHeightCm"] * scaleY)
+                    if "innerWidthCm" in obj:
+                        obj["innerWidthCm"] = round(obj["innerWidthCm"] * scaleX)
+                    if "innerHeightCm" in obj:
+                        obj["innerHeightCm"] = round(obj["innerHeightCm"] * scaleY)
+    
+    # Remove _id if present
+    new_layout.pop("_id", None)
+    
+    await get_layouts_collection().insert_one(new_layout)
+    
+    return {
+        "success": True,
+        "layoutId": new_layout_id,
+        "layout": {k: v for k, v in new_layout.items() if k != "_id"},
+        "scaledBy": {"x": scaleX, "y": scaleY}
+    }
+
+
 @router.post("/layouts/{layout_id}/duplicate")
 async def duplicate_layout(layout_id: str):
     """Create a copy of an existing layout."""
