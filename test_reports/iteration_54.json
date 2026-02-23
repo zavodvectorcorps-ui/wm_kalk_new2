@@ -1,0 +1,77 @@
+{
+  "summary": "Tested bug fix for variant filtering by modelId and variantId in Layout Configurator. All 5 features verified working correctly. Variants from one sauna model are no longer incorrectly applied to another model.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "critical": [],
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Layout Configurator Modal",
+        "issues": [
+          "Cosmetic: Fabric.js console warning 'The provided value alphabetical is not a valid enum value of type CanvasTextBaseline' - does not affect functionality",
+          "Cosmetic: 'Warning: Missing Description or aria-describedby={undefined} for {DialogContent}' - accessibility attribute missing in modal"
+        ]
+      }
+    ]
+  },
+  "features_tested": [
+    {
+      "feature": "1. Variants are filtered by modelId - variants from model A should NOT be applied to model B",
+      "status": "PASS",
+      "verification": "Selected 235x250 model after 235x200 - no layout loaded, console shows 'No layout found for model: sauna_kwadro_beczka_235x250_cm'. Canvas empty, no elements from 235x200 model applied."
+    },
+    {
+      "feature": "2. Variants are filtered by variantId (submodel) - variants for submodel A should NOT be applied to submodel B",
+      "status": "PASS",
+      "verification": "Code review: isOptionForCurrentContext helper checks option.variantId against selectedVariant.id. UI shows correct submodel: 'Wariant 1 Kwadro-Beczka 250 cm'"
+    },
+    {
+      "feature": "3. Opening configurator from calculator with selected model - layout loads correctly without elements flying apart",
+      "status": "PASS",
+      "verification": "For 235x200 model: Layout loaded with toast 'Загружена планировка: Планировка 235x200 базовая'. Canvas shows room with properly positioned stove and bench elements."
+    },
+    {
+      "feature": "4. Variants tab shows only variants for currently selected model",
+      "status": "PASS",
+      "verification": "For 235x200: 'Warianty dla: Sauna Kwadro-Beczka 235×200 cm / вариант 1 стандарт'. For 235x250: 'Warianty dla: Sauna Kwadro-Beczka 235×250 cm / Wariant 1 Kwadro-Beczka 250 cm'"
+    },
+    {
+      "feature": "5. fetchLayoutOptions is called with correct modelId when initialModelId is provided",
+      "status": "PASS",
+      "verification": "Code review confirms lines 351-352 and 360-361 call fetchLayoutOptions(initialModelId, initialVariantId) in the initialModelId useEffect"
+    }
+  ],
+  "code_review": {
+    "files_reviewed": [
+      "LayoutConfiguratorPage.jsx lines 344-450 (initialModelId useEffect + auto-apply variants)",
+      "LayoutConfiguratorPage.jsx lines 1196-1280 (applyAllCalculatorVariants function)",
+      "SaunaCalculator.jsx lines 690-702 (LayoutConfiguratorPage modal props)"
+    ],
+    "isOptionForCurrentContext_logic": [
+      "Line 394-409: Helper function correctly implements filtering logic",
+      "Checks option.modelId against selectedModel.id",
+      "Checks option.variantId against selectedVariant.id",
+      "Returns false if modelId/variantId mismatch, preventing cross-model variant application"
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100% (5/5 features verified)"
+  },
+  "test_credentials": {
+    "admin_login": "admin",
+    "admin_password": "admin123"
+  },
+  "seed_data_creation": "None - used existing data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fix for variant filtering verified working. The isOptionForCurrentContext helper function in LayoutConfiguratorPage.jsx correctly filters variants by modelId and variantId. When selecting different models from calculator, variants from one model are not incorrectly applied to another. 235x200 model has layout, 235x250 model has no layout (shows empty canvas with message to create layout manually)."
+}
