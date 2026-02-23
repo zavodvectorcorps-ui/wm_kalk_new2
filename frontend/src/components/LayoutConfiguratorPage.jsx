@@ -972,13 +972,6 @@ const LayoutConfiguratorPage = () => {
       if (targetObj && config.properties) {
         console.log(`  Changing: ${config.assetName || config.elementType} (ID: ${config.elementId?.slice(-6) || 'none'})`);
         changedCount++;
-          }
-        }
-      });
-      
-      if (targetObj && config.properties) {
-        console.log(`  Changing: ${config.assetName || config.elementType} (ID: ${config.elementId?.slice(-6)})`);
-        changedCount++;
         
         // Apply properties
         const props = config.properties;
@@ -1007,7 +1000,7 @@ const LayoutConfiguratorPage = () => {
         
         targetObj.setCoords();
       } else if (!targetObj) {
-        console.log(`  NOT FOUND: ${config.assetName || config.elementType} (ID: ${config.elementId?.slice(-6)})`);
+        console.log(`  NOT FOUND: ${config.assetName || config.elementType} (ID: ${config.elementId?.slice(-6) || 'none'})`);
       }
     });
     
