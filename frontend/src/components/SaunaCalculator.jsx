@@ -289,6 +289,12 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     handleCancelEdit, getCategoryName, isOptionVisible, getOptionBasePrice
   } = useSaunaCalculator(editingOrder, onEditComplete, amocrmPrefill, onAmocrmPrefillUsed);
 
+  // Auth context for admin check
+  const { isAdmin } = useAuth();
+  
+  // Layout Configurator modal state
+  const [showLayoutConfigurator, setShowLayoutConfigurator] = useState(false);
+
   // Get selected model
   const selectedModel = prices.models?.find(m => m.id === formData.selectedModel);
 
