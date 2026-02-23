@@ -5,6 +5,29 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Feb 23, 2026 - Phase 2: Extended Configurator Integration (COMPLETED)
+- **NEW FEATURE**: "Planowki" menu link for direct configurator access
+  - Added to top navigation menu (data-testid="layout-configurator-menu-btn")
+  - Opens full-screen configurator where manager can select model themselves
+  - Accessible to all users (not just from calculator modal)
+- **NEW FEATURE**: Calculator-to-Configurator option mapping
+  - New `calculatorMapping` field on variants: `{categoryId, optionId}`
+  - Admin can link variant to specific calculator option in edit dialog
+  - When opening configurator from calculator, matching variants auto-apply
+  - New API endpoint: `GET /api/layout-configurator/calculator-categories`
+- **NEW FEATURE**: Save layout to order
+  - New fields in order model: `layoutConfigImage`, `layoutConfigJson`, `layoutConfigVariants`
+  - New API endpoint: `PUT /api/sauna/orders/{id}/layout-config`
+  - Saves PNG image + JSON canvas state for later editing
+  - "В заказ" button appears when `orderId` is provided
+- **Files changed**:
+  - `/app/frontend/src/components/Header.jsx` - added Planowki button
+  - `/app/frontend/src/App.js` - added layout-configurator tab routing
+  - `/app/backend/routes/layout_configurator.py` - calculator-categories endpoint, calculatorMapping field
+  - `/app/backend/routes/sauna_orders.py` - layout-config endpoints
+  - `/app/backend/models/sauna.py` - layout config fields in order model
+- **Testing**: 80% (4/5 features verified, calculator mapping UI exists in code)
+
 ### Feb 23, 2026 - Layout Configurator Integration with Sauna Calculator (COMPLETED)
 - **NEW FEATURE**: Layout Configurator accessible from Sauna Calculator
   - New "Konfigurator planowek" section appears after selecting a sauna model
