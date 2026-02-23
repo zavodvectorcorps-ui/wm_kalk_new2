@@ -1194,9 +1194,15 @@ const LayoutConfiguratorPage = ({
   };
 
   // Apply all variants that match calculator selections
+  // Filters by current model AND submodel
   const applyAllCalculatorVariants = () => {
     if (!calculatorSelections || !layoutOptions.length) {
       toast.error('Нет данных для применения вариантов');
+      return;
+    }
+    
+    if (!selectedModel) {
+      toast.error('Сначала выберите модель сауны');
       return;
     }
     
@@ -1207,10 +1213,33 @@ const LayoutConfiguratorPage = ({
     let roomOffset = { x: 0, y: 0 };
     const roomObj = canvas.getObjects().find(obj => obj.isRoom);
     
-    // Find variants that match calculator selections
+    // Helper: Check if option belongs to current model/submodel context
+    const isOptionForCurrentContext = (option) => {
+      // If option has modelId, it must match current model
+      if (option.modelId && option.modelId !== selectedModel.id) {
+        return false;
+      }
+      // If option has variantId (submodel), it must match current submodel
+      if (option.variantId && selectedVariant && option.variantId !== selectedVariant.id) {
+        return false;
+      }
+      // If option has variantId but no submodel is selected, skip it
+      if (option.variantId && !selectedVariant) {
+        return false;
+      }
+      return true;
+    };
+    
+    // Find variants that match calculator selections AND belong to current model/submodel
     const variantsToApply = [];
     
     layoutOptions.forEach(option => {
+      // Skip options that don't belong to current model/submodel context
+      if (!isOptionForCurrentContext(option)) {
+        console.log(`Skipping option "${option.namePl}" - wrong model/submodel context`);
+        return;
+      }
+      
       option.variants?.forEach(variant => {
         if (variant.calculatorMapping) {
           const { categoryId, optionId } = variant.calculatorMapping;
@@ -1218,10 +1247,13 @@ const LayoutConfiguratorPage = ({
             // Check if variant has room position info
             const variantRoomConfig = variant.elementConfigs?.find(c => c.isRoom);
             if (roomObj && variantRoomConfig && variantRoomConfig.properties) {
-              roomOffset = {
-                x: roomObj.left - (variantRoomConfig.properties.left || 0),
-                y: roomObj.top - (variantRoomConfig.properties.top || 0),
-              };
+              // Use first valid room offset
+              if (roomOffset.x === 0 && roomOffset.y === 0) {
+                roomOffset = {
+                  x: roomObj.left - (variantRoomConfig.properties.left || 0),
+                  y: roomObj.top - (variantRoomConfig.properties.top || 0),
+                };
+              }
             }
             variantsToApply.push({ option, variant });
           }
@@ -1230,11 +1262,12 @@ const LayoutConfiguratorPage = ({
     });
     
     if (variantsToApply.length === 0) {
-      toast.info('Нет вариантов, соответствующих выборам в калькуляторе');
+      toast.info('Нет вариантов, соответствующих выборам в калькуляторе для текущей модели');
       return;
     }
     
-    console.log('Applying all calculator variants with room offset:', roomOffset);
+    console.log('Applying all calculator variants for model', selectedModel.id, 'submodel', selectedVariant?.id || 'none');
+    console.log('Room offset:', roomOffset);
     console.log('Variants to apply:', variantsToApply.length);
     
     // Apply variants sequentially with shared room offset
