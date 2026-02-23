@@ -492,9 +492,13 @@ const LayoutConfiguratorPage = ({
         if (!variant.conditions || variant.conditions.length === 0) {
           return true; // No conditions = always apply
         }
-        return variant.conditions.every(cond => 
-          appliedVariantsMap[cond.optionId] === cond.variantId
-        );
+        return variant.conditions.every(cond => {
+          const match = appliedVariantsMap[cond.optionId] === cond.variantId;
+          if (!match) {
+            console.log(`  Condition NOT met: optionId=${cond.optionId}, needs variantId=${cond.variantId}, have=${appliedVariantsMap[cond.optionId] || 'none'}`);
+          }
+          return match;
+        });
       };
       
       // Sort variants: unconditional first, then conditional
@@ -508,21 +512,31 @@ const LayoutConfiguratorPage = ({
       
       let appliedCount = 0;
       console.log(`Variants to check: ${sortedVariants.length} (sorted: unconditional first)`);
+      sortedVariants.forEach(({ option, variant }, idx) => {
+        console.log(`  ${idx + 1}. "${variant.namePl}" from "${option.namePl}" (option.id: ${option.id}, variant.id: ${variant.id}, conditions: ${variant.conditions?.length || 0})`);
+      });
+      
+      console.log('Applied variants map before processing:', JSON.stringify(appliedVariantsMap));
       
       sortedVariants.forEach(({ option, variant }) => {
         // Check if this variant's conditions are met
+        console.log(`Checking variant "${variant.namePl}" (conditions: ${JSON.stringify(variant.conditions || [])})`);
+        
         if (!areConditionsMet(variant)) {
-          console.log(`Skipping variant "${variant.namePl}" - conditions not met (requires: ${JSON.stringify(variant.conditions)})`);
+          console.log(`Skipping variant "${variant.namePl}" - conditions not met`);
           return;
         }
         
-        console.log(`Applying variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name}`);
+        console.log(`Applying variant: ${variant.namePl || variant.name} from option: ${option.namePl || option.name} (option.id: ${option.id})`);
         applyVariant(option.id, variant, roomOffset);
         
         // Track this variant as applied (for condition checking)
         appliedVariantsMap[option.id] = variant.id;
+        console.log(`  Updated appliedVariantsMap: ${option.id} -> ${variant.id}`);
         appliedCount++;
       });
+      
+      console.log('Final appliedVariantsMap:', JSON.stringify(appliedVariantsMap));
       
       if (appliedCount > 0) {
         toast.success(`Применено ${appliedCount} вариантов из калькулятора`);
