@@ -995,16 +995,41 @@ const LayoutConfiguratorPage = ({
   };
 
   // Apply variant to canvas - move/transform elements according to variant config
-  const applyVariant = (optionId, variant) => {
+  const applyVariant = (optionId, variant, roomOffset = null) => {
     const canvas = fabricRef.current;
     if (!canvas || !variant.elementConfigs) return;
     
     console.log(`Applying variant: ${variant.namePl || variant.name}`);
     console.log(`Elements to change: ${variant.elementConfigs.length}`);
     
+    // Calculate room offset for coordinate normalization
+    // If roomOffset is not provided, calculate it from the canvas
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    if (roomOffset) {
+      offsetX = roomOffset.x;
+      offsetY = roomOffset.y;
+    } else {
+      // Find current room position on canvas
+      const roomObj = canvas.getObjects().find(obj => obj.isRoom);
+      if (roomObj) {
+        // If variant has reference room position, calculate offset
+        const variantRoomConfig = variant.elementConfigs.find(c => c.isRoom);
+        if (variantRoomConfig && variantRoomConfig.properties) {
+          offsetX = roomObj.left - (variantRoomConfig.properties.left || 0);
+          offsetY = roomObj.top - (variantRoomConfig.properties.top || 0);
+          console.log(`  Room offset: X=${offsetX.toFixed(0)}, Y=${offsetY.toFixed(0)}`);
+        }
+      }
+    }
+    
     let changedCount = 0;
     
     variant.elementConfigs.forEach(config => {
+      // Skip room element - we don't move the room
+      if (config.isRoom) return;
+      
       // Find matching element on canvas with fallback strategy
       let targetObj = null;
       
@@ -1066,10 +1091,10 @@ const LayoutConfiguratorPage = ({
         console.log(`  Changing: ${config.assetName || config.elementType} (ID: ${config.elementId?.slice(-6) || 'none'})`);
         changedCount++;
         
-        // Apply properties
+        // Apply properties WITH coordinate offset adjustment
         const props = config.properties;
-        if (props.left !== undefined) targetObj.set('left', props.left);
-        if (props.top !== undefined) targetObj.set('top', props.top);
+        if (props.left !== undefined) targetObj.set('left', props.left + offsetX);
+        if (props.top !== undefined) targetObj.set('top', props.top + offsetY);
         if (props.angle !== undefined) targetObj.set('angle', props.angle);
         if (props.scaleX !== undefined) targetObj.set('scaleX', props.scaleX);
         if (props.scaleY !== undefined) targetObj.set('scaleY', props.scaleY);
