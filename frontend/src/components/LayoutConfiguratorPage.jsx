@@ -202,6 +202,18 @@ const LayoutConfiguratorPage = ({
     targetModelId: '',
     targetVariantId: '',
   });
+  // Clone layout dialog state
+  const [cloneLayoutDialogOpen, setCloneLayoutDialogOpen] = useState(false);
+  const [cloneLayoutForm, setCloneLayoutForm] = useState({
+    sourceLayoutId: '',
+    sourceLayoutName: '',
+    targetModelId: '',
+    targetVariantId: '',
+    newName: '',
+    autoScale: true,  // Auto-calculate scale based on model sizes
+    scaleX: 1.0,
+    scaleY: 1.0,
+  });
   const [newOptionForm, setNewOptionForm] = useState({ name: '', namePl: '', nameRu: '' });
   const [newVariantForm, setNewVariantForm] = useState({ 
     optionId: '', 
