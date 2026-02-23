@@ -5009,6 +5009,23 @@ const LayoutConfiguratorPage = ({
                     </div>
                   )}
                   
+                  {/* Apply all calculator variants button */}
+                  {calculatorSelections && layoutOptions.some(opt => 
+                    opt.variants?.some(v => v.calculatorMapping && 
+                      calculatorSelections[v.calculatorMapping.categoryId] === v.calculatorMapping.optionId
+                    )
+                  ) && (
+                    <Button
+                      size="sm"
+                      className="w-full h-8 text-xs bg-green-600 hover:bg-green-700"
+                      onClick={applyAllCalculatorVariants}
+                      data-testid="apply-all-calculator-variants-btn"
+                    >
+                      <Calculator className="h-3 w-3 mr-1" />
+                      Применить все из калькулятора
+                    </Button>
+                  )}
+                  
                   {/* Create new option button - ADMIN ONLY */}
                   {isAdminMode && (
                     <Button
