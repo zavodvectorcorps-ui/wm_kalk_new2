@@ -156,5 +156,50 @@ def delete_image(public_id: str) -> bool:
         logger.error(f"Cloudinary delete failed: {e}")
         return False
 
+
+async def upload_pdf(pdf_bytes: bytes, filename: str, folder: str = "wm-calculator/pdfs") -> Optional[Dict]:
+    """Upload PDF to Cloudinary.
+    
+    Args:
+        pdf_bytes: PDF file content as bytes
+        filename: Original filename (used for public_id)
+        folder: Cloudinary folder path
+        
+    Returns:
+        Dict with url, public_id etc. or None if failed
+    """
+    if not is_cloudinary_configured():
+        logger.warning("Cloudinary not configured - cannot upload PDF")
+        return None
+    
+    try:
+        # Generate unique public_id from filename
+        import uuid
+        unique_id = uuid.uuid4().hex[:8]
+        safe_filename = filename.replace(' ', '_').replace('.pdf', '')
+        public_id = f"{folder}/{safe_filename}_{unique_id}"
+        
+        result = cloudinary.uploader.upload(
+            pdf_bytes,
+            public_id=public_id,
+            resource_type="raw",  # Important: PDF is not an image
+            overwrite=True,
+            access_mode="public"  # Make it publicly accessible
+        )
+        
+        logger.info(f"Uploaded PDF to Cloudinary: {result.get('public_id')}")
+        
+        return {
+            "public_id": result.get("public_id"),
+            "url": result.get("secure_url"),
+            "bytes": result.get("bytes"),
+            "format": result.get("format"),
+            "resource_type": result.get("resource_type")
+        }
+    except Exception as e:
+        logger.error(f"Cloudinary PDF upload failed: {e}")
+        return None
+
+
 # Initialize on module load
 init_cloudinary()

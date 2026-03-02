@@ -1,5 +1,6 @@
 """amoCRM webhook integration routes."""
 from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
@@ -9,6 +10,9 @@ import logging
 import httpx
 import asyncio
 from urllib.parse import parse_qs
+
+# Import Cloudinary service for PDF uploads
+from services.cloudinary_service import upload_pdf as cloudinary_upload_pdf, is_cloudinary_configured
 
 router = APIRouter(prefix="/api/integrations/amocrm", tags=["amocrm"])
 
@@ -2112,215 +2116,82 @@ async def upload_calculator_pdf_to_amocrm(
     
     calc_name = "SAUNA" if calculator_type == "sauna" else "BALIA"
     
-    # V12: Try file upload with proper Content-Range headers
-    file_size = len(pdf_bytes)
+    # Generate filename
     safe_name = (client_name or 'Client').replace(' ', '_')
     safe_name = ''.join(c for c in safe_name if c.isalnum() or c in '_-')
     if not safe_name:
         safe_name = 'Client'
     filename = f"KP_{calc_name}_{safe_name}_{order_id}.pdf"
     
+    file_size = len(pdf_bytes)
+    
     debug_log = {
-        "version": "V12-range",
+        "version": "V13-cloudinary",
         "file_size": file_size,
         "filename": filename,
         "steps": []
     }
     
-    pdf_uploaded = False
+    # === NEW: Upload PDF to Cloudinary ===
+    cloudinary_url = None
+    cloudinary_uploaded = False
+    
+    if is_cloudinary_configured():
+        try:
+            cloudinary_result = await cloudinary_upload_pdf(pdf_bytes, filename)
+            if cloudinary_result and cloudinary_result.get("url"):
+                cloudinary_url = cloudinary_result["url"]
+                cloudinary_uploaded = True
+                logger.info(f"PDF uploaded to Cloudinary: {cloudinary_url}")
+                debug_log["steps"].append({
+                    "step": 0,
+                    "name": "cloudinary_upload",
+                    "status": "success",
+                    "url": cloudinary_url
+                })
+        except Exception as e:
+            logger.error(f"Cloudinary upload failed: {e}")
+            debug_log["steps"].append({
+                "step": 0,
+                "name": "cloudinary_upload",
+                "status": "error",
+                "error": str(e)
+            })
+    else:
+        debug_log["steps"].append({
+            "step": 0,
+            "name": "cloudinary_upload",
+            "status": "skipped",
+            "reason": "Cloudinary not configured"
+        })
+    
+    # Use Cloudinary URL if available, otherwise fallback to download URL
+    final_pdf_url = cloudinary_url if cloudinary_uploaded else pdf_download_url
+    
+    # === NEW: Instead of uploading file to amoCRM, just add note with link ===
+    # This saves amoCRM storage space
+    
+    pdf_uploaded = False  # We don't upload file to amoCRM anymore
     upload_error = None
-    file_uuid = None
-    version_uuid = None
     
     try:
-        headers = {"Authorization": f"Bearer {token}"}
+        # === NEW LOGIC: Just add note with PDF link instead of uploading file ===
+        # This saves amoCRM storage space
         
-        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http_client:
-            # Step 1: Get drive_url
-            account_url = f"https://{domain}/api/v4/account?with=drive_url"
-            account_resp = await http_client.get(account_url, headers=headers)
-            account_data = account_resp.json() if account_resp.status_code == 200 else {}
-            
-            debug_log["steps"].append({
-                "step": 1,
-                "name": "get_drive_url",
-                "status": account_resp.status_code,
-                "response": str(account_data)[:500]
-            })
-            
-            if account_resp.status_code != 200:
-                upload_error = f"Failed to get account: {account_resp.status_code}"
-            else:
-                drive_url = account_data.get("drive_url")
-                
-                if not drive_url:
-                    upload_error = "No drive_url in response"
-                else:
-                    # Step 2: Create upload session
-                    session_url = f"{drive_url}/v1.0/sessions"
-                    session_data = {
-                        "file_name": filename,
-                        "file_size": file_size,
-                        "content_type": "application/pdf"
-                    }
-                    
-                    session_resp = await http_client.post(
-                        session_url,
-                        json=session_data,
-                        headers={**headers, "Content-Type": "application/json"}
-                    )
-                    session_result = session_resp.json() if session_resp.status_code in [200, 201] else {}
-                    
-                    debug_log["steps"].append({
-                        "step": 2,
-                        "name": "create_session",
-                        "request": session_data,
-                        "status": session_resp.status_code,
-                        "response": str(session_result)[:500]
-                    })
-                    
-                    if session_resp.status_code not in [200, 201]:
-                        upload_error = f"Session failed: {session_resp.status_code}"
-                    else:
-                        upload_url = session_result.get("upload_url")
-                        max_part_size = session_result.get("max_part_size", 524288)
-                        
-                        if not upload_url:
-                            upload_error = "No upload_url"
-                        else:
-                            # Step 3: Upload file in chunks with Content-Range
-                            current_url = upload_url
-                            offset = 0
-                            part_num = 1
-                            
-                            while offset < file_size:
-                                chunk_end = min(offset + max_part_size, file_size)
-                                chunk = pdf_bytes[offset:chunk_end]
-                                chunk_size = len(chunk)
-                                is_final = (chunk_end >= file_size)
-                                
-                                # Content-Range: bytes start-end/total
-                                content_range = f"bytes {offset}-{chunk_end - 1}/{file_size}"
-                                
-                                upload_headers = {
-                                    **headers,
-                                    "Content-Type": "application/octet-stream",
-                                    "Content-Length": str(chunk_size),
-                                    "Content-Range": content_range
-                                }
-                                
-                                upload_resp = await http_client.post(
-                                    current_url,
-                                    content=chunk,
-                                    headers=upload_headers
-                                )
-                                
-                                upload_result = {}
-                                if upload_resp.status_code in [200, 201, 202]:
-                                    try:
-                                        upload_result = upload_resp.json()
-                                    except:
-                                        upload_result = {"raw": upload_resp.text[:300]}
-                                
-                                debug_log["steps"].append({
-                                    "step": 3,
-                                    "name": f"upload_part_{part_num}",
-                                    "content_range": content_range,
-                                    "chunk_size": chunk_size,
-                                    "is_final": is_final,
-                                    "status": upload_resp.status_code,
-                                    "response": str(upload_result)[:500]
-                                })
-                                
-                                if upload_resp.status_code not in [200, 201, 202]:
-                                    upload_error = f"Upload part {part_num} failed: {upload_resp.status_code}"
-                                    break
-                                
-                                if is_final:
-                                    # Get both file_uuid and version_uuid from response
-                                    file_uuid = upload_result.get("uuid")
-                                    # version_uuid might be in the response directly
-                                    version_uuid = upload_result.get("version_uuid")
-                                    
-                                    # If not, try to extract from download_version link
-                                    # Format: .../file_uuid/version_uuid/filename
-                                    if not version_uuid:
-                                        download_version_link = upload_result.get("_links", {}).get("download_version", {}).get("href", "")
-                                        if download_version_link and file_uuid:
-                                            # Extract version_uuid from URL path
-                                            parts = download_version_link.split("/")
-                                            try:
-                                                file_uuid_idx = parts.index(file_uuid)
-                                                if file_uuid_idx + 1 < len(parts):
-                                                    version_uuid = parts[file_uuid_idx + 1]
-                                            except (ValueError, IndexError):
-                                                pass
-                                    
-                                    debug_log["file_uuid"] = file_uuid
-                                    debug_log["version_uuid"] = version_uuid
-                                    debug_log["full_upload_response"] = upload_result
-                                else:
-                                    next_url = upload_result.get("next_url")
-                                    if not next_url:
-                                        upload_error = "No next_url"
-                                        break
-                                    current_url = next_url
-                                
-                                offset = chunk_end
-                                part_num += 1
-                            
-                            if file_uuid:
-                                # Step 4: Attach file to lead
-                                # Use version_uuid if available, otherwise fall back to file_uuid
-                                actual_version_uuid = version_uuid if version_uuid else file_uuid
-                                
-                                notes_url = f"https://{domain}/api/v4/leads/{amocrm_id}/notes"
-                                note_data = [{
-                                    "note_type": "attachment",
-                                    "params": {
-                                        "file_uuid": file_uuid,
-                                        "version_uuid": actual_version_uuid,
-                                        "file_name": filename
-                                    }
-                                }]
-                                
-                                attach_resp = await http_client.post(
-                                    notes_url,
-                                    json=note_data,
-                                    headers={**headers, "Content-Type": "application/json"}
-                                )
-                                
-                                attach_result = {}
-                                try:
-                                    attach_result = attach_resp.json()
-                                except:
-                                    attach_result = {"raw": attach_resp.text[:300]}
-                                
-                                debug_log["steps"].append({
-                                    "step": 4,
-                                    "name": "attach_to_lead",
-                                    "note_data": str(note_data),
-                                    "file_uuid_used": file_uuid,
-                                    "version_uuid_used": actual_version_uuid,
-                                    "status": attach_resp.status_code,
-                                    "response": str(attach_result)[:500]
-                                })
-                                
-                                if attach_resp.status_code in [200, 201]:
-                                    pdf_uploaded = True
-                                else:
-                                    upload_error = f"Attach failed: {attach_resp.status_code}"
-                            elif not upload_error:
-                                upload_error = "No file_uuid after upload"
+        debug_log["steps"].append({
+            "step": 1,
+            "name": "skip_file_upload",
+            "reason": "Using Cloudinary link instead of amoCRM Drive upload"
+        })
                 
     except Exception as e:
         upload_error = f"Exception: {str(e)}"
         debug_log["exception"] = str(e)
     
-    # Always add info note with order details
+    # Always add info note with order details and PDF link
     note_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')
     info_parts = [
-        f"✅ Коммерческое предложение создано",
+        "✅ Коммерческое предложение создано",
         f"Заказ: {order_id}",
         f"Калькулятор: {calc_name}",
     ]
@@ -2328,15 +2199,13 @@ async def upload_calculator_pdf_to_amocrm(
         info_parts.append(f"Сотрудник: {employee_name}")
     if total_amount:
         info_parts.append(f"Сумма: {total_amount} zł")
+    
+    # Add PDF link (Cloudinary URL preferred)
+    info_parts.append(f"\n📄 Скачать PDF: {final_pdf_url}")
     info_parts.append(note_date)
     
     info_note = "\n".join(info_parts)
     await add_note_to_amocrm(amocrm_id, info_note, domain, token)
-    
-    # If file upload failed, also add download link
-    if not pdf_uploaded:
-        link_note = f"Скачать PDF: {pdf_download_url}"
-        await add_note_to_amocrm(amocrm_id, link_note, domain, token)
     
     # Log to database
     webhook_logs.insert_one({
@@ -2346,20 +2215,22 @@ async def upload_calculator_pdf_to_amocrm(
         "order_id": order_id,
         "calculator_type": calculator_type,
         "pdf_saved": pdf_saved,
-        "pdf_uploaded": pdf_uploaded,
-        "file_uuid": file_uuid,
+        "pdf_uploaded_to_cloudinary": cloudinary_uploaded,
+        "cloudinary_url": cloudinary_url,
+        "fallback_url": pdf_download_url,
         "upload_error": upload_error,
         "debug_log": debug_log
     })
     
     return {
-        "status": "ok" if pdf_uploaded else "partial",
-        "message": "PDF uploaded to amoCRM" if pdf_uploaded else "PDF saved with download link (upload debug in response)",
-        "code_version": "V12-range",
+        "status": "ok" if cloudinary_uploaded else "partial",
+        "message": "PDF uploaded to Cloudinary and link sent to amoCRM" if cloudinary_uploaded else "PDF saved with download link",
+        "code_version": "V13-cloudinary",
         "pdf_saved": pdf_saved,
-        "pdf_uploaded": pdf_uploaded,
-        "pdf_url": pdf_download_url,
-        "file_uuid": file_uuid,
+        "cloudinary_uploaded": cloudinary_uploaded,
+        "pdf_url": final_pdf_url,
+        "cloudinary_url": cloudinary_url,
+        "fallback_url": pdf_download_url,
         "upload_error": upload_error,
         "debug": debug_log
     }
