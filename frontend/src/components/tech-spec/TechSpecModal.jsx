@@ -14,7 +14,7 @@ import { Textarea } from '../ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
 import { toast } from 'sonner';
-import { FileText, Loader2, User, Phone, MessageSquare, Package } from 'lucide-react';
+import { FileText, Loader2, User, Phone, MessageSquare, Package, Layout, Eye, Download, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 
 // Smart API URL - auto-detect on production
@@ -37,6 +37,55 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
     selections: {},
     textInputs: {},
   });
+  
+  // Layout (planowka) state
+  const [layoutData, setLayoutData] = useState(null);
+  const [layoutLoading, setLayoutLoading] = useState(false);
+  const [layoutImage, setLayoutImage] = useState(null);
+  
+  // Fetch layout for selected model
+  const fetchLayout = useCallback(async () => {
+    if (!order?.modelId && !order?.selectedModelId) return;
+    
+    const modelId = order.modelId || order.selectedModelId;
+    const variantId = order.selectedVariantId || null;
+    
+    setLayoutLoading(true);
+    try {
+      // Fetch layouts for this model
+      const layoutsRes = await axios.get(`${API_URL}/api/layout-configurator/layouts`, {
+        params: { modelId, variantId, published: true }
+      });
+      
+      const layouts = layoutsRes.data.layouts || [];
+      
+      if (layouts.length > 0) {
+        // Use first published layout
+        const layout = layouts[0];
+        setLayoutData(layout);
+        
+        // Try to get layout image if exists
+        if (layout.imageUrl) {
+          setLayoutImage(layout.imageUrl);
+        }
+      } else {
+        setLayoutData(null);
+        setLayoutImage(null);
+      }
+    } catch (error) {
+      console.error('Error fetching layout:', error);
+      setLayoutData(null);
+    } finally {
+      setLayoutLoading(false);
+    }
+  }, [order]);
+  
+  // Fetch layout when modal opens
+  useEffect(() => {
+    if (open && order) {
+      fetchLayout();
+    }
+  }, [open, order, fetchLayout]);
 
   // Fetch categories from API
   useEffect(() => {
@@ -173,6 +222,14 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
         ...formData,
         createdAt: new Date().toISOString(),
         orderId: order.id,
+        // Include layout data if available
+        layout: layoutData ? {
+          id: layoutData.id,
+          name: layoutData.name || layoutData.namePl,
+          modelId: layoutData.modelId,
+          modelName: layoutData.modelName,
+          imageUrl: layoutImage,
+        } : null,
       };
 
       await axios.put(`${API_URL}/api/sauna/orders/${order.id}/tech-spec`, techSpecData);
@@ -195,6 +252,14 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
         ...formData,
         createdAt: new Date().toISOString(),
         orderId: order.id,
+        // Include layout data
+        layout: layoutData ? {
+          id: layoutData.id,
+          name: layoutData.name || layoutData.namePl,
+          modelId: layoutData.modelId,
+          modelName: layoutData.modelName,
+          imageUrl: layoutImage,
+        } : null,
       };
 
       await axios.put(`${API_URL}/api/sauna/orders/${order.id}/tech-spec`, techSpecData);
@@ -409,6 +474,95 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
                       </span>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Layout (Planowka) Section */}
+            <div className="border rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <Label className="font-semibold text-blue-800 flex items-center gap-2 mb-3 text-base">
+                <Layout className="h-5 w-5" />
+                Планировка сауны
+              </Label>
+              
+              {layoutLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-sm text-muted-foreground">Загрузка планировки...</span>
+                </div>
+              ) : layoutData ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-blue-900">{layoutData.name || layoutData.namePl}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Модель: {layoutData.modelName || order?.modelName}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={fetchLayout}
+                        title="Обновить планировку"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Layout Preview */}
+                  {layoutImage ? (
+                    <div className="border rounded-lg overflow-hidden bg-white">
+                      <img 
+                        src={layoutImage} 
+                        alt="Планировка сауны" 
+                        className="w-full h-auto max-h-[300px] object-contain"
+                      />
+                    </div>
+                  ) : layoutData.canvasState?.objects ? (
+                    <div className="border rounded-lg p-4 bg-white">
+                      <p className="text-sm text-muted-foreground mb-2">Элементы планировки:</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {layoutData.canvasState.objects
+                          .filter(obj => obj.assetName && !obj.isRoom && !obj.isOutline && !obj.isGrid)
+                          .map((obj, idx) => (
+                            <div key={idx} className="text-xs bg-gray-50 px-2 py-1 rounded flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: obj.fill || '#888' }}></span>
+                              {obj.assetName}
+                            </div>
+                          ))
+                        }
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      Планировка доступна, но предпросмотр недоступен
+                    </div>
+                  )}
+                  
+                  {/* Layout dimensions */}
+                  {layoutData.canvasState?.objects && (
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      {(() => {
+                        const room = layoutData.canvasState.objects.find(obj => obj.isRoom);
+                        if (room) {
+                          return (
+                            <>
+                              <span>Размер: {room.outerWidthCm || room.width}x{room.outerHeightCm || room.height} см</span>
+                            </>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Layout className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">Планировка для этой модели не найдена</p>
+                  <p className="text-xs mt-1">Создайте планировку в разделе "Planowki"</p>
                 </div>
               )}
             </div>
