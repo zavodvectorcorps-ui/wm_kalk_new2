@@ -5,6 +5,28 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Mar 17, 2026 - FEATURE: Sales Dashboard (COMPLETED)
+- **NEW FEATURE**: Complete Sales Dashboard accessible from landing page
+  - Navigation: "Sprzedaż" card on landing page (admin-only, data-testid="sales-card")
+  - Dedicated routing block `currentCalculator === 'sales'` in App.js with Header + back button
+  - Summary cards: total orders, total amount, paid amount, remaining
+  - Full CRUD: create/edit/delete sales records via dialogs
+  - Filters: date range, manager dropdown, status dropdown
+  - Bonus calculation dialog: date range selection, per-manager bonus calculation
+  - Manager percentage settings: add/remove managers with custom bonus percentages
+  - Excel import: upload .xlsx files with Russian column mapping
+  - Statistics endpoint: aggregated stats by manager and status
+- **BUGS FIXED**:
+  - Backend import error: `from config import get_database` → `from database import db`
+  - Blank page: Added dedicated `currentCalculator === 'sales'` routing block in App.js
+  - SelectItem empty value: Changed `value=""` to `value="all"` pattern for Shadcn compatibility
+  - 307 redirect: Removed trailing slashes from sub-route API calls (FastAPI redirect loses POST body)
+  - Mixed Content: Fixed by using `getApiUrl()` instead of env variable
+- **Backend**: `/app/backend/routes/sales.py` - CRUD, managers, bonus-calculation, import-excel, statistics
+- **Frontend**: `/app/frontend/src/components/SalesPage.jsx` - complete UI with all features
+- **Testing**: Backend 100% (14/14), Frontend all flows verified (CRUD, filters, bonus, manager settings)
+
+
 ### Feb 23, 2026 - FEATURE: Clone Layout to Another Model (COMPLETED)
 - **NEW FEATURE**: Added ability to clone layouts to different sauna models with auto-scaling
   - Backend endpoint: `POST /api/layout-configurator/layouts/{layout_id}/clone`

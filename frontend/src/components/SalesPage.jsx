@@ -119,7 +119,7 @@ export const SalesPage = () => {
   // Fetch managers
   const fetchManagers = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/sales/managers/`);
+      const response = await axios.get(`${API_URL}/api/sales/managers`);
       setManagers(response.data.managers || []);
     } catch (error) {
       console.error('Error fetching managers:', error);
@@ -231,7 +231,7 @@ export const SalesPage = () => {
     
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/api/sales/import-excel/`, formData, {
+      const response = await axios.post(`${API_URL}/api/sales/import-excel`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -264,7 +264,7 @@ export const SalesPage = () => {
       });
       if (bonusManager) params.append('manager', bonusManager);
       
-      const response = await axios.get(`${API_URL}/api/sales/bonus-calculation/?${params.toString()}`);
+      const response = await axios.get(`${API_URL}/api/sales/bonus-calculation?${params.toString()}`);
       setBonusData(response.data);
     } catch (error) {
       console.error('Error calculating bonus:', error);
@@ -277,7 +277,7 @@ export const SalesPage = () => {
     if (!newManagerName) return;
     
     try {
-      await axios.post(`${API_URL}/api/sales/managers/`, {
+      await axios.post(`${API_URL}/api/sales/managers`, {
         manager_name: newManagerName,
         bonus_percent: parseFloat(newManagerPercent) || 5
       });
