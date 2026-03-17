@@ -7,6 +7,22 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ### Mar 17, 2026 - FEATURE: Sales Dashboard (COMPLETED)
 - **NEW FEATURE**: Complete Sales Dashboard accessible from Sauna section tab (admin-only)
+
+### Mar 17, 2026 - FEATURE: Довозы в Складе (COMPLETED)
+- **NEW FEATURE**: Раздел "Довозы" (Additional Deliveries) в Складе для теплиц
+  - 3 этапа канбан-доски: Довоз принят → Довоз отправлен → Довоз доставлен
+  - Drag & drop между этапами с автоматической синхронизацией с amoCRM
+  - При перемещении в "Отправлен"/"Доставлен" — автоматическая смена status_id лида в amoCRM
+  - Кнопка "Синхронизировать с amoCRM" — импорт лидов из настроенного этапа воронки
+  - История изменений для каждого заказа
+  - Настройки: выбор воронки, этапа-источника, целевых этапов для "отправлен" и "доставлен"
+  - Поддержка как dropdown-выбора воронок (загрузка из amoCRM API), так и ручного ввода ID
+- **NEW FEATURE**: Настройки Склада
+  - Toggle-переключатели для включения/отключения секций: Заказы (Канбан), Рейсы, Довозы
+  - Настройки amoCRM-интеграции для довозов (pipeline_id, source/sent/delivered status_id)
+- **Backend**: `/app/backend/routes/dovoz.py` - CRUD, settings, amoCRM sync, stats, history
+- **Frontend**: `/app/frontend/src/components/WarehousePage.jsx` - полностью переписан с вкладками и настройками
+- **Testing**: Backend 11/11 (100%), Frontend 100% все фичи верифицированы
   - Navigation: "Sprzedaż" tab in Sauna section header (admin-only, data-testid="sales-tab-btn")
   - Removed standalone card from landing page, moved into Sauna section as a tab
   - Summary cards: total orders, total amount, paid amount, remaining
