@@ -35,6 +35,7 @@ const FAQAdminComponent = lazy(() => import('./components/FAQPage').then(m => ({
 const PDFTemplateEditor = lazy(() => import('./components/PDFTemplateEditor'));
 const TrainingPage = lazy(() => import('./components/TrainingPage'));
 const LayoutConfiguratorPage = lazy(() => import('./components/LayoutConfiguratorPage'));
+const SalesPage = lazy(() => import('./components/SalesPage'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -515,6 +516,10 @@ const AppContent = () => {
         ) : activeTab === 'layout-configurator' ? (
           <Suspense fallback={<PageLoader />}>
             <LayoutConfiguratorPage isAdminMode={isAdmin()} />
+          </Suspense>
+        ) : activeTab === 'sales' ? (
+          <Suspense fallback={<PageLoader />}>
+            <SalesPage />
           </Suspense>
         ) : activeTab === 'training' ? (
           <Suspense fallback={<PageLoader />}>

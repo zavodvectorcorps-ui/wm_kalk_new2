@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, GraduationCap } from 'lucide-react';
+import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, GraduationCap, TrendingUp } from 'lucide-react';
 
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
@@ -27,6 +27,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       saunaCrmDesc: 'Управление заказами на сауны: этапы производства и отслеживание статусов',
       trainingTitle: 'Обучение',
       trainingDesc: 'Обучающие курсы и видео-уроки для менеджеров',
+      salesTitle: 'Продажи',
+      salesDesc: 'Управление продажами и расчёт бонусов менеджеров',
       adminTitle: 'Админ панель',
       adminDesc: 'Управление всеми заказами, статистика и настройки цен',
       select: 'Выбрать',
@@ -50,6 +52,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       saunaCrmDesc: 'Zarządzanie zamówieniami saun: etapy produkcji i śledzenie statusów',
       trainingTitle: 'Szkolenia',
       trainingDesc: 'Kursy szkoleniowe i lekcje wideo dla menedżerów',
+      salesTitle: 'Sprzedaż',
+      salesDesc: 'Zarządzanie sprzedażą i obliczanie bonusów menedżerów',
       adminTitle: 'Panel administracyjny',
       adminDesc: 'Zarządzanie wszystkimi zamówieniami, statystyki i ustawienia cen',
       select: 'Wybierz',
@@ -191,6 +195,33 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                     {txt.trainingDesc}
                   </p>
                   <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600">
+                    {txt.select}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sales Card - Only visible for admins */}
+          {canAccessAdmin && (
+            <Card 
+              className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-green-500/50"
+              onClick={() => onSelectCalculator('sales')}
+              data-testid="sales-card"
+            >
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors bg-green-500/10 group-hover:bg-green-500/20">
+                    <TrendingUp className="w-8 h-8 text-green-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground mb-2">
+                    {txt.salesTitle}
+                  </h2>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    {txt.salesDesc}
+                  </p>
+                  <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-green-500/50 text-green-600 hover:bg-green-500/10 hover:text-green-600">
                     {txt.select}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
