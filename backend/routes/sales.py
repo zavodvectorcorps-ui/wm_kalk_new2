@@ -13,14 +13,12 @@ router = APIRouter(prefix="/api/sales", tags=["sales"])
 logger = logging.getLogger(__name__)
 
 # MongoDB connection
-from config import get_database
+from database import db
 
 def get_sales_collection():
-    db = get_database()
     return db.sales
 
 def get_managers_collection():
-    db = get_database()
     return db.sales_managers
 
 

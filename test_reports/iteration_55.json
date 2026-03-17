@@ -1,0 +1,67 @@
+{
+  "summary": "Tested Sales Dashboard features (admin panel). Backend API tests: 14/14 passed. Frontend has CRITICAL Mixed Content bug blocking manager settings and bonus calculation features.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/sales/managers", "issue": "POST to /api/sales/managers/ gets 307 redirect which loses request body - need to POST without trailing slash"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Manager settings and Bonus calculation",
+        "issue": "CRITICAL: Mixed Content error - HTTP requests being made instead of HTTPS for /api/sales/managers and /api/sales/bonus-calculation endpoints. This blocks manager settings dialog and bonus calculation features.",
+        "affected_selectors": ["[data-testid='calc-bonus-btn']", "[data-testid='manager-settings-btn']"],
+        "priority": "HIGH"
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sales.py",
+    "/app/test_reports/pytest/pytest_results_iteration55.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix Mixed Content issue - some API calls from SalesPage.jsx are using HTTP instead of HTTPS. The issue persists despite using getApiUrl() which should return window.location.origin on production domains. Investigate why HTTP URLs are being used for /api/sales/managers and /api/sales/bonus-calculation requests.",
+    "Backend: Review FastAPI route configurations for trailing slash handling. POST /api/sales/managers with trailing slash returns 307 redirect which loses request body.",
+    "Clean up test data: TEST_NewProduct_UI sale was created during testing"
+  ],
+  "critical_code_review_comments": [
+    "SalesPage.jsx line 20: API_URL is set from getApiUrl() at module initialization. While getApiUrl() correctly returns window.location.origin for emergentagent.com domains, something is causing HTTP URLs to be used. Consider using dynamic URL construction at call time rather than module initialization.",
+    "The fetchManagers function makes HTTPS request to /managers/ but an additional HTTP request to /managers (no slash) is also being made. Investigate source of duplicate request."
+  ],
+  "updated_files": [
+    "/app/frontend/src/components/SalesPage.jsx",
+    "/app/backend/tests/test_sales.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "60% - Core CRUD works, filtering works, but manager settings and bonus calculation blocked by Mixed Content"
+  },
+  "test_credentials": {
+    "admin_login": "admin",
+    "admin_password": "admin123"
+  },
+  "seed_data_creation": "Created TEST_NewProduct_UI sale during testing - should be cleaned up",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Sales page accessible via data-testid='sales-card' from landing page after admin login. Backend API at /api/sales/ fully functional with HTTPS. Issue is frontend making HTTP requests for managers and bonus-calculation endpoints despite code using getApiUrl() which should return HTTPS origin. Service worker is NOT the issue - it skips API requests.",
+  "rca_of_issue": {
+    "issue": "Mixed Content Error blocking manager settings and bonus calculation",
+    "root_cause_hypothesis": "The API_URL constant in SalesPage.jsx is being evaluated at module initialization time. While getApiUrl() function correctly checks for emergentagent.com domain and returns window.location.origin (HTTPS), the bundled code appears to be making HTTP requests. This could be: 1) Webpack dev server hot reload caching old code 2) Browser/CDN caching old JavaScript bundles 3) Some axios interceptor or baseURL configuration overriding the URL",
+    "reproduction_steps": [
+      "1. Login as admin/admin123",
+      "2. Click on 'Sprzedaż' card (data-testid='sales-card')",
+      "3. Click 'Расчёт бонуса' button (data-testid='calc-bonus-btn')",
+      "4. Set date range and click Calculate",
+      "5. Observe Mixed Content error in console"
+    ],
+    "mitigation_suggestions": [
+      "1. Force full frontend rebuild: rm -rf node_modules/.cache && restart frontend",
+      "2. Consider using window.location.origin directly in API calls rather than caching in module constant",
+      "3. Check if any axios defaults are being set elsewhere in codebase",
+      "4. Add cache-busting headers to prevent browser caching"
+    ]
+  }
+}

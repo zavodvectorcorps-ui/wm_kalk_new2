@@ -15,8 +15,9 @@ import {
   FileSpreadsheet, RefreshCw, Filter, X, Percent
 } from 'lucide-react';
 import axios from 'axios';
+import { getApiUrl } from '../utils/api';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+const API_URL = getApiUrl();
 
 // Status badge colors
 const statusColors = {
@@ -98,13 +99,13 @@ export const SalesPage = () => {
   const fetchSales = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
-      if (filterManager) params.append('manager', filterManager);
-      if (filterStatus) params.append('status', filterStatus);
+      const params = {};
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+      if (filterManager) params.manager = filterManager;
+      if (filterStatus) params.status = filterStatus;
       
-      const response = await axios.get(`${API_URL}/api/sales?${params.toString()}`);
+      const response = await axios.get(`${API_URL}/api/sales/`, { params });
       setSales(response.data.sales || []);
       setTotals(response.data.totals || { total_amount: 0, paid_amount: 0, remaining: 0 });
     } catch (error) {
@@ -118,7 +119,7 @@ export const SalesPage = () => {
   // Fetch managers
   const fetchManagers = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/sales/managers`);
+      const response = await axios.get(`${API_URL}/api/sales/managers/`);
       setManagers(response.data.managers || []);
     } catch (error) {
       console.error('Error fetching managers:', error);
@@ -147,7 +148,7 @@ export const SalesPage = () => {
         await axios.put(`${API_URL}/api/sales/${editingSale.id}`, payload);
         toast.success('Запись обновлена');
       } else {
-        await axios.post(`${API_URL}/api/sales`, payload);
+        await axios.post(`${API_URL}/api/sales/`, payload);
         toast.success('Запись добавлена');
       }
       
@@ -230,7 +231,7 @@ export const SalesPage = () => {
     
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/api/sales/import-excel`, formData, {
+      const response = await axios.post(`${API_URL}/api/sales/import-excel/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -263,7 +264,7 @@ export const SalesPage = () => {
       });
       if (bonusManager) params.append('manager', bonusManager);
       
-      const response = await axios.get(`${API_URL}/api/sales/bonus-calculation?${params.toString()}`);
+      const response = await axios.get(`${API_URL}/api/sales/bonus-calculation/?${params.toString()}`);
       setBonusData(response.data);
     } catch (error) {
       console.error('Error calculating bonus:', error);
@@ -276,7 +277,7 @@ export const SalesPage = () => {
     if (!newManagerName) return;
     
     try {
-      await axios.post(`${API_URL}/api/sales/managers`, {
+      await axios.post(`${API_URL}/api/sales/managers/`, {
         manager_name: newManagerName,
         bonus_percent: parseFloat(newManagerPercent) || 5
       });
@@ -320,19 +321,19 @@ export const SalesPage = () => {
             <p className="text-slate-500">Управление заказами и расчёт бонусов</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button onClick={() => setImportDialogOpen(true)} variant="outline">
+            <Button onClick={() => setImportDialogOpen(true)} variant="outline" data-testid="import-excel-btn">
               <Upload className="h-4 w-4 mr-2" />
               Импорт Excel
             </Button>
-            <Button onClick={() => setBonusDialogOpen(true)} variant="outline" className="text-green-600 border-green-300 hover:bg-green-50">
+            <Button onClick={() => setBonusDialogOpen(true)} variant="outline" className="text-green-600 border-green-300 hover:bg-green-50" data-testid="calc-bonus-btn">
               <Calculator className="h-4 w-4 mr-2" />
               Расчёт бонуса
             </Button>
-            <Button onClick={() => setManagerSettingsOpen(true)} variant="outline">
+            <Button onClick={() => setManagerSettingsOpen(true)} variant="outline" data-testid="manager-settings-btn">
               <Percent className="h-4 w-4 mr-2" />
               Проценты
             </Button>
-            <Button onClick={() => openEditDialog()} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => openEditDialog()} className="bg-blue-600 hover:bg-blue-700" data-testid="add-sale-btn">
               <Plus className="h-4 w-4 mr-2" />
               Добавить
             </Button>
@@ -341,48 +342,48 @@ export const SalesPage = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-white border-l-4 border-l-blue-500">
+          <Card className="bg-white border-l-4 border-l-blue-500" data-testid="total-orders-card">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-500">Всего заказов</p>
-                  <p className="text-2xl font-bold text-slate-800">{sales.length}</p>
+                  <p className="text-2xl font-bold text-slate-800" data-testid="total-orders-count">{sales.length}</p>
                 </div>
                 <FileSpreadsheet className="h-8 w-8 text-blue-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-white border-l-4 border-l-green-500">
+          <Card className="bg-white border-l-4 border-l-green-500" data-testid="total-amount-card">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-500">Общая сумма</p>
-                  <p className="text-2xl font-bold text-slate-800">{formatCurrency(totals.total_amount)}</p>
+                  <p className="text-2xl font-bold text-slate-800" data-testid="total-amount-value">{formatCurrency(totals.total_amount)}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-white border-l-4 border-l-yellow-500">
+          <Card className="bg-white border-l-4 border-l-yellow-500" data-testid="total-paid-card">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-500">Оплачено</p>
-                  <p className="text-2xl font-bold text-slate-800">{formatCurrency(totals.paid_amount)}</p>
+                  <p className="text-2xl font-bold text-slate-800" data-testid="total-paid-value">{formatCurrency(totals.paid_amount)}</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-yellow-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-white border-l-4 border-l-red-500">
+          <Card className="bg-white border-l-4 border-l-red-500" data-testid="remaining-card">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-500">Остаток к оплате</p>
-                  <p className="text-2xl font-bold text-slate-800">{formatCurrency(totals.remaining)}</p>
+                  <p className="text-2xl font-bold text-slate-800" data-testid="remaining-value">{formatCurrency(totals.remaining)}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-red-500 opacity-50" />
               </div>
@@ -401,6 +402,7 @@ export const SalesPage = () => {
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="mt-1"
+                  data-testid="filter-start-date"
                 />
               </div>
               <div className="flex-1 min-w-[150px]">
@@ -410,16 +412,17 @@ export const SalesPage = () => {
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="mt-1"
+                  data-testid="filter-end-date"
                 />
               </div>
               <div className="flex-1 min-w-[150px]">
                 <Label className="text-xs text-slate-500">Менеджер</Label>
-                <Select value={filterManager} onValueChange={setFilterManager}>
-                  <SelectTrigger className="mt-1">
+                <Select value={filterManager || "all"} onValueChange={(v) => setFilterManager(v === "all" ? "" : v)}>
+                  <SelectTrigger className="mt-1" data-testid="filter-manager-select">
                     <SelectValue placeholder="Все" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Все</SelectItem>
+                    <SelectItem value="all">Все</SelectItem>
                     {uniqueManagers.map(m => (
                       <SelectItem key={m} value={m}>{m}</SelectItem>
                     ))}
@@ -428,12 +431,12 @@ export const SalesPage = () => {
               </div>
               <div className="flex-1 min-w-[150px]">
                 <Label className="text-xs text-slate-500">Статус</Label>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="mt-1">
+                <Select value={filterStatus || "all"} onValueChange={(v) => setFilterStatus(v === "all" ? "" : v)}>
+                  <SelectTrigger className="mt-1" data-testid="filter-status-select">
                     <SelectValue placeholder="Все" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Все</SelectItem>
+                    <SelectItem value="all">Все</SelectItem>
                     <SelectItem value="реализовано">Реализовано</SelectItem>
                     <SelectItem value="в процессе">В процессе</SelectItem>
                     <SelectItem value="запланировано">Запланировано</SelectItem>
@@ -443,10 +446,10 @@ export const SalesPage = () => {
                 </Select>
               </div>
               <div className="flex gap-2">
-                <Button onClick={fetchSales} variant="outline" size="icon">
+                <Button onClick={fetchSales} variant="outline" size="icon" data-testid="apply-filters-btn">
                   <Search className="h-4 w-4" />
                 </Button>
-                <Button onClick={clearFilters} variant="ghost" size="icon">
+                <Button onClick={clearFilters} variant="ghost" size="icon" data-testid="clear-filters-btn">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -455,10 +458,10 @@ export const SalesPage = () => {
         </Card>
 
         {/* Sales Table */}
-        <Card className="bg-white">
+        <Card className="bg-white" data-testid="sales-table-card">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
+              <Table data-testid="sales-table">
                 <TableHeader>
                   <TableRow className="bg-slate-50">
                     <TableHead className="font-semibold">ID</TableHead>
@@ -481,7 +484,7 @@ export const SalesPage = () => {
                     </TableRow>
                   ) : (
                     sales.map((sale) => (
-                      <TableRow key={sale.id} className="hover:bg-slate-50">
+                      <TableRow key={sale.id} className="hover:bg-slate-50" data-testid={`sale-row-${sale.id}`}>
                         <TableCell className="font-mono text-xs text-slate-500">
                           {sale.order_id?.slice(0, 12) || sale.id?.slice(0, 8)}
                         </TableCell>
@@ -509,6 +512,7 @@ export const SalesPage = () => {
                               variant="ghost"
                               className="h-8 w-8"
                               onClick={() => openEditDialog(sale)}
+                              data-testid={`edit-sale-${sale.id}`}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -517,6 +521,7 @@ export const SalesPage = () => {
                               variant="ghost"
                               className="h-8 w-8 text-red-500 hover:text-red-700"
                               onClick={() => handleDelete(sale.id)}
+                              data-testid={`delete-sale-${sale.id}`}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -649,8 +654,8 @@ export const SalesPage = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Отмена</Button>
-              <Button onClick={handleSaveSale}>Сохранить</Button>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)} data-testid="cancel-sale-btn">Отмена</Button>
+              <Button onClick={handleSaveSale} data-testid="save-sale-btn">Сохранить</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -714,12 +719,12 @@ export const SalesPage = () => {
                 </div>
                 <div>
                   <Label>Менеджер</Label>
-                  <Select value={bonusManager} onValueChange={setBonusManager}>
-                    <SelectTrigger>
+                  <Select value={bonusManager || "all"} onValueChange={(v) => setBonusManager(v === "all" ? "" : v)}>
+                    <SelectTrigger data-testid="bonus-manager-select">
                       <SelectValue placeholder="Все" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Все</SelectItem>
+                      <SelectItem value="all">Все</SelectItem>
                       {uniqueManagers.map(m => (
                         <SelectItem key={m} value={m}>{m}</SelectItem>
                       ))}
@@ -728,7 +733,7 @@ export const SalesPage = () => {
                 </div>
               </div>
               
-              <Button onClick={handleCalculateBonus} className="w-full">
+              <Button onClick={handleCalculateBonus} className="w-full" data-testid="calculate-bonus-btn">
                 <Calculator className="h-4 w-4 mr-2" />
                 Рассчитать
               </Button>
@@ -810,7 +815,7 @@ export const SalesPage = () => {
                   onChange={(e) => setNewManagerPercent(e.target.value)}
                   className="w-20"
                 />
-                <Button onClick={handleSaveManager}>
+                <Button onClick={handleSaveManager} data-testid="save-manager-btn">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
