@@ -6,9 +6,9 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 ## Latest Updates
 
 ### Mar 17, 2026 - FEATURE: Sales Dashboard (COMPLETED)
-- **NEW FEATURE**: Complete Sales Dashboard accessible from landing page
-  - Navigation: "Sprzedaż" card on landing page (admin-only, data-testid="sales-card")
-  - Dedicated routing block `currentCalculator === 'sales'` in App.js with Header + back button
+- **NEW FEATURE**: Complete Sales Dashboard accessible from Sauna section tab (admin-only)
+  - Navigation: "Sprzedaż" tab in Sauna section header (admin-only, data-testid="sales-tab-btn")
+  - Removed standalone card from landing page, moved into Sauna section as a tab
   - Summary cards: total orders, total amount, paid amount, remaining
   - Full CRUD: create/edit/delete sales records via dialogs
   - Filters: date range, manager dropdown, status dropdown
@@ -18,13 +18,14 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
   - Statistics endpoint: aggregated stats by manager and status
 - **BUGS FIXED**:
   - Backend import error: `from config import get_database` → `from database import db`
-  - Blank page: Added dedicated `currentCalculator === 'sales'` routing block in App.js
+  - Blank page: Added sales rendering in sauna section routing block in App.js
   - SelectItem empty value: Changed `value=""` to `value="all"` pattern for Shadcn compatibility
-  - 307 redirect: Removed trailing slashes from sub-route API calls (FastAPI redirect loses POST body)
-  - Mixed Content: Fixed by using `getApiUrl()` instead of env variable
+  - 307 redirect: Removed trailing slashes from sub-route API calls
+  - Duplicate `)}` artifact on landing page after removing sales card
 - **Backend**: `/app/backend/routes/sales.py` - CRUD, managers, bonus-calculation, import-excel, statistics
-- **Frontend**: `/app/frontend/src/components/SalesPage.jsx` - complete UI with all features
-- **Testing**: Backend 100% (14/14), Frontend all flows verified (CRUD, filters, bonus, manager settings)
+- **Frontend**: `/app/frontend/src/components/SalesPage.jsx` - complete UI
+- **Header**: `/app/frontend/src/components/Header.jsx` - added Sprzedaż tab (desktop + mobile, admin-only)
+- **Testing**: Backend 100% (14/14), Frontend all flows verified
 
 
 ### Feb 23, 2026 - FEATURE: Clone Layout to Another Model (COMPLETED)

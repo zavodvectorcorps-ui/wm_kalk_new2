@@ -517,7 +517,7 @@ const AppContent = () => {
           <Suspense fallback={<PageLoader />}>
             <LayoutConfiguratorPage isAdminMode={isAdmin()} />
           </Suspense>
-        ) : activeTab === 'sales' ? (
+        ) : activeTab === 'sales' && isAdmin() ? (
           <Suspense fallback={<PageLoader />}>
             <SalesPage />
           </Suspense>
@@ -686,42 +686,6 @@ const AppContent = () => {
       <Suspense fallback={<PageLoader />}>
         <PdfUploadDebugPage />
       </Suspense>
-    );
-  }
-
-  // Sales Page
-  if (currentCalculator === 'sales' && isAdmin()) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-        <Header 
-          activeTab={activeTab} 
-          onTabChange={handleTabChange}
-          isAdminAuthenticated={isAdmin()}
-          onAdminLogout={handleLogout}
-          showNavigation={false}
-          showUsers={false}
-          calculatorType="sales"
-        />
-        
-        {/* Back Button */}
-        <div className="container mx-auto px-4 pt-4 max-w-7xl">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleBackToLanding}
-            className="gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {txt.backToSelection}
-          </Button>
-        </div>
-        
-        <Suspense fallback={<PageLoader />}>
-          <SalesPage />
-        </Suspense>
-        
-        <Toaster position="top-right" richColors />
-      </div>
     );
   }
 

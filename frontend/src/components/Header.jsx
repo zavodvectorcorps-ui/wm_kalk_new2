@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame, Settings, BarChart3, Globe, Code, HelpCircle, FileImage, GraduationCap } from 'lucide-react';
+import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame, Settings, BarChart3, Globe, Code, HelpCircle, FileImage, GraduationCap, ShoppingCart } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
@@ -195,6 +195,19 @@ export const Header = ({
                   {i18n.language === 'pl' ? 'Planowki' : 'Планировки'}
                 </Button>
               )}
+              {/* Sales - only for sauna admins */}
+              {calculatorType === 'sauna' && isAdminAuthenticated && (
+                <Button
+                  variant={activeTab === 'sales' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('sales')}
+                  className="flex items-center gap-2"
+                  data-testid="sales-tab-btn"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  {i18n.language === 'pl' ? 'Sprzedaż' : 'Продажи'}
+                </Button>
+              )}
             </>
           )}
           {showUsers && isAdminAuthenticated && (
@@ -370,6 +383,19 @@ export const Header = ({
                   >
                     <Settings className="h-4 w-4" />
                     {i18n.language === 'pl' ? 'Planowki' : 'Планировки'}
+                  </Button>
+                )}
+                {/* Sales - only for sauna admins */}
+                {calculatorType === 'sauna' && isAdminAuthenticated && (
+                  <Button
+                    variant={activeTab === 'sales' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleTabChange('sales')}
+                    className="w-full justify-start gap-2"
+                    data-testid="sales-tab-btn-mobile"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    {i18n.language === 'pl' ? 'Sprzedaż' : 'Продажи'}
                   </Button>
                 )}
               </>
