@@ -1,0 +1,430 @@
+"""Dovoz (additional deliveries) management routes for greenhouse orders."""
+from fastapi import APIRouter, HTTPException, Depends, Query
+from typing import Optional
+from datetime import datetime, timezone
+import uuid
+import logging
+import httpx
+import os
+
+from database import db
+from services.auth_service import get_current_user
+
+router = APIRouter(prefix="/dovoz", tags=["Dovoz"])
+logger = logging.getLogger(__name__)
+
+# Collections (async motor)
+dovoz_orders = db["dovoz_orders"]
+dovoz_history = db["dovoz_history"]
+
+# Dovoz stages
+DOVOZ_STAGES = {
+    "accepted": "Довоз принят",
+    "sent": "Довоз отправлен",
+    "delivered": "Довоз доставлен"
+}
+
+
+# amoCRM settings
+MONGO_URL = os.environ.get("MONGO_URL")
+DB_NAME = os.environ.get("DB_NAME", "wm_kalkulator")
+
+
+def get_amocrm_settings():
+    """Get amoCRM settings - uses sync pymongo for settings access."""
+    from pymongo import MongoClient
+    sync_client = MongoClient(MONGO_URL)
+    sync_db = sync_client[DB_NAME]
+    settings = sync_db["integration_settings"].find_one({"type": "amocrm"}, {"_id": 0})
+    return settings or {}
+
+
+def get_warehouse_settings():
+    """Get warehouse settings - uses sync pymongo."""
+    from pymongo import MongoClient
+    sync_client = MongoClient(MONGO_URL)
+    sync_db = sync_client[DB_NAME]
+    settings = sync_db["warehouse_settings"].find_one({"type": "warehouse"}, {"_id": 0})
+    if not settings:
+        return {
+            "type": "warehouse",
+            "sections_enabled": {
+                "orders": True,
+                "trips": True,
+                "dovoz": True
+            },
+            "dovoz_config": {
+                "source_pipeline_id": "",
+                "source_status_id": "",
+                "sent_status_id": "",
+                "delivered_status_id": ""
+            }
+        }
+    return settings
+
+
+def save_warehouse_settings(settings: dict):
+    """Save warehouse settings - uses sync pymongo."""
+    from pymongo import MongoClient
+    sync_client = MongoClient(MONGO_URL)
+    sync_db = sync_client[DB_NAME]
+    sync_db["warehouse_settings"].update_one(
+        {"type": "warehouse"},
+        {"$set": settings},
+        upsert=True
+    )
+
+
+def check_warehouse_access(user: dict):
+    access = user.get("access", [])
+    role = user.get("role", "")
+    if role == "admin":
+        return True
+    if isinstance(access, str):
+        return access in ["warehouse", "all"]
+    return "warehouse" in access or "all" in access
+
+
+# --- Settings endpoints ---
+
+@router.get("/settings")
+async def get_settings(current_user: dict = Depends(get_current_user)):
+    if not check_warehouse_access(current_user):
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    return get_warehouse_settings()
+
+
+@router.put("/settings")
+async def update_settings(
+    settings: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Только для администраторов")
+    
+    settings["type"] = "warehouse"
+    settings["updated_at"] = datetime.now(timezone.utc).isoformat()
+    settings["updated_by"] = current_user.get("username", "unknown")
+    
+    save_warehouse_settings(settings)
+    
+    return {"success": True, "message": "Настройки сохранены"}
+
+
+# --- Dovoz CRUD ---
+
+@router.get("/orders")
+async def get_dovoz_orders(
+    stage: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    if not check_warehouse_access(current_user):
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    
+    query = {}
+    if stage:
+        query["dovozStage"] = stage
+    
+    orders = await dovoz_orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    
+    if search:
+        search_lower = search.lower()
+        orders = [
+            o for o in orders
+            if search_lower in o.get("client_name", "").lower()
+            or search_lower in o.get("amocrm_id", "").lower()
+            or search_lower in o.get("id", "").lower()
+            or search_lower in o.get("lead_name", "").lower()
+        ]
+    
+    # Group by stage
+    by_stage = {s: [] for s in DOVOZ_STAGES}
+    for o in orders:
+        s = o.get("dovozStage", "accepted")
+        if s in by_stage:
+            by_stage[s].append(o)
+    
+    return {
+        "orders": orders,
+        "by_stage": by_stage,
+        "total": len(orders),
+        "stages": DOVOZ_STAGES
+    }
+
+
+@router.put("/orders/{order_id}/stage")
+async def update_dovoz_stage(
+    order_id: str,
+    stage: str = Query(..., description="New stage: accepted, sent, delivered"),
+    current_user: dict = Depends(get_current_user)
+):
+    if not check_warehouse_access(current_user):
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    
+    if stage not in DOVOZ_STAGES:
+        raise HTTPException(status_code=400, detail=f"Неверный этап. Допустимые: {list(DOVOZ_STAGES.keys())}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    username = current_user.get("username", "unknown")
+    
+    order = await dovoz_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    
+    old_stage = order.get("dovozStage", "accepted")
+    
+    # Update in DB
+    await dovoz_orders.update_one(
+        {"id": order_id},
+        {"$set": {
+            "dovozStage": stage,
+            "dovoz_updated_at": now,
+            "dovoz_updated_by": username
+        }}
+    )
+    
+    # Record history
+    history_entry = {
+        "id": str(uuid.uuid4()),
+        "orderId": order_id,
+        "amocrm_id": order.get("amocrm_id", ""),
+        "oldStage": old_stage,
+        "newStage": stage,
+        "changedBy": username,
+        "changedAt": now
+    }
+    await dovoz_history.insert_one(history_entry)
+    
+    # Sync to amoCRM if stage changed to sent or delivered
+    amo_sync_result = None
+    if stage in ("sent", "delivered"):
+        amo_sync_result = await sync_stage_to_amocrm(order, stage)
+    
+    logger.info(f"Dovoz stage updated: order={order_id}, {old_stage} -> {stage}, by={username}")
+    
+    return {
+        "success": True,
+        "message": f"Этап изменён на '{DOVOZ_STAGES[stage]}'",
+        "order_id": order_id,
+        "old_stage": old_stage,
+        "new_stage": stage,
+        "amo_sync": amo_sync_result
+    }
+
+
+@router.get("/orders/{order_id}/history")
+async def get_dovoz_history(
+    order_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    if not check_warehouse_access(current_user):
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    
+    history = await dovoz_history.find(
+        {"orderId": order_id}, {"_id": 0}
+    ).sort("changedAt", -1).to_list(100)
+    
+    return {"order_id": order_id, "history": history}
+
+
+@router.delete("/orders/{order_id}")
+async def delete_dovoz_order(
+    order_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Только для администраторов")
+    
+    result = await dovoz_orders.delete_one({"id": order_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    
+    return {"success": True, "deleted": order_id}
+
+
+# --- amoCRM Sync ---
+
+async def sync_stage_to_amocrm(order: dict, stage: str) -> dict:
+    """Update lead status in amoCRM when dovoz stage changes."""
+    amo_settings = get_amocrm_settings()
+    wh_settings = get_warehouse_settings()
+    dovoz_config = wh_settings.get("dovoz_config", {})
+    
+    domain = amo_settings.get("amocrm_domain", "")
+    token = amo_settings.get("amocrm_token", "")
+    amocrm_id = order.get("amocrm_id", "")
+    
+    if not domain or not token or not amocrm_id:
+        return {"status": "skipped", "reason": "amoCRM не настроен или нет amocrm_id"}
+    
+    # Determine target status_id
+    target_status_id = ""
+    if stage == "sent":
+        target_status_id = dovoz_config.get("sent_status_id", "")
+    elif stage == "delivered":
+        target_status_id = dovoz_config.get("delivered_status_id", "")
+    
+    if not target_status_id:
+        return {"status": "skipped", "reason": f"Не настроен status_id для этапа '{stage}'"}
+    
+    # Get pipeline_id from config
+    pipeline_id = dovoz_config.get("source_pipeline_id", "")
+    if not pipeline_id:
+        return {"status": "skipped", "reason": "Не настроен pipeline_id"}
+    
+    try:
+        url = f"https://{domain}/api/v4/leads/{amocrm_id}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "pipeline_id": int(pipeline_id),
+            "status_id": int(target_status_id)
+        }
+        
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.patch(url, json=payload, headers=headers)
+            
+            if response.status_code == 200:
+                logger.info(f"amoCRM lead {amocrm_id} moved to status {target_status_id}")
+                return {"status": "ok", "amocrm_id": amocrm_id, "new_status_id": target_status_id}
+            else:
+                logger.error(f"amoCRM sync error: {response.status_code} - {response.text}")
+                return {"status": "error", "code": response.status_code, "detail": response.text[:200]}
+    except Exception as e:
+        logger.error(f"amoCRM sync failed: {e}")
+        return {"status": "error", "detail": str(e)}
+
+
+@router.post("/sync-from-amocrm")
+async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
+    """Pull leads from configured amoCRM stage into 'Довоз принят'."""
+    if not check_warehouse_access(current_user):
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    
+    amo_settings = get_amocrm_settings()
+    wh_settings = get_warehouse_settings()
+    dovoz_config = wh_settings.get("dovoz_config", {})
+    
+    domain = amo_settings.get("amocrm_domain", "")
+    token = amo_settings.get("amocrm_token", "")
+    source_pipeline_id = dovoz_config.get("source_pipeline_id", "")
+    source_status_id = dovoz_config.get("source_status_id", "")
+    
+    if not domain or not token:
+        raise HTTPException(status_code=400, detail="amoCRM не настроен. Укажите домен и токен в настройках интеграций.")
+    
+    if not source_pipeline_id or not source_status_id:
+        raise HTTPException(status_code=400, detail="Не настроены pipeline_id и status_id источника. Настройте в настройках склада.")
+    
+    try:
+        headers_amo = {"Authorization": f"Bearer {token}"}
+        url = f"https://{domain}/api/v4/leads"
+        params = {
+            "filter[statuses][0][pipeline_id]": source_pipeline_id,
+            "filter[statuses][0][status_id]": source_status_id,
+            "limit": 250,
+            "with": "contacts"
+        }
+        
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(url, headers=headers_amo, params=params)
+            
+            if response.status_code == 204:
+                return {"success": True, "imported": 0, "skipped": 0, "message": "Нет лидов на этом этапе"}
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=502, detail=f"Ошибка amoCRM API: {response.status_code}")
+            
+            data = response.json()
+            leads = data.get("_embedded", {}).get("leads", [])
+        
+        imported = 0
+        skipped = 0
+        now = datetime.now(timezone.utc).isoformat()
+        
+        for lead in leads:
+            lead_id = str(lead.get("id", ""))
+            
+            # Skip if already exists
+            existing = await dovoz_orders.find_one({"amocrm_id": lead_id})
+            if existing:
+                skipped += 1
+                continue
+            
+            # Extract contact info
+            contacts = lead.get("_embedded", {}).get("contacts", [])
+            contact_name = ""
+            contact_phone = ""
+            if contacts:
+                contact_name = contacts[0].get("name", "")
+            
+            # Fetch contact details for phone
+            if contacts and domain and token:
+                try:
+                    contact_id = contacts[0].get("id")
+                    if contact_id:
+                        contact_url = f"https://{domain}/api/v4/contacts/{contact_id}"
+                        async with httpx.AsyncClient(timeout=10.0) as cl:
+                            cr = await cl.get(contact_url, headers=headers_amo)
+                            if cr.status_code == 200:
+                                cd = cr.json()
+                                for cf in cd.get("custom_fields_values", []):
+                                    if cf.get("field_code") == "PHONE":
+                                        vals = cf.get("values", [])
+                                        if vals:
+                                            contact_phone = vals[0].get("value", "")
+                                            break
+                except Exception:
+                    pass
+            
+            dovoz_order = {
+                "id": f"DOV-{lead_id}",
+                "amocrm_id": lead_id,
+                "lead_name": lead.get("name", ""),
+                "client_name": contact_name or lead.get("name", ""),
+                "phone": contact_phone,
+                "price": lead.get("price", 0),
+                "dovozStage": "accepted",
+                "pipeline_id": str(lead.get("pipeline_id", "")),
+                "status_id": str(lead.get("status_id", "")),
+                "created_at": now,
+                "synced_at": now,
+                "synced_by": current_user.get("username", "unknown")
+            }
+            
+            await dovoz_orders.insert_one(dovoz_order)
+            imported += 1
+        
+        logger.info(f"Dovoz sync: imported={imported}, skipped={skipped}")
+        
+        return {
+            "success": True,
+            "imported": imported,
+            "skipped": skipped,
+            "total_on_stage": len(leads),
+            "message": f"Импортировано: {imported}, уже существовали: {skipped}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dovoz sync from amoCRM failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stats")
+async def get_dovoz_stats(current_user: dict = Depends(get_current_user)):
+    if not check_warehouse_access(current_user):
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    
+    stats = {}
+    for stage_key in DOVOZ_STAGES:
+        count = await dovoz_orders.count_documents({"dovozStage": stage_key})
+        stats[stage_key] = count
+    
+    total = sum(stats.values())
+    
+    return {"by_stage": stats, "total": total, "stages": DOVOZ_STAGES}
