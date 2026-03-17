@@ -356,6 +356,12 @@ const WarehousePage = ({ onBack }) => {
               {order.amocrm_id && (
                 <p className="text-xs text-muted-foreground">amoCRM: {order.amocrm_id}</p>
               )}
+              {order.address && (
+                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">{order.address}</span>
+                </div>
+              )}
               {getDisplayPhone(order) && (
                 <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                   <Phone className="w-3 h-3" />

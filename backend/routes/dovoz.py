@@ -354,6 +354,47 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                 skipped += 1
                 continue
             
+            # Extract custom fields from lead
+            custom_fields = lead.get("custom_fields_values", [])
+            field_values_by_id = {}
+            field_values_by_name = {}
+            for field in custom_fields:
+                fid = str(field.get("field_id", ""))
+                fname = str(field.get("field_name", "")).lower()
+                fcode = str(field.get("field_code", "")).lower()
+                values = field.get("values", [])
+                value = ""
+                if isinstance(values, list) and values:
+                    first_val = values[0]
+                    value = first_val.get("value", "") if isinstance(first_val, dict) else str(first_val)
+                if fid and value:
+                    field_values_by_id[fid] = value
+                if fname and value:
+                    field_values_by_name[fname] = value
+                if fcode and value:
+                    field_values_by_name[fcode] = value
+            
+            # Get field mapping from amoCRM settings for greenhouse
+            field_mapping = amo_settings.get("field_mapping", {}).get("greenhouse", {})
+            
+            def get_field_val(mapping_key, keywords=None):
+                if field_mapping.get(mapping_key):
+                    val = field_values_by_id.get(field_mapping[mapping_key], "")
+                    if val:
+                        return val
+                if keywords:
+                    for name, val in field_values_by_name.items():
+                        if any(kw in name for kw in keywords):
+                            return val
+                return ""
+            
+            # Extract address fields
+            index_val = get_field_val("addressIndex", ["индекс", "postal", "zip", "kod"])
+            city_val = get_field_val("addressCity", ["город", "city", "населенный пункт", "miasto"])
+            street_val = get_field_val("addressStreet", ["улица", "street", "ул.", "adres", "адрес"])
+            addr_parts = [p for p in [street_val, city_val, index_val] if p]
+            full_address = ", ".join(addr_parts)
+            
             # Extract contact info
             contacts = lead.get("_embedded", {}).get("contacts", [])
             contact_name = ""
@@ -372,13 +413,19 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                             if cr.status_code == 200:
                                 cd = cr.json()
                                 for cf in cd.get("custom_fields_values", []):
-                                    if cf.get("field_code") == "PHONE":
-                                        vals = cf.get("values", [])
-                                        if vals:
-                                            contact_phone = vals[0].get("value", "")
-                                            break
+                                    fc = cf.get("field_code", "")
+                                    vals = cf.get("values", [])
+                                    if fc == "PHONE" and vals:
+                                        contact_phone = vals[0].get("value", "")
+                                    # Also try to get address from contact if not found in lead
+                                    if not full_address and fc == "ADDRESS" and vals:
+                                        full_address = vals[0].get("value", "")
                 except Exception:
                     pass
+            
+            # Also try phone from lead custom fields if not found in contact
+            if not contact_phone:
+                contact_phone = get_field_val("phoneNumber", ["телефон", "phone", "тел", "моб"])
             
             dovoz_order = {
                 "id": f"DOV-{lead_id}",
@@ -386,6 +433,10 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                 "lead_name": lead.get("name", ""),
                 "client_name": contact_name or lead.get("name", ""),
                 "phone": contact_phone,
+                "address": full_address,
+                "address_street": street_val,
+                "address_city": city_val,
+                "address_index": index_val,
                 "price": lead.get("price", 0),
                 "dovozStage": "accepted",
                 "pipeline_id": str(lead.get("pipeline_id", "")),
