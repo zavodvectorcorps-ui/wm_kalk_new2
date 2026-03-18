@@ -391,6 +391,17 @@ async def sync_leads_from_amocrm():
         headers_amo = {"Authorization": f"Bearer {token}"}
         field_mappings = {f["amoFieldId"]: f["id"] for f in settings.get("fields", []) if f.get("amoFieldId")}
         
+        # Cache users for manager names
+        users_cache = {}
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as uc:
+                ur = await uc.get(f"https://{domain}/api/v4/users", headers=headers_amo)
+                if ur.status_code == 200:
+                    for u in ur.json().get("_embedded", {}).get("users", []):
+                        users_cache[u["id"]] = u.get("name", "")
+        except Exception:
+            pass
+        
         async with httpx.AsyncClient(timeout=20.0) as client:
             for stage in settings.get("stages", []):
                 if not stage.get("amoStageId") or not stage.get("amoPipelineId"):
@@ -444,6 +455,10 @@ async def sync_leads_from_amocrm():
                         except Exception:
                             pass
                     
+                    # Get manager name
+                    responsible_id = amo_lead.get("responsible_user_id")
+                    manager_name = users_cache.get(responsible_id, "") if responsible_id else ""
+                    
                     if existing:
                         # Update existing lead fields from amoCRM
                         update_data = {"updatedAt": datetime.now(timezone.utc).isoformat()}
@@ -451,6 +466,8 @@ async def sync_leads_from_amocrm():
                             update_data["clientName"] = contact_name
                         if contact_phone:
                             update_data["phone"] = contact_phone
+                        if manager_name:
+                            update_data["manager"] = manager_name
                         update_data.update(field_vals)
                         if amo_lead.get("price"):
                             update_data["totalAmount"] = amo_lead["price"]
@@ -464,6 +481,7 @@ async def sync_leads_from_amocrm():
                             "phone": contact_phone,
                             "email": "",
                             "address": "",
+                            "manager": manager_name,
                             "amocrm_id": amo_id,
                             "amocrm_link": f"https://{domain}/leads/detail/{amo_id}",
                             "totalAmount": amo_lead.get("price"),

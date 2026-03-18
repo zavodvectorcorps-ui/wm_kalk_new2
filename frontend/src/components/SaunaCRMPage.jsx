@@ -52,8 +52,11 @@ const SaunaCRMPage = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState(null);
   
-  // Search
+  // Search & Filters
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterManager, setFilterManager] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   
   // Active view
   const [activeView, setActiveView] = useState('calendar');
@@ -284,14 +287,36 @@ const SaunaCRMPage = () => {
 
   // Filter leads
   const enabledFields = (settings?.fields || []).filter(f => f.enabled);
-  const filteredLeads = searchTerm 
-    ? leads.filter(l => 
-        (l.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (l.phone || '').includes(searchTerm) ||
-        (l.modelName || l.field_1 || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (l.amocrm_id || '').includes(searchTerm)
-      )
-    : leads;
+  
+  const uniqueManagers = [...new Set(leads.map(l => l.manager).filter(Boolean))].sort();
+  
+  const filteredLeads = leads.filter(l => {
+    // Search
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      const match = (l.clientName || '').toLowerCase().includes(s) ||
+        (l.phone || '').includes(s) ||
+        (l.modelName || l.field_1 || '').toLowerCase().includes(s) ||
+        (l.amocrm_id || '').includes(s) ||
+        (l.manager || '').toLowerCase().includes(s);
+      if (!match) return false;
+    }
+    // Manager
+    if (filterManager && (l.manager || '') !== filterManager) return false;
+    // Date range (by readyDate)
+    if (filterDateFrom) {
+      const rd = (l.readyDate || '').slice(0, 10);
+      if (!rd || rd < filterDateFrom) return false;
+    }
+    if (filterDateTo) {
+      const rd = (l.readyDate || '').slice(0, 10);
+      if (!rd || rd > filterDateTo) return false;
+    }
+    return true;
+  });
+
+  const hasActiveFilters = !!filterManager || !!filterDateFrom || !!filterDateTo;
+  const clearFilters = () => { setFilterManager(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); };
 
   const stages = settings?.stages || [];
   const leadsByStage = {};
@@ -423,11 +448,26 @@ const SaunaCRMPage = () => {
 
         {/* Kanban View */}
         <TabsContent value="kanban">
-          <div className="mb-4 flex gap-3">
-            <div className="relative flex-1">
+          <div className="flex flex-wrap gap-3 mb-4">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Поиск..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" data-testid="crm-search" />
             </div>
+            <Select value={filterManager || "all"} onValueChange={(v) => setFilterManager(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-[180px]" data-testid="filter-manager"><SelectValue placeholder="Менеджер" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все менеджеры</SelectItem>
+                {uniqueManagers.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-[140px]" data-testid="filter-date-from" placeholder="От" />
+              <span className="text-muted-foreground">—</span>
+              <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[140px]" data-testid="filter-date-to" placeholder="До" />
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="clear-filters-btn"><X className="w-4 h-4 mr-1" />Сбросить</Button>
+            )}
           </div>
           <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(280px, 1fr))` }}>
             {stages.map(stage => {
@@ -466,6 +506,7 @@ const SaunaCRMPage = () => {
                           {lead.isImportant && <Star className="w-4 h-4 text-amber-500 fill-amber-500 flex-shrink-0" />}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{lead.modelName || lead.field_1 || '—'}</p>
+                        {lead.manager && <p className="text-xs text-muted-foreground truncate"><User className="w-3 h-3 inline mr-1" />{lead.manager}</p>}
                         {(lead.totalAmount || lead.field_2) && (
                           <Badge variant="outline" className="mt-1 text-xs">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</Badge>
                         )}
@@ -495,11 +536,26 @@ const SaunaCRMPage = () => {
 
         {/* List View */}
         <TabsContent value="list">
-          <div className="mb-4">
-            <div className="relative">
+          <div className="flex flex-wrap gap-3 mb-4">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Поиск..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
+            <Select value={filterManager || "all"} onValueChange={(v) => setFilterManager(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Менеджер" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все менеджеры</SelectItem>
+                {uniqueManagers.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-[140px]" />
+              <span className="text-muted-foreground">—</span>
+              <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[140px]" />
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}><X className="w-4 h-4 mr-1" />Сбросить</Button>
+            )}
           </div>
           <div className="space-y-2">
             {filteredLeads.map(lead => {
@@ -513,7 +569,7 @@ const SaunaCRMPage = () => {
                         <span className="font-medium truncate">{lead.clientName || 'Без имени'}</span>
                         {lead.isImportant && <Star className="w-4 h-4 text-amber-500 fill-amber-500" />}
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{lead.modelName || lead.field_1 || '—'} {lead.phone ? `• ${lead.phone}` : ''}</p>
+                      <p className="text-sm text-muted-foreground truncate">{lead.modelName || lead.field_1 || '—'} {lead.manager ? `• ${lead.manager}` : ''} {lead.phone ? `• ${lead.phone}` : ''}</p>
                     </div>
                     <Badge style={{ backgroundColor: stage?.color + '20', color: stage?.color }}>{stage?.name}</Badge>
                     {(lead.totalAmount || lead.field_2) && <span className="font-medium text-sm">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</span>}
@@ -581,6 +637,10 @@ const SaunaCRMPage = () => {
                 <div>
                   <Label className="text-xs text-muted-foreground">Адрес</Label>
                   <Input value={editData.address || ''} onChange={(e) => setEditData(p => ({ ...p, address: e.target.value }))} />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Менеджер</Label>
+                  <Input value={editData.manager || ''} onChange={(e) => setEditData(p => ({ ...p, manager: e.target.value }))} data-testid="lead-manager" />
                 </div>
               </div>
 
