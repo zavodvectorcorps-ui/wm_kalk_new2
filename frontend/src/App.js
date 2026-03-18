@@ -521,6 +521,10 @@ const AppContent = () => {
           <Suspense fallback={<PageLoader />}>
             <SalesPage />
           </Suspense>
+        ) : activeTab === 'crm' && isAdmin() ? (
+          <Suspense fallback={<PageLoader />}>
+            <SaunaCRMPage />
+          </Suspense>
         ) : activeTab === 'training' ? (
           <Suspense fallback={<PageLoader />}>
             <TrainingPage user={user} />

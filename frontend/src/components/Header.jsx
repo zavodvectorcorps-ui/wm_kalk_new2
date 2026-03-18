@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame, Settings, BarChart3, Globe, Code, HelpCircle, FileImage, GraduationCap, ShoppingCart } from 'lucide-react';
+import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame, Settings, BarChart3, Globe, Code, HelpCircle, FileImage, GraduationCap, ShoppingCart, Briefcase } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
@@ -208,6 +208,19 @@ export const Header = ({
                   {i18n.language === 'pl' ? 'Sprzedaż' : 'Продажи'}
                 </Button>
               )}
+              {/* CRM - only for sauna admins */}
+              {calculatorType === 'sauna' && isAdminAuthenticated && (
+                <Button
+                  variant={activeTab === 'crm' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('crm')}
+                  className="flex items-center gap-2"
+                  data-testid="crm-tab-btn"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  CRM
+                </Button>
+              )}
             </>
           )}
           {showUsers && isAdminAuthenticated && (
@@ -396,6 +409,19 @@ export const Header = ({
                   >
                     <ShoppingCart className="h-4 w-4" />
                     {i18n.language === 'pl' ? 'Sprzedaż' : 'Продажи'}
+                  </Button>
+                )}
+                {/* CRM - only for sauna admins */}
+                {calculatorType === 'sauna' && isAdminAuthenticated && (
+                  <Button
+                    variant={activeTab === 'crm' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleTabChange('crm')}
+                    className="w-full justify-start gap-2"
+                    data-testid="crm-tab-btn-mobile"
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    CRM
                   </Button>
                 )}
               </>

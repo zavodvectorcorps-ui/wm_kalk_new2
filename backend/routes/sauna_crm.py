@@ -1,60 +1,67 @@
-"""Sauna CRM routes - Kanban board for sauna leads management."""
-from fastapi import APIRouter, HTTPException
+"""Sauna CRM routes - Mini CRM for sauna orders with amoCRM integration."""
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from database import db
+from services.cloudinary_service import upload_pdf as cloudinary_upload_pdf, is_cloudinary_configured
 import httpx
+import os
+import logging
+import uuid
 
 router = APIRouter(prefix="/sauna-crm", tags=["Sauna CRM"])
+logger = logging.getLogger(__name__)
+
+MONGO_URL = os.environ.get("MONGO_URL")
+DB_NAME = os.environ.get("DB_NAME", "wm_kalkulator")
+
+
+def get_amo_settings_sync():
+    from pymongo import MongoClient
+    c = MongoClient(MONGO_URL)
+    d = c[DB_NAME]
+    return d["integration_settings"].find_one({"type": "amocrm"}, {"_id": 0}) or {}
 
 
 # ============== MODELS ==============
 
 class CRMFieldConfig(BaseModel):
-    """Configuration for a custom CRM field mapped to amoCRM"""
     id: str
-    name: str  # Display name in UI
-    amoFieldId: str = ""  # amoCRM custom field ID
-    fieldType: str = "text"  # text, number, date, select
+    name: str
+    amoFieldId: str = ""
+    fieldType: str = "text"  # text, number, date, select, money
+    category: str = "custom"  # client, payment, production, custom
     enabled: bool = True
     sortOrder: int = 1
 
 
 class CRMStageConfig(BaseModel):
-    """Configuration for CRM stage mapped to amoCRM pipeline stage"""
     id: str
-    name: str  # Display name (e.g., "Новая заявка")
-    amoStageId: str = ""  # amoCRM stage ID
-    amoPipelineId: str = ""  # amoCRM pipeline ID
-    color: str = "#3b82f6"  # Stage color for UI
+    name: str
+    amoStageId: str = ""
+    amoPipelineId: str = ""
+    color: str = "#3b82f6"
     sortOrder: int = 1
 
 
 class CRMSettings(BaseModel):
-    """CRM settings including field mappings and stage configurations"""
     fields: List[CRMFieldConfig] = []
     stages: List[CRMStageConfig] = []
+    syncBackFields: List[Dict[str, str]] = []  # [{fieldId, amoFieldId}]
     autoSyncEnabled: bool = True
     lastSyncAt: Optional[str] = None
 
 
 class CRMLead(BaseModel):
-    """Lead/order in the CRM kanban board"""
-    id: str = Field(default_factory=lambda: f"CRM-{datetime.now().strftime('%Y%m%d%H%M%S')}")
-    stageId: str  # Current stage ID
-    
-    # Client info
+    id: str = Field(default_factory=lambda: f"CRM-{uuid.uuid4().hex[:8].upper()}")
+    stageId: str
     clientName: str = ""
     phone: str = ""
     email: str = ""
     address: str = ""
-    
-    # amoCRM data
     amocrm_id: Optional[str] = None
     amocrm_link: Optional[str] = None
-    
-    # Custom fields (field_1 through field_10)
     field_1: Optional[str] = None
     field_2: Optional[str] = None
     field_3: Optional[str] = None
@@ -65,18 +72,18 @@ class CRMLead(BaseModel):
     field_8: Optional[str] = None
     field_9: Optional[str] = None
     field_10: Optional[str] = None
-    
-    # Calculator link data
-    calculatorData: Optional[Dict[str, Any]] = None  # Data to pass to calculator
-    calculatorPdfUrl: Optional[str] = None  # Generated PDF URL
-    
-    # Timestamps
+    readyDate: Optional[str] = None  # Production ready date
+    productionDate: Optional[str] = None
+    deliveryDate: Optional[str] = None
+    modelName: Optional[str] = None
+    totalAmount: Optional[float] = None
+    paidAmount: Optional[float] = None
+    documents: List[Dict[str, Any]] = []
+    calculatorData: Optional[Dict[str, Any]] = None
+    calculatorPdfUrl: Optional[str] = None
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updatedAt: Optional[str] = None
-    
-    # History
-    stageHistory: List[Dict[str, Any]] = []  # Stage change history
-    
+    stageHistory: List[Dict[str, Any]] = []
     notes: str = ""
     isImportant: bool = False
 
@@ -84,35 +91,34 @@ class CRMLead(BaseModel):
 # ============== DEFAULT SETTINGS ==============
 
 def get_default_settings() -> dict:
-    """Get default CRM settings"""
     return {
         "fields": [
-            {"id": "field_1", "name": "Поле 1", "amoFieldId": "", "fieldType": "text", "enabled": True, "sortOrder": 1},
-            {"id": "field_2", "name": "Поле 2", "amoFieldId": "", "fieldType": "text", "enabled": True, "sortOrder": 2},
-            {"id": "field_3", "name": "Поле 3", "amoFieldId": "", "fieldType": "text", "enabled": True, "sortOrder": 3},
-            {"id": "field_4", "name": "Поле 4", "amoFieldId": "", "fieldType": "text", "enabled": True, "sortOrder": 4},
-            {"id": "field_5", "name": "Поле 5", "amoFieldId": "", "fieldType": "text", "enabled": True, "sortOrder": 5},
-            {"id": "field_6", "name": "Поле 6", "amoFieldId": "", "fieldType": "text", "enabled": False, "sortOrder": 6},
-            {"id": "field_7", "name": "Поле 7", "amoFieldId": "", "fieldType": "text", "enabled": False, "sortOrder": 7},
-            {"id": "field_8", "name": "Поле 8", "amoFieldId": "", "fieldType": "text", "enabled": False, "sortOrder": 8},
-            {"id": "field_9", "name": "Поле 9", "amoFieldId": "", "fieldType": "text", "enabled": False, "sortOrder": 9},
-            {"id": "field_10", "name": "Поле 10", "amoFieldId": "", "fieldType": "text", "enabled": False, "sortOrder": 10},
+            {"id": "field_1", "name": "Модель", "amoFieldId": "", "fieldType": "text", "category": "production", "enabled": True, "sortOrder": 1},
+            {"id": "field_2", "name": "Сумма заказа", "amoFieldId": "", "fieldType": "money", "category": "payment", "enabled": True, "sortOrder": 2},
+            {"id": "field_3", "name": "Предоплата", "amoFieldId": "", "fieldType": "money", "category": "payment", "enabled": True, "sortOrder": 3},
+            {"id": "field_4", "name": "Дата производства", "amoFieldId": "", "fieldType": "date", "category": "production", "enabled": True, "sortOrder": 4},
+            {"id": "field_5", "name": "Дата готовности", "amoFieldId": "", "fieldType": "date", "category": "production", "enabled": True, "sortOrder": 5},
+            {"id": "field_6", "name": "Поле 6", "amoFieldId": "", "fieldType": "text", "category": "custom", "enabled": False, "sortOrder": 6},
+            {"id": "field_7", "name": "Поле 7", "amoFieldId": "", "fieldType": "text", "category": "custom", "enabled": False, "sortOrder": 7},
+            {"id": "field_8", "name": "Поле 8", "amoFieldId": "", "fieldType": "text", "category": "custom", "enabled": False, "sortOrder": 8},
+            {"id": "field_9", "name": "Поле 9", "amoFieldId": "", "fieldType": "text", "category": "custom", "enabled": False, "sortOrder": 9},
+            {"id": "field_10", "name": "Поле 10", "amoFieldId": "", "fieldType": "text", "category": "custom", "enabled": False, "sortOrder": 10},
         ],
         "stages": [
-            {"id": "invoice_sent", "name": "Счет отправлен", "amoStageId": "", "amoPipelineId": "", "color": "#3b82f6", "sortOrder": 1},
-            {"id": "prepayment_received", "name": "Предоплата получена", "amoStageId": "", "amoPipelineId": "", "color": "#f59e0b", "sortOrder": 2},
-            {"id": "in_production", "name": "Передан в производство", "amoStageId": "", "amoPipelineId": "", "color": "#22c55e", "sortOrder": 3},
+            {"id": "new", "name": "Новый заказ", "amoStageId": "", "amoPipelineId": "", "color": "#3b82f6", "sortOrder": 1},
+            {"id": "in_production", "name": "В производстве", "amoStageId": "", "amoPipelineId": "", "color": "#f59e0b", "sortOrder": 2},
+            {"id": "ready", "name": "Готов", "amoStageId": "", "amoPipelineId": "", "color": "#22c55e", "sortOrder": 3},
         ],
+        "syncBackFields": [],
         "autoSyncEnabled": True,
         "lastSyncAt": None
     }
 
 
-# ============== SETTINGS ENDPOINTS ==============
+# ============== SETTINGS ==============
 
 @router.get("/settings")
 async def get_crm_settings():
-    """Get CRM settings"""
     settings = await db.sauna_crm_settings.find_one({}, {"_id": 0})
     if not settings:
         settings = get_default_settings()
@@ -122,71 +128,43 @@ async def get_crm_settings():
 
 @router.post("/settings")
 async def save_crm_settings(settings: CRMSettings):
-    """Save CRM settings"""
     settings_dict = settings.model_dump()
-    await db.sauna_crm_settings.update_one(
-        {},
-        {"$set": settings_dict},
-        upsert=True
-    )
+    await db.sauna_crm_settings.update_one({}, {"$set": settings_dict}, upsert=True)
     return {"status": "ok", "message": "Settings saved"}
 
 
 @router.put("/settings/fields")
 async def update_field_settings(fields: List[CRMFieldConfig]):
-    """Update field configurations"""
     fields_dict = [f.model_dump() for f in fields]
-    await db.sauna_crm_settings.update_one(
-        {},
-        {"$set": {"fields": fields_dict}},
-        upsert=True
-    )
+    await db.sauna_crm_settings.update_one({}, {"$set": {"fields": fields_dict}}, upsert=True)
     return {"status": "ok", "message": "Fields updated"}
 
 
 @router.put("/settings/stages")
 async def update_stage_settings(stages: List[CRMStageConfig]):
-    """Update stage configurations"""
     stages_dict = [s.model_dump() for s in stages]
-    await db.sauna_crm_settings.update_one(
-        {},
-        {"$set": {"stages": stages_dict}},
-        upsert=True
-    )
+    await db.sauna_crm_settings.update_one({}, {"$set": {"stages": stages_dict}}, upsert=True)
     return {"status": "ok", "message": "Stages updated"}
 
 
-# ============== LEADS ENDPOINTS ==============
+# ============== LEADS CRUD ==============
 
 @router.get("/leads")
 async def get_all_leads():
-    """Get all CRM leads grouped by stage"""
     leads = await db.sauna_crm_leads.find({}, {"_id": 0}).to_list(1000)
     settings = await get_crm_settings()
-    
-    # Group leads by stage
     stages_data = {}
     for stage in settings.get("stages", []):
-        stages_data[stage["id"]] = {
-            "stage": stage,
-            "leads": []
-        }
-    
+        stages_data[stage["id"]] = {"stage": stage, "leads": []}
     for lead in leads:
-        stage_id = lead.get("stageId", "new")
-        if stage_id in stages_data:
-            stages_data[stage_id]["leads"].append(lead)
-    
-    return {
-        "leads": leads,
-        "byStage": stages_data,
-        "settings": settings
-    }
+        sid = lead.get("stageId", "new")
+        if sid in stages_data:
+            stages_data[sid]["leads"].append(lead)
+    return {"leads": leads, "byStage": stages_data, "settings": settings}
 
 
 @router.get("/leads/{lead_id}")
 async def get_lead(lead_id: str):
-    """Get a single lead by ID"""
     lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -195,110 +173,379 @@ async def get_lead(lead_id: str):
 
 @router.post("/leads")
 async def create_lead(lead: CRMLead):
-    """Create a new lead"""
     lead_dict = lead.model_dump()
     lead_dict["createdAt"] = datetime.now(timezone.utc).isoformat()
-    
-    # Add initial stage to history
-    lead_dict["stageHistory"] = [{
-        "stageId": lead.stageId,
-        "timestamp": lead_dict["createdAt"],
-        "action": "created"
-    }]
-    
+    lead_dict["stageHistory"] = [{"stageId": lead.stageId, "timestamp": lead_dict["createdAt"], "action": "created"}]
     await db.sauna_crm_leads.insert_one(lead_dict)
-    # Remove _id before returning (MongoDB adds it)
     lead_dict.pop("_id", None)
     return {"status": "ok", "lead": lead_dict}
 
 
 @router.put("/leads/{lead_id}")
-async def update_lead(lead_id: str, lead: CRMLead):
-    """Update a lead"""
-    existing = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Lead not found")
-    
-    lead_dict = lead.model_dump()
-    lead_dict["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    
-    # Track stage change
-    if existing.get("stageId") != lead.stageId:
-        history = existing.get("stageHistory", [])
-        history.append({
-            "fromStage": existing.get("stageId"),
-            "toStage": lead.stageId,
-            "timestamp": lead_dict["updatedAt"],
-            "action": "stage_changed"
-        })
-        lead_dict["stageHistory"] = history
-        
-        # Sync to amoCRM if configured
-        await sync_stage_to_amocrm(lead_id, lead.stageId)
-    
-    await db.sauna_crm_leads.update_one(
-        {"id": lead_id},
-        {"$set": lead_dict}
-    )
-    
-    updated = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
-    return updated
-
-
-@router.put("/leads/{lead_id}/stage")
-async def change_lead_stage(lead_id: str, stage_id: str):
-    """Change lead stage (for drag-and-drop)"""
+async def update_lead(lead_id: str, data: dict):
     existing = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Lead not found")
     
     now = datetime.now(timezone.utc).isoformat()
+    data["updatedAt"] = now
     
-    # Add to history
+    # Track stage change
+    if "stageId" in data and existing.get("stageId") != data["stageId"]:
+        history = existing.get("stageHistory", [])
+        history.append({"fromStage": existing["stageId"], "toStage": data["stageId"], "timestamp": now, "action": "stage_changed"})
+        data["stageHistory"] = history
+        await sync_stage_to_amocrm(lead_id, data["stageId"])
+    
+    # Remove _id if present
+    data.pop("_id", None)
+    data.pop("id", None)
+    
+    await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": data})
+    updated = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    return updated
+
+
+@router.put("/leads/{lead_id}/stage")
+async def change_lead_stage(lead_id: str, stage_id: str = Query(...)):
+    existing = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    now = datetime.now(timezone.utc).isoformat()
     history = existing.get("stageHistory", [])
-    history.append({
-        "fromStage": existing.get("stageId"),
-        "toStage": stage_id,
-        "timestamp": now,
-        "action": "stage_changed"
-    })
-    
-    await db.sauna_crm_leads.update_one(
-        {"id": lead_id},
-        {"$set": {
-            "stageId": stage_id,
-            "updatedAt": now,
-            "stageHistory": history
-        }}
-    )
-    
-    # Sync to amoCRM
+    history.append({"fromStage": existing.get("stageId"), "toStage": stage_id, "timestamp": now, "action": "stage_changed"})
+    await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": {"stageId": stage_id, "updatedAt": now, "stageHistory": history}})
     await sync_stage_to_amocrm(lead_id, stage_id)
-    
     updated = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     return updated
 
 
 @router.delete("/leads/{lead_id}")
 async def delete_lead(lead_id: str):
-    """Delete a lead"""
     result = await db.sauna_crm_leads.delete_one({"id": lead_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Lead not found")
-    return {"status": "ok", "message": "Lead deleted"}
+    return {"status": "ok"}
+
+
+# ============== DOCUMENTS ==============
+
+@router.post("/leads/{lead_id}/documents")
+async def upload_document(
+    lead_id: str,
+    file: UploadFile = File(...),
+    doc_type: str = Form("other"),  # kp, contract, invoice, other
+    doc_name: str = Form("")
+):
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    file_bytes = await file.read()
+    filename = file.filename or "document"
+    display_name = doc_name or filename
+    
+    # Upload to Cloudinary
+    cloudinary_url = None
+    if is_cloudinary_configured():
+        try:
+            is_pdf = filename.lower().endswith('.pdf')
+            if is_pdf:
+                result = await cloudinary_upload_pdf(file_bytes, filename)
+            else:
+                from services.cloudinary_service import upload_image
+                result = await upload_image(file_bytes, filename, folder="wm-calculator/crm-docs")
+            if result and result.get("url"):
+                cloudinary_url = result["url"]
+        except Exception as e:
+            logger.error(f"Cloudinary upload failed: {e}")
+    
+    if not cloudinary_url:
+        raise HTTPException(status_code=500, detail="Failed to upload file")
+    
+    doc = {
+        "id": str(uuid.uuid4())[:8],
+        "type": doc_type,
+        "name": display_name,
+        "url": cloudinary_url,
+        "filename": filename,
+        "uploadedAt": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.sauna_crm_leads.update_one({"id": lead_id}, {"$push": {"documents": doc}})
+    
+    # Send link to amoCRM as note
+    if lead.get("amocrm_id"):
+        amo = get_amo_settings_sync()
+        domain = amo.get("amocrm_domain", "")
+        token = amo.get("amocrm_token", "")
+        if domain and token:
+            type_labels = {"kp": "КП", "contract": "Договор", "invoice": "Счёт", "other": "Документ"}
+            note_text = f"📄 Загружен документ: {type_labels.get(doc_type, doc_type)}\n{display_name}\n{cloudinary_url}"
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    await client.post(
+                        f"https://{domain}/api/v4/leads/{lead['amocrm_id']}/notes",
+                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                        json=[{"note_type": "common", "params": {"text": note_text}}]
+                    )
+            except Exception as e:
+                logger.error(f"Failed to send doc note to amoCRM: {e}")
+    
+    return {"status": "ok", "document": doc}
+
+
+@router.delete("/leads/{lead_id}/documents/{doc_id}")
+async def delete_document(lead_id: str, doc_id: str):
+    await db.sauna_crm_leads.update_one(
+        {"id": lead_id},
+        {"$pull": {"documents": {"id": doc_id}}}
+    )
+    return {"status": "ok"}
+
+
+# ============== CALENDAR ==============
+
+@router.get("/calendar")
+async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
+    """Get orders for production calendar grouped by readyDate."""
+    leads = await db.sauna_crm_leads.find(
+        {"readyDate": {"$exists": True, "$ne": None, "$ne": ""}},
+        {"_id": 0}
+    ).to_list(5000)
+    
+    # Filter by month/year and group by date
+    by_date = {}
+    for lead in leads:
+        rd = lead.get("readyDate", "")
+        if not rd:
+            continue
+        try:
+            dt = datetime.fromisoformat(rd.replace("Z", "+00:00")) if "T" in rd else datetime.strptime(rd[:10], "%Y-%m-%d")
+            if dt.month == month and dt.year == year:
+                date_key = dt.strftime("%Y-%m-%d")
+                if date_key not in by_date:
+                    by_date[date_key] = []
+                by_date[date_key].append({
+                    "id": lead.get("id"),
+                    "clientName": lead.get("clientName", ""),
+                    "modelName": lead.get("modelName") or lead.get("field_1", ""),
+                    "readyDate": rd,
+                    "stageId": lead.get("stageId"),
+                    "totalAmount": lead.get("totalAmount") or lead.get("field_2"),
+                    "phone": lead.get("phone", ""),
+                })
+        except (ValueError, TypeError):
+            continue
+    
+    return {"month": month, "year": year, "byDate": by_date, "totalOrders": sum(len(v) for v in by_date.values())}
+
+
+# ============== AMOCRM SYNC ==============
+
+async def sync_stage_to_amocrm(lead_id: str, stage_id: str):
+    """Sync stage change to amoCRM."""
+    try:
+        lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+        if not lead or not lead.get("amocrm_id"):
+            return
+        settings = await get_crm_settings()
+        stage_config = next((s for s in settings.get("stages", []) if s["id"] == stage_id), None)
+        if not stage_config or not stage_config.get("amoStageId"):
+            return
+        amo = get_amo_settings_sync()
+        domain = amo.get("amocrm_domain", "")
+        token = amo.get("amocrm_token", "")
+        if not domain or not token:
+            return
+        payload = {"status_id": int(stage_config["amoStageId"])}
+        if stage_config.get("amoPipelineId"):
+            payload["pipeline_id"] = int(stage_config["amoPipelineId"])
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.patch(
+                f"https://{domain}/api/v4/leads/{lead['amocrm_id']}",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json=payload
+            )
+            if resp.status_code == 200:
+                await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": {"lastAmoSyncAt": datetime.now(timezone.utc).isoformat()}})
+                logger.info(f"CRM stage synced to amoCRM: lead={lead_id}, stage={stage_id}")
+    except Exception as e:
+        logger.error(f"Error syncing stage to amoCRM: {e}")
+
+
+@router.post("/sync-from-amocrm")
+async def sync_leads_from_amocrm():
+    """Import leads from amoCRM based on configured stages."""
+    settings = await get_crm_settings()
+    amo = get_amo_settings_sync()
+    domain = amo.get("amocrm_domain", "")
+    token = amo.get("amocrm_token", "")
+    if not domain or not token:
+        raise HTTPException(status_code=400, detail="amoCRM не настроен")
+    
+    imported = 0
+    updated = 0
+    
+    try:
+        headers_amo = {"Authorization": f"Bearer {token}"}
+        field_mappings = {f["amoFieldId"]: f["id"] for f in settings.get("fields", []) if f.get("amoFieldId")}
+        
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            for stage in settings.get("stages", []):
+                if not stage.get("amoStageId") or not stage.get("amoPipelineId"):
+                    continue
+                
+                resp = await client.get(
+                    f"https://{domain}/api/v4/leads",
+                    headers=headers_amo,
+                    params={
+                        "filter[statuses][0][status_id]": stage["amoStageId"],
+                        "filter[statuses][0][pipeline_id]": stage["amoPipelineId"],
+                        "with": "contacts",
+                        "limit": 250
+                    }
+                )
+                
+                if resp.status_code == 204:
+                    continue
+                if resp.status_code != 200:
+                    logger.error(f"amoCRM API error: {resp.status_code}")
+                    continue
+                
+                leads_data = resp.json().get("_embedded", {}).get("leads", [])
+                
+                for amo_lead in leads_data:
+                    amo_id = str(amo_lead["id"])
+                    existing = await db.sauna_crm_leads.find_one({"amocrm_id": amo_id})
+                    
+                    # Extract custom fields
+                    custom_fields = amo_lead.get("custom_fields_values", [])
+                    field_vals = {}
+                    for cf in custom_fields:
+                        cf_id = str(cf.get("field_id", ""))
+                        if cf_id in field_mappings:
+                            vals = cf.get("values", [])
+                            if vals:
+                                field_vals[field_mappings[cf_id]] = vals[0].get("value", "")
+                    
+                    # Extract contacts
+                    contacts = amo_lead.get("_embedded", {}).get("contacts", [])
+                    contact_name = contacts[0].get("name", "") if contacts else ""
+                    contact_phone = ""
+                    if contacts:
+                        try:
+                            cr = await client.get(f"https://{domain}/api/v4/contacts/{contacts[0]['id']}", headers=headers_amo, timeout=10)
+                            if cr.status_code == 200:
+                                for cf in cr.json().get("custom_fields_values", []):
+                                    if cf.get("field_code") == "PHONE" and cf.get("values"):
+                                        contact_phone = cf["values"][0].get("value", "")
+                                        break
+                        except Exception:
+                            pass
+                    
+                    if existing:
+                        # Update existing lead fields from amoCRM
+                        update_data = {"updatedAt": datetime.now(timezone.utc).isoformat()}
+                        if contact_name:
+                            update_data["clientName"] = contact_name
+                        if contact_phone:
+                            update_data["phone"] = contact_phone
+                        update_data.update(field_vals)
+                        if amo_lead.get("price"):
+                            update_data["totalAmount"] = amo_lead["price"]
+                        await db.sauna_crm_leads.update_one({"amocrm_id": amo_id}, {"$set": update_data})
+                        updated += 1
+                    else:
+                        new_lead = {
+                            "id": f"CRM-{uuid.uuid4().hex[:8].upper()}",
+                            "stageId": stage["id"],
+                            "clientName": contact_name or amo_lead.get("name", ""),
+                            "phone": contact_phone,
+                            "email": "",
+                            "address": "",
+                            "amocrm_id": amo_id,
+                            "amocrm_link": f"https://{domain}/leads/detail/{amo_id}",
+                            "totalAmount": amo_lead.get("price"),
+                            "documents": [],
+                            "createdAt": datetime.now(timezone.utc).isoformat(),
+                            "stageHistory": [{"stageId": stage["id"], "timestamp": datetime.now(timezone.utc).isoformat(), "action": "imported_from_amocrm"}],
+                            "notes": "",
+                            "isImportant": False,
+                            **field_vals
+                        }
+                        await db.sauna_crm_leads.insert_one(new_lead)
+                        imported += 1
+        
+        await db.sauna_crm_settings.update_one({}, {"$set": {"lastSyncAt": datetime.now(timezone.utc).isoformat()}}, upsert=True)
+        return {"status": "ok", "imported": imported, "updated": updated, "message": f"Импортировано: {imported}, обновлено: {updated}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Sync error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/leads/{lead_id}/sync-to-amocrm")
+async def sync_lead_to_amocrm(lead_id: str):
+    """Push lead changes back to amoCRM (ready date, comments)."""
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead or not lead.get("amocrm_id"):
+        raise HTTPException(status_code=400, detail="Lead not linked to amoCRM")
+    
+    settings = await get_crm_settings()
+    amo = get_amo_settings_sync()
+    domain = amo.get("amocrm_domain", "")
+    token = amo.get("amocrm_token", "")
+    if not domain or not token:
+        raise HTTPException(status_code=400, detail="amoCRM не настроен")
+    
+    sync_back = settings.get("syncBackFields", [])
+    if not sync_back:
+        raise HTTPException(status_code=400, detail="Не настроены поля для синхронизации обратно")
+    
+    custom_fields = []
+    for mapping in sync_back:
+        field_id = mapping.get("fieldId", "")
+        amo_field_id = mapping.get("amoFieldId", "")
+        if not field_id or not amo_field_id:
+            continue
+        value = lead.get(field_id, "")
+        if value:
+            custom_fields.append({"field_id": int(amo_field_id), "values": [{"value": str(value)}]})
+    
+    # Also send notes as a comment if changed
+    payload = {}
+    if custom_fields:
+        payload["custom_fields_values"] = custom_fields
+    
+    if not payload:
+        return {"status": "ok", "message": "Нечего синхронизировать"}
+    
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.patch(
+                f"https://{domain}/api/v4/leads/{lead['amocrm_id']}",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json=payload
+            )
+            if resp.status_code == 200:
+                await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": {"lastAmoSyncAt": datetime.now(timezone.utc).isoformat()}})
+                return {"status": "ok", "message": "Данные отправлены в amoCRM"}
+            else:
+                return {"status": "error", "message": f"amoCRM: {resp.status_code} - {resp.text[:200]}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============== CALCULATOR INTEGRATION ==============
 
 @router.post("/leads/{lead_id}/open-calculator")
 async def get_calculator_data(lead_id: str):
-    """Get lead data formatted for opening in calculator"""
     lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
-    
-    # Format data for calculator pre-fill
-    calculator_data = {
+    return {"calculatorData": {
         "crmLeadId": lead_id,
         "fullName": lead.get("clientName", ""),
         "phoneNumber": lead.get("phone", ""),
@@ -306,214 +553,17 @@ async def get_calculator_data(lead_id: str):
         "fullAddress": lead.get("address", ""),
         "amocrm_id": lead.get("amocrm_id"),
         "amocrm_link": lead.get("amocrm_link"),
-        # Include any calculator data that was previously saved
         **(lead.get("calculatorData") or {})
-    }
-    
-    return {"calculatorData": calculator_data}
+    }}
 
 
 @router.put("/leads/{lead_id}/calculator-data")
 async def save_calculator_data(lead_id: str, data: dict):
-    """Save calculator data back to lead"""
     existing = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Lead not found")
-    
-    now = datetime.now(timezone.utc).isoformat()
-    
     await db.sauna_crm_leads.update_one(
         {"id": lead_id},
-        {"$set": {
-            "calculatorData": data.get("calculatorData"),
-            "calculatorPdfUrl": data.get("pdfUrl"),
-            "updatedAt": now
-        }}
+        {"$set": {"calculatorData": data.get("calculatorData"), "calculatorPdfUrl": data.get("pdfUrl"), "updatedAt": datetime.now(timezone.utc).isoformat()}}
     )
-    
-    return {"status": "ok", "message": "Calculator data saved"}
-
-
-# ============== AMOCRM SYNC ==============
-
-async def sync_stage_to_amocrm(lead_id: str, stage_id: str):
-    """Sync stage change to amoCRM"""
-    try:
-        lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
-        if not lead or not lead.get("amocrm_id"):
-            return
-        
-        settings = await get_crm_settings()
-        
-        # Find stage config
-        stage_config = None
-        for stage in settings.get("stages", []):
-            if stage["id"] == stage_id:
-                stage_config = stage
-                break
-        
-        if not stage_config or not stage_config.get("amoStageId"):
-            return
-        
-        # Get amoCRM settings
-        amo_settings = await db.amocrm_settings.find_one({}, {"_id": 0})
-        if not amo_settings or not amo_settings.get("access_token"):
-            return
-        
-        # Update lead status in amoCRM
-        async with httpx.AsyncClient() as client:
-            response = await client.patch(
-                f"https://{amo_settings['subdomain']}.amocrm.ru/api/v4/leads/{lead['amocrm_id']}",
-                headers={
-                    "Authorization": f"Bearer {amo_settings['access_token']}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "status_id": int(stage_config["amoStageId"]),
-                    "pipeline_id": int(stage_config["amoPipelineId"]) if stage_config.get("amoPipelineId") else None
-                },
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                await db.sauna_crm_leads.update_one(
-                    {"id": lead_id},
-                    {"$set": {"lastAmoSyncAt": datetime.now(timezone.utc).isoformat()}}
-                )
-    except Exception as e:
-        print(f"Error syncing to amoCRM: {e}")
-
-
-@router.post("/sync-from-amocrm")
-async def sync_leads_from_amocrm():
-    """Import leads from amoCRM based on configured stages"""
-    settings = await get_crm_settings()
-    amo_settings = await db.amocrm_settings.find_one({}, {"_id": 0})
-    
-    if not amo_settings or not amo_settings.get("access_token"):
-        raise HTTPException(status_code=400, detail="amoCRM not configured")
-    
-    imported_count = 0
-    
-    try:
-        async with httpx.AsyncClient() as client:
-            for stage in settings.get("stages", []):
-                if not stage.get("amoStageId"):
-                    continue
-                
-                # Fetch leads from amoCRM for this stage
-                response = await client.get(
-                    f"https://{amo_settings['subdomain']}.amocrm.ru/api/v4/leads",
-                    headers={
-                        "Authorization": f"Bearer {amo_settings['access_token']}"
-                    },
-                    params={
-                        "filter[statuses][0][status_id]": stage["amoStageId"],
-                        "filter[statuses][0][pipeline_id]": stage.get("amoPipelineId", ""),
-                        "with": "contacts"
-                    },
-                    timeout=30
-                )
-                
-                if response.status_code != 200:
-                    continue
-                
-                data = response.json()
-                leads = data.get("_embedded", {}).get("leads", [])
-                
-                for amo_lead in leads:
-                    # Check if lead already exists
-                    existing = await db.sauna_crm_leads.find_one({"amocrm_id": str(amo_lead["id"])})
-                    if existing:
-                        continue
-                    
-                    # Create new lead
-                    new_lead = {
-                        "id": f"CRM-{datetime.now().strftime('%Y%m%d%H%M%S')}-{amo_lead['id']}",
-                        "stageId": stage["id"],
-                        "clientName": amo_lead.get("name", ""),
-                        "phone": "",
-                        "email": "",
-                        "address": "",
-                        "amocrm_id": str(amo_lead["id"]),
-                        "amocrm_link": f"https://{amo_settings['subdomain']}.amocrm.ru/leads/detail/{amo_lead['id']}",
-                        "createdAt": datetime.now(timezone.utc).isoformat(),
-                        "stageHistory": [{
-                            "stageId": stage["id"],
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
-                            "action": "imported_from_amocrm"
-                        }],
-                        "notes": "",
-                        "isImportant": False
-                    }
-                    
-                    # Extract custom fields
-                    custom_fields = amo_lead.get("custom_fields_values", [])
-                    field_mappings = {f["amoFieldId"]: f["id"] for f in settings.get("fields", []) if f.get("amoFieldId")}
-                    
-                    for cf in custom_fields:
-                        cf_id = str(cf.get("field_id", ""))
-                        if cf_id in field_mappings:
-                            field_key = field_mappings[cf_id]
-                            values = cf.get("values", [])
-                            if values:
-                                new_lead[field_key] = values[0].get("value", "")
-                    
-                    await db.sauna_crm_leads.insert_one(new_lead)
-                    imported_count += 1
-        
-        # Update last sync time
-        await db.sauna_crm_settings.update_one(
-            {},
-            {"$set": {"lastSyncAt": datetime.now(timezone.utc).isoformat()}}
-        )
-        
-        return {"status": "ok", "imported": imported_count}
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Sync error: {str(e)}")
-
-
-@router.post("/leads/{lead_id}/upload-kp")
-async def upload_kp_to_amocrm(lead_id: str, data: dict):
-    """Upload КП PDF to amoCRM"""
-    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
-    if not lead or not lead.get("amocrm_id"):
-        raise HTTPException(status_code=400, detail="Lead not found or not linked to amoCRM")
-    
-    pdf_url = data.get("pdfUrl")
-    if not pdf_url:
-        raise HTTPException(status_code=400, detail="PDF URL required")
-    
-    amo_settings = await db.amocrm_settings.find_one({}, {"_id": 0})
-    if not amo_settings or not amo_settings.get("access_token"):
-        raise HTTPException(status_code=400, detail="amoCRM not configured")
-    
-    try:
-        async with httpx.AsyncClient() as client:
-            # Download PDF
-            pdf_response = await client.get(pdf_url, timeout=30)
-            if pdf_response.status_code != 200:
-                raise HTTPException(status_code=400, detail="Failed to download PDF")
-            
-            # Upload to amoCRM
-            files = {
-                "file": (f"KP_{lead_id}.pdf", pdf_response.content, "application/pdf")
-            }
-            
-            upload_response = await client.post(
-                f"https://{amo_settings['subdomain']}.amocrm.ru/api/v4/leads/{lead['amocrm_id']}/files",
-                headers={
-                    "Authorization": f"Bearer {amo_settings['access_token']}"
-                },
-                files=files,
-                timeout=60
-            )
-            
-            if upload_response.status_code in [200, 201]:
-                return {"status": "ok", "message": "КП uploaded to amoCRM"}
-            else:
-                raise HTTPException(status_code=500, detail=f"amoCRM upload failed: {upload_response.text}")
-                
-    except httpx.RequestError as e:
-        raise HTTPException(status_code=500, detail=f"Upload error: {str(e)}")
+    return {"status": "ok"}
