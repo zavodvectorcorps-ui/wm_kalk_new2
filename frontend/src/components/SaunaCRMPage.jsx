@@ -58,6 +58,10 @@ const SaunaCRMPage = () => {
   // Active view
   const [activeView, setActiveView] = useState('calendar');
   
+  // Drag & drop
+  const [draggedLead, setDraggedLead] = useState(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
+  
   const token = localStorage.getItem('authToken');
   const authHeaders = { 'Authorization': `Bearer ${token}` };
 
@@ -223,6 +227,39 @@ const SaunaCRMPage = () => {
       fetchCalendar();
     } catch (e) { toast.error('Ошибка'); }
   };
+
+  // ---- Drag & Drop ----
+  const handleDragStart = (e, lead) => {
+    setDraggedLead(lead);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', lead.id);
+  };
+  const handleDragOver = (e, stageId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverStage(stageId);
+  };
+  const handleDragLeave = () => setDragOverStage(null);
+  const handleDrop = async (e, targetStageId) => {
+    e.preventDefault();
+    setDragOverStage(null);
+    if (!draggedLead || draggedLead.stageId === targetStageId) {
+      setDraggedLead(null);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/leads/${draggedLead.id}/stage?stage_id=${targetStageId}`, {
+        method: 'PUT', headers: authHeaders
+      });
+      if (res.ok) {
+        toast.success('Этап изменён');
+        fetchLeads();
+        fetchCalendar();
+      } else toast.error('Ошибка смены этапа');
+    } catch (e) { toast.error('Ошибка'); }
+    setDraggedLead(null);
+  };
+  const handleDragEnd = () => { setDraggedLead(null); setDragOverStage(null); };
 
   // ---- Calendar Logic ----
   const year = calendarDate.getFullYear();
@@ -393,16 +430,36 @@ const SaunaCRMPage = () => {
             </div>
           </div>
           <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(280px, 1fr))` }}>
-            {stages.map(stage => (
-              <div key={stage.id} className="rounded-lg p-3" style={{ backgroundColor: stage.color + '15' }}>
+            {stages.map(stage => {
+              const isOver = dragOverStage === stage.id;
+              return (
+              <div
+                key={stage.id}
+                className={`rounded-lg p-3 transition-all ${isOver ? 'ring-2 ring-offset-1' : ''}`}
+                style={{ backgroundColor: stage.color + (isOver ? '30' : '15'), ...(isOver ? { ringColor: stage.color } : {}) }}
+                onDragOver={(e) => handleDragOver(e, stage.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, stage.id)}
+                data-testid={`kanban-stage-${stage.id}`}
+              >
                 <h3 className="font-semibold text-sm mb-3 flex items-center gap-2" style={{ color: stage.color }}>
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
                   {stage.name}
                   <Badge variant="secondary" className="ml-auto text-xs">{(leadsByStage[stage.id] || []).length}</Badge>
                 </h3>
-                <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {(leadsByStage[stage.id] || []).map(lead => (
-                    <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => openLead(lead)} data-testid={`kanban-lead-${lead.id}`}>
+                <div className="space-y-2 max-h-[600px] overflow-y-auto min-h-[80px]">
+                  {(leadsByStage[stage.id] || []).map(lead => {
+                    const isDragging = draggedLead?.id === lead.id;
+                    return (
+                    <Card
+                      key={lead.id}
+                      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${isDragging ? 'opacity-40 scale-95' : ''}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, lead)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => { if (!draggedLead) openLead(lead); }}
+                      data-testid={`kanban-lead-${lead.id}`}
+                    >
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between mb-1">
                           <span className="font-medium text-sm truncate">{lead.clientName || 'Без имени'}</span>
@@ -422,13 +479,17 @@ const SaunaCRMPage = () => {
                         )}
                       </CardContent>
                     </Card>
-                  ))}
+                    );
+                  })}
                   {(leadsByStage[stage.id] || []).length === 0 && (
-                    <p className="text-center text-muted-foreground text-xs py-6">Нет заказов</p>
+                    <p className="text-center text-muted-foreground text-xs py-6">
+                      {isOver ? 'Отпустите для перемещения' : 'Нет заказов'}
+                    </p>
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </TabsContent>
 
