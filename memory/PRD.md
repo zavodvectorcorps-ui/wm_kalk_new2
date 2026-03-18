@@ -8,6 +8,24 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 ### Mar 17, 2026 - FEATURE: Sales Dashboard (COMPLETED)
 - **NEW FEATURE**: Complete Sales Dashboard accessible from Sauna section tab (admin-only)
 
+### Mar 18, 2026 - FEATURE: Mini CRM для саун (COMPLETED)
+- **NEW FEATURE**: Полноценная мини-CRM в разделе Sauna
+  - Производственный календарь: месячный вид, заказы привязаны по дате готовности, панель заказов справа при выборе даты
+  - Канбан-доска: настраиваемые этапы с цветами, карточки заказов
+  - Список: все заказы с поиском, badge'ами этапов и суммами
+  - Карточка клиента: контакт, 10 настраиваемых полей, даты (производство/готовность/доставка), заметки
+  - Документы: загрузка КП/Договор/Счёт в Cloudinary, отправка ссылки в amoCRM
+  - Настройки: поля (вкл/выкл, тип, маппинг amoCRM), этапы (цвет, Pipeline/Stage ID), обратная синхронизация
+  - amoCRM: импорт лидов по этапам, обновление этапа лида при перемещении, push полей обратно
+  - Двусторонняя связь: ручная синхронизация "В amoCRM" для push, "Синхронизировать" для pull
+- **Backend**: `/app/backend/routes/sauna_crm.py` - leads CRUD, documents, calendar, settings, amoCRM sync
+- **Frontend**: `/app/frontend/src/components/SaunaCRMPage.jsx` + CRM tab in Header
+- **Testing**: Backend 10/10, Frontend 100%
+
+### Mar 17, 2026 - BUGFIX: PDF ссылка в amoCRM
+- Убран вызов `/mark-quote-created` (отправлял заметку без ссылки)
+- Теперь отправляется одна заметка из `upload-calculator-pdf` со ссылкой Cloudinary
+
 ### Mar 17, 2026 - FEATURE: Довозы в Складе (COMPLETED)
 - **NEW FEATURE**: Раздел "Довозы" (Additional Deliveries) в Складе для теплиц
   - 3 этапа канбан-доски: Довоз принят → Довоз отправлен → Довоз доставлен
