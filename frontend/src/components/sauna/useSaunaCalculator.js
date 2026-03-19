@@ -1172,6 +1172,23 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             }
           );
           const uploadResult = await uploadResponse.json();
+          
+          // Save PDF link as document in CRM lead
+          const pdfCloudinaryUrl = uploadResult.cloudinary_url || uploadResult.pdf_url || uploadResult.fallback_url;
+          if (amocrmData.crmLeadId && pdfCloudinaryUrl) {
+            try {
+              await axios.post(`${API_URL}/api/sauna-crm/leads/${amocrmData.crmLeadId}/documents/link`, {
+                url: pdfCloudinaryUrl,
+                type: 'kp',
+                name: `КП ${formData.fullName || ''} ${finalOrderId}`.trim(),
+                filename: `KP_SAUNA_${finalOrderId}.pdf`,
+                orderId: finalOrderId,
+              });
+            } catch (docErr) {
+              console.error('Failed to link PDF to CRM lead:', docErr);
+            }
+          }
+          
           if (uploadResult.cloudinary_uploaded) {
             toast.success('PDF загружен и ссылка отправлена в amoCRM');
           } else if (uploadResult.status === 'ok' || uploadResult.status === 'partial') {
@@ -1191,8 +1208,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
               selectedModel: formData.selectedModel,
               total: total,
               createdAt: new Date().toISOString()
-            },
-            pdfUrl: null // PDF is stored in amoCRM, not as URL
+            }
           });
         } catch (e) {
           console.error('Failed to save calculator data to CRM lead:', e);

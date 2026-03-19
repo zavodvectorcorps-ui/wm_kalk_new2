@@ -304,6 +304,32 @@ async def delete_document(lead_id: str, doc_id: str):
     return {"status": "ok"}
 
 
+@router.post("/leads/{lead_id}/documents/link")
+async def link_document(lead_id: str, data: dict):
+    """Add a document by URL (no file upload needed). Used after PDF generation."""
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    url = data.get("url", "")
+    if not url:
+        raise HTTPException(status_code=400, detail="url is required")
+
+    doc = {
+        "id": str(uuid.uuid4())[:8],
+        "type": data.get("type", "kp"),
+        "name": data.get("name", "Коммерческое предложение"),
+        "url": url,
+        "filename": data.get("filename", ""),
+        "uploadedAt": datetime.now(timezone.utc).isoformat(),
+        "orderId": data.get("orderId"),
+    }
+
+    await db.sauna_crm_leads.update_one({"id": lead_id}, {"$push": {"documents": doc}})
+
+    return {"status": "ok", "document": doc}
+
+
 # ============== CALENDAR ==============
 
 @router.get("/calendar")
