@@ -2317,7 +2317,11 @@ async def generate_tech_spec_pdf(request: dict):
                 cloudinary_url = cloud_result["url"]
                 logger.info(f"Tech spec PDF uploaded to Cloudinary: {cloudinary_url}")
 
-                # Link to CRM lead as document
+                # Remove old tech_spec documents, then add new one
+                await db.sauna_crm_leads.update_one(
+                    {"id": lead_id},
+                    {"$pull": {"documents": {"type": "tech_spec"}}}
+                )
                 doc_entry = {
                     "id": str(os.urandom(4).hex()),
                     "type": "tech_spec",

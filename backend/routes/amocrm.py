@@ -2221,12 +2221,18 @@ async def upload_calculator_pdf_to_amocrm(
     })
     
     # Auto-link PDF as document in CRM lead (if exists)
+    # Remove old КП for this order first, then add new one
     if final_pdf_url and amocrm_id:
         try:
             crm_leads_col = db["sauna_crm_leads"]
             crm_lead = crm_leads_col.find_one({"amocrm_id": amocrm_id}, {"_id": 0})
             if crm_lead:
                 import uuid as uuid_mod
+                # Remove old kp documents for this order to avoid duplicates
+                crm_leads_col.update_one(
+                    {"amocrm_id": amocrm_id},
+                    {"$pull": {"documents": {"type": "kp", "orderId": order_id}}}
+                )
                 doc = {
                     "id": str(uuid_mod.uuid4())[:8],
                     "type": "kp",
@@ -2240,7 +2246,7 @@ async def upload_calculator_pdf_to_amocrm(
                     {"amocrm_id": amocrm_id},
                     {"$push": {"documents": doc}}
                 )
-                logger.info(f"PDF linked to CRM lead {crm_lead.get('id')} as document")
+                logger.info(f"PDF linked to CRM lead {crm_lead.get('id')} as document (old kp replaced)")
         except Exception as e:
             logger.error(f"Failed to link PDF to CRM lead: {e}")
     

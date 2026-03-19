@@ -419,6 +419,8 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
                 cloudinary_url = log_entry.get("cloudinary_url")
             
             if cloudinary_url:
+                # Remove old kp documents to avoid duplicates
+                crm_lead["documents"] = [d for d in crm_lead.get("documents", []) if d.get("type") != "kp"]
                 pdf_document = {
                     "id": str(uuid.uuid4())[:8],
                     "type": "kp",
