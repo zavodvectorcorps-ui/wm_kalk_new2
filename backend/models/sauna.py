@@ -67,6 +67,8 @@ class OptionVariant(BaseModel):
     namePl: Optional[str] = ""  # Polish name (same as name)
     price: int = 0  # Full price for this variant (replaces option base price)
     imageUrl: Optional[str] = None  # Image for this variant
+    techSpecCategoryId: Optional[str] = None  # Link to tech spec category
+    techSpecId: Optional[str] = None  # Link to tech spec option
 
 
 # Keep SubOption as alias for backward compatibility during migration

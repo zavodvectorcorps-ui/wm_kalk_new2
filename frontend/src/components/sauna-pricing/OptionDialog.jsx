@@ -5,7 +5,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
 import { Badge } from '../ui/badge';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, Wrench } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import {
   Dialog,
@@ -889,6 +889,60 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                           <p className="text-xs text-gray-400 mt-1">
                             {variant.imageUrl ? '✓ Фото загружено' : '⚠ Добавьте фото для PDF'}
                           </p>
+                          {/* Variant Tech Spec Mapping */}
+                          <div className="mt-2 flex items-center gap-2">
+                            <Wrench className="h-3 w-3 text-amber-600 flex-shrink-0" />
+                            <Select
+                              value={variant.techSpecCategoryId || '_none'}
+                              onValueChange={(val) => {
+                                setEditingOption(prev => ({
+                                  ...prev,
+                                  variants: (prev.variants || prev.subOptions || []).map((v, i) =>
+                                    i === idx ? { ...v, techSpecCategoryId: val === '_none' ? null : val } : v
+                                  ),
+                                  subOptions: []
+                                }));
+                              }}
+                            >
+                              <SelectTrigger className="h-7 text-xs flex-1">
+                                <SelectValue placeholder="ТЗ категория" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="_none">— Не привязано —</SelectItem>
+                                {(techSpecCategories || []).map(tc => (
+                                  <SelectItem key={tc.id} value={tc.id}>{tc.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {variant.techSpecCategoryId && (() => {
+                              const tsCat = (techSpecCategories || []).find(tc => tc.id === variant.techSpecCategoryId);
+                              if (!tsCat?.options?.length) return null;
+                              return (
+                                <Select
+                                  value={variant.techSpecId || '_none'}
+                                  onValueChange={(val) => {
+                                    setEditingOption(prev => ({
+                                      ...prev,
+                                      variants: (prev.variants || prev.subOptions || []).map((v, i) =>
+                                        i === idx ? { ...v, techSpecId: val === '_none' ? null : val } : v
+                                      ),
+                                      subOptions: []
+                                    }));
+                                  }}
+                                >
+                                  <SelectTrigger className="h-7 text-xs flex-1">
+                                    <SelectValue placeholder="ТЗ опция" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="_none">Текстом</SelectItem>
+                                    {tsCat.options.map(to => (
+                                      <SelectItem key={to.id} value={to.id}>{to.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </div>
                     </div>
