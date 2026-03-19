@@ -368,6 +368,14 @@ const WarehousePage = ({ onBack }) => {
                   <span>{getDisplayPhone(order)}</span>
                 </div>
               )}
+              {order.products && (
+                <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs" data-testid={`dovoz-products-${order.id}`}>
+                  <div className="font-medium text-amber-800 mb-1 flex items-center gap-1">
+                    <Box className="w-3 h-3" />Товары
+                  </div>
+                  <div className="text-amber-700 whitespace-pre-line">{order.products}</div>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" onClick={() => {
@@ -675,9 +683,23 @@ const WarehousePage = ({ onBack }) => {
                       </div>
                     </>
                   )}
+                  <div className="pt-2 border-t">
+                    <Label className="text-xs font-semibold">Товары (ID полей amoCRM)</Label>
+                    <p className="text-xs text-muted-foreground mb-2">Данные из этих полей будут объединены в поле "Товары"</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Поле товаров 1</Label>
+                        <Input value={settingsForm.dovoz_config.products_field_id_1 || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, products_field_id_1: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="products-field-1-dropdown" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Поле товаров 2</Label>
+                        <Input value={settingsForm.dovoz_config.products_field_id_2 || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, products_field_id_2: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="products-field-2-dropdown" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-3">
+                  <div className="space-y-3">
                   <p className="text-xs text-muted-foreground">Нажмите "Загрузить воронки" или введите ID вручную:</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -695,6 +717,20 @@ const WarehousePage = ({ onBack }) => {
                     <div>
                       <Label className="text-xs">Delivered Status ID</Label>
                       <Input value={settingsForm.dovoz_config.delivered_status_id} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, delivered_status_id: e.target.value } }))} placeholder="ID этапа 'доставлен'" data-testid="delivered-status-input" />
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t">
+                    <Label className="text-xs font-semibold">Товары (ID полей amoCRM)</Label>
+                    <p className="text-xs text-muted-foreground mb-2">Данные из этих полей будут объединены в поле "Товары"</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Поле товаров 1</Label>
+                        <Input value={settingsForm.dovoz_config.products_field_id_1 || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, products_field_id_1: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="products-field-1-input" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Поле товаров 2</Label>
+                        <Input value={settingsForm.dovoz_config.products_field_id_2 || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, products_field_id_2: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="products-field-2-input" />
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -298,6 +298,20 @@ async def sync_stage_to_amocrm(order: dict, stage: str) -> dict:
         return {"status": "error", "detail": str(e)}
 
 
+def _extract_products(field_values_by_id: dict, field_all_values_by_id: dict, dovoz_config: dict) -> str:
+    """Extract and merge products from two configurable amoCRM fields."""
+    fid1 = str(dovoz_config.get("products_field_id_1", "") or "")
+    fid2 = str(dovoz_config.get("products_field_id_2", "") or "")
+    parts = []
+    for fid in [fid1, fid2]:
+        if fid:
+            val = field_all_values_by_id.get(fid, "") or field_values_by_id.get(fid, "")
+            val = val.strip()
+            if val:
+                parts.append(val)
+    return "\n".join(parts)
+
+
 @router.post("/sync-from-amocrm")
 async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
     """Pull leads from configured amoCRM stage into 'Довоз принят'."""
@@ -357,6 +371,7 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
             # Extract custom fields from lead
             custom_fields = lead.get("custom_fields_values", [])
             field_values_by_id = {}
+            field_all_values_by_id = {}
             field_values_by_name = {}
             for field in custom_fields:
                 fid = str(field.get("field_id", ""))
@@ -364,11 +379,18 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                 fcode = str(field.get("field_code", "")).lower()
                 values = field.get("values", [])
                 value = ""
+                all_vals = []
                 if isinstance(values, list) and values:
+                    for v in values:
+                        vv = v.get("value", "") if isinstance(v, dict) else str(v)
+                        if vv:
+                            all_vals.append(str(vv))
                     first_val = values[0]
                     value = first_val.get("value", "") if isinstance(first_val, dict) else str(first_val)
                 if fid and value:
                     field_values_by_id[fid] = value
+                if fid and all_vals:
+                    field_all_values_by_id[fid] = "\n".join(all_vals)
                 if fname and value:
                     field_values_by_name[fname] = value
                 if fcode and value:
@@ -438,6 +460,7 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                 "address_city": city_val,
                 "address_index": index_val,
                 "price": lead.get("price", 0),
+                "products": _extract_products(field_values_by_id, field_all_values_by_id, wh_settings.get("dovoz_config", {})),
                 "dovozStage": "accepted",
                 "pipeline_id": str(lead.get("pipeline_id", "")),
                 "status_id": str(lead.get("status_id", "")),
