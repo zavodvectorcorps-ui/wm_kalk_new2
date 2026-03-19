@@ -383,12 +383,6 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
         for lead in leads:
             lead_id = str(lead.get("id", ""))
             
-            # Skip if already exists
-            existing = await dovoz_orders.find_one({"amocrm_id": lead_id})
-            if existing:
-                skipped += 1
-                continue
-            
             # Extract custom fields from lead
             custom_fields = lead.get("custom_fields_values", [])
             field_values_by_id = {}
@@ -491,6 +485,27 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                 "synced_at": now,
                 "synced_by": current_user.get("username", "unknown")
             }
+            
+            existing = await dovoz_orders.find_one({"amocrm_id": lead_id})
+            if existing:
+                # Update existing order with fresh data from amoCRM (keep dovozStage)
+                update_fields = {
+                    "lead_name": dovoz_order["lead_name"],
+                    "client_name": dovoz_order["client_name"],
+                    "phone": dovoz_order["phone"],
+                    "address": dovoz_order["address"],
+                    "address_street": dovoz_order["address_street"],
+                    "address_city": dovoz_order["address_city"],
+                    "address_index": dovoz_order["address_index"],
+                    "price": dovoz_order["price"],
+                    "products": dovoz_order["products"],
+                    "deal_created_at": dovoz_order["deal_created_at"],
+                    "responsible_user": dovoz_order["responsible_user"],
+                    "synced_at": now,
+                }
+                await dovoz_orders.update_one({"amocrm_id": lead_id}, {"$set": update_fields})
+                skipped += 1
+                continue
             
             await dovoz_orders.insert_one(dovoz_order)
             imported += 1
