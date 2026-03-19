@@ -310,7 +310,7 @@ async def delete_document(lead_id: str, doc_id: str):
 async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
     """Get orders for production calendar grouped by readyDate."""
     leads = await db.sauna_crm_leads.find(
-        {"readyDate": {"$exists": True, "$ne": None, "$ne": ""}},
+        {"readyDate": {"$exists": True, "$ne": None, "$nin": [""]}},
         {"_id": 0}
     ).to_list(5000)
     
@@ -339,6 +339,77 @@ async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
             continue
     
     return {"month": month, "year": year, "byDate": by_date, "totalOrders": sum(len(v) for v in by_date.values())}
+
+
+# ============== CALCULATOR LINK ==============
+
+async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
+    """Find calculator order by amocrm_id and attach PDF as document."""
+    result = {"linked": False, "pdf_attached": False}
+    now = datetime.now(timezone.utc).isoformat()
+    
+    try:
+        # Search across all calculator order collections
+        for collection_name in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
+            calc_order = await db[collection_name].find_one(
+                {"amocrm_id": amocrm_id},
+                {"_id": 0, "id": 1, "fullName": 1, "modelName": 1, "totalAmount": 1}
+            )
+            if calc_order:
+                crm_lead["calculatorOrderId"] = calc_order.get("id")
+                crm_lead["calculatorCollection"] = collection_name
+                if calc_order.get("modelName"):
+                    crm_lead["modelName"] = calc_order["modelName"]
+                result["linked"] = True
+                break
+        
+        # Search for PDF in calculator_pdfs collection
+        from pymongo import MongoClient
+        sync_client = MongoClient(MONGO_URL)
+        sync_db = sync_client[DB_NAME]
+        
+        pdf_doc = sync_db["calculator_pdfs"].find_one(
+            {"amocrm_id": amocrm_id},
+            {"pdf_data": 0}  # Don't load binary data, just metadata
+        )
+        
+        if not pdf_doc:
+            # Try searching by order_id from linked calculator order
+            if crm_lead.get("calculatorOrderId"):
+                pdf_doc = sync_db["calculator_pdfs"].find_one(
+                    {"order_id": crm_lead["calculatorOrderId"]},
+                    {"pdf_data": 0}
+                )
+        
+        if pdf_doc:
+            # Get Cloudinary URL if available (check webhook_logs for cloudinary URL)
+            cloudinary_url = None
+            log_entry = sync_db["webhook_logs"].find_one(
+                {"type": "calculator_pdf_upload", "amocrm_id": amocrm_id, "cloudinary_url": {"$exists": True, "$ne": None}},
+                {"_id": 0, "cloudinary_url": 1},
+                sort=[("timestamp", -1)]
+            )
+            if log_entry:
+                cloudinary_url = log_entry.get("cloudinary_url")
+            
+            if cloudinary_url:
+                pdf_document = {
+                    "id": str(uuid.uuid4())[:8],
+                    "type": "kp",
+                    "name": f"КП {crm_lead.get('clientName', '')}".strip(),
+                    "url": cloudinary_url,
+                    "filename": pdf_doc.get("filename", "КП.pdf"),
+                    "uploadedAt": now,
+                    "source": "calculator_auto"
+                }
+                crm_lead["documents"].append(pdf_document)
+                crm_lead["calculatorPdfUrl"] = cloudinary_url
+                result["pdf_attached"] = True
+                logger.info(f"PDF attached to CRM lead from calculator: amocrm_id={amocrm_id}")
+    except Exception as e:
+        logger.error(f"Error linking calculator order: {e}")
+    
+    return result
 
 
 # ============== AMOCRM SYNC ==============
@@ -492,6 +563,10 @@ async def sync_leads_from_amocrm():
                             "isImportant": False,
                             **field_vals
                         }
+                        
+                        # Link with calculator order and attach PDF
+                        await link_calculator_order(amo_id, new_lead)
+                        
                         await db.sauna_crm_leads.insert_one(new_lead)
                         imported += 1
         
@@ -557,6 +632,77 @@ async def sync_lead_to_amocrm(lead_id: str):
 
 
 # ============== CALCULATOR INTEGRATION ==============
+
+@router.get("/leads/{lead_id}/calculator-order")
+async def get_linked_calculator_order(lead_id: str):
+    """Get the full calculator order linked to a CRM lead."""
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    calc_order_id = lead.get("calculatorOrderId")
+    calc_collection = lead.get("calculatorCollection", "sauna_orders")
+    
+    # Try by stored link first
+    order = None
+    if calc_order_id:
+        order = await db[calc_collection].find_one({"id": calc_order_id}, {"_id": 0})
+    
+    # Fallback: search by amocrm_id across collections
+    if not order and lead.get("amocrm_id"):
+        for coll in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
+            order = await db[coll].find_one({"amocrm_id": lead["amocrm_id"]}, {"_id": 0})
+            if order:
+                # Update the link for next time
+                await db.sauna_crm_leads.update_one(
+                    {"id": lead_id},
+                    {"$set": {"calculatorOrderId": order["id"], "calculatorCollection": coll}}
+                )
+                break
+    
+    if not order:
+        return {"order": None, "linked": False}
+    
+    return {"order": order, "linked": True, "collection": calc_collection}
+
+
+@router.post("/leads/{lead_id}/link-calculator-order")
+async def link_calculator_order_manual(lead_id: str, data: dict):
+    """Manually link a calculator order to a CRM lead by order ID."""
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    order_id = data.get("orderId", "")
+    if not order_id:
+        raise HTTPException(status_code=400, detail="orderId is required")
+    
+    # Search for order across collections
+    order = None
+    found_collection = None
+    for coll in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
+        order = await db[coll].find_one({"id": order_id}, {"_id": 0})
+        if order:
+            found_collection = coll
+            break
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found in calculator")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    update = {
+        "calculatorOrderId": order_id,
+        "calculatorCollection": found_collection,
+        "updatedAt": now,
+    }
+    if order.get("modelName"):
+        update["modelName"] = order["modelName"]
+    
+    await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": update})
+    
+    updated_lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    return {"status": "ok", "lead": updated_lead, "order": order}
+
 
 @router.post("/leads/{lead_id}/open-calculator")
 async def get_calculator_data(lead_id: str):

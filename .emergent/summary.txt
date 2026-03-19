@@ -1,23 +1,28 @@
 <analysis>**original_problem_statement:**
-The user initially requested to build a Modular Sauna Configurator. The project has since expanded to include a Sauna Calculator, an amoCRM integration, and a sophisticated layout planner with a dynamic variants system.
+The user's initial request was to build a Modular Sauna Configurator. The project has evolved significantly.
 
-In this session, the user's requests were:
-1.  Fix a critical bug where automatically applying variants from the calculator caused layout elements to be misplaced due to conflicting or hidden variants.
-2.  Add a feature to clone a layout for a different sauna model.
-3.  Change the PDF generation flow: download the PDF to the manager's computer, upload it to Cloudinary, and send only the Cloudinary link to amoCRM instead of the full file.
-4.  Integrate the sauna layout view into the existing Technical Specification modal.
-5.  Create a new Sales dashboard in the admin panel to track orders, filter by date/manager, calculate manager bonuses, and import data from an Excel file.
+In this session, the user made a series of requests to build out CRM-like functionalities:
+1.  **Sales Dashboard Relocation**: Move the Sales dashboard from the main landing page into a tab within the Sauna Production section, making it admin-only.
+2.  **Warehouse Dovoz Feature**: Refactor the Warehouse section to add a Dovoz (additional deliveries) Kanban board (Accepted, Sent, Delivered) for greenhouse products, with two-way stage synchronization with amoCRM and pulling client address details.
+3.  **PDF Link Bug**: Fix an issue where the amoCRM note for a new commercial proposal was missing the Cloudinary link to the PDF.
+4.  **Sauna Mini-CRM**: Create a new, comprehensive mini-CRM within the sauna section. This includes a production calendar, a Kanban board with drag-and-drop, filtering (by manager and date), a detailed lead card, and a document management system that uploads files to Cloudinary and links them back to the lead. The CRM should sync with amoCRM.
+5.  **Technical Specification Feature Migration**: The latest request is to remove the Technical Specification button from the main calculator page and integrate it into the new Sauna Mini-CRM's lead card. When a lead is synced from amoCRM, the system should automatically find the corresponding order in the calculator's database and link its generated PDF as a document in the CRM.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-A full-stack React/FastAPI/MongoDB application featuring a Sauna Calculator integrated with a detailed Layout Configurator. The system for applying variants from the calculator to the configurator is partially implemented but suffers from a complex bug related to conflicting, conditional, and hidden variants. A new Sales section has been scaffolded with backend models and API endpoints, and a basic frontend page has been created but is not yet functional. The PDF generation now uses Cloudinary for storage.
+A full-stack React/FastAPI/MongoDB application for a sauna business. Key features include a Sauna Calculator, a Layout Configurator, and several new CRM functionalities.
+- A **Sales Dashboard** is now a tab within the sauna section.
+- A **Warehouse** module includes a Dovoz (additional deliveries) feature with a Kanban board and amoCRM sync settings.
+- A new **Sauna Mini-CRM** is implemented as a tab in the sauna section. It features a production calendar, a filterable Kanban board with drag-and-drop, and a detailed lead modal for managing orders, documents, and history. It is integrated with amoCRM for data synchronization.
+- The PDF generation flow correctly uploads files to Cloudinary and sends a link to amoCRM.
+- The backend logic to link calculator PDFs to CRM leads during sync has been implemented. The Technical Specification button has been removed from its old location.
 
 **Last working item**:
--   **Last item agent was working**: Implementing the new Sales dashboard. The agent had created the backend model ( in ), the CRUD API endpoints ( in ), and the basic frontend page (). The last action was attempting to add a navigation card for the Sales page to the main application menu in .
+-   **Last item agent was working**: Migrating the Technical Specification feature. The agent implemented the backend logic to automatically find and link a calculator's PDF to a newly synced CRM lead. The Тех. задание button was then removed from the old .
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both. The backend agent needs to test the API endpoints for creating, reading, updating, deleting, and importing sales data. The frontend agent needs to verify the UI for the sales table, filters (date range, manager), bonus calculation, and the import functionality.
+-   **Which testing method agent to use?**: both. The backend agent needs to test that syncing a lead from amoCRM correctly finds and attaches the PDF from the  collection. The frontend agent needs to test that the Тех. задание button is added to the CRM lead modal and correctly opens the .
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
@@ -27,73 +32,47 @@ A full-stack React/FastAPI/MongoDB application featuring a Sauna Calculator inte
 
 **Issues Detail**:
 -   **Issue 1: Incorrect automatic variant application**
-    -   **Attempted fixes**: The agent tried multiple strategies:
-        1.  **Merging Properties:** Combining properties (e.g., position from one variant, rotation from another) for the same element. This failed because it didn't respect the intended logic.
-        2.  **Prioritizing First Variant:** Letting the first variant that modifies an element win. This failed because the order of application was incorrect.
-        3.  **De-duplication by :** This was a critical error. It incorrectly skipped variants that were essential for conditional logic (e.g., a variant for a right-sided stove was skipped because a variant for a left-sided stove with the same mapping was already processed). This logic was removed in the final steps.
-        4.  **Iterative Application with Visibility Check:** The most promising approach. The agent implemented a loop that applies one variant at a time, updates the state of selected variants, and then checks the visibility conditions for the *next* variant in the list. This correctly handles dependencies.
-    -   **Next debug checklist**:
-        1.  The agent correctly identified that the faulty  de-duplication was the problem and removed it. The iterative approach with visibility checks () is the correct path.
-        2.  The next agent must continue from here, ensuring the  hook in  correctly iterates through all potential variants fetched from the calculator, applies them one-by-one, and re-evaluates visibility for dependent variants after each step.
-        3.  Verify the user's report: he reaches the first dependent variant, but does not execute further. This suggests the loop is breaking or the state used for the visibility check isn't updating correctly within the loop. Add detailed logging inside the iterative loop to trace which variants are being checked, which are being applied, and why others are being skipped.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is the core blocker for the calculator-to-configurator feature. Fixing it will make the variant system reliable and automatic.
-    -   **Status**: IN PROGRESS
+    -   **Attempted fixes**: (From previous session) Several strategies were tried, with the last being an iterative approach with visibility checks. The root cause was identified as faulty de-duplication logic.
+    -   **Next debug checklist**: Re-engage the iterative application logic in . Add logging to trace the variant application loop and ensure state updates correctly between iterations to solve the user's report that the loop breaks after the first dependent variant.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker for the calculator-to-configurator feature. Fixing it is essential for the product's core functionality.
+    -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Frontend
     -   **Blocked on other issue**: None
 
--   **Issue 2: Unstable user login sessions.**
-    -   **Attempted fixes**: None. The agent was logged out during testing (), confirming the issue persists.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Backend
-    -   **Blocked on other issue**: None
-
--   **Issue 3:  errors during deployment.**
-    -   **Attempted fixes**: None.
+-   **Issue 2 & 3: Unstable login sessions & Deployment timeouts**
+    -   **Attempted fixes**: None in this session.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Backend
     -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   **Task 1: Complete Sales Dashboard (P0 - HIGHEST)**
-    -   **Where to resume**: The backend API and frontend page are scaffolded. The next steps are to build out the  component.
-        1.  Implement a  to fetch sales data from the  endpoint.
-        2.  Render the data in a table (using a library like  or a simple HTML table).
-        3.  Add UI elements for filtering: two date pickers for the date range and a dropdown for the manager.
-        4.  Add an input for the manager's bonus percentage.
-        5.  Implement the client-side or server-side logic to filter the data and calculate the total sales and bonus amount.
-        6.  Implement the Excel import functionality (using a library like ) that posts the parsed data to the  endpoint.
-    -   **What will be achieved with this?**: A complete sales and bonus tracking system as requested by the user.
+-   **Task 1: Complete Technical Specification Feature Migration (P0 - HIGHEST)**
+    -   **Where to resume**: The backend logic is complete () and the button is removed from . The next step is to modify . Add the Тех. задание button inside the lead detail modal. This button should open the existing , passing the relevant data from the selected CRM lead.
+    -   **What will be achieved with this?**: The user's request will be fully implemented, centralizing order-related actions within the new mini-CRM.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: Both
     -   **Blocked on something**: None
 
--   **Task 2: Refactor  (P1 - URGENT)**
-    -   **Where to resume**: The file's complexity has grown even more with the addition of iterative variant application logic. This task has been postponed multiple times and is now critical.
-    -   **What will be achieved with this?**: Improve stability, reduce bugs, and make future feature development manageable.
-    -   **Status**: NOT STARTED
-    -   **Should Test frontend/backend/both after fix?**: Frontend (extensive regression testing)
-    -   **Blocked on something**: This technical debt is blocking reliable feature development.
-
 **Upcoming and Future Tasks**
-- **Upcoming Tasks**:
-    *   **P1**: Finalize and test the Save layout to order feature end-to-end.
-- **Future Tasks**:
-    *   **P1**: Refactor the monolithic  function in .
-    *   **P2**: Add UI for importing/restoring a project backup.
-    *   **P2**: Replace the deprecated Google Maps Autocomplete component.
+-   **Upcoming Tasks**:
+    -   **P1**: Finalize and test the Save layout to order feature end-to-end.
+-   **Future Tasks**:
+    -   **P1**: Refactor the monolithic  function in .
+    -   **P1**: Refactor  (Urgent technical debt).
+    -   **P2**: Add UI for importing/restoring a project backup.
+    -   **P2**: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
--   **Bug Fix: Conditional Variant Application**: Implemented an iterative logic in  that applies variants one by one and checks for visibility conditions () at each step. Removed a faulty de-duplication logic that was preventing conditional variants from being applied.
--   **Feature: Clone Layout**: Implemented a feature to clone a layout for a different sauna model, with automatic scaling. This includes a new backend endpoint () and UI in the configurator.
--   **Feature: PDF to Cloudinary & Download**: Rerouted the PDF generation process. The PDF is now uploaded to Cloudinary, a link is sent to amoCRM as a note (instead of the file), and the file is simultaneously downloaded to the manager's browser.
--   **Feature: Layout in Tech Spec**: Added a section in the Technical Specification modal to display the layout image for the selected sauna model.
+-   **Feature: Sales Dashboard Relocation**: Moved the sales dashboard into a tab within the sauna section and made it admin-only.
+-   **Feature: Warehouse Dovoz**: Implemented a new Довозы (additional deliveries) feature with a Kanban board, settings, and amoCRM synchronization.
+-   **Feature: Sauna Mini-CRM**: Built a complete mini-CRM within the sauna section, featuring a production calendar, Kanban board with drag-and-drop, list view, advanced filtering, a detailed lead card, document management via Cloudinary, and two-way amoCRM sync.
+-   **Bug Fix: Missing PDF Link in amoCRM**: Resolved an issue where a redundant API call sent a note to amoCRM without the required PDF link.
 
 **Earlier issues found/mentioned but not fixed**
--   The two recurring platform issues: unstable login sessions and deployment timeouts.
--   The underlying issue of  being a monolithic component causing repeated bugs.
+-   The critical bug regarding automatic variant application in .
+-   The recurring platform issues: unstable login sessions and deployment timeouts.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Unstable user login sessions.
@@ -104,75 +83,80 @@ A full-stack React/FastAPI/MongoDB application featuring a Sauna Calculator inte
 
 
 **Key Technical Concepts**
--   **Iterative Conditional Application**: The current approach for applying variants. It processes a list of potential variants sequentially, applying one, updating a map of , and then re-checking visibility conditions for the rest of the list. This is the key to solving the main bug.
--   **File Handling Flow**: The new flow for PDFs: .
--   **Excel Data Parsing**: The  library was used to analyze the user's  file to prepare for the import feature.
+-   **Bi-directional amoCRM Sync**: Features now pull data from amoCRM (e.g., leads for Dovoz/CRM) and push updates back (e.g., stage changes, field updates).
+-   **Dynamic Kanban Boards**: Implemented interactive Kanban boards with drag-and-drop functionality for stage management in both the Dovoz and Sauna CRM features.
+-   **Production Calendar**: A visual calendar was built to display orders based on their ready date, providing a clear production schedule.
+-   **Centralized Document Management**: The system now links documents (like calculator PDFs) to CRM leads, storing them on Cloudinary and referencing them in the database.
 
 **key DB schema**
--   : New collection with fields matching the user's Excel file (, , , , etc.).
--   : The  field will now contain links to Cloudinary instead of direct file attachments.
+-   : Stores leads for the new mini-CRM, including fields for ,  (array), , and various dates.
+-   : Stores orders for the Dovoz feature with , , , etc.
+-   : Stores UI toggles and amoCRM configuration for the warehouse module.
+-   : This existing collection is now used to link generated PDFs to  via .
 
 **All files of reference**
--   : **CRITICAL**. Contains all the complex, buggy, and recently modified logic for automatic and conditional variant application.
--   : New file for the sales dashboard.
--   : New file containing the API for the sales feature.
--   : Heavily modified to change the PDF handling logic to use Cloudinary.
--   : New service to handle file uploads to Cloudinary.
--   : Modified to add navigation to the new Sales page.
+-   : Core logic for the new mini-CRM feature.
+-   : The frontend component for the new mini-CRM.
+-   : Core logic for the Dovoz warehouse feature.
+-   : The frontend for the Dovoz feature.
+-   : File where the Technical Specification button was removed.
 
 **Areas that need refactoring**:
--   ****: **URGENT PRIORITY**. This file is the source of most bugs in the project. It MUST be broken down into custom hooks (, , ) and smaller components.
--   ****: The  function has become very large and handles multiple responsibilities (generation, upload, CRM communication). It should be broken down.
+-   ****: **URGENT PRIORITY**. This file is the source of the main P0 bug and has significant technical debt.
+-   ****: This file remains very large and could be broken down into smaller, more focused service files.
 
 **key api endpoints**
--   : Clones an existing layout.
--   , , , : New CRUD endpoints for sales data.
--   : New endpoint to handle bulk import of sales from Excel.
--   : Logic was changed to use Cloudinary.
+-   : A new set of endpoints to manage leads, settings, documents, and calendar data for the mini-CRM.
+-   : New endpoints for the Dovoz feature.
+-   : Endpoints to manage warehouse settings.
+-   : Calls to this endpoint were removed from the frontend to resolve a bug.
 
 **Critical Info for New Agent**
 -   **You MUST respond in Russian.**
--   **Priority 1: Finish the Sales Dashboard.** The user's latest request. Follow the plan outlined in the In progress Task List to complete the frontend UI and functionality.
--   **Priority 2: Fix the Variant Bug.** The user is blocked by the conditional variant application bug. The last approach (iterative application + visibility checks, with faulty de-duplication removed) is the correct one. Resume debugging there. The key files are  (specifically the  for auto-application).
--   **Technical Debt:** Do not add more logic to . Any significant work on variants should be preceded by or happen alongside its refactoring.
+-   **Priority 1: Complete the Technical Specification feature migration.** The backend work is done. Your immediate task is to add the Тех. задание button to the lead modal in  and ensure it functions correctly.
+-   **Priority 2: Address the critical P0 bug** concerning automatic variant application in . This is a long-standing, high-impact issue that needs to be resolved.
+-   The application's logic is heavily tied to settings configured in the admin panels (Sales, Warehouse, Sauna CRM). When testing, ensure these settings (e.g., amoCRM stage IDs) are configured correctly.
 
 **documents and test reports created in this job**
--    (Updated)
+-    (Updated multiple times)
+-   
+-   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   : User requests a new Sales dashboard with specific features: table view of orders, filters, bonus calculation, and Excel import.
--   : User requests an admin page to customize the Technical Specification modal and wants the layout image to be pulled into it.
--   : User requests a change in PDF handling: download locally, upload to Cloudinary, and send only the link to amoCRM.
--   : User correctly identifies the problem: a de-duplication check was incorrectly skipping necessary conditional variants.
--   : User reports that after a fix, the auto-apply logic stops at the first dependent variant and doesn't proceed.
--   : User clarifies the logic for conditional variants: a variant for a right-sided stove should not be applied when a left-sided one is chosen, and vice-versa. The system should only apply *visible* variants.
--   : User reports that the merge properties fix is not working; the stove remains in the center instead of moving to the left.
--   : User clarifies that variants should *complement* each other (e.g., one sets position, the other sets rotation) rather than overwrite.
--   : User reports that after a fix, auto-apply works, but there's a new bug: the stove is on the right when it should be on the left, indicating variants are being applied in the wrong order or conflicting.
--   : User confirms the layout loads correctly, but the selected variants are not being applied automatically.
+1.  **LATEST**: User wants to move the Tech Spec button to the CRM and link calculator PDFs. (IN PROGRESS)
+2.  User wants filters (manager, date) in the CRM. (DONE)
+3.  User wants drag-and-drop in the CRM Kanban. (DONE)
+4.  User provides detailed requirements for the new Sauna Mini-CRM. (DONE)
+5.  User reports the PDF link is missing in amoCRM notes. (DONE)
+6.  User requests that the client's address be pulled into Dovoz cards. (DONE)
+7.  User provides detailed requirements for the Dovoz feature. (DONE)
+8.  User asks where the Sales dashboard is now located. (Answered)
+9.  User asks to move the Sales dashboard into the sauna section. (DONE)
+10. User confirms the plan to complete the Sales Dashboard. (DONE)
 
 **Project Health Check:**
--   **Broken**: The automatic application of conditional/dependent variants is fundamentally broken and is the project's most critical and long-standing bug.
+-   **Broken**: The automatic application of conditional variants in  is the most critical unresolved issue.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
 -   **Fabric.js**: (v5.3.0) Core of the layout configurator.
 -   **Nano Banana Pro (Gemini)**: For AI image background replacement. Uses **Emergent LLM Key**.
--   **Cloudinary**: For price list images, AI-processed images, and now for storing generated PDF specifications.
--   **amoCRM/Kommo**: Primary CRM integration.
+-   **Cloudinary**: Used for price list images, AI images, and storing generated PDFs/documents.
+-   **amoCRM/Kommo**: Primary CRM integration, now more deeply integrated with new features.
 -   **Telegram**: For notifications.
 -   **Google Maps**: For delivery routes.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, for the initial variant filtering fix.
+-   **Testing agent used after significant changes**: YES. Used successfully for the Sales, Dovoz, and Sauna CRM features.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: The variant application logic has gone through several states, some of which were partial regressions before moving to a better approach. The core instability remains.
+-   **Known regressions**: None from the work completed in this session.
 
 **Credentials to test flow:**
 -   Admin:  / 
 
 **What agent forgot to execute**
--   The critical refactoring of  was postponed again, despite being the root cause of many bugs.
--   The recurring platform issues (unstable login sessions, deployment timeouts) were not addressed.</analysis>
+-   The agent did not add the Technical Specification button to the new  modal after removing it from . This is the immediate next step to complete the user's latest request.
+-   The critical refactoring of  was postponed again.
+-   The recurring platform issues (unstable login, deployment timeouts) were not addressed.</analysis>

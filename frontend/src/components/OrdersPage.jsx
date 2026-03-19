@@ -622,31 +622,6 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                             <FileDown className="h-4 w-4 mr-1" />
                             {t('downloadPDF')}
                           </Button>
-                          {isSauna && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => handleOpenTechSpec(order)}
-                                title="Создать/редактировать тех.задание"
-                                data-testid={`tech-spec-btn-${order.id}`}
-                              >
-                                <Wrench className="h-4 w-4 mr-1" />
-                                Тех.Задание
-                              </Button>
-                              {order.techSpec && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDownloadTechSpec(order)}
-                                  title="Скачать тех.задание PDF"
-                                  data-testid={`download-techspec-btn-${order.id}`}
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </>
-                          )}
                           {!isSauna && (
                             <Button
                               size="sm"

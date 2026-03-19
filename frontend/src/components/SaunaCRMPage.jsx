@@ -14,10 +14,12 @@ import {
   RefreshCw, Settings, Upload, FileText, File, Trash2, 
   Phone, Mail, MapPin, DollarSign, Clock, User, 
   ExternalLink, Send, Loader2, Plus, X, Search,
-  ChevronDown, ChevronUp, Package, Star, StarOff
+  ChevronDown, ChevronUp, Package, Star, StarOff,
+  Wrench, Calculator, Link2, Unlink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
+import { TechSpecModal } from './tech-spec';
 
 const API_URL = getApiUrl();
 
@@ -60,6 +62,14 @@ const SaunaCRMPage = () => {
   
   // Active view
   const [activeView, setActiveView] = useState('calendar');
+  
+  // Tech Spec & Calculator
+  const [techSpecOpen, setTechSpecOpen] = useState(false);
+  const [techSpecOrder, setTechSpecOrder] = useState(null);
+  const [calcOrder, setCalcOrder] = useState(null);
+  const [loadingCalcOrder, setLoadingCalcOrder] = useState(false);
+  const [linkOrderId, setLinkOrderId] = useState('');
+  const [linkingOrder, setLinkingOrder] = useState(false);
   
   // Drag & drop
   const [draggedLead, setDraggedLead] = useState(null);
@@ -132,6 +142,9 @@ const SaunaCRMPage = () => {
   const openLead = (lead) => {
     setSelectedLead(lead);
     setEditData({ ...lead });
+    setCalcOrder(null);
+    setLinkOrderId('');
+    fetchCalculatorOrder(lead);
   };
 
   const saveLead = async () => {
@@ -263,6 +276,89 @@ const SaunaCRMPage = () => {
     setDraggedLead(null);
   };
   const handleDragEnd = () => { setDraggedLead(null); setDragOverStage(null); };
+
+  // ---- Calculator & Tech Spec ----
+  const fetchCalculatorOrder = async (lead) => {
+    if (!lead) return null;
+    setLoadingCalcOrder(true);
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/leads/${lead.id}/calculator-order`, { headers: authHeaders });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.linked && data.order) {
+          setCalcOrder(data.order);
+          return data.order;
+        }
+      }
+      setCalcOrder(null);
+      return null;
+    } catch (e) {
+      console.error(e);
+      setCalcOrder(null);
+      return null;
+    } finally {
+      setLoadingCalcOrder(false);
+    }
+  };
+
+  const openTechSpec = async () => {
+    if (!selectedLead) return;
+    if (calcOrder) {
+      setTechSpecOrder(calcOrder);
+      setTechSpecOpen(true);
+    } else {
+      const order = await fetchCalculatorOrder(selectedLead);
+      if (order) {
+        setTechSpecOrder(order);
+        setTechSpecOpen(true);
+      } else {
+        toast.error('Нет привязанного заказа из калькулятора');
+      }
+    }
+  };
+
+  const openInCalculator = () => {
+    if (!selectedLead) return;
+    const orderId = calcOrder?.id || selectedLead.calculatorOrderId;
+    if (orderId) {
+      window.location.href = `/sauna/calculator?edit=${orderId}`;
+    } else {
+      toast.error('Нет привязанного заказа из калькулятора');
+    }
+  };
+
+  const handleLinkOrder = async () => {
+    if (!selectedLead || !linkOrderId.trim()) return;
+    setLinkingOrder(true);
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}/link-calculator-order`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: linkOrderId.trim() })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Заказ привязан');
+        setCalcOrder(data.order);
+        if (data.lead) {
+          setSelectedLead(data.lead);
+          setEditData({ ...data.lead });
+        }
+        setLinkOrderId('');
+        fetchLeads();
+      } else {
+        toast.error(data.detail || 'Ошибка привязки');
+      }
+    } catch (e) { toast.error('Ошибка'); }
+    setLinkingOrder(false);
+  };
+
+  const handleTechSpecSaved = (techSpecData) => {
+    if (calcOrder) {
+      setCalcOrder(prev => ({ ...prev, techSpec: techSpecData }));
+    }
+    toast.success('Тех. задание сохранено');
+  };
 
   // ---- Calendar Logic ----
   const year = calendarDate.getFullYear();
@@ -686,6 +782,64 @@ const SaunaCRMPage = () => {
                 <Textarea value={editData.notes || ''} onChange={(e) => setEditData(p => ({ ...p, notes: e.target.value }))} rows={3} data-testid="lead-notes" />
               </div>
 
+              {/* Calculator & Tech Spec */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-sm font-semibold flex items-center gap-2"><Calculator className="w-4 h-4" />Калькулятор / Тех. задание</Label>
+                </div>
+                {loadingCalcOrder ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Загрузка...
+                  </div>
+                ) : calcOrder ? (
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-lg border bg-green-50/50 border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Link2 className="w-4 h-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">Привязан заказ: {calcOrder.id}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        {calcOrder.modelName && <span>Модель: <strong>{calcOrder.modelName}</strong></span>}
+                        {calcOrder.fullName && <span>Клиент: {calcOrder.fullName}</span>}
+                        {calcOrder.total != null && <span>Сумма: {Number(calcOrder.total).toLocaleString()} PLN</span>}
+                        {calcOrder.orderDate && <span>Дата: {new Date(calcOrder.orderDate).toLocaleDateString('ru-RU')}</span>}
+                      </div>
+                      {calcOrder.techSpec && (
+                        <div className="mt-2 flex items-center gap-1 text-xs text-amber-700">
+                          <Wrench className="w-3 h-3" />
+                          Тех. задание заполнено
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button size="sm" variant="outline" onClick={openInCalculator} data-testid="open-in-calculator-btn">
+                        <Calculator className="w-4 h-4 mr-1" />Открыть в калькуляторе
+                      </Button>
+                      <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={openTechSpec} data-testid="open-tech-spec-btn">
+                        <Wrench className="w-4 h-4 mr-1" />Тех. задание
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground py-2">Заказ из калькулятора не привязан</p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="ID заказа (напр. SAU-XXXX)"
+                        value={linkOrderId}
+                        onChange={(e) => setLinkOrderId(e.target.value)}
+                        className="flex-1 h-8 text-sm"
+                        data-testid="link-order-id-input"
+                      />
+                      <Button size="sm" variant="outline" onClick={handleLinkOrder} disabled={linkingOrder || !linkOrderId.trim()} data-testid="link-order-btn">
+                        {linkingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4 mr-1" />}
+                        Привязать
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Documents */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -938,6 +1092,14 @@ const SaunaCRMPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Tech Spec Modal */}
+      <TechSpecModal
+        open={techSpecOpen}
+        onOpenChange={setTechSpecOpen}
+        order={techSpecOrder}
+        onSaved={handleTechSpecSaved}
+      />
     </div>
   );
 };
