@@ -29,6 +29,7 @@ const LogisticsPage = lazy(() => import('./components/LogisticsPage').then(m => 
 const DriverPanel = lazy(() => import('./components/DriverPanel').then(m => ({ default: m.DriverPanel })));
 const WarehousePage = lazy(() => import('./components/WarehousePage'));
 const SaunaCRMPage = lazy(() => import('./components/SaunaCRMPage'));
+const SaunaProductionPage = lazy(() => import('./components/SaunaProductionPage'));
 const PdfUploadDebugPage = lazy(() => import('./components/PdfUploadDebugPage'));
 const FAQPage = lazy(() => import('./components/FAQPage'));
 const FAQAdminComponent = lazy(() => import('./components/FAQPage').then(m => ({ default: m.FAQAdmin })));
@@ -648,7 +649,7 @@ const AppContent = () => {
     );
   }
 
-  // Sauna CRM Page
+  // Sauna Production Page (was sauna_crm)
   if (currentCalculator === 'sauna_crm') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -676,7 +677,7 @@ const AppContent = () => {
         </div>
         
         <Suspense fallback={<PageLoader />}>
-          <SaunaCRMPage />
+          <SaunaProductionPage onBack={handleBackToLanding} />
         </Suspense>
         
         <Toaster position="top-right" richColors />

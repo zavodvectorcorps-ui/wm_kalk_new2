@@ -28,6 +28,7 @@ from routes.notifications import router as notifications_router
 from routes.warehouse import router as warehouse_router
 from routes.dovoz import router as dovoz_router
 from routes.sauna_crm import router as sauna_crm_router
+from routes.sauna_production import router as sauna_production_router
 from routes.faq import router as faq_router
 from routes.sales import router as sales_router
 from routes.pdf_templates import router as pdf_templates_router
@@ -77,6 +78,7 @@ app.include_router(notifications_router)
 app.include_router(warehouse_router, prefix="/api")
 app.include_router(dovoz_router, prefix="/api")
 app.include_router(sauna_crm_router, prefix="/api")
+app.include_router(sauna_production_router, prefix="/api")
 app.include_router(faq_router, prefix="/api")
 app.include_router(pdf_templates_router, prefix="/api")
 app.include_router(training_router, prefix="/api")

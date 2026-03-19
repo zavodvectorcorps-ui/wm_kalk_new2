@@ -631,6 +631,39 @@ async def sync_lead_to_amocrm(lead_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============== PUSH TO PRODUCTION ==============
+
+@router.post("/leads/{lead_id}/to-production")
+async def push_to_production(lead_id: str):
+    """Push a CRM lead to the production board."""
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if lead.get("inProduction"):
+        raise HTTPException(status_code=400, detail="Заказ уже в производстве")
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Get default production stage
+    prod_settings = await db.sauna_production_settings.find_one({}, {"_id": 0})
+    default_stage = "accepted"
+    if prod_settings and prod_settings.get("stages"):
+        default_stage = prod_settings["stages"][0]["id"]
+
+    await db.sauna_crm_leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "inProduction": True,
+            "productionStageId": default_stage,
+            "productionPushedAt": now,
+            "productionHistory": [{"stageId": default_stage, "timestamp": now, "action": "pushed_to_production"}],
+            "updatedAt": now,
+        }}
+    )
+    updated = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    return {"status": "ok", "lead": updated}
+
+
 # ============== CALCULATOR INTEGRATION ==============
 
 @router.get("/leads/{lead_id}/calculator-order")

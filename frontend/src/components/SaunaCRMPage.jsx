@@ -15,7 +15,7 @@ import {
   Phone, Mail, MapPin, DollarSign, Clock, User, 
   ExternalLink, Send, Loader2, Plus, X, Search,
   ChevronDown, ChevronUp, Package, Star, StarOff,
-  Wrench, Calculator, Link2, Unlink
+  Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -70,6 +70,7 @@ const SaunaCRMPage = () => {
   const [loadingCalcOrder, setLoadingCalcOrder] = useState(false);
   const [linkOrderId, setLinkOrderId] = useState('');
   const [linkingOrder, setLinkingOrder] = useState(false);
+  const [pushingToProduction, setPushingToProduction] = useState(false);
   
   // Drag & drop
   const [draggedLead, setDraggedLead] = useState(null);
@@ -358,6 +359,32 @@ const SaunaCRMPage = () => {
       setCalcOrder(prev => ({ ...prev, techSpec: techSpecData }));
     }
     toast.success('Тех. задание сохранено');
+  };
+
+  const pushToProduction = async () => {
+    if (!selectedLead) return;
+    if (selectedLead.inProduction) {
+      toast.info('Заказ уже в производстве');
+      return;
+    }
+    setPushingToProduction(true);
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}/to-production`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success('Заказ передан в производство!');
+        setSelectedLead(data.lead);
+        setEditData({ ...data.lead });
+        fetchLeads();
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || 'Ошибка');
+      }
+    } catch (e) { toast.error('Ошибка'); }
+    setPushingToProduction(false);
   };
 
   // ---- Calendar Logic ----
@@ -841,6 +868,34 @@ const SaunaCRMPage = () => {
               </div>
 
               {/* Documents */}
+              {/* Production Status & Button */}
+              <div>
+                {selectedLead.inProduction ? (
+                  <div className="p-3 rounded-lg border bg-amber-50/80 border-amber-200 mb-1">
+                    <div className="flex items-center gap-2 text-amber-800">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-sm font-medium">Заказ в производстве</span>
+                      {selectedLead.productionStageId && settings?.stages && (
+                        <Badge variant="outline" className="text-xs ml-auto">{settings.stages.find(s => s.id === selectedLead.productionStageId)?.name || selectedLead.productionStageId}</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-amber-700 mt-1">Изменения данных заказа — сообщите бригадиру производства</p>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="w-full bg-rose-600 hover:bg-rose-700 text-white"
+                    onClick={pushToProduction}
+                    disabled={pushingToProduction}
+                    data-testid="push-to-production-btn"
+                  >
+                    {pushingToProduction ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Hammer className="w-4 h-4 mr-2" />}
+                    В производство
+                  </Button>
+                )}
+              </div>
+
+              {/* Documents Section */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-sm font-semibold flex items-center gap-2"><FileText className="w-4 h-4" />Документы</Label>
