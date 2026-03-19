@@ -732,6 +732,10 @@ const WarehousePage = ({ onBack }) => {
                         <Label className="text-xs">ID поля задолженности</Label>
                         <Input value={settingsForm.dovoz_config.debt_field_id || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, debt_field_id: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="debt-field-dropdown" />
                       </div>
+                      <div>
+                        <Label className="text-xs">ID поля имени клиента</Label>
+                        <Input value={settingsForm.dovoz_config.name_field_id || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, name_field_id: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="name-field-dropdown" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -776,6 +780,10 @@ const WarehousePage = ({ onBack }) => {
                       <div>
                         <Label className="text-xs">ID поля задолженности</Label>
                         <Input value={settingsForm.dovoz_config.debt_field_id || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, debt_field_id: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="debt-field-input" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">ID поля имени клиента</Label>
+                        <Input value={settingsForm.dovoz_config.name_field_id || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, name_field_id: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="name-field-input" />
                       </div>
                     </div>
                   </div>

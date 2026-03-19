@@ -475,11 +475,16 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
             if not contact_phone:
                 contact_phone = get_field_val("phoneNumber", ["телефон", "phone", "тел", "моб"])
             
+            # Client name: custom field > contact name > lead name
+            name_field_id = str(wh_settings.get("dovoz_config", {}).get("name_field_id", "") or "")
+            custom_name = field_values_by_id.get(name_field_id, "").strip() if name_field_id else ""
+            client_name = custom_name or contact_name or lead.get("name", "")
+            
             dovoz_order = {
                 "id": f"DOV-{lead_id}",
                 "amocrm_id": lead_id,
                 "lead_name": lead.get("name", ""),
-                "client_name": contact_name or lead.get("name", ""),
+                "client_name": client_name,
                 "phone": contact_phone,
                 "address": full_address,
                 "address_street": street_val,
