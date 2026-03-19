@@ -5,6 +5,19 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Mar 19, 2026 - FEATURE: Производство саун (COMPLETED)
+- **NEW FEATURE**: Отдельная страница "Производство саун" с Календарём и Канбаном
+  - Доступна через карточку на лендинге, CRM остаётся только во вкладке калькулятора
+  - Канбан с 4 настраиваемыми этапами: "Заказ принят" → "В производстве" → "Готов" → "Отгружен"
+  - Drag-and-drop перемещение между этапами, история изменений
+  - Модалка заказа: инфо клиента (read-only), даты производства, кнопки "Скачать PDF" / "Скачать тех. задание", документы из CRM
+  - Кнопка "В производство" в CRM переносит заказ в производство
+  - После переноса в CRM отображается предупреждение "Заказ в производстве — сообщите бригадиру"
+  - Единая коллекция sauna_crm_leads (поле inProduction) — полная синхронизация
+- **Backend**: `/app/backend/routes/sauna_production.py` — 6 endpoints (settings, orders, stage, calendar)
+- **Frontend**: `/app/frontend/src/components/SaunaProductionPage.jsx`
+- **Testing**: Backend 9/9, Frontend 100%
+
 ### Mar 19, 2026 - FEATURE: Тех. задание в CRM (COMPLETED)
 - **NEW FEATURE**: Интеграция калькулятора и тех. задания в мини-CRM
   - В модалке лида добавлена секция "Калькулятор / Тех. задание"
