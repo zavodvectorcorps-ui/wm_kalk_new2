@@ -139,6 +139,18 @@ export const TECH_SPEC_CATEGORIES = [
     ],
   },
   {
+    id: 'air_valves',
+    name: 'Воздушные клапаны',
+    section: 'steam_room',
+    inputType: 'radio',
+    layout: 'row',
+    defaultValue: 'yes',
+    options: [
+      { id: 'yes', name: 'Да' },
+      { id: 'no', name: 'Нет' },
+    ],
+  },
+  {
     id: 'steam_panorama',
     name: 'Панорама в парной',
     section: 'steam_room',
@@ -148,7 +160,7 @@ export const TECH_SPEC_CATEGORIES = [
       { id: 'none', name: 'Без панорамы' },
       { id: 'half_80x160', name: 'Полупанорама 80x160 см' },
       { id: 'full_160x160', name: 'Панорама 160x160 см' },
-      { id: 'custom', name: 'Другой размер' },
+      { id: 'custom', name: 'Другой размер', hasCustomField: true },
     ],
   },
 
@@ -229,7 +241,7 @@ export const TECH_SPEC_CATEGORIES = [
       { id: 'none', name: 'Без панорамы' },
       { id: 'half_80x160', name: 'Полупанорама 80x160 см' },
       { id: 'full_160x160', name: 'Панорама 160x160 см' },
-      { id: 'custom', name: 'Другой размер' },
+      { id: 'custom', name: 'Другой размер', hasCustomField: true },
     ],
   },
   {

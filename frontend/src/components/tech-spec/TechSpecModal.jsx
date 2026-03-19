@@ -70,6 +70,13 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
     const txt = { ...ts.textInputs };
     const cond = { ...ts.conditionalData };
 
+    // Apply default values for categories that have them
+    TECH_SPEC_CATEGORIES.forEach(cat => {
+      if (cat.defaultValue && !sel[cat.id]) {
+        sel[cat.id] = cat.defaultValue;
+      }
+    });
+
     // Auto-fill from calculator selectedOptions
     if (order.selectedOptions?.length > 0) {
       const optsByCat = {};
@@ -292,13 +299,24 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
                           {cat.options.map(opt => {
                             const checked = Array.isArray(formData.selections[cat.id]) && formData.selections[cat.id].includes(opt.id);
                             return (
-                              <div key={opt.id} className="flex items-center gap-2">
-                                <Checkbox
-                                  checked={checked}
-                                  onCheckedChange={() => toggleCheckbox(cat.id, opt.id)}
-                                  id={`${cat.id}_${opt.id}`}
-                                />
-                                <Label htmlFor={`${cat.id}_${opt.id}`} className="text-sm cursor-pointer">{opt.name}</Label>
+                              <div key={opt.id}>
+                                <div className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={() => toggleCheckbox(cat.id, opt.id)}
+                                    id={`${cat.id}_${opt.id}`}
+                                  />
+                                  <Label htmlFor={`${cat.id}_${opt.id}`} className="text-sm cursor-pointer">{opt.name}</Label>
+                                </div>
+                                {opt.hasCustomField && checked && (
+                                  <Input
+                                    value={formData.textInputs[`${cat.id}_${opt.id}_custom`] || ''}
+                                    onChange={(e) => setTextInput(`${cat.id}_${opt.id}_custom`, e.target.value)}
+                                    placeholder="Укажите размер"
+                                    className="h-8 mt-1 ml-6 w-48"
+                                    data-testid={`ts-custom-${cat.id}-${opt.id}`}
+                                  />
+                                )}
                               </div>
                             );
                           })}

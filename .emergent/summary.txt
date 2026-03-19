@@ -1,28 +1,33 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to build a Modular Sauna Configurator. The project has evolved significantly.
+The user's initial request was to build a Modular Sauna Configurator. The project has since expanded to include comprehensive CRM and production management features.
 
-In this session, the user made a series of requests to build out CRM-like functionalities:
-1.  **Sales Dashboard Relocation**: Move the Sales dashboard from the main landing page into a tab within the Sauna Production section, making it admin-only.
-2.  **Warehouse Dovoz Feature**: Refactor the Warehouse section to add a Dovoz (additional deliveries) Kanban board (Accepted, Sent, Delivered) for greenhouse products, with two-way stage synchronization with amoCRM and pulling client address details.
-3.  **PDF Link Bug**: Fix an issue where the amoCRM note for a new commercial proposal was missing the Cloudinary link to the PDF.
-4.  **Sauna Mini-CRM**: Create a new, comprehensive mini-CRM within the sauna section. This includes a production calendar, a Kanban board with drag-and-drop, filtering (by manager and date), a detailed lead card, and a document management system that uploads files to Cloudinary and links them back to the lead. The CRM should sync with amoCRM.
-5.  **Technical Specification Feature Migration**: The latest request is to remove the Technical Specification button from the main calculator page and integrate it into the new Sauna Mini-CRM's lead card. When a lead is synced from amoCRM, the system should automatically find the corresponding order in the calculator's database and link its generated PDF as a document in the CRM.
+The user's most recent requests from this session, in order of implementation:
+1.  Integrate the Technical Specification (Tech Spec) feature into the new Sauna CRM, allowing it to be generated from a CRM lead and linked to the corresponding calculator order.
+2.  Refactor the Sauna Production module to be a separate page with its own calendar and Kanban board, distinct from the CRM tab in the calculator. Implement a Send to Production feature.
+3.  Fix a bug where the generated PDF link was  in the amoCRM note.
+4.  Fix a bug where the layout image was not appearing in the Tech Spec modal.
+5.  Fix a bug where the generated commercial proposal (КП) PDF was not being added to the Documents section of the internal CRM lead.
+6.  Add advanced mapping capabilities, allowing admins to map entire calculator categories and option variants to the Tech Spec.
+7.  Completely overhaul the Tech Spec modal with a new, detailed 21-point structure.
+8.  **Current Request**: Enhance the new Tech Spec modal by:
+    *   Adding text input fields that appear when an other size option is selected.
+    *   Adding a new Air vents category to the Steam Room section, defaulted to Yes.
+    *   Adding a Create PDF button to generate the Tech Spec as a PDF and attach it to the CRM lead's documents.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-A full-stack React/FastAPI/MongoDB application for a sauna business. Key features include a Sauna Calculator, a Layout Configurator, and several new CRM functionalities.
-- A **Sales Dashboard** is now a tab within the sauna section.
-- A **Warehouse** module includes a Dovoz (additional deliveries) feature with a Kanban board and amoCRM sync settings.
-- A new **Sauna Mini-CRM** is implemented as a tab in the sauna section. It features a production calendar, a filterable Kanban board with drag-and-drop, and a detailed lead modal for managing orders, documents, and history. It is integrated with amoCRM for data synchronization.
-- The PDF generation flow correctly uploads files to Cloudinary and sends a link to amoCRM.
-- The backend logic to link calculator PDFs to CRM leads during sync has been implemented. The Technical Specification button has been removed from its old location.
+A full-stack React/FastAPI/MongoDB application for a sauna business. The app includes a Sauna Calculator, a new Sauna Production management page (with a calendar and Kanban board), and a Sauna Mini-CRM (as a tab within the calculator).
+
+In this session, the Technical Specification (Tech Spec) feature was completely rebuilt from scratch. The UI in  is now driven by a new data structure in , reflecting a 21-point specification from the user. Advanced mapping from calculator categories and variants to the Tech Spec is now supported via the admin panel. The PDF generation flow for commercial proposals has been fixed and now correctly uploads to Cloudinary and links to both amoCRM and the internal CRM's document section.
 
 **Last working item**:
--   **Last item agent was working**: Migrating the Technical Specification feature. The agent implemented the backend logic to automatically find and link a calculator's PDF to a newly synced CRM lead. The Тех. задание button was then removed from the old .
+-   **Last item agent was working**: Implementing enhancements to the newly overhauled Technical Specification modal. The agent has already updated the UI and data structure (, ) to support conditional text fields for other size and to add the new Air vents category with a default value.
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both. The backend agent needs to test that syncing a lead from amoCRM correctly finds and attaches the PDF from the  collection. The frontend agent needs to test that the Тех. задание button is added to the CRM lead modal and correctly opens the .
+-   **Which testing method agent to use?**: both
+    -   **Backend**: The existing PDF generation endpoint () needs to be reviewed and likely updated to work with the new data structure. A new flow must be implemented to upload this generated PDF to Cloudinary and then link it as a document to the  collection, mimicking the logic recently built for commercial proposals.
+    -   **Frontend**: A Create PDF button must be added to . Its functionality needs to be implemented to call the backend, handle the PDF generation, and reflect the new document in the UI. The new conditional input fields and default values also require testing.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
@@ -32,7 +37,7 @@ A full-stack React/FastAPI/MongoDB application for a sauna business. Key feature
 
 **Issues Detail**:
 -   **Issue 1: Incorrect automatic variant application**
-    -   **Attempted fixes**: (From previous session) Several strategies were tried, with the last being an iterative approach with visibility checks. The root cause was identified as faulty de-duplication logic.
+    -   **Attempted fixes**: (From previous session) The root cause was identified as faulty de-duplication logic. No new fixes were attempted in this session.
     -   **Next debug checklist**: Re-engage the iterative application logic in . Add logging to trace the variant application loop and ensure state updates correctly between iterations to solve the user's report that the loop breaks after the first dependent variant.
     -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker for the calculator-to-configurator feature. Fixing it is essential for the product's core functionality.
     -   **Status**: NOT STARTED
@@ -48,9 +53,14 @@ A full-stack React/FastAPI/MongoDB application for a sauna business. Key feature
     -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   **Task 1: Complete Technical Specification Feature Migration (P0 - HIGHEST)**
-    -   **Where to resume**: The backend logic is complete () and the button is removed from . The next step is to modify . Add the Тех. задание button inside the lead detail modal. This button should open the existing , passing the relevant data from the selected CRM lead.
-    -   **What will be achieved with this?**: The user's request will be fully implemented, centralizing order-related actions within the new mini-CRM.
+-   **Task 1: Complete New Technical Specification PDF Feature (P0 - HIGHEST)**
+    -   **Where to resume**: The UI for the latest user requests in  is mostly complete. The immediate next step is to implement the Create PDF functionality.
+        1.  Add a Создать PDF (Create PDF) button to the footer of .
+        2.  Implement the  handler to gather form data and call the backend endpoint .
+        3.  **Crucially**, review and update the  function in  to correctly render a PDF based on the new data structure from  and the form selections.
+        4.  After PDF generation, the data should be sent to Cloudinary for storage.
+        5.  The returned Cloudinary URL must then be saved as a new document (e.g., type ) in the  collection for the correct lead. The endpoint  can be reused for this.
+    -   **What will be achieved with this?**: The user will be able to generate, download, and store a complete Technical Specification PDF directly from the CRM lead card.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: Both
     -   **Blocked on something**: None
@@ -59,20 +69,22 @@ A full-stack React/FastAPI/MongoDB application for a sauna business. Key feature
 -   **Upcoming Tasks**:
     -   **P1**: Finalize and test the Save layout to order feature end-to-end.
 -   **Future Tasks**:
-    -   **P1**: Refactor the monolithic  function in .
-    -   **P1**: Refactor  (Urgent technical debt).
+    -   **P1**: Refactor the monolithic  and  files.
+    -   **P1**: Refactor  (Urgent technical debt, related to P0 issue).
     -   **P2**: Add UI for importing/restoring a project backup.
     -   **P2**: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
--   **Feature: Sales Dashboard Relocation**: Moved the sales dashboard into a tab within the sauna section and made it admin-only.
--   **Feature: Warehouse Dovoz**: Implemented a new Довозы (additional deliveries) feature with a Kanban board, settings, and amoCRM synchronization.
--   **Feature: Sauna Mini-CRM**: Built a complete mini-CRM within the sauna section, featuring a production calendar, Kanban board with drag-and-drop, list view, advanced filtering, a detailed lead card, document management via Cloudinary, and two-way amoCRM sync.
--   **Bug Fix: Missing PDF Link in amoCRM**: Resolved an issue where a redundant API call sent a note to amoCRM without the required PDF link.
+-   **Feature: Complete Tech Spec Overhaul**: Rebuilt the Technical Specification feature from scratch with a new 21-point UI () and data structure () as per user requirements.
+-   **Feature: Advanced Tech Spec Mapping**: Implemented UI in the admin panel to map entire calculator categories and individual option variants to the Tech Spec, with a clear priority hierarchy.
+-   **Feature: Production Module Refactor**: Separated the Sauna Production page (with its own calendar/Kanban) from the Sauna CRM (which is now a tab in the calculator). Added a Send to Production feature.
+-   **Bug Fix: PDF Not Linking to Internal CRM**: Refactored the backend PDF upload endpoint () to automatically find the correct internal CRM lead by its  and attach the generated PDF as a document.
+-   **Bug Fix: Layout Not Loading in Tech Spec**: Fixed the data fetching logic in  and updated the calculator to save the  directly in the order, ensuring the layout image always loads.
+-   **Bug Fix: PDF Link  in amoCRM**: Resolved an issue where Cloudinary credentials were not being loaded in the  module by adding .
 
 **Earlier issues found/mentioned but not fixed**
 -   The critical bug regarding automatic variant application in .
--   The recurring platform issues: unstable login sessions and deployment timeouts.
+-   The recurring platform issues: unstable user login sessions and deployment timeouts.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Unstable user login sessions.
@@ -80,75 +92,74 @@ A full-stack React/FastAPI/MongoDB application for a sauna business. Key feature
 -   **Status**: NOT STARTED.
 
 **Code Architecture**
-
+generate_tech_spec_pdf
 
 **Key Technical Concepts**
--   **Bi-directional amoCRM Sync**: Features now pull data from amoCRM (e.g., leads for Dovoz/CRM) and push updates back (e.g., stage changes, field updates).
--   **Dynamic Kanban Boards**: Implemented interactive Kanban boards with drag-and-drop functionality for stage management in both the Dovoz and Sauna CRM features.
--   **Production Calendar**: A visual calendar was built to display orders based on their ready date, providing a clear production schedule.
--   **Centralized Document Management**: The system now links documents (like calculator PDFs) to CRM leads, storing them on Cloudinary and referencing them in the database.
+-   **Backend-Driven Logic**: Complex logic, like linking generated PDFs to CRM leads, has been moved from the frontend to backend endpoints for improved reliability and robustness.
+-   **Data-Driven UI**: The new Technical Specification modal is entirely generated from the static data structure in , making it easy to modify and maintain.
+-   **Decoupled Modules**: The application is evolving into more distinct modules. The Sauna CRM (for sales) and Sauna Production (for manufacturing) are now separate front-end components, although they operate on the same  data collection, differentiated by a flag ().
+-   **Hierarchical Mapping**: A mapping priority system was established for the Tech Spec: Variant-level mapping overrides Option-level mapping, which overrides Category-level mapping.
 
 **key DB schema**
--   : Stores leads for the new mini-CRM, including fields for ,  (array), , and various dates.
--   : Stores orders for the Dovoz feature with , , , etc.
--   : Stores UI toggles and amoCRM configuration for the warehouse module.
--   : This existing collection is now used to link generated PDFs to  via .
+-   : Added  and  to facilitate the new production workflow. This collection is the single source of truth for both sales (CRM) and manufacturing (Production).
+-    collection:
+    -   The category object schema now includes an optional  to enable category-level mapping.
+    -   The  array within an option object now contains variant objects whose schema was updated to include  and .
 
 **All files of reference**
--   : Core logic for the new mini-CRM feature.
--   : The frontend component for the new mini-CRM.
--   : Core logic for the Dovoz warehouse feature.
--   : The frontend for the Dovoz feature.
--   : File where the Technical Specification button was removed.
+-   : **(Primary)** The completely new, overwritten component for the Tech Spec, currently being modified.
+-   : **(Primary)** The new data structure that drives the Tech Spec modal.
+-   : Contains the  endpoint that needs to be updated.
+-   : Contains logic for adding documents to a lead, which will be needed.
+-   : Contains reference logic for how PDFs are uploaded to Cloudinary and linked to entities.
 
 **Areas that need refactoring**:
--   ****: **URGENT PRIORITY**. This file is the source of the main P0 bug and has significant technical debt.
--   ****: This file remains very large and could be broken down into smaller, more focused service files.
+-   : **URGENT PRIORITY**. This file is the source of the main P0 bug and has significant technical debt.
+-   : This file remains very large and could be broken down into smaller, more focused service files.
 
 **key api endpoints**
--   : A new set of endpoints to manage leads, settings, documents, and calendar data for the mini-CRM.
--   : New endpoints for the Dovoz feature.
--   : Endpoints to manage warehouse settings.
--   : Calls to this endpoint were removed from the frontend to resolve a bug.
+-   : An existing endpoint that will be modified to generate the new PDF structure.
+-   : A recently created endpoint to attach a document URL to a CRM lead. This will be used to link the generated Tech Spec PDF.
+-   : New endpoint to mark a CRM lead as ready for the production module.
+-   : New endpoints to serve data for the production calendar and Kanban board.
 
 **Critical Info for New Agent**
 -   **You MUST respond in Russian.**
--   **Priority 1: Complete the Technical Specification feature migration.** The backend work is done. Your immediate task is to add the Тех. задание button to the lead modal in  and ensure it functions correctly.
--   **Priority 2: Address the critical P0 bug** concerning automatic variant application in . This is a long-standing, high-impact issue that needs to be resolved.
--   The application's logic is heavily tied to settings configured in the admin panels (Sales, Warehouse, Sauna CRM). When testing, ensure these settings (e.g., amoCRM stage IDs) are configured correctly.
+-   **Priority 1: Complete the Technical Specification PDF generation.** The UI for the new Tech Spec is built. Your immediate task is to implement the Create PDF button. This involves updating the backend PDF generation logic in  to match the new data structure and then creating the flow to upload the PDF to Cloudinary and link it to the CRM lead. The logic for the commercial proposal PDF is a good reference.
+-   **Do not revert the Tech Spec changes.** The user requested a complete overhaul. The files  and  were intentionally overwritten and form the basis for the current task.
+-   **P0 Bug**: After completing the current task, the highest priority is the long-standing bug with automatic variant application in .
 
 **documents and test reports created in this job**
--    (Updated multiple times)
--   
+-    (Updated)
 -   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **LATEST**: User wants to move the Tech Spec button to the CRM and link calculator PDFs. (IN PROGRESS)
-2.  User wants filters (manager, date) in the CRM. (DONE)
-3.  User wants drag-and-drop in the CRM Kanban. (DONE)
-4.  User provides detailed requirements for the new Sauna Mini-CRM. (DONE)
-5.  User reports the PDF link is missing in amoCRM notes. (DONE)
-6.  User requests that the client's address be pulled into Dovoz cards. (DONE)
-7.  User provides detailed requirements for the Dovoz feature. (DONE)
-8.  User asks where the Sales dashboard is now located. (Answered)
-9.  User asks to move the Sales dashboard into the sauna section. (DONE)
-10. User confirms the plan to complete the Sales Dashboard. (DONE)
+1.  **LATEST/CURRENT**: Requested enhancements for the new Tech Spec: conditional inputs for other size, a new Air vents category, and a Create PDF button. (IN PROGRESS)
+2.  Requested a complete overhaul of the Tech Spec modal with a new 21-point structure. (DONE)
+3.  Requested advanced mapping for option *variants* in the Tech Spec. (DONE)
+4.  Requested the ability to map entire calculator *categories* to Tech Spec categories as plain text. (DONE)
+5.  Reported that the commercial proposal (КП) PDF was not being added to the internal CRM's Documents section. (DONE)
+6.  Reported that the layout image was not loading in the Tech Spec modal. (DONE)
+7.  Reported that the PDF link sent to amoCRM was . (DONE)
+8.  Requested to separate the Production module from the CRM, giving it a dedicated page and Kanban board, and adding a Send to Production feature. (DONE)
+9.  User approved the plan for the Production module refactor.
+10. Initial request to move the Tech Spec button into the CRM and link it to the calculator order. (DONE)
 
 **Project Health Check:**
--   **Broken**: The automatic application of conditional variants in  is the most critical unresolved issue.
+-   **Broken**: The automatic application of conditional variants in  remains the most critical unresolved issue.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
 -   **Fabric.js**: (v5.3.0) Core of the layout configurator.
 -   **Nano Banana Pro (Gemini)**: For AI image background replacement. Uses **Emergent LLM Key**.
 -   **Cloudinary**: Used for price list images, AI images, and storing generated PDFs/documents.
--   **amoCRM/Kommo**: Primary CRM integration, now more deeply integrated with new features.
+-   **amoCRM/Kommo**: Primary CRM integration.
 -   **Telegram**: For notifications.
 -   **Google Maps**: For delivery routes.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. Used successfully for the Sales, Dovoz, and Sauna CRM features.
+-   **Testing agent used after significant changes**: YES. Used successfully for the Production Module refactor.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
 -   **Known regressions**: None from the work completed in this session.
@@ -157,6 +168,5 @@ A full-stack React/FastAPI/MongoDB application for a sauna business. Key feature
 -   Admin:  / 
 
 **What agent forgot to execute**
--   The agent did not add the Technical Specification button to the new  modal after removing it from . This is the immediate next step to complete the user's latest request.
--   The critical refactoring of  was postponed again.
--   The recurring platform issues (unstable login, deployment timeouts) were not addressed.</analysis>
+-   The critical P0 bug in  has been postponed again in favor of new feature requests.
+-   The recurring platform issues (unstable login, deployment timeouts) from the initial handoff were not addressed.</analysis>
