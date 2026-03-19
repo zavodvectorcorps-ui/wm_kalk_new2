@@ -5,6 +5,12 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Mar 19, 2026 - BUGFIX: PDF ссылка None в amoCRM (FIXED)
+- **Root cause**: `cloudinary_service.py` не загружал `.env` файл, Cloudinary не инициализировался
+- **Fix 1**: Добавлен `load_dotenv` в `cloudinary_service.py`
+- **Fix 2**: `pdf_download_url` вычисляется до DB-операций (гарантированный fallback)
+- Cloudinary upload протестирован: URL генерируется корректно
+
 ### Mar 19, 2026 - FEATURE: Производство саун (COMPLETED)
 - **NEW FEATURE**: Отдельная страница "Производство саун" с Календарём и Канбаном
   - Доступна через карточку на лендинге, CRM остаётся только во вкладке калькулятора

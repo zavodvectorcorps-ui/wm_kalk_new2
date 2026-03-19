@@ -2078,6 +2078,25 @@ async def upload_calculator_pdf_to_amocrm(
     pdf_saved = False
     pdf_download_url = None
     
+    # Determine base_url early for fallback
+    base_url = ""
+    app_domain = os.environ.get("APP_DOMAIN", "")
+    if app_domain:
+        base_url = f"https://{app_domain}"
+    else:
+        try:
+            with open("/app/frontend/.env", "r") as f:
+                for line in f:
+                    if line.startswith("REACT_APP_BACKEND_URL="):
+                        base_url = line.strip().split("=", 1)[1]
+                        break
+        except:
+            pass
+    if not base_url:
+        base_url = "https://wm-kalkulator.pl"
+    
+    pdf_download_url = f"{base_url}/api/integrations/amocrm/calculator-pdf/{order_id}"
+    
     try:
         pdf_collection = db["calculator_pdfs"]
         pdf_doc = {
@@ -2095,21 +2114,6 @@ async def upload_calculator_pdf_to_amocrm(
             upsert=True
         )
         pdf_saved = True
-        
-        app_domain = os.environ.get("APP_DOMAIN", "")
-        if app_domain:
-            base_url = f"https://{app_domain}"
-        else:
-            try:
-                with open("/app/frontend/.env", "r") as f:
-                    for line in f:
-                        if line.startswith("REACT_APP_BACKEND_URL="):
-                            base_url = line.strip().split("=", 1)[1]
-                            break
-            except:
-                base_url = "https://wm-kalkulator.pl"
-        
-        pdf_download_url = f"{base_url}/api/integrations/amocrm/calculator-pdf/{order_id}"
         
     except Exception as e:
         logger.error(f"Error saving PDF: {e}")

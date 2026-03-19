@@ -7,6 +7,12 @@ import time
 import logging
 from typing import Optional, Dict
 import base64
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env
+ROOT_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(ROOT_DIR / '.env')
 
 logger = logging.getLogger(__name__)
 
