@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { SortableList } from '../ui/sortable-list';
-import { Plus, Edit2, Trash2, Save, X, LayoutGrid, List, Info, Upload, Image as ImageIcon, Video } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, LayoutGrid, List, Info, Upload, Image as ImageIcon, Video, Wrench } from 'lucide-react';
 
 export const CategoriesTab = ({
   prices,
   txt,
+  techSpecCategories,
   handleAddCategory,
   handleSaveEditCategory,
   handleDeleteCategory,
@@ -138,6 +139,12 @@ export const CategoriesTab = ({
                       {category.inputType === 'checkbox' ? txt.checkbox : txt.radio}
                     </Badge>
                     {category.options?.length || 0} {txt.options.toLowerCase()}
+                    {category.techSpecCategoryId && (
+                      <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
+                        <Wrench className="h-3 w-3 mr-1" />
+                        ТЗ: {(techSpecCategories || []).find(tc => tc.id === category.techSpecCategoryId)?.name || category.techSpecCategoryId}
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 
@@ -302,6 +309,39 @@ export const CategoriesTab = ({
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Tech Spec Category Mapping */}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wrench className="h-4 w-4 text-amber-600" />
+                  <Label className="font-semibold">Маппинг в тех. задание</Label>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Выбранная опция из этой категории калькулятора будет перенесена текстом в выбранную категорию тех. задания. Не нужно настраивать связь для каждой опции отдельно.
+                </p>
+                <Select
+                  value={editingCategory.techSpecCategoryId || '_none'}
+                  onValueChange={(value) => setEditingCategory(prev => ({
+                    ...prev,
+                    techSpecCategoryId: value === '_none' ? null : value
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Не привязано" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Не привязано —</SelectItem>
+                    {(techSpecCategories || []).map(tc => (
+                      <SelectItem key={tc.id} value={tc.id}>{tc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editingCategory.techSpecCategoryId && (
+                  <p className="text-xs text-green-600 mt-2">
+                    Выбранная опция будет перенесена как текст в "{(techSpecCategories || []).find(tc => tc.id === editingCategory.techSpecCategoryId)?.name}"
+                  </p>
+                )}
               </div>
 
               {/* Visibility for Model Variants */}

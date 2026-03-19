@@ -156,15 +156,13 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
       const initialSelections = { ...existingTechSpec.selections };
       const initialTextInputs = { ...existingTechSpec.textInputs };
       
-      // PRIMARY: Map from selectedOptions array which contains techSpecId mappings
       if (order.selectedOptions && order.selectedOptions.length > 0) {
         order.selectedOptions.forEach(selOpt => {
-          // Use techSpecCategoryId and techSpecId for direct matching
           const techSpecCatId = selOpt.techSpecCategoryId;
           const techSpecOptId = selOpt.techSpecId;
           
           if (techSpecCatId && techSpecOptId) {
-            // Direct match using IDs
+            // Direct option-level mapping (techSpecCategoryId + techSpecId)
             const techCategory = categories.find(tc => tc.id === techSpecCatId);
             if (techCategory && !initialSelections[techCategory.id]) {
               const techOptExists = techCategory.options?.some(to => to.id === techSpecOptId);
@@ -182,6 +180,45 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
             }
           }
           
+          if (techSpecCatId && !techSpecOptId) {
+            // Category-level mapping: transfer selected option name as text
+            const techCategory = categories.find(tc => tc.id === techSpecCatId);
+            if (!techCategory) return;
+            
+            const optionName = selOpt.optionName || selOpt.name || '';
+            if (!optionName) return;
+            
+            // Try to match option by name first
+            if (techCategory.options && techCategory.options.length > 0) {
+              const nameMatch = techCategory.options.find(to => {
+                const toName = to.name.toLowerCase();
+                const soName = optionName.toLowerCase();
+                return toName === soName || toName.includes(soName) || soName.includes(toName);
+              });
+              if (nameMatch) {
+                if (techCategory.inputType === 'checkbox') {
+                  const existing = initialSelections[techCategory.id] || [];
+                  if (!existing.includes(nameMatch.id)) {
+                    initialSelections[techCategory.id] = [...existing, nameMatch.id];
+                  }
+                } else {
+                  initialSelections[techCategory.id] = nameMatch.id;
+                }
+                return;
+              }
+              // No name match → store as text input
+              const firstOpt = techCategory.options[0];
+              const textKey = `${techCategory.id}_${firstOpt.id}`;
+              const existingText = initialTextInputs[textKey];
+              if (existingText) {
+                initialTextInputs[textKey] = existingText + ', ' + optionName;
+              } else {
+                initialTextInputs[textKey] = optionName;
+              }
+            }
+            return;
+          }
+          
           // Fallback: Try to find tech spec category by name similarity
           const techCategory = categories.find(tc => {
             const tcName = tc.name.toLowerCase();
@@ -191,7 +228,6 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
           
           if (!techCategory || initialSelections[techCategory.id]) return;
           
-          // Try to find option by name
           const techOpt = techCategory.options?.find(to => {
             const toName = to.name.toLowerCase();
             const soName = selOpt.optionName?.toLowerCase() || '';

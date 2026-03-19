@@ -343,6 +343,7 @@ export const SaunaPricingPage = () => {
           <CategoriesTab
             prices={prices}
             txt={txt}
+            techSpecCategories={techSpecCategories}
             handleAddCategory={handleAddCategory}
             handleSaveEditCategory={handleSaveEditCategory}
             handleDeleteCategory={handleDeleteCategory}
