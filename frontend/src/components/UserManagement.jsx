@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table';
-import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye, Truck } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye, Truck, Package, Kanban, GraduationCap } from 'lucide-react';
 import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
 
@@ -69,7 +69,10 @@ export const UserManagement = () => {
       accessSauna: 'Sauna (Сауны)',
       accessLogistics: 'Логистика',
       accessDriver: 'Кабинет водителя',
-      accessSaunaCrm: 'Производство саун',
+      accessWarehouse: 'Склад',
+      accessSaunaCrm: 'CRM саун',
+      accessSaunaProduction: 'Производство саун',
+      accessTraining: 'Обучение',
       accessAll: 'Все разделы',
       role: 'Роль',
       admin: 'Администратор',
@@ -111,7 +114,10 @@ export const UserManagement = () => {
       accessSauna: 'Sauna',
       accessLogistics: 'Logistyka',
       accessDriver: 'Panel kierowcy',
-      accessSaunaCrm: 'Produkcja saun',
+      accessWarehouse: 'Magazyn',
+      accessSaunaCrm: 'CRM saun',
+      accessSaunaProduction: 'Produkcja saun',
+      accessTraining: 'Szkolenia',
       accessAll: 'Wszystkie sekcje',
       role: 'Rola',
       admin: 'Administrator',
@@ -320,6 +326,24 @@ export const UserManagement = () => {
             <Badge variant="secondary" className="gap-1 bg-rose-100 text-rose-700">
               <Flame className="w-3 h-3" />
               {txt.accessSaunaCrm}
+            </Badge>
+          )}
+          {access.includes('sauna_production') && (
+            <Badge variant="secondary" className="gap-1 bg-pink-100 text-pink-700">
+              <Kanban className="w-3 h-3" />
+              {txt.accessSaunaProduction}
+            </Badge>
+          )}
+          {access.includes('warehouse') && (
+            <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-700">
+              <Package className="w-3 h-3" />
+              {txt.accessWarehouse}
+            </Badge>
+          )}
+          {access.includes('training') && (
+            <Badge variant="secondary" className="gap-1 bg-indigo-100 text-indigo-700">
+              <GraduationCap className="w-3 h-3" />
+              {txt.accessTraining}
             </Badge>
           )}
         </div>
@@ -621,6 +645,54 @@ export const UserManagement = () => {
                     {txt.accessSaunaCrm}
                   </label>
                 </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="add-access-sauna-production"
+                    checked={formData.access.includes('sauna_production')}
+                    onCheckedChange={(checked) => {
+                      const newAccess = checked 
+                        ? [...formData.access, 'sauna_production']
+                        : formData.access.filter(a => a !== 'sauna_production');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="add-access-sauna-production" className="flex items-center gap-2 cursor-pointer">
+                    <Kanban className="w-4 h-4 text-pink-500" />
+                    {txt.accessSaunaProduction}
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="add-access-warehouse"
+                    checked={formData.access.includes('warehouse')}
+                    onCheckedChange={(checked) => {
+                      const newAccess = checked 
+                        ? [...formData.access, 'warehouse']
+                        : formData.access.filter(a => a !== 'warehouse');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="add-access-warehouse" className="flex items-center gap-2 cursor-pointer">
+                    <Package className="w-4 h-4 text-amber-500" />
+                    {txt.accessWarehouse}
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="add-access-training"
+                    checked={formData.access.includes('training')}
+                    onCheckedChange={(checked) => {
+                      const newAccess = checked 
+                        ? [...formData.access, 'training']
+                        : formData.access.filter(a => a !== 'training');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="add-access-training" className="flex items-center gap-2 cursor-pointer">
+                    <GraduationCap className="w-4 h-4 text-indigo-500" />
+                    {txt.accessTraining}
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -788,6 +860,57 @@ export const UserManagement = () => {
                   <label htmlFor="edit-access-sauna-crm" className="flex items-center gap-2 cursor-pointer">
                     <Flame className="w-4 h-4 text-rose-500" />
                     {txt.accessSaunaCrm}
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="edit-access-sauna-production"
+                    checked={Array.isArray(formData.access) && formData.access.includes('sauna_production')}
+                    onCheckedChange={(checked) => {
+                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
+                      const newAccess = checked 
+                        ? [...currentAccess.filter(a => a !== 'all'), 'sauna_production']
+                        : currentAccess.filter(a => a !== 'sauna_production');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="edit-access-sauna-production" className="flex items-center gap-2 cursor-pointer">
+                    <Kanban className="w-4 h-4 text-pink-500" />
+                    {txt.accessSaunaProduction}
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="edit-access-warehouse"
+                    checked={Array.isArray(formData.access) && formData.access.includes('warehouse')}
+                    onCheckedChange={(checked) => {
+                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
+                      const newAccess = checked 
+                        ? [...currentAccess.filter(a => a !== 'all'), 'warehouse']
+                        : currentAccess.filter(a => a !== 'warehouse');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="edit-access-warehouse" className="flex items-center gap-2 cursor-pointer">
+                    <Package className="w-4 h-4 text-amber-500" />
+                    {txt.accessWarehouse}
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="edit-access-training"
+                    checked={Array.isArray(formData.access) && formData.access.includes('training')}
+                    onCheckedChange={(checked) => {
+                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
+                      const newAccess = checked 
+                        ? [...currentAccess.filter(a => a !== 'all'), 'training']
+                        : currentAccess.filter(a => a !== 'training');
+                      setFormData({ ...formData, access: newAccess });
+                    }}
+                  />
+                  <label htmlFor="edit-access-training" className="flex items-center gap-2 cursor-pointer">
+                    <GraduationCap className="w-4 h-4 text-indigo-500" />
+                    {txt.accessTraining}
                   </label>
                 </div>
               </div>

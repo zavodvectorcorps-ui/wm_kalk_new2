@@ -71,7 +71,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const canAccessDriver = hasAccess ? hasAccess('driver') : false;
   const canAccessWarehouse = hasAccess ? hasAccess('warehouse') : false;
   const canAccessSaunaCRM = hasAccess ? hasAccess('sauna_crm') : false;
-  // Training uses hasAccess which checks role in AuthContext
+  const canAccessSaunaProduction = hasAccess ? hasAccess('sauna_production') : false;
   const canAccessTraining = hasAccess ? hasAccess('training') : false;
   const canAccessAdmin = isAdmin && isAdmin();
 
@@ -314,7 +314,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
             )}
 
             {/* Sauna Production Card */}
-            {canAccessSaunaCRM && (
+            {canAccessSaunaProduction && (
               <Card 
                 className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-rose-500/50"
                 onClick={() => onSelectCalculator('sauna_crm')}
