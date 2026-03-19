@@ -5,6 +5,19 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Mar 19, 2026 - FEATURE: Тех. задание в CRM (COMPLETED)
+- **NEW FEATURE**: Интеграция калькулятора и тех. задания в мини-CRM
+  - В модалке лида добавлена секция "Калькулятор / Тех. задание"
+  - Автоматическая привязка заказа из калькулятора при синхронизации из amoCRM (по amocrm_id)
+  - Ручная привязка заказа из калькулятора по ID
+  - Отображение привязанного заказа: модель, клиент, сумма, дата
+  - Кнопка "Открыть в калькуляторе" — переход к редактированию заказа
+  - Кнопка "Тех. задание" — открывает TechSpecModal с данными заказа (модели, опции)
+  - Если заказ не привязан — поле для ввода ID и кнопка "Привязать"
+- **Backend**: `GET /api/sauna-crm/leads/{id}/calculator-order`, `POST /api/sauna-crm/leads/{id}/link-calculator-order`
+- **Frontend**: Секция в SaunaCRMPage.jsx + TechSpecModal
+- **Testing**: Backend 10/10, Frontend 100%
+
 ### Mar 17, 2026 - FEATURE: Sales Dashboard (COMPLETED)
 - **NEW FEATURE**: Complete Sales Dashboard accessible from Sauna section tab (admin-only)
 
