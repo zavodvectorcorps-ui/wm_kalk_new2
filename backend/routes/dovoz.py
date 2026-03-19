@@ -308,6 +308,17 @@ def _parse_amo_timestamp(ts) -> str:
         return ""
 
 
+def _extract_debt(field_values_by_id: dict, dovoz_config: dict) -> float:
+    """Extract debt amount from a configurable amoCRM field."""
+    fid = str(dovoz_config.get("debt_field_id", "") or "")
+    if fid and fid in field_values_by_id:
+        try:
+            return float(str(field_values_by_id[fid]).replace(",", ".").replace(" ", ""))
+        except (ValueError, TypeError):
+            pass
+    return 0
+
+
 def _extract_products(field_values_by_id: dict, field_all_values_by_id: dict, dovoz_config: dict) -> str:
     """Extract and merge products from two configurable amoCRM fields."""
     fid1 = str(dovoz_config.get("products_field_id_1", "") or "")
@@ -476,6 +487,7 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                 "address_index": index_val,
                 "price": lead.get("price", 0),
                 "products": _extract_products(field_values_by_id, field_all_values_by_id, wh_settings.get("dovoz_config", {})),
+                "debt": _extract_debt(field_values_by_id, wh_settings.get("dovoz_config", {})),
                 "deal_created_at": _parse_amo_timestamp(lead.get("created_at")),
                 "responsible_user": users_map.get(lead.get("responsible_user_id"), ""),
                 "dovozStage": "accepted",
@@ -499,6 +511,7 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                     "address_index": dovoz_order["address_index"],
                     "price": dovoz_order["price"],
                     "products": dovoz_order["products"],
+                    "debt": dovoz_order["debt"],
                     "deal_created_at": dovoz_order["deal_created_at"],
                     "responsible_user": dovoz_order["responsible_user"],
                     "synced_at": now,

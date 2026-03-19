@@ -350,6 +350,9 @@ const WarehousePage = ({ onBack }) => {
                 {order.price > 0 && (
                   <Badge variant="secondary" className="text-xs">{order.price?.toLocaleString()} zł</Badge>
                 )}
+                {order.debt > 0 && (
+                  <Badge variant="secondary" className="text-xs bg-red-100 text-red-700" data-testid={`dovoz-debt-${order.id}`}>Долг: {order.debt?.toLocaleString()} zł</Badge>
+                )}
               </div>
               <h4 className="font-medium text-sm truncate flex items-center gap-1">
                 {getDisplayName(order)}
@@ -722,6 +725,15 @@ const WarehousePage = ({ onBack }) => {
                       </div>
                     </div>
                   </div>
+                  <div className="pt-2 border-t">
+                    <Label className="text-xs font-semibold">Задолженность</Label>
+                    <div className="grid grid-cols-2 gap-3 mt-1">
+                      <div>
+                        <Label className="text-xs">ID поля задолженности</Label>
+                        <Input value={settingsForm.dovoz_config.debt_field_id || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, debt_field_id: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="debt-field-dropdown" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                   <div className="space-y-3">
@@ -755,6 +767,15 @@ const WarehousePage = ({ onBack }) => {
                       <div>
                         <Label className="text-xs">Поле товаров 2</Label>
                         <Input value={settingsForm.dovoz_config.products_field_id_2 || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, products_field_id_2: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="products-field-2-input" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t">
+                    <Label className="text-xs font-semibold">Задолженность</Label>
+                    <div className="grid grid-cols-2 gap-3 mt-1">
+                      <div>
+                        <Label className="text-xs">ID поля задолженности</Label>
+                        <Input value={settingsForm.dovoz_config.debt_field_id || ''} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, debt_field_id: e.target.value } }))} placeholder="ID поля amoCRM" data-testid="debt-field-input" />
                       </div>
                     </div>
                   </div>
