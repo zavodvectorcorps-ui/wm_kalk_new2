@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { 
   Package, Truck, Search, Clock, MapPin, 
   Box, CheckCircle, History, RefreshCw,
-  Calendar, ChevronDown, ChevronUp, GripVertical, Phone,
+  Calendar, ChevronDown, ChevronUp, GripVertical, Phone, Copy,
   Settings, TruckIcon, PackageCheck, PackageX,
   ArrowDownToLine, Send, CircleCheckBig, Loader2, Trash2
 } from 'lucide-react';
@@ -351,7 +351,10 @@ const WarehousePage = ({ onBack }) => {
                   <Badge variant="secondary" className="text-xs">{order.price?.toLocaleString()} zł</Badge>
                 )}
               </div>
-              <h4 className="font-medium text-sm truncate">{getDisplayName(order)}</h4>
+              <h4 className="font-medium text-sm truncate flex items-center gap-1">
+                {getDisplayName(order)}
+                {getDisplayName(order) && <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(getDisplayName(order)); toast.success('Имя скопировано'); }} className="text-muted-foreground/40 hover:text-primary transition-colors" data-testid={`copy-name-${order.id}`}><Copy className="w-3 h-3" /></button>}
+              </h4>
               <p className="text-xs text-muted-foreground truncate">{order.lead_name}</p>
               {order.amocrm_id && (
                 <p className="text-xs text-muted-foreground">amoCRM: {order.amocrm_id}</p>
@@ -360,12 +363,20 @@ const WarehousePage = ({ onBack }) => {
                 <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                   <MapPin className="w-3 h-3 flex-shrink-0" />
                   <span className="truncate">{order.address}</span>
+                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(order.address); toast.success('Адрес скопирован'); }} className="text-muted-foreground/40 hover:text-primary transition-colors flex-shrink-0" data-testid={`copy-address-${order.id}`}><Copy className="w-3 h-3" /></button>
+                </div>
+              )}
+              {order.address_index && (
+                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                  <span className="ml-4">{order.address_index}</span>
+                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(order.address_index); toast.success('Индекс скопирован'); }} className="text-muted-foreground/40 hover:text-primary transition-colors flex-shrink-0" data-testid={`copy-index-${order.id}`}><Copy className="w-3 h-3" /></button>
                 </div>
               )}
               {getDisplayPhone(order) && (
                 <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                   <Phone className="w-3 h-3" />
                   <span>{getDisplayPhone(order)}</span>
+                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(getDisplayPhone(order)); toast.success('Телефон скопирован'); }} className="text-muted-foreground/40 hover:text-primary transition-colors flex-shrink-0" data-testid={`copy-phone-${order.id}`}><Copy className="w-3 h-3" /></button>
                 </div>
               )}
               {order.products && (
