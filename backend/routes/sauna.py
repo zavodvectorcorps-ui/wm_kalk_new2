@@ -2249,8 +2249,8 @@ async def generate_tech_spec_pdf(request: dict):
             if cond_parts:
                 display = (display + " | " if display else "") + "; ".join(cond_parts)
 
-            if display:
-                section_data.append([cat_name, display])
+            # Always include category in PDF, show "—" if empty
+            section_data.append([cat_name, display if display else "—"])
 
         if section_data:
             # Section header
