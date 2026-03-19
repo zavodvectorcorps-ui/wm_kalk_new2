@@ -2062,12 +2062,9 @@ async def upload_calculator_pdf_to_amocrm(
     logger.info(f"amocrm_id={amocrm_id}, order_id={order_id}, calculator_type={calculator_type}, employee={employee_name}, total={total_amount}")
     
     settings = get_amocrm_settings()
-    
     domain = settings.get("amocrm_domain", "")
     token = settings.get("amocrm_token", "")
-    
-    if not domain or not token:
-        return {"status": "skipped", "message": "amoCRM credentials not configured", "code_version": "V12-range"}
+    has_amocrm = bool(domain and token)
     
     pdf_bytes = await request.body()
     
@@ -2175,41 +2172,38 @@ async def upload_calculator_pdf_to_amocrm(
     # === NEW: Instead of uploading file to amoCRM, just add note with link ===
     # This saves amoCRM storage space
     
-    pdf_uploaded = False  # We don't upload file to amoCRM anymore
+    # Send note to amoCRM (only if credentials are configured)
+    pdf_uploaded = False
     upload_error = None
     
-    try:
-        # === NEW LOGIC: Just add note with PDF link instead of uploading file ===
-        # This saves amoCRM storage space
+    if has_amocrm:
+        try:
+            debug_log["steps"].append({
+                "step": 1,
+                "name": "skip_file_upload",
+                "reason": "Using Cloudinary link instead of amoCRM Drive upload"
+            })
+        except Exception as e:
+            upload_error = f"Exception: {str(e)}"
+            debug_log["exception"] = str(e)
         
-        debug_log["steps"].append({
-            "step": 1,
-            "name": "skip_file_upload",
-            "reason": "Using Cloudinary link instead of amoCRM Drive upload"
-        })
-                
-    except Exception as e:
-        upload_error = f"Exception: {str(e)}"
-        debug_log["exception"] = str(e)
-    
-    # Always add info note with order details and PDF link
-    note_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')
-    info_parts = [
-        "✅ Коммерческое предложение создано",
-        f"Заказ: {order_id}",
-        f"Калькулятор: {calc_name}",
-    ]
-    if employee_name:
-        info_parts.append(f"Сотрудник: {employee_name}")
-    if total_amount:
-        info_parts.append(f"Сумма: {total_amount} zł")
-    
-    # Add PDF link (Cloudinary URL preferred)
-    info_parts.append(f"\n📄 Скачать PDF: {final_pdf_url}")
-    info_parts.append(note_date)
-    
-    info_note = "\n".join(info_parts)
-    await add_note_to_amocrm(amocrm_id, info_note, domain, token)
+        # Always add info note with order details and PDF link
+        note_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')
+        info_parts = [
+            "Коммерческое предложение создано",
+            f"Заказ: {order_id}",
+            f"Калькулятор: {calc_name}",
+        ]
+        if employee_name:
+            info_parts.append(f"Сотрудник: {employee_name}")
+        if total_amount:
+            info_parts.append(f"Сумма: {total_amount} zł")
+        
+        info_parts.append(f"\nСкачать PDF: {final_pdf_url}")
+        info_parts.append(note_date)
+        
+        info_note = "\n".join(info_parts)
+        await add_note_to_amocrm(amocrm_id, info_note, domain, token)
     
     # Log to database
     webhook_logs.insert_one({
@@ -2225,6 +2219,30 @@ async def upload_calculator_pdf_to_amocrm(
         "upload_error": upload_error,
         "debug_log": debug_log
     })
+    
+    # Auto-link PDF as document in CRM lead (if exists)
+    if final_pdf_url and amocrm_id:
+        try:
+            crm_leads_col = db["sauna_crm_leads"]
+            crm_lead = crm_leads_col.find_one({"amocrm_id": amocrm_id}, {"_id": 0})
+            if crm_lead:
+                import uuid as uuid_mod
+                doc = {
+                    "id": str(uuid_mod.uuid4())[:8],
+                    "type": "kp",
+                    "name": f"КП {client_name or ''} {order_id}".strip(),
+                    "url": final_pdf_url,
+                    "filename": f"KP_{calc_name}_{order_id}.pdf",
+                    "uploadedAt": datetime.now(timezone.utc).isoformat(),
+                    "orderId": order_id,
+                }
+                crm_leads_col.update_one(
+                    {"amocrm_id": amocrm_id},
+                    {"$push": {"documents": doc}}
+                )
+                logger.info(f"PDF linked to CRM lead {crm_lead.get('id')} as document")
+        except Exception as e:
+            logger.error(f"Failed to link PDF to CRM lead: {e}")
     
     return {
         "status": "ok" if cloudinary_uploaded else "partial",
