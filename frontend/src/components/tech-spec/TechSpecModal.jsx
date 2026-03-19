@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
 import { TECH_SPEC_CATEGORIES, TECH_SPEC_SECTIONS } from './techSpecData';
-import { Loader2, Save, Info, Flame, Sofa, Zap, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Save, Info, Flame, Sofa, Zap, Image as ImageIcon, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/api';
 import axios from 'axios';
@@ -22,9 +22,10 @@ const sectionIcons = {
   zap: Zap,
 };
 
-export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
+export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) => {
   const [formData, setFormData] = useState({ selections: {}, textInputs: {}, conditionalData: {} });
   const [saving, setSaving] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [layoutImage, setLayoutImage] = useState(null);
   const [layoutLoading, setLayoutLoading] = useState(false);
 
@@ -186,6 +187,69 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
       toast.error('Ошибка сохранения');
     }
     setSaving(false);
+  };
+
+  const handleCreatePdf = async () => {
+    if (!order) return;
+    setGeneratingPdf(true);
+    try {
+      // First save the tech spec
+      const techSpec = {
+        selections: formData.selections,
+        textInputs: formData.textInputs,
+        conditionalData: formData.conditionalData,
+        comment: formData.comment,
+        updatedAt: new Date().toISOString(),
+      };
+      await axios.put(`${API_URL}/api/sauna/orders/${order.id}/tech-spec`, techSpec);
+
+      // Prepare categories and sections as plain objects for the backend
+      const cats = TECH_SPEC_CATEGORIES.map(c => ({
+        id: c.id, name: c.name, section: c.section, inputType: c.inputType,
+        options: c.options, conditionalFields: c.conditionalFields || null,
+      }));
+      const secs = TECH_SPEC_SECTIONS.map(s => ({ id: s.id, name: s.name }));
+
+      const payload = {
+        order: {
+          id: order.id,
+          fullName: order.fullName || order.clientName || '',
+          phoneNumber: order.phoneNumber || order.phone || '',
+          modelName: order.modelName || '',
+          selectedModelVariantName: order.selectedModelVariantName || '',
+          clientName: order.clientName || '',
+        },
+        techSpec,
+        categories: cats,
+        sections: secs,
+        benchData: getBenchData(),
+        leadId: leadId || null,
+      };
+
+      const res = await axios.post(`${API_URL}/api/sauna/generate-tech-spec-pdf`, payload, {
+        responseType: leadId ? 'json' : 'blob',
+      });
+
+      if (leadId && res.data?.url) {
+        toast.success('PDF создан и прикреплён к лиду');
+        window.open(res.data.url, '_blank');
+        onSaved?.(techSpec);
+      } else {
+        // Download as file
+        const blob = new Blob([res.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `TechSpec_${order.id}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success('PDF скачан');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Ошибка генерации PDF');
+    }
+    setGeneratingPdf(false);
   };
 
   const modelInfo = getModelInfo();
@@ -403,6 +467,16 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
 
         <DialogFooter className="gap-2 mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Закрыть</Button>
+          <Button
+            variant="outline"
+            onClick={handleCreatePdf}
+            disabled={generatingPdf || saving}
+            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            data-testid="ts-create-pdf-btn"
+          >
+            {generatingPdf ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileDown className="w-4 h-4 mr-2" />}
+            Создать PDF
+          </Button>
           <Button onClick={handleSave} disabled={saving} className="bg-rose-600 hover:bg-rose-700" data-testid="ts-save-btn">
             {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
             Сохранить

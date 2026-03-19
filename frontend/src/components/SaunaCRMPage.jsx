@@ -1154,6 +1154,7 @@ const SaunaCRMPage = () => {
         onOpenChange={setTechSpecOpen}
         order={techSpecOrder}
         onSaved={handleTechSpecSaved}
+        leadId={selectedLead?.id}
       />
     </div>
   );
