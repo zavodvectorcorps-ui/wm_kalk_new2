@@ -45,36 +45,80 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
   
   // Fetch layout for selected model
   const fetchLayout = useCallback(async () => {
-    if (!order?.modelId && !order?.selectedModelId) return;
-    
-    const modelId = order.modelId || order.selectedModelId;
-    const variantId = order.selectedVariantId || null;
-    
     setLayoutLoading(true);
     try {
-      // Fetch layouts for this model
-      const layoutsRes = await axios.get(`${API_URL}/api/layout-configurator/layouts`, {
-        params: { modelId, variantId, published: true }
-      });
-      
-      const layouts = layoutsRes.data.layouts || [];
-      
-      if (layouts.length > 0) {
-        // Use first published layout
-        const layout = layouts[0];
-        setLayoutData(layout);
-        
-        // Try to get layout image if exists
-        if (layout.imageUrl) {
-          setLayoutImage(layout.imageUrl);
-        }
-      } else {
-        setLayoutData(null);
-        setLayoutImage(null);
+      // Strategy 0: If layout image URL is saved directly in the order
+      if (order?.layoutImageUrl) {
+        setLayoutImage(order.layoutImageUrl);
+        setLayoutData({ imageUrl: order.layoutImageUrl, source: 'order' });
+        return;
       }
+      
+      // Strategy 1: If order has selectedLayoutId, fetch that specific layout
+      if (order?.selectedLayoutId) {
+        const [faqRes, confRes] = await Promise.allSettled([
+          axios.get(`${API_URL}/api/faq/layout-variants`),
+          axios.get(`${API_URL}/api/layout-configurator/published-layouts`)
+        ]);
+        
+        const faqVariants = faqRes.status === 'fulfilled' ? (faqRes.value.data || []) : [];
+        const confLayouts = confRes.status === 'fulfilled' ? (confRes.value.data || []) : [];
+        
+        // Search in FAQ variants
+        let found = faqVariants.find(v => v._id === order.selectedLayoutId || v.id === order.selectedLayoutId);
+        if (found?.imageUrl) {
+          setLayoutData(found);
+          setLayoutImage(found.imageUrl);
+          return;
+        }
+        
+        // Search in configurator layouts
+        found = confLayouts.find(l => l.id === order.selectedLayoutId);
+        if (found?.imageUrl) {
+          setLayoutData(found);
+          setLayoutImage(found.imageUrl);
+          return;
+        }
+      }
+      
+      // Strategy 2: Try layout-configurator/layouts with model/variant info
+      const modelId = order?.modelId || order?.selectedModelId || order?.selectedModel;
+      const variantId = order?.selectedVariantId || order?.selectedModelVariant || null;
+      
+      if (modelId) {
+        try {
+          const layoutsRes = await axios.get(`${API_URL}/api/layout-configurator/layouts`, {
+            params: { modelId, variantId, published: true }
+          });
+          const layouts = layoutsRes.data?.layouts || [];
+          if (layouts.length > 0 && layouts[0].imageUrl) {
+            setLayoutData(layouts[0]);
+            setLayoutImage(layouts[0].imageUrl);
+            return;
+          }
+        } catch (e) { /* continue to next strategy */ }
+      }
+      
+      // Strategy 3: Get layout from selectedLayoutSize in published layouts
+      if (order?.selectedLayoutSize) {
+        try {
+          const confRes = await axios.get(`${API_URL}/api/layout-configurator/published-layouts`);
+          const layouts = confRes.data || [];
+          const matched = layouts.find(l => l.modelSize === order.selectedLayoutSize);
+          if (matched?.imageUrl) {
+            setLayoutData(matched);
+            setLayoutImage(matched.imageUrl);
+            return;
+          }
+        } catch (e) { /* no layout found */ }
+      }
+      
+      setLayoutData(null);
+      setLayoutImage(null);
     } catch (error) {
       console.error('Error fetching layout:', error);
       setLayoutData(null);
+      setLayoutImage(null);
     } finally {
       setLayoutLoading(false);
     }

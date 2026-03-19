@@ -879,6 +879,15 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         // Layout catalog selection (for PDF generation)
         selectedLayoutId: selectedLayoutId || null,
         selectedLayoutSize: selectedLayoutSize || null,
+        // Save layout image URL for tech spec (so it can be loaded without recalculating)
+        layoutImageUrl: (() => {
+          if (customLayoutImage?.url) return customLayoutImage.url;
+          if (selectedLayoutId && layoutVariants.length > 0) {
+            const found = layoutVariants.find(l => (l._id === selectedLayoutId || l.id === selectedLayoutId));
+            if (found?.imageUrl) return found.imageUrl;
+          }
+          return null;
+        })(),
         // Edit mode fields
         ...(isEditMode && editOrderId && {
           updatedBy: user?.username || 'calculator',

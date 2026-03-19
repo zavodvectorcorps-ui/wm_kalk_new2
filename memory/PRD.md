@@ -5,6 +5,11 @@ Comprehensive logistics and sales management system for sauna and hot tub busine
 
 ## Latest Updates
 
+### Mar 19, 2026 - BUGFIX: Планировка не загружается в тех.задание (FIXED)
+- **Root cause**: `TechSpecModal` искал планировку по `modelId`/`selectedModelId` (всегда null), а заказ хранит `selectedModel`/`selectedLayoutId`
+- **Fix**: 4 стратегии загрузки: `layoutImageUrl` → `selectedLayoutId` → `selectedModel` → `selectedLayoutSize`
+- **Bonus**: При сохранении заказа теперь кешируется `layoutImageUrl` для мгновенной загрузки
+
 ### Mar 19, 2026 - BUGFIX: PDF ссылка None в amoCRM (FIXED)
 - **Root cause**: `cloudinary_service.py` не загружал `.env` файл, Cloudinary не инициализировался
 - **Fix 1**: Добавлен `load_dotenv` в `cloudinary_service.py`
