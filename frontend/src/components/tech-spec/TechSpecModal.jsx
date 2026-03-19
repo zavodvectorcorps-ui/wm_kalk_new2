@@ -1,733 +1,393 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { Badge } from '../ui/badge';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
+import { TECH_SPEC_CATEGORIES, TECH_SPEC_SECTIONS } from './techSpecData';
+import { Loader2, Save, Info, Flame, Sofa, Zap, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { FileText, Loader2, User, Phone, MessageSquare, Package, Layout, Eye, Download, RefreshCw } from 'lucide-react';
+import { getApiUrl } from '../../utils/api';
 import axios from 'axios';
 
-// Smart API URL - auto-detect on production
-const getApiUrl = () => { 
-  if (typeof window !== 'undefined') { 
-    const o = window.location.origin; 
-    if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o; 
-  } 
-  return process.env.REACT_APP_BACKEND_URL || ''; 
-};
 const API_URL = getApiUrl();
 
+const sectionIcons = {
+  info: Info,
+  flame: Flame,
+  sofa: Sofa,
+  zap: Zap,
+};
+
 export const TechSpecModal = ({ open, onOpenChange, order, onSaved }) => {
-  const { i18n } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [masterCategories, setMasterCategories] = useState([]);
-  const [formData, setFormData] = useState({
-    comment: '',
-    selections: {},
-    textInputs: {},
-  });
-  
-  // Layout (planowka) state
-  const [layoutData, setLayoutData] = useState(null);
-  const [layoutLoading, setLayoutLoading] = useState(false);
+  const [formData, setFormData] = useState({ selections: {}, textInputs: {}, conditionalData: {} });
+  const [saving, setSaving] = useState(false);
   const [layoutImage, setLayoutImage] = useState(null);
-  
-  // Fetch layout for selected model
+  const [layoutLoading, setLayoutLoading] = useState(false);
+
+  // Fetch layout
   const fetchLayout = useCallback(async () => {
+    if (!order) return;
     setLayoutLoading(true);
     try {
-      // Strategy 0: If layout image URL is saved directly in the order
-      if (order?.layoutImageUrl) {
-        setLayoutImage(order.layoutImageUrl);
-        setLayoutData({ imageUrl: order.layoutImageUrl, source: 'order' });
-        return;
-      }
-      
-      // Strategy 1: If order has selectedLayoutId, fetch that specific layout
-      if (order?.selectedLayoutId) {
+      if (order.layoutImageUrl) { setLayoutImage(order.layoutImageUrl); return; }
+      if (order.selectedLayoutId) {
         const [faqRes, confRes] = await Promise.allSettled([
           axios.get(`${API_URL}/api/faq/layout-variants`),
           axios.get(`${API_URL}/api/layout-configurator/published-layouts`)
         ]);
-        
         const faqVariants = faqRes.status === 'fulfilled' ? (faqRes.value.data || []) : [];
         const confLayouts = confRes.status === 'fulfilled' ? (confRes.value.data || []) : [];
-        
-        // Search in FAQ variants
         let found = faqVariants.find(v => v._id === order.selectedLayoutId || v.id === order.selectedLayoutId);
-        if (found?.imageUrl) {
-          setLayoutData(found);
-          setLayoutImage(found.imageUrl);
-          return;
-        }
-        
-        // Search in configurator layouts
+        if (found?.imageUrl) { setLayoutImage(found.imageUrl); return; }
         found = confLayouts.find(l => l.id === order.selectedLayoutId);
-        if (found?.imageUrl) {
-          setLayoutData(found);
-          setLayoutImage(found.imageUrl);
-          return;
-        }
+        if (found?.imageUrl) { setLayoutImage(found.imageUrl); return; }
       }
-      
-      // Strategy 2: Try layout-configurator/layouts with model/variant info
-      const modelId = order?.modelId || order?.selectedModelId || order?.selectedModel;
-      const variantId = order?.selectedVariantId || order?.selectedModelVariant || null;
-      
+      const modelId = order.modelId || order.selectedModelId || order.selectedModel;
+      const variantId = order.selectedVariantId || order.selectedModelVariant;
       if (modelId) {
         try {
-          const layoutsRes = await axios.get(`${API_URL}/api/layout-configurator/layouts`, {
-            params: { modelId, variantId, published: true }
-          });
-          const layouts = layoutsRes.data?.layouts || [];
-          if (layouts.length > 0 && layouts[0].imageUrl) {
-            setLayoutData(layouts[0]);
-            setLayoutImage(layouts[0].imageUrl);
-            return;
-          }
-        } catch (e) { /* continue to next strategy */ }
+          const r = await axios.get(`${API_URL}/api/layout-configurator/layouts`, { params: { modelId, variantId, published: true } });
+          const layouts = r.data?.layouts || [];
+          if (layouts[0]?.imageUrl) { setLayoutImage(layouts[0].imageUrl); return; }
+        } catch {}
       }
-      
-      // Strategy 3: Get layout from selectedLayoutSize in published layouts
-      if (order?.selectedLayoutSize) {
-        try {
-          const confRes = await axios.get(`${API_URL}/api/layout-configurator/published-layouts`);
-          const layouts = confRes.data || [];
-          const matched = layouts.find(l => l.modelSize === order.selectedLayoutSize);
-          if (matched?.imageUrl) {
-            setLayoutData(matched);
-            setLayoutImage(matched.imageUrl);
-            return;
-          }
-        } catch (e) { /* no layout found */ }
-      }
-      
-      setLayoutData(null);
       setLayoutImage(null);
-    } catch (error) {
-      console.error('Error fetching layout:', error);
-      setLayoutData(null);
-      setLayoutImage(null);
-    } finally {
-      setLayoutLoading(false);
-    }
+    } catch { setLayoutImage(null); }
+    finally { setLayoutLoading(false); }
   }, [order]);
-  
-  // Fetch layout when modal opens
-  useEffect(() => {
-    if (open && order) {
-      fetchLayout();
-    }
-  }, [open, order, fetchLayout]);
 
-  // Fetch categories from API
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/api/tech-spec/categories`);
-        setCategories(response.data.categories || []);
-        setMasterCategories(response.data.masterCategories || []);
-      } catch (error) {
-        console.error('Error fetching tech spec categories:', error);
-      }
-    };
-    if (open) {
-      fetchCategories();
-    }
-  }, [open]);
+  useEffect(() => { if (open && order) fetchLayout(); }, [open, order, fetchLayout]);
 
-  // Initialize form with order data and existing tech spec
+  // Initialize form
   useEffect(() => {
-    if (order && open && categories.length > 0) {
-      const existingTechSpec = order.techSpec || {};
-      
-      // Pre-fill selections from existing tech spec first
-      const initialSelections = { ...existingTechSpec.selections };
-      const initialTextInputs = { ...existingTechSpec.textInputs };
-      
-      if (order.selectedOptions && order.selectedOptions.length > 0) {
-        order.selectedOptions.forEach(selOpt => {
-          const techSpecCatId = selOpt.techSpecCategoryId;
-          const techSpecOptId = selOpt.techSpecId;
-          
-          if (techSpecCatId && techSpecOptId) {
-            // Direct option-level mapping (techSpecCategoryId + techSpecId)
-            const techCategory = categories.find(tc => tc.id === techSpecCatId);
-            if (techCategory && !initialSelections[techCategory.id]) {
-              const techOptExists = techCategory.options?.some(to => to.id === techSpecOptId);
-              if (techOptExists) {
-                if (techCategory.inputType === 'checkbox') {
-                  const existing = initialSelections[techCategory.id] || [];
-                  if (!existing.includes(techSpecOptId)) {
-                    initialSelections[techCategory.id] = [...existing, techSpecOptId];
-                  }
+    if (!order || !open) return;
+    const ts = order.techSpec || {};
+    const sel = { ...ts.selections };
+    const txt = { ...ts.textInputs };
+    const cond = { ...ts.conditionalData };
+
+    // Auto-fill from calculator selectedOptions
+    if (order.selectedOptions?.length > 0) {
+      const optsByCat = {};
+      order.selectedOptions.forEach(o => {
+        if (o.categoryId) {
+          if (!optsByCat[o.categoryId]) optsByCat[o.categoryId] = [];
+          optsByCat[o.categoryId].push(o);
+        }
+      });
+
+      TECH_SPEC_CATEGORIES.forEach(cat => {
+        if (!cat.calcCategoryMapping) return;
+        const calcOpts = optsByCat[cat.calcCategoryMapping];
+        if (!calcOpts?.length) return;
+
+        if (cat.inputType === 'text') {
+          const names = calcOpts.map(o => o.optionName || o.name).filter(Boolean).join(', ');
+          if (names && cat.options[0]) txt[`${cat.id}_${cat.options[0].id}`] = txt[`${cat.id}_${cat.options[0].id}`] || names;
+        } else if (cat.inputType === 'calc_transfer') {
+          // benches - handled separately in render
+        } else {
+          // Try name matching for radio/checkbox
+          calcOpts.forEach(co => {
+            const name = co.optionName || co.name || '';
+            const match = cat.options.find(to => {
+              const a = to.name.toLowerCase(), b = name.toLowerCase();
+              return a === b || a.includes(b) || b.includes(a);
+            });
+            if (match && !sel[cat.id]) sel[cat.id] = match.id;
+          });
+        }
+
+        // Also check direct techSpec mapping on options
+        calcOpts.forEach(co => {
+          if (co.techSpecCategoryId && co.techSpecId) {
+            const tc = TECH_SPEC_CATEGORIES.find(c => c.id === co.techSpecCategoryId);
+            if (tc) {
+              const to = tc.options.find(o => o.id === co.techSpecId);
+              if (to) {
+                if (tc.inputType === 'checkbox') {
+                  sel[tc.id] = [...(sel[tc.id] || []), to.id];
                 } else {
-                  initialSelections[techCategory.id] = techSpecOptId;
+                  sel[tc.id] = to.id;
                 }
-                return;
               }
             }
-          }
-          
-          if (techSpecCatId && !techSpecOptId) {
-            // Category-level mapping: transfer selected option name as text
-            const techCategory = categories.find(tc => tc.id === techSpecCatId);
-            if (!techCategory) return;
-            
-            const optionName = selOpt.optionName || selOpt.name || '';
-            if (!optionName) return;
-            
-            // Try to match option by name first
-            if (techCategory.options && techCategory.options.length > 0) {
-              const nameMatch = techCategory.options.find(to => {
-                const toName = to.name.toLowerCase();
-                const soName = optionName.toLowerCase();
-                return toName === soName || toName.includes(soName) || soName.includes(toName);
-              });
-              if (nameMatch) {
-                if (techCategory.inputType === 'checkbox') {
-                  const existing = initialSelections[techCategory.id] || [];
-                  if (!existing.includes(nameMatch.id)) {
-                    initialSelections[techCategory.id] = [...existing, nameMatch.id];
-                  }
-                } else {
-                  initialSelections[techCategory.id] = nameMatch.id;
-                }
-                return;
-              }
-              // No name match → store as text input
-              const firstOpt = techCategory.options[0];
-              const textKey = `${techCategory.id}_${firstOpt.id}`;
-              const existingText = initialTextInputs[textKey];
-              if (existingText) {
-                initialTextInputs[textKey] = existingText + ', ' + optionName;
-              } else {
-                initialTextInputs[textKey] = optionName;
-              }
-            }
-            return;
-          }
-          
-          // Fallback: Try to find tech spec category by name similarity
-          const techCategory = categories.find(tc => {
-            const tcName = tc.name.toLowerCase();
-            const optCatName = selOpt.categoryName?.toLowerCase() || '';
-            return tcName.includes(optCatName) || optCatName.includes(tcName);
-          });
-          
-          if (!techCategory || initialSelections[techCategory.id]) return;
-          
-          const techOpt = techCategory.options?.find(to => {
-            const toName = to.name.toLowerCase();
-            const soName = selOpt.optionName?.toLowerCase() || '';
-            return toName === soName || toName.includes(soName) || soName.includes(toName);
-          });
-          
-          if (techOpt) {
-            if (techCategory.inputType === 'checkbox') {
-              const existing = initialSelections[techCategory.id] || [];
-              if (!existing.includes(techOpt.id)) {
-                initialSelections[techCategory.id] = [...existing, techOpt.id];
-              }
-            } else {
-              initialSelections[techCategory.id] = techOpt.id;
+          } else if (co.techSpecCategoryId && !co.techSpecId) {
+            const tc = TECH_SPEC_CATEGORIES.find(c => c.id === co.techSpecCategoryId);
+            if (tc && tc.inputType === 'text' && tc.options[0]) {
+              const key = `${tc.id}_${tc.options[0].id}`;
+              const n = co.optionName || co.name || '';
+              if (n) txt[key] = txt[key] ? txt[key] + ', ' + n : n;
             }
           }
         });
-      }
-      
-      setFormData({
-        comment: existingTechSpec.comment || '',
-        selections: initialSelections,
-        textInputs: initialTextInputs,
       });
     }
-  }, [order, open, categories]);
 
-  const handleRadioChange = useCallback((categoryId, value) => {
-    setFormData(prev => ({
-      ...prev,
-      selections: {
-        ...prev.selections,
-        [categoryId]: value,
-      },
-    }));
-  }, []);
+    setFormData({ selections: sel, textInputs: txt, conditionalData: cond, comment: ts.comment || '' });
+  }, [order, open]);
 
-  const handleCheckboxChange = useCallback((categoryId, optionId, checked) => {
-    setFormData(prev => {
-      const current = prev.selections[categoryId] || [];
-      const updated = checked
-        ? [...current, optionId]
-        : current.filter(id => id !== optionId);
-      return {
-        ...prev,
-        selections: {
-          ...prev.selections,
-          [categoryId]: updated,
-        },
-      };
+  // Get bench data from calculator order
+  const getBenchData = () => {
+    if (!order?.selectedOptions) return [];
+    return order.selectedOptions.filter(o => (o.categoryId || '').includes('lawki') || (o.categoryName || '').toLowerCase().includes('ławki'));
+  };
+
+  // Get model info
+  const getModelInfo = () => {
+    if (!order) return {};
+    return {
+      modelName: order.modelName || '',
+      capacity: order.modelCapacity || order.capacity || '',
+      dimensions: order.modelDimensions || order.dimensions || '',
+    };
+  };
+
+  const setSelection = (catId, value) => setFormData(p => ({ ...p, selections: { ...p.selections, [catId]: value } }));
+  const setTextInput = (key, value) => setFormData(p => ({ ...p, textInputs: { ...p.textInputs, [key]: value } }));
+  const setConditional = (key, value) => setFormData(p => ({ ...p, conditionalData: { ...p.conditionalData, [key]: value } }));
+  const toggleCheckbox = (catId, optId) => {
+    setFormData(p => {
+      const current = p.selections[catId] || [];
+      const arr = Array.isArray(current) ? current : [];
+      const next = arr.includes(optId) ? arr.filter(x => x !== optId) : [...arr, optId];
+      return { ...p, selections: { ...p.selections, [catId]: next } };
     });
-  }, []);
-
-  const handleTextChange = useCallback((categoryId, optionId, value) => {
-    setFormData(prev => ({
-      ...prev,
-      textInputs: {
-        ...prev.textInputs,
-        [`${categoryId}_${optionId}`]: value,
-      },
-    }));
-  }, []);
-
-  const handleCommentChange = useCallback((e) => {
-    setFormData(prev => ({ ...prev, comment: e.target.value }));
-  }, []);
+  };
 
   const handleSave = async () => {
-    setLoading(true);
+    if (!order) return;
+    setSaving(true);
     try {
-      const techSpecData = {
-        ...formData,
-        createdAt: new Date().toISOString(),
-        orderId: order.id,
-        // Include layout data if available
-        layout: layoutData ? {
-          id: layoutData.id,
-          name: layoutData.name || layoutData.namePl,
-          modelId: layoutData.modelId,
-          modelName: layoutData.modelName,
-          imageUrl: layoutImage,
-        } : null,
+      const techSpec = {
+        selections: formData.selections,
+        textInputs: formData.textInputs,
+        conditionalData: formData.conditionalData,
+        comment: formData.comment,
+        updatedAt: new Date().toISOString(),
       };
-
-      await axios.put(`${API_URL}/api/sauna/orders/${order.id}/tech-spec`, techSpecData);
-      toast.success('Техническое задание сохранено!');
-      onSaved && onSaved(techSpecData);
+      await axios.put(`${API_URL}/api/sauna/orders/${order.id}/tech-spec`, techSpec);
+      toast.success('Тех. задание сохранено');
+      onSaved?.(techSpec);
       onOpenChange(false);
-    } catch (error) {
-      console.error('Error saving tech spec:', error);
+    } catch (e) {
+      console.error(e);
       toast.error('Ошибка сохранения');
-    } finally {
-      setLoading(false);
     }
+    setSaving(false);
   };
 
-  const handleDownloadPDF = async () => {
-    setLoading(true);
-    try {
-      // First save the tech spec
-      const techSpecData = {
-        ...formData,
-        createdAt: new Date().toISOString(),
-        orderId: order.id,
-        // Include layout data
-        layout: layoutData ? {
-          id: layoutData.id,
-          name: layoutData.name || layoutData.namePl,
-          modelId: layoutData.modelId,
-          modelName: layoutData.modelName,
-          imageUrl: layoutImage,
-        } : null,
-      };
-
-      await axios.put(`${API_URL}/api/sauna/orders/${order.id}/tech-spec`, techSpecData);
-
-      // Then generate PDF
-      const response = await axios.post(
-        `${API_URL}/api/sauna/generate-tech-spec-pdf`,
-        { order, techSpec: techSpecData },
-        { responseType: 'blob' }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `TechSpec_${order.id}_${order.fullName}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast.success('PDF создан!');
-      onSaved && onSaved(techSpecData);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.error('Ошибка генерации PDF');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const renderCategory = (category) => {
-    const { id, name, inputType, layout, options, hasImages } = category;
-
-    return (
-      <div key={id} className="border rounded-lg p-2 bg-white/50">
-        <Label className="font-semibold text-amber-800 block mb-1 text-sm">{name}</Label>
-        
-        {inputType === 'radio' && (
-          <RadioGroup
-            value={formData.selections[id] || ''}
-            onValueChange={(value) => handleRadioChange(id, value)}
-            className={hasImages ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2' : (layout === 'row' ? 'flex flex-wrap gap-3' : 'space-y-2')}
-          >
-            {options.map((option) => {
-              const isSelected = formData.selections[id] === option.id;
-              return (
-                <div 
-                  key={option.id} 
-                  className={hasImages 
-                    ? `relative flex flex-col items-center p-2 border-2 rounded-lg cursor-pointer transition-all ${
-                        isSelected 
-                          ? 'border-amber-500 bg-amber-50 shadow-md' 
-                          : 'border-gray-200 bg-white hover:border-amber-300'
-                      }` 
-                    : 'flex items-center gap-2'
-                  }
-                >
-                  <RadioGroupItem value={option.id} id={`${id}-${option.id}`} className={hasImages ? 'sr-only' : ''} />
-                  {hasImages && option.imageUrl && (
-                    <label htmlFor={`${id}-${option.id}`} className="cursor-pointer w-full">
-                      <img 
-                        src={option.imageUrl} 
-                        alt={option.name} 
-                        className={`w-full h-20 object-contain rounded mb-1 ${isSelected ? 'ring-2 ring-amber-500 ring-offset-1' : ''}`} 
-                      />
-                    </label>
-                  )}
-                  <Label 
-                    htmlFor={`${id}-${option.id}`} 
-                    className={`cursor-pointer text-xs text-center ${isSelected ? 'font-semibold text-amber-700' : ''}`}
-                  >
-                    {option.name}
-                  </Label>
-                  {isSelected && (
-                    <div className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </RadioGroup>
-        )}
-
-        {inputType === 'checkbox' && (
-          <div className={layout === 'row' ? 'flex flex-wrap gap-4' : 'space-y-2'}>
-            {options.map((option) => {
-              const isChecked = (formData.selections[id] || []).includes(option.id) || option.required;
-              return (
-                <div key={option.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`${id}-${option.id}`}
-                    checked={isChecked}
-                    onCheckedChange={(checked) => handleCheckboxChange(id, option.id, checked)}
-                    disabled={option.required}
-                  />
-                  <Label htmlFor={`${id}-${option.id}`} className="cursor-pointer text-sm">
-                    {option.name}
-                  </Label>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {inputType === 'text' && (
-          <div className={layout === 'row' ? 'flex flex-wrap gap-2' : 'space-y-1'}>
-            {options.map((option) => (
-              <div key={option.id} className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground whitespace-nowrap">{option.name}:</Label>
-                <Input
-                  value={formData.textInputs[`${id}_${option.id}`] || ''}
-                  onChange={(e) => handleTextChange(id, option.id, e.target.value)}
-                  placeholder={option.placeholder}
-                  className="h-7 w-32 text-sm"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {inputType === 'textarea' && (
-          <Textarea
-            value={formData.textInputs[`${id}_${options[0]?.id}`] || ''}
-            onChange={(e) => handleTextChange(id, options[0]?.id, e.target.value)}
-            placeholder={options[0]?.placeholder}
-            rows={1}
-            className="text-sm min-h-[32px]"
-          />
-        )}
-
-        {inputType === 'mixed' && (
-          <div className="space-y-2">
-            {options.map((option) => (
-              <div key={option.id} className="flex items-center gap-2">
-                {option.inputType === 'radio' ? (
-                  <>
-                    <input
-                      type="radio"
-                      name={id}
-                      value={option.id}
-                      checked={formData.selections[id] === option.id}
-                      onChange={() => handleRadioChange(id, option.id)}
-                      className="h-4 w-4"
-                    />
-                    <Label className="text-sm">{option.name}</Label>
-                  </>
-                ) : (
-                  <>
-                    <Label className="text-sm w-40">{option.name}</Label>
-                    <Input
-                      value={formData.textInputs[`${id}_${option.id}`] || ''}
-                      onChange={(e) => handleTextChange(id, option.id, e.target.value)}
-                      placeholder={option.placeholder}
-                      className="h-8 w-24"
-                    />
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  if (!order) return null;
+  const modelInfo = getModelInfo();
+  const benchData = getBenchData();
+  const categoriesBySection = {};
+  TECH_SPEC_CATEGORIES.forEach(cat => {
+    if (!categoriesBySection[cat.section]) categoriesBySection[cat.section] = [];
+    categoriesBySection[cat.section].push(cat);
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2 text-amber-800">
-            <FileText className="h-5 w-5" />
-            Techniczne zestawienie sauny
-          </DialogTitle>
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-lg">Техническое задание</DialogTitle>
+          <DialogDescription>{order?.fullName || order?.clientName || ''} — {order?.modelName || ''}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: 'calc(90vh - 140px)' }}>
-          <div className="space-y-4 pb-4">
-            {/* Order Info Header */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <h3 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                Данные заказа #{order.id}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{order.fullName}</span>
+        <div className="space-y-6">
+          {/* Order info row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-muted/40 rounded-lg text-sm">
+            <div><span className="text-muted-foreground text-xs block">Заказ</span><strong>{order?.id}</strong></div>
+            <div><span className="text-muted-foreground text-xs block">Клиент</span>{order?.fullName || order?.clientName || '—'}</div>
+            <div><span className="text-muted-foreground text-xs block">Телефон</span>{order?.phoneNumber || order?.phone || '—'}</div>
+            <div><span className="text-muted-foreground text-xs block">Сумма</span>{order?.total ? `${Number(order.total).toLocaleString()} zł` : '—'}</div>
+          </div>
+
+          {/* Layout + Model info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Layout image */}
+            <div className="border rounded-lg p-3">
+              <Label className="text-xs text-muted-foreground mb-2 block">Планировка</Label>
+              {layoutLoading ? (
+                <div className="flex items-center justify-center h-40"><Loader2 className="w-6 h-6 animate-spin" /></div>
+              ) : layoutImage ? (
+                <img src={layoutImage} alt="Layout" className="w-full h-auto max-h-60 object-contain rounded" />
+              ) : (
+                <div className="flex items-center justify-center h-40 bg-muted/30 rounded text-sm text-muted-foreground">
+                  <ImageIcon className="w-5 h-5 mr-2" />Планировка не найдена
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{order.phoneNumber}</span>
+              )}
+            </div>
+
+            {/* Model info */}
+            <div className="border rounded-lg p-3 space-y-2">
+              <Label className="text-xs text-muted-foreground mb-2 block">Данные сауны</Label>
+              <div className="space-y-1 text-sm">
+                {modelInfo.modelName && <div><span className="text-muted-foreground">Модель:</span> <strong>{modelInfo.modelName}</strong></div>}
+                {modelInfo.dimensions && <div><span className="text-muted-foreground">Размер:</span> {modelInfo.dimensions}</div>}
+                {modelInfo.capacity && <div><span className="text-muted-foreground">Кол-во человек:</span> {modelInfo.capacity}</div>}
+                {order?.selectedModelVariant && <div><span className="text-muted-foreground">Вариант:</span> {order.selectedModelVariantName || order.selectedModelVariant}</div>}
+              </div>
+            </div>
+          </div>
+
+          {/* Sections */}
+          {TECH_SPEC_SECTIONS.map(section => {
+            const cats = categoriesBySection[section.id] || [];
+            if (cats.length === 0) return null;
+            const SectionIcon = sectionIcons[section.icon] || Info;
+
+            return (
+              <div key={section.id} className="space-y-4" data-testid={`ts-section-${section.id}`}>
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <SectionIcon className="w-5 h-5 text-rose-600" />
+                  <h3 className="font-semibold text-base">{section.name}</h3>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Модель:</span>{' '}
-                  <span className="font-medium">{order.modelName}</span>
+
+                <div className="grid gap-4">
+                  {cats.map(cat => (
+                    <div key={cat.id} className="space-y-2" data-testid={`ts-cat-${cat.id}`}>
+                      <Label className="text-sm font-medium">{cat.name}</Label>
+
+                      {/* TEXT inputs */}
+                      {cat.inputType === 'text' && (
+                        <div className={`grid gap-2 ${cat.options.length >= 3 ? 'grid-cols-3' : cat.options.length === 2 ? 'grid-cols-2' : ''}`}>
+                          {cat.options.map(opt => (
+                            <div key={opt.id}>
+                              {cat.options.length > 1 && <Label className="text-xs text-muted-foreground">{opt.name}</Label>}
+                              <Input
+                                value={formData.textInputs[`${cat.id}_${opt.id}`] || ''}
+                                onChange={(e) => setTextInput(`${cat.id}_${opt.id}`, e.target.value)}
+                                placeholder={opt.placeholder || ''}
+                                className="h-9"
+                                data-testid={`ts-input-${cat.id}-${opt.id}`}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* RADIO */}
+                      {cat.inputType === 'radio' && (
+                        <RadioGroup
+                          value={formData.selections[cat.id] || ''}
+                          onValueChange={(v) => setSelection(cat.id, v)}
+                          className={`flex ${cat.layout === 'column' ? 'flex-col gap-2' : 'flex-wrap gap-3'}`}
+                        >
+                          {cat.options.map(opt => (
+                            <div key={opt.id} className="flex items-center gap-2">
+                              <RadioGroupItem value={opt.id} id={`${cat.id}_${opt.id}`} />
+                              <Label htmlFor={`${cat.id}_${opt.id}`} className="text-sm cursor-pointer">{opt.name}</Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      )}
+
+                      {/* CHECKBOX */}
+                      {cat.inputType === 'checkbox' && (
+                        <div className={`flex ${cat.layout === 'column' ? 'flex-col gap-2' : 'flex-wrap gap-4'}`}>
+                          {cat.options.map(opt => {
+                            const checked = Array.isArray(formData.selections[cat.id]) && formData.selections[cat.id].includes(opt.id);
+                            return (
+                              <div key={opt.id} className="flex items-center gap-2">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={() => toggleCheckbox(cat.id, opt.id)}
+                                  id={`${cat.id}_${opt.id}`}
+                                />
+                                <Label htmlFor={`${cat.id}_${opt.id}`} className="text-sm cursor-pointer">{opt.name}</Label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* CALC_TRANSFER (benches from calculator) */}
+                      {cat.inputType === 'calc_transfer' && (
+                        <div className="space-y-2">
+                          {benchData.length > 0 ? benchData.map((bench, i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 border rounded-lg bg-muted/20">
+                              {bench.imageUrl && (
+                                <img src={bench.imageUrl} alt="" className="w-16 h-16 object-cover rounded" />
+                              )}
+                              <div className="flex-1 text-sm">
+                                <div className="font-medium">{bench.optionName}</div>
+                                {bench.selectedVariant && (
+                                  <div className="text-muted-foreground text-xs">Вариант: {bench.selectedVariant.name}</div>
+                                )}
+                                {bench.quantity > 1 && <Badge variant="outline" className="text-xs mt-1">x{bench.quantity}</Badge>}
+                              </div>
+                              {bench.selectedVariant?.imageUrl && (
+                                <img src={bench.selectedVariant.imageUrl} alt="" className="w-16 h-16 object-cover rounded border" />
+                              )}
+                            </div>
+                          )) : (
+                            <p className="text-sm text-muted-foreground">Лавки не выбраны в калькуляторе</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Conditional fields (for stove) */}
+                      {cat.conditionalFields && formData.selections[cat.id] && cat.conditionalFields[formData.selections[cat.id]] && (
+                        <div className="ml-6 pl-4 border-l-2 border-rose-200 space-y-3 mt-2">
+                          {cat.conditionalFields[formData.selections[cat.id]].map(cf => (
+                            <div key={cf.id}>
+                              <Label className="text-xs text-muted-foreground">{cf.name}</Label>
+                              {cf.inputType === 'text' && (
+                                <Input
+                                  value={formData.conditionalData[`${cat.id}_${cf.id}`] || ''}
+                                  onChange={(e) => setConditional(`${cat.id}_${cf.id}`, e.target.value)}
+                                  placeholder={cf.placeholder || ''}
+                                  className="h-9 mt-1"
+                                  data-testid={`ts-cond-${cat.id}-${cf.id}`}
+                                />
+                              )}
+                              {cf.inputType === 'radio' && (
+                                <RadioGroup
+                                  value={formData.conditionalData[`${cat.id}_${cf.id}`] || ''}
+                                  onValueChange={(v) => setConditional(`${cat.id}_${cf.id}`, v)}
+                                  className="flex flex-wrap gap-3 mt-1"
+                                >
+                                  {cf.options.map(o => (
+                                    <div key={o.id} className="flex items-center gap-2">
+                                      <RadioGroupItem value={o.id} id={`cond_${cat.id}_${cf.id}_${o.id}`} />
+                                      <Label htmlFor={`cond_${cat.id}_${cf.id}_${o.id}`} className="text-sm cursor-pointer">{o.name}</Label>
+                                    </div>
+                                  ))}
+                                </RadioGroup>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
-              
-              {/* Show order selections */}
-              {order.categories && order.categories.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-amber-200">
-                  <p className="text-xs text-muted-foreground mb-2">Выбранные опции из заказа:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {order.categories.map((cat, idx) => (
-                      <span key={idx} className="bg-white px-2 py-1 rounded text-xs border">
-                        {cat.name}: {cat.selectedOption}
-                        {cat.quantity && cat.quantity > 1 && ` (x${cat.quantity})`}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            );
+          })}
 
-            {/* Layout (Planowka) Section */}
-            <div className="border rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-              <Label className="font-semibold text-blue-800 flex items-center gap-2 mb-3 text-base">
-                <Layout className="h-5 w-5" />
-                Планировка сауны
-              </Label>
-              
-              {layoutLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                  <span className="ml-2 text-sm text-muted-foreground">Загрузка планировки...</span>
-                </div>
-              ) : layoutData ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-blue-900">{layoutData.name || layoutData.namePl}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Модель: {layoutData.modelName || order?.modelName}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={fetchLayout}
-                        title="Обновить планировку"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* Layout Preview */}
-                  {layoutImage ? (
-                    <div className="border rounded-lg overflow-hidden bg-white">
-                      <img 
-                        src={layoutImage} 
-                        alt="Планировка сауны" 
-                        className="w-full h-auto max-h-[300px] object-contain"
-                      />
-                    </div>
-                  ) : layoutData.canvasState?.objects ? (
-                    <div className="border rounded-lg p-4 bg-white">
-                      <p className="text-sm text-muted-foreground mb-2">Элементы планировки:</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {layoutData.canvasState.objects
-                          .filter(obj => obj.assetName && !obj.isRoom && !obj.isOutline && !obj.isGrid)
-                          .map((obj, idx) => (
-                            <div key={idx} className="text-xs bg-gray-50 px-2 py-1 rounded flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: obj.fill || '#888' }}></span>
-                              {obj.assetName}
-                            </div>
-                          ))
-                        }
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-sm text-muted-foreground">
-                      Планировка доступна, но предпросмотр недоступен
-                    </div>
-                  )}
-                  
-                  {/* Layout dimensions */}
-                  {layoutData.canvasState?.objects && (
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      {(() => {
-                        const room = layoutData.canvasState.objects.find(obj => obj.isRoom);
-                        if (room) {
-                          return (
-                            <>
-                              <span>Размер: {room.outerWidthCm || room.width}x{room.outerHeightCm || room.height} см</span>
-                            </>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <Layout className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">Планировка для этой модели не найдена</p>
-                  <p className="text-xs mt-1">Создайте планировку в разделе "Planowki"</p>
-                </div>
-              )}
-            </div>
-
-            {/* Internal Comment */}
-            <div className="border rounded-lg p-3 bg-white/50">
-              <Label className="font-semibold text-amber-800 flex items-center gap-2 mb-2">
-                <MessageSquare className="h-4 w-4" />
-                Комментарий (внутренний)
-              </Label>
-              <Textarea
-                value={formData.comment}
-                onChange={handleCommentChange}
-                placeholder="Особые требования, примечания для производства..."
-                rows={3}
-              />
-            </div>
-
-            {/* Technical Options - Grouped by Master Categories */}
-            {masterCategories.map(master => {
-              const masterCats = categories.filter(c => c.masterCategoryId === master.id);
-              if (masterCats.length === 0) return null;
-              
-              return (
-                <div key={master.id} className="space-y-3">
-                  <div className="bg-amber-100 border border-amber-300 rounded-lg px-4 py-2">
-                    <h3 className="font-bold text-amber-800 text-base flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      {master.name}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-2">
-                    {masterCats.map(category => (
-                      <div 
-                        key={category.id} 
-                        className={category.displayWidth === 'full' ? 'md:col-span-2' : ''}
-                      >
-                        {renderCategory(category)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-            
-            {/* Categories without master */}
-            {(() => {
-              const unassignedCats = categories.filter(c => !c.masterCategoryId);
-              if (unassignedCats.length === 0) return null;
-              
-              return (
-                <div className="space-y-3">
-                  <div className="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2">
-                    <h3 className="font-bold text-gray-700 text-base flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      Прочее
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-2">
-                    {unassignedCats.map(category => (
-                      <div 
-                        key={category.id} 
-                        className={category.displayWidth === 'full' ? 'md:col-span-2' : ''}
-                      >
-                        {renderCategory(category)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
+          {/* Comment */}
+          <div>
+            <Label className="text-sm font-medium">Комментарий</Label>
+            <Textarea
+              value={formData.comment || ''}
+              onChange={(e) => setFormData(p => ({ ...p, comment: e.target.value }))}
+              placeholder="Дополнительные замечания..."
+              rows={3}
+              data-testid="ts-comment"
+            />
           </div>
         </div>
 
-        <DialogFooter className="mt-4 flex gap-2 flex-shrink-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Отмена
-          </Button>
-          <Button onClick={handleSave} disabled={loading} className="bg-amber-600 hover:bg-amber-700">
-            {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+        <DialogFooter className="gap-2 mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Закрыть</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-rose-600 hover:bg-rose-700" data-testid="ts-save-btn">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
             Сохранить
-          </Button>
-          <Button onClick={handleDownloadPDF} disabled={loading} className="bg-green-600 hover:bg-green-700">
-            {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Создать PDF
           </Button>
         </DialogFooter>
       </DialogContent>
