@@ -207,6 +207,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
       const cats = TECH_SPEC_CATEGORIES.map(c => ({
         id: c.id, name: c.name, section: c.section, inputType: c.inputType,
         options: c.options, conditionalFields: c.conditionalFields || null,
+        defaultValue: c.defaultValue || null,
       }));
       const secs = TECH_SPEC_SECTIONS.map(s => ({ id: s.id, name: s.name }));
 

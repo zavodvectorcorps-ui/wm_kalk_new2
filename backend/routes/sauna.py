@@ -2202,8 +2202,10 @@ async def generate_tech_spec_pdf(request: dict):
             if cat.get("inputType") == "calc_transfer":
                 continue
 
-            # Collect value
+            # Collect value (use defaultValue if no explicit selection)
             value = selections.get(cat_id)
+            if not value and cat.get("defaultValue"):
+                value = cat["defaultValue"]
             text_vals = []
             for opt in cat.get("options", []):
                 tv = text_inputs.get(f"{cat_id}_{opt['id']}")
@@ -2249,8 +2251,8 @@ async def generate_tech_spec_pdf(request: dict):
             if cond_parts:
                 display = (display + " | " if display else "") + "; ".join(cond_parts)
 
-            # Always include category in PDF, show "—" if empty
-            section_data.append([cat_name, display if display else "—"])
+            # Always include category in PDF
+            section_data.append([cat_name, display if display else ""])
 
         if section_data:
             # Section header
