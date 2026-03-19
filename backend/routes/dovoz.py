@@ -298,6 +298,16 @@ async def sync_stage_to_amocrm(order: dict, stage: str) -> dict:
         return {"status": "error", "detail": str(e)}
 
 
+def _parse_amo_timestamp(ts) -> str:
+    """Convert amoCRM unix timestamp to ISO date string."""
+    if not ts:
+        return ""
+    try:
+        return datetime.fromtimestamp(int(ts), tz=timezone.utc).isoformat()
+    except Exception:
+        return ""
+
+
 def _extract_products(field_values_by_id: dict, field_all_values_by_id: dict, dovoz_config: dict) -> str:
     """Extract and merge products from two configurable amoCRM fields."""
     fid1 = str(dovoz_config.get("products_field_id_1", "") or "")
@@ -358,6 +368,17 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
         imported = 0
         skipped = 0
         now = datetime.now(timezone.utc).isoformat()
+        
+        # Fetch amoCRM users for responsible user names
+        users_map = {}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as cl:
+                ur = await cl.get(f"https://{domain}/api/v4/users", headers=headers_amo)
+                if ur.status_code == 200:
+                    for u in ur.json().get("_embedded", {}).get("users", []):
+                        users_map[u["id"]] = u.get("name", "")
+        except Exception as e:
+            logger.warning(f"Could not fetch amoCRM users: {e}")
         
         for lead in leads:
             lead_id = str(lead.get("id", ""))
@@ -461,6 +482,8 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                 "address_index": index_val,
                 "price": lead.get("price", 0),
                 "products": _extract_products(field_values_by_id, field_all_values_by_id, wh_settings.get("dovoz_config", {})),
+                "deal_created_at": _parse_amo_timestamp(lead.get("created_at")),
+                "responsible_user": users_map.get(lead.get("responsible_user_id"), ""),
                 "dovozStage": "accepted",
                 "pipeline_id": str(lead.get("pipeline_id", "")),
                 "status_id": str(lead.get("status_id", "")),

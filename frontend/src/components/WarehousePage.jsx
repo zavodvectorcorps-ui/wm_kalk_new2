@@ -376,6 +376,20 @@ const WarehousePage = ({ onBack }) => {
                   <div className="text-amber-700 whitespace-pre-line">{order.products}</div>
                 </div>
               )}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
+                {order.deal_created_at && (
+                  <span className="flex items-center gap-1" data-testid={`dovoz-deal-date-${order.id}`}>
+                    <Calendar className="w-3 h-3" />
+                    {new Date(order.deal_created_at).toLocaleDateString('ru-RU')}
+                  </span>
+                )}
+                {order.responsible_user && (
+                  <span className="flex items-center gap-1" data-testid={`dovoz-responsible-${order.id}`}>
+                    <span className="w-3 h-3 rounded-full bg-blue-200 flex items-center justify-center text-[8px] font-bold text-blue-700">{order.responsible_user.charAt(0)}</span>
+                    {order.responsible_user}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" onClick={() => {
