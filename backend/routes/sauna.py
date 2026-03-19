@@ -2034,6 +2034,7 @@ async def generate_tech_spec_pdf(request: dict):
     sections = request.get("sections", [])
     lead_id = request.get("leadId")
     bench_data = request.get("benchData", [])
+    layout_image_url = request.get("layoutImageUrl")
 
     selections = tech_spec.get("selections", {})
     text_inputs = tech_spec.get("textInputs", {})
@@ -2104,6 +2105,26 @@ async def generate_tech_spec_pdf(request: dict):
     ]))
     elements.append(model_table)
     elements.append(Spacer(1, 12))
+
+    # ========== LAYOUT IMAGE ==========
+    if layout_image_url:
+        try:
+            import urllib.request
+            import tempfile
+            req = urllib.request.Request(layout_image_url, headers={'User-Agent': 'Mozilla/5.0', 'Accept': 'image/*'})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                img_bytes = resp.read()
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+                tmp.write(img_bytes)
+                tmp_path = tmp.name
+            elements.append(Paragraph("Planowka", section_style))
+            elements.append(Spacer(1, 6))
+            layout_img = RLImage(tmp_path, width=400, height=280)
+            layout_img.hAlign = 'CENTER'
+            elements.append(layout_img)
+            elements.append(Spacer(1, 12))
+        except Exception as e:
+            logger.warning(f"Could not load layout image for tech spec PDF: {e}")
 
     # ========== BENCH DATA FROM CALCULATOR (with images) ==========
     if bench_data:

@@ -219,6 +219,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
           selectedModelVariantName: order.selectedModelVariantName || '',
           clientName: order.clientName || '',
         },
+        layoutImageUrl: layoutImage || null,
         techSpec,
         categories: cats,
         sections: secs,
