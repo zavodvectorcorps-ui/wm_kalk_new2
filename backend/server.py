@@ -1,6 +1,7 @@
 """WM Calculator API - Main Application Entry Point."""
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
@@ -78,6 +79,11 @@ app.include_router(notifications_router)
 app.include_router(warehouse_router, prefix="/api")
 app.include_router(dovoz_router, prefix="/api")
 app.include_router(sauna_crm_router, prefix="/api")
+
+# Static files for contracts and uploads
+import os as _os
+_os.makedirs("/app/backend/static/contracts", exist_ok=True)
+app.mount("/api/static", StaticFiles(directory="/app/backend/static"), name="static")
 app.include_router(sauna_production_router, prefix="/api")
 app.include_router(faq_router, prefix="/api")
 app.include_router(pdf_templates_router, prefix="/api")

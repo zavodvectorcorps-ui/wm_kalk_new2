@@ -26,6 +26,7 @@ const API_URL = getApiUrl();
 const DOC_TYPES = {
   kp: { label: 'КП', color: 'bg-blue-100 text-blue-700' },
   contract: { label: 'Договор', color: 'bg-purple-100 text-purple-700' },
+  tech_spec: { label: 'Тех. спец.', color: 'bg-amber-100 text-amber-700' },
   invoice: { label: 'Счёт', color: 'bg-green-100 text-green-700' },
   other: { label: 'Другое', color: 'bg-gray-100 text-gray-700' }
 };
@@ -49,6 +50,7 @@ const SaunaCRMPage = () => {
   // Documents
   const [uploading, setUploading] = useState(false);
   const [uploadDocType, setUploadDocType] = useState('kp');
+  const [generatingContract, setGeneratingContract] = useState(false);
   
   // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -950,6 +952,45 @@ const SaunaCRMPage = () => {
                     В производство
                   </Button>
                 )}
+              </div>
+
+              {/* Contract Generation Button */}
+              <div>
+                <Button
+                  size="sm"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={async () => {
+                    try {
+                      setGeneratingContract(true);
+                      const res = await fetch(`${API_URL}/api/sauna-crm/generate-contract`, {
+                        method: 'POST',
+                        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ leadId: selectedLead.id })
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        toast.success('Договор создан');
+                        // Refresh lead data
+                        const updated = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}`, { headers: authHeaders });
+                        if (updated.ok) {
+                          const updData = await updated.json();
+                          setSelectedLead(updData);
+                          setEditData(updData);
+                        }
+                        // Open contract in new tab
+                        if (data.contractUrl) window.open(data.contractUrl, '_blank');
+                      } else {
+                        toast.error('Ошибка создания договора');
+                      }
+                    } catch (e) { toast.error('Ошибка создания договора'); }
+                    finally { setGeneratingContract(false); }
+                  }}
+                  disabled={generatingContract}
+                  data-testid="generate-contract-btn"
+                >
+                  {generatingContract ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
+                  Создать договор
+                </Button>
               </div>
 
               {/* Documents Section */}

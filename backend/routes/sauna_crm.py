@@ -838,3 +838,171 @@ async def save_calculator_data(lead_id: str, data: dict):
         {"$set": {"calculatorData": data.get("calculatorData"), "calculatorPdfUrl": data.get("pdfUrl"), "updatedAt": datetime.now(timezone.utc).isoformat()}}
     )
     return {"status": "ok"}
+
+
+# ============== CONTRACT GENERATION ==============
+
+@router.post("/generate-contract")
+async def generate_contract(request: dict):
+    """Generate a sales contract (UMOWA) DOCX from template with lead data, upload to Cloudinary."""
+    from docx import Document
+    import io
+    import tempfile
+    import copy
+
+    lead_id = request.get("leadId")
+    if not lead_id:
+        raise HTTPException(status_code=400, detail="leadId is required")
+
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # Get calculator order data if available
+    calc_order = None
+    calc_order_id = lead.get("calculatorOrderId")
+    calc_col = lead.get("calculatorCollection", "sauna_orders")
+    if calc_order_id:
+        calc_order = await db[calc_col].find_one({"id": calc_order_id}, {"_id": 0})
+
+    # Prepare replacement values
+    now = datetime.now(timezone.utc)
+    client_name = lead.get("clientName", "")
+    client_address = lead.get("address", "")
+    model_name = lead.get("modelName") or lead.get("field_1") or ""
+    total_amount = lead.get("totalAmount") or (calc_order.get("totalPrice") if calc_order else 0) or 0
+    advance = lead.get("advancePayment") or lead.get("prepayment") or 0
+    offer_id = calc_order_id or lead.get("id", "")
+
+    # Extract dimensions from calculator order
+    sauna_width = ""
+    sauna_length = ""
+    sauna_version = ""
+    if calc_order:
+        sauna_width = str(calc_order.get("width", calc_order.get("szerokosc", "")))
+        sauna_length = str(calc_order.get("length", calc_order.get("dlugosc", "")))
+        sauna_version = calc_order.get("version", calc_order.get("wersja", ""))
+        if not model_name:
+            model_name = calc_order.get("model", calc_order.get("modelName", ""))
+
+    # Calculate deposit percent
+    deposit_percent = "30"
+    if total_amount and advance:
+        try:
+            pct = round(float(advance) / float(total_amount) * 100)
+            deposit_percent = str(pct)
+        except (ValueError, ZeroDivisionError):
+            pass
+
+    # Format amounts
+    def fmt_amount(val):
+        try:
+            v = float(val)
+            if v == int(v):
+                return f"{int(v):,}".replace(",", " ")
+            return f"{v:,.2f}".replace(",", " ")
+        except (ValueError, TypeError):
+            return str(val)
+
+    replacements = {
+        "{{CONTRACT_DATE}}": now.strftime("%d.%m.%Y"),
+        "{{CONTRACT_CITY}}": "Warszawie",
+        "{{CLIENT_NAME}}": client_name or "...............",
+        "{{CLIENT_ADDRESS}}": client_address or "...............",
+        "{{SAUNA_TYPE}}": model_name or "...............",
+        "{{SAUNA_WIDTH}}": sauna_width or "...",
+        "{{SAUNA_LENGTH}}": sauna_length or "...",
+        "{{SAUNA_VERSION}}": sauna_version or "[wersja gotowa złożona]",
+        "{{OFFER_NUMBER}}": offer_id or "...............",
+        "{{TOTAL_PRICE}}": fmt_amount(total_amount),
+        "{{DEPOSIT_PERCENT}}": deposit_percent,
+        "{{DEPOSIT_AMOUNT}}": fmt_amount(advance),
+        "{{DELIVERY_PAYER}}": "Sprzedawcy",
+    }
+
+    # Load template and replace
+    template_path = os.path.join(os.path.dirname(__file__), "..", "templates", "contract_template.docx")
+    if not os.path.exists(template_path):
+        raise HTTPException(status_code=500, detail="Contract template not found")
+
+    doc = Document(template_path)
+
+    for para in doc.paragraphs:
+        for placeholder, value in replacements.items():
+            if placeholder in para.text:
+                for run in para.runs:
+                    if placeholder in run.text:
+                        run.text = run.text.replace(placeholder, value)
+
+    # Save to buffer
+    docx_buffer = io.BytesIO()
+    doc.save(docx_buffer)
+    docx_buffer.seek(0)
+
+    # Upload to Cloudinary
+    file_url = None
+    if is_cloudinary_configured():
+        try:
+            import cloudinary.uploader
+            result = cloudinary.uploader.upload(
+                docx_buffer,
+                resource_type="raw",
+                folder="contracts",
+                public_id=f"contract_{lead_id}_{now.strftime('%Y%m%d_%H%M%S')}",
+                format="docx"
+            )
+            file_url = result.get("secure_url")
+        except Exception as e:
+            logger.error(f"Cloudinary upload failed: {e}")
+
+    if not file_url:
+        # Fallback: save locally
+        local_dir = "/app/backend/static/contracts"
+        os.makedirs(local_dir, exist_ok=True)
+        fname = f"contract_{lead_id}_{now.strftime('%Y%m%d_%H%M%S')}.docx"
+        local_path = os.path.join(local_dir, fname)
+        docx_buffer.seek(0)
+        with open(local_path, "wb") as f:
+            f.write(docx_buffer.read())
+        file_url = f"/api/static/contracts/{fname}"
+
+    # Get КП PDF URL to attach
+    kp_url = None
+    for doc_item in lead.get("documents", []):
+        if doc_item.get("type") in ("kp", "commercial_proposal"):
+            kp_url = doc_item.get("url")
+            break
+    # Also check calculator PDF
+    calc_pdf_url = lead.get("calculatorPdfUrl")
+
+    # Remove old contract documents from lead
+    docs = lead.get("documents", [])
+    docs = [d for d in docs if d.get("type") != "contract"]
+
+    # Add new contract document
+    contract_doc = {
+        "type": "contract",
+        "name": f"Umowa {client_name}".strip(),
+        "url": file_url,
+        "createdAt": now.isoformat(),
+        "format": "docx"
+    }
+    docs.append(contract_doc)
+
+    # Update lead
+    await db.sauna_crm_leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "documents": docs,
+            "contractUrl": file_url,
+            "updatedAt": now.isoformat()
+        }}
+    )
+
+    return {
+        "status": "ok",
+        "contractUrl": file_url,
+        "kpUrl": kp_url,
+        "calculatorPdfUrl": calc_pdf_url,
+        "replacements": {k: v for k, v in replacements.items()}
+    }
