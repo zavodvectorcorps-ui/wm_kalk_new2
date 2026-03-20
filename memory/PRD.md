@@ -57,5 +57,17 @@ Tech Spec PDF, Production List, Google Sheets sync (blocked), Sales automation, 
 - POST /api/sales/sync-from-crm — ALL CRM leads
 - POST /api/backup/export — 32+ collections
 
+**Storekeeper Role (Кладовщик) — Session 3 (March 20, 2026):**
+- New role 'storekeeper' with granular permissions
+- Full access to Warehouse (Magazyn) — view, status changes — NO delete
+- Read-only access to Logistics (Logistyka) — view trips/orders, no create/edit/delete
+- canDelete = !isStorekeeper() in WarehousePage.jsx
+- readOnly = isStorekeeper() in LogisticsPage.jsx
+- Backend: 'storekeeper' in valid roles for create & update user endpoints
+- AuthContext: isStorekeeper(), hasAccess() returns true for warehouse+logistics
+- Bug fixed: update_user was missing 'storekeeper' in valid roles validation
+- Bug fixed: canDelete used function reference instead of function call
+
 ## Credentials
 - Admin: admin / admin123
+- Storekeeper: kladovshchik / kladovshchik123
