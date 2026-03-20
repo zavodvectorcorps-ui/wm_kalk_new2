@@ -51,6 +51,8 @@ class CRMSettings(BaseModel):
     syncBackFields: List[Dict[str, str]] = []  # [{fieldId, amoFieldId}]
     autoSyncEnabled: bool = True
     lastSyncAt: Optional[str] = None
+    clientNameFieldId: Optional[str] = None  # amoCRM field ID for client name
+    modelFieldId: Optional[str] = None  # amoCRM field ID for sauna model
 
 
 class CRMLead(BaseModel):
@@ -156,9 +158,16 @@ async def get_all_leads(
     date_to: Optional[str] = None,
 ):
     query = {}
-    # Manager filter: if manager_username is provided and not admin, filter by manager
+    # Manager filter: look up the user's amoCRM name, then filter leads by manager
     if manager_username:
-        query["manager"] = {"$regex": manager_username, "$options": "i"}
+        user = await db.users.find_one({"username": manager_username}, {"_id": 0})
+        if user:
+            amocrm_name = user.get("amocrm_name", "")
+            if amocrm_name:
+                query["manager"] = {"$regex": amocrm_name, "$options": "i"}
+            else:
+                # Fallback: match by username
+                query["manager"] = {"$regex": manager_username, "$options": "i"}
     # Date filters on readyDate
     if date_from or date_to:
         date_q = {}

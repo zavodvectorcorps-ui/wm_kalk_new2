@@ -13,6 +13,7 @@ class UserCreate(BaseModel):
     password: str
     access: Union[str, List[str]]  # 'balia', 'sauna', 'logistics', 'driver', 'warehouse', 'sauna_crm', 'all' or list
     role: str = "employee"  # 'admin', 'employee', 'observer', 'driver' or 'warehouse'
+    amocrm_name: Optional[str] = None  # amoCRM user name mapping
 
 
 class UserUpdate(BaseModel):
@@ -20,6 +21,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     access: Optional[Union[str, List[str]]] = None
     role: Optional[str] = None  # 'admin', 'employee', 'observer', 'driver' or 'warehouse'
+    amocrm_name: Optional[str] = None  # amoCRM user name mapping
 
 
 class UserResponse(BaseModel):
@@ -28,6 +30,7 @@ class UserResponse(BaseModel):
     role: str  # 'admin', 'employee', 'observer', 'driver' or 'warehouse'
     access: Union[str, List[str]]  # 'balia', 'sauna', 'logistics', 'driver', 'warehouse', 'sauna_crm', 'all' or list
     createdAt: str
+    amocrm_name: Optional[str] = None  # amoCRM user name mapping
 
 
 class TokenResponse(BaseModel):

@@ -52,7 +52,7 @@ export const UserManagement = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [formData, setFormData] = useState({ username: '', password: '', access: ['balia', 'sauna', 'logistics'], role: 'employee' });
+  const [formData, setFormData] = useState({ username: '', password: '', access: ['balia', 'sauna', 'logistics'], role: 'employee', amocrm_name: '' });
   
   // Check if current user is super-admin (can assign admin role)
   const canAssignAdminRole = isSuperAdmin && isSuperAdmin();
@@ -189,7 +189,7 @@ export const UserManagement = () => {
       if (response.ok) {
         toast.success(txt.userAdded);
         setIsAddDialogOpen(false);
-        setFormData({ username: '', password: '', access: ['balia', 'sauna', 'logistics'], role: 'employee' });
+        setFormData({ username: '', password: '', access: ['balia', 'sauna', 'logistics'], role: 'employee', amocrm_name: '' });
         fetchUsers();
       } else {
         const error = await response.json();
@@ -209,7 +209,8 @@ export const UserManagement = () => {
       const updateData = {
         username: formData.username,
         access: formData.access,
-        role: formData.role
+        role: formData.role,
+        amocrm_name: formData.amocrm_name || ''
       };
       if (formData.password) {
         updateData.password = formData.password;
@@ -228,7 +229,7 @@ export const UserManagement = () => {
         toast.success(txt.userUpdated);
         setIsEditDialogOpen(false);
         setSelectedUser(null);
-        setFormData({ username: '', password: '', access: ['balia', 'sauna', 'logistics'], role: 'employee' });
+        setFormData({ username: '', password: '', access: ['balia', 'sauna', 'logistics'], role: 'employee', amocrm_name: '' });
         fetchUsers();
       } else {
         const error = await response.json();
@@ -276,7 +277,7 @@ export const UserManagement = () => {
         accessArray = [user.access];
       }
     }
-    setFormData({ username: user.username, password: '', access: accessArray, role: user.role });
+    setFormData({ username: user.username, password: '', access: accessArray, role: user.role, amocrm_name: user.amocrm_name || '' });
     setIsEditDialogOpen(true);
   };
 
@@ -451,6 +452,7 @@ export const UserManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{txt.username}</TableHead>
+                    <TableHead>amoCRM</TableHead>
                     <TableHead>{txt.role}</TableHead>
                     <TableHead>{txt.access}</TableHead>
                     <TableHead>{txt.created}</TableHead>
@@ -461,6 +463,7 @@ export const UserManagement = () => {
                   {employees.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.username}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{user.amocrm_name || '—'}</TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>{getAccessBadge(user.access)}</TableCell>
                       <TableCell className="text-muted-foreground">
@@ -520,6 +523,15 @@ export const UserManagement = () => {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder={txt.password}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Имя в amoCRM</Label>
+              <Input
+                value={formData.amocrm_name}
+                onChange={(e) => setFormData({ ...formData, amocrm_name: e.target.value })}
+                placeholder="Имя ответственного в amoCRM"
+                data-testid="user-amocrm-name-input"
               />
             </div>
             <div className="space-y-2">
@@ -732,6 +744,15 @@ export const UserManagement = () => {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Имя в amoCRM</Label>
+              <Input
+                value={formData.amocrm_name}
+                onChange={(e) => setFormData({ ...formData, amocrm_name: e.target.value })}
+                placeholder="Имя ответственного в amoCRM"
+                data-testid="edit-user-amocrm-name-input"
               />
             </div>
             <div className="space-y-2">

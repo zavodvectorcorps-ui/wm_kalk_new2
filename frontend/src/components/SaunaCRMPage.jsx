@@ -15,7 +15,7 @@ import {
   Phone, Mail, MapPin, DollarSign, Clock, User, 
   ExternalLink, Send, Loader2, Plus, X, Search,
   ChevronDown, ChevronUp, Package, Star, StarOff,
-  Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle
+  Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle, ArrowUpDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -59,6 +59,9 @@ const SaunaCRMPage = () => {
   const [filterManager, setFilterManager] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+  
+  // Sort: 'asc', 'desc', or '' (none)
+  const [sortDateOrder, setSortDateOrder] = useState('');
   
   // Active view
   const [activeView, setActiveView] = useState('calendar');
@@ -454,7 +457,24 @@ const SaunaCRMPage = () => {
   });
 
   const hasActiveFilters = !!filterManager || !!filterDateFrom || !!filterDateTo;
-  const clearFilters = () => { setFilterManager(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); };
+  const clearFilters = () => { setFilterManager(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setSortDateOrder(''); };
+
+  // Sort function for leads by readyDate
+  const sortLeads = (arr) => {
+    if (!sortDateOrder) return arr;
+    return [...arr].sort((a, b) => {
+      const da = (a.readyDate || '').slice(0, 10);
+      const db = (b.readyDate || '').slice(0, 10);
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return sortDateOrder === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
+    });
+  };
+
+  const toggleSort = () => {
+    setSortDateOrder(prev => prev === '' ? 'asc' : prev === 'asc' ? 'desc' : '');
+  };
 
   // Build display title for lead: "Клиент — Модель"
   const getLeadTitle = (lead) => {
@@ -468,6 +488,10 @@ const SaunaCRMPage = () => {
   const leadsByStage = {};
   stages.forEach(s => { leadsByStage[s.id] = []; });
   filteredLeads.forEach(l => { if (leadsByStage[l.stageId]) leadsByStage[l.stageId].push(l); });
+  // Apply sort to each stage column
+  if (sortDateOrder) {
+    stages.forEach(s => { leadsByStage[s.id] = sortLeads(leadsByStage[s.id]); });
+  }
 
   // ---- Render ----
   if (loading) {
@@ -611,6 +635,10 @@ const SaunaCRMPage = () => {
               <span className="text-muted-foreground">—</span>
               <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[140px]" data-testid="filter-date-to" placeholder="До" />
             </div>
+            <Button variant={sortDateOrder ? 'secondary' : 'ghost'} size="sm" onClick={toggleSort} data-testid="sort-date-btn" title="Сортировать по дате готовности">
+              {sortDateOrder === 'asc' ? <ArrowUpDown className="w-4 h-4 mr-1" /> : sortDateOrder === 'desc' ? <ArrowUpDown className="w-4 h-4 mr-1" /> : <ArrowUpDown className="w-4 h-4 mr-1" />}
+              {sortDateOrder === 'asc' ? 'Дата ↑' : sortDateOrder === 'desc' ? 'Дата ↓' : 'Дата'}
+            </Button>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="clear-filters-btn"><X className="w-4 h-4 mr-1" />Сбросить</Button>
             )}
@@ -699,12 +727,15 @@ const SaunaCRMPage = () => {
               <span className="text-muted-foreground">—</span>
               <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[140px]" />
             </div>
+            <Button variant={sortDateOrder ? 'secondary' : 'ghost'} size="sm" onClick={toggleSort} data-testid="list-sort-date-btn">
+              {sortDateOrder === 'asc' ? 'Дата ↑' : sortDateOrder === 'desc' ? 'Дата ↓' : 'Дата'}
+            </Button>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}><X className="w-4 h-4 mr-1" />Сбросить</Button>
             )}
           </div>
           <div className="space-y-2">
-            {filteredLeads.map(lead => {
+            {sortLeads(filteredLeads).map(lead => {
               const stage = stages.find(s => s.id === lead.stageId);
               return (
                 <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => openLead(lead)} data-testid={`list-lead-${lead.id}`}>
@@ -1125,6 +1156,29 @@ const SaunaCRMPage = () => {
 
               <TabsContent value="sync">
                 <div className="space-y-4">
+                  <div className="space-y-3 p-3 border rounded-lg bg-muted/50">
+                    <p className="text-sm font-medium">Кастомные поля amoCRM</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">ID поля "Имя клиента"</Label>
+                        <Input
+                          value={settingsForm.clientNameFieldId || ''}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, clientNameFieldId: e.target.value }))}
+                          placeholder="например: 123456"
+                          data-testid="crm-client-name-field-id"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">ID поля "Модель сауны"</Label>
+                        <Input
+                          value={settingsForm.modelFieldId || ''}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, modelFieldId: e.target.value }))}
+                          placeholder="например: 654321"
+                          data-testid="crm-model-field-id"
+                        />
+                      </div>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground">Поля для обратной синхронизации в amoCRM</p>
                   {(settingsForm.syncBackFields || []).map((mapping, idx) => (
                     <div key={idx} className="flex items-center gap-3">

@@ -50,7 +50,8 @@ async def login(credentials: UserLogin):
         username=user["username"],
         role=user["role"],
         access=user["access"],
-        createdAt=user["createdAt"]
+        createdAt=user["createdAt"],
+        amocrm_name=user.get("amocrm_name")
     )
     return TokenResponse(token=token, user=user_response)
 
@@ -107,6 +108,7 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
         "password": hash_password(user_data.password),
         "role": user_data.role,
         "access": user_data.access,
+        "amocrm_name": user_data.amocrm_name or "",
         "createdAt": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(new_user)
@@ -163,6 +165,9 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
         if user_data.role == "admin" and admin.get("username") != "admin":
             raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")
         update_data["role"] = user_data.role
+    
+    if user_data.amocrm_name is not None:
+        update_data["amocrm_name"] = user_data.amocrm_name
     
     if update_data:
         await db.users.update_one({"id": user_id}, {"$set": update_data})

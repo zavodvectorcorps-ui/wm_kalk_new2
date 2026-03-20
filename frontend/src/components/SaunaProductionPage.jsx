@@ -12,7 +12,7 @@ import {
   Hammer, Calendar as CalendarIcon, ChevronLeft, ChevronRight,
   RefreshCw, Settings, FileText, FileDown, Trash2,
   Phone, Clock, User, ExternalLink, Loader2, Plus, X, Search,
-  Package, Wrench, Download, Eye, List, MessageSquare, Save, Pencil
+  Package, Wrench, Download, Eye, List, MessageSquare, Save, Pencil, ArrowUpDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -263,6 +263,23 @@ const SaunaProductionPage = ({ onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+  
+  // Sort by readyDate: 'asc', 'desc', or '' (none)
+  const [sortDateOrder, setSortDateOrder] = useState('');
+  const toggleSort = () => {
+    setSortDateOrder(prev => prev === '' ? 'asc' : prev === 'asc' ? 'desc' : '');
+  };
+  const sortOrders = (arr) => {
+    if (!sortDateOrder) return arr;
+    return [...arr].sort((a, b) => {
+      const da = (a.readyDate || '').slice(0, 10);
+      const db2 = (b.readyDate || '').slice(0, 10);
+      if (!da && !db2) return 0;
+      if (!da) return 1;
+      if (!db2) return -1;
+      return sortDateOrder === 'asc' ? da.localeCompare(db2) : db2.localeCompare(da);
+    });
+  };
 
   // Active view
   const [activeView, setActiveView] = useState('calendar');
@@ -502,8 +519,8 @@ const SaunaProductionPage = ({ onBack }) => {
     return true;
   });
 
-  const hasActiveFilters = !!filterDateFrom || !!filterDateTo || !!searchTerm;
-  const clearFilters = () => { setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); };
+  const hasActiveFilters = !!filterDateFrom || !!filterDateTo || !!searchTerm || !!sortDateOrder;
+  const clearFilters = () => { setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setSortDateOrder(''); };
 
   const ordersByStage = {};
   stages.forEach(s => { ordersByStage[s.id] = []; });
@@ -644,6 +661,10 @@ const SaunaProductionPage = ({ onBack }) => {
               <span className="text-muted-foreground">—</span>
               <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[140px]" data-testid="prod-filter-date-to" placeholder="До" />
             </div>
+            <Button variant={sortDateOrder ? 'secondary' : 'ghost'} size="sm" onClick={toggleSort} data-testid="prod-sort-date-btn">
+              <ArrowUpDown className="w-4 h-4 mr-1" />
+              {sortDateOrder === 'asc' ? 'Дата ↑' : sortDateOrder === 'desc' ? 'Дата ↓' : 'Дата'}
+            </Button>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="prod-clear-filters-btn"><X className="w-4 h-4 mr-1" />Сбросить</Button>
             )}
@@ -667,7 +688,7 @@ const SaunaProductionPage = ({ onBack }) => {
                     <Badge variant="secondary" className="ml-auto text-xs">{(ordersByStage[stage.id] || []).length}</Badge>
                   </h3>
                   <div className="space-y-2 max-h-[600px] overflow-y-auto min-h-[80px]">
-                    {(ordersByStage[stage.id] || []).map(order => {
+                    {sortOrders(ordersByStage[stage.id] || []).map(order => {
                       const isDragging = draggedOrder?.id === order.id;
                       return (
                         <Card
