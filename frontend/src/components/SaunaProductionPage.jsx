@@ -125,6 +125,7 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
         toast.success(`Google Sheets: ${data.rows_synced} строк синхронизировано`);
       } else {
         toast.error(data.detail || 'Ошибка синхронизации');
+        console.error('GSheets sync error:', data);
       }
     } catch { toast.error('Ошибка подключения'); }
     setSyncing(false);

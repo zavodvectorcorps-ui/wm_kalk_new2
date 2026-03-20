@@ -168,35 +168,52 @@ async def get_production_calendar(month: int = Query(...), year: int = Query(...
 @router.post("/sync-google-sheets")
 async def sync_to_google_sheets():
     """Sync production list data to Google Sheets."""
+    # Try both possible document keys
     settings = await db.sauna_production_settings.find_one({"_id": "default"}, {"_id": 0})
     if not settings:
-        raise HTTPException(400, "Настройки не найдены")
+        settings = await db.sauna_production_settings.find_one({}, {"_id": 0})
+    if not settings:
+        raise HTTPException(400, "Настройки производства не найдены. Сохраните настройки в разделе Производство саун.")
 
     gs_config = settings.get("googleSheets", {})
-    spreadsheet_id = gs_config.get("spreadsheetId", "").strip()
-    sheet_name = gs_config.get("sheetName", "").strip() or "Лист1"
-    sa_json_str = gs_config.get("serviceAccountJson", "").strip()
+    spreadsheet_id = (gs_config.get("spreadsheetId") or "").strip()
+    sheet_name = (gs_config.get("sheetName") or "").strip() or "Лист1"
+    sa_json_raw = gs_config.get("serviceAccountJson", "")
 
-    if not spreadsheet_id or not sa_json_str:
-        raise HTTPException(400, "Не указан ID таблицы или Service Account JSON")
+    if not spreadsheet_id:
+        raise HTTPException(400, "Не указан ID таблицы Google Sheets в настройках")
 
     import json as json_mod
     import gspread
     from google.oauth2.service_account import Credentials
 
-    try:
-        sa_info = json_mod.loads(sa_json_str)
-    except Exception:
-        raise HTTPException(400, "Невалидный JSON Service Account")
+    # serviceAccountJson can be stored as string or dict
+    sa_info = None
+    if isinstance(sa_json_raw, dict) and sa_json_raw:
+        sa_info = sa_json_raw
+    elif isinstance(sa_json_raw, str) and sa_json_raw.strip():
+        try:
+            sa_info = json_mod.loads(sa_json_raw.strip())
+        except Exception as e:
+            logger.error(f"Failed to parse Service Account JSON: {e}")
+            raise HTTPException(400, f"Невалидный JSON Service Account: {e}")
+
+    if not sa_info:
+        raise HTTPException(400, "Не указан Service Account JSON в настройках")
 
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_info(sa_info, scopes=scopes)
-    gc = gspread.authorize(creds)
+    try:
+        creds = Credentials.from_service_account_info(sa_info, scopes=scopes)
+        gc = gspread.authorize(creds)
+    except Exception as e:
+        logger.error(f"Google auth error: {e}")
+        raise HTTPException(400, f"Ошибка авторизации Google: {e}")
 
     try:
         sh = gc.open_by_key(spreadsheet_id)
     except Exception as e:
-        raise HTTPException(400, f"Не удалось открыть таблицу: {e}")
+        logger.error(f"Failed to open spreadsheet {spreadsheet_id}: {e}")
+        raise HTTPException(400, f"Не удалось открыть таблицу. Проверьте ID и доступ Service Account: {e}")
 
     try:
         ws = sh.worksheet(sheet_name)
