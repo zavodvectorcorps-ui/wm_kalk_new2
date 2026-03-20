@@ -272,11 +272,10 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
 
         <div className="space-y-6">
           {/* Order info row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-muted/40 rounded-lg text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-muted/40 rounded-lg text-sm">
             <div><span className="text-muted-foreground text-xs block">Заказ</span><strong>{order?.id}</strong></div>
             <div><span className="text-muted-foreground text-xs block">Клиент</span>{order?.fullName || order?.clientName || '—'}</div>
             <div><span className="text-muted-foreground text-xs block">Телефон</span>{order?.phoneNumber || order?.phone || '—'}</div>
-            <div><span className="text-muted-foreground text-xs block">Сумма</span>{order?.total ? `${Number(order.total).toLocaleString()} zł` : '—'}</div>
           </div>
 
           {/* Layout + Model info */}
