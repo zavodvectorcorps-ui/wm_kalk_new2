@@ -565,6 +565,20 @@ async def sync_leads_from_amocrm():
                             if vals:
                                 field_vals[field_mappings[cf_id]] = vals[0].get("value", "")
                     
+                    # Extract client name from custom amoCRM field (priority: custom field > contact > deal name)
+                    custom_client_name = ""
+                    custom_model_name = ""
+                    client_name_fid = settings.get("clientNameFieldId", "")
+                    model_fid = settings.get("modelFieldId", "")
+                    for cf in custom_fields:
+                        cf_id = str(cf.get("field_id", ""))
+                        vals = cf.get("values", [])
+                        val = vals[0].get("value", "") if vals else ""
+                        if client_name_fid and cf_id == client_name_fid and val:
+                            custom_client_name = val
+                        if model_fid and cf_id == model_fid and val:
+                            custom_model_name = val
+                    
                     # Extract contacts
                     contacts = amo_lead.get("_embedded", {}).get("contacts", [])
                     contact_name = contacts[0].get("name", "") if contacts else ""
@@ -587,8 +601,13 @@ async def sync_leads_from_amocrm():
                     if existing:
                         # Update existing lead fields from amoCRM
                         update_data = {"updatedAt": datetime.now(timezone.utc).isoformat()}
-                        if contact_name:
+                        # Priority: custom amoCRM field > contact name > keep existing
+                        if custom_client_name:
+                            update_data["clientName"] = custom_client_name
+                        elif contact_name:
                             update_data["clientName"] = contact_name
+                        if custom_model_name:
+                            update_data["modelName"] = custom_model_name
                         if contact_phone:
                             update_data["phone"] = contact_phone
                         if manager_name:
@@ -602,7 +621,8 @@ async def sync_leads_from_amocrm():
                         new_lead = {
                             "id": f"CRM-{uuid.uuid4().hex[:8].upper()}",
                             "stageId": stage["id"],
-                            "clientName": contact_name or amo_lead.get("name", ""),
+                            "clientName": custom_client_name or contact_name or amo_lead.get("name", ""),
+                            "modelName": custom_model_name or "",
                             "phone": contact_phone,
                             "email": "",
                             "address": "",

@@ -60,8 +60,30 @@ const SaunaCRMPage = () => {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   
-  // Sort: 'asc', 'desc', or '' (none)
+  // Sort: per-stage column sorting by readyDate. Key = stageId, value = 'asc' | 'desc' | ''
+  const [columnSort, setColumnSort] = useState({});
+  const toggleColumnSort = (stageId) => {
+    setColumnSort(prev => {
+      const cur = prev[stageId] || '';
+      const next = cur === '' ? 'asc' : cur === 'asc' ? 'desc' : '';
+      return { ...prev, [stageId]: next };
+    });
+  };
+  // Global sort for list view
   const [sortDateOrder, setSortDateOrder] = useState('');
+  const toggleSort = () => setSortDateOrder(prev => prev === '' ? 'asc' : prev === 'asc' ? 'desc' : '');
+
+  const sortLeadsByDate = (arr, order) => {
+    if (!order) return arr;
+    return [...arr].sort((a, b) => {
+      const da = (a.readyDate || a.createdAt || '').slice(0, 10);
+      const db2 = (b.readyDate || b.createdAt || '').slice(0, 10);
+      if (!da && !db2) return 0;
+      if (!da) return 1;
+      if (!db2) return -1;
+      return order === 'asc' ? da.localeCompare(db2) : db2.localeCompare(da);
+    });
+  };
   
   // Active view
   const [activeView, setActiveView] = useState('calendar');
@@ -457,41 +479,12 @@ const SaunaCRMPage = () => {
   });
 
   const hasActiveFilters = !!filterManager || !!filterDateFrom || !!filterDateTo;
-  const clearFilters = () => { setFilterManager(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setSortDateOrder(''); };
-
-  // Sort function for leads by readyDate
-  const sortLeads = (arr) => {
-    if (!sortDateOrder) return arr;
-    return [...arr].sort((a, b) => {
-      const da = (a.readyDate || '').slice(0, 10);
-      const db = (b.readyDate || '').slice(0, 10);
-      if (!da && !db) return 0;
-      if (!da) return 1;
-      if (!db) return -1;
-      return sortDateOrder === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
-    });
-  };
-
-  const toggleSort = () => {
-    setSortDateOrder(prev => prev === '' ? 'asc' : prev === 'asc' ? 'desc' : '');
-  };
-
-  // Build display title for lead: "Клиент — Модель"
-  const getLeadTitle = (lead) => {
-    const name = lead.clientName || '';
-    const model = lead.modelName || lead.field_1 || '';
-    if (name && model) return `${name} — ${model}`;
-    return name || model || 'Без имени';
-  };
+  const clearFilters = () => { setFilterManager(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setColumnSort({}); };
 
   const stages = settings?.stages || [];
   const leadsByStage = {};
   stages.forEach(s => { leadsByStage[s.id] = []; });
   filteredLeads.forEach(l => { if (leadsByStage[l.stageId]) leadsByStage[l.stageId].push(l); });
-  // Apply sort to each stage column
-  if (sortDateOrder) {
-    stages.forEach(s => { leadsByStage[s.id] = sortLeads(leadsByStage[s.id]); });
-  }
 
   // ---- Render ----
   if (loading) {
@@ -635,10 +628,6 @@ const SaunaCRMPage = () => {
               <span className="text-muted-foreground">—</span>
               <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[140px]" data-testid="filter-date-to" placeholder="До" />
             </div>
-            <Button variant={sortDateOrder ? 'secondary' : 'ghost'} size="sm" onClick={toggleSort} data-testid="sort-date-btn" title="Сортировать по дате готовности">
-              {sortDateOrder === 'asc' ? <ArrowUpDown className="w-4 h-4 mr-1" /> : sortDateOrder === 'desc' ? <ArrowUpDown className="w-4 h-4 mr-1" /> : <ArrowUpDown className="w-4 h-4 mr-1" />}
-              {sortDateOrder === 'asc' ? 'Дата ↑' : sortDateOrder === 'desc' ? 'Дата ↓' : 'Дата'}
-            </Button>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="clear-filters-btn"><X className="w-4 h-4 mr-1" />Сбросить</Button>
             )}
@@ -659,10 +648,19 @@ const SaunaCRMPage = () => {
                 <h3 className="font-semibold text-sm mb-3 flex items-center gap-2" style={{ color: stage.color }}>
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
                   {stage.name}
+                  <button
+                    onClick={() => toggleColumnSort(stage.id)}
+                    className={`ml-1 p-0.5 rounded hover:bg-black/10 transition-colors ${columnSort[stage.id] ? 'bg-black/10' : ''}`}
+                    title="Сортировать по дате"
+                    data-testid={`sort-col-${stage.id}`}
+                  >
+                    <ArrowUpDown className="w-3.5 h-3.5" />
+                  </button>
+                  {columnSort[stage.id] && <span className="text-[10px]">{columnSort[stage.id] === 'asc' ? '↑' : '↓'}</span>}
                   <Badge variant="secondary" className="ml-auto text-xs">{(leadsByStage[stage.id] || []).length}</Badge>
                 </h3>
                 <div className="space-y-2 max-h-[600px] overflow-y-auto min-h-[80px]">
-                  {(leadsByStage[stage.id] || []).map(lead => {
+                  {sortLeadsByDate(leadsByStage[stage.id] || [], columnSort[stage.id]).map(lead => {
                     const isDragging = draggedLead?.id === lead.id;
                     return (
                     <Card
@@ -735,7 +733,7 @@ const SaunaCRMPage = () => {
             )}
           </div>
           <div className="space-y-2">
-            {sortLeads(filteredLeads).map(lead => {
+            {sortLeadsByDate(filteredLeads, sortDateOrder).map(lead => {
               const stage = stages.find(s => s.id === lead.stageId);
               return (
                 <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => openLead(lead)} data-testid={`list-lead-${lead.id}`}>
