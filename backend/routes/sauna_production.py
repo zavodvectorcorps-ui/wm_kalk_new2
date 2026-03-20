@@ -21,6 +21,11 @@ def get_default_production_settings() -> dict:
             {"id": "shipped", "name": "Отгружен", "color": "#8b5cf6", "sortOrder": 4},
         ],
         "lastSyncAt": None,
+        "googleSheets": {
+            "spreadsheetId": "",
+            "sheetName": "",
+            "serviceAccountJson": "",
+        },
     }
 
 
@@ -106,6 +111,8 @@ async def update_production_order(order_id: str, data: dict):
     allowed_fields = [
         "productionDate", "readyDate", "deliveryDate",
         "productionNotes", "productionStageId",
+        "totalAmount", "advancePayment", "prepaymentDate",
+        "paymentMethod", "orderDate", "productionComment",
     ]
     update = {"updatedAt": now}
     for key in allowed_fields:

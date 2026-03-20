@@ -464,3 +464,78 @@ async def get_statistics(
         "status_breakdown": status_counts,
         "manager_breakdown": manager_stats
     }
+
+
+@router.post("/sync-from-crm")
+async def sync_sales_from_crm():
+    """Sync sales records from sauna_crm_leads that have a calculator order."""
+    import uuid as uuid_mod
+    crm_leads = await db.sauna_crm_leads.find(
+        {"calculatorOrderId": {"$exists": True, "$ne": None}},
+        {"_id": 0}
+    ).to_list(5000)
+
+    collection = get_sales_collection()
+    imported = 0
+    updated = 0
+    skipped = 0
+    now = datetime.now(timezone.utc).isoformat()
+
+    for lead in crm_leads:
+        order_id = lead.get("calculatorOrderId", "")
+        if not order_id:
+            skipped += 1
+            continue
+
+        # Try to get calculator order for price data
+        calc_order = None
+        calc_col = lead.get("calculatorCollection", "sauna_orders")
+        if order_id:
+            calc_order = await db[calc_col].find_one({"id": order_id}, {"_id": 0})
+
+        total = 0
+        if calc_order:
+            total = calc_order.get("totalPrice") or calc_order.get("total") or calc_order.get("price") or 0
+
+        # Use CRM lead fields
+        sale_data = {
+            "order_id": order_id,
+            "crm_lead_id": lead.get("id", ""),
+            "product_name": lead.get("modelName") or lead.get("field_1") or "",
+            "client_name": lead.get("clientName", ""),
+            "total_amount": lead.get("totalAmount") or total,
+            "paid_amount": lead.get("advancePayment") or 0,
+            "advance_amount": lead.get("advancePayment") or 0,
+            "order_date": (lead.get("orderDate") or lead.get("createdAt", ""))[:10] if (lead.get("orderDate") or lead.get("createdAt")) else "",
+            "prepayment_date": lead.get("prepaymentDate") or "",
+            "prepayment_terms": lead.get("paymentMethod") or "",
+            "payment_method": lead.get("paymentMethod") or "",
+            "delivery_date": lead.get("deliveryDate") or "",
+            "status": "в производстве" if lead.get("inProduction") else "новый",
+            "manager": lead.get("manager") or lead.get("responsible") or "",
+            "notes": lead.get("productionComment") or lead.get("notes") or "",
+            "source": "crm_sync",
+        }
+
+        existing = await collection.find_one({"order_id": order_id})
+        if existing:
+            # Update only auto-fields, keep manual edits
+            upd = {}
+            for k in ["product_name", "client_name", "total_amount", "status", "crm_lead_id"]:
+                if sale_data[k]:
+                    upd[k] = sale_data[k]
+            upd["updated_at"] = now
+            upd["source"] = "crm_sync"
+            await collection.update_one({"order_id": order_id}, {"$set": upd})
+            updated += 1
+        else:
+            sale_doc = {
+                "id": f"SALE-{uuid_mod.uuid4().hex[:8].upper()}",
+                **sale_data,
+                "created_at": now,
+                "updated_at": now,
+            }
+            await collection.insert_one(sale_doc)
+            imported += 1
+
+    return {"imported": imported, "updated": updated, "skipped": skipped, "total_processed": len(crm_leads)}

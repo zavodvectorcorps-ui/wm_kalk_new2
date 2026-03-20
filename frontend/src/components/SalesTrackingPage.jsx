@@ -366,6 +366,16 @@ export const SalesTrackingPage = () => {
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Обновить
                   </Button>
+                  <Button onClick={async () => {
+                    try {
+                      const res = await axios.post(`${API_URL}/api/sales/sync-from-crm`);
+                      toast.success(`Синхронизировано: ${res.data.imported} новых, ${res.data.updated} обновлено`);
+                      fetchRecords();
+                    } catch (e) { toast.error('Ошибка синхронизации'); }
+                  }} size="sm" variant="outline" data-testid="sales-sync-crm-btn">
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Из CRM
+                  </Button>
                   <Button onClick={openCreateDialog} size="sm" variant="default">
                     <Plus className="h-4 w-4 mr-1" />
                     Добавить

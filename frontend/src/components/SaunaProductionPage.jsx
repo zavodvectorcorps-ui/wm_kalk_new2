@@ -7,17 +7,193 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import {
   Hammer, Calendar as CalendarIcon, ChevronLeft, ChevronRight,
   RefreshCw, Settings, FileText, FileDown, Trash2,
   Phone, Clock, User, ExternalLink, Loader2, Plus, X, Search,
-  Package, Wrench, Download, Eye
+  Package, Wrench, Download, Eye, List, MessageSquare, Save, Pencil
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
 import axios from 'axios';
 
 const API_URL = getApiUrl();
+
+// ==================== PRODUCTION LIST TAB ====================
+const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
+  const [editingCell, setEditingCell] = useState(null); // {orderId, field}
+  const [editValue, setEditValue] = useState('');
+  const [savingId, setSavingId] = useState(null);
+  const [commentModal, setCommentModal] = useState(null);
+  const [commentText, setCommentText] = useState('');
+
+  const saveField = async (orderId, field, value) => {
+    setSavingId(orderId);
+    try {
+      await fetch(`${API_URL}/api/sauna-production/orders/${orderId}`, {
+        method: 'PUT', headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+      onUpdated();
+      toast.success('Сохранено');
+    } catch { toast.error('Ошибка сохранения'); }
+    setSavingId(null);
+    setEditingCell(null);
+  };
+
+  const startEdit = (orderId, field, currentValue) => {
+    setEditingCell({ orderId, field });
+    setEditValue(currentValue || '');
+  };
+
+  const handleKeyDown = (e, orderId, field) => {
+    if (e.key === 'Enter') { saveField(orderId, field, editValue); }
+    if (e.key === 'Escape') { setEditingCell(null); }
+  };
+
+  const EditableCell = ({ orderId, field, value, type = 'text', className = '' }) => {
+    const isEditing = editingCell?.orderId === orderId && editingCell?.field === field;
+    if (isEditing) {
+      return (
+        <Input
+          type={type === 'date' ? 'date' : 'text'}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={(e) => handleKeyDown(e, orderId, field)}
+          onBlur={() => saveField(orderId, field, editValue)}
+          autoFocus
+          className={`h-7 text-xs ${className}`}
+          data-testid={`prod-list-edit-${field}-${orderId}`}
+        />
+      );
+    }
+    return (
+      <span
+        className={`cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded text-xs inline-block min-w-[40px] ${className}`}
+        onClick={() => startEdit(orderId, field, value)}
+        data-testid={`prod-list-cell-${field}-${orderId}`}
+      >
+        {type === 'date' && value ? new Date(value).toLocaleDateString('ru-RU') : (type === 'number' && value ? Number(value).toLocaleString() : (value || '—'))}
+      </span>
+    );
+  };
+
+  const sorted = [...orders].sort((a, b) => {
+    const da = a.orderDate || a.createdAt || '';
+    const db2 = b.orderDate || b.createdAt || '';
+    return db2.localeCompare(da);
+  });
+
+  const getStageLabel = (id) => {
+    const s = stages.find(st => st.id === id);
+    return s ? s.name : id || '—';
+  };
+
+  const getStageColor = (id) => {
+    const s = stages.find(st => st.id === id);
+    return s?.color || '#6b7280';
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="w-10 text-xs">№</TableHead>
+                <TableHead className="text-xs">Номер заказа</TableHead>
+                <TableHead className="text-xs">Наименование</TableHead>
+                <TableHead className="text-xs">Клиент</TableHead>
+                <TableHead className="text-xs">Этап</TableHead>
+                <TableHead className="text-xs text-right">Сумма</TableHead>
+                <TableHead className="text-xs text-right">Аванс</TableHead>
+                <TableHead className="text-xs">Дата заказа</TableHead>
+                <TableHead className="text-xs">Дата предоплаты</TableHead>
+                <TableHead className="text-xs">Метод оплаты</TableHead>
+                <TableHead className="text-xs">Дата сдачи</TableHead>
+                <TableHead className="text-xs w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sorted.map((order, idx) => (
+                <TableRow key={order.id} className="hover:bg-muted/30" data-testid={`prod-list-row-${order.id}`}>
+                  <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
+                  <TableCell className="text-xs font-mono">{order.calculatorOrderId || order.id}</TableCell>
+                  <TableCell className="text-xs font-medium">{order.modelName || order.field_1 || '—'}</TableCell>
+                  <TableCell className="text-xs">{order.clientName || '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-[10px]" style={{ backgroundColor: getStageColor(order.productionStageId) + '20', color: getStageColor(order.productionStageId) }}>
+                      {getStageLabel(order.productionStageId)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EditableCell orderId={order.id} field="totalAmount" value={order.totalAmount} type="number" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <EditableCell orderId={order.id} field="advancePayment" value={order.advancePayment} type="number" />
+                  </TableCell>
+                  <TableCell>
+                    <EditableCell orderId={order.id} field="orderDate" value={order.orderDate || (order.createdAt || '').slice(0, 10)} type="date" />
+                  </TableCell>
+                  <TableCell>
+                    <EditableCell orderId={order.id} field="prepaymentDate" value={order.prepaymentDate} type="date" />
+                  </TableCell>
+                  <TableCell>
+                    <EditableCell orderId={order.id} field="paymentMethod" value={order.paymentMethod} />
+                  </TableCell>
+                  <TableCell>
+                    <EditableCell orderId={order.id} field="deliveryDate" value={order.deliveryDate} type="date" />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost" size="icon" className="h-6 w-6"
+                      onClick={() => { setCommentModal(order); setCommentText(order.productionComment || ''); }}
+                      data-testid={`prod-list-comment-${order.id}`}
+                    >
+                      <MessageSquare className={`w-3.5 h-3.5 ${order.productionComment ? 'text-blue-500' : 'text-muted-foreground'}`} />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {sorted.length === 0 && (
+                <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">Нет заказов в производстве</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+
+      {/* Comment Modal */}
+      <Dialog open={!!commentModal} onOpenChange={(v) => { if (!v) setCommentModal(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><MessageSquare className="w-4 h-4" />Комментарий</DialogTitle>
+            <DialogDescription>{commentModal?.clientName} — {commentModal?.modelName || commentModal?.field_1 || ''}</DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Введите комментарий..."
+            rows={4}
+            data-testid="prod-list-comment-input"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCommentModal(null)}>Отмена</Button>
+            <Button onClick={async () => {
+              await saveField(commentModal.id, 'productionComment', commentText);
+              setCommentModal(null);
+            }} data-testid="prod-list-comment-save">
+              <Save className="w-4 h-4 mr-1" />Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+};
+
 
 const SaunaProductionPage = ({ onBack }) => {
   const [settings, setSettings] = useState(null);
@@ -306,6 +482,7 @@ const SaunaProductionPage = ({ onBack }) => {
         <TabsList>
           <TabsTrigger value="calendar" className="gap-2" data-testid="prod-view-calendar"><CalendarIcon className="w-4 h-4" />Календарь</TabsTrigger>
           <TabsTrigger value="kanban" className="gap-2" data-testid="prod-view-kanban"><Package className="w-4 h-4" />Канбан</TabsTrigger>
+          <TabsTrigger value="list" className="gap-2" data-testid="prod-view-list"><List className="w-4 h-4" />Список</TabsTrigger>
         </TabsList>
 
         {/* Calendar View */}
@@ -459,6 +636,11 @@ const SaunaProductionPage = ({ onBack }) => {
               );
             })}
           </div>
+        </TabsContent>
+
+        {/* Production List View */}
+        <TabsContent value="list">
+          <ProductionListTab orders={orders} stages={stages} authHeaders={authHeaders} onUpdated={fetchOrders} />
         </TabsContent>
       </Tabs>
 
@@ -658,6 +840,42 @@ const SaunaProductionPage = ({ onBack }) => {
                   stages: [...p.stages, { id: `prod_${Date.now()}`, name: 'Новый этап', color: '#6b7280', sortOrder: p.stages.length + 1 }]
                 }));
               }}><Plus className="w-4 h-4 mr-1" />Добавить этап</Button>
+
+              <div className="pt-4 border-t">
+                <Label className="text-sm font-semibold">Google Sheets</Label>
+                <p className="text-xs text-muted-foreground mb-2">Настройка синхронизации производственного списка с Google Таблицей</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">ID таблицы</Label>
+                    <Input
+                      value={settingsForm.googleSheets?.spreadsheetId || ''}
+                      onChange={(e) => setSettingsForm(p => ({ ...p, googleSheets: { ...(p.googleSheets || {}), spreadsheetId: e.target.value } }))}
+                      placeholder="ID из URL таблицы"
+                      data-testid="prod-gsheet-id"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Название листа</Label>
+                    <Input
+                      value={settingsForm.googleSheets?.sheetName || ''}
+                      onChange={(e) => setSettingsForm(p => ({ ...p, googleSheets: { ...(p.googleSheets || {}), sheetName: e.target.value } }))}
+                      placeholder="Лист1"
+                      data-testid="prod-gsheet-name"
+                    />
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <Label className="text-xs">Service Account JSON</Label>
+                  <Textarea
+                    value={settingsForm.googleSheets?.serviceAccountJson || ''}
+                    onChange={(e) => setSettingsForm(p => ({ ...p, googleSheets: { ...(p.googleSheets || {}), serviceAccountJson: e.target.value } }))}
+                    placeholder='{"type":"service_account",...}'
+                    rows={3}
+                    className="text-xs font-mono"
+                    data-testid="prod-gsheet-json"
+                  />
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
