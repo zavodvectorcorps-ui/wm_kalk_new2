@@ -90,11 +90,25 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
 
       TECH_SPEC_CATEGORIES.forEach(cat => {
         if (!cat.calcCategoryMapping) return;
-        const calcOpts = optsByCat[cat.calcCategoryMapping];
+        let calcOpts = optsByCat[cat.calcCategoryMapping];
+        // Fallback: check techSpecCategoryId reverse mapping from calculator categories
+        if (!calcOpts?.length) {
+          for (const [, opts] of Object.entries(optsByCat)) {
+            if (opts.some(o => o.techSpecCategoryId === cat.id)) {
+              calcOpts = opts;
+              break;
+            }
+          }
+        }
         if (!calcOpts?.length) return;
 
         if (cat.inputType === 'text') {
-          const names = calcOpts.map(o => o.optionName || o.name).filter(Boolean).join(', ');
+          // For text fields: use variant name first, then option name
+          const parts = calcOpts.map(o => {
+            const variantName = o.selectedVariant?.name || '';
+            return variantName || o.optionName || o.name || '';
+          }).filter(Boolean);
+          const names = parts.join(', ');
           if (names && cat.options[0]) txt[`${cat.id}_${cat.options[0].id}`] = txt[`${cat.id}_${cat.options[0].id}`] || names;
         } else if (cat.inputType === 'calc_transfer') {
           // benches - handled separately in render
