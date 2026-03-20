@@ -112,9 +112,34 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
     return s?.color || '#6b7280';
   };
 
+  const [syncing, setSyncing] = useState(false);
+
+  const syncToSheets = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-production/sync-google-sheets`, {
+        method: 'POST', headers: authHeaders,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Google Sheets: ${data.rows_synced} строк синхронизировано`);
+      } else {
+        toast.error(data.detail || 'Ошибка синхронизации');
+      }
+    } catch { toast.error('Ошибка подключения'); }
+    setSyncing(false);
+  };
+
   return (
     <Card>
       <CardContent className="p-0">
+        <div className="flex items-center justify-between p-3 border-b">
+          <span className="text-sm font-medium text-muted-foreground">{sorted.length} заказов в производстве</span>
+          <Button variant="outline" size="sm" onClick={syncToSheets} disabled={syncing} data-testid="prod-sync-sheets-btn">
+            {syncing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileDown className="w-4 h-4 mr-1" />}
+            Google Sheets
+          </Button>
+        </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

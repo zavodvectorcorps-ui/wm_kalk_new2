@@ -161,3 +161,101 @@ async def get_production_calendar(month: int = Query(...), year: int = Query(...
             continue
 
     return {"month": month, "year": year, "byDate": by_date, "totalOrders": sum(len(v) for v in by_date.values())}
+
+
+# ============== GOOGLE SHEETS SYNC ==============
+
+@router.post("/sync-google-sheets")
+async def sync_to_google_sheets():
+    """Sync production list data to Google Sheets."""
+    settings = await db.sauna_production_settings.find_one({"_id": "default"}, {"_id": 0})
+    if not settings:
+        raise HTTPException(400, "Настройки не найдены")
+
+    gs_config = settings.get("googleSheets", {})
+    spreadsheet_id = gs_config.get("spreadsheetId", "").strip()
+    sheet_name = gs_config.get("sheetName", "").strip() or "Лист1"
+    sa_json_str = gs_config.get("serviceAccountJson", "").strip()
+
+    if not spreadsheet_id or not sa_json_str:
+        raise HTTPException(400, "Не указан ID таблицы или Service Account JSON")
+
+    import json as json_mod
+    import gspread
+    from google.oauth2.service_account import Credentials
+
+    try:
+        sa_info = json_mod.loads(sa_json_str)
+    except Exception:
+        raise HTTPException(400, "Невалидный JSON Service Account")
+
+    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    creds = Credentials.from_service_account_info(sa_info, scopes=scopes)
+    gc = gspread.authorize(creds)
+
+    try:
+        sh = gc.open_by_key(spreadsheet_id)
+    except Exception as e:
+        raise HTTPException(400, f"Не удалось открыть таблицу: {e}")
+
+    try:
+        ws = sh.worksheet(sheet_name)
+    except gspread.WorksheetNotFound:
+        ws = sh.add_worksheet(title=sheet_name, rows=500, cols=15)
+
+    # Fetch production orders
+    orders = await db.sauna_crm_leads.find(
+        {"inProduction": True}, {"_id": 0}
+    ).sort("createdAt", -1).to_list(5000)
+
+    stages_list = settings.get("stages", [])
+    stages_map = {s["id"]: s["name"] for s in stages_list}
+
+    # Build rows
+    header = [
+        "№", "Номер заказа", "Наименование", "Клиент", "Этап",
+        "Сумма", "Аванс/Предоплата", "Дата заказа",
+        "Дата предоплаты", "Метод оплаты", "Дата сдачи", "Комментарий"
+    ]
+
+    rows = [header]
+    for idx, order in enumerate(orders, 1):
+        def fmt_date(v):
+            if not v: return ""
+            try:
+                return v[:10] if len(v) >= 10 else v
+            except Exception:
+                return str(v)
+
+        rows.append([
+            idx,
+            order.get("calculatorOrderId") or order.get("id", ""),
+            order.get("modelName") or order.get("field_1") or "",
+            order.get("clientName", ""),
+            stages_map.get(order.get("productionStageId", ""), order.get("productionStageId", "")),
+            order.get("totalAmount") or "",
+            order.get("advancePayment") or "",
+            fmt_date(order.get("orderDate") or order.get("createdAt", "")),
+            fmt_date(order.get("prepaymentDate", "")),
+            order.get("paymentMethod", ""),
+            fmt_date(order.get("deliveryDate", "")),
+            order.get("productionComment", ""),
+        ])
+
+    # Clear and write
+    ws.clear()
+    ws.update(range_name="A1", values=rows)
+
+    # Format header
+    try:
+        ws.format("A1:L1", {"textFormat": {"bold": True}, "backgroundColor": {"red": 0.9, "green": 0.9, "blue": 0.9}})
+    except Exception:
+        pass
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.sauna_production_settings.update_one(
+        {"_id": "default"},
+        {"$set": {"lastSyncAt": now}}
+    )
+
+    return {"success": True, "rows_synced": len(orders), "synced_at": now}
