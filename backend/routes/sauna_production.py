@@ -113,6 +113,7 @@ async def update_production_order(order_id: str, data: dict):
         "productionNotes", "productionStageId",
         "totalAmount", "advancePayment", "prepaymentDate",
         "paymentMethod", "orderDate", "productionComment",
+        "clientName", "modelName", "field_1", "calculatorOrderId",
     ]
     update = {"updatedAt": now}
     for key in allowed_fields:

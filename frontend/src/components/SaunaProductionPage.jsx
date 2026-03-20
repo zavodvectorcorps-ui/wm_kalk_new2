@@ -68,16 +68,33 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
         />
       );
     }
+    const display = type === 'date' && value ? new Date(value).toLocaleDateString('ru-RU')
+      : type === 'number' && value ? Number(value).toLocaleString()
+      : (value || '—');
     return (
       <span
         className={`cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded text-xs inline-block min-w-[40px] ${className}`}
         onClick={() => startEdit(orderId, field, value)}
+        title="Нажмите для редактирования"
         data-testid={`prod-list-cell-${field}-${orderId}`}
       >
-        {type === 'date' && value ? new Date(value).toLocaleDateString('ru-RU') : (type === 'number' && value ? Number(value).toLocaleString() : (value || '—'))}
+        {display}
       </span>
     );
   };
+
+  const StageSelect = ({ orderId, currentStageId }) => (
+    <select
+      className="text-[10px] border rounded px-1 py-0.5 bg-background cursor-pointer"
+      value={currentStageId || ''}
+      onChange={(e) => saveField(orderId, 'productionStageId', e.target.value)}
+      data-testid={`prod-list-stage-${orderId}`}
+    >
+      {stages.map(s => (
+        <option key={s.id} value={s.id}>{s.name}</option>
+      ))}
+    </select>
+  );
 
   const sorted = [...orders].sort((a, b) => {
     const da = a.orderDate || a.createdAt || '';
@@ -120,13 +137,17 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
               {sorted.map((order, idx) => (
                 <TableRow key={order.id} className="hover:bg-muted/30" data-testid={`prod-list-row-${order.id}`}>
                   <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
-                  <TableCell className="text-xs font-mono">{order.calculatorOrderId || order.id}</TableCell>
-                  <TableCell className="text-xs font-medium">{order.modelName || order.field_1 || '—'}</TableCell>
-                  <TableCell className="text-xs">{order.clientName || '—'}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="text-[10px]" style={{ backgroundColor: getStageColor(order.productionStageId) + '20', color: getStageColor(order.productionStageId) }}>
-                      {getStageLabel(order.productionStageId)}
-                    </Badge>
+                    <EditableCell orderId={order.id} field="calculatorOrderId" value={order.calculatorOrderId || order.id} className="font-mono" />
+                  </TableCell>
+                  <TableCell>
+                    <EditableCell orderId={order.id} field="modelName" value={order.modelName || order.field_1} className="font-medium" />
+                  </TableCell>
+                  <TableCell>
+                    <EditableCell orderId={order.id} field="clientName" value={order.clientName} />
+                  </TableCell>
+                  <TableCell>
+                    <StageSelect orderId={order.id} currentStageId={order.productionStageId} />
                   </TableCell>
                   <TableCell className="text-right">
                     <EditableCell orderId={order.id} field="totalAmount" value={order.totalAmount} type="number" />
