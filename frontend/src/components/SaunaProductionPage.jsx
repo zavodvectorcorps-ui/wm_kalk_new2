@@ -120,9 +120,9 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
       const res = await fetch(`${API_URL}/api/sauna-production/sync-google-sheets`, {
         method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
       });
-      const clone = res.clone();
+      const text = await res.text();
       let data;
-      try { data = await res.json(); } catch { data = { detail: await clone.text() }; }
+      try { data = JSON.parse(text); } catch { data = { detail: text }; }
       if (res.ok) {
         toast.success(`Google Sheets: ${data.rows_synced} строк синхронизировано`);
       } else {
