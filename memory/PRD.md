@@ -1,93 +1,83 @@
-# WM Kalkulator - Product Requirements Document
+# WM Kalkulator - Modular Sauna Configurator PRD
 
 ## Original Problem Statement
-Comprehensive logistics and sales management system for sauna and hot tub business with calculators, order management, logistics, training modules, and CRM integrations.
+Build a "Modular Sauna Configurator" with comprehensive CRM, production management, logistics, and sales features for a sauna business.
 
-## Latest Updates
+## User Personas
+- **Admin**: Full access to all modules, manages settings, users
+- **Manager/Employee**: Limited to assigned modules (CRM, Production, Sales, etc.)
+- **Observer**: Read-only access to pricing/reports
+- **Driver**: Delivery panel only
+- **Warehouse**: Warehouse management only
 
-### Mar 19, 2026 - FEATURE: Тех. задание — кнопка "Создать PDF" (COMPLETED)
-- **NEW**: Кнопка "Создать PDF" в модалке технического задания (TechSpecModal)
-- Бэкенд `/api/sauna/generate-tech-spec-pdf` полностью переписан под новую структуру (4 секции, 21 категория)
-- Без leadId → скачивается PDF файл. С leadId → загрузка в Cloudinary + привязка к документам лида CRM
-- Условные поля (печь: мощность/загрузка), custom-поля (Другой размер панорамы), лавки с фото из калькулятора
-- Воздушные клапаны: категория с defaultValue "Да"
-- **Testing**: Backend 9/9, Frontend 100%
+## Core Modules
+1. **Sauna Calculator** - Configuration and pricing
+2. **Balia Calculator** - Hot tub configuration
+3. **Sauna Mini-CRM** - Lead management with amoCRM integration
+4. **Sauna Production** - Kanban, Calendar, Production List
+5. **Warehouse/Magazyn** - Order tracking with amoCRM sync
+6. **Sales/Sprzedaz** - Sales tracking with bonus calculation
+7. **Logistics** - Delivery route planning with Google Maps
+8. **Training/Szkolenia** - Training courses for managers
+9. **Admin Panel** - User management, settings
 
-### Mar 19, 2026 - FEATURE: Тех. задание переделано с нуля (COMPLETED)
-- Полностью новая структура: 4 секции (Общее, Парная, Комната отдыха, Электрика), 21 категория
-- Категории: Модель/Размер, Исполнение, Цвет сауны/крыши, Лавки, Подспинники, Ограждение печки, Печь, Дымоход, Форточки, Воздушные клапаны, Панорамы, Дверь, Скамьи, Душевой поддон, Бойлер, Электрика
-- Автоматический перенос данных из калькулятора через calcCategoryMapping
-- Условные поля, секционные заголовки, лавки с фото
+## Tech Stack
+- Frontend: React + Shadcn/UI + Tailwind CSS
+- Backend: FastAPI + Python
+- Database: MongoDB
+- Integrations: amoCRM, Cloudinary, Telegram, Google Maps, Google Sheets, Nano Banana (Gemini AI)
 
-### Mar 19, 2026 - FEATURE: Производство саун (COMPLETED)
-- Отдельная страница с Календарём и Канбаном
-- Кнопка "В производство" в CRM
+## What's Been Implemented
 
-### Mar 19, 2026 - FEATURE: Тех. задание в CRM (COMPLETED)
-- Интеграция калькулятора и тех. задания в мини-CRM
+### Session (March 20, 2026) - 5-Point CRM & Sales Enhancement
+1. **Manager-specific CRM access** - Non-admin users see only their own leads (filtered by manager name)
+2. **Date filters on Production** - Added date range pickers to Production kanban & list views
+3. **Custom lead title** - Lead cards display "ClientName — ModelName" format
+4. **Calendar date source** - Production calendar now uses readyDate (дата готовности) instead of productionDate
+5. **Sales sync logic** - Sync imports ALL CRM leads (not just calculatorOrderId), bonus uses prepaymentDate
 
-### Mar 19, 2026 - BUGFIX: PDF ссылка None в amoCRM (FIXED)
-### Mar 19, 2026 - BUGFIX: Планировка не загружается в тех.задание (FIXED)
-### Mar 19, 2026 - BUGFIX: КП PDF не прикрепляется к документам лида (FIXED)
+### Previous Sessions
+- Tech Spec PDF generation with Cloudinary upload
+- Production List tab with editable table
+- Google Sheets sync (partially - blocked on user API enablement)
+- Sales module automation (sync from CRM)
+- Expanded user access controls (Warehouse, Sauna Production, Training)
+- Warehouse card enhancements (Products, Responsible User, Debt, etc.)
+- Document deduplication for tech_spec and kp types
+- Copy-to-clipboard buttons in Warehouse
 
-## Technical Architecture
+## Prioritized Backlog
 
-```
-/app
-├── backend (FastAPI)
-│   ├── routes/
-│   │   ├── amocrm.py        # CRM integration
-│   │   ├── sauna.py          # Sauna orders, PDF generation, tech spec PDF
-│   │   ├── sauna_crm.py      # Mini-CRM, documents, calendar
-│   │   ├── sauna_production.py # Production board
-│   │   ├── sauna_crud.py     # CRUD operations
-│   │   ├── sauna_orders.py   # Orders management
-│   │   └── server.py
-│   └── services/
-│       └── cloudinary_service.py # PDF & image uploads
-└── frontend (React)
-    └── src/
-        ├── components/
-        │   ├── tech-spec/
-        │   │   ├── TechSpecModal.jsx   # Tech spec form + PDF generation
-        │   │   └── techSpecData.js     # 4 sections, 21 categories
-        │   ├── SaunaCRMPage.jsx
-        │   ├── SaunaProductionPage.jsx
-        │   └── ...
-```
+### P0 - Done
+- [x] 5-point CRM & Sales Enhancement
+
+### P1 - High Priority
+- [ ] Fix automatic variant application bug in LayoutConfiguratorPage.jsx (RECURRING)
+- [ ] Complete Google Sheets integration (BLOCKED on user enabling APIs)
+- [ ] Finalize "Save layout to order" feature end-to-end
+
+### P2 - Medium Priority
+- [ ] Refactor monolithic amocrm.py into smaller service files
+- [ ] Refactor LayoutConfiguratorPage.jsx (technical debt)
+- [ ] UI for importing/restoring project backup
+- [ ] Replace deprecated Google Maps Autocomplete component
+- [ ] Fix unstable user login sessions (RECURRING)
+- [ ] Fix deployment timeouts (RECURRING)
 
 ## Key API Endpoints
-- `POST /api/sauna/generate-tech-spec-pdf` - Generate tech spec PDF (with optional Cloudinary upload)
-- `POST /api/sauna-crm/leads/{lead_id}/documents/link` - Link document to CRM lead
-- `POST /api/sauna-crm/leads/{lead_id}/to-production` - Send to production
+- `GET /api/sauna-crm/leads?manager_username=X&date_from=Y&date_to=Z` - Filtered leads
+- `GET /api/sauna-production/orders?date_from=X&date_to=Y` - Filtered production orders
+- `GET /api/sauna-production/calendar?month=M&year=Y` - Calendar grouped by readyDate
+- `POST /api/sales/sync-from-crm` - Sync ALL CRM leads to sales
+- `GET /api/sales/bonus-calculation?start_date=X&end_date=Y&manager=Z` - Bonus by prepaymentDate
 
-## Pending Issues
-- **P0**: Incorrect automatic variant application in LayoutConfiguratorPage.jsx (CRITICAL, recurring)
-- **P1**: Unstable user login sessions (recurring)
-- **P2**: Upstream timed out errors during deployment (recurring)
+## Key DB Collections
+- `sauna_crm_leads` - Main CRM leads/orders (source of truth for production)
+- `sauna_crm_settings` - CRM configuration (stages, fields, sync)
+- `sauna_production_settings` - Production stages, Google Sheets config
+- `sales` - Sales records
+- `sales_managers` - Manager bonus percentages
+- `dovoz_orders` - Warehouse/shipping orders
 
-## Backlog
-
-### P0 (Critical)
-- [ ] Fix automatic variant application in LayoutConfiguratorPage.jsx
-
-### P1 (High Priority)
-- [ ] Finalize "Save layout to order" feature end-to-end
-- [ ] Refactor monolithic amocrm.py
-- [ ] Refactor LayoutConfiguratorPage.jsx (tech debt)
-- [ ] Fix unstable login sessions
-
-### P2 (Medium Priority)
-- [ ] UI for backup import/restore
-- [ ] Replace deprecated Google Maps Autocomplete
-
-## 3rd Party Integrations
-- **Cloudinary**: Image & PDF storage
-- **amoCRM/Kommo**: CRM integration
-- **Nano Banana Pro (Gemini)**: AI image generation (Emergent LLM Key)
-- **Telegram**: Notifications
-- **Google Maps**: Delivery routes
-- **Fabric.js**: Layout configurator
-
-## Test Credentials
-- Admin: `admin` / `admin123`
+## Credentials
+- Admin: admin / admin123
