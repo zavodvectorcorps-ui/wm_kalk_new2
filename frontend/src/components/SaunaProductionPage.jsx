@@ -118,16 +118,22 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
     setSyncing(true);
     try {
       const res = await fetch(`${API_URL}/api/sauna-production/sync-google-sheets`, {
-        method: 'POST', headers: authHeaders,
+        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
       });
-      const data = await res.json();
+      let data;
+      const text = await res.text();
+      try { data = JSON.parse(text); } catch { data = { detail: text }; }
       if (res.ok) {
         toast.success(`Google Sheets: ${data.rows_synced} строк синхронизировано`);
       } else {
-        toast.error(data.detail || 'Ошибка синхронизации');
-        console.error('GSheets sync error:', data);
+        const msg = data?.detail || `Ошибка ${res.status}`;
+        toast.error(msg);
+        console.error('GSheets sync error:', res.status, data);
       }
-    } catch { toast.error('Ошибка подключения'); }
+    } catch (e) {
+      toast.error(`Ошибка подключения: ${e.message}`);
+      console.error('GSheets fetch error:', e);
+    }
     setSyncing(false);
   };
 
