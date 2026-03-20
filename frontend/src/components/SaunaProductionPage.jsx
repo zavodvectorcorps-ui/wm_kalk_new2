@@ -117,19 +117,14 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
   const syncToSheets = async () => {
     setSyncing(true);
     try {
-      const res = await fetch(`${API_URL}/api/sauna-production/sync-google-sheets`, {
-        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await axios.post(`${API_URL}/api/sauna-production/sync-google-sheets`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); } catch { data = { detail: text }; }
-      if (res.ok) {
-        toast.success(`Google Sheets: ${data.rows_synced} строк синхронизировано`);
-      } else {
-        toast.error(data?.detail || `Ошибка ${res.status}`);
-      }
+      toast.success(`Google Sheets: ${res.data.rows_synced} строк синхронизировано`);
     } catch (e) {
-      toast.error(`Ошибка: ${e.message}`);
+      const msg = e.response?.data?.detail || e.message;
+      toast.error(msg);
     }
     setSyncing(false);
   };
