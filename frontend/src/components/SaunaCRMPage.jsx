@@ -648,7 +648,7 @@ const SaunaCRMPage = () => {
                     >
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between mb-1">
-                          <span className="font-medium text-sm truncate">{getLeadTitle(lead)}</span>
+                          <span className="font-bold text-sm truncate">{lead.clientName || 'Без имени'}</span>
                           {lead.isImportant && <Star className="w-4 h-4 text-amber-500 fill-amber-500 flex-shrink-0" />}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{lead.modelName || lead.field_1 || '—'}</p>
@@ -712,7 +712,7 @@ const SaunaCRMPage = () => {
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: stage?.color || '#ccc' }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium truncate">{getLeadTitle(lead)}</span>
+                        <span className="font-bold truncate">{lead.clientName || 'Без имени'}</span>
                         {lead.isImportant && <Star className="w-4 h-4 text-amber-500 fill-amber-500" />}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{lead.modelName || lead.field_1 || '—'} {lead.manager ? `• ${lead.manager}` : ''} {lead.phone ? `• ${lead.phone}` : ''}</p>
@@ -735,7 +735,12 @@ const SaunaCRMPage = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <User className="w-5 h-5" />
-              {selectedLead?.clientName || 'Заказ'}
+              <div className="flex flex-col">
+                <span className="font-bold">{selectedLead?.clientName || 'Заказ'}</span>
+                {(selectedLead?.modelName || selectedLead?.field_1) && (
+                  <span className="text-sm font-normal text-muted-foreground">{selectedLead?.modelName || selectedLead?.field_1}</span>
+                )}
+              </div>
               {selectedLead?.amocrm_link && (
                 <a href={selectedLead.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
                   <ExternalLink className="w-4 h-4" />

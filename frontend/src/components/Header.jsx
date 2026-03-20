@@ -16,7 +16,7 @@ export const Header = ({
   calculatorType = null
 }) => {
   const { t, i18n } = useTranslation();
-  const { canViewPricing } = useAuth();
+  const { canViewPricing, hasAccess } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const texts = {
@@ -208,8 +208,8 @@ export const Header = ({
                   {i18n.language === 'pl' ? 'Sprzedaż' : 'Продажи'}
                 </Button>
               )}
-              {/* CRM - only for sauna admins */}
-              {calculatorType === 'sauna' && isAdminAuthenticated && (
+              {/* CRM - for sauna admins and managers with sauna access */}
+              {calculatorType === 'sauna' && (isAdminAuthenticated || hasAccess('sauna')) && (
                 <Button
                   variant={activeTab === 'crm' ? 'default' : 'ghost'}
                   size="sm"
@@ -411,8 +411,8 @@ export const Header = ({
                     {i18n.language === 'pl' ? 'Sprzedaż' : 'Продажи'}
                   </Button>
                 )}
-                {/* CRM - only for sauna admins */}
-                {calculatorType === 'sauna' && isAdminAuthenticated && (
+                {/* CRM - for sauna admins and managers with sauna access */}
+                {calculatorType === 'sauna' && (isAdminAuthenticated || hasAccess('sauna')) && (
                   <Button
                     variant={activeTab === 'crm' ? 'default' : 'ghost'}
                     size="sm"
