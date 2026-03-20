@@ -10,6 +10,7 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
 import { 
   MapPin, Route, Truck, Clock, Navigation, RefreshCw, ChevronDown, ChevronUp,
   Package, Plus, User, Phone, FileText, X, Hash, CheckCircle, Send,
@@ -32,6 +33,8 @@ import {
 } from './logistics';
 
 export const LogisticsPage = () => {
+  const { isStorekeeper } = useAuth();
+  const readOnly = isStorekeeper ? isStorekeeper() : false;
   const {
     isLoaded,
     loadError,
@@ -206,15 +209,15 @@ export const LogisticsPage = () => {
           <h1 className="text-2xl font-bold text-gray-900">Логистика</h1>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setShowSettingsModal(true)}>
+          {!readOnly && <Button variant="outline" onClick={() => setShowSettingsModal(true)}>
             <Settings className="h-4 w-4 mr-2" />
             Настройки
-          </Button>
-          <Button variant="outline" onClick={() => setShowDriversModal(true)}>
+          </Button>}
+          {!readOnly && <Button variant="outline" onClick={() => setShowDriversModal(true)}>
             <Users className="h-4 w-4 mr-2" />
             Водители
-          </Button>
-          {activeSection !== 'history' && (
+          </Button>}
+          {!readOnly && activeSection !== 'history' && (
             <Button 
               onClick={() => {
                 setShowOrderForm(!showOrderForm);
@@ -389,7 +392,7 @@ export const LogisticsPage = () => {
       )}
 
       {/* Bulk Actions Bar */}
-      {currentData?.selectedOrders?.length > 0 && (
+      {!readOnly && currentData?.selectedOrders?.length > 0 && (
         <Card className="border-2 border-amber-500/50 bg-amber-50">
           <CardContent className="py-3">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -508,7 +511,7 @@ export const LogisticsPage = () => {
             {activeInnerTab === 'orders' && (
               <>
                 {/* Create Order Form */}
-                {showOrderForm && activeSection === sectionKey && (
+                {!readOnly && showOrderForm && activeSection === sectionKey && (
                   <OrderForm 
                     currentSection={currentSection}
                     SectionIcon={SectionIcon}
@@ -682,6 +685,7 @@ export const LogisticsPage = () => {
                     API_URL={API_URL}
                     refreshingOrderId={refreshingOrderId}
                     refreshOrderFromAmocrm={refreshOrderFromAmocrm}
+                    readOnly={readOnly}
                   />
 
                   {/* Map */}
@@ -759,6 +763,7 @@ export const LogisticsPage = () => {
                 searchQuery={searchQuery}
                 amocrmPipelines={amocrmPipelines}
                 API_URL={API_URL}
+                readOnly={readOnly}
               />
             )}
           </TabsContent>
@@ -908,7 +913,7 @@ const OrdersListCard = ({
   editAddressInputRef, drivers, toggleOrderSelection, toggleOrderImportant, startEditingAddress,
   saveEditedAddress, cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder,
   getUnassignedOrders, getFilteredOrders, searchQuery, setShowCreateTripModal, setShowAddToTripModal, trips, formatDate, DELIVERY_STATUSES, API_URL,
-  refreshingOrderId, refreshOrderFromAmocrm
+  refreshingOrderId, refreshOrderFromAmocrm, readOnly = false
 }) => {
   // Don't render if currentSection is not available (e.g., history tab)
   if (!currentSection) return null;
@@ -955,7 +960,7 @@ const OrdersListCard = ({
           {currentSection.name.ru} (без рейса)
         </CardTitle>
         <div className="flex items-center gap-2">
-          {currentData.selectedOrders.length > 0 && (
+          {!readOnly && currentData.selectedOrders.length > 0 && (
             <>
               {hasActiveTrips && (
                 <Button 
@@ -1023,6 +1028,7 @@ const OrdersListCard = ({
               API_URL={API_URL}
               refreshingOrderId={refreshingOrderId}
               refreshOrderFromAmocrm={refreshOrderFromAmocrm}
+              readOnly={readOnly}
             />
           ))}
         </div>
@@ -1037,7 +1043,7 @@ const OrderCard = ({
   editingAddressOrderId, editingAddressValue, setEditingAddressValue, editAddressInputRef,
   drivers, toggleOrderSelection, toggleOrderImportant, startEditingAddress, saveEditedAddress,
   cancelEditingAddress, updateOrderField, updateDeliveryStatus, deleteOrder, formatDate, DELIVERY_STATUSES, API_URL,
-  refreshingOrderId, refreshOrderFromAmocrm
+  refreshingOrderId, refreshOrderFromAmocrm, readOnly = false
 }) => {
   const status = DELIVERY_STATUSES[order.deliveryStatus] || DELIVERY_STATUSES.pending;
   const StatusIcon = status.icon;
@@ -1051,11 +1057,11 @@ const OrderCard = ({
   return (
     <div className={`p-3 border rounded-lg transition-colors ${hasEmptyName ? 'bg-red-50 border-red-300 ring-2 ring-red-200' : ''} ${isSelected ? `${currentSection.bgColor} ${currentSection.borderColor}` : 'hover:bg-muted/50'}`}>
       <div className="flex items-start gap-3">
-        <Checkbox
+        {!readOnly ? <Checkbox
           checked={isSelected}
           onCheckedChange={() => toggleOrderSelection(order.id)}
           className="mt-1"
-        />
+        /> : <div className="w-5" />}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <p className="font-medium truncate">
@@ -1095,9 +1101,9 @@ const OrderCard = ({
               <Button variant="ghost" size="sm" onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}>
                 {expandedOrder === order.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => deleteOrder(order.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+              {!readOnly && <Button variant="ghost" size="sm" onClick={() => deleteOrder(order.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
                 <Trash2 className="h-4 w-4" />
-              </Button>
+              </Button>}
             </div>
           </div>
           
@@ -1216,7 +1222,7 @@ const OrderCard = ({
           )}
           
           {/* Important checkbox */}
-          <div className="flex items-center gap-2 mt-2">
+          {!readOnly && <div className="flex items-center gap-2 mt-2">
             <Checkbox
               id={`important-${order.id}`}
               checked={order.isImportant || false}
@@ -1227,7 +1233,7 @@ const OrderCard = ({
               <AlertCircle className={`h-3 w-3 ${order.isImportant ? 'text-red-500' : ''}`} />
               Важный заказ
             </label>
-          </div>
+          </div>}
           
           {/* Delivery photo link - PROMINENT LOCATION */}
           {order.deliveryPhotoUrl && (
@@ -1255,6 +1261,7 @@ const OrderCard = ({
               isRefreshing={isRefreshing}
               refreshOrderFromAmocrm={refreshOrderFromAmocrm}
               formatDate={formatDate}
+              readOnly={readOnly}
             />
           )}
         </div>
@@ -1263,9 +1270,9 @@ const OrderCard = ({
   );
 };
 
-const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDeliveryStatus, DELIVERY_STATUSES, isRefreshing, refreshOrderFromAmocrm, formatDate }) => (
-  <div className="mt-3 pt-3 border-t space-y-3 text-sm">
-    {/* Editable fields */}
+const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDeliveryStatus, DELIVERY_STATUSES, isRefreshing, refreshOrderFromAmocrm, formatDate, readOnly = false }) => (
+  <div className={`mt-3 pt-3 border-t space-y-3 text-sm ${readOnly ? 'pointer-events-none opacity-75' : ''}`}>
+    {/* Editable fields - disabled when readOnly */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {/* Client name */}
       <div className="space-y-1">
@@ -1666,7 +1673,7 @@ const TripsView = ({
   optimizeTripRoute, buildTripRoute, updateOrderStatusInTrip, removeOrderFromTrip, moveOrderUp, moveOrderDown, moveOrderToPosition,
   handleDragStart, handleDragOver, handleDrop, handleDragEnd, setActiveInnerTab,
   formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders,
-  getFilteredTrips, searchQuery, amocrmPipelines, API_URL
+  getFilteredTrips, searchQuery, amocrmPipelines, API_URL, readOnly = false
 }) => {
   // Apply status filter first
   const statusFilteredTrips = trips.filter(t => t.section === sectionKey && (t.status || 'planned') === tripStatusFilter);
@@ -1766,6 +1773,7 @@ const TripsView = ({
           printTripOrders={printTripOrders}
           amocrmPipelines={amocrmPipelines}
           API_URL={API_URL}
+          readOnly={readOnly}
         />
       </div>
 
@@ -1790,7 +1798,7 @@ const TripDetailsCard = ({
   selectedTrip, setSelectedTrip, sectionKey, sectionData, drivers, tripRouteInfo, optimizingRoute,
   draggedOrderIndex, updateTrip, updateTripStatus, syncTripToAmocrm, syncingToAmocrm, deleteTrip, optimizeTripRoute, buildTripRoute, buildingTripRoute, updateOrderStatusInTrip,
   removeOrderFromTrip, moveOrderUp, moveOrderDown, moveOrderToPosition, handleDragStart, handleDragOver, handleDrop,
-  handleDragEnd, formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders, amocrmPipelines, API_URL
+  handleDragEnd, formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders, amocrmPipelines, API_URL, readOnly = false
 }) => {
   const [expandedTripOrder, setExpandedTripOrder] = React.useState(null);
   
@@ -1807,7 +1815,7 @@ const TripDetailsCard = ({
     </CardHeader>
     <CardContent className="p-3">
       {selectedTrip && selectedTrip.section === sectionKey ? (
-        <div className="space-y-3">
+        <div className={`space-y-3 ${readOnly ? 'pointer-events-none' : ''}`}>
           {/* Driver */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">Водитель:</Label>
@@ -2211,9 +2219,9 @@ const TripDetailsCard = ({
             </Button>
           )}
           
-          <Button variant="outline" size="sm" className="w-full text-red-600 border-red-200 hover:bg-red-50 mt-2" onClick={() => deleteTrip(selectedTrip.id)}>
+          {!readOnly && <Button variant="outline" size="sm" className="w-full text-red-600 border-red-200 hover:bg-red-50 mt-2" onClick={() => deleteTrip(selectedTrip.id)}>
             <Trash2 className="h-3 w-3 mr-1" />Удалить рейс
-          </Button>
+          </Button>}
         </div>
       ) : <p className="text-center text-muted-foreground py-8 text-sm">Выберите рейс слева</p>}
     </CardContent>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = getApiUrl();
 
@@ -41,6 +42,8 @@ const SECTION_BADGES = {
 };
 
 const WarehousePage = ({ onBack }) => {
+  const { isStorekeeper } = useAuth();
+  const canDelete = !isStorekeeper(); // storekeeper cannot delete
   const [activeTab, setActiveTab] = useState('dovoz');
   const [orders, setOrders] = useState([]);
   const [trips, setTrips] = useState([]);
@@ -430,9 +433,9 @@ const WarehousePage = ({ onBack }) => {
                     </Button>
                   );
                 })}
-                <Button size="sm" variant="ghost" className="text-xs text-red-500 hover:text-red-700" onClick={() => deleteDovozOrder(order.id)} data-testid={`dovoz-delete-${order.id}`}>
+                {canDelete && <Button size="sm" variant="ghost" className="text-xs text-red-500 hover:text-red-700" onClick={() => deleteDovozOrder(order.id)} data-testid={`dovoz-delete-${order.id}`}>
                   <Trash2 className="w-3 h-3 mr-1" />Удалить
-                </Button>
+                </Button>}
               </div>
               <div>
                 <h5 className="text-sm font-medium flex items-center gap-2 mb-2">

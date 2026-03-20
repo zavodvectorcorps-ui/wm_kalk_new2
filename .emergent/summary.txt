@@ -1,102 +1,89 @@
 <analysis>**original_problem_statement:**
 The user's initial request was to build a Modular Sauna Configurator. The project has since expanded to include comprehensive CRM, production management, and logistics features.
 
-The user's most recent requests from this session, in order of implementation:
-1.  Enhance the Tech Spec modal with conditional inputs and PDF generation.
-2.  Add the layout image to the generated Tech Spec PDF.
-3.  Fix document management: ensure new versions of Tech Specs and Commercial Proposals (КП) replace old ones instead of accumulating.
-4.  Fix a bug where not all data (especially default values) was being transferred to the Tech Spec PDF.
-5.  Expand employee access settings to include new modules like Warehouse and Sauna Production.
-6.  Enhance the Warehouse module: add Products, Deal Created Date, Responsible User, Debt Amount, and a custom Client Name field to the order cards, syncing this data from amoCRM.
-7.  Add copy to clipboard buttons for key details in the Warehouse card.
-8.  Fix a bug where Warehouse orders were not being updated with new data on subsequent syncs.
-9.  **Current Request**: A large, multi-part feature request:
-    *   **Task 1: Production List & Google Sheets Sync**: Create a new Production List tab in the Sauna Production module with an editable table of all production orders, and implement a feature to sync this list to a Google Sheet.
-    *   **Task 2: Sales Module Sync**: Automate the Sales module by syncing orders directly from the internal mini-CRM, eliminating manual entry.
-    *   **Task 3: CRM/Production Enhancements (5 points)**:
-        1.  **Manager-specific CRM access**: Managers should only see their own leads in the Sauna CRM.
-        2.  **Date Filters**: Add date filtering capabilities to both the Sauna CRM and Sauna Production pages.
-        3.  **Custom Lead Name**: The main lead title in the CRM should be built from custom amoCRM fields (Client Name + Sauna Model), not the default amoCRM deal name.
-        4.  **Calendar Date Source**: Clarify and ensure the calendar in both CRM and Production uses the readiness date field from the order card.
-        5.  **Sales Sync Logic**: Ensure ALL relevant leads are pulled into the Sales module and that the manager's bonus is calculated based on the prepayment date.
+The most recent user requests from this session were:
+1.  **5-Point CRM & Sales Enhancement**: A large feature request to add manager-specific CRM access, date filters, custom lead names from amoCRM fields, ensure the calendar uses the readiness date, and fix sales sync logic.
+2.  **Backup System Audit**: A request to verify that the automatic backup system was capturing all the new data structures and collections added to the application.
+3.  **User Experience Bug Fixes**: The user reported that the changes from the 5-point enhancement were not visible, which led to a series of fixes related to UI visibility, access control, and data display formats.
+4.  **Advanced CRM Configuration**: A request to implement a user-mapping system (linking app users to amoCRM user names), allow specifying custom amoCRM field IDs for client/model names in settings, and add column-level date sorting.
+5.  **Contract Generation**: A request to generate a  contract from a template, automatically filling in data from a specific CRM lead, and attaching the existing commercial proposal (КП) PDF.
+6.  **New User Role**: A request to add a Storekeeper (Кладовщик) role with specific, limited permissions.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-A full-stack React/FastAPI/MongoDB application for a sauna business. Key modules include a Sauna Calculator, a Sauna Mini-CRM, a Sauna Production page (with Calendar, Kanban, and a new Production List), a Warehouse page, and a Sales tracking page.
+A comprehensive full-stack application for a sauna business, built with React, FastAPI, and MongoDB. The application features several key modules: Sauna Calculator, Sauna Mini-CRM, Sauna Production (Kanban, Calendar, List), Warehouse, Sales, and Logistics.
 
-In this session, the Tech Spec PDF generation was completed and refined. The Warehouse module was significantly enhanced with more data fields synced from amoCRM and improved UI/UX. The Production List feature was built, including an editable table and a (partially-implemented) Google Sheets sync feature. The Sales page was automated to pull data from the internal CRM. Many bugs related to data transfer and document management were fixed.
+In this session, a major 5-point enhancement for the CRM and Sales modules was completed. The backup system was audited and significantly improved to include over a dozen previously missed data collections. Advanced CRM configuration options were added for user mapping and custom data fields. A DOCX contract generation feature was implemented. Finally, a new Storekeeper user role with granular permissions was created.
 
 **Last working item**:
--   **Last item agent was working**: Investigating a large, 5-part feature request from the user concerning CRM access, date filters, custom lead naming, calendar date sources, and sales sync logic. The agent analyzed the request and existing code but did not start implementation.
--   **Status**: NOT STARTED
--   **Agent Testing Done**: N
+-   **Last item agent was working**: Implementing the new Storekeeper (Кладовщик) role with specific access rights:
+    1.  Full access to the Warehouse module but without the ability to delete orders.
+    2.  Read-only access to the Logistics module, for viewing trips and orders without modification capabilities.
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: Y
 -   **Which testing method agent to use?**: both
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Implement 5-Point CRM & Sales Enhancement (P0 - HIGHEST)**
--   **Issue 2: Incorrect automatic variant application (P1 - RECURRING)**
--   **Issue 3: Unstable user login sessions (P2 - RECURRING)**
--   **Issue 4:  errors during deployment (P2 - RECURRING)**
+-   **Issue 1: Verify 'Storekeeper' role implementation (P0 - HIGHEST)**
+-   **Issue 2: Incorrect automatic variant application in configurator (P1 - RECURRING)**
+-   **Issue 3: Unstable user login sessions & Deployment timeouts (P2 - RECURRING)**
 
 **Issues Detail**:
--   **Issue 1: Implement 5-Point CRM & Sales Enhancement**
-    -   **Attempted fixes**: None. The agent was in the planning/investigation phase.
+-   **Issue 1: Verify 'Storekeeper' role implementation**
+    -   **Attempted fixes**: The role was implemented across the stack: backend ( updated with 'storekeeper' role), frontend context (), and components (, , ) were modified to enforce permissions. The agent created a test user (/) and confirmed the correct landing page view.
     -   **Next debug checklist**:
-        1.  **Manager CRM Access**: Modify the  backend endpoint to filter leads by  or a new  field, matching the logged-in user's username. Add UI in user settings to map amoCRM users to internal app users.
-        2.  **Date Filters**: Add date range pickers to  and . Pass the date range to the backend fetch endpoints (, ) and apply the filter to the MongoDB query.
-        3.  **Custom Lead Name**: Add settings in the admin panel to specify the amoCRM field IDs for Client Name and Sauna Model. Modify the amoCRM sync logic to pull these fields and construct a new  field in the  collection. Update  to use this new field.
-        4.  **Calendar Date Source**: Review the  endpoint. Ensure it queries the  field (or the correct readiness date field) from the  collection to populate the calendar.
-        5.  **Sales Sync Logic**: Review the  endpoint. Ensure the query on  fetches all leads with a  set. Verify that the bonus calculation logic in  correctly uses this .
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a major functional upgrade requested by the user, crucial for making the CRM and Sales modules properly usable for the team.
-    -   **Status**: NOT STARTED
+        1.  Log in as the  user.
+        2.  Navigate to the **Warehouse** page. Confirm that the Delete button is not visible on order cards.
+        3.  Navigate to the **Logistics** page. Confirm that all action/editing buttons and controls are hidden or disabled (e.g., Create Trip, Create Order, Delete Order, status change dropdowns, edit fields).
+    -   **Why fix this issue and what will be achieved with the fix?**: To confirm the new user role works exactly as requested by the user and provides the correct level of access.
+    -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: Both
     -   **Blocked on other issue**: None
 
--   **Issue 2: Incorrect automatic variant application**
-    -   **Attempted fixes**: None in this session. Logic for this is in .
+-   **Issue 2: Incorrect automatic variant application in configurator**
+    -   **Attempted fixes**: None in this session. The issue lies within .
+    -   **Next debug checklist**: Deeply investigate the state management and conditional logic within  that determines which product variants are automatically selected based on user choices.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical bug affecting the core product configuration functionality.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
 
--   **Issue 3 & 4: Unstable login sessions & Deployment timeouts**
+-   **Issue 3: Unstable user login sessions & Deployment timeouts**
     -   **Attempted fixes**: None in this session.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
 -   **Task 1: Complete Google Sheets Integration (P1)**
-    -   **Where to resume**: The backend endpoint and frontend button exist. However, the user experienced a , indicating the Google Sheets and/or Google Drive APIs are not enabled in their Google Cloud Project.
-    -   **What will be achieved with this?**: The production list will be exportable to a Google Sheet with one click.
+    -   **Where to resume**: The feature is blocked pending user action.
+    -   **What will be achieved with this?**: The production list will be exportable to a Google Sheet.
     -   **Status**: BLOCKED
     -   **Should Test frontend/backend/both after fix?**: Backend
-    -   **Blocked on something**: User needs to enable the Google Sheets and Google Drive APIs in their Google Cloud console. The agent has already provided the direct links to do so.
+    -   **Blocked on something**: The user needs to enable the Google Sheets API and Google Drive API in their Google Cloud Project console.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
     -   **P1**: Finalize and test the Save layout to order feature end-to-end.
 -   **Future Tasks**:
-    -   **P1**: Refactor the monolithic  and  files.
-    -   **P2**: Add UI for importing/restoring a project backup.
+    -   **P1**: Refactor the monolithic  and  files.  has also become very large and could benefit from refactoring.
+    -   **P2**: Add a UI for importing/restoring a project backup from a file.
     -   **P2**: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
--   **Feature: Tech Spec PDF Generation**: Implemented Create PDF button in . The backend () now generates a PDF, uploads it to Cloudinary, and links it to the corresponding CRM lead.
--   **Feature: Production List & Editable Table**: Added a new Список (List) tab to  with a fully editable table for managing production orders.
--   **Feature: Google Sheets Sync**: Added UI and backend endpoint () to sync the production list. Installed .
--   **Feature: Sales Module Automation**: Created a  endpoint and a frontend button to automatically import sales records from the internal CRM into the Sales module.
--   **Feature: Expanded User Access Controls**: Added Warehouse, Sauna Production, and Training to the access control checkboxes in  and the backend validation.
--   **Feature: Warehouse Card Enhancements**:
-    -   Added Products, Responsible User, Deal Created Date, Debt Amount, and a custom Client Name field.
-    -   Added copy to clipboard buttons for Client Name, Address, Phone, and Postal Code.
--   **Bug Fix: Document Deduplication**: Modified backend logic to delete old versions of tech_spec and kp documents when a new one is generated for the same lead.
--   **Bug Fix: Incomplete PDF Data**: Fixed  to include all categories (even empty ones) and to correctly use default values.
--   **Bug Fix: Missing Roof Color in Tech Spec**: Improved the auto-filling logic in  to correctly map the roof color from the calculator order.
--   **Bug Fix: Warehouse Data Not Updating**: Modified the dovoz/warehouse sync logic in  to update existing orders with fresh data from amoCRM instead of skipping them.
--   **Bug Fix: Google Sheets  error**: Refactored the frontend sync call from  to  to resolve response body conflicts.
+-   **Feature: 5-Point CRM/Sales Enhancement**: Implemented manager-specific access, date filters, custom lead names, correct calendar date source, and improved sales sync logic.
+-   **Feature: Advanced CRM Configuration**: Added a UI in User Management to map app users to amoCRM usernames. Added a UI in CRM Settings to specify custom amoCRM field IDs for Client Name and Model Name.
+-   **Feature: DOCX Contract Generation**: Implemented a new backend endpoint () using  to create a contract from a template, fill it with lead data, and upload it to Cloudinary. Added a Create Contract button to the CRM lead modal.
+-   **Feature: Storekeeper Role**: Created a new user role with read-only access to Logistics and no-delete access to the Warehouse.
+-   **Bug Fix: Backup System Overhaul**: Audited and fixed the backup system to include ~15 previously missed collections, including critical ones like , , and various settings collections.
+-   **Bug Fix: Per-Column Sorting**: Fixed a bug where date sorting was global; it's now handled by individual sort buttons on each Kanban column header.
+-   **Bug Fix: Custom Lead Naming**: Fixed the amoCRM sync logic to prioritize the custom field IDs from settings for populating lead names.
+-   **Bug Fix: UI Visibility & Access**: Fixed issues where managers couldn't see the CRM tab or certain UI elements due to incorrect  checks, replacing them with .
 
 **Earlier issues found/mentioned but not fixed**
 -   The critical bug regarding automatic variant application in .
@@ -111,16 +98,16 @@ In this session, the Tech Spec PDF generation was completed and refined. The War
 
 
 **Key Technical Concepts**
--   **Data-Driven Editable Tables**: The new Production List uses a pattern where table cells become editable inputs on click, with an  event triggering a backend update.
--   **Third-Party API Integration (Google Sheets)**: Implemented  library for backend communication with Google Sheets API, using a Service Account JSON for authentication.
--   **Background Data Synchronization**: Created backend endpoints (, ) that pull data from one source (amoCRM, internal CRM) and populate/update another collection in the local DB.
--   **Document Versioning/Deduplication**: Implemented logic to ensure only one document of a specific type (e.g., , ) exists per lead by deleting old ones before adding a new one.
+-   **Role-Based Access Control (RBAC)**: Implemented a new 'storekeeper' role with fine-grained permissions (read-only, no-delete) affecting multiple frontend components by adding a  prop and conditional rendering.
+-   **Dynamic Document Generation (DOCX)**: Used the  library to parse a  template, replace  tags with live data from MongoDB, and serve the generated file via a static route after uploading to Cloudinary.
+-   **Complex Data Backup/Restore**: Systematically identified and added over a dozen missing MongoDB collections to the existing backup/restore scripts in , ensuring data integrity.
+-   **Per-Column Sorting**: Refactored frontend state to manage sort order (/) for each Kanban column independently, triggered by buttons in each column's header.
+-   **Configurable Data Mapping**: Implemented a system allowing admins to map internal data fields (like ) to specific custom field IDs from an external CRM (amoCRM) via a settings UI, which the backend then uses during data synchronization.
 
 **key DB schema**
--   : Added , , , , .
--   : Added .
--   : Heavily modified to be the source of truth for the production list. Added , , , , , , .
--   : Now populated from  instead of manual entry.
+-   **users**: Added . The  enum now includes .
+-   **sauna_crm_settings**: Added  and .
+-   **sauna_crm_leads**: The  array now stores objects for generated contracts ().
 
 **All files of reference**
 -   
@@ -131,62 +118,73 @@ In this session, the Tech Spec PDF generation was completed and refined. The War
 -   
 -   
 -   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--   : **URGENT PRIORITY**. This file is the source of the main P1 bug and has significant technical debt.
--   : This file remains very large and could be broken down into smaller, more focused service files.
+-   : **URGENT**. Source of the main P1 bug.
+-   : This file is now over 2700 lines and has complex state management. The  logic was added on top, making it a prime candidate for being broken down into smaller components.
+-   : Remains very large and could be broken down.
 
 **key api endpoints**
--   : Updated to use new data structure, upload to Cloudinary, and link to CRM lead, replacing old documents.
--   : Updated to upsert data, refreshing existing orders with new info from amoCRM.
--   : **New endpoint** to populate the sales tracking module from the internal Sauna CRM.
--   : **New endpoint** to sync the production list to a Google Sheet.
--   : **New endpoint** to handle inline edits from the production list table.
+-   : **New endpoint** to generate a DOCX contract, upload it to Cloudinary, and link it to the lead.
+-   : **New static route** to download generated contracts.
+-   : Logic updated to filter leads based on the logged-in manager's .
+-   : Sync logic updated to use custom field IDs from settings to populate  and .
+-   , : Updated to handle the  field and the  role.
+-   : Response updated to include the user's .
+-   : Response updated to include ~15 new collections.
 
 **Critical Info for New Agent**
 -   **You MUST respond in Russian.**
--   **Priority 1: Implement the 5-point User Request.** Your immediate task is to tackle the user's latest request regarding CRM/Sales enhancements. See **All Pending/In progress Issue list** for a detailed breakdown. This is a large, multi-faceted task.
--   **Google Sheets Integration is Blocked**: The user needs to enable the Google Sheets API and Google Drive API in their Google Cloud Project for the sync to work. You have already provided them with the direct links. Do not spend time debugging the  until the user confirms they have enabled the APIs.
--   **P1 Bug**: After completing the current 5-point task, the highest priority is the long-standing bug with automatic variant application in .
+-   Your immediate task is to confirm the new Storekeeper role with the user and address any feedback. The credentials are  / .
+-   After the role is verified, the highest priority is the long-standing critical bug with automatic variant application in .
+-   The Google Sheets integration remains **BLOCKED** on the user. Do not attempt to debug it.
+-   The database being used in the preview environment is . Scripts or manual commands must specify this DB to work correctly.
 
 **documents and test reports created in this job**
--    (Updated)
+-    (Updated multiple times)
+-   
+-   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **LATEST/CURRENT**: Requested a 5-part enhancement for CRM, Production, and Sales modules (manager access, date filters, custom lead names, calendar date source, sales sync logic). (NOT STARTED)
-2.  Reported  with Google Sheets, then confirmed they enabled access. You diagnosed the issue as disabled APIs in Google Cloud and provided instructions. (BLOCKED ON USER)
-3.  Reported various  errors with Google Sheets sync. You fixed them by refactoring the frontend call to use . (DONE)
-4.  Provided Google Sheet link and Service Account JSON file for integration. (DONE)
-5.  Asked if a Service Account JSON exists in the project. (DONE)
-6.  Reported the Sync from CRM button was missing on the Sales page. You moved it to the correct file. (DONE)
-7.  Requested the ability to edit all fields in the new production list table. (DONE)
-8.  Reported the roof color was not transferring to the tech spec. You fixed the mapping logic. (DONE)
-9.  Requested to remove the order total from the Tech Spec modal header. (DONE)
-10. Requested the creation of the Production List and Sales Sync features. (DONE)
+1.  **LATEST**: Request to add a Storekeeper role with specific read-only/no-delete permissions.
+2.  Request to generate a  contract from a template with dynamic data.
+3.  Bug report: Sorting was not working on all Kanban columns; Lead name was not being pulled from the correct custom field.
+4.  User confirmed they were okay with the agent's plan for advanced CRM configuration.
+5.  Request for advanced CRM config: user mapping (app user -> amoCRM name), custom field IDs for sync, and column-level date sorting.
+6.  User reported that the initial 5-point enhancement changes were not visible, leading to a debug/fix cycle.
+7.  Request to check the automatic backup system to ensure it's saving all the new CRM/Sales data.
+8.  User gave permission to proceed (продолжай).
+9.  User approved the agent's initial plan.
+10. Agent asked for approval of initial plan.
 
 **Project Health Check:**
--   **Broken**: The automatic application of conditional variants in  remains the most critical unresolved issue.
+-   **Broken**: The automatic application of conditional variants in  remains the most critical unresolved application bug.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
 -   **Fabric.js**: (v5.3.0) Core of the layout configurator.
 -   **Nano Banana Pro (Gemini)**: For AI image background replacement. Uses **Emergent LLM Key**.
--   **Cloudinary**: Used for price list images, AI images, and storing generated PDFs/documents.
+-   **Cloudinary**: For price list images, AI images, and storing generated PDFs/documents.
 -   **amoCRM/Kommo**: Primary CRM integration.
 -   **Telegram**: For notifications.
 -   **Google Maps**: For delivery routes.
--   **Google Sheets**: For exporting production data. Uses , . Requires User-provided Service Account JSON.
+-   **Google Sheets**: For exporting production data. Uses . Requires User-provided Service Account JSON.
+-   **python-docx**: (v1.2.0) **New**. Used for generating  contract files from a template.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, for the initial PDF generation feature.
+-   **Testing agent used after significant changes**: YES, used twice. The second run found and fixed a bug in the Edit User dialog.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
 -   **Known regressions**: None from the work completed in this session.
 
 **Credentials to test flow:**
 -   Admin:  / 
+-   Storekeeper:  / 
 
 **What agent forgot to execute**
 -   The critical P1 bug in  has been postponed again in favor of new feature requests.
--   The recurring platform issues (unstable login, deployment timeouts) from the initial handoff were not addressed.</analysis>
+-   The recurring platform issues (unstable login, deployment timeouts) were not addressed.</analysis>

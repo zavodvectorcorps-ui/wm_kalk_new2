@@ -79,10 +79,12 @@ export const UserManagement = () => {
       employee: 'Сотрудник',
       observer: 'Наблюдатель',
       driver: 'Водитель',
+      storekeeper: 'Кладовщик',
       roleAdmin: 'Администратор (полный доступ и скидки)',
       roleEmployee: 'Сотрудник (может создавать заказы)',
       roleObserver: 'Наблюдатель (только просмотр)',
       roleDriver: 'Водитель (доступ к кабинету водителя)',
+      roleStorekeeper: 'Кладовщик (склад + логистика просмотр)',
       actions: 'Действия',
       edit: 'Редактировать',
       delete: 'Удалить',
@@ -124,10 +126,12 @@ export const UserManagement = () => {
       employee: 'Pracownik',
       observer: 'Obserwator',
       driver: 'Kierowca',
+      storekeeper: 'Magazynier',
       roleAdmin: 'Administrator (pełny dostęp i rabaty)',
       roleEmployee: 'Pracownik (może tworzyć zamówienia)',
       roleObserver: 'Obserwator (tylko podgląd)',
       roleDriver: 'Kierowca (dostęp do panelu kierowcy)',
+      roleStorekeeper: 'Magazynier (magazyn + logistyka podgląd)',
       actions: 'Akcje',
       edit: 'Edytuj',
       delete: 'Usuń',
@@ -414,13 +418,20 @@ export const UserManagement = () => {
             {txt.driver}
           </Badge>
         );
+      case 'storekeeper':
+        return (
+          <Badge variant="secondary" className="gap-1 bg-teal-100 text-teal-700">
+            <Package className="w-3 h-3" />
+            {txt.storekeeper}
+          </Badge>
+        );
       default:
         return null;
     }
   };
 
   // Show employees, observers, drivers and admins (except the main 'admin' account)
-  const employees = users.filter(u => u.role === 'employee' || u.role === 'observer' || u.role === 'driver' || (u.role === 'admin' && u.username !== 'admin'));
+  const employees = users.filter(u => u.role === 'employee' || u.role === 'observer' || u.role === 'driver' || u.role === 'storekeeper' || (u.role === 'admin' && u.username !== 'admin'));
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl">
@@ -569,6 +580,12 @@ export const UserManagement = () => {
                     <div className="flex items-center gap-2">
                       <Truck className="w-4 h-4 text-green-600" />
                       {txt.roleDriver}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="storekeeper">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-teal-600" />
+                      {txt.roleStorekeeper}
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -790,6 +807,12 @@ export const UserManagement = () => {
                     <div className="flex items-center gap-2">
                       <Truck className="w-4 h-4 text-green-600" />
                       {txt.roleDriver}
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="storekeeper">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-teal-600" />
+                      {txt.roleStorekeeper}
                     </div>
                   </SelectItem>
                 </SelectContent>

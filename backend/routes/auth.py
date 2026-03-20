@@ -95,8 +95,8 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
     elif user_data.access not in valid_access_values:
         raise HTTPException(status_code=400, detail=f"Access must be one of: {valid_access_values}")
     
-    if user_data.role not in ["admin", "employee", "observer", "driver", "warehouse"]:
-        raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee', 'observer', 'driver' or 'warehouse'")
+    if user_data.role not in ["admin", "employee", "observer", "driver", "warehouse", "storekeeper"]:
+        raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee', 'observer', 'driver', 'warehouse' or 'storekeeper'")
     
     # Only super-admin (username: 'admin') can create users with 'admin' role
     if user_data.role == "admin" and admin.get("username") != "admin":
@@ -159,8 +159,8 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
         update_data["access"] = user_data.access
     
     if user_data.role:
-        if user_data.role not in ["admin", "employee", "observer", "driver", "warehouse"]:
-            raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee', 'observer', 'driver' or 'warehouse'")
+        if user_data.role not in ["admin", "employee", "observer", "driver", "warehouse", "storekeeper"]:
+            raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee', 'observer', 'driver', 'warehouse' or 'storekeeper'")
         # Only super-admin can assign admin role
         if user_data.role == "admin" and admin.get("username") != "admin":
             raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")
