@@ -93,7 +93,22 @@ const SaunaCRMPage = () => {
 
   const fetchLeads = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/sauna-crm/leads`, { headers: authHeaders });
+      // Get current user info for manager filtering
+      const userStr = localStorage.getItem('authUser');
+      let currentUser = null;
+      try { currentUser = JSON.parse(userStr); } catch {}
+      
+      let url = `${API_URL}/api/sauna-crm/leads`;
+      const params = new URLSearchParams();
+      
+      // If user is not admin/observer, filter by their username (manager name)
+      if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'observer') {
+        params.set('manager_username', currentUser.username);
+      }
+      
+      if (params.toString()) url += '?' + params.toString();
+      
+      const res = await fetch(url, { headers: authHeaders });
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads || []);
@@ -441,6 +456,14 @@ const SaunaCRMPage = () => {
   const hasActiveFilters = !!filterManager || !!filterDateFrom || !!filterDateTo;
   const clearFilters = () => { setFilterManager(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); };
 
+  // Build display title for lead: "Клиент — Модель"
+  const getLeadTitle = (lead) => {
+    const name = lead.clientName || '';
+    const model = lead.modelName || lead.field_1 || '';
+    if (name && model) return `${name} — ${model}`;
+    return name || model || 'Без имени';
+  };
+
   const stages = settings?.stages || [];
   const leadsByStage = {};
   stages.forEach(s => { leadsByStage[s.id] = []; });
@@ -625,7 +648,7 @@ const SaunaCRMPage = () => {
                     >
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between mb-1">
-                          <span className="font-medium text-sm truncate">{lead.clientName || 'Без имени'}</span>
+                          <span className="font-medium text-sm truncate">{getLeadTitle(lead)}</span>
                           {lead.isImportant && <Star className="w-4 h-4 text-amber-500 fill-amber-500 flex-shrink-0" />}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{lead.modelName || lead.field_1 || '—'}</p>
@@ -689,7 +712,7 @@ const SaunaCRMPage = () => {
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: stage?.color || '#ccc' }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium truncate">{lead.clientName || 'Без имени'}</span>
+                        <span className="font-medium truncate">{getLeadTitle(lead)}</span>
                         {lead.isImportant && <Star className="w-4 h-4 text-amber-500 fill-amber-500" />}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{lead.modelName || lead.field_1 || '—'} {lead.manager ? `• ${lead.manager}` : ''} {lead.phone ? `• ${lead.phone}` : ''}</p>

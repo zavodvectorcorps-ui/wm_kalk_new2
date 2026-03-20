@@ -233,7 +233,7 @@ async def calculate_bonus(
     end_date: str,
     manager: Optional[str] = None
 ):
-    """Calculate manager bonuses for a date range."""
+    """Calculate manager bonuses for a date range based on prepayment_date."""
     sales_collection = get_sales_collection()
     managers_collection = get_managers_collection()
     
@@ -242,12 +242,19 @@ async def calculate_bonus(
     async for doc in managers_collection.find({}, {"_id": 0}):
         manager_settings[doc["manager_name"]] = doc.get("bonus_percent", 5.0)
     
-    # Get sales for the period
+    # Get sales for the period — use prepayment_date with fallback to order_date
+    # We need to find sales where prepayment_date OR order_date falls in range
     query = {
-        "order_date": {"$gte": start_date, "$lte": end_date}
+        "$or": [
+            {"prepayment_date": {"$gte": start_date, "$lte": end_date}},
+            {"$and": [
+                {"$or": [{"prepayment_date": {"$exists": False}}, {"prepayment_date": ""}, {"prepayment_date": None}]},
+                {"order_date": {"$gte": start_date, "$lte": end_date}}
+            ]}
+        ]
     }
     if manager:
-        query["manager"] = {"$regex": manager, "$options": "i"}
+        query = {"$and": [query, {"manager": {"$regex": manager, "$options": "i"}}]}
     
     # Aggregate by manager
     bonuses = {}
@@ -468,10 +475,10 @@ async def get_statistics(
 
 @router.post("/sync-from-crm")
 async def sync_sales_from_crm():
-    """Sync sales records from sauna_crm_leads that have a calculator order."""
+    """Sync sales records from ALL sauna_crm_leads (not just with calculator orders)."""
     import uuid as uuid_mod
     crm_leads = await db.sauna_crm_leads.find(
-        {"calculatorOrderId": {"$exists": True, "$ne": None}},
+        {},
         {"_id": 0}
     ).to_list(5000)
 
@@ -482,7 +489,8 @@ async def sync_sales_from_crm():
     now = datetime.now(timezone.utc).isoformat()
 
     for lead in crm_leads:
-        order_id = lead.get("calculatorOrderId", "")
+        lead_id = lead.get("id", "")
+        order_id = lead.get("calculatorOrderId") or lead_id
         if not order_id:
             skipped += 1
             continue
@@ -490,8 +498,9 @@ async def sync_sales_from_crm():
         # Try to get calculator order for price data
         calc_order = None
         calc_col = lead.get("calculatorCollection", "sauna_orders")
-        if order_id:
-            calc_order = await db[calc_col].find_one({"id": order_id}, {"_id": 0})
+        calc_order_id = lead.get("calculatorOrderId")
+        if calc_order_id:
+            calc_order = await db[calc_col].find_one({"id": calc_order_id}, {"_id": 0})
 
         total = 0
         if calc_order:
@@ -500,7 +509,7 @@ async def sync_sales_from_crm():
         # Use CRM lead fields
         sale_data = {
             "order_id": order_id,
-            "crm_lead_id": lead.get("id", ""),
+            "crm_lead_id": lead_id,
             "product_name": lead.get("modelName") or lead.get("field_1") or "",
             "client_name": lead.get("clientName", ""),
             "total_amount": lead.get("totalAmount") or total,
@@ -517,16 +526,16 @@ async def sync_sales_from_crm():
             "source": "crm_sync",
         }
 
-        existing = await collection.find_one({"order_id": order_id})
+        existing = await collection.find_one({"$or": [{"order_id": order_id}, {"crm_lead_id": lead_id}]})
         if existing:
             # Update only auto-fields, keep manual edits
             upd = {}
-            for k in ["product_name", "client_name", "total_amount", "status", "crm_lead_id"]:
-                if sale_data[k]:
+            for k in ["product_name", "client_name", "total_amount", "status", "crm_lead_id", "manager", "prepayment_date", "delivery_date", "order_date"]:
+                if sale_data.get(k):
                     upd[k] = sale_data[k]
             upd["updated_at"] = now
             upd["source"] = "crm_sync"
-            await collection.update_one({"order_id": order_id}, {"$set": upd})
+            await collection.update_one({"_id": existing["_id"]}, {"$set": upd})
             updated += 1
         else:
             sale_doc = {

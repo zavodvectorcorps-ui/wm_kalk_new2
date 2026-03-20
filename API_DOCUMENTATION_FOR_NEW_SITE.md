@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://configurator-pdf-gen.preview.emergentagent.com
+Preview: https://config-builder-4.preview.emergentagent.com
 ```
 
 ---

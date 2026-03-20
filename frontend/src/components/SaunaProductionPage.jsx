@@ -259,8 +259,10 @@ const SaunaProductionPage = ({ onBack }) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState(null);
 
-  // Search
+  // Search & Date Filters
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
 
   // Active view
   const [activeView, setActiveView] = useState('calendar');
@@ -480,13 +482,28 @@ const SaunaProductionPage = ({ onBack }) => {
   // Filter
   const stages = settings?.stages || [];
   const filteredOrders = orders.filter(o => {
-    if (!searchTerm) return true;
-    const s = searchTerm.toLowerCase();
-    return (o.clientName || '').toLowerCase().includes(s) ||
-      (o.phone || '').includes(s) ||
-      (o.modelName || o.field_1 || '').toLowerCase().includes(s) ||
-      (o.manager || '').toLowerCase().includes(s);
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      const match = (o.clientName || '').toLowerCase().includes(s) ||
+        (o.phone || '').includes(s) ||
+        (o.modelName || o.field_1 || '').toLowerCase().includes(s) ||
+        (o.manager || '').toLowerCase().includes(s);
+      if (!match) return false;
+    }
+    // Date range filter on readyDate
+    if (filterDateFrom) {
+      const rd = (o.readyDate || '').slice(0, 10);
+      if (!rd || rd < filterDateFrom) return false;
+    }
+    if (filterDateTo) {
+      const rd = (o.readyDate || '').slice(0, 10);
+      if (!rd || rd > filterDateTo) return false;
+    }
+    return true;
   });
+
+  const hasActiveFilters = !!filterDateFrom || !!filterDateTo || !!searchTerm;
+  const clearFilters = () => { setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); };
 
   const ordersByStage = {};
   stages.forEach(s => { ordersByStage[s.id] = []; });
@@ -567,7 +584,7 @@ const SaunaProductionPage = ({ onBack }) => {
                             <div className="mt-1 space-y-0.5">
                               {dayOrders.slice(0, 2).map((o, idx) => (
                                 <div key={idx} className="text-[10px] px-1 py-0.5 bg-rose-100 text-rose-700 rounded truncate">
-                                  {o.modelName || o.clientName}
+                                  {o.clientName || o.modelName || '—'}
                                 </div>
                               ))}
                               {dayOrders.length > 2 && (
@@ -617,11 +634,19 @@ const SaunaProductionPage = ({ onBack }) => {
 
         {/* Kanban View */}
         <TabsContent value="kanban">
-          <div className="mb-4">
-            <div className="relative max-w-md">
+          <div className="flex flex-wrap gap-3 mb-4">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Поиск..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" data-testid="prod-search" />
             </div>
+            <div className="flex items-center gap-2">
+              <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-[140px]" data-testid="prod-filter-date-from" placeholder="От" />
+              <span className="text-muted-foreground">—</span>
+              <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[140px]" data-testid="prod-filter-date-to" placeholder="До" />
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="prod-clear-filters-btn"><X className="w-4 h-4 mr-1" />Сбросить</Button>
+            )}
           </div>
           <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(280px, 1fr))` }}>
             {stages.map(stage => {

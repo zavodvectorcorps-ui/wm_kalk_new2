@@ -341,7 +341,7 @@ export const SalesPage = () => {
               try {
                 const res = await axios.post(`${API_URL}/api/sales/sync-from-crm`);
                 toast.success(`Синхронизировано: ${res.data.imported} новых, ${res.data.updated} обновлено`);
-                fetchRecords();
+                fetchSales();
               } catch { toast.error('Ошибка синхронизации'); }
             }} variant="outline" data-testid="sales-sync-crm-btn">
               <RefreshCw className="h-4 w-4 mr-2" />

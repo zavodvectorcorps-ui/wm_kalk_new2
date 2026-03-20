@@ -150,8 +150,25 @@ async def update_stage_settings(stages: List[CRMStageConfig]):
 # ============== LEADS CRUD ==============
 
 @router.get("/leads")
-async def get_all_leads():
-    leads = await db.sauna_crm_leads.find({}, {"_id": 0}).to_list(1000)
+async def get_all_leads(
+    manager_username: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+):
+    query = {}
+    # Manager filter: if manager_username is provided and not admin, filter by manager
+    if manager_username:
+        query["manager"] = {"$regex": manager_username, "$options": "i"}
+    # Date filters on readyDate
+    if date_from or date_to:
+        date_q = {}
+        if date_from:
+            date_q["$gte"] = date_from
+        if date_to:
+            date_q["$lte"] = date_to + "T23:59:59"
+        query["readyDate"] = date_q
+
+    leads = await db.sauna_crm_leads.find(query, {"_id": 0}).to_list(1000)
     settings = await get_crm_settings()
     stages_data = {}
     for stage in settings.get("stages", []):

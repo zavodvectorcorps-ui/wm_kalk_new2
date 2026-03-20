@@ -1,0 +1,142 @@
+{
+  "summary": "5-point CRM & Sales enhancements tested. Backend: 16/16 tests passed. Frontend: All 5 features verified working. (1) Manager-specific CRM access with manager_username filter working, (2) Production kanban has date filters (prod-filter-date-from, prod-filter-date-to), (3) CRM lead title shows 'ClientName — ModelName' format (e.g., 'Anna Kowalska — Sauna Test'), (4) Production calendar uses readyDate for grouping, (5) Sales sync imports ALL CRM leads, bonus uses prepayment_date.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_crm_sales_enhancements.py",
+    "/app/test_reports/pytest/pytest_results_iteration61.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_crm_sales_enhancements.py"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "100% - All 5 CRM & Sales enhancement features verified"
+  },
+  "test_credentials": {
+    "admin_login": "admin",
+    "admin_password": "admin123"
+  },
+  "seed_data_creation": "None - used existing CRM leads and production orders",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "5-point CRM & Sales enhancement features fully tested and working: (1) GET /api/sauna-crm/leads supports manager_username, date_from, date_to query params, (2) GET /api/sauna-production/orders supports date_from, date_to params, (3) Production calendar uses readyDate, (4) Sales sync imports ALL CRM leads not just those with calculatorOrderId, (5) Bonus calculation uses prepayment_date. Frontend verified: CRM kanban shows 'ClientName — ModelName' format, Production kanban has date filters, SalesPage has 'Из CRM' sync button.",
+  "test_results_summary": {
+    "backend_tests": {
+      "total": 16,
+      "passed": 16,
+      "test_classes": [
+        {
+          "class": "TestCRMLeadsFiltering",
+          "tests": [
+            "test_get_leads_endpoint_exists - PASSED",
+            "test_filter_by_manager_username - PASSED",
+            "test_filter_by_date_from - PASSED",
+            "test_filter_by_date_to - PASSED",
+            "test_combined_date_filters - PASSED"
+          ]
+        },
+        {
+          "class": "TestProductionOrdersFiltering",
+          "tests": [
+            "test_get_production_orders_endpoint - PASSED",
+            "test_production_orders_date_from_filter - PASSED",
+            "test_production_orders_date_to_filter - PASSED"
+          ]
+        },
+        {
+          "class": "TestProductionCalendarReadyDate",
+          "tests": [
+            "test_calendar_endpoint_exists - PASSED",
+            "test_calendar_groups_by_ready_date - PASSED"
+          ]
+        },
+        {
+          "class": "TestSalesSyncFromCRM",
+          "tests": [
+            "test_sync_endpoint_exists - PASSED",
+            "test_sync_imports_all_leads - PASSED (verified total_processed equals CRM lead count)"
+          ]
+        },
+        {
+          "class": "TestBonusCalculationPrepaymentDate",
+          "tests": [
+            "test_bonus_calculation_endpoint - PASSED",
+            "test_bonus_calculation_uses_prepayment_date - PASSED"
+          ]
+        },
+        {
+          "class": "TestCRMLeadTitle",
+          "tests": [
+            "test_leads_have_required_fields_for_title - PASSED"
+          ]
+        }
+      ]
+    },
+    "frontend_tests": {
+      "crm_page": {
+        "navigation": "PASSED - Sauna > CRM tab",
+        "kanban_view": "PASSED - data-testid='view-kanban' found and works",
+        "lead_title_format": "PASSED - Lead cards show 'Anna Kowalska — Sauna Test' format with em-dash",
+        "date_filters": "PASSED - filter-date-from and filter-date-to present",
+        "manager_filter": "PASSED - filter-manager dropdown present"
+      },
+      "production_page": {
+        "navigation": "PASSED - Produkcja saun card",
+        "kanban_view": "PASSED - data-testid='prod-view-kanban'",
+        "date_filters": "PASSED - prod-filter-date-from and prod-filter-date-to present",
+        "calendar_view": "PASSED - Shows orders grouped by readyDate",
+        "orders_count": "2 production orders found"
+      },
+      "sales_page": {
+        "navigation": "PASSED - Sauna > Sprzedaż tab",
+        "sync_crm_button": "PASSED - data-testid='sales-sync-crm-btn' shows 'Из CRM'",
+        "add_sale_button": "PASSED - data-testid='add-sale-btn'",
+        "sales_data": "4 sales records displayed with totals 102,350 zł"
+      }
+    },
+    "key_features_verified": {
+      "feature_1_manager_filter": {
+        "description": "Non-admin users filter leads by manager name",
+        "backend": "GET /api/sauna-crm/leads?manager_username={name} filters correctly",
+        "frontend": "CRM kanban has manager dropdown filter"
+      },
+      "feature_2_production_date_filters": {
+        "description": "Date filters on Production page kanban & list",
+        "backend": "GET /api/sauna-production/orders?date_from=X&date_to=Y works",
+        "frontend": "prod-filter-date-from and prod-filter-date-to inputs present in kanban"
+      },
+      "feature_3_lead_title_format": {
+        "description": "Custom lead display title = ClientName — ModelName",
+        "backend": "Leads have clientName and modelName fields",
+        "frontend": "getLeadTitle() function returns 'name — model' format, confirmed: 'Anna Kowalska — Sauna Test'"
+      },
+      "feature_4_calendar_ready_date": {
+        "description": "Production calendar uses readyDate instead of productionDate",
+        "backend": "GET /api/sauna-production/calendar groups by readyDate field",
+        "frontend": "Calendar view shows orders on readyDate dates (Mar 25)"
+      },
+      "feature_5_sales_sync_all_leads": {
+        "description": "Sales sync imports ALL CRM leads, bonus uses prepayment_date",
+        "backend": "POST /api/sales/sync-from-crm syncs all leads (no calculatorOrderId filter), bonus calc uses prepayment_date",
+        "frontend": "'Из CRM' button present on Sales page"
+      }
+    }
+  },
+  "api_endpoints_tested": [
+    {"endpoint": "GET /api/sauna-crm/leads", "params": "manager_username, date_from, date_to", "status": "WORKING"},
+    {"endpoint": "GET /api/sauna-production/orders", "params": "date_from, date_to", "status": "WORKING"},
+    {"endpoint": "GET /api/sauna-production/calendar", "params": "month, year", "status": "WORKING - uses readyDate"},
+    {"endpoint": "POST /api/sales/sync-from-crm", "params": "none", "status": "WORKING - imports ALL leads"},
+    {"endpoint": "GET /api/sales/bonus-calculation", "params": "start_date, end_date, manager", "status": "WORKING - uses prepayment_date"}
+  ]
+}

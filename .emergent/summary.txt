@@ -1,86 +1,102 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to build a Modular Sauna Configurator. The project has since expanded to include comprehensive CRM and production management features.
+The user's initial request was to build a Modular Sauna Configurator. The project has since expanded to include comprehensive CRM, production management, and logistics features.
 
 The user's most recent requests from this session, in order of implementation:
-1.  Integrate the Technical Specification (Tech Spec) feature into the new Sauna CRM, allowing it to be generated from a CRM lead and linked to the corresponding calculator order.
-2.  Refactor the Sauna Production module to be a separate page with its own calendar and Kanban board, distinct from the CRM tab in the calculator. Implement a Send to Production feature.
-3.  Fix a bug where the generated PDF link was  in the amoCRM note.
-4.  Fix a bug where the layout image was not appearing in the Tech Spec modal.
-5.  Fix a bug where the generated commercial proposal (КП) PDF was not being added to the Documents section of the internal CRM lead.
-6.  Add advanced mapping capabilities, allowing admins to map entire calculator categories and option variants to the Tech Spec.
-7.  Completely overhaul the Tech Spec modal with a new, detailed 21-point structure.
-8.  **Current Request**: Enhance the new Tech Spec modal by:
-    *   Adding text input fields that appear when an other size option is selected.
-    *   Adding a new Air vents category to the Steam Room section, defaulted to Yes.
-    *   Adding a Create PDF button to generate the Tech Spec as a PDF and attach it to the CRM lead's documents.
+1.  Enhance the Tech Spec modal with conditional inputs and PDF generation.
+2.  Add the layout image to the generated Tech Spec PDF.
+3.  Fix document management: ensure new versions of Tech Specs and Commercial Proposals (КП) replace old ones instead of accumulating.
+4.  Fix a bug where not all data (especially default values) was being transferred to the Tech Spec PDF.
+5.  Expand employee access settings to include new modules like Warehouse and Sauna Production.
+6.  Enhance the Warehouse module: add Products, Deal Created Date, Responsible User, Debt Amount, and a custom Client Name field to the order cards, syncing this data from amoCRM.
+7.  Add copy to clipboard buttons for key details in the Warehouse card.
+8.  Fix a bug where Warehouse orders were not being updated with new data on subsequent syncs.
+9.  **Current Request**: A large, multi-part feature request:
+    *   **Task 1: Production List & Google Sheets Sync**: Create a new Production List tab in the Sauna Production module with an editable table of all production orders, and implement a feature to sync this list to a Google Sheet.
+    *   **Task 2: Sales Module Sync**: Automate the Sales module by syncing orders directly from the internal mini-CRM, eliminating manual entry.
+    *   **Task 3: CRM/Production Enhancements (5 points)**:
+        1.  **Manager-specific CRM access**: Managers should only see their own leads in the Sauna CRM.
+        2.  **Date Filters**: Add date filtering capabilities to both the Sauna CRM and Sauna Production pages.
+        3.  **Custom Lead Name**: The main lead title in the CRM should be built from custom amoCRM fields (Client Name + Sauna Model), not the default amoCRM deal name.
+        4.  **Calendar Date Source**: Clarify and ensure the calendar in both CRM and Production uses the readiness date field from the order card.
+        5.  **Sales Sync Logic**: Ensure ALL relevant leads are pulled into the Sales module and that the manager's bonus is calculated based on the prepayment date.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-A full-stack React/FastAPI/MongoDB application for a sauna business. The app includes a Sauna Calculator, a new Sauna Production management page (with a calendar and Kanban board), and a Sauna Mini-CRM (as a tab within the calculator).
+A full-stack React/FastAPI/MongoDB application for a sauna business. Key modules include a Sauna Calculator, a Sauna Mini-CRM, a Sauna Production page (with Calendar, Kanban, and a new Production List), a Warehouse page, and a Sales tracking page.
 
-In this session, the Technical Specification (Tech Spec) feature was completely rebuilt from scratch. The UI in  is now driven by a new data structure in , reflecting a 21-point specification from the user. Advanced mapping from calculator categories and variants to the Tech Spec is now supported via the admin panel. The PDF generation flow for commercial proposals has been fixed and now correctly uploads to Cloudinary and links to both amoCRM and the internal CRM's document section.
+In this session, the Tech Spec PDF generation was completed and refined. The Warehouse module was significantly enhanced with more data fields synced from amoCRM and improved UI/UX. The Production List feature was built, including an editable table and a (partially-implemented) Google Sheets sync feature. The Sales page was automated to pull data from the internal CRM. Many bugs related to data transfer and document management were fixed.
 
 **Last working item**:
--   **Last item agent was working**: Implementing enhancements to the newly overhauled Technical Specification modal. The agent has already updated the UI and data structure (, ) to support conditional text fields for other size and to add the new Air vents category with a default value.
--   **Status**: IN PROGRESS
+-   **Last item agent was working**: Investigating a large, 5-part feature request from the user concerning CRM access, date filters, custom lead naming, calendar date sources, and sales sync logic. The agent analyzed the request and existing code but did not start implementation.
+-   **Status**: NOT STARTED
 -   **Agent Testing Done**: N
 -   **Which testing method agent to use?**: both
-    -   **Backend**: The existing PDF generation endpoint () needs to be reviewed and likely updated to work with the new data structure. A new flow must be implemented to upload this generated PDF to Cloudinary and then link it as a document to the  collection, mimicking the logic recently built for commercial proposals.
-    -   **Frontend**: A Create PDF button must be added to . Its functionality needs to be implemented to call the backend, handle the PDF generation, and reflect the new document in the UI. The new conditional input fields and default values also require testing.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Incorrect automatic variant application (P0 - HIGHEST)**
--   **Issue 2: Unstable user login sessions (P1 - RECURRING)**
--   **Issue 3:  errors during deployment (P2 - RECURRING)**
+-   **Issue 1: Implement 5-Point CRM & Sales Enhancement (P0 - HIGHEST)**
+-   **Issue 2: Incorrect automatic variant application (P1 - RECURRING)**
+-   **Issue 3: Unstable user login sessions (P2 - RECURRING)**
+-   **Issue 4:  errors during deployment (P2 - RECURRING)**
 
 **Issues Detail**:
--   **Issue 1: Incorrect automatic variant application**
-    -   **Attempted fixes**: (From previous session) The root cause was identified as faulty de-duplication logic. No new fixes were attempted in this session.
-    -   **Next debug checklist**: Re-engage the iterative application logic in . Add logging to trace the variant application loop and ensure state updates correctly between iterations to solve the user's report that the loop breaks after the first dependent variant.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker for the calculator-to-configurator feature. Fixing it is essential for the product's core functionality.
+-   **Issue 1: Implement 5-Point CRM & Sales Enhancement**
+    -   **Attempted fixes**: None. The agent was in the planning/investigation phase.
+    -   **Next debug checklist**:
+        1.  **Manager CRM Access**: Modify the  backend endpoint to filter leads by  or a new  field, matching the logged-in user's username. Add UI in user settings to map amoCRM users to internal app users.
+        2.  **Date Filters**: Add date range pickers to  and . Pass the date range to the backend fetch endpoints (, ) and apply the filter to the MongoDB query.
+        3.  **Custom Lead Name**: Add settings in the admin panel to specify the amoCRM field IDs for Client Name and Sauna Model. Modify the amoCRM sync logic to pull these fields and construct a new  field in the  collection. Update  to use this new field.
+        4.  **Calendar Date Source**: Review the  endpoint. Ensure it queries the  field (or the correct readiness date field) from the  collection to populate the calendar.
+        5.  **Sales Sync Logic**: Review the  endpoint. Ensure the query on  fetches all leads with a  set. Verify that the bonus calculation logic in  correctly uses this .
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a major functional upgrade requested by the user, crucial for making the CRM and Sales modules properly usable for the team.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None
+
+-   **Issue 2: Incorrect automatic variant application**
+    -   **Attempted fixes**: None in this session. Logic for this is in .
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on other issue**: None
 
--   **Issue 2 & 3: Unstable login sessions & Deployment timeouts**
+-   **Issue 3 & 4: Unstable login sessions & Deployment timeouts**
     -   **Attempted fixes**: None in this session.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Backend
-    -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   **Task 1: Complete New Technical Specification PDF Feature (P0 - HIGHEST)**
-    -   **Where to resume**: The UI for the latest user requests in  is mostly complete. The immediate next step is to implement the Create PDF functionality.
-        1.  Add a Создать PDF (Create PDF) button to the footer of .
-        2.  Implement the  handler to gather form data and call the backend endpoint .
-        3.  **Crucially**, review and update the  function in  to correctly render a PDF based on the new data structure from  and the form selections.
-        4.  After PDF generation, the data should be sent to Cloudinary for storage.
-        5.  The returned Cloudinary URL must then be saved as a new document (e.g., type ) in the  collection for the correct lead. The endpoint  can be reused for this.
-    -   **What will be achieved with this?**: The user will be able to generate, download, and store a complete Technical Specification PDF directly from the CRM lead card.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Both
-    -   **Blocked on something**: None
+-   **Task 1: Complete Google Sheets Integration (P1)**
+    -   **Where to resume**: The backend endpoint and frontend button exist. However, the user experienced a , indicating the Google Sheets and/or Google Drive APIs are not enabled in their Google Cloud Project.
+    -   **What will be achieved with this?**: The production list will be exportable to a Google Sheet with one click.
+    -   **Status**: BLOCKED
+    -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on something**: User needs to enable the Google Sheets and Google Drive APIs in their Google Cloud console. The agent has already provided the direct links to do so.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
     -   **P1**: Finalize and test the Save layout to order feature end-to-end.
 -   **Future Tasks**:
     -   **P1**: Refactor the monolithic  and  files.
-    -   **P1**: Refactor  (Urgent technical debt, related to P0 issue).
     -   **P2**: Add UI for importing/restoring a project backup.
     -   **P2**: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
--   **Feature: Complete Tech Spec Overhaul**: Rebuilt the Technical Specification feature from scratch with a new 21-point UI () and data structure () as per user requirements.
--   **Feature: Advanced Tech Spec Mapping**: Implemented UI in the admin panel to map entire calculator categories and individual option variants to the Tech Spec, with a clear priority hierarchy.
--   **Feature: Production Module Refactor**: Separated the Sauna Production page (with its own calendar/Kanban) from the Sauna CRM (which is now a tab in the calculator). Added a Send to Production feature.
--   **Bug Fix: PDF Not Linking to Internal CRM**: Refactored the backend PDF upload endpoint () to automatically find the correct internal CRM lead by its  and attach the generated PDF as a document.
--   **Bug Fix: Layout Not Loading in Tech Spec**: Fixed the data fetching logic in  and updated the calculator to save the  directly in the order, ensuring the layout image always loads.
--   **Bug Fix: PDF Link  in amoCRM**: Resolved an issue where Cloudinary credentials were not being loaded in the  module by adding .
+-   **Feature: Tech Spec PDF Generation**: Implemented Create PDF button in . The backend () now generates a PDF, uploads it to Cloudinary, and links it to the corresponding CRM lead.
+-   **Feature: Production List & Editable Table**: Added a new Список (List) tab to  with a fully editable table for managing production orders.
+-   **Feature: Google Sheets Sync**: Added UI and backend endpoint () to sync the production list. Installed .
+-   **Feature: Sales Module Automation**: Created a  endpoint and a frontend button to automatically import sales records from the internal CRM into the Sales module.
+-   **Feature: Expanded User Access Controls**: Added Warehouse, Sauna Production, and Training to the access control checkboxes in  and the backend validation.
+-   **Feature: Warehouse Card Enhancements**:
+    -   Added Products, Responsible User, Deal Created Date, Debt Amount, and a custom Client Name field.
+    -   Added copy to clipboard buttons for Client Name, Address, Phone, and Postal Code.
+-   **Bug Fix: Document Deduplication**: Modified backend logic to delete old versions of tech_spec and kp documents when a new one is generated for the same lead.
+-   **Bug Fix: Incomplete PDF Data**: Fixed  to include all categories (even empty ones) and to correctly use default values.
+-   **Bug Fix: Missing Roof Color in Tech Spec**: Improved the auto-filling logic in  to correctly map the roof color from the calculator order.
+-   **Bug Fix: Warehouse Data Not Updating**: Modified the dovoz/warehouse sync logic in  to update existing orders with fresh data from amoCRM instead of skipping them.
+-   **Bug Fix: Google Sheets  error**: Refactored the frontend sync call from  to  to resolve response body conflicts.
 
 **Earlier issues found/mentioned but not fixed**
 -   The critical bug regarding automatic variant application in .
@@ -92,59 +108,62 @@ In this session, the Technical Specification (Tech Spec) feature was completely 
 -   **Status**: NOT STARTED.
 
 **Code Architecture**
-generate_tech_spec_pdf
+
 
 **Key Technical Concepts**
--   **Backend-Driven Logic**: Complex logic, like linking generated PDFs to CRM leads, has been moved from the frontend to backend endpoints for improved reliability and robustness.
--   **Data-Driven UI**: The new Technical Specification modal is entirely generated from the static data structure in , making it easy to modify and maintain.
--   **Decoupled Modules**: The application is evolving into more distinct modules. The Sauna CRM (for sales) and Sauna Production (for manufacturing) are now separate front-end components, although they operate on the same  data collection, differentiated by a flag ().
--   **Hierarchical Mapping**: A mapping priority system was established for the Tech Spec: Variant-level mapping overrides Option-level mapping, which overrides Category-level mapping.
+-   **Data-Driven Editable Tables**: The new Production List uses a pattern where table cells become editable inputs on click, with an  event triggering a backend update.
+-   **Third-Party API Integration (Google Sheets)**: Implemented  library for backend communication with Google Sheets API, using a Service Account JSON for authentication.
+-   **Background Data Synchronization**: Created backend endpoints (, ) that pull data from one source (amoCRM, internal CRM) and populate/update another collection in the local DB.
+-   **Document Versioning/Deduplication**: Implemented logic to ensure only one document of a specific type (e.g., , ) exists per lead by deleting old ones before adding a new one.
 
 **key DB schema**
--   : Added  and  to facilitate the new production workflow. This collection is the single source of truth for both sales (CRM) and manufacturing (Production).
--    collection:
-    -   The category object schema now includes an optional  to enable category-level mapping.
-    -   The  array within an option object now contains variant objects whose schema was updated to include  and .
+-   : Added , , , , .
+-   : Added .
+-   : Heavily modified to be the source of truth for the production list. Added , , , , , , .
+-   : Now populated from  instead of manual entry.
 
 **All files of reference**
--   : **(Primary)** The completely new, overwritten component for the Tech Spec, currently being modified.
--   : **(Primary)** The new data structure that drives the Tech Spec modal.
--   : Contains the  endpoint that needs to be updated.
--   : Contains logic for adding documents to a lead, which will be needed.
--   : Contains reference logic for how PDFs are uploaded to Cloudinary and linked to entities.
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--   : **URGENT PRIORITY**. This file is the source of the main P0 bug and has significant technical debt.
+-   : **URGENT PRIORITY**. This file is the source of the main P1 bug and has significant technical debt.
 -   : This file remains very large and could be broken down into smaller, more focused service files.
 
 **key api endpoints**
--   : An existing endpoint that will be modified to generate the new PDF structure.
--   : A recently created endpoint to attach a document URL to a CRM lead. This will be used to link the generated Tech Spec PDF.
--   : New endpoint to mark a CRM lead as ready for the production module.
--   : New endpoints to serve data for the production calendar and Kanban board.
+-   : Updated to use new data structure, upload to Cloudinary, and link to CRM lead, replacing old documents.
+-   : Updated to upsert data, refreshing existing orders with new info from amoCRM.
+-   : **New endpoint** to populate the sales tracking module from the internal Sauna CRM.
+-   : **New endpoint** to sync the production list to a Google Sheet.
+-   : **New endpoint** to handle inline edits from the production list table.
 
 **Critical Info for New Agent**
 -   **You MUST respond in Russian.**
--   **Priority 1: Complete the Technical Specification PDF generation.** The UI for the new Tech Spec is built. Your immediate task is to implement the Create PDF button. This involves updating the backend PDF generation logic in  to match the new data structure and then creating the flow to upload the PDF to Cloudinary and link it to the CRM lead. The logic for the commercial proposal PDF is a good reference.
--   **Do not revert the Tech Spec changes.** The user requested a complete overhaul. The files  and  were intentionally overwritten and form the basis for the current task.
--   **P0 Bug**: After completing the current task, the highest priority is the long-standing bug with automatic variant application in .
+-   **Priority 1: Implement the 5-point User Request.** Your immediate task is to tackle the user's latest request regarding CRM/Sales enhancements. See **All Pending/In progress Issue list** for a detailed breakdown. This is a large, multi-faceted task.
+-   **Google Sheets Integration is Blocked**: The user needs to enable the Google Sheets API and Google Drive API in their Google Cloud Project for the sync to work. You have already provided them with the direct links. Do not spend time debugging the  until the user confirms they have enabled the APIs.
+-   **P1 Bug**: After completing the current 5-point task, the highest priority is the long-standing bug with automatic variant application in .
 
 **documents and test reports created in this job**
 -    (Updated)
 -   
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **LATEST/CURRENT**: Requested enhancements for the new Tech Spec: conditional inputs for other size, a new Air vents category, and a Create PDF button. (IN PROGRESS)
-2.  Requested a complete overhaul of the Tech Spec modal with a new 21-point structure. (DONE)
-3.  Requested advanced mapping for option *variants* in the Tech Spec. (DONE)
-4.  Requested the ability to map entire calculator *categories* to Tech Spec categories as plain text. (DONE)
-5.  Reported that the commercial proposal (КП) PDF was not being added to the internal CRM's Documents section. (DONE)
-6.  Reported that the layout image was not loading in the Tech Spec modal. (DONE)
-7.  Reported that the PDF link sent to amoCRM was . (DONE)
-8.  Requested to separate the Production module from the CRM, giving it a dedicated page and Kanban board, and adding a Send to Production feature. (DONE)
-9.  User approved the plan for the Production module refactor.
-10. Initial request to move the Tech Spec button into the CRM and link it to the calculator order. (DONE)
+1.  **LATEST/CURRENT**: Requested a 5-part enhancement for CRM, Production, and Sales modules (manager access, date filters, custom lead names, calendar date source, sales sync logic). (NOT STARTED)
+2.  Reported  with Google Sheets, then confirmed they enabled access. You diagnosed the issue as disabled APIs in Google Cloud and provided instructions. (BLOCKED ON USER)
+3.  Reported various  errors with Google Sheets sync. You fixed them by refactoring the frontend call to use . (DONE)
+4.  Provided Google Sheet link and Service Account JSON file for integration. (DONE)
+5.  Asked if a Service Account JSON exists in the project. (DONE)
+6.  Reported the Sync from CRM button was missing on the Sales page. You moved it to the correct file. (DONE)
+7.  Requested the ability to edit all fields in the new production list table. (DONE)
+8.  Reported the roof color was not transferring to the tech spec. You fixed the mapping logic. (DONE)
+9.  Requested to remove the order total from the Tech Spec modal header. (DONE)
+10. Requested the creation of the Production List and Sales Sync features. (DONE)
 
 **Project Health Check:**
 -   **Broken**: The automatic application of conditional variants in  remains the most critical unresolved issue.
@@ -157,9 +176,10 @@ generate_tech_spec_pdf
 -   **amoCRM/Kommo**: Primary CRM integration.
 -   **Telegram**: For notifications.
 -   **Google Maps**: For delivery routes.
+-   **Google Sheets**: For exporting production data. Uses , . Requires User-provided Service Account JSON.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. Used successfully for the Production Module refactor.
+-   **Testing agent used after significant changes**: YES, for the initial PDF generation feature.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
 -   **Known regressions**: None from the work completed in this session.
@@ -168,5 +188,5 @@ generate_tech_spec_pdf
 -   Admin:  / 
 
 **What agent forgot to execute**
--   The critical P0 bug in  has been postponed again in favor of new feature requests.
+-   The critical P1 bug in  has been postponed again in favor of new feature requests.
 -   The recurring platform issues (unstable login, deployment timeouts) from the initial handoff were not addressed.</analysis>

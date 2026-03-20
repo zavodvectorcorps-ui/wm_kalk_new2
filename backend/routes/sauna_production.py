@@ -51,11 +51,20 @@ async def save_production_settings(data: dict):
 # ============== ORDERS (read from sauna_crm_leads where inProduction=true) ==============
 
 @router.get("/orders")
-async def get_production_orders():
-    leads = await db.sauna_crm_leads.find(
-        {"inProduction": True},
-        {"_id": 0}
-    ).to_list(1000)
+async def get_production_orders(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+):
+    query = {"inProduction": True}
+    if date_from or date_to:
+        date_q = {}
+        if date_from:
+            date_q["$gte"] = date_from
+        if date_to:
+            date_q["$lte"] = date_to + "T23:59:59"
+        query["readyDate"] = date_q
+
+    leads = await db.sauna_crm_leads.find(query, {"_id": 0}).to_list(1000)
     return {"orders": leads}
 
 
@@ -132,18 +141,19 @@ async def update_production_order(order_id: str, data: dict):
 
 @router.get("/calendar")
 async def get_production_calendar(month: int = Query(...), year: int = Query(...)):
+    """Production calendar uses readyDate (дата готовности) as the primary date source."""
     leads = await db.sauna_crm_leads.find(
-        {"inProduction": True, "productionDate": {"$exists": True, "$ne": None, "$nin": [""]}},
+        {"inProduction": True, "readyDate": {"$exists": True, "$ne": None, "$nin": [""]}},
         {"_id": 0}
     ).to_list(5000)
 
     by_date = {}
     for lead in leads:
-        pd = lead.get("productionDate", "")
-        if not pd:
+        rd = lead.get("readyDate", "")
+        if not rd:
             continue
         try:
-            dt = datetime.fromisoformat(pd.replace("Z", "+00:00")) if "T" in pd else datetime.strptime(pd[:10], "%Y-%m-%d")
+            dt = datetime.fromisoformat(rd.replace("Z", "+00:00")) if "T" in rd else datetime.strptime(rd[:10], "%Y-%m-%d")
             if dt.month == month and dt.year == year:
                 date_key = dt.strftime("%Y-%m-%d")
                 if date_key not in by_date:
@@ -152,7 +162,8 @@ async def get_production_calendar(month: int = Query(...), year: int = Query(...
                     "id": lead.get("id"),
                     "clientName": lead.get("clientName", ""),
                     "modelName": lead.get("modelName") or lead.get("field_1", ""),
-                    "productionDate": pd,
+                    "readyDate": rd,
+                    "productionDate": lead.get("productionDate", ""),
                     "productionStageId": lead.get("productionStageId"),
                     "totalAmount": lead.get("totalAmount") or lead.get("field_2"),
                     "phone": lead.get("phone", ""),
@@ -238,7 +249,8 @@ async def sync_to_google_sheets():
     rows = [header]
     for idx, order in enumerate(orders, 1):
         def fmt_date(v):
-            if not v: return ""
+            if not v:
+                return ""
             try:
                 return v[:10] if len(v) >= 10 else v
             except Exception:
