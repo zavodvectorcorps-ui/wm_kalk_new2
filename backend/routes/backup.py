@@ -531,6 +531,115 @@ async def export_backup():
                 backup_manifest["collections"].append({"name": "greenhouse_prices", "count": len(greenhouse_prices)})
                 logger.info(f"Exported {len(greenhouse_prices)} greenhouse prices")
             
+            # ===== NEW COLLECTIONS (added for completeness) =====
+            
+            # Export Sauna CRM Leads (source of truth for production & sales)
+            sauna_crm_leads = await safe_collect("sauna_crm_leads")
+            if sauna_crm_leads:
+                zip_file.writestr("sauna_crm_leads.json", json.dumps(sauna_crm_leads, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_crm_leads", "count": len(sauna_crm_leads)})
+                logger.info(f"Exported {len(sauna_crm_leads)} sauna CRM leads")
+            
+            # Export Sauna CRM Settings (stages, field mappings, sync config)
+            sauna_crm_settings = await safe_collect("sauna_crm_settings")
+            if sauna_crm_settings:
+                zip_file.writestr("sauna_crm_settings.json", json.dumps(sauna_crm_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_crm_settings", "count": len(sauna_crm_settings)})
+                logger.info(f"Exported {len(sauna_crm_settings)} sauna CRM settings")
+            
+            # Export Sauna Production Settings (stages, Google Sheets config)
+            sauna_production_settings = await safe_collect("sauna_production_settings")
+            if sauna_production_settings:
+                zip_file.writestr("sauna_production_settings.json", json.dumps(sauna_production_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_production_settings", "count": len(sauna_production_settings)})
+                logger.info(f"Exported {len(sauna_production_settings)} sauna production settings")
+            
+            # Export Sales records
+            sales_records = await safe_collect("sales")
+            if sales_records:
+                zip_file.writestr("sales.json", json.dumps(sales_records, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sales", "count": len(sales_records)})
+                logger.info(f"Exported {len(sales_records)} sales records")
+            
+            # Export Sales Managers (bonus percentages)
+            sales_managers = await safe_collect("sales_managers")
+            if sales_managers:
+                zip_file.writestr("sales_managers.json", json.dumps(sales_managers, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sales_managers", "count": len(sales_managers)})
+                logger.info(f"Exported {len(sales_managers)} sales managers")
+            
+            # Export Dovoz/Warehouse Orders
+            dovoz_orders = await safe_collect("dovoz_orders")
+            if dovoz_orders:
+                zip_file.writestr("dovoz_orders.json", json.dumps(dovoz_orders, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "dovoz_orders", "count": len(dovoz_orders)})
+                logger.info(f"Exported {len(dovoz_orders)} dovoz/warehouse orders")
+            
+            # Export Dovoz History
+            dovoz_history = await safe_collect("dovoz_history")
+            if dovoz_history:
+                zip_file.writestr("dovoz_history.json", json.dumps(dovoz_history, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "dovoz_history", "count": len(dovoz_history)})
+                logger.info(f"Exported {len(dovoz_history)} dovoz history entries")
+            
+            # Export Training Courses
+            training_courses = await safe_collect("training_courses")
+            if training_courses:
+                zip_file.writestr("training_courses.json", json.dumps(training_courses, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "training_courses", "count": len(training_courses)})
+                logger.info(f"Exported {len(training_courses)} training courses")
+            
+            # Export Training Files
+            training_files = await safe_collect("training_files")
+            if training_files:
+                zip_file.writestr("training_files.json", json.dumps(training_files, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "training_files", "count": len(training_files)})
+                logger.info(f"Exported {len(training_files)} training files")
+            
+            # Export Training Objections
+            training_objections = await safe_collect("training_objections")
+            if training_objections:
+                zip_file.writestr("training_objections.json", json.dumps(training_objections, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "training_objections", "count": len(training_objections)})
+                logger.info(f"Exported {len(training_objections)} training objections")
+            
+            # Export Training Progress
+            training_progress = await safe_collect("training_progress")
+            if training_progress:
+                zip_file.writestr("training_progress.json", json.dumps(training_progress, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "training_progress", "count": len(training_progress)})
+                logger.info(f"Exported {len(training_progress)} training progress entries")
+            
+            # Export PDF Templates
+            pdf_templates = await safe_collect("pdf_templates")
+            if pdf_templates:
+                zip_file.writestr("pdf_templates.json", json.dumps(pdf_templates, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "pdf_templates", "count": len(pdf_templates)})
+                logger.info(f"Exported {len(pdf_templates)} PDF templates")
+            
+            # Export PDF Images
+            pdf_images = await safe_collect("pdf_images")
+            if pdf_images:
+                zip_file.writestr("pdf_images.json", json.dumps(pdf_images, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "pdf_images", "count": len(pdf_images)})
+                logger.info(f"Exported {len(pdf_images)} PDF images")
+            
+            # Export Content Folders
+            content_folders = await safe_collect("content_folders")
+            if content_folders:
+                zip_file.writestr("content_folders.json", json.dumps(content_folders, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "content_folders", "count": len(content_folders)})
+                logger.info(f"Exported {len(content_folders)} content folders")
+            
+            # Export Sauna Wizard Steps
+            sauna_wizard_steps = await safe_collect("sauna_wizard_steps")
+            if sauna_wizard_steps:
+                zip_file.writestr("sauna_wizard_steps.json", json.dumps(sauna_wizard_steps, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_wizard_steps", "count": len(sauna_wizard_steps)})
+                logger.info(f"Exported {len(sauna_wizard_steps)} sauna wizard steps")
+            
+            # ===== END NEW COLLECTIONS =====
+            
             # Export Telegram configuration from .env
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),
@@ -1048,6 +1157,220 @@ async def import_backup(file: UploadFile = File(...)):
                     logger.error(f"Error importing greenhouse_prices: {e}")
                     import_stats["errors"].append(f"greenhouse_prices: {str(e)}")
             
+            # ===== IMPORT NEW COLLECTIONS =====
+            
+            # Import Sauna CRM Leads
+            if "sauna_crm_leads.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("sauna_crm_leads.json").decode('utf-8'))
+                    await db.sauna_crm_leads.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.sauna_crm_leads.insert_one(item)
+                    import_stats["imported"]["sauna_crm_leads"] = len(data)
+                    logger.info(f"Imported {len(data)} sauna CRM leads")
+                except Exception as e:
+                    logger.error(f"Error importing sauna_crm_leads: {e}")
+                    import_stats["errors"].append(f"sauna_crm_leads: {str(e)}")
+            
+            # Import Sauna CRM Settings
+            if "sauna_crm_settings.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("sauna_crm_settings.json").decode('utf-8'))
+                    await db.sauna_crm_settings.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.sauna_crm_settings.insert_one(item)
+                    import_stats["imported"]["sauna_crm_settings"] = len(data)
+                    logger.info(f"Imported {len(data)} sauna CRM settings")
+                except Exception as e:
+                    logger.error(f"Error importing sauna_crm_settings: {e}")
+                    import_stats["errors"].append(f"sauna_crm_settings: {str(e)}")
+            
+            # Import Sauna Production Settings
+            if "sauna_production_settings.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("sauna_production_settings.json").decode('utf-8'))
+                    await db.sauna_production_settings.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.sauna_production_settings.insert_one(item)
+                    import_stats["imported"]["sauna_production_settings"] = len(data)
+                    logger.info(f"Imported {len(data)} sauna production settings")
+                except Exception as e:
+                    logger.error(f"Error importing sauna_production_settings: {e}")
+                    import_stats["errors"].append(f"sauna_production_settings: {str(e)}")
+            
+            # Import Sales
+            if "sales.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("sales.json").decode('utf-8'))
+                    await db.sales.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.sales.insert_one(item)
+                    import_stats["imported"]["sales"] = len(data)
+                    logger.info(f"Imported {len(data)} sales records")
+                except Exception as e:
+                    logger.error(f"Error importing sales: {e}")
+                    import_stats["errors"].append(f"sales: {str(e)}")
+            
+            # Import Sales Managers
+            if "sales_managers.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("sales_managers.json").decode('utf-8'))
+                    await db.sales_managers.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.sales_managers.insert_one(item)
+                    import_stats["imported"]["sales_managers"] = len(data)
+                    logger.info(f"Imported {len(data)} sales managers")
+                except Exception as e:
+                    logger.error(f"Error importing sales_managers: {e}")
+                    import_stats["errors"].append(f"sales_managers: {str(e)}")
+            
+            # Import Dovoz Orders
+            if "dovoz_orders.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("dovoz_orders.json").decode('utf-8'))
+                    await db.dovoz_orders.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.dovoz_orders.insert_one(item)
+                    import_stats["imported"]["dovoz_orders"] = len(data)
+                    logger.info(f"Imported {len(data)} dovoz/warehouse orders")
+                except Exception as e:
+                    logger.error(f"Error importing dovoz_orders: {e}")
+                    import_stats["errors"].append(f"dovoz_orders: {str(e)}")
+            
+            # Import Dovoz History
+            if "dovoz_history.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("dovoz_history.json").decode('utf-8'))
+                    await db.dovoz_history.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.dovoz_history.insert_one(item)
+                    import_stats["imported"]["dovoz_history"] = len(data)
+                    logger.info(f"Imported {len(data)} dovoz history entries")
+                except Exception as e:
+                    logger.error(f"Error importing dovoz_history: {e}")
+                    import_stats["errors"].append(f"dovoz_history: {str(e)}")
+            
+            # Import Training Courses
+            if "training_courses.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("training_courses.json").decode('utf-8'))
+                    await db.training_courses.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.training_courses.insert_one(item)
+                    import_stats["imported"]["training_courses"] = len(data)
+                    logger.info(f"Imported {len(data)} training courses")
+                except Exception as e:
+                    logger.error(f"Error importing training_courses: {e}")
+                    import_stats["errors"].append(f"training_courses: {str(e)}")
+            
+            # Import Training Files
+            if "training_files.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("training_files.json").decode('utf-8'))
+                    await db.training_files.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.training_files.insert_one(item)
+                    import_stats["imported"]["training_files"] = len(data)
+                    logger.info(f"Imported {len(data)} training files")
+                except Exception as e:
+                    logger.error(f"Error importing training_files: {e}")
+                    import_stats["errors"].append(f"training_files: {str(e)}")
+            
+            # Import Training Objections
+            if "training_objections.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("training_objections.json").decode('utf-8'))
+                    await db.training_objections.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.training_objections.insert_one(item)
+                    import_stats["imported"]["training_objections"] = len(data)
+                    logger.info(f"Imported {len(data)} training objections")
+                except Exception as e:
+                    logger.error(f"Error importing training_objections: {e}")
+                    import_stats["errors"].append(f"training_objections: {str(e)}")
+            
+            # Import Training Progress
+            if "training_progress.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("training_progress.json").decode('utf-8'))
+                    await db.training_progress.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.training_progress.insert_one(item)
+                    import_stats["imported"]["training_progress"] = len(data)
+                    logger.info(f"Imported {len(data)} training progress entries")
+                except Exception as e:
+                    logger.error(f"Error importing training_progress: {e}")
+                    import_stats["errors"].append(f"training_progress: {str(e)}")
+            
+            # Import PDF Templates
+            if "pdf_templates.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("pdf_templates.json").decode('utf-8'))
+                    await db.pdf_templates.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.pdf_templates.insert_one(item)
+                    import_stats["imported"]["pdf_templates"] = len(data)
+                    logger.info(f"Imported {len(data)} PDF templates")
+                except Exception as e:
+                    logger.error(f"Error importing pdf_templates: {e}")
+                    import_stats["errors"].append(f"pdf_templates: {str(e)}")
+            
+            # Import PDF Images
+            if "pdf_images.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("pdf_images.json").decode('utf-8'))
+                    await db.pdf_images.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.pdf_images.insert_one(item)
+                    import_stats["imported"]["pdf_images"] = len(data)
+                    logger.info(f"Imported {len(data)} PDF images")
+                except Exception as e:
+                    logger.error(f"Error importing pdf_images: {e}")
+                    import_stats["errors"].append(f"pdf_images: {str(e)}")
+            
+            # Import Content Folders
+            if "content_folders.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("content_folders.json").decode('utf-8'))
+                    await db.content_folders.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.content_folders.insert_one(item)
+                    import_stats["imported"]["content_folders"] = len(data)
+                    logger.info(f"Imported {len(data)} content folders")
+                except Exception as e:
+                    logger.error(f"Error importing content_folders: {e}")
+                    import_stats["errors"].append(f"content_folders: {str(e)}")
+            
+            # Import Sauna Wizard Steps
+            if "sauna_wizard_steps.json" in file_list:
+                try:
+                    data = json.loads(zip_file.read("sauna_wizard_steps.json").decode('utf-8'))
+                    await db.sauna_wizard_steps.delete_many({})
+                    for item in data:
+                        item.pop('_id', None)
+                        await db.sauna_wizard_steps.insert_one(item)
+                    import_stats["imported"]["sauna_wizard_steps"] = len(data)
+                    logger.info(f"Imported {len(data)} sauna wizard steps")
+                except Exception as e:
+                    logger.error(f"Error importing sauna_wizard_steps: {e}")
+                    import_stats["errors"].append(f"sauna_wizard_steps: {str(e)}")
+            
+            # ===== END IMPORT NEW COLLECTIONS =====
+            
             # Import uploaded files
             uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
             os.makedirs(uploads_dir, exist_ok=True)
@@ -1221,7 +1544,7 @@ async def download_backup(backup_id: str):
     """Download a stored backup as ZIP file.
     
     Note: Since we only store metadata in MongoDB (not full backup data due to size limits),
-    this endpoint creates a fresh backup with current data.
+    this endpoint creates a fresh backup with current data using the same logic as export.
     """
     try:
         from bson import ObjectId
@@ -1229,72 +1552,8 @@ async def download_backup(backup_id: str):
         if not backup:
             raise HTTPException(status_code=404, detail="Backup not found")
         
-        # Since we only store metadata, create fresh backup
-        # Use export_backup logic
-        zip_buffer = io.BytesIO()
-        
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            backup_manifest = {
-                "version": "3.0",
-                "createdAt": backup.get("createdAt", datetime.now(timezone.utc).isoformat()),
-                "collections": []
-            }
-            
-            # Export all collections (same as export_backup)
-            balia_orders = await db.orders.find({}).to_list(10000)
-            if balia_orders:
-                balia_orders = [serialize_for_json(o) for o in balia_orders]
-                zip_file.writestr("balia_orders.json", json.dumps(balia_orders, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "balia_orders", "count": len(balia_orders)})
-            
-            sauna_orders = await db.sauna_orders.find({}).to_list(10000)
-            if sauna_orders:
-                sauna_orders = [serialize_for_json(o) for o in sauna_orders]
-                zip_file.writestr("sauna_orders.json", json.dumps(sauna_orders, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "sauna_orders", "count": len(sauna_orders)})
-            
-            greenhouse_orders = await db.greenhouse_orders.find({}).to_list(10000)
-            if greenhouse_orders:
-                greenhouse_orders = [serialize_for_json(o) for o in greenhouse_orders]
-                zip_file.writestr("greenhouse_orders.json", json.dumps(greenhouse_orders, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "greenhouse_orders", "count": len(greenhouse_orders)})
-            
-            # Add other essential collections
-            trips = await db.trips.find({}).to_list(10000)
-            if trips:
-                trips = [serialize_for_json(t) for t in trips]
-                zip_file.writestr("trips.json", json.dumps(trips, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "trips", "count": len(trips)})
-            
-            drivers = await db.drivers.find({}).to_list(1000)
-            if drivers:
-                drivers = [serialize_for_json(d) for d in drivers]
-                zip_file.writestr("drivers.json", json.dumps(drivers, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "drivers", "count": len(drivers)})
-            
-            users = await db.users.find({}).to_list(1000)
-            if users:
-                users = [serialize_for_json(u) for u in users]
-                zip_file.writestr("users.json", json.dumps(users, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "users", "count": len(users)})
-            
-            # Settings
-            all_settings = await db.settings.find({}).to_list(100)
-            if all_settings:
-                all_settings = [serialize_for_json(s) for s in all_settings]
-                zip_file.writestr("settings.json", json.dumps(all_settings, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "settings", "count": len(all_settings)})
-            
-            zip_file.writestr("manifest.json", json.dumps(backup_manifest, ensure_ascii=False, indent=2))
-        
-        zip_buffer.seek(0)
-        filename = f"backup_{backup.get('createdAt', 'unknown').replace(':', '-').replace('.', '-')}.zip"
-        
-        return StreamingResponse(
-            zip_buffer,
-            media_type="application/zip",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
+        # Use the same export logic as the main export endpoint
+        return await export_backup()
         
     except Exception as e:
         logger.error(f"Download backup error: {str(e)}")
@@ -1633,11 +1892,47 @@ async def send_backup_to_telegram():
                 zip_file.writestr("pdf_images.json", json.dumps(pdf_images, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "pdf_images", "count": len(pdf_images)})
             
-            # Sauna CRM leads
-            sauna_leads = await safe_collect("sauna_leads", limit=10000)
-            if sauna_leads:
-                zip_file.writestr("sauna_leads.json", json.dumps(sauna_leads, ensure_ascii=False, indent=2))
-                backup_manifest["collections"].append({"name": "sauna_leads", "count": len(sauna_leads)})
+            # Sauna CRM leads (THE CORRECT collection name!)
+            sauna_crm_leads = await safe_collect("sauna_crm_leads", limit=10000)
+            if sauna_crm_leads:
+                zip_file.writestr("sauna_crm_leads.json", json.dumps(sauna_crm_leads, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_crm_leads", "count": len(sauna_crm_leads)})
+            
+            # Sauna CRM Settings
+            sauna_crm_settings = await safe_collect("sauna_crm_settings", limit=100)
+            if sauna_crm_settings:
+                zip_file.writestr("sauna_crm_settings.json", json.dumps(sauna_crm_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_crm_settings", "count": len(sauna_crm_settings)})
+            
+            # Sauna Production Settings
+            sauna_production_settings = await safe_collect("sauna_production_settings", limit=100)
+            if sauna_production_settings:
+                zip_file.writestr("sauna_production_settings.json", json.dumps(sauna_production_settings, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_production_settings", "count": len(sauna_production_settings)})
+            
+            # Sales records
+            sales_data = await safe_collect("sales", limit=10000)
+            if sales_data:
+                zip_file.writestr("sales.json", json.dumps(sales_data, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sales", "count": len(sales_data)})
+            
+            # Sales managers
+            sales_managers = await safe_collect("sales_managers", limit=100)
+            if sales_managers:
+                zip_file.writestr("sales_managers.json", json.dumps(sales_managers, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sales_managers", "count": len(sales_managers)})
+            
+            # Dovoz/Warehouse orders
+            dovoz_orders = await safe_collect("dovoz_orders", limit=10000)
+            if dovoz_orders:
+                zip_file.writestr("dovoz_orders.json", json.dumps(dovoz_orders, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "dovoz_orders", "count": len(dovoz_orders)})
+            
+            # Dovoz history
+            dovoz_history = await safe_collect("dovoz_history", limit=10000)
+            if dovoz_history:
+                zip_file.writestr("dovoz_history.json", json.dumps(dovoz_history, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "dovoz_history", "count": len(dovoz_history)})
             
             # Training module
             training_courses = await safe_collect("training_courses", limit=100)
@@ -1649,6 +1944,30 @@ async def send_backup_to_telegram():
             if training_progress:
                 zip_file.writestr("training_progress.json", json.dumps(training_progress, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "training_progress", "count": len(training_progress)})
+            
+            # Training files
+            training_files = await safe_collect("training_files", limit=1000)
+            if training_files:
+                zip_file.writestr("training_files.json", json.dumps(training_files, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "training_files", "count": len(training_files)})
+            
+            # Training objections
+            training_objections = await safe_collect("training_objections", limit=1000)
+            if training_objections:
+                zip_file.writestr("training_objections.json", json.dumps(training_objections, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "training_objections", "count": len(training_objections)})
+            
+            # Content folders
+            content_folders = await safe_collect("content_folders", limit=1000)
+            if content_folders:
+                zip_file.writestr("content_folders.json", json.dumps(content_folders, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "content_folders", "count": len(content_folders)})
+            
+            # Sauna wizard steps
+            sauna_wizard_steps = await safe_collect("sauna_wizard_steps", limit=100)
+            if sauna_wizard_steps:
+                zip_file.writestr("sauna_wizard_steps.json", json.dumps(sauna_wizard_steps, ensure_ascii=False, indent=2))
+                backup_manifest["collections"].append({"name": "sauna_wizard_steps", "count": len(sauna_wizard_steps)})
             
             telegram_config = {
                 "bot_token": os.environ.get('TELEGRAM_BOT_TOKEN', ''),

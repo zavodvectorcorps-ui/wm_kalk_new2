@@ -29,27 +29,31 @@ Build a "Modular Sauna Configurator" with comprehensive CRM, production manageme
 
 ## What's Been Implemented
 
-### Session (March 20, 2026) - 5-Point CRM & Sales Enhancement
-1. **Manager-specific CRM access** - Non-admin users see only their own leads (filtered by manager name)
-2. **Date filters on Production** - Added date range pickers to Production kanban & list views
-3. **Custom lead title** - Lead cards display "ClientName — ModelName" format
-4. **Calendar date source** - Production calendar now uses readyDate (дата готовности) instead of productionDate
-5. **Sales sync logic** - Sync imports ALL CRM leads (not just calculatorOrderId), bonus uses prepaymentDate
+### Session 2 (March 20, 2026) - 5-Point CRM & Sales Enhancement + Backup Fix
+1. **Manager-specific CRM access** - Non-admin users see only their own leads
+2. **Date filters on Production** - Added date range pickers to Production kanban
+3. **Custom lead title** - Lead cards show "ClientName — ModelName" format
+4. **Calendar date source** - Production calendar uses readyDate instead of productionDate
+5. **Sales sync logic** - Sync imports ALL CRM leads, bonus uses prepaymentDate
+6. **Backup completeness fix** - Added 15 missing collections to backup:
+   - sauna_crm_leads, sauna_crm_settings, sauna_production_settings
+   - sales, sales_managers, dovoz_orders, dovoz_history
+   - training_courses, training_files, training_objections, training_progress
+   - pdf_templates, pdf_images, content_folders, sauna_wizard_steps
+   - Fixed wrong collection name (sauna_leads → sauna_crm_leads) in Telegram backup
+   - Unified download_backup to reuse export_backup logic
 
-### Previous Sessions
+### Session 1 - Previous Work
 - Tech Spec PDF generation with Cloudinary upload
 - Production List tab with editable table
 - Google Sheets sync (partially - blocked on user API enablement)
 - Sales module automation (sync from CRM)
-- Expanded user access controls (Warehouse, Sauna Production, Training)
-- Warehouse card enhancements (Products, Responsible User, Debt, etc.)
+- Expanded user access controls
+- Warehouse card enhancements
 - Document deduplication for tech_spec and kp types
 - Copy-to-clipboard buttons in Warehouse
 
 ## Prioritized Backlog
-
-### P0 - Done
-- [x] 5-point CRM & Sales Enhancement
 
 ### P1 - High Priority
 - [ ] Fix automatic variant application bug in LayoutConfiguratorPage.jsx (RECURRING)
@@ -65,19 +69,16 @@ Build a "Modular Sauna Configurator" with comprehensive CRM, production manageme
 - [ ] Fix deployment timeouts (RECURRING)
 
 ## Key API Endpoints
-- `GET /api/sauna-crm/leads?manager_username=X&date_from=Y&date_to=Z` - Filtered leads
-- `GET /api/sauna-production/orders?date_from=X&date_to=Y` - Filtered production orders
-- `GET /api/sauna-production/calendar?month=M&year=Y` - Calendar grouped by readyDate
+- `GET /api/sauna-crm/leads?manager_username=X&date_from=Y&date_to=Z`
+- `GET /api/sauna-production/orders?date_from=X&date_to=Y`
+- `GET /api/sauna-production/calendar?month=M&year=Y` (uses readyDate)
 - `POST /api/sales/sync-from-crm` - Sync ALL CRM leads to sales
-- `GET /api/sales/bonus-calculation?start_date=X&end_date=Y&manager=Z` - Bonus by prepaymentDate
+- `GET /api/sales/bonus-calculation` - Bonus by prepaymentDate
+- `POST /api/backup/export` - Full export (32+ collections)
+- `POST /api/backup/auto` - Auto backup to Telegram
 
-## Key DB Collections
-- `sauna_crm_leads` - Main CRM leads/orders (source of truth for production)
-- `sauna_crm_settings` - CRM configuration (stages, fields, sync)
-- `sauna_production_settings` - Production stages, Google Sheets config
-- `sales` - Sales records
-- `sales_managers` - Manager bonus percentages
-- `dovoz_orders` - Warehouse/shipping orders
+## Key DB Collections (all 32+ backed up)
+See backup.py for complete list. Critical: sauna_crm_leads, sales, users, orders, sauna_orders
 
 ## Credentials
 - Admin: admin / admin123
