@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
 import { TechSpecModal } from './tech-spec';
+import { ContractTemplateSettings } from './ContractTemplateSettings';
 
 const API_URL = getApiUrl();
 
@@ -1080,6 +1081,7 @@ const SaunaCRMPage = () => {
                 <TabsTrigger value="fields">Поля</TabsTrigger>
                 <TabsTrigger value="stages">Этапы</TabsTrigger>
                 <TabsTrigger value="sync">Синхронизация</TabsTrigger>
+                <TabsTrigger value="contract">Шаблон договора</TabsTrigger>
               </TabsList>
 
               <TabsContent value="fields">
@@ -1259,6 +1261,10 @@ const SaunaCRMPage = () => {
                     setSettingsForm(p => ({ ...p, syncBackFields: [...(p.syncBackFields || []), { fieldId: '', amoFieldId: '' }] }));
                   }}><Plus className="w-4 h-4 mr-1" />Добавить маппинг</Button>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="contract">
+                <ContractTemplateSettings authHeaders={authHeaders} />
               </TabsContent>
             </Tabs>
           )}

@@ -1,0 +1,143 @@
+{
+  "summary": "Contract Template Management feature fully tested. Backend: 10/10 tests passed. Frontend: All 5 UI elements verified, add custom variable and save functionality working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_contract_template.py",
+    "/app/test_reports/pytest/pytest_results_iteration64.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_contract_template.py"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 tests passed)",
+    "frontend": "100% - All contract template features verified"
+  },
+  "test_credentials": {
+    "admin_login": "admin",
+    "admin_password": "admin123"
+  },
+  "seed_data_creation": "None - used existing test lead CRM-TEST-001",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Contract Template Management feature fully tested: (1) GET /api/sauna-crm/contract-template/settings returns mappings, availableSources, attachKp, placeholders. (2) POST /api/sauna-crm/contract-template/settings saves mappings and attachKp flag. (3) POST /api/sauna-crm/contract-template/upload accepts .docx files, extracts placeholders. (4) GET /api/sauna-crm/contract-template/placeholders returns list of {{VARIABLE}} placeholders. (5) POST /api/sauna-crm/generate-contract with leadId generates DOCX with dynamic mappings, uploads to Cloudinary. (6) Static template download at /api/static/templates/contract_template.docx works. Frontend: CRM Settings modal has 'Шаблон договора' tab with template upload, KP toggle, field mappings, add custom variable button, and save button - all working.",
+  "test_results_summary": {
+    "backend_tests": {
+      "total": 10,
+      "passed": 10,
+      "test_classes": [
+        {
+          "class": "TestContractTemplateSettings",
+          "tests": [
+            "test_get_settings_returns_mappings_and_sources - PASSED",
+            "test_save_settings_updates_mappings_and_attachkp - PASSED"
+          ]
+        },
+        {
+          "class": "TestContractTemplatePlaceholders",
+          "tests": [
+            "test_get_placeholders_returns_list - PASSED"
+          ]
+        },
+        {
+          "class": "TestContractTemplateUpload",
+          "tests": [
+            "test_upload_rejects_non_docx - PASSED"
+          ]
+        },
+        {
+          "class": "TestContractGeneration",
+          "tests": [
+            "test_generate_contract_with_valid_lead - PASSED",
+            "test_generate_contract_without_lead_id_fails - PASSED",
+            "test_generate_contract_with_invalid_lead_fails - PASSED"
+          ]
+        },
+        {
+          "class": "TestStaticTemplateDownload",
+          "tests": [
+            "test_static_template_accessible - PASSED"
+          ]
+        },
+        {
+          "class": "TestAvailableSources",
+          "tests": [
+            "test_available_sources_categories - PASSED",
+            "test_available_sources_has_lead_fields - PASSED"
+          ]
+        }
+      ]
+    },
+    "frontend_tests": {
+      "contract_template_settings_tab": {
+        "navigation": "PASSED - Sauna > CRM > Settings > 'Шаблон договора' tab",
+        "contract_template_settings_component": "PASSED - data-testid='contract-template-settings' found",
+        "download_template_btn": "PASSED - data-testid='download-template-btn' found",
+        "upload_template_input": "PASSED - Upload button with hidden file input",
+        "attach_kp_switch": "PASSED - data-testid='attach-kp-switch' found, toggle enabled",
+        "add_custom_variable_btn": "PASSED - data-testid='add-custom-variable-btn' found, creates new mapping row",
+        "save_template_settings_btn": "PASSED - data-testid='save-template-settings-btn' found, shows success toast"
+      },
+      "ui_elements_verified": {
+        "template_info": "PASSED - Shows 'Текущий шаблон: contract_template.docx'",
+        "kp_toggle_label": "PASSED - Shows 'Прикреплять КП к договору' with description",
+        "mappings_section": "PASSED - Shows 'Маппинг переменных' with count",
+        "mapping_row_structure": "PASSED - Each row has label, source dropdown, default value, delete button"
+      }
+    },
+    "key_features_verified": {
+      "feature_1_get_settings": {
+        "description": "GET /api/sauna-crm/contract-template/settings returns settings with mappings and availableSources",
+        "backend": "Returns type, templateName, uploadedAt, mappings, attachKp, placeholders, availableSources",
+        "frontend": "Settings loaded and displayed in UI"
+      },
+      "feature_2_save_settings": {
+        "description": "POST /api/sauna-crm/contract-template/settings saves mappings and attachKp flag",
+        "backend": "Updates MongoDB contract_template_settings collection",
+        "frontend": "Save button shows success toast 'Настройки шаблона сохранены'"
+      },
+      "feature_3_upload_template": {
+        "description": "POST /api/sauna-crm/contract-template/upload uploads DOCX template, extracts placeholders",
+        "backend": "Saves to /app/backend/templates/, extracts {{VARIABLE}} placeholders",
+        "frontend": "'Загрузить новый' button with file input"
+      },
+      "feature_4_get_placeholders": {
+        "description": "GET /api/sauna-crm/contract-template/placeholders returns placeholders from current template",
+        "backend": "Returns list of {{VARIABLE_NAME}} strings",
+        "frontend": "Placeholders shown in mapping rows"
+      },
+      "feature_5_generate_contract": {
+        "description": "POST /api/sauna-crm/generate-contract with {leadId} generates DOCX with dynamic mappings",
+        "backend": "Replaces placeholders with lead data, uploads to Cloudinary, returns contractUrl",
+        "frontend": "'Создать договор' button in lead detail modal"
+      },
+      "feature_6_kp_toggle": {
+        "description": "Toggle KP PDF attachment to contract",
+        "backend": "attachKp flag controls whether KP PDF is appended as images",
+        "frontend": "Switch component with label 'Прикреплять КП к договору'"
+      },
+      "feature_7_add_custom_variable": {
+        "description": "Add custom variable button creates new mapping row",
+        "backend": "Custom variables saved with _static source",
+        "frontend": "'Добавить переменную' button adds new row with {{CUSTOM_xxx}} placeholder"
+      }
+    }
+  },
+  "api_endpoints_tested": {
+    "GET /api/sauna-crm/contract-template/settings": "200 OK - Returns settings with mappings and availableSources",
+    "POST /api/sauna-crm/contract-template/settings": "200 OK - Saves mappings and attachKp",
+    "POST /api/sauna-crm/contract-template/upload": "400 for non-docx, 200 for valid docx",
+    "GET /api/sauna-crm/contract-template/placeholders": "200 OK - Returns placeholders list",
+    "POST /api/sauna-crm/generate-contract": "200 OK with valid leadId, 400 without leadId, 404 for invalid lead",
+    "GET /api/static/templates/contract_template.docx": "200 OK - Returns DOCX file"
+  }
+}

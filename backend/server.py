@@ -37,6 +37,7 @@ from routes.training import router as training_router
 from routes.content import router as content_router
 from routes.content_generator import router as content_generator_router
 from routes.layout_configurator import router as layout_configurator_router
+from routes.contract_template import router as contract_template_router
 
 # Configure logging
 logging.basicConfig(
@@ -79,10 +80,12 @@ app.include_router(notifications_router)
 app.include_router(warehouse_router, prefix="/api")
 app.include_router(dovoz_router, prefix="/api")
 app.include_router(sauna_crm_router, prefix="/api")
+app.include_router(contract_template_router, prefix="/api")
 
 # Static files for contracts and uploads
 import os as _os
 _os.makedirs("/app/backend/static/contracts", exist_ok=True)
+app.mount("/api/static/templates", StaticFiles(directory="/app/backend/templates"), name="templates")
 app.mount("/api/static", StaticFiles(directory="/app/backend/static"), name="static")
 app.include_router(sauna_production_router, prefix="/api")
 app.include_router(faq_router, prefix="/api")
