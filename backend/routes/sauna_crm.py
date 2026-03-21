@@ -857,10 +857,18 @@ async def save_calculator_data(lead_id: str, data: dict):
 @router.post("/generate-contract")
 async def generate_contract(request: dict):
     """Generate a sales contract (UMOWA) DOCX from template with lead data, upload to Cloudinary."""
+    import traceback
     from routes.contract_template import generate_contract_with_kp
 
     lead_id = request.get("leadId")
     if not lead_id:
         raise HTTPException(status_code=400, detail="leadId is required")
 
-    return await generate_contract_with_kp(lead_id)
+    try:
+        return await generate_contract_with_kp(lead_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error(f"Contract generation failed for lead {lead_id}: {e}\n{tb}")
+        raise HTTPException(status_code=500, detail=f"Contract generation error: {str(e)}")

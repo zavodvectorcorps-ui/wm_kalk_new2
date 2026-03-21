@@ -153,8 +153,6 @@ async def _get_settings() -> dict:
 
     return settings
 
-    return settings
-
 
 @router.get("/settings")
 async def get_template_settings():
@@ -268,6 +266,85 @@ async def get_placeholders():
         raise HTTPException(status_code=404, detail="Template not found")
     placeholders = _extract_placeholders_from_docx(template_path)
     return {"placeholders": placeholders}
+
+
+
+@router.get("/debug/{lead_id}")
+async def debug_contract_generation(lead_id: str):
+    """Diagnostic endpoint to check contract generation prerequisites for a specific lead."""
+    result = {"lead_id": lead_id, "checks": {}}
+
+    # 1. Check lead exists
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        result["checks"]["lead"] = {"status": "ERROR", "detail": "Lead not found"}
+        return result
+    result["checks"]["lead"] = {
+        "status": "OK",
+        "clientName": lead.get("clientName"),
+        "documents_count": len(lead.get("documents", [])),
+        "calculatorPdfUrl": lead.get("calculatorPdfUrl"),
+        "calculatorOrderId": lead.get("calculatorOrderId"),
+    }
+
+    # 2. Check template
+    settings = await _get_settings()
+    template_url = settings.get("templateUrl")
+    template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILENAME)
+    local_exists = os.path.exists(template_path)
+    result["checks"]["template"] = {
+        "status": "OK" if (template_url or local_exists) else "ERROR",
+        "templateUrl": template_url,
+        "localFileExists": local_exists,
+        "mappings_count": len(settings.get("mappings", [])),
+        "attachKp": settings.get("attachKp", True),
+    }
+
+    # 3. Check KP sources
+    kp_url = None
+    kp_types = ("kp", "commercial_proposal", "кп", "kp_pdf")
+    for doc_item in lead.get("documents", []):
+        doc_type = (doc_item.get("type") or "").lower()
+        doc_name = (doc_item.get("name") or "").lower()
+        if doc_type in kp_types or "кп" in doc_name or "kp" in doc_name:
+            kp_url = doc_item.get("url")
+            break
+    if not kp_url:
+        kp_url = lead.get("calculatorPdfUrl")
+
+    result["checks"]["kp"] = {"kp_url": kp_url, "source": "documents" if kp_url else "none"}
+
+    # 4. Check calculator_pdfs collection
+    calc_order_id = lead.get("calculatorOrderId")
+    if calc_order_id:
+        pdf_doc = await db["calculator_pdfs"].find_one(
+            {"order_id": calc_order_id},
+            {"_id": 0, "order_id": 1, "cloudinary_url": 1, "created_at": 1}
+        )
+        has_pdf_data = False
+        if pdf_doc is None:
+            pdf_doc_check = None
+        else:
+            pdf_doc_check = await db["calculator_pdfs"].find_one(
+                {"order_id": calc_order_id},
+                {"_id": 0, "pdf_data": 1}
+            )
+            has_pdf_data = bool(pdf_doc_check and pdf_doc_check.get("pdf_data"))
+        result["checks"]["calculator_pdfs"] = {
+            "order_id": calc_order_id,
+            "found": pdf_doc is not None,
+            "has_pdf_data": has_pdf_data,
+            "cloudinary_url": (pdf_doc or {}).get("cloudinary_url"),
+        }
+    else:
+        result["checks"]["calculator_pdfs"] = {"status": "SKIP", "reason": "No calculatorOrderId"}
+
+    # 5. Check Cloudinary
+    from services.cloudinary_service import is_cloudinary_configured
+    result["checks"]["cloudinary"] = {"configured": is_cloudinary_configured()}
+
+    return result
+
 
 
 def _replace_in_paragraph(paragraph, replacements: dict):
@@ -417,14 +494,19 @@ def _pdf_to_images(pdf_bytes: bytes) -> list:
 
 async def generate_contract_with_kp(lead_id: str) -> dict:
     """Generate contract DOCX with dynamic mappings and attached KP PDF pages."""
+    import traceback
     from docx import Document
     from docx.shared import Inches, Pt, Emu
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from services.cloudinary_service import is_cloudinary_configured
 
+    logger.info(f"=== CONTRACT GENERATION START for lead_id={lead_id} ===")
+
     lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
+
+    logger.info(f"Lead found: clientName={lead.get('clientName')}, docs={len(lead.get('documents', []))}")
 
     # Get calculator order
     calc_order = None
@@ -432,29 +514,35 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
     calc_col = lead.get("calculatorCollection", "sauna_orders")
     if calc_order_id:
         calc_order = await db[calc_col].find_one({"id": calc_order_id}, {"_id": 0})
+        logger.info(f"Calculator order: {'found' if calc_order else 'NOT found'} (id={calc_order_id}, col={calc_col})")
 
     # Load template — prefer user-uploaded (from Cloudinary), fallback to local
     settings = await _get_settings()
     mappings = settings.get("mappings", [])
     attach_kp = settings.get("attachKp", True)
     template_url = settings.get("templateUrl")
+    logger.info(f"Settings: mappings={len(mappings)}, attachKp={attach_kp}, templateUrl={'yes' if template_url else 'no'}")
 
     template_data = None
     if template_url:
         logger.info(f"Downloading custom template from: {template_url}")
-        template_data = await _download_file(template_url)
-        if template_data:
-            logger.info(f"Custom template loaded: {len(template_data)} bytes")
-        else:
-            logger.warning("Failed to download custom template, falling back to local")
+        try:
+            template_data = await _download_file(template_url)
+            if template_data:
+                logger.info(f"Custom template loaded: {len(template_data)} bytes")
+            else:
+                logger.warning("Failed to download custom template, falling back to local")
+        except Exception as e:
+            logger.error(f"Template download error: {e}")
 
     if template_data:
         doc = Document(io.BytesIO(template_data))
     else:
         template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILENAME)
         if not os.path.exists(template_path):
-            raise HTTPException(status_code=500, detail="Contract template not found")
+            raise HTTPException(status_code=500, detail="Contract template not found on server. Please upload a template first.")
         doc = Document(template_path)
+        logger.info(f"Using local template: {template_path}")
 
     now = datetime.now(timezone.utc)
 
@@ -464,7 +552,13 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
         ph = m["placeholder"]
         source = m.get("source", "_static")
         default_val = m.get("defaultValue", "")
-        replacements[ph] = _resolve_value(source, default_val, lead, calc_order, now)
+        try:
+            replacements[ph] = _resolve_value(source, default_val, lead, calc_order, now)
+        except Exception as e:
+            logger.error(f"Error resolving placeholder {ph} (source={source}): {e}")
+            replacements[ph] = default_val or ""
+
+    logger.info(f"Replacements built: {len(replacements)} placeholders")
 
     # Replace in paragraphs
     for para in doc.paragraphs:
@@ -488,126 +582,28 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
                 for para in footer.paragraphs:
                     _replace_in_paragraph(para, replacements)
 
-    # Remove old embedded images (KP pages) if any — find and remove image paragraphs after "Załącznik"
-    # We'll look for existing images and remove them to replace with new KP
-    _remove_trailing_images(doc)
+    logger.info("Placeholder replacement complete")
+
+    # Remove old embedded images (KP pages) if any
+    try:
+        _remove_trailing_images(doc)
+    except Exception as e:
+        logger.error(f"Error removing trailing images: {e}")
 
     # Attach KP PDF as images
     kp_url = None
+    kp_attached = False
     if attach_kp:
-        logger.info(f"Looking for KP in lead documents ({len(lead.get('documents', []))} docs)")
-        # Find KP from lead documents — check multiple type names
-        kp_types = ("kp", "commercial_proposal", "КП", "kp_pdf")
-        for doc_item in lead.get("documents", []):
-            doc_type = (doc_item.get("type") or "").lower()
-            doc_name = (doc_item.get("name") or "").lower()
-            if doc_type in kp_types or "кп" in doc_name or "kp" in doc_name:
-                kp_url = doc_item.get("url")
-                logger.info(f"Found KP document: type={doc_item.get('type')}, url={kp_url}")
-                break
-        # Fallback to calculator PDF
-        if not kp_url:
-            kp_url = lead.get("calculatorPdfUrl")
-            if kp_url:
-                logger.info(f"Using calculatorPdfUrl: {kp_url}")
-
-        if kp_url:
-            pdf_bytes = None
-
-            # If URL is a proxy (local API endpoint), get PDF directly from MongoDB
-            calc_order_id = lead.get("calculatorOrderId")
-            if "calculator-pdf/" in kp_url or (kp_url and kp_url.startswith("/api/")):
-                # Extract order_id from proxy URL
-                proxy_order_id = kp_url.rstrip("/").split("/")[-1] if "/" in kp_url else calc_order_id
-                logger.info(f"KP URL is proxy, reading PDF from MongoDB: order_id={proxy_order_id}")
-                pdf_doc = await db["calculator_pdfs"].find_one(
-                    {"order_id": proxy_order_id},
-                    {"pdf_data": 1, "cloudinary_url": 1}
-                )
-                if pdf_doc:
-                    # Prefer cloudinary URL for the lead record, but use binary for contract
-                    if pdf_doc.get("cloudinary_url"):
-                        kp_url = pdf_doc["cloudinary_url"]
-                        logger.info(f"Resolved proxy URL to Cloudinary: {kp_url}")
-                    if pdf_doc.get("pdf_data"):
-                        pdf_bytes = pdf_doc["pdf_data"]
-                        if isinstance(pdf_bytes, bytes):
-                            logger.info(f"Got PDF from MongoDB: {len(pdf_bytes)} bytes")
-                        else:
-                            pdf_bytes = bytes(pdf_bytes)
-                            logger.info(f"Got PDF from MongoDB (converted): {len(pdf_bytes)} bytes")
-                else:
-                    logger.warning(f"PDF not found in calculator_pdfs for order_id={proxy_order_id}")
-
-            # If no binary from MongoDB, try to find in calculator_pdfs by calc order ID
-            if not pdf_bytes and calc_order_id:
-                pdf_doc = await db["calculator_pdfs"].find_one(
-                    {"order_id": calc_order_id},
-                    {"pdf_data": 1, "cloudinary_url": 1}
-                )
-                if pdf_doc and pdf_doc.get("pdf_data"):
-                    pdf_bytes = pdf_doc["pdf_data"]
-                    if not isinstance(pdf_bytes, bytes):
-                        pdf_bytes = bytes(pdf_bytes)
-                    logger.info(f"Got PDF from calculator_pdfs by calc_order_id: {len(pdf_bytes)} bytes")
-                    if pdf_doc.get("cloudinary_url"):
-                        kp_url = pdf_doc["cloudinary_url"]
-
-            # If still no binary, try HTTP download
-            if not pdf_bytes and kp_url and not kp_url.startswith("/api/"):
-                logger.info(f"Downloading KP from: {kp_url}")
-                pdf_bytes = await _download_file(kp_url)
-
-            if pdf_bytes:
-                logger.info(f"Processing KP: {len(pdf_bytes)} bytes, first4={pdf_bytes[:4]}")
-                kp_images = []
-
-                if pdf_bytes[:4] == b'%PDF':
-                    kp_images = _pdf_to_images(pdf_bytes)
-                    logger.info(f"PDF converted to {len(kp_images)} images")
-                elif pdf_bytes[:8] == b'\x89PNG\r\n\x1a\n' or pdf_bytes[:2] == b'\xff\xd8':
-                    from PIL import Image
-                    img = Image.open(io.BytesIO(pdf_bytes))
-                    kp_images = [(pdf_bytes, img.width, img.height)]
-                    logger.info(f"KP is image: {img.width}x{img.height}")
-                else:
-                    logger.info("Unknown format, trying as PDF")
-                    kp_images = _pdf_to_images(pdf_bytes)
-
-                if kp_images:
-                    from docx.enum.text import WD_BREAK
-                    bp = doc.add_paragraph()
-                    run = bp.add_run()
-                    run.add_break(WD_BREAK.PAGE)
-
-                    header_para = doc.add_paragraph()
-                    header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    header_run = header_para.add_run("Załącznik nr 1 – Specyfikacja")
-                    header_run.bold = True
-                    header_run.font.size = Pt(14)
-
-                    for img_bytes, w, h in kp_images:
-                        img_stream = io.BytesIO(img_bytes)
-                        max_width = Inches(6.5)
-                        aspect = h / w
-                        img_width = max_width
-                        img_height = Emu(int(img_width * aspect))
-                        if img_height > Inches(9):
-                            img_height = Inches(9)
-                            img_width = Emu(int(img_height / aspect))
-                        p = doc.add_paragraph()
-                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        p.add_run().add_picture(img_stream, width=img_width)
-                    logger.info(f"Added {len(kp_images)} KP pages to contract")
-            else:
-                logger.warning("No PDF data obtained for KP")
-        else:
-            logger.info("No KP URL found in lead documents or calculatorPdfUrl")
+        try:
+            kp_url, kp_attached = await _attach_kp_to_doc(doc, lead, calc_order_id)
+        except Exception as e:
+            logger.error(f"KP attachment failed (non-fatal): {e}\n{traceback.format_exc()}")
 
     # Save to buffer
     docx_buffer = io.BytesIO()
     doc.save(docx_buffer)
     docx_buffer.seek(0)
+    logger.info(f"Document saved to buffer: {docx_buffer.getbuffer().nbytes} bytes")
 
     # Upload
     file_url = None
@@ -623,6 +619,7 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
                 format="docx"
             )
             file_url = result.get("secure_url")
+            logger.info(f"Contract uploaded to Cloudinary: {file_url}")
         except Exception as e:
             logger.error(f"Cloudinary upload failed: {e}")
 
@@ -635,6 +632,7 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
         with open(local_path, "wb") as f:
             f.write(docx_buffer.read())
         file_url = f"/api/static/contracts/{fname}"
+        logger.info(f"Contract saved locally: {file_url}")
 
     # Update lead documents
     docs = lead.get("documents", [])
@@ -657,12 +655,147 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
         }}
     )
 
+    logger.info(f"=== CONTRACT GENERATION COMPLETE for lead_id={lead_id}, url={file_url}, kpAttached={kp_attached} ===")
+
     return {
         "status": "ok",
         "contractUrl": file_url,
         "kpUrl": kp_url,
+        "kpAttached": kp_attached,
         "replacements": replacements
     }
+
+
+
+async def _attach_kp_to_doc(doc, lead: dict, calc_order_id: str | None) -> tuple:
+    """Attach KP PDF pages as images to the contract document. Returns (kp_url, was_attached)."""
+    from docx import Document
+    from docx.shared import Inches, Pt, Emu
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+
+    kp_url = None
+
+    logger.info(f"Looking for KP in lead documents ({len(lead.get('documents', []))} docs)")
+
+    # Find KP from lead documents — check multiple type names
+    kp_types = ("kp", "commercial_proposal", "кп", "kp_pdf")
+    for doc_item in lead.get("documents", []):
+        doc_type = (doc_item.get("type") or "").lower()
+        doc_name = (doc_item.get("name") or "").lower()
+        if doc_type in kp_types or "кп" in doc_name or "kp" in doc_name:
+            kp_url = doc_item.get("url")
+            logger.info(f"Found KP document: type={doc_item.get('type')}, url={kp_url}")
+            break
+
+    # Fallback to calculator PDF
+    if not kp_url:
+        kp_url = lead.get("calculatorPdfUrl")
+        if kp_url:
+            logger.info(f"Using calculatorPdfUrl: {kp_url}")
+
+    if not kp_url:
+        logger.info("No KP URL found in lead documents or calculatorPdfUrl")
+        return None, False
+
+    pdf_bytes = None
+
+    # Detect proxy URLs (local API endpoints or full URLs containing calculator-pdf/)
+    is_proxy = "calculator-pdf/" in kp_url or kp_url.startswith("/api/")
+
+    if is_proxy:
+        # Extract order_id from proxy URL
+        proxy_order_id = kp_url.rstrip("/").split("/")[-1] if "/" in kp_url else calc_order_id
+        logger.info(f"KP URL is proxy, reading PDF from MongoDB: order_id={proxy_order_id}")
+
+        if proxy_order_id:
+            pdf_doc = await db["calculator_pdfs"].find_one(
+                {"order_id": proxy_order_id},
+                {"pdf_data": 1, "cloudinary_url": 1}
+            )
+            if pdf_doc:
+                if pdf_doc.get("cloudinary_url"):
+                    kp_url = pdf_doc["cloudinary_url"]
+                    logger.info(f"Resolved proxy URL to Cloudinary: {kp_url}")
+                if pdf_doc.get("pdf_data"):
+                    pdf_bytes = pdf_doc["pdf_data"]
+                    if not isinstance(pdf_bytes, bytes):
+                        pdf_bytes = bytes(pdf_bytes)
+                    logger.info(f"Got PDF from MongoDB: {len(pdf_bytes)} bytes")
+            else:
+                logger.warning(f"PDF not found in calculator_pdfs for order_id={proxy_order_id}")
+
+    # Fallback: try to find in calculator_pdfs by calc order ID
+    if not pdf_bytes and calc_order_id:
+        pdf_doc = await db["calculator_pdfs"].find_one(
+            {"order_id": calc_order_id},
+            {"pdf_data": 1, "cloudinary_url": 1}
+        )
+        if pdf_doc and pdf_doc.get("pdf_data"):
+            pdf_bytes = pdf_doc["pdf_data"]
+            if not isinstance(pdf_bytes, bytes):
+                pdf_bytes = bytes(pdf_bytes)
+            logger.info(f"Got PDF from calculator_pdfs by calc_order_id: {len(pdf_bytes)} bytes")
+            if pdf_doc.get("cloudinary_url"):
+                kp_url = pdf_doc["cloudinary_url"]
+
+    # Fallback: HTTP download (only for non-proxy URLs like Cloudinary)
+    if not pdf_bytes and kp_url and not kp_url.startswith("/api/") and "calculator-pdf/" not in kp_url:
+        logger.info(f"Downloading KP from: {kp_url}")
+        pdf_bytes = await _download_file(kp_url)
+    elif not pdf_bytes and kp_url and not kp_url.startswith("/api/") and "cloudinary" in kp_url:
+        # URL was resolved to Cloudinary from proxy — download it
+        logger.info(f"Downloading resolved Cloudinary KP: {kp_url}")
+        pdf_bytes = await _download_file(kp_url)
+
+    if not pdf_bytes:
+        logger.warning(f"No PDF data obtained for KP (url={kp_url})")
+        return kp_url, False
+
+    logger.info(f"Processing KP: {len(pdf_bytes)} bytes, first4={pdf_bytes[:4]}")
+    kp_images = []
+
+    if pdf_bytes[:4] == b'%PDF':
+        kp_images = _pdf_to_images(pdf_bytes)
+        logger.info(f"PDF converted to {len(kp_images)} images")
+    elif pdf_bytes[:8] == b'\x89PNG\r\n\x1a\n' or pdf_bytes[:2] == b'\xff\xd8':
+        from PIL import Image
+        img = Image.open(io.BytesIO(pdf_bytes))
+        kp_images = [(pdf_bytes, img.width, img.height)]
+        logger.info(f"KP is image: {img.width}x{img.height}")
+    else:
+        logger.info("Unknown format, trying as PDF")
+        kp_images = _pdf_to_images(pdf_bytes)
+
+    if not kp_images:
+        logger.warning("No images extracted from KP")
+        return kp_url, False
+
+    # Add page break and header
+    bp = doc.add_paragraph()
+    run = bp.add_run()
+    run.add_break(WD_BREAK.PAGE)
+
+    header_para = doc.add_paragraph()
+    header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    header_run = header_para.add_run("Załącznik nr 1 – Specyfikacja")
+    header_run.bold = True
+    header_run.font.size = Pt(14)
+
+    for img_bytes_data, w, h in kp_images:
+        img_stream = io.BytesIO(img_bytes_data)
+        max_width = Inches(6.5)
+        aspect = h / w if w > 0 else 1
+        img_width = max_width
+        img_height = Emu(int(img_width * aspect))
+        if img_height > Inches(9):
+            img_height = Inches(9)
+            img_width = Emu(int(img_height / aspect)) if aspect > 0 else max_width
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.add_run().add_picture(img_stream, width=img_width)
+
+    logger.info(f"Added {len(kp_images)} KP pages to contract")
+    return kp_url, True
 
 
 def _remove_trailing_images(doc):

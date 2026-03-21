@@ -970,7 +970,7 @@ const SaunaCRMPage = () => {
                       });
                       if (res.ok) {
                         const data = await res.json();
-                        toast.success('Договор создан');
+                        toast.success(data.kpAttached ? 'Договор создан (с КП)' : 'Договор создан (без КП)');
                         // Refresh lead data
                         const updated = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}`, { headers: authHeaders });
                         if (updated.ok) {
@@ -981,9 +981,10 @@ const SaunaCRMPage = () => {
                         // Open contract in new tab
                         if (data.contractUrl) window.open(data.contractUrl, '_blank');
                       } else {
-                        toast.error('Ошибка создания договора');
+                        const errData = await res.json().catch(() => ({}));
+                        toast.error(`Ошибка: ${errData.detail || res.statusText}`);
                       }
-                    } catch (e) { toast.error('Ошибка создания договора'); }
+                    } catch (e) { toast.error(`Ошибка создания договора: ${e.message}`); }
                     finally { setGeneratingContract(false); }
                   }}
                   disabled={generatingContract}
