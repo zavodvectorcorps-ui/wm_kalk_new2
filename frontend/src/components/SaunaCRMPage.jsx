@@ -970,7 +970,11 @@ const SaunaCRMPage = () => {
                       });
                       if (res.ok) {
                         const data = await res.json();
-                        toast.success(data.kpAttached ? 'Договор создан (с КП)' : 'Договор создан (без КП)');
+                        if (data.kpAttached) {
+                          toast.success('Договор создан (с КП)');
+                        } else {
+                          toast.warning(data.kpError ? `Договор создан без КП: ${data.kpError}` : 'Договор создан (без КП)');
+                        }
                         // Refresh lead data
                         const updated = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}`, { headers: authHeaders });
                         if (updated.ok) {

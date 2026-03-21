@@ -636,11 +636,17 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
     # Attach KP PDF as images
     kp_url = None
     kp_attached = False
+    kp_error = None
     if attach_kp:
         try:
             kp_url, kp_attached = await _attach_kp_to_doc(doc, lead, calc_order_id)
+            if not kp_attached:
+                kp_error = f"KP not attached: url={kp_url}, no PDF data available"
         except Exception as e:
+            kp_error = f"KP attachment exception: {str(e)}"
             logger.error(f"KP attachment failed (non-fatal): {e}\n{traceback.format_exc()}")
+    else:
+        kp_error = "attachKp is disabled in settings"
 
     # Save to buffer
     docx_buffer = io.BytesIO()
@@ -705,6 +711,7 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
         "contractUrl": file_url,
         "kpUrl": kp_url,
         "kpAttached": kp_attached,
+        "kpError": kp_error,
         "replacements": replacements
     }
 
