@@ -752,50 +752,62 @@ async def _attach_kp_to_doc(doc, lead: dict, calc_order_id: str | None) -> tuple
     # Detect proxy URLs (local API endpoints or full URLs containing calculator-pdf/)
     is_proxy = "calculator-pdf/" in kp_url or kp_url.startswith("/api/")
 
-    if is_proxy:
-        # Extract order_id from proxy URL
+    if not is_proxy and kp_url.startswith("http"):
+        # Direct URL (e.g. Cloudinary) — download immediately, no MongoDB needed
+        logger.info(f"KP URL is direct (Cloudinary/HTTP), downloading: {kp_url[:100]}")
+        pdf_bytes = await _download_file(kp_url)
+        if pdf_bytes:
+            logger.info(f"Downloaded KP: {len(pdf_bytes)} bytes")
+        else:
+            logger.warning(f"Failed to download KP from direct URL: {kp_url[:100]}")
+    elif is_proxy:
+        # Proxy URL — get PDF data from MongoDB to avoid self-referential HTTP calls
         proxy_order_id = kp_url.rstrip("/").split("/")[-1] if "/" in kp_url else calc_order_id
         logger.info(f"KP URL is proxy, reading PDF from MongoDB: order_id={proxy_order_id}")
 
         if proxy_order_id:
-            pdf_doc = await db["calculator_pdfs"].find_one(
-                {"order_id": proxy_order_id},
-                {"pdf_data": 1, "cloudinary_url": 1}
-            )
-            if pdf_doc:
-                if pdf_doc.get("cloudinary_url"):
-                    kp_url = pdf_doc["cloudinary_url"]
-                    logger.info(f"Resolved proxy URL to Cloudinary: {kp_url}")
-                if pdf_doc.get("pdf_data"):
-                    pdf_bytes = pdf_doc["pdf_data"]
-                    if not isinstance(pdf_bytes, bytes):
-                        pdf_bytes = bytes(pdf_bytes)
-                    logger.info(f"Got PDF from MongoDB: {len(pdf_bytes)} bytes")
-            else:
-                logger.warning(f"PDF not found in calculator_pdfs for order_id={proxy_order_id}")
+            try:
+                pdf_doc = await db["calculator_pdfs"].find_one(
+                    {"order_id": proxy_order_id},
+                    {"pdf_data": 1, "cloudinary_url": 1}
+                )
+                if pdf_doc:
+                    if pdf_doc.get("cloudinary_url"):
+                        kp_url = pdf_doc["cloudinary_url"]
+                        logger.info(f"Resolved proxy URL to Cloudinary: {kp_url}")
+                    if pdf_doc.get("pdf_data"):
+                        pdf_bytes = pdf_doc["pdf_data"]
+                        if not isinstance(pdf_bytes, bytes):
+                            pdf_bytes = bytes(pdf_bytes)
+                        logger.info(f"Got PDF from MongoDB: {len(pdf_bytes)} bytes")
+                else:
+                    logger.warning(f"PDF not found in calculator_pdfs for order_id={proxy_order_id}")
+            except Exception as e:
+                logger.error(f"MongoDB query failed for calculator_pdfs: {e}")
 
-    # Fallback: try to find in calculator_pdfs by calc order ID
-    if not pdf_bytes and calc_order_id:
-        pdf_doc = await db["calculator_pdfs"].find_one(
-            {"order_id": calc_order_id},
-            {"pdf_data": 1, "cloudinary_url": 1}
-        )
-        if pdf_doc and pdf_doc.get("pdf_data"):
-            pdf_bytes = pdf_doc["pdf_data"]
-            if not isinstance(pdf_bytes, bytes):
-                pdf_bytes = bytes(pdf_bytes)
-            logger.info(f"Got PDF from calculator_pdfs by calc_order_id: {len(pdf_bytes)} bytes")
-            if pdf_doc.get("cloudinary_url"):
-                kp_url = pdf_doc["cloudinary_url"]
+        # If MongoDB failed/empty but we resolved to a Cloudinary URL, download it
+        if not pdf_bytes and kp_url and kp_url.startswith("http") and "calculator-pdf/" not in kp_url:
+            logger.info(f"Falling back to HTTP download of resolved URL: {kp_url[:100]}")
+            pdf_bytes = await _download_file(kp_url)
 
-    # Fallback: HTTP download (only for non-proxy URLs like Cloudinary)
-    if not pdf_bytes and kp_url and not kp_url.startswith("/api/") and "calculator-pdf/" not in kp_url:
-        logger.info(f"Downloading KP from: {kp_url}")
-        pdf_bytes = await _download_file(kp_url)
-    elif not pdf_bytes and kp_url and not kp_url.startswith("/api/") and "cloudinary" in kp_url:
-        # URL was resolved to Cloudinary from proxy — download it
-        logger.info(f"Downloading resolved Cloudinary KP: {kp_url}")
-        pdf_bytes = await _download_file(kp_url)
+        # Last resort: try by calc_order_id
+        if not pdf_bytes and calc_order_id and calc_order_id != proxy_order_id:
+            try:
+                pdf_doc = await db["calculator_pdfs"].find_one(
+                    {"order_id": calc_order_id},
+                    {"pdf_data": 1, "cloudinary_url": 1}
+                )
+                if pdf_doc:
+                    if pdf_doc.get("pdf_data"):
+                        pdf_bytes = pdf_doc["pdf_data"]
+                        if not isinstance(pdf_bytes, bytes):
+                            pdf_bytes = bytes(pdf_bytes)
+                        logger.info(f"Got PDF from calculator_pdfs by calc_order_id: {len(pdf_bytes)} bytes")
+                    if not pdf_bytes and pdf_doc.get("cloudinary_url"):
+                        kp_url = pdf_doc["cloudinary_url"]
+                        pdf_bytes = await _download_file(kp_url)
+            except Exception as e:
+                logger.error(f"MongoDB fallback query failed: {e}")
 
     if not pdf_bytes:
         logger.warning(f"No PDF data obtained for KP (url={kp_url})")
