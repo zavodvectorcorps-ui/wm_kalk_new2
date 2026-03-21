@@ -186,19 +186,37 @@ async def save_template_settings(request: dict):
 
 @router.post("/upload")
 async def upload_template(file: UploadFile = File(...)):
-    """Upload a new DOCX contract template."""
+    """Upload a new DOCX contract template. Stores in Cloudinary for persistence."""
     if not file.filename.endswith(".docx"):
         raise HTTPException(status_code=400, detail="Only .docx files are allowed")
 
     content = await file.read()
-    if len(content) > 20 * 1024 * 1024:  # 20MB limit
+    if len(content) > 20 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 20MB)")
 
-    # Save the template
+    # Save locally (for immediate use)
     os.makedirs(TEMPLATE_DIR, exist_ok=True)
     template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILENAME)
     with open(template_path, "wb") as f:
         f.write(content)
+
+    # Upload to Cloudinary for persistence across deploys
+    template_url = None
+    from services.cloudinary_service import is_cloudinary_configured
+    if is_cloudinary_configured():
+        try:
+            import cloudinary.uploader
+            result = cloudinary.uploader.upload(
+                io.BytesIO(content),
+                resource_type="raw",
+                folder="contract_templates",
+                public_id=f"contract_template_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}",
+                format="docx"
+            )
+            template_url = result.get("secure_url")
+            logger.info(f"Template uploaded to Cloudinary: {template_url}")
+        except Exception as e:
+            logger.error(f"Cloudinary upload failed: {e}")
 
     # Extract placeholders
     placeholders = _extract_placeholders_from_docx(template_path)
@@ -211,6 +229,8 @@ async def upload_template(file: UploadFile = File(...)):
     for ph in placeholders:
         if ph in existing_map:
             new_mappings.append(existing_map[ph])
+        elif ph in DEFAULT_MAPPINGS:
+            new_mappings.append({"placeholder": ph, **DEFAULT_MAPPINGS[ph]})
         else:
             new_mappings.append({
                 "placeholder": ph,
@@ -223,6 +243,7 @@ async def upload_template(file: UploadFile = File(...)):
         {"type": "contract_template"},
         {"$set": {
             "templateName": file.filename,
+            "templateUrl": template_url,
             "uploadedAt": datetime.now(timezone.utc).isoformat(),
             "mappings": new_mappings,
             "placeholders": placeholders
@@ -233,6 +254,7 @@ async def upload_template(file: UploadFile = File(...)):
     return {
         "status": "ok",
         "templateName": file.filename,
+        "templateUrl": template_url,
         "placeholders": placeholders,
         "mappingsCount": len(new_mappings)
     }
@@ -408,10 +430,28 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
     if calc_order_id:
         calc_order = await db[calc_col].find_one({"id": calc_order_id}, {"_id": 0})
 
-    # Get template settings
+    # Load template — prefer user-uploaded (from Cloudinary), fallback to local
     settings = await _get_settings()
     mappings = settings.get("mappings", [])
     attach_kp = settings.get("attachKp", True)
+    template_url = settings.get("templateUrl")
+
+    template_data = None
+    if template_url:
+        logger.info(f"Downloading custom template from: {template_url}")
+        template_data = await _download_file(template_url)
+        if template_data:
+            logger.info(f"Custom template loaded: {len(template_data)} bytes")
+        else:
+            logger.warning("Failed to download custom template, falling back to local")
+
+    if template_data:
+        doc = Document(io.BytesIO(template_data))
+    else:
+        template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILENAME)
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=500, detail="Contract template not found")
+        doc = Document(template_path)
 
     now = datetime.now(timezone.utc)
 
@@ -422,13 +462,6 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
         source = m.get("source", "_static")
         default_val = m.get("defaultValue", "")
         replacements[ph] = _resolve_value(source, default_val, lead, calc_order, now)
-
-    # Load template
-    template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILENAME)
-    if not os.path.exists(template_path):
-        raise HTTPException(status_code=500, detail="Contract template not found")
-
-    doc = Document(template_path)
 
     # Replace in paragraphs
     for para in doc.paragraphs:
@@ -459,50 +492,65 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
     # Attach KP PDF as images
     kp_url = None
     if attach_kp:
-        # Find KP from lead documents
+        logger.info(f"Looking for KP in lead documents ({len(lead.get('documents', []))} docs)")
+        # Find KP from lead documents — check multiple type names
+        kp_types = ("kp", "commercial_proposal", "КП", "kp_pdf")
         for doc_item in lead.get("documents", []):
-            if doc_item.get("type") in ("kp", "commercial_proposal"):
+            doc_type = (doc_item.get("type") or "").lower()
+            doc_name = (doc_item.get("name") or "").lower()
+            if doc_type in kp_types or "кп" in doc_name or "kp" in doc_name:
                 kp_url = doc_item.get("url")
+                logger.info(f"Found KP document: type={doc_item.get('type')}, name={doc_item.get('name')}, url={kp_url}")
                 break
         # Fallback to calculator PDF
         if not kp_url:
             kp_url = lead.get("calculatorPdfUrl")
+            if kp_url:
+                logger.info(f"Using calculatorPdfUrl: {kp_url}")
 
         if kp_url:
             logger.info(f"Downloading KP PDF from: {kp_url}")
             pdf_bytes = await _download_file(kp_url)
             if pdf_bytes:
-                images = _pdf_to_images(pdf_bytes)
-                if images:
-                    # Add page break before KP
-                    from docx.enum.text import WD_BREAK
-                    bp = doc.add_paragraph()
-                    run = bp.add_run()
-                    run.add_break(WD_BREAK.PAGE)
-
-                    header_para = doc.add_paragraph()
-                    header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    header_run = header_para.add_run("Załącznik nr 1 – Specyfikacja")
-                    header_run.bold = True
-                    header_run.font.size = Pt(14)
-
-                    for img_bytes, w, h in images:
-                        img_stream = io.BytesIO(img_bytes)
-                        # Scale to fit page width (~6.5 inches with margins)
-                        max_width = Inches(6.5)
-                        aspect = h / w
-                        img_width = max_width
-                        img_height = Emu(int(img_width * aspect))
-                        if img_height > Inches(9):
-                            img_height = Inches(9)
-                            img_width = Emu(int(img_height / aspect))
-                        p = doc.add_paragraph()
-                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        p.add_run().add_picture(img_stream, width=img_width)
+                logger.info(f"KP downloaded: {len(pdf_bytes)} bytes, first4={pdf_bytes[:4]}")
+                # Check if it's actually a PDF
+                if pdf_bytes[:4] != b'%PDF':
+                    logger.warning(f"Downloaded file is not a PDF (starts with: {pdf_bytes[:20]})")
                 else:
-                    logger.warning("No images extracted from KP PDF")
+                    images = _pdf_to_images(pdf_bytes)
+                    logger.info(f"PDF converted to {len(images)} images")
+                    if images:
+                        # Add page break before KP
+                        from docx.enum.text import WD_BREAK
+                        bp = doc.add_paragraph()
+                        run = bp.add_run()
+                        run.add_break(WD_BREAK.PAGE)
+
+                        header_para = doc.add_paragraph()
+                        header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        header_run = header_para.add_run("Załącznik nr 1 – Specyfikacja")
+                        header_run.bold = True
+                        header_run.font.size = Pt(14)
+
+                        for img_bytes, w, h in images:
+                            img_stream = io.BytesIO(img_bytes)
+                            max_width = Inches(6.5)
+                            aspect = h / w
+                            img_width = max_width
+                            img_height = Emu(int(img_width * aspect))
+                            if img_height > Inches(9):
+                                img_height = Inches(9)
+                                img_width = Emu(int(img_height / aspect))
+                            p = doc.add_paragraph()
+                            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            p.add_run().add_picture(img_stream, width=img_width)
+                        logger.info(f"Added {len(images)} KP pages to contract")
+                    else:
+                        logger.warning("No images extracted from KP PDF")
             else:
                 logger.warning(f"Failed to download KP PDF from {kp_url}")
+        else:
+            logger.info("No KP URL found in lead documents or calculatorPdfUrl")
 
     # Save to buffer
     docx_buffer = io.BytesIO()
