@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -39,6 +39,63 @@ const SECTION_BADGES = {
   balia: { label: 'Balia', color: 'bg-blue-500' },
   greenhouse: { label: 'Greenhouse', color: 'bg-green-500' },
   sauna: { label: 'Sauna', color: 'bg-orange-500' }
+};
+
+// Mobile swipeable kanban wrapper
+const KanbanSwipe = ({ columns, children, testIdPrefix }) => {
+  const scrollRef = useRef(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const count = columns.length;
+
+  const onScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / el.offsetWidth);
+    setActiveIdx(Math.min(idx, count - 1));
+  }, [count]);
+
+  const scrollTo = (idx) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: idx * el.offsetWidth, behavior: 'smooth' });
+  };
+
+  return (
+    <div data-testid={`kanban-swipe-${testIdPrefix}`}>
+      {/* Dot indicators — mobile only */}
+      <div className="flex md:hidden items-center justify-center gap-2 mb-3">
+        {columns.map(([key, val], idx) => (
+          <button
+            key={key}
+            onClick={() => scrollTo(idx)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              idx === activeIdx
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-muted text-muted-foreground'
+            }`}
+            data-testid={`kanban-dot-${testIdPrefix}-${idx}`}
+          >
+            {val.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Scroll container: horizontal snap on mobile, grid on desktop */}
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2
+                   md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:pb-0"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {React.Children.map(children, (child) => (
+          <div className="min-w-full snap-center shrink-0 md:min-w-0 md:shrink">
+            {child}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 const WarehousePage = ({ onBack }) => {
@@ -819,7 +876,7 @@ const WarehousePage = ({ onBack }) => {
   if (sectionsEnabled.trips) availableTabs.push('trips');
 
   return (
-    <div className="container mx-auto p-4 max-w-7xl" data-testid="warehouse-page">
+    <div className="container mx-auto p-4 max-w-7xl overflow-x-hidden" data-testid="warehouse-page">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -841,7 +898,7 @@ const WarehousePage = ({ onBack }) => {
 
       {/* Dovoz Stats */}
       {sectionsEnabled.dovoz && dovozStats && (
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {Object.entries(DOVOZ_STAGES).map(([key, val]) => {
             const Icon = val.icon;
             return (
@@ -918,8 +975,8 @@ const WarehousePage = ({ onBack }) => {
                 </Button>
               </div>
 
-              {/* Kanban */}
-              <div className="grid grid-cols-3 gap-6">
+              {/* Kanban — swipeable on mobile */}
+              <KanbanSwipe columns={Object.entries(DOVOZ_STAGES)} testIdPrefix="dovoz">
                 {Object.entries(DOVOZ_STAGES).map(([stageKey, stageVal]) => {
                   const StageIcon = stageVal.icon;
                   const stageOrders = dovozByStage[stageKey] || [];
@@ -948,7 +1005,7 @@ const WarehousePage = ({ onBack }) => {
                     </div>
                   );
                 })}
-              </div>
+              </KanbanSwipe>
             </TabsContent>
           )}
 
@@ -985,7 +1042,7 @@ const WarehousePage = ({ onBack }) => {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-3 gap-6">
+              <KanbanSwipe columns={Object.entries(WAREHOUSE_STATUSES)} testIdPrefix="orders">
                 {Object.entries(WAREHOUSE_STATUSES).map(([statusKey, statusVal]) => {
                   const StatusIcon = statusVal.icon;
                   const statusOrders = ordersByStatus[statusKey] || [];
@@ -1010,7 +1067,7 @@ const WarehousePage = ({ onBack }) => {
                     </div>
                   );
                 })}
-              </div>
+              </KanbanSwipe>
             </TabsContent>
           )}
 
