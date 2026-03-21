@@ -833,9 +833,9 @@ const WarehousePage = ({ onBack }) => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} data-testid="warehouse-settings-btn">
+          {!isStorekeeper() && <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} data-testid="warehouse-settings-btn">
             <Settings className="w-4 h-4 mr-2" />Настройки
-          </Button>
+          </Button>}
         </div>
       </div>
 

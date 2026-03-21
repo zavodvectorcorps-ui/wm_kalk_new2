@@ -1271,7 +1271,7 @@ const OrderCard = ({
 };
 
 const OrderExpandedDetails = ({ order, drivers, updateOrderField, updateDeliveryStatus, DELIVERY_STATUSES, isRefreshing, refreshOrderFromAmocrm, formatDate, readOnly = false }) => (
-  <div className={`mt-3 pt-3 border-t space-y-3 text-sm ${readOnly ? 'pointer-events-none opacity-75' : ''}`}>
+  <div className={`mt-3 pt-3 border-t space-y-3 text-sm ${readOnly ? 'opacity-75 [&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_button]:pointer-events-none [&_[role=combobox]]:pointer-events-none' : ''}`}>
     {/* Editable fields - disabled when readOnly */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {/* Client name */}
@@ -1815,7 +1815,7 @@ const TripDetailsCard = ({
     </CardHeader>
     <CardContent className="p-3">
       {selectedTrip && selectedTrip.section === sectionKey ? (
-        <div className={`space-y-3 ${readOnly ? 'pointer-events-none' : ''}`}>
+        <div className={`space-y-3 ${readOnly ? 'opacity-75 [&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_button]:pointer-events-none [&_[role=combobox]]:pointer-events-none' : ''}`}>
           {/* Driver */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">Водитель:</Label>
