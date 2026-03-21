@@ -272,78 +272,121 @@ async def get_placeholders():
 @router.get("/debug/{lead_id}")
 async def debug_contract_generation(lead_id: str):
     """Diagnostic endpoint to check contract generation prerequisites for a specific lead."""
-    result = {"lead_id": lead_id, "checks": {}}
+    import traceback
+    try:
+        result = {"lead_id": lead_id, "checks": {}}
 
-    # 1. Check lead exists
-    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
-    if not lead:
-        result["checks"]["lead"] = {"status": "ERROR", "detail": "Lead not found"}
-        return result
-    result["checks"]["lead"] = {
-        "status": "OK",
-        "clientName": lead.get("clientName"),
-        "documents_count": len(lead.get("documents", [])),
-        "calculatorPdfUrl": lead.get("calculatorPdfUrl"),
-        "calculatorOrderId": lead.get("calculatorOrderId"),
-    }
+        # 1. Check lead exists
+        lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+        if not lead:
+            result["checks"]["lead"] = {"status": "ERROR", "detail": "Lead not found"}
+            return result
 
-    # 2. Check template
-    settings = await _get_settings()
-    template_url = settings.get("templateUrl")
-    template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILENAME)
-    local_exists = os.path.exists(template_path)
-    result["checks"]["template"] = {
-        "status": "OK" if (template_url or local_exists) else "ERROR",
-        "templateUrl": template_url,
-        "localFileExists": local_exists,
-        "mappings_count": len(settings.get("mappings", [])),
-        "attachKp": settings.get("attachKp", True),
-    }
+        # List all document types in the lead
+        doc_list = []
+        for d in lead.get("documents", []):
+            doc_list.append({
+                "type": d.get("type"),
+                "name": d.get("name"),
+                "url": str(d.get("url", ""))[:120]
+            })
 
-    # 3. Check KP sources
-    kp_url = None
-    kp_types = ("kp", "commercial_proposal", "кп", "kp_pdf")
-    for doc_item in lead.get("documents", []):
-        doc_type = (doc_item.get("type") or "").lower()
-        doc_name = (doc_item.get("name") or "").lower()
-        if doc_type in kp_types or "кп" in doc_name or "kp" in doc_name:
-            kp_url = doc_item.get("url")
-            break
-    if not kp_url:
-        kp_url = lead.get("calculatorPdfUrl")
-
-    result["checks"]["kp"] = {"kp_url": kp_url, "source": "documents" if kp_url else "none"}
-
-    # 4. Check calculator_pdfs collection
-    calc_order_id = lead.get("calculatorOrderId")
-    if calc_order_id:
-        pdf_doc = await db["calculator_pdfs"].find_one(
-            {"order_id": calc_order_id},
-            {"_id": 0, "order_id": 1, "cloudinary_url": 1, "created_at": 1}
-        )
-        has_pdf_data = False
-        if pdf_doc is None:
-            pdf_doc_check = None
-        else:
-            pdf_doc_check = await db["calculator_pdfs"].find_one(
-                {"order_id": calc_order_id},
-                {"_id": 0, "pdf_data": 1}
-            )
-            has_pdf_data = bool(pdf_doc_check and pdf_doc_check.get("pdf_data"))
-        result["checks"]["calculator_pdfs"] = {
-            "order_id": calc_order_id,
-            "found": pdf_doc is not None,
-            "has_pdf_data": has_pdf_data,
-            "cloudinary_url": (pdf_doc or {}).get("cloudinary_url"),
+        result["checks"]["lead"] = {
+            "status": "OK",
+            "clientName": lead.get("clientName"),
+            "documents": doc_list,
+            "calculatorPdfUrl": lead.get("calculatorPdfUrl"),
+            "calculatorOrderId": lead.get("calculatorOrderId"),
+            "calculatorCollection": lead.get("calculatorCollection"),
         }
-    else:
-        result["checks"]["calculator_pdfs"] = {"status": "SKIP", "reason": "No calculatorOrderId"}
 
-    # 5. Check Cloudinary
-    from services.cloudinary_service import is_cloudinary_configured
-    result["checks"]["cloudinary"] = {"configured": is_cloudinary_configured()}
+        # 2. Check template
+        try:
+            settings = await _get_settings()
+            template_url = settings.get("templateUrl")
+            template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILENAME)
+            local_exists = os.path.exists(template_path)
+            result["checks"]["template"] = {
+                "status": "OK" if (template_url or local_exists) else "ERROR",
+                "templateUrl": template_url,
+                "localFileExists": local_exists,
+                "mappings_count": len(settings.get("mappings", [])),
+                "attachKp": settings.get("attachKp", True),
+            }
+        except Exception as e:
+            result["checks"]["template"] = {"status": "ERROR", "error": str(e)}
 
-    return result
+        # 3. Check KP sources
+        kp_url = None
+        kp_source = "none"
+        kp_types = ("kp", "commercial_proposal", "кп", "kp_pdf")
+        for doc_item in lead.get("documents", []):
+            doc_type = (doc_item.get("type") or "").lower()
+            doc_name = (doc_item.get("name") or "").lower()
+            if doc_type in kp_types or "кп" in doc_name or "kp" in doc_name:
+                kp_url = doc_item.get("url")
+                kp_source = f"documents (type={doc_item.get('type')}, name={doc_item.get('name')})"
+                break
+        if not kp_url:
+            kp_url = lead.get("calculatorPdfUrl")
+            if kp_url:
+                kp_source = "calculatorPdfUrl"
+
+        is_proxy = bool(kp_url and ("calculator-pdf/" in kp_url or kp_url.startswith("/api/")))
+        result["checks"]["kp"] = {
+            "kp_url": kp_url,
+            "source": kp_source,
+            "is_proxy_url": is_proxy,
+        }
+
+        # 4. Check calculator_pdfs collection
+        calc_order_id = lead.get("calculatorOrderId")
+        if calc_order_id:
+            try:
+                pdf_doc = await db["calculator_pdfs"].find_one(
+                    {"order_id": calc_order_id},
+                    {"_id": 0, "order_id": 1, "cloudinary_url": 1, "created_at": 1}
+                )
+                has_pdf_data = False
+                if pdf_doc is not None:
+                    pdf_doc_check = await db["calculator_pdfs"].find_one(
+                        {"order_id": calc_order_id},
+                        {"_id": 0, "pdf_data": 1}
+                    )
+                    has_pdf_data = bool(pdf_doc_check and pdf_doc_check.get("pdf_data"))
+
+                # Also try to extract order_id from proxy URL if different
+                proxy_order_id = None
+                if kp_url and is_proxy:
+                    proxy_order_id = kp_url.rstrip("/").split("/")[-1]
+
+                result["checks"]["calculator_pdfs"] = {
+                    "calc_order_id": calc_order_id,
+                    "proxy_order_id": proxy_order_id,
+                    "found_by_calc_id": pdf_doc is not None,
+                    "has_pdf_data": has_pdf_data,
+                    "cloudinary_url": (pdf_doc or {}).get("cloudinary_url"),
+                }
+
+                # Check if proxy order ID is different and has data
+                if proxy_order_id and proxy_order_id != calc_order_id:
+                    pdf_doc2 = await db["calculator_pdfs"].find_one(
+                        {"order_id": proxy_order_id},
+                        {"_id": 0, "order_id": 1, "cloudinary_url": 1}
+                    )
+                    result["checks"]["calculator_pdfs"]["found_by_proxy_id"] = pdf_doc2 is not None
+            except Exception as e:
+                result["checks"]["calculator_pdfs"] = {"status": "ERROR", "error": str(e)}
+        else:
+            result["checks"]["calculator_pdfs"] = {"status": "SKIP", "reason": "No calculatorOrderId"}
+
+        # 5. Check Cloudinary
+        from services.cloudinary_service import is_cloudinary_configured
+        result["checks"]["cloudinary"] = {"configured": is_cloudinary_configured()}
+
+        return result
+    except Exception as e:
+        return {"error": str(e), "traceback": traceback.format_exc()}
 
 
 
