@@ -195,6 +195,17 @@ export const useSaunaPricing = () => {
     }
   };
 
+  const handleUpdatePdfSettings = async (updates) => {
+    const newPrices = { ...prices, ...updates };
+    setPrices(newPrices);
+    try {
+      await axios.post(`${API_URL}/api/sauna/prices`, newPrices);
+    } catch (error) {
+      console.error('Error saving PDF settings:', error);
+      toast.error(t('error'));
+    }
+  };
+
   // ========== MODELS ==========
   const handleAddModel = async (newModel) => {
     if (!newModel.name) return;
@@ -668,5 +679,7 @@ export const useSaunaPricing = () => {
     handleBulkPriceChange,
     // Variant comparison
     handleUpdateVariantComparison,
+    // PDF settings
+    handleUpdatePdfSettings,
   };
 };

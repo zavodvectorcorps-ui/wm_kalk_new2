@@ -57,6 +57,8 @@ export const SaunaPricingPage = () => {
     handleBulkPriceChange,
     // Variant comparison
     handleUpdateVariantComparison,
+    // PDF settings
+    handleUpdatePdfSettings,
   } = useSaunaPricing();
 
   // Local state for bulk price change
@@ -208,9 +210,7 @@ export const SaunaPricingPage = () => {
               id="pdfPage2Enabled"
               checked={prices.pdfPage2Enabled !== false}
               onCheckedChange={(checked) => {
-                const newPrices = { ...prices, pdfPage2Enabled: checked };
-                setPrices(newPrices);
-                savePrices(newPrices);
+                handleUpdatePdfSettings({ pdfPage2Enabled: checked });
               }}
             />
             <Label htmlFor="pdfPage2Enabled" className="text-sm">Включить страницу 2</Label>
@@ -225,10 +225,8 @@ export const SaunaPricingPage = () => {
                 <Input
                   value={prices.pdfPage2VariantsTitle || 'Możliwe warianty wykonania w wybranym rozmiarze'}
                   onChange={(e) => {
-                    const newPrices = { ...prices, pdfPage2VariantsTitle: e.target.value };
-                    setPrices(newPrices);
+                    handleUpdatePdfSettings({ pdfPage2VariantsTitle: e.target.value });
                   }}
-                  onBlur={() => savePrices(prices)}
                   placeholder="Możliwe warianty wykonania..."
                 />
               </div>
@@ -237,10 +235,8 @@ export const SaunaPricingPage = () => {
                 <Input
                   value={prices.pdfPage2OptionsTitle || 'Opcje, które można dodać do sauny'}
                   onChange={(e) => {
-                    const newPrices = { ...prices, pdfPage2OptionsTitle: e.target.value };
-                    setPrices(newPrices);
+                    handleUpdatePdfSettings({ pdfPage2OptionsTitle: e.target.value });
                   }}
-                  onBlur={() => savePrices(prices)}
                   placeholder="Opcje, które można dodać..."
                 />
               </div>
@@ -253,9 +249,7 @@ export const SaunaPricingPage = () => {
                     id="pdfPage2ShowVariants"
                     checked={prices.pdfPage2ShowVariants !== false}
                     onCheckedChange={(checked) => {
-                      const newPrices = { ...prices, pdfPage2ShowVariants: checked };
-                      setPrices(newPrices);
-                      savePrices(newPrices);
+                      handleUpdatePdfSettings({ pdfPage2ShowVariants: checked });
                     }}
                   />
                   <Label htmlFor="pdfPage2ShowVariants" className="text-sm">Показывать варианты модели</Label>
@@ -265,9 +259,7 @@ export const SaunaPricingPage = () => {
                     id="pdfPage2ShowComparisonTable"
                     checked={prices.pdfPage2ShowComparisonTable !== false}
                     onCheckedChange={(checked) => {
-                      const newPrices = { ...prices, pdfPage2ShowComparisonTable: checked };
-                      setPrices(newPrices);
-                      savePrices(newPrices);
+                      handleUpdatePdfSettings({ pdfPage2ShowComparisonTable: checked });
                     }}
                   />
                   <Label htmlFor="pdfPage2ShowComparisonTable" className="text-sm">Показывать таблицу сравнения</Label>
@@ -279,9 +271,7 @@ export const SaunaPricingPage = () => {
                     id="pdfPage2ShowPlusCategories"
                     checked={prices.pdfPage2ShowPlusCategories !== false}
                     onCheckedChange={(checked) => {
-                      const newPrices = { ...prices, pdfPage2ShowPlusCategories: checked };
-                      setPrices(newPrices);
-                      savePrices(newPrices);
+                      handleUpdatePdfSettings({ pdfPage2ShowPlusCategories: checked });
                     }}
                   />
                   <Label htmlFor="pdfPage2ShowPlusCategories" className="text-sm">Показывать Plus-категории</Label>
@@ -291,9 +281,7 @@ export const SaunaPricingPage = () => {
                     id="pdfPage2ShowAllOptions"
                     checked={prices.pdfPage2ShowAllOptions !== false}
                     onCheckedChange={(checked) => {
-                      const newPrices = { ...prices, pdfPage2ShowAllOptions: checked };
-                      setPrices(newPrices);
-                      savePrices(newPrices);
+                      handleUpdatePdfSettings({ pdfPage2ShowAllOptions: checked });
                     }}
                   />
                   <Label htmlFor="pdfPage2ShowAllOptions" className="text-sm">Показывать каталог опций</Label>

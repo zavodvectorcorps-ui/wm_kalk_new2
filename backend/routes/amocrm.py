@@ -2231,7 +2231,9 @@ async def upload_calculator_pdf_to_amocrm(
     
     # Auto-link PDF as document in CRM lead (if exists)
     # Remove old КП for this order first, then add new one
-    if final_pdf_url and amocrm_id:
+    # ALWAYS use Cloudinary URL if available; never use proxy URL in CRM documents
+    doc_url = cloudinary_url or final_pdf_url
+    if doc_url and amocrm_id:
         try:
             crm_leads_col = db["sauna_crm_leads"]
             crm_lead = crm_leads_col.find_one({"amocrm_id": amocrm_id}, {"_id": 0})
@@ -2246,7 +2248,7 @@ async def upload_calculator_pdf_to_amocrm(
                     "id": str(uuid_mod.uuid4())[:8],
                     "type": "kp",
                     "name": f"КП {client_name or ''} {order_id}".strip(),
-                    "url": final_pdf_url,
+                    "url": doc_url,
                     "filename": f"KP_{calc_name}_{order_id}.pdf",
                     "uploadedAt": datetime.now(timezone.utc).isoformat(),
                     "orderId": order_id,
