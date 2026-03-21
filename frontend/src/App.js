@@ -151,13 +151,18 @@ const AppContent = () => {
         // Load order by ID for editing or viewing (only if user is logged in)
         const orderId = editOrderId || viewOrderId;
         const endpoint = calcType === 'sauna' ? `/api/sauna/orders/${orderId}` : `/api/orders/${orderId}`;
+        const crmLeadId = params.get('crmLeadId');
         
         fetch(`${API_URL}${endpoint}`)
           .then(res => res.ok ? res.json() : null)
           .then(order => {
             if (order) {
+              // Attach CRM lead ID if passed from CRM page
+              if (crmLeadId) {
+                order._crmLeadId = crmLeadId;
+              }
               setEditingOrder(order);
-              console.log(`Loaded order ${orderId} for ${editOrderId ? 'editing' : 'viewing'}`);
+              console.log(`Loaded order ${orderId} for ${editOrderId ? 'editing' : 'viewing'}${crmLeadId ? ` (CRM lead: ${crmLeadId})` : ''}`);
             } else {
               console.error(`Order ${orderId} not found`);
             }

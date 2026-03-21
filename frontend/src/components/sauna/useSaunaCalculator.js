@@ -224,7 +224,14 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           amocrm_id: editingOrder.amocrm_id,
           amocrm_link: editingOrder.amocrm_link || '',
           amocrm_name: editingOrder.amocrm_name || '',
+          crmLeadId: editingOrder._crmLeadId || '',
         });
+      } else if (editingOrder._crmLeadId) {
+        // Even without amocrm_id, set crmLeadId for CRM link flow
+        setAmocrmData(prev => ({
+          ...(prev || {}),
+          crmLeadId: editingOrder._crmLeadId,
+        }));
       }
       
       toast.info(`${txt.editingOrder}: ${editingOrder.id}`);
@@ -1200,6 +1207,24 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           }
         } catch (e) {
           console.error('Failed to upload PDF to amoCRM:', e);
+        }
+      } else if (amocrmData?.crmLeadId && finalOrderId) {
+        // No amoCRM ID but has CRM lead — upload PDF directly to CRM lead documents
+        try {
+          const formDataUpload = new FormData();
+          formDataUpload.append('file', pdfBlob, `KP_SAUNA_${formData.fullName || 'Klient'}_${finalOrderId}.pdf`);
+          formDataUpload.append('doc_type', 'kp');
+          formDataUpload.append('doc_name', `КП ${formData.fullName || ''} ${finalOrderId}`.trim());
+          
+          const uploadRes = await fetch(`${API_URL}/api/sauna-crm/leads/${amocrmData.crmLeadId}/documents`, {
+            method: 'POST',
+            body: formDataUpload,
+          });
+          if (uploadRes.ok) {
+            toast.success('КП добавлено в карточку CRM');
+          }
+        } catch (e) {
+          console.error('Failed to upload PDF to CRM lead:', e);
         }
       }
 

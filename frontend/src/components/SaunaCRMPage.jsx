@@ -365,7 +365,7 @@ const SaunaCRMPage = () => {
     if (!selectedLead) return;
     const orderId = calcOrder?.id || selectedLead.calculatorOrderId;
     if (orderId) {
-      window.location.href = `/sauna/calculator?edit=${orderId}`;
+      window.location.href = `/sauna/calculator?edit=${orderId}&crmLeadId=${selectedLead.id}`;
     } else {
       toast.error('Нет привязанного заказа из калькулятора');
     }
