@@ -82,42 +82,43 @@ def _extract_placeholders_from_docx(filepath: str) -> list:
     return placeholders
 
 
+DEFAULT_MAPPINGS = {
+    "{{CONTRACT_DATE}}": {"source": "_contract_date", "defaultValue": "", "label": "Дата договора"},
+    "{{CONTRACT_CITY}}": {"source": "_static", "defaultValue": "Warszawie", "label": "Город"},
+    "{{CLIENT_NAME}}": {"source": "clientName", "defaultValue": "...............", "label": "Имя клиента"},
+    "{{CLIENT_ADDRESS}}": {"source": "address", "defaultValue": "...............", "label": "Адрес клиента"},
+    "{{SAUNA_TYPE}}": {"source": "modelName", "defaultValue": "...............", "label": "Тип/модель сауны"},
+    "{{SAUNA_WIDTH}}": {"source": "_calc_width", "defaultValue": "...", "label": "Ширина"},
+    "{{SAUNA_LENGTH}}": {"source": "_calc_length", "defaultValue": "...", "label": "Длина"},
+    "{{SAUNA_VERSION}}": {"source": "_calc_version", "defaultValue": "[wersja gotowa zlozona]", "label": "Версия"},
+    "{{OFFER_NUMBER}}": {"source": "_offer_number", "defaultValue": "...............", "label": "Номер предложения"},
+    "{{TOTAL_PRICE}}": {"source": "totalAmount", "defaultValue": "0", "label": "Общая цена"},
+    "{{DEPOSIT_PERCENT}}": {"source": "_deposit_percent", "defaultValue": "30", "label": "Процент задатка"},
+    "{{DEPOSIT_AMOUNT}}": {"source": "advancePayment", "defaultValue": "0", "label": "Сумма задатка"},
+    "{{DELIVERY_PAYER}}": {"source": "_static", "defaultValue": "Sprzedawcy", "label": "Плательщик доставки"},
+}
+
+
 async def _get_settings() -> dict:
     settings = await db[SETTINGS_COLLECTION].find_one({"type": "contract_template"}, {"_id": 0})
+
+    # Get template placeholders
+    template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILENAME)
+    placeholders = []
+    if os.path.exists(template_path):
+        placeholders = _extract_placeholders_from_docx(template_path)
+
     if not settings:
-        # Generate defaults from current template
-        template_path = os.path.join(TEMPLATE_DIR, TEMPLATE_FILENAME)
-        placeholders = []
-        if os.path.exists(template_path):
-            placeholders = _extract_placeholders_from_docx(template_path)
-
-        default_mappings = {
-            "{{CONTRACT_DATE}}": {"source": "_contract_date", "defaultValue": "", "label": "Дата договора"},
-            "{{CONTRACT_CITY}}": {"source": "_static", "defaultValue": "Warszawie", "label": "Город"},
-            "{{CLIENT_NAME}}": {"source": "clientName", "defaultValue": "...............", "label": "Имя клиента"},
-            "{{CLIENT_ADDRESS}}": {"source": "address", "defaultValue": "...............", "label": "Адрес клиента"},
-            "{{SAUNA_TYPE}}": {"source": "modelName", "defaultValue": "...............", "label": "Тип/модель сауны"},
-            "{{SAUNA_WIDTH}}": {"source": "_calc_width", "defaultValue": "...", "label": "Ширина"},
-            "{{SAUNA_LENGTH}}": {"source": "_calc_length", "defaultValue": "...", "label": "Длина"},
-            "{{SAUNA_VERSION}}": {"source": "_calc_version", "defaultValue": "[wersja gotowa zlozona]", "label": "Версия"},
-            "{{OFFER_NUMBER}}": {"source": "_offer_number", "defaultValue": "...............", "label": "Номер предложения"},
-            "{{TOTAL_PRICE}}": {"source": "totalAmount", "defaultValue": "0", "label": "Общая цена"},
-            "{{DEPOSIT_PERCENT}}": {"source": "_deposit_percent", "defaultValue": "30", "label": "Процент задатка"},
-            "{{DEPOSIT_AMOUNT}}": {"source": "advancePayment", "defaultValue": "0", "label": "Сумма задатка"},
-            "{{DELIVERY_PAYER}}": {"source": "_static", "defaultValue": "Sprzedawcy", "label": "Плательщик доставки"},
-        }
-
+        # First time — create defaults
         mappings = []
         for ph in placeholders:
-            if ph in default_mappings:
-                m = default_mappings[ph]
+            if ph in DEFAULT_MAPPINGS:
+                m = DEFAULT_MAPPINGS[ph]
                 mappings.append({"placeholder": ph, **m})
             else:
                 mappings.append({
-                    "placeholder": ph,
-                    "source": "_static",
-                    "defaultValue": "",
-                    "label": ph.strip("{}")
+                    "placeholder": ph, "source": "_static",
+                    "defaultValue": "", "label": ph.strip("{}")
                 })
 
         settings = {
@@ -129,6 +130,28 @@ async def _get_settings() -> dict:
             "placeholders": placeholders
         }
         await db[SETTINGS_COLLECTION].insert_one({**settings})
+    else:
+        # Existing settings — ensure ALL template placeholders are covered
+        existing_phs = {m["placeholder"] for m in settings.get("mappings", [])}
+        missing = [ph for ph in placeholders if ph not in existing_phs]
+        if missing:
+            new_mappings = list(settings.get("mappings", []))
+            for ph in missing:
+                if ph in DEFAULT_MAPPINGS:
+                    new_mappings.append({"placeholder": ph, **DEFAULT_MAPPINGS[ph]})
+                else:
+                    new_mappings.append({
+                        "placeholder": ph, "source": "_static",
+                        "defaultValue": "", "label": ph.strip("{}")
+                    })
+            settings["mappings"] = new_mappings
+            await db[SETTINGS_COLLECTION].update_one(
+                {"type": "contract_template"},
+                {"$set": {"mappings": new_mappings, "placeholders": placeholders}}
+            )
+        settings["placeholders"] = placeholders
+
+    return settings
 
     return settings
 
@@ -552,26 +575,30 @@ def _remove_trailing_images(doc):
             zalacznik_idx = i
 
     if zalacznik_idx < 0:
+        logger.info("No 'załącznik' found in document - skipping image removal")
         return
 
-    # Remove all paragraphs after the załącznik that contain only images
+    logger.info(f"Found 'załącznik' at paragraph {zalacznik_idx}: '{doc.paragraphs[zalacznik_idx].text[:50]}'")
+
+    # Remove all paragraphs after the załącznik that contain only images or are empty
     body = doc.element.body
     paras_to_remove = []
     for i in range(len(doc.paragraphs) - 1, zalacznik_idx, -1):
         para = doc.paragraphs[i]
-        # Check if paragraph contains only images or is empty
         has_image = bool(para._element.findall(f'.//{qn("wp:inline")}') or para._element.findall(f'.//{qn("wp:anchor")}'))
         is_empty = not para.text.strip()
         if has_image or is_empty:
             paras_to_remove.append(para._element)
         else:
-            break  # Stop when we hit non-image content
+            break
 
+    logger.info(f"Removing {len(paras_to_remove)} trailing image/empty paragraphs")
     for elem in paras_to_remove:
         body.remove(elem)
 
-    # Also remove the "Załącznik" paragraph itself if we're replacing it
+    # Also remove the "Załącznik" paragraph itself
     if zalacznik_idx >= 0 and zalacznik_idx < len(doc.paragraphs):
         para = doc.paragraphs[zalacznik_idx]
         if "załącznik" in para.text.lower() or "zalacznik" in para.text.lower():
+            logger.info(f"Removing 'załącznik' paragraph: '{para.text[:50]}'")
             body.remove(para._element)
