@@ -2144,6 +2144,15 @@ async def upload_calculator_pdf_to_amocrm(
                 cloudinary_url = cloudinary_result["url"]
                 cloudinary_uploaded = True
                 logger.info(f"PDF uploaded to Cloudinary: {cloudinary_url}")
+                # Also store cloudinary_url in calculator_pdfs for easy access
+                try:
+                    pdf_collection = db["calculator_pdfs"]
+                    pdf_collection.update_one(
+                        {"order_id": order_id},
+                        {"$set": {"cloudinary_url": cloudinary_url}}
+                    )
+                except Exception:
+                    pass
                 debug_log["steps"].append({
                     "step": 0,
                     "name": "cloudinary_upload",

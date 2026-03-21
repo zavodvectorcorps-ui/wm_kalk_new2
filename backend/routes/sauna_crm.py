@@ -434,15 +434,27 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
                 )
         
         if pdf_doc:
-            # Get Cloudinary URL if available (check webhook_logs for cloudinary URL)
-            cloudinary_url = None
-            log_entry = sync_db["webhook_logs"].find_one(
-                {"type": "calculator_pdf_upload", "amocrm_id": amocrm_id, "cloudinary_url": {"$exists": True, "$ne": None}},
-                {"_id": 0, "cloudinary_url": 1},
-                sort=[("timestamp", -1)]
-            )
-            if log_entry:
-                cloudinary_url = log_entry.get("cloudinary_url")
+            # Get Cloudinary URL — check calculator_pdfs first, then webhook_logs
+            cloudinary_url = pdf_doc.get("cloudinary_url")
+            
+            if not cloudinary_url:
+                log_entry = sync_db["webhook_logs"].find_one(
+                    {"type": "calculator_pdf_upload", "amocrm_id": amocrm_id, "cloudinary_url": {"$exists": True, "$ne": None}},
+                    {"_id": 0, "cloudinary_url": 1},
+                    sort=[("timestamp", -1)]
+                )
+                if log_entry:
+                    cloudinary_url = log_entry.get("cloudinary_url")
+            
+            if not cloudinary_url and crm_lead.get("calculatorOrderId"):
+                # Also try by order_id
+                log_entry = sync_db["webhook_logs"].find_one(
+                    {"type": "calculator_pdf_upload", "order_id": crm_lead["calculatorOrderId"], "cloudinary_url": {"$exists": True, "$ne": None}},
+                    {"_id": 0, "cloudinary_url": 1},
+                    sort=[("timestamp", -1)]
+                )
+                if log_entry:
+                    cloudinary_url = log_entry.get("cloudinary_url")
             
             if cloudinary_url:
                 # Remove old kp documents to avoid duplicates

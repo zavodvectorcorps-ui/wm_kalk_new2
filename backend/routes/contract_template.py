@@ -503,7 +503,7 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
             doc_name = (doc_item.get("name") or "").lower()
             if doc_type in kp_types or "кп" in doc_name or "kp" in doc_name:
                 kp_url = doc_item.get("url")
-                logger.info(f"Found KP document: type={doc_item.get('type')}, name={doc_item.get('name')}, url={kp_url}")
+                logger.info(f"Found KP document: type={doc_item.get('type')}, url={kp_url}")
                 break
         # Fallback to calculator PDF
         if not kp_url:
@@ -512,32 +512,69 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
                 logger.info(f"Using calculatorPdfUrl: {kp_url}")
 
         if kp_url:
-            logger.info(f"Downloading KP PDF from: {kp_url}")
-            pdf_bytes = await _download_file(kp_url)
+            pdf_bytes = None
+
+            # If URL is a proxy (local API endpoint), get PDF directly from MongoDB
+            calc_order_id = lead.get("calculatorOrderId")
+            if "calculator-pdf/" in kp_url or (kp_url and kp_url.startswith("/api/")):
+                # Extract order_id from proxy URL
+                proxy_order_id = kp_url.rstrip("/").split("/")[-1] if "/" in kp_url else calc_order_id
+                logger.info(f"KP URL is proxy, reading PDF from MongoDB: order_id={proxy_order_id}")
+                pdf_doc = await db["calculator_pdfs"].find_one(
+                    {"order_id": proxy_order_id},
+                    {"pdf_data": 1, "cloudinary_url": 1}
+                )
+                if pdf_doc:
+                    # Prefer cloudinary URL for the lead record, but use binary for contract
+                    if pdf_doc.get("cloudinary_url"):
+                        kp_url = pdf_doc["cloudinary_url"]
+                        logger.info(f"Resolved proxy URL to Cloudinary: {kp_url}")
+                    if pdf_doc.get("pdf_data"):
+                        pdf_bytes = pdf_doc["pdf_data"]
+                        if isinstance(pdf_bytes, bytes):
+                            logger.info(f"Got PDF from MongoDB: {len(pdf_bytes)} bytes")
+                        else:
+                            pdf_bytes = bytes(pdf_bytes)
+                            logger.info(f"Got PDF from MongoDB (converted): {len(pdf_bytes)} bytes")
+                else:
+                    logger.warning(f"PDF not found in calculator_pdfs for order_id={proxy_order_id}")
+
+            # If no binary from MongoDB, try to find in calculator_pdfs by calc order ID
+            if not pdf_bytes and calc_order_id:
+                pdf_doc = await db["calculator_pdfs"].find_one(
+                    {"order_id": calc_order_id},
+                    {"pdf_data": 1, "cloudinary_url": 1}
+                )
+                if pdf_doc and pdf_doc.get("pdf_data"):
+                    pdf_bytes = pdf_doc["pdf_data"]
+                    if not isinstance(pdf_bytes, bytes):
+                        pdf_bytes = bytes(pdf_bytes)
+                    logger.info(f"Got PDF from calculator_pdfs by calc_order_id: {len(pdf_bytes)} bytes")
+                    if pdf_doc.get("cloudinary_url"):
+                        kp_url = pdf_doc["cloudinary_url"]
+
+            # If still no binary, try HTTP download
+            if not pdf_bytes and kp_url and not kp_url.startswith("/api/"):
+                logger.info(f"Downloading KP from: {kp_url}")
+                pdf_bytes = await _download_file(kp_url)
+
             if pdf_bytes:
-                logger.info(f"KP downloaded: {len(pdf_bytes)} bytes, first4={pdf_bytes[:4]}")
+                logger.info(f"Processing KP: {len(pdf_bytes)} bytes, first4={pdf_bytes[:4]}")
                 kp_images = []
 
-                # Check format and convert accordingly
                 if pdf_bytes[:4] == b'%PDF':
-                    # It's a PDF — convert pages to images
                     kp_images = _pdf_to_images(pdf_bytes)
                     logger.info(f"PDF converted to {len(kp_images)} images")
                 elif pdf_bytes[:8] == b'\x89PNG\r\n\x1a\n' or pdf_bytes[:2] == b'\xff\xd8':
-                    # It's PNG or JPEG — use directly
                     from PIL import Image
                     img = Image.open(io.BytesIO(pdf_bytes))
                     kp_images = [(pdf_bytes, img.width, img.height)]
                     logger.info(f"KP is image: {img.width}x{img.height}")
                 else:
-                    # Try as PDF anyway (some servers don't set correct headers)
-                    logger.info(f"Unknown format (first bytes: {pdf_bytes[:8]}), trying as PDF")
+                    logger.info("Unknown format, trying as PDF")
                     kp_images = _pdf_to_images(pdf_bytes)
-                    if not kp_images:
-                        logger.warning("Could not parse KP as PDF or image")
 
                 if kp_images:
-                    # Add page break before KP
                     from docx.enum.text import WD_BREAK
                     bp = doc.add_paragraph()
                     run = bp.add_run()
@@ -563,7 +600,7 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
                         p.add_run().add_picture(img_stream, width=img_width)
                     logger.info(f"Added {len(kp_images)} KP pages to contract")
             else:
-                logger.warning(f"Failed to download KP PDF from {kp_url}")
+                logger.warning("No PDF data obtained for KP")
         else:
             logger.info("No KP URL found in lead documents or calculatorPdfUrl")
 
