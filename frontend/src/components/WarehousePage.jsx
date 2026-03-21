@@ -98,6 +98,254 @@ const KanbanSwipe = ({ columns, children, testIdPrefix }) => {
   );
 };
 
+// Trip statuses matching logistics
+const TRIP_STATUSES = {
+  planned: { label: 'Готов к отправке', color: 'bg-yellow-100 text-yellow-700', icon: Package, bgLight: 'bg-yellow-50/50', textColor: 'text-yellow-700' },
+  in_transit: { label: 'В пути', color: 'bg-blue-100 text-blue-700', icon: Truck, bgLight: 'bg-blue-50/50', textColor: 'text-blue-700' },
+  delivered: { label: 'Доставлен', color: 'bg-green-100 text-green-700', icon: CheckCircle, bgLight: 'bg-green-50/50', textColor: 'text-green-700' }
+};
+
+const ORDER_IN_TRIP_STATUSES = {
+  pending: { label: 'Ожидает', color: 'bg-gray-100 text-gray-700' },
+  preparing: { label: 'Готовится', color: 'bg-yellow-100 text-yellow-700' },
+  delivering: { label: 'В пути', color: 'bg-blue-100 text-blue-700' },
+  delivered: { label: 'Доставлен', color: 'bg-green-100 text-green-700' },
+  cancelled: { label: 'Отменён', color: 'bg-red-100 text-red-700' }
+};
+
+// Trips section — read-only view with status stages like logistics
+const TripsSection = ({ trips, fetchTrips }) => {
+  const [statusFilter, setStatusFilter] = useState('planned');
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredTrips = trips.filter(t => {
+    const matchesStatus = (t.status || 'planned') === statusFilter;
+    const matchesSearch = !searchTerm || 
+      (t.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.driverName || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  // Count trips per status
+  const statusCounts = {};
+  for (const key of Object.keys(TRIP_STATUSES)) {
+    statusCounts[key] = trips.filter(t => (t.status || 'planned') === key).length;
+  }
+
+  return (
+    <div data-testid="trips-section">
+      {/* Header with search and refresh */}
+      <div className="flex flex-wrap gap-3 mb-4 items-center">
+        <div className="flex-1 min-w-[200px] relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Поиск по названию или водителю..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+            data-testid="trips-search"
+          />
+        </div>
+        <Button variant="outline" onClick={fetchTrips} data-testid="refresh-trips-btn">
+          <RefreshCw className="w-4 h-4 mr-2" />Обновить
+        </Button>
+      </div>
+
+      {/* Status filter tabs */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {Object.entries(TRIP_STATUSES).map(([key, val]) => {
+          const Icon = val.icon;
+          return (
+            <Button
+              key={key}
+              size="sm"
+              variant={statusFilter === key ? 'default' : 'outline'}
+              onClick={() => { setStatusFilter(key); setSelectedTrip(null); }}
+              className={`${statusFilter === key ? '' : val.color}`}
+              data-testid={`trip-status-filter-${key}`}
+            >
+              <Icon className="w-3.5 h-3.5 mr-1.5" />
+              {val.label}
+              <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">
+                {statusCounts[key]}
+              </Badge>
+            </Button>
+          );
+        })}
+      </div>
+
+      {/* Trips grid: list + detail */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Trip list */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Truck className="w-4 h-4 text-teal-600" />
+                Рейсы
+                <Badge variant="secondary" className="ml-auto">{filteredTrips.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3">
+              {filteredTrips.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-8">
+                  Нет рейсов в статусе "{TRIP_STATUSES[statusFilter]?.label}"
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {filteredTrips.map(trip => {
+                    const isActive = selectedTrip?.id === trip.id;
+                    const section = SECTION_BADGES[trip.section];
+                    return (
+                      <div
+                        key={trip.id}
+                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                          isActive ? 'bg-teal-50 border-teal-300 ring-1 ring-teal-200' : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => setSelectedTrip(trip)}
+                        data-testid={`warehouse-trip-card-${trip.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{trip.name || `Рейс ${trip.id?.slice(-6)}`}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {section && (
+                                <Badge className={`${section.color} text-white text-[10px] px-1.5 py-0`}>{section.label}</Badge>
+                              )}
+                              <span className="text-xs text-muted-foreground">{trip.orderCount || trip.orderIds?.length || 0} заказов</span>
+                            </div>
+                            {trip.driverName && (
+                              <p className="text-xs text-blue-600 mt-1">{trip.driverName}</p>
+                            )}
+                          </div>
+                          <Badge variant="outline" className={`text-[10px] shrink-0 ${TRIP_STATUSES[trip.status || 'planned']?.color}`}>
+                            {TRIP_STATUSES[trip.status || 'planned']?.label}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Trip detail */}
+        <div className="lg:col-span-2">
+          {selectedTrip ? (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Truck className="w-5 h-5 text-teal-600" />
+                      {selectedTrip.name || `Рейс ${selectedTrip.id?.slice(-6)}`}
+                    </CardTitle>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {SECTION_BADGES[selectedTrip.section] && (
+                        <Badge className={`${SECTION_BADGES[selectedTrip.section].color} text-white text-xs`}>
+                          {SECTION_BADGES[selectedTrip.section].label}
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className={TRIP_STATUSES[selectedTrip.status || 'planned']?.color}>
+                        {TRIP_STATUSES[selectedTrip.status || 'planned']?.label}
+                      </Badge>
+                      {selectedTrip.driverName && (
+                        <Badge variant="outline" className="text-blue-600 border-blue-200">
+                          {selectedTrip.driverName}
+                        </Badge>
+                      )}
+                      {selectedTrip.departureDate && (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {selectedTrip.departureDate}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="text-sm">
+                    {selectedTrip.orderCount || selectedTrip.orderIds?.length || 0} заказов
+                  </Badge>
+                </div>
+
+                {/* Route info if available */}
+                {(selectedTrip.totalDistance || selectedTrip.totalDuration) && (
+                  <div className="flex gap-4 mt-3 text-sm text-muted-foreground">
+                    {selectedTrip.totalDistance && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {(selectedTrip.totalDistance / 1000).toFixed(1)} км
+                      </span>
+                    )}
+                    {selectedTrip.totalDuration && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {Math.floor(selectedTrip.totalDuration / 3600)} ч {Math.floor((selectedTrip.totalDuration % 3600) / 60)} мин
+                      </span>
+                    )}
+                  </div>
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="border-t pt-4">
+                  <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Заказы ({selectedTrip.orders?.length || 0})
+                  </h4>
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                    {(selectedTrip.orders || []).map((order, idx) => {
+                      const section = SECTION_BADGES[order.section];
+                      const orderStatus = selectedTrip.orderStatuses?.[order.id];
+                      const statusInfo = ORDER_IN_TRIP_STATUSES[orderStatus] || ORDER_IN_TRIP_STATUSES.pending;
+                      return (
+                        <div
+                          key={order.id || idx}
+                          className="p-3 rounded-lg border bg-muted/30 flex items-center gap-3"
+                          data-testid={`trip-order-${order.id}`}
+                        >
+                          <span className="text-xs font-bold text-muted-foreground w-6 text-center shrink-0">{idx + 1}</span>
+                          <Badge className={`${section?.color || 'bg-gray-500'} text-white text-[10px] shrink-0`}>
+                            {section?.label || order.section || '?'}
+                          </Badge>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {order.clientName || order.nazwa_klienta || order.client_name || order.id}
+                            </p>
+                            {order.deliveryAddress && (
+                              <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                                <MapPin className="w-3 h-3 shrink-0" />{order.deliveryAddress}
+                              </p>
+                            )}
+                          </div>
+                          <Badge variant="outline" className={`text-[10px] shrink-0 ${statusInfo.color}`}>
+                            {statusInfo.label}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                    {(!selectedTrip.orders || selectedTrip.orders.length === 0) && (
+                      <p className="text-center text-muted-foreground py-6">Нет заказов в рейсе</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+                <p className="text-muted-foreground">Выберите рейс для просмотра деталей</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const WarehousePage = ({ onBack }) => {
   const { isStorekeeper } = useAuth();
   const canDelete = !isStorekeeper(); // storekeeper cannot delete
@@ -1071,18 +1319,10 @@ const WarehousePage = ({ onBack }) => {
             </TabsContent>
           )}
 
-          {/* Trips Tab */}
+          {/* Trips Tab — logistics-style with status stages */}
           {sectionsEnabled.trips && (
             <TabsContent value="trips">
-              <div className="mb-4 flex justify-between items-center">
-                <p className="text-muted-foreground">Просмотр сформированных рейсов</p>
-                <Button variant="outline" onClick={fetchTrips}><RefreshCw className="w-4 h-4 mr-2" />Обновить</Button>
-              </div>
-              {trips.length > 0 ? (
-                <div className="space-y-4">{trips.map(trip => <TripCard key={trip.id} trip={trip} />)}</div>
-              ) : (
-                <Card><CardContent className="p-12 text-center"><Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" /><p className="text-muted-foreground">Нет рейсов</p></CardContent></Card>
-              )}
+              <TripsSection trips={trips} fetchTrips={fetchTrips} />
             </TabsContent>
           )}
         </Tabs>
