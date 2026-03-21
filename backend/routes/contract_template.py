@@ -382,14 +382,17 @@ def _fmt_amount(val) -> str:
 
 
 async def _download_file(url: str) -> bytes | None:
-    """Download a file from URL."""
-    try:
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-            resp = await client.get(url)
-            if resp.status_code == 200:
-                return resp.content
-    except Exception as e:
-        logger.error(f"Failed to download {url}: {e}")
+    """Download a file from URL with retry."""
+    for attempt in range(2):
+        try:
+            async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
+                resp = await client.get(url)
+                logger.info(f"Download {url}: status={resp.status_code}, size={len(resp.content)}")
+                if resp.status_code == 200 and len(resp.content) > 0:
+                    return resp.content
+                logger.warning(f"Download failed: status={resp.status_code}")
+        except Exception as e:
+            logger.error(f"Download attempt {attempt+1} failed for {url}: {e}")
     return None
 
 
@@ -513,40 +516,52 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
             pdf_bytes = await _download_file(kp_url)
             if pdf_bytes:
                 logger.info(f"KP downloaded: {len(pdf_bytes)} bytes, first4={pdf_bytes[:4]}")
-                # Check if it's actually a PDF
-                if pdf_bytes[:4] != b'%PDF':
-                    logger.warning(f"Downloaded file is not a PDF (starts with: {pdf_bytes[:20]})")
+                kp_images = []
+
+                # Check format and convert accordingly
+                if pdf_bytes[:4] == b'%PDF':
+                    # It's a PDF — convert pages to images
+                    kp_images = _pdf_to_images(pdf_bytes)
+                    logger.info(f"PDF converted to {len(kp_images)} images")
+                elif pdf_bytes[:8] == b'\x89PNG\r\n\x1a\n' or pdf_bytes[:2] == b'\xff\xd8':
+                    # It's PNG or JPEG — use directly
+                    from PIL import Image
+                    img = Image.open(io.BytesIO(pdf_bytes))
+                    kp_images = [(pdf_bytes, img.width, img.height)]
+                    logger.info(f"KP is image: {img.width}x{img.height}")
                 else:
-                    images = _pdf_to_images(pdf_bytes)
-                    logger.info(f"PDF converted to {len(images)} images")
-                    if images:
-                        # Add page break before KP
-                        from docx.enum.text import WD_BREAK
-                        bp = doc.add_paragraph()
-                        run = bp.add_run()
-                        run.add_break(WD_BREAK.PAGE)
+                    # Try as PDF anyway (some servers don't set correct headers)
+                    logger.info(f"Unknown format (first bytes: {pdf_bytes[:8]}), trying as PDF")
+                    kp_images = _pdf_to_images(pdf_bytes)
+                    if not kp_images:
+                        logger.warning("Could not parse KP as PDF or image")
 
-                        header_para = doc.add_paragraph()
-                        header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        header_run = header_para.add_run("Załącznik nr 1 – Specyfikacja")
-                        header_run.bold = True
-                        header_run.font.size = Pt(14)
+                if kp_images:
+                    # Add page break before KP
+                    from docx.enum.text import WD_BREAK
+                    bp = doc.add_paragraph()
+                    run = bp.add_run()
+                    run.add_break(WD_BREAK.PAGE)
 
-                        for img_bytes, w, h in images:
-                            img_stream = io.BytesIO(img_bytes)
-                            max_width = Inches(6.5)
-                            aspect = h / w
-                            img_width = max_width
-                            img_height = Emu(int(img_width * aspect))
-                            if img_height > Inches(9):
-                                img_height = Inches(9)
-                                img_width = Emu(int(img_height / aspect))
-                            p = doc.add_paragraph()
-                            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                            p.add_run().add_picture(img_stream, width=img_width)
-                        logger.info(f"Added {len(images)} KP pages to contract")
-                    else:
-                        logger.warning("No images extracted from KP PDF")
+                    header_para = doc.add_paragraph()
+                    header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    header_run = header_para.add_run("Załącznik nr 1 – Specyfikacja")
+                    header_run.bold = True
+                    header_run.font.size = Pt(14)
+
+                    for img_bytes, w, h in kp_images:
+                        img_stream = io.BytesIO(img_bytes)
+                        max_width = Inches(6.5)
+                        aspect = h / w
+                        img_width = max_width
+                        img_height = Emu(int(img_width * aspect))
+                        if img_height > Inches(9):
+                            img_height = Inches(9)
+                            img_width = Emu(int(img_height / aspect))
+                        p = doc.add_paragraph()
+                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        p.add_run().add_picture(img_stream, width=img_width)
+                    logger.info(f"Added {len(kp_images)} KP pages to contract")
             else:
                 logger.warning(f"Failed to download KP PDF from {kp_url}")
         else:
