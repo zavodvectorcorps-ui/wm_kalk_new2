@@ -1,52 +1,67 @@
 <analysis>**original_problem_statement:**
-The user's initial request was to build a Modular Sauna Configurator. The project has since expanded to include comprehensive CRM, production management, and logistics features.
+The user reported a series of issues related to the recently implemented features:
 
-The most recent user requests from this session were:
-1.  **5-Point CRM & Sales Enhancement**: A large feature request to add manager-specific CRM access, date filters, custom lead names from amoCRM fields, ensure the calendar uses the readiness date, and fix sales sync logic.
-2.  **Backup System Audit**: A request to verify that the automatic backup system was capturing all the new data structures and collections added to the application.
-3.  **User Experience Bug Fixes**: The user reported that the changes from the 5-point enhancement were not visible, which led to a series of fixes related to UI visibility, access control, and data display formats.
-4.  **Advanced CRM Configuration**: A request to implement a user-mapping system (linking app users to amoCRM user names), allow specifying custom amoCRM field IDs for client/model names in settings, and add column-level date sorting.
-5.  **Contract Generation**: A request to generate a  contract from a template, automatically filling in data from a specific CRM lead, and attaching the existing commercial proposal (КП) PDF.
-6.  **New User Role**: A request to add a Storekeeper (Кладовщик) role with specific, limited permissions.
+1.  **Contract Generation Bugs (Recurring):**
+    *   The primary issue was that the Commercial Proposal (КП) PDF was not being attached to the generated contract document. This manifested in several ways:
+        *   An  was crashing the backend during generation.
+        *   The system was using an incorrect or expired test URL for the КП.
+        *   User-uploaded contract templates were not being saved persistently, reverting to the default after a server restart.
+        *   The generation process was too slow, causing  or  errors, especially when the КП URL was an internal proxy link.
+    *   The link to the КП saved in the amoCRM lead card was an internal proxy URL () instead of the direct, downloadable Cloudinary URL, making it inaccessible from outside the application.
+
+2.  **PDF Settings Bug:**
+    *   In the sauna pricing settings, the toggle to disable the second page of the generated КП PDF was not saving its state.
+
+3.  **Storekeeper Role Bugs:**
+    *   The Settings button in the Warehouse module was visible to the Storekeeper role, which it shouldn't be.
+    *   The Logistics page was not scrollable for the Storekeeper due to an overly broad  CSS class.
+
+4.  **New Feature Requests:**
+    *   Make the Warehouse Kanban board mobile-friendly with a horizontal swipe-to-navigate interface (one column per screen).
+    *   Display the trips from the Logistics module in a new read-only tab within the Warehouse module, so the storekeeper can see both dovoz (local deliveries) and main trips in one place.
 
 **User's preferred language**: Russian
 
 **what currently exists?**
-A comprehensive full-stack application for a sauna business, built with React, FastAPI, and MongoDB. The application features several key modules: Sauna Calculator, Sauna Mini-CRM, Sauna Production (Kanban, Calendar, List), Warehouse, Sales, and Logistics.
-
-In this session, a major 5-point enhancement for the CRM and Sales modules was completed. The backup system was audited and significantly improved to include over a dozen previously missed data collections. Advanced CRM configuration options were added for user mapping and custom data fields. A DOCX contract generation feature was implemented. Finally, a new Storekeeper user role with granular permissions was created.
+The application is a full-stack (React/FastAPI/MongoDB) system for managing a sauna business. In this session, the agent has performed several critical bug fixes and implemented new features:
+- **Contract Generation:** The entire workflow has been overhauled. It now persistently stores custom templates in Cloudinary. The logic for attaching the КП is robust, handling both direct Cloudinary URLs and internal proxy URLs (by fetching data directly from MongoDB to prevent timeouts). Placeholder replacement and image handling have been fixed.
+- **PDF Settings:** The bug preventing the disable page 2 setting from being saved has been resolved by fixing a missing function export in the frontend state management hook.
+- **Storekeeper Role:** The reported bugs have been fixed. The settings button is now hidden, and the Logistics page is fully scrollable, with only interactive elements being disabled for the role.
+- **Warehouse UI:** The module now features a mobile-responsive, swipeable Kanban view and a new Trips tab that displays read-only data from the Logistics module, complete with status filters and a details view.
 
 **Last working item**:
--   **Last item agent was working**: Implementing the new Storekeeper (Кладовщик) role with specific access rights:
-    1.  Full access to the Warehouse module but without the ability to delete orders.
-    2.  Read-only access to the Logistics module, for viewing trips and orders without modification capabilities.
+-   **Last item agent was working**: The agent addressed two critical, related bugs in the contract generation and CRM integration process.
+    1.  **504 Timeout & 500 Errors:** The root cause was identified as the backend making a slow, self-referential HTTP request when the КП URL was a proxy link. The fix was to detect these proxy URLs and fetch the PDF data directly from the MongoDB  collection, avoiding the HTTP call entirely and preventing timeouts.
+    2.  **Incorrect KP URL in CRM:** The system was saving the internal proxy URL to the amoCRM lead card. The agent modified the  route to ensure the direct  is always retrieved and saved, making the link accessible from the CRM.
 -   **Status**: USER VERIFICATION PENDING
 -   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: both
+-   **Which testing method agent to use?**: manual testing by curl
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Verify 'Storekeeper' role implementation (P0 - HIGHEST)**
+-   **Issue 1: Verify fixes for contract generation and PDF settings (P0 - HIGHEST)**
 -   **Issue 2: Incorrect automatic variant application in configurator (P1 - RECURRING)**
 -   **Issue 3: Unstable user login sessions & Deployment timeouts (P2 - RECURRING)**
+-   **Issue 4: User verification of mobile Kanban swipe (P2)**
 
 **Issues Detail**:
--   **Issue 1: Verify 'Storekeeper' role implementation**
-    -   **Attempted fixes**: The role was implemented across the stack: backend ( updated with 'storekeeper' role), frontend context (), and components (, , ) were modified to enforce permissions. The agent created a test user (/) and confirmed the correct landing page view.
-    -   **Next debug checklist**:
-        1.  Log in as the  user.
-        2.  Navigate to the **Warehouse** page. Confirm that the Delete button is not visible on order cards.
-        3.  Navigate to the **Logistics** page. Confirm that all action/editing buttons and controls are hidden or disabled (e.g., Create Trip, Create Order, Delete Order, status change dropdowns, edit fields).
-    -   **Why fix this issue and what will be achieved with the fix?**: To confirm the new user role works exactly as requested by the user and provides the correct level of access.
+-   **Issue 1: Verify fixes for contract generation and PDF settings**
+    -   **Attempted fixes**: The agent fixed multiple bugs: an  crashing the backend, incorrect logic in the state management hook for PDF settings (), and a complex issue where proxy URLs for КПs caused timeouts. The timeout was fixed by fetching PDF data directly from MongoDB instead of making an HTTP request. The URL saved to the CRM was also corrected.
+    -   **Next debug checklist**: The user needs to test the following scenarios:
+        1.  Generate a contract for a lead where the КП link is a direct Cloudinary URL.
+        2.  Generate a contract for a lead where the КП link is a proxy URL ().
+        3.  Verify the generated document has the КП attached correctly in both cases.
+        4.  Verify that toggling the Enable Page 2 setting in the Sauna Pricing page works and affects the generated КП.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical business function. The fix will ensure reliable contract generation without timeouts and that all links in the external CRM are valid.
     -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: N
+    -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Both
     -   **Blocked on other issue**: None
 
 -   **Issue 2: Incorrect automatic variant application in configurator**
-    -   **Attempted fixes**: None in this session. The issue lies within .
-    -   **Next debug checklist**: Deeply investigate the state management and conditional logic within  that determines which product variants are automatically selected based on user choices.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical bug affecting the core product configuration functionality.
+    -   **Attempted fixes**: None in this session. This issue is from the previous handoff.
+    -   **Next debug checklist**: Deeply investigate state management and conditional logic in .
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical bug in the core product configuration functionality.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Frontend
@@ -57,6 +72,15 @@ In this session, a major 5-point enhancement for the CRM and Sales modules was c
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: Backend
+    -   **Blocked on other issue**: None
+
+-   **Issue 4: User verification of mobile Kanban swipe**
+    -   **Attempted fixes**: The feature was implemented using CSS scroll-snap. The agent's screenshot tool could not simulate the mobile viewport correctly to verify the swipe behavior visually.
+    -   **Next debug checklist**: Ask the user to test the Warehouse page on a real mobile device to confirm that the Kanban boards for Довозы and Заказы are swipeable.
+    -   **Why fix this issue and what will be achieved with the fix?**: To confirm the new mobile UI enhancement works as intended.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Frontend
     -   **Blocked on other issue**: None
 
 **In progress Task List**:
@@ -71,43 +95,35 @@ In this session, a major 5-point enhancement for the CRM and Sales modules was c
 -   **Upcoming Tasks**:
     -   **P1**: Finalize and test the Save layout to order feature end-to-end.
 -   **Future Tasks**:
-    -   **P1**: Refactor the monolithic  and  files.  has also become very large and could benefit from refactoring.
+    -   **P1**: Refactor the monolithic  and  files.  and  have also become very large and could benefit from refactoring.
     -   **P2**: Add a UI for importing/restoring a project backup from a file.
     -   **P2**: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
--   **Feature: 5-Point CRM/Sales Enhancement**: Implemented manager-specific access, date filters, custom lead names, correct calendar date source, and improved sales sync logic.
--   **Feature: Advanced CRM Configuration**: Added a UI in User Management to map app users to amoCRM usernames. Added a UI in CRM Settings to specify custom amoCRM field IDs for Client Name and Model Name.
--   **Feature: DOCX Contract Generation**: Implemented a new backend endpoint () using  to create a contract from a template, fill it with lead data, and upload it to Cloudinary. Added a Create Contract button to the CRM lead modal.
--   **Feature: Storekeeper Role**: Created a new user role with read-only access to Logistics and no-delete access to the Warehouse.
--   **Bug Fix: Backup System Overhaul**: Audited and fixed the backup system to include ~15 previously missed collections, including critical ones like , , and various settings collections.
--   **Bug Fix: Per-Column Sorting**: Fixed a bug where date sorting was global; it's now handled by individual sort buttons on each Kanban column header.
--   **Bug Fix: Custom Lead Naming**: Fixed the amoCRM sync logic to prioritize the custom field IDs from settings for populating lead names.
--   **Bug Fix: UI Visibility & Access**: Fixed issues where managers couldn't see the CRM tab or certain UI elements due to incorrect  checks, replacing them with .
-
-**Earlier issues found/mentioned but not fixed**
--   The critical bug regarding automatic variant application in .
--   The recurring platform issues: unstable user login sessions and deployment timeouts.
-
-**Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Unstable user login sessions.
--   **Recurrence count**: High.
--   **Status**: NOT STARTED.
+-   **Feature: Mobile-First Kanban**: Implemented a swipeable, mobile-friendly Kanban view for the Warehouse module using CSS scroll-snap.
+-   **Feature: Warehouse Trips View**: Added a new Trips tab to the Warehouse page that displays a read-only view of trips from the Logistics module, with status filters and a details panel.
+-   **Bug Fix (Multi-part): Contract Generation & KP Attachment**:
+    -   **Resolved 504 Timeouts**: Implemented logic to fetch PDF data for proxy URLs directly from MongoDB, bypassing slow internal HTTP requests.
+    -   **Fixed Invalid CRM Links**: Ensured that the direct Cloudinary URL for the КП is always saved to the amoCRM lead, not the internal proxy URL.
+    -   **Made Templates Persistent**: Modified the backend to save user-uploaded contract templates to Cloudinary and use them for generation.
+    -   **Fixed PDF Settings**: Resolved a bug in the Sauna Pricing UI where PDF settings were not being saved due to a missing function export in a React hook.
+-   **Bug Fix: Storekeeper Role Permissions**:
+    -   Hid the Settings button in the Warehouse for the Storekeeper role.
+    -   Fixed a scrolling issue on the Logistics page for the Storekeeper by applying more granular CSS rules.
 
 **Code Architecture**
-
+pointer-events-nonehandleUpdatePdfSettingsscrollbar-hide
 
 **Key Technical Concepts**
--   **Role-Based Access Control (RBAC)**: Implemented a new 'storekeeper' role with fine-grained permissions (read-only, no-delete) affecting multiple frontend components by adding a  prop and conditional rendering.
--   **Dynamic Document Generation (DOCX)**: Used the  library to parse a  template, replace  tags with live data from MongoDB, and serve the generated file via a static route after uploading to Cloudinary.
--   **Complex Data Backup/Restore**: Systematically identified and added over a dozen missing MongoDB collections to the existing backup/restore scripts in , ensuring data integrity.
--   **Per-Column Sorting**: Refactored frontend state to manage sort order (/) for each Kanban column independently, triggered by buttons in each column's header.
--   **Configurable Data Mapping**: Implemented a system allowing admins to map internal data fields (like ) to specific custom field IDs from an external CRM (amoCRM) via a settings UI, which the backend then uses during data synchronization.
+-   **Timeout Prevention via Direct DB Access**: The core fix for the 504 errors was to avoid an anti-pattern of the backend making an HTTP request to itself. When an internal proxy URL was detected, the code now fetches the required binary data directly from MongoDB.
+-   **Persistent File Storage**: User-uploaded templates are now stored in Cloudinary, making them persistent across deployments, instead of relying on the container's ephemeral filesystem.
+-   **Responsive Mobile UI (CSS Scroll Snap)**: The Warehouse Kanban was made mobile-friendly by creating a horizontal scroll container with  to allow users to swipe between columns.
+-   **Granular CSS for Permissions**: The  issue was resolved by replacing a single class on a container with more specific  attributes and  Tailwind utilities on child elements, preserving parent scroll functionality.
+-   **Component Abstraction**: New features (Trips View, Swipeable Kanban) were encapsulated into their own React components (, ) before being integrated into the larger .
 
 **key DB schema**
--   **users**: Added . The  enum now includes .
--   **sauna_crm_settings**: Added  and .
--   **sauna_crm_leads**: The  array now stores objects for generated contracts ().
+-   **calculator_pdfs**: This collection is now the definitive source for KP PDF data, including the  (binary) and the . The system now correctly populates the  on creation.
+-   **sauna_crm_settings**: The  document now stores a  field pointing to the custom template in Cloudinary.
 
 **All files of reference**
 -   
@@ -117,66 +133,60 @@ In this session, a major 5-point enhancement for the CRM and Sales modules was c
 -   
 -   
 -   
--   
--   
--   
--   
 
 **Areas that need refactoring**:
--   : **URGENT**. Source of the main P1 bug.
--   : This file is now over 2700 lines and has complex state management. The  logic was added on top, making it a prime candidate for being broken down into smaller components.
--   : Remains very large and could be broken down.
+-    is now over 3200 lines and is extremely difficult to maintain. It is the source of many bugs and should be the top refactoring priority.
+-    and  are both very large and contain complex state. They should be broken down into smaller, more manageable components.
 
 **key api endpoints**
--   : **New endpoint** to generate a DOCX contract, upload it to Cloudinary, and link it to the lead.
--   : **New static route** to download generated contracts.
--   : Logic updated to filter leads based on the logged-in manager's .
--   : Sync logic updated to use custom field IDs from settings to populate  and .
--   , : Updated to handle the  field and the  role.
--   : Response updated to include the user's .
--   : Response updated to include ~15 new collections.
+-   : Logic was significantly enhanced to handle proxy URLs by fetching from the DB directly, preventing timeouts.
+-   : Logic was updated to ensure the  is saved to the  collection for future reference.
+-   : Now uploads the template to Cloudinary and saves the URL in the database.
+-   : Now correctly handles updates to the PDF settings (, etc.).
 
 **Critical Info for New Agent**
 -   **You MUST respond in Russian.**
--   Your immediate task is to confirm the new Storekeeper role with the user and address any feedback. The credentials are  / .
--   After the role is verified, the highest priority is the long-standing critical bug with automatic variant application in .
--   The Google Sheets integration remains **BLOCKED** on the user. Do not attempt to debug it.
--   The database being used in the preview environment is . Scripts or manual commands must specify this DB to work correctly.
+-   Your immediate task is to confirm with the user that the contract generation and PDF settings bugs are fully resolved. Be prepared for them to test with real data.
+-   The contract generation logic is now much more robust. When a user reports a KP not attaching issue, check the logs for which path was taken: direct Cloudinary download, or proxy URL -> MongoDB fetch.
+-   The mobile Kanban view in the Warehouse needs to be verified on a real mobile device, as the platform's screenshot tool cannot simulate it accurately. Inform the user of this limitation.
+-   After user verification, the highest priority task is tackling the long-standing bug with automatic variant selection in .
 
 **documents and test reports created in this job**
--    (Updated multiple times)
 -   
 -   
 -   
+-   
+-    (Updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **LATEST**: Request to add a Storekeeper role with specific read-only/no-delete permissions.
-2.  Request to generate a  contract from a template with dynamic data.
-3.  Bug report: Sorting was not working on all Kanban columns; Lead name was not being pulled from the correct custom field.
-4.  User confirmed they were okay with the agent's plan for advanced CRM configuration.
-5.  Request for advanced CRM config: user mapping (app user -> amoCRM name), custom field IDs for sync, and column-level date sorting.
-6.  User reported that the initial 5-point enhancement changes were not visible, leading to a debug/fix cycle.
-7.  Request to check the automatic backup system to ensure it's saving all the new CRM/Sales data.
-8.  User gave permission to proceed (продолжай).
-9.  User approved the agent's initial plan.
-10. Agent asked for approval of initial plan.
+1.  **LATEST**: User reports  error and a  error /  when generating contracts, and notes that the KP link saved to the CRM is an internal proxy link, not a downloadable Cloudinary one. (This was the final set of bugs the agent fixed).
+2.  User reports the КП is not attaching to the contract.
+3.  User reports that the uploaded contract template reverts to the original, and the КП is still not attaching.
+4.  User reports the КП is not attaching to the contract.
+5.  User requests a new feature: show Logistics trips in the Warehouse module in a read-only Kanban view.
+6.  User requests a new feature: make the Warehouse Kanban boards swipeable on mobile.
+7.  User reports two bugs with the new 'Storekeeper' role: settings are visible in the warehouse, and the logistics page is not scrollable.
+8.  User reports that the contract generation works, but the attached КП is an old one from the template and not all placeholders are filled. They request the ability to customize the template with custom mappings.
+9.  User reports the 'Storekeeper' implementation is complete (заверши работу с кладовщиком).
+10. Agent asks for confirmation of the initial plan.
 
 **Project Health Check:**
--   **Broken**: The automatic application of conditional variants in  remains the most critical unresolved application bug.
+-   **Broken**: The core bug in  concerning automatic variant selection remains unresolved and is a high-priority issue.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
 -   **Fabric.js**: (v5.3.0) Core of the layout configurator.
 -   **Nano Banana Pro (Gemini)**: For AI image background replacement. Uses **Emergent LLM Key**.
--   **Cloudinary**: For price list images, AI images, and storing generated PDFs/documents.
--   **amoCRM/Kommo**: Primary CRM integration.
+-   **Cloudinary**: Used for storing price list images, AI images, and now also for generated PDFs/documents and user-uploaded contract templates.
+-   **amoCRM/Kommo**: Primary CRM integration. Heavily modified to ensure correct URL saving.
 -   **Telegram**: For notifications.
 -   **Google Maps**: For delivery routes.
 -   **Google Sheets**: For exporting production data. Uses . Requires User-provided Service Account JSON.
--   **python-docx**: (v1.2.0) **New**. Used for generating  contract files from a template.
+-   **python-docx**: (v1.2.0) Used for generating  contract files.
+-   **PyMuPDF**: Used for converting КП PDFs into images for contract attachment.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, used twice. The second run found and fixed a bug in the Edit User dialog.
+-   **Testing agent used after significant changes**: YES, used multiple times to verify storekeeper role fixes and the new Warehouse Trips tab.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
 -   **Known regressions**: None from the work completed in this session.
@@ -186,5 +196,5 @@ In this session, a major 5-point enhancement for the CRM and Sales modules was c
 -   Storekeeper:  / 
 
 **What agent forgot to execute**
--   The critical P1 bug in  has been postponed again in favor of new feature requests.
+-   The critical P1 bug in  has been postponed again in favor of new feature requests and fixes for more recent features.
 -   The recurring platform issues (unstable login, deployment timeouts) were not addressed.</analysis>

@@ -7,7 +7,7 @@ import requests
 import json
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sauna-logistics-mgmt.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://kp-url-verify.preview.emergentagent.com').rstrip('/')
 
 class TestLayoutConfiguratorAPI:
     """Layout Configurator API endpoint tests"""

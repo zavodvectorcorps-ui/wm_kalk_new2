@@ -8,7 +8,7 @@ import os
 from datetime import datetime
 
 # Use environment variable for API URL
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sauna-logistics-mgmt.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://kp-url-verify.preview.emergentagent.com')
 
 
 class TestOrderAssignment:

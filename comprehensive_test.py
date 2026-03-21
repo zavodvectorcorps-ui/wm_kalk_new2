@@ -7,7 +7,7 @@ Tests the specific scenarios mentioned in the review request
 import requests
 import json
 
-BACKEND_URL = "https://sauna-logistics-mgmt.preview.emergentagent.com/api"
+BACKEND_URL = "https://kp-url-verify.preview.emergentagent.com/api"
 
 def test_custom_category_flow():
     """Test the complete custom category creation flow as specified in review request"""

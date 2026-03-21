@@ -22,7 +22,7 @@
   "test_credentials": {
     "admin": {"username": "admin", "password": "admin123"}
   },
-  "seed_data_creation": "Using existing test data: Orange test image uploaded to variant 'Z zabudową' with URL: https://sauna-logistics-mgmt.preview.emergentagent.com/api/uploads/0576304fd8214791a19bc29d7d91b510.jpg",
+  "seed_data_creation": "Using existing test data: Orange test image uploaded to variant 'Z zabudową' with URL: https://kp-url-verify.preview.emergentagent.com/api/uploads/0576304fd8214791a19bc29d7d91b510.jpg",
   "retest_needed": false,
   "main_agent_can_self_test": true,
   "features_tested": {
@@ -73,7 +73,7 @@
         "id": "var_z_zabudowa",
         "name": "Z zabudową",
         "price": 1480,
-        "imageUrl": "https://sauna-logistics-mgmt.preview.emergentagent.com/api/uploads/0576304fd8214791a19bc29d7d91b510.jpg",
+        "imageUrl": "https://kp-url-verify.preview.emergentagent.com/api/uploads/0576304fd8214791a19bc29d7d91b510.jpg",
         "status": "WORKING - Orange test image displayed"
       }
     ]
