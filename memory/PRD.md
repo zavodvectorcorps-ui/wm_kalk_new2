@@ -51,11 +51,29 @@ Tech Spec PDF, Production List, Google Sheets sync (blocked), Sales automation, 
 - [ ] Fix unstable login sessions
 
 ## Key API Endpoints
-- POST /api/sauna-crm/generate-contract — Generate DOCX contract with lead data
+- POST /api/sauna-crm/generate-contract — Generate DOCX contract with dynamic mappings + KP attachment
+- GET /api/sauna-crm/contract-template/settings — Template settings with mappings and available sources
+- POST /api/sauna-crm/contract-template/settings — Save template mappings and attachKp flag
+- POST /api/sauna-crm/contract-template/upload — Upload custom DOCX template
+- GET /api/sauna-crm/contract-template/placeholders — Extract placeholders from current template
 - GET /api/sauna-crm/leads?manager_username=X&date_from=Y&date_to=Z
 - GET /api/sauna-crm/settings — includes clientNameFieldId, modelFieldId
 - POST /api/sales/sync-from-crm — ALL CRM leads
 - POST /api/backup/export — 32+ collections
+
+**Contract Template Management System — Session 3 (March 21, 2026):**
+- Custom DOCX template upload via UI (drag & drop)
+- Automatic placeholder extraction from uploaded templates (regex `{{VARIABLE_NAME}}`)
+- Configurable field mappings: each placeholder → CRM lead field / calculator field / computed value / static text
+- 33 available source fields across 7 categories (client, payment, production, CRM fields, computed, calculator, other)
+- Custom variable creation: add new `{{CUSTOM_...}}` placeholders with labels and default values
+- Toggle to attach KP PDF as images at the end of the contract (Załącznik nr 1)
+- KP PDF conversion to images via PyMuPDF for embedding in DOCX
+- Fixed placeholder replacement: handles run-splitting in python-docx (merged runs approach)
+- Old static KP image removal from template before inserting dynamic KP
+- Backend: 4 new endpoints under /api/sauna-crm/contract-template/ (settings GET/POST, upload, placeholders)
+- Frontend: New `ContractTemplateSettings.jsx` component integrated as "Шаблон договора" tab in CRM Settings
+- Settings stored in MongoDB `contract_template_settings` collection
 
 **Storekeeper Role (Кладовщик) — Session 3 (March 20, 2026):**
 - New role 'storekeeper' with granular permissions
