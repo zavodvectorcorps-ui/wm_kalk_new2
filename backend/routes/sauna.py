@@ -217,6 +217,10 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
             is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
                 
             opt_name = opt.get('optionName', '')
+            
+            # Rename fundament option for PDF display
+            if category_id == 'fundament':
+                opt_name = 'Koszt fundamentu'
             base_price = opt.get('price', 0)
             quantity = opt.get('quantity', 1)
             image_url = opt.get('imageUrl')
@@ -1151,6 +1155,11 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
             
             name = opt.get('optionName', '') or opt.get('name', '')
+            
+            # Rename fundament option for PDF display
+            if category_id == 'fundament':
+                name = 'Koszt fundamentu'
+            
             price = opt.get('price', 0)
             quantity = opt.get('quantity', 1)
             total_price = price * quantity
@@ -1200,6 +1209,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             total_price = price * quantity
                             
                             name = opt.get('name', '')
+                            # Rename fundament option for PDF display
+                            if cat_id == 'fundament':
+                                name = 'Koszt fundamentu'
                             if has_quantity and quantity > 1:
                                 name = f"{name} (×{quantity})"
                             
@@ -1222,6 +1234,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     total_price = price * quantity
                     
                     name = opt.get('name', '')
+                    # Rename fundament option for PDF display
+                    if cat_id == 'fundament':
+                        name = 'Koszt fundamentu'
                     if has_quantity and quantity > 1:
                         name = f"{name} (×{quantity})"
                     
