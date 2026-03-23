@@ -16,7 +16,7 @@ export const Header = ({
   calculatorType = null
 }) => {
   const { t, i18n } = useTranslation();
-  const { canViewPricing, hasAccess } = useAuth();
+  const { canViewPricing, hasAccess, isMarketer } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const texts = {
@@ -95,6 +95,7 @@ export const Header = ({
                 <Calculator className="h-4 w-4" />
                 {t('calculator')}
               </Button>
+              {!isMarketer() && (
               <Button
                 variant={activeTab === 'orders' ? 'default' : 'ghost'}
                 size="sm"
@@ -104,7 +105,8 @@ export const Header = ({
                 <FileText className="h-4 w-4" />
                 {t('orders')}
               </Button>
-              {calculatorType === 'balia' && (
+              )}
+              {calculatorType === 'balia' && !isMarketer() && (
                 <Button
                   variant={activeTab === 'weborders' ? 'default' : 'ghost'}
                   size="sm"
@@ -115,6 +117,7 @@ export const Header = ({
                   {i18n.language === 'pl' ? 'Internet' : 'Интернет'}
                 </Button>
               )}
+              {!isMarketer() && (
               <Button
                 variant={activeTab === 'statistics' ? 'default' : 'ghost'}
                 size="sm"
@@ -124,6 +127,7 @@ export const Header = ({
                 <BarChart3 className="h-4 w-4" />
                 {txt.statistics}
               </Button>
+              )}
               {(isAdminAuthenticated || canViewPricing()) && (
                 <Button
                   variant={activeTab === 'pricing' ? 'default' : 'ghost'}
@@ -208,8 +212,8 @@ export const Header = ({
                   {i18n.language === 'pl' ? 'Sprzedaż' : 'Продажи'}
                 </Button>
               )}
-              {/* CRM - for sauna admins and managers with sauna access */}
-              {calculatorType === 'sauna' && (isAdminAuthenticated || hasAccess('sauna')) && (
+              {/* CRM - for sauna admins and managers with sauna access (not for marketer) */}
+              {calculatorType === 'sauna' && !isMarketer() && (isAdminAuthenticated || hasAccess('sauna')) && (
                 <Button
                   variant={activeTab === 'crm' ? 'default' : 'ghost'}
                   size="sm"
@@ -301,6 +305,7 @@ export const Header = ({
                   <Calculator className="h-4 w-4" />
                   {t('calculator')}
                 </Button>
+                {!isMarketer() && (
                 <Button
                   variant={activeTab === 'orders' ? 'default' : 'ghost'}
                   size="sm"
@@ -310,7 +315,8 @@ export const Header = ({
                   <FileText className="h-4 w-4" />
                   {t('orders')}
                 </Button>
-                {calculatorType === 'balia' && (
+                )}
+                {calculatorType === 'balia' && !isMarketer() && (
                   <Button
                     variant={activeTab === 'weborders' ? 'default' : 'ghost'}
                     size="sm"
@@ -321,6 +327,7 @@ export const Header = ({
                     {i18n.language === 'pl' ? 'Internet' : 'Интернет'}
                   </Button>
                 )}
+                {!isMarketer() && (
                 <Button
                   variant={activeTab === 'statistics' ? 'default' : 'ghost'}
                   size="sm"
@@ -330,6 +337,7 @@ export const Header = ({
                   <BarChart3 className="h-4 w-4" />
                   {txt.statistics}
                 </Button>
+                )}
                 {(isAdminAuthenticated || canViewPricing()) && (
                   <Button
                     variant={activeTab === 'pricing' ? 'default' : 'ghost'}
@@ -411,8 +419,8 @@ export const Header = ({
                     {i18n.language === 'pl' ? 'Sprzedaż' : 'Продажи'}
                   </Button>
                 )}
-                {/* CRM - for sauna admins and managers with sauna access */}
-                {calculatorType === 'sauna' && (isAdminAuthenticated || hasAccess('sauna')) && (
+                {/* CRM - for sauna admins and managers with sauna access (not for marketer) */}
+                {calculatorType === 'sauna' && !isMarketer() && (isAdminAuthenticated || hasAccess('sauna')) && (
                   <Button
                     variant={activeTab === 'crm' ? 'default' : 'ghost'}
                     size="sm"

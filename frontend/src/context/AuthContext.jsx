@@ -163,10 +163,15 @@ export const AuthProvider = ({ children }) => {
   
   const isObserver = () => user?.role === 'observer';
   
-  const canEdit = () => user?.role === 'admin' || user?.role === 'employee';
+  const isMarketer = () => user?.role === 'marketer';
   
-  // Can view pricing pages (admin and observer)
-  const canViewPricing = () => user?.role === 'admin' || user?.role === 'observer';
+  const canEdit = () => user?.role === 'admin' || user?.role === 'employee' || user?.role === 'marketer';
+  
+  // Can view pricing pages (admin, observer, and marketer)
+  const canViewPricing = () => user?.role === 'admin' || user?.role === 'observer' || user?.role === 'marketer';
+  
+  // Can delete orders (admin only)
+  const canDeleteOrders = () => user?.role === 'admin';
 
   const hasAccess = (calculator) => {
     if (!user) return false;
@@ -174,6 +179,11 @@ export const AuthProvider = ({ children }) => {
     // Admins have access to everything including driver panel
     if (user.role === 'admin') return true;
     if (user.role === 'observer') return true;
+    
+    // Marketer: access to balia and sauna calculators + pricing
+    if (user.role === 'marketer') {
+      return ['balia', 'sauna', 'training'].includes(calculator);
+    }
     
     // Training is accessible to all employees (managers) and admins
     if (calculator === 'training') {
@@ -222,11 +232,13 @@ export const AuthProvider = ({ children }) => {
     isAdmin,
     isSuperAdmin,
     isObserver,
+    isMarketer,
     isDriver,
     isWarehouse,
     isStorekeeper,
     canEdit,
     canViewPricing,
+    canDeleteOrders,
     hasAccess,
     isAuthenticated: !!user
   };
