@@ -861,11 +861,35 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                         {/* Variant Info */}
                         <div className="flex-1">
                           <div className="flex items-start justify-between">
-                            <div>
-                              <h4 className="font-semibold text-amber-800">{variant.name}</h4>
-                              {variant.namePl && variant.namePl !== variant.name && (
-                                <p className="text-xs text-gray-500">{variant.namePl}</p>
-                              )}
+                            <div className="flex-1 mr-2">
+                              <Input
+                                value={variant.name || ''}
+                                onChange={(e) => {
+                                  setEditingOption(prev => ({
+                                    ...prev,
+                                    variants: (prev.variants || prev.subOptions || []).map((v, i) =>
+                                      i === idx ? { ...v, name: e.target.value, nameRu: e.target.value } : v
+                                    ),
+                                    subOptions: []
+                                  }));
+                                }}
+                                className="h-7 text-sm font-semibold text-amber-800 border-transparent hover:border-gray-300 focus:border-amber-500 px-1"
+                                placeholder="Название"
+                              />
+                              <Input
+                                value={variant.namePl || ''}
+                                onChange={(e) => {
+                                  setEditingOption(prev => ({
+                                    ...prev,
+                                    variants: (prev.variants || prev.subOptions || []).map((v, i) =>
+                                      i === idx ? { ...v, namePl: e.target.value } : v
+                                    ),
+                                    subOptions: []
+                                  }));
+                                }}
+                                className="h-6 text-xs text-gray-500 border-transparent hover:border-gray-300 focus:border-amber-500 px-1 mt-0.5"
+                                placeholder="Nazwa (PL)"
+                              />
                             </div>
                             <Button
                               type="button"
@@ -883,8 +907,23 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
-                          <div className="text-xl font-bold text-amber-600 mt-1">
-                            {variant.price} zł
+                          <div className="flex items-center gap-1 mt-1">
+                            <Input
+                              type="number"
+                              value={variant.price || 0}
+                              onChange={(e) => {
+                                setEditingOption(prev => ({
+                                  ...prev,
+                                  variants: (prev.variants || prev.subOptions || []).map((v, i) =>
+                                    i === idx ? { ...v, price: parseInt(e.target.value) || 0 } : v
+                                  ),
+                                  subOptions: []
+                                }));
+                              }}
+                              className="h-8 w-28 text-lg font-bold text-amber-600 border-transparent hover:border-gray-300 focus:border-amber-500 px-1"
+                              data-testid={`variant-price-${idx}`}
+                            />
+                            <span className="text-lg font-bold text-amber-600">zł</span>
                           </div>
                           <p className="text-xs text-gray-400 mt-1">
                             {variant.imageUrl ? '✓ Фото загружено' : '⚠ Добавьте фото для PDF'}
