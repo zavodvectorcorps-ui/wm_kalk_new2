@@ -2214,20 +2214,23 @@ async def upload_calculator_pdf_to_amocrm(
         info_note = "\n".join(info_parts)
         await add_note_to_amocrm(amocrm_id, info_note, domain, token)
     
-    # Log to database
-    webhook_logs.insert_one({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "type": "calculator_pdf_upload",
-        "amocrm_id": amocrm_id,
-        "order_id": order_id,
-        "calculator_type": calculator_type,
-        "pdf_saved": pdf_saved,
-        "pdf_uploaded_to_cloudinary": cloudinary_uploaded,
-        "cloudinary_url": cloudinary_url,
-        "fallback_url": pdf_download_url,
-        "upload_error": upload_error,
-        "debug_log": debug_log
-    })
+    # Log to database (non-critical — don't crash if MongoDB times out)
+    try:
+        webhook_logs.insert_one({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": "calculator_pdf_upload",
+            "amocrm_id": amocrm_id,
+            "order_id": order_id,
+            "calculator_type": calculator_type,
+            "pdf_saved": pdf_saved,
+            "pdf_uploaded_to_cloudinary": cloudinary_uploaded,
+            "cloudinary_url": cloudinary_url,
+            "fallback_url": pdf_download_url,
+            "upload_error": upload_error,
+            "debug_log": debug_log
+        })
+    except Exception as e:
+        logger.error(f"Failed to log PDF upload to webhook_logs: {e}")
     
     # Auto-link PDF as document in CRM lead (if exists)
     # Remove old КП for this order first, then add new one

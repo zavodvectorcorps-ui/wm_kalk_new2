@@ -1167,6 +1167,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
 
       // Upload PDF to amoCRM if this order came from amoCRM
       if (amocrmData?.amocrm_id && finalOrderId) {
+        let pdfCloudinaryUrl = null;
         try {
           // Get employee name from current user
           const employeeName = user?.username || user?.name || '';
@@ -1182,11 +1183,25 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
               }
             }
           );
-          const uploadResult = await uploadResponse.json();
-          
-          // Save PDF link as document in CRM lead
-          const pdfCloudinaryUrl = uploadResult.cloudinary_url || uploadResult.pdf_url || uploadResult.fallback_url;
-          if (amocrmData.crmLeadId && pdfCloudinaryUrl) {
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            pdfCloudinaryUrl = uploadResult.cloudinary_url || uploadResult.pdf_url || uploadResult.fallback_url;
+            
+            if (uploadResult.cloudinary_uploaded) {
+              toast.success('PDF загружен и ссылка отправлена в amoCRM');
+            } else if (uploadResult.status === 'ok' || uploadResult.status === 'partial') {
+              toast.success('КП отправлено в amoCRM');
+            }
+          } else {
+            console.error('upload-calculator-pdf returned', uploadResponse.status);
+          }
+        } catch (e) {
+          console.error('Failed to upload PDF to amoCRM:', e);
+        }
+        
+        // Always try to link PDF to CRM lead directly (even if amoCRM upload failed)
+        if (amocrmData.crmLeadId) {
+          if (pdfCloudinaryUrl) {
             try {
               await axios.post(`${API_URL}/api/sauna-crm/leads/${amocrmData.crmLeadId}/documents/link`, {
                 url: pdfCloudinaryUrl,
@@ -1195,18 +1210,29 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
                 filename: `KP_SAUNA_${finalOrderId}.pdf`,
                 orderId: finalOrderId,
               });
+              toast.success('КП добавлено в карточку CRM');
             } catch (docErr) {
               console.error('Failed to link PDF to CRM lead:', docErr);
             }
+          } else {
+            // amoCRM upload failed — try direct upload to CRM
+            try {
+              const formDataUpload = new FormData();
+              formDataUpload.append('file', pdfBlob, `KP_SAUNA_${formData.fullName || 'Klient'}_${finalOrderId}.pdf`);
+              formDataUpload.append('doc_type', 'kp');
+              formDataUpload.append('doc_name', `КП ${formData.fullName || ''} ${finalOrderId}`.trim());
+              
+              const directRes = await fetch(`${API_URL}/api/sauna-crm/leads/${amocrmData.crmLeadId}/documents`, {
+                method: 'POST',
+                body: formDataUpload,
+              });
+              if (directRes.ok) {
+                toast.success('КП добавлено в карточку CRM');
+              }
+            } catch (directErr) {
+              console.error('Direct CRM upload also failed:', directErr);
+            }
           }
-          
-          if (uploadResult.cloudinary_uploaded) {
-            toast.success('PDF загружен и ссылка отправлена в amoCRM');
-          } else if (uploadResult.status === 'ok' || uploadResult.status === 'partial') {
-            toast.success('КП отправлено в amoCRM');
-          }
-        } catch (e) {
-          console.error('Failed to upload PDF to amoCRM:', e);
         }
       } else if (amocrmData?.crmLeadId && finalOrderId) {
         // No amoCRM ID but has CRM lead — upload PDF directly to CRM lead documents
