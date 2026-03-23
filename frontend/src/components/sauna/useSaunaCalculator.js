@@ -220,6 +220,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       
       // Restore amoCRM data from original order (critical for edit flow from widget)
       if (editingOrder.amocrm_id) {
+        console.log('[Edit] Setting amocrmData with amocrm_id:', editingOrder.amocrm_id, 'crmLeadId:', editingOrder._crmLeadId);
         setAmocrmData({
           amocrm_id: editingOrder.amocrm_id,
           amocrm_link: editingOrder.amocrm_link || '',
@@ -227,11 +228,14 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           crmLeadId: editingOrder._crmLeadId || '',
         });
       } else if (editingOrder._crmLeadId) {
+        console.log('[Edit] Setting amocrmData with crmLeadId only:', editingOrder._crmLeadId);
         // Even without amocrm_id, set crmLeadId for CRM link flow
         setAmocrmData(prev => ({
           ...(prev || {}),
           crmLeadId: editingOrder._crmLeadId,
         }));
+      } else {
+        console.log('[Edit] No amocrm_id and no _crmLeadId on editingOrder');
       }
       
       toast.info(`${txt.editingOrder}: ${editingOrder.id}`);
@@ -1164,6 +1168,10 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       link.remove();
 
       toast.success(txt.pdfGenerated);
+
+      // DEBUG: Show what amocrmData we have for CRM linking
+      console.log('[PDF Save] amocrmData:', JSON.stringify(amocrmData));
+      console.log('[PDF Save] finalOrderId:', finalOrderId);
 
       // Upload PDF to amoCRM if this order came from amoCRM
       if (amocrmData?.amocrm_id && finalOrderId) {
