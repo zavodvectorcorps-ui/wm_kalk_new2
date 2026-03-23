@@ -215,10 +215,6 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
             
             # Check if this option is a gift (including fundament)
             is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
-            
-            # For fundament that is NOT a gift, skip (it's in foundationPrice)
-            if category_id == 'fundament' and not is_gift:
-                continue
                 
             opt_name = opt.get('optionName', '')
             base_price = opt.get('price', 0)
@@ -312,9 +308,6 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
         options_data = [["Opcja", "Wartość"]]
         
         for key, value in request.selections.items():
-            # Skip fundament category - it's displayed separately as foundationPrice
-            if key == 'fundament':
-                continue
             if value and value != "none":
                 display_key = key.replace("_", " ").title()
                 display_value = str(value).replace("_", " ").title() if isinstance(value, str) else str(value)
@@ -1157,10 +1150,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             # Check if this option is a gift (including fundament)
             is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
             
-            # For fundament that is NOT a gift, skip (it's in foundationPrice)
-            if category_id == 'fundament' and not is_gift:
-                continue
-            
             name = opt.get('optionName', '') or opt.get('name', '')
             price = opt.get('price', 0)
             quantity = opt.get('quantity', 1)
@@ -1217,10 +1206,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             # Check if this option is a gift (including fundament)
                             is_gift = opt_id in admin_gifts or (cat_id == 'fundament' and 'fundament_gift' in admin_gifts)
                             
-                            # For fundament that is NOT a gift, skip
-                            if cat_id == 'fundament' and not is_gift:
-                                continue
-                            
                             if is_gift:
                                 price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
                             else:
@@ -1242,10 +1227,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     
                     # Check if this option is a gift (including fundament)
                     is_gift = selection in admin_gifts or (cat_id == 'fundament' and 'fundament_gift' in admin_gifts)
-                    
-                    # For fundament that is NOT a gift, skip
-                    if cat_id == 'fundament' and not is_gift:
-                        continue
                     
                     if is_gift:
                         price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
