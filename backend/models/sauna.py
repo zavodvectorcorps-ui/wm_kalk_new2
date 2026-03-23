@@ -55,6 +55,9 @@ class SaunaModel(BaseModel):
     galleryImages: Optional[List[str]] = []
     # Linked model ID to take variants from (e.g., Beczka can use variants from Kwadro)
     linkedVariantsModelId: Optional[str] = None
+    # Website description (for public API / external website)
+    websiteDescription: Optional[str] = None
+    websiteDescriptionPl: Optional[str] = None
 
 
 class OptionVariant(BaseModel):

@@ -601,6 +601,33 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
           />
         </div>
         
+        {/* Website description */}
+        <div className="border-t pt-4 mt-4">
+          <Label className="text-sm font-medium text-blue-700 mb-2 block">Описание для сайта</Label>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Описание (PL) — для внешнего сайта</Label>
+              <Textarea
+                value={newModel.websiteDescriptionPl || ''}
+                onChange={(e) => setNewModel(prev => ({ ...prev, websiteDescriptionPl: e.target.value }))}
+                placeholder="Opis modelu na stronę internetową (po polsku)..."
+                rows={4}
+                data-testid="model-website-desc-pl"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Описание (RU) — для внешнего сайта</Label>
+              <Textarea
+                value={newModel.websiteDescription || ''}
+                onChange={(e) => setNewModel(prev => ({ ...prev, websiteDescription: e.target.value }))}
+                placeholder="Описание модели для внешнего сайта (по-русски)..."
+                rows={4}
+                data-testid="model-website-desc-ru"
+              />
+            </div>
+          </div>
+        </div>
+        
         {/* Hint media fields */}
         <div className="border-t pt-4 mt-4">
           <Label className="text-sm font-medium text-amber-700 mb-2 block">{txt.hintMedia || 'Медиа для подсказки'}</Label>

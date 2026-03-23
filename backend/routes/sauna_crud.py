@@ -256,3 +256,238 @@ async def delete_sauna_option(category_id: str, option_id: str):
         {"$set": {"categories": categories}}
     )
     return {"message": "Option deleted successfully"}
+
+
+# =============================================
+# PUBLIC API FOR WEBSITE
+# =============================================
+
+@router.get("/public/models")
+async def get_public_models(response: Response, lang: str = "pl"):
+    """
+    Public API for external website — returns all active sauna models
+    with variants, images, layouts, comparison data, and website descriptions.
+    
+    Query params:
+        lang: "pl" or "ru" (default: "pl")
+    
+    No authentication required.
+    """
+    prices = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0})
+    if not prices:
+        return {"models": []}
+    
+    models = prices.get("models", [])
+    categories = prices.get("categories", [])
+    
+    result = []
+    for model in models:
+        if not model.get("active", True):
+            continue
+        
+        # Resolve linked variants
+        variants = model.get("variants", [])
+        linked_id = model.get("linkedVariantsModelId")
+        if linked_id and not variants:
+            linked_model = next((m for m in models if m.get("id") == linked_id), None)
+            if linked_model:
+                variants = linked_model.get("variants", [])
+        
+        # Build variant data
+        variant_list = []
+        comparison_rows = []
+        for v in variants:
+            name = v.get("namePl", "") or v.get("name", "") if lang == "pl" else v.get("name", "") or v.get("namePl", "")
+            hint = v.get("hintPl", "") or v.get("hint", "") if lang == "pl" else v.get("hint", "") or v.get("hintPl", "")
+            category = v.get("categoryPl", "") or v.get("category", "") if lang == "pl" else v.get("category", "") or v.get("categoryPl", "")
+            
+            variant_item = {
+                "id": v.get("id"),
+                "name": name,
+                "price": v.get("price", 0),
+                "imageUrl": v.get("imageUrl", ""),
+                "description": hint,
+                "category": category,
+                "capacity": v.get("capacity", ""),
+                "terraceSize": v.get("terraceSize", ""),
+                "relaxRoomSize": v.get("relaxRoomSize", ""),
+                "steamRoomSize": v.get("steamRoomSize", ""),
+                "entranceSide": v.get("entranceSide", ""),
+            }
+            variant_list.append(variant_item)
+            
+            # Build comparison row
+            comparison_rows.append({
+                "name": name,
+                "capacity": v.get("capacity", ""),
+                "relaxRoomSize": v.get("relaxRoomSize", ""),
+                "steamRoomSize": v.get("steamRoomSize", ""),
+                "terraceSize": v.get("terraceSize", ""),
+                "entranceSide": v.get("entranceSide", ""),
+                "price": v.get("price", 0),
+            })
+        
+        # Website description
+        if lang == "pl":
+            description = model.get("websiteDescriptionPl", "") or model.get("websiteDescription", "") or model.get("hint", "")
+        else:
+            description = model.get("websiteDescription", "") or model.get("websiteDescriptionPl", "") or model.get("hint", "")
+        
+        model_item = {
+            "id": model.get("id"),
+            "name": model.get("name", ""),
+            "basePrice": model.get("basePrice", 0),
+            "foundationPrice": model.get("foundationPrice", 0),
+            "discount": model.get("discount", 0),
+            "imageUrl": model.get("imageUrl", ""),
+            "galleryImages": model.get("galleryImages", []),
+            "description": description,
+            "capacity": model.get("capacity", ""),
+            "relaxRoomSize": model.get("relaxRoomSize", ""),
+            "steamRoomSize": model.get("steamRoomSize", ""),
+            "layoutSize": model.get("layoutSize", ""),
+            "variants": variant_list,
+            "comparisonTable": {
+                "headers": [
+                    "Wariant" if lang == "pl" else "Вариант",
+                    "Osoby" if lang == "pl" else "Кол-во человек",
+                    "Pokój wypoczynkowy" if lang == "pl" else "Комната отдыха",
+                    "Pokój parowy" if lang == "pl" else "Парная",
+                    "Taras" if lang == "pl" else "Терраса",
+                    "Wejście" if lang == "pl" else "Вход",
+                    "Cena" if lang == "pl" else "Цена",
+                ],
+                "rows": comparison_rows,
+            } if comparison_rows else None,
+        }
+        
+        result.append(model_item)
+    
+    # Cache for 5 minutes
+    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    
+    return {"models": result, "lang": lang}
+
+
+@router.get("/public/models/{model_id}")
+async def get_public_model_detail(model_id: str, response: Response, lang: str = "pl"):
+    """
+    Public API — get a single model with full details including options.
+    
+    No authentication required.
+    """
+    prices = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0})
+    if not prices:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    models = prices.get("models", [])
+    model = next((m for m in models if m.get("id") == model_id), None)
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    # Use the list endpoint logic for consistency
+    # (we re-use the same response format)
+    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    
+    # Resolve linked variants
+    variants = model.get("variants", [])
+    linked_id = model.get("linkedVariantsModelId")
+    if linked_id and not variants:
+        linked_model = next((m for m in models if m.get("id") == linked_id), None)
+        if linked_model:
+            variants = linked_model.get("variants", [])
+    
+    variant_list = []
+    comparison_rows = []
+    for v in variants:
+        name = v.get("namePl", "") or v.get("name", "") if lang == "pl" else v.get("name", "") or v.get("namePl", "")
+        hint = v.get("hintPl", "") or v.get("hint", "") if lang == "pl" else v.get("hint", "") or v.get("hintPl", "")
+        category = v.get("categoryPl", "") or v.get("category", "") if lang == "pl" else v.get("category", "") or v.get("categoryPl", "")
+        
+        variant_list.append({
+            "id": v.get("id"),
+            "name": name,
+            "price": v.get("price", 0),
+            "imageUrl": v.get("imageUrl", ""),
+            "description": hint,
+            "category": category,
+            "capacity": v.get("capacity", ""),
+            "terraceSize": v.get("terraceSize", ""),
+            "relaxRoomSize": v.get("relaxRoomSize", ""),
+            "steamRoomSize": v.get("steamRoomSize", ""),
+            "entranceSide": v.get("entranceSide", ""),
+        })
+        comparison_rows.append({
+            "name": name,
+            "capacity": v.get("capacity", ""),
+            "relaxRoomSize": v.get("relaxRoomSize", ""),
+            "steamRoomSize": v.get("steamRoomSize", ""),
+            "terraceSize": v.get("terraceSize", ""),
+            "entranceSide": v.get("entranceSide", ""),
+            "price": v.get("price", 0),
+        })
+    
+    if lang == "pl":
+        description = model.get("websiteDescriptionPl", "") or model.get("websiteDescription", "") or model.get("hint", "")
+    else:
+        description = model.get("websiteDescription", "") or model.get("websiteDescriptionPl", "") or model.get("hint", "")
+    
+    # Get available options for this model
+    categories = prices.get("categories", [])
+    options_list = []
+    for cat in categories:
+        cat_options = []
+        for opt in cat.get("options", []):
+            if not opt.get("active", True):
+                continue
+            opt_variants = opt.get("variants", []) or opt.get("subOptions", []) or []
+            cat_options.append({
+                "id": opt.get("id"),
+                "name": opt.get("namePl", "") or opt.get("name", "") if lang == "pl" else opt.get("name", "") or opt.get("namePl", ""),
+                "price": opt.get("price", 0),
+                "imageUrl": opt.get("imageUrl", ""),
+                "variants": [{
+                    "id": ov.get("id"),
+                    "name": ov.get("namePl", "") or ov.get("name", "") if lang == "pl" else ov.get("name", "") or ov.get("namePl", ""),
+                    "price": ov.get("price", 0),
+                    "imageUrl": ov.get("imageUrl", ""),
+                } for ov in opt_variants],
+            })
+        if cat_options:
+            options_list.append({
+                "id": cat.get("id"),
+                "name": cat.get("namePl", "") or cat.get("name", "") if lang == "pl" else cat.get("name", "") or cat.get("namePl", ""),
+                "options": cat_options,
+            })
+    
+    return {
+        "id": model.get("id"),
+        "name": model.get("name", ""),
+        "basePrice": model.get("basePrice", 0),
+        "foundationPrice": model.get("foundationPrice", 0),
+        "discount": model.get("discount", 0),
+        "imageUrl": model.get("imageUrl", ""),
+        "galleryImages": model.get("galleryImages", []),
+        "description": description,
+        "capacity": model.get("capacity", ""),
+        "relaxRoomSize": model.get("relaxRoomSize", ""),
+        "steamRoomSize": model.get("steamRoomSize", ""),
+        "layoutSize": model.get("layoutSize", ""),
+        "variants": variant_list,
+        "comparisonTable": {
+            "headers": [
+                "Wariant" if lang == "pl" else "Вариант",
+                "Osoby" if lang == "pl" else "Кол-во человек",
+                "Pokój wypoczynkowy" if lang == "pl" else "Комната отдыха",
+                "Pokój parowy" if lang == "pl" else "Парная",
+                "Taras" if lang == "pl" else "Терраса",
+                "Wejście" if lang == "pl" else "Вход",
+                "Cena" if lang == "pl" else "Цена",
+            ],
+            "rows": comparison_rows,
+        } if comparison_rows else None,
+        "availableOptions": options_list,
+        "lang": lang,
+    }
