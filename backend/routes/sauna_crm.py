@@ -543,7 +543,7 @@ async def sync_leads_from_amocrm():
             async with httpx.AsyncClient(timeout=15.0) as uc:
                 ur = await uc.get(f"https://{domain}/api/v4/users", headers=headers_amo)
                 if ur.status_code == 200:
-                    for u in ur.json().get("_embedded", {}).get("users", []):
+                    for u in (ur.json().get("_embedded") or {}).get("users") or []:
                         users_cache[u["id"]] = u.get("name", "")
         except Exception:
             pass
@@ -570,19 +570,21 @@ async def sync_leads_from_amocrm():
                     logger.error(f"amoCRM API error: {resp.status_code}")
                     continue
                 
-                leads_data = resp.json().get("_embedded", {}).get("leads", [])
+                resp_data = resp.json() or {}
+                embedded = resp_data.get("_embedded") or {}
+                leads_data = embedded.get("leads") or []
                 
                 for amo_lead in leads_data:
                     amo_id = str(amo_lead["id"])
                     existing = await db.sauna_crm_leads.find_one({"amocrm_id": amo_id})
                     
                     # Extract custom fields
-                    custom_fields = amo_lead.get("custom_fields_values", [])
+                    custom_fields = amo_lead.get("custom_fields_values") or []
                     field_vals = {}
-                    for cf in custom_fields:
+                    for cf in (custom_fields or []):
                         cf_id = str(cf.get("field_id", ""))
                         if cf_id in field_mappings:
-                            vals = cf.get("values", [])
+                            vals = cf.get("values") or []
                             if vals:
                                 field_vals[field_mappings[cf_id]] = vals[0].get("value", "")
                     
@@ -591,9 +593,9 @@ async def sync_leads_from_amocrm():
                     custom_model_name = ""
                     client_name_fid = settings.get("clientNameFieldId", "")
                     model_fid = settings.get("modelFieldId", "")
-                    for cf in custom_fields:
+                    for cf in (custom_fields or []):
                         cf_id = str(cf.get("field_id", ""))
-                        vals = cf.get("values", [])
+                        vals = cf.get("values") or []
                         val = vals[0].get("value", "") if vals else ""
                         if client_name_fid and cf_id == client_name_fid and val:
                             custom_client_name = val
@@ -601,15 +603,16 @@ async def sync_leads_from_amocrm():
                             custom_model_name = val
                     
                     # Extract contacts
-                    contacts = amo_lead.get("_embedded", {}).get("contacts", [])
+                    amo_embedded = amo_lead.get("_embedded") or {}
+                    contacts = amo_embedded.get("contacts") or []
                     contact_name = contacts[0].get("name", "") if contacts else ""
                     contact_phone = ""
                     if contacts:
                         try:
                             cr = await client.get(f"https://{domain}/api/v4/contacts/{contacts[0]['id']}", headers=headers_amo, timeout=10)
                             if cr.status_code == 200:
-                                for cf in cr.json().get("custom_fields_values", []):
-                                    if cf.get("field_code") == "PHONE" and cf.get("values"):
+                                for cf in (cr.json().get("custom_fields_values") or []):
+                                    if cf.get("field_code") == "PHONE" and (cf.get("values") or []):
                                         contact_phone = cf["values"][0].get("value", "")
                                         break
                         except Exception:

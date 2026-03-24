@@ -89,3 +89,11 @@ Tech Spec PDF, Production List, Google Sheets sync (blocked), Sales automation, 
 ## Credentials
 - Admin: admin / admin123
 - Storekeeper: kladovshchik / kladovshchik123
+- Marketer: marketer / marketer123
+
+### Session 4 (March 24, 2026)
+
+**Bug Fix: amoCRM Sync 500 Error (`'NoneType' object is not iterable`)**
+- Fixed 7 places in `sync_leads_from_amocrm` where amoCRM API could return `null` instead of arrays
+- Replaced `.get("key", [])` with `or []` pattern to handle both missing keys and `null` values
+- Affected: leads list, custom_fields_values, contacts, users cache, field values
