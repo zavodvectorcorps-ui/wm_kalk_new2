@@ -97,6 +97,7 @@ const SaunaCRMPage = () => {
   const [calcOrder, setCalcOrder] = useState(null);
   const [loadingCalcOrder, setLoadingCalcOrder] = useState(false);
   const [linkOrderId, setLinkOrderId] = useState('');
+  const [relinkMode, setRelinkMode] = useState(false);
   const [linkingOrder, setLinkingOrder] = useState(false);
   const [pushingToProduction, setPushingToProduction] = useState(false);
   
@@ -188,6 +189,7 @@ const SaunaCRMPage = () => {
     setEditData({ ...lead });
     setCalcOrder(null);
     setLinkOrderId('');
+    setRelinkMode(false);
     fetchCalculatorOrder(lead);
   };
 
@@ -389,6 +391,7 @@ const SaunaCRMPage = () => {
           setEditData({ ...data.lead });
         }
         setLinkOrderId('');
+        setRelinkMode(false);
         fetchLeads();
       } else {
         toast.error(data.detail || 'Ошибка привязки');
@@ -905,7 +908,26 @@ const SaunaCRMPage = () => {
                       <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={openTechSpec} data-testid="open-tech-spec-btn">
                         <Wrench className="w-4 h-4 mr-1" />Тех. задание
                       </Button>
+                      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => { setRelinkMode(!relinkMode); setLinkOrderId(''); }} data-testid="relink-order-btn">
+                        <Unlink className="w-4 h-4 mr-1" />{relinkMode ? 'Отмена' : 'Сменить привязку'}
+                      </Button>
                     </div>
+                    {relinkMode && (
+                      <div className="flex items-center gap-2 mt-2 p-2 rounded-lg border border-dashed border-orange-300 bg-orange-50/50">
+                        <Input
+                          placeholder="Новый ID заказа (напр. SAU-XXXX)"
+                          value={linkOrderId}
+                          onChange={(e) => setLinkOrderId(e.target.value)}
+                          className="flex-1 h-8 text-sm"
+                          data-testid="relink-order-id-input"
+                          onKeyDown={(e) => { if (e.key === 'Enter' && linkOrderId.trim()) handleLinkOrder(); }}
+                        />
+                        <Button size="sm" onClick={handleLinkOrder} disabled={linkingOrder || !linkOrderId.trim()} data-testid="relink-order-confirm-btn">
+                          {linkingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4 mr-1" />}
+                          Привязать
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">

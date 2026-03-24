@@ -102,3 +102,8 @@ Tech Spec PDF, Production List, Google Sheets sync (blocked), Sales automation, 
 - Root cause: `window.location.href` вызывает полную перезагрузку. `user` = null при первом useEffect → `crmLeadId` не сохранялся в sessionStorage → терялся при загрузке заказа
 - Fix 1: `crmLeadId` теперь сохраняется/восстанавливается через sessionStorage
 - Fix 2: Добавлен `effectiveCrmLeadId` — резервный механизм получения crmLeadId из 3 источников (amocrmData, editingOrder, sessionStorage)
+
+**Feature: Ручная смена привязки заказа в карточке CRM**
+- Добавлена кнопка "Сменить привязку" для лидов с уже привязанным заказом
+- Поле ввода нового ID заказа с кнопкой подтверждения
+- Кнопка "Отмена" для возврата к обычному виду
