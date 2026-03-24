@@ -415,46 +415,55 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
                 result["linked"] = True
                 break
         
-        # Search for PDF in calculator_pdfs collection
-        from pymongo import MongoClient
-        sync_client = MongoClient(MONGO_URL)
-        sync_db = sync_client[DB_NAME]
-        
-        pdf_doc = sync_db["calculator_pdfs"].find_one(
-            {"amocrm_id": amocrm_id},
-            {"pdf_data": 0}  # Don't load binary data, just metadata
-        )
-        
-        if not pdf_doc:
-            # Try searching by order_id from linked calculator order
-            if crm_lead.get("calculatorOrderId"):
-                pdf_doc = sync_db["calculator_pdfs"].find_one(
-                    {"order_id": crm_lead["calculatorOrderId"]},
-                    {"pdf_data": 0}
-                )
+        # Search for PDF in calculator_pdfs collection (non-critical — don't crash sync if MongoDB times out)
+        try:
+            from pymongo import MongoClient
+            sync_client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000, socketTimeoutMS=10000)
+            sync_db = sync_client[DB_NAME]
+            
+            pdf_doc = sync_db["calculator_pdfs"].find_one(
+                {"amocrm_id": amocrm_id},
+                {"pdf_data": 0}  # Don't load binary data, just metadata
+            )
+            
+            if not pdf_doc:
+                # Try searching by order_id from linked calculator order
+                if crm_lead.get("calculatorOrderId"):
+                    pdf_doc = sync_db["calculator_pdfs"].find_one(
+                        {"order_id": crm_lead["calculatorOrderId"]},
+                        {"pdf_data": 0}
+                    )
+        except Exception as e:
+            logger.warning(f"calculator_pdfs query timeout during sync (non-fatal): {e}")
+            pdf_doc = None
         
         if pdf_doc:
             # Get Cloudinary URL — check calculator_pdfs first, then webhook_logs
             cloudinary_url = pdf_doc.get("cloudinary_url")
             
             if not cloudinary_url:
-                log_entry = sync_db["webhook_logs"].find_one(
-                    {"type": "calculator_pdf_upload", "amocrm_id": amocrm_id, "cloudinary_url": {"$exists": True, "$ne": None}},
-                    {"_id": 0, "cloudinary_url": 1},
-                    sort=[("timestamp", -1)]
-                )
-                if log_entry:
-                    cloudinary_url = log_entry.get("cloudinary_url")
+                try:
+                    log_entry = sync_db["webhook_logs"].find_one(
+                        {"type": "calculator_pdf_upload", "amocrm_id": amocrm_id, "cloudinary_url": {"$exists": True, "$ne": None}},
+                        {"_id": 0, "cloudinary_url": 1},
+                        sort=[("timestamp", -1)]
+                    )
+                    if log_entry:
+                        cloudinary_url = log_entry.get("cloudinary_url")
+                except Exception as e:
+                    logger.warning(f"webhook_logs query timeout (non-fatal): {e}")
             
             if not cloudinary_url and crm_lead.get("calculatorOrderId"):
-                # Also try by order_id
-                log_entry = sync_db["webhook_logs"].find_one(
-                    {"type": "calculator_pdf_upload", "order_id": crm_lead["calculatorOrderId"], "cloudinary_url": {"$exists": True, "$ne": None}},
-                    {"_id": 0, "cloudinary_url": 1},
-                    sort=[("timestamp", -1)]
-                )
-                if log_entry:
-                    cloudinary_url = log_entry.get("cloudinary_url")
+                try:
+                    log_entry = sync_db["webhook_logs"].find_one(
+                        {"type": "calculator_pdf_upload", "order_id": crm_lead["calculatorOrderId"], "cloudinary_url": {"$exists": True, "$ne": None}},
+                        {"_id": 0, "cloudinary_url": 1},
+                        sort=[("timestamp", -1)]
+                    )
+                    if log_entry:
+                        cloudinary_url = log_entry.get("cloudinary_url")
+                except Exception as e:
+                    logger.warning(f"webhook_logs query by order_id timeout (non-fatal): {e}")
             
             if cloudinary_url:
                 # Remove old kp documents to avoid duplicates
