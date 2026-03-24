@@ -176,6 +176,10 @@ const AppContent = () => {
         sessionStorage.setItem('pendingEditOrderId', editOrderId || '');
         sessionStorage.setItem('pendingViewOrderId', viewOrderId || '');
         sessionStorage.setItem('pendingCalcType', calcType);
+        const crmLeadIdPending = params.get('crmLeadId');
+        if (crmLeadIdPending) {
+          sessionStorage.setItem('pendingCrmLeadId', crmLeadIdPending);
+        }
       }
       return;
     }
@@ -240,6 +244,7 @@ const AppContent = () => {
       const orderId = pendingEditOrderId || pendingViewOrderId;
       const API_URL = process.env.REACT_APP_BACKEND_URL || '';
       const endpoint = pendingCalcType === 'sauna' ? `/api/sauna/orders/${orderId}` : `/api/orders/${orderId}`;
+      const pendingCrmLeadId = sessionStorage.getItem('pendingCrmLeadId');
       
       setCurrentCalculator(pendingCalcType);
       setActiveTab('calculator');
@@ -248,8 +253,13 @@ const AppContent = () => {
         .then(res => res.ok ? res.json() : null)
         .then(order => {
           if (order) {
+            // Restore CRM lead ID from sessionStorage
+            if (pendingCrmLeadId) {
+              order._crmLeadId = pendingCrmLeadId;
+              console.log(`Restored crmLeadId from session: ${pendingCrmLeadId}`);
+            }
             setEditingOrder(order);
-            console.log(`Loaded pending order ${orderId} for editing`);
+            console.log(`Loaded pending order ${orderId} for editing${pendingCrmLeadId ? ` (CRM lead: ${pendingCrmLeadId})` : ''}`);
           }
         })
         .catch(err => console.error('Error loading pending order:', err))
@@ -258,6 +268,7 @@ const AppContent = () => {
           sessionStorage.removeItem('pendingEditOrderId');
           sessionStorage.removeItem('pendingViewOrderId');
           sessionStorage.removeItem('pendingCalcType');
+          sessionStorage.removeItem('pendingCrmLeadId');
         });
     }
   }, [user]);

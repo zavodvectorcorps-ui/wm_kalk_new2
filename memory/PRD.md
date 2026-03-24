@@ -97,3 +97,8 @@ Tech Spec PDF, Production List, Google Sheets sync (blocked), Sales automation, 
 - Fixed 7 places in `sync_leads_from_amocrm` where amoCRM API could return `null` instead of arrays
 - Replaced `.get("key", [])` with `or []` pattern to handle both missing keys and `null` values
 - Affected: leads list, custom_fields_values, contacts, users cache, field values
+
+**Bug Fix: КП не привязывалось к карточке CRM при открытии из CRM**
+- Root cause: `window.location.href` вызывает полную перезагрузку. `user` = null при первом useEffect → `crmLeadId` не сохранялся в sessionStorage → терялся при загрузке заказа
+- Fix 1: `crmLeadId` теперь сохраняется/восстанавливается через sessionStorage
+- Fix 2: Добавлен `effectiveCrmLeadId` — резервный механизм получения crmLeadId из 3 источников (amocrmData, editingOrder, sessionStorage)

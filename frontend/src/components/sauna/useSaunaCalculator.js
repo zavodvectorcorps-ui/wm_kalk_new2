@@ -1169,8 +1169,15 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
 
       toast.success(txt.pdfGenerated);
 
+      // Determine crmLeadId from multiple sources (resilient to race conditions)
+      const effectiveCrmLeadId = amocrmData?.crmLeadId 
+        || editingOrder?._crmLeadId 
+        || sessionStorage.getItem('pendingCrmLeadId') 
+        || '';
+      
       // DEBUG: Show what amocrmData we have for CRM linking
       console.log('[PDF Save] amocrmData:', JSON.stringify(amocrmData));
+      console.log('[PDF Save] effectiveCrmLeadId:', effectiveCrmLeadId);
       console.log('[PDF Save] finalOrderId:', finalOrderId);
 
       // Upload PDF to amoCRM if this order came from amoCRM
@@ -1208,10 +1215,10 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         }
         
         // Always try to link PDF to CRM lead directly (even if amoCRM upload failed)
-        if (amocrmData.crmLeadId) {
+        if (effectiveCrmLeadId) {
           if (pdfCloudinaryUrl) {
             try {
-              await axios.post(`${API_URL}/api/sauna-crm/leads/${amocrmData.crmLeadId}/documents/link`, {
+              await axios.post(`${API_URL}/api/sauna-crm/leads/${effectiveCrmLeadId}/documents/link`, {
                 url: pdfCloudinaryUrl,
                 type: 'kp',
                 name: `КП ${formData.fullName || ''} ${finalOrderId}`.trim(),
@@ -1230,7 +1237,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
               formDataUpload.append('doc_type', 'kp');
               formDataUpload.append('doc_name', `КП ${formData.fullName || ''} ${finalOrderId}`.trim());
               
-              const directRes = await fetch(`${API_URL}/api/sauna-crm/leads/${amocrmData.crmLeadId}/documents`, {
+              const directRes = await fetch(`${API_URL}/api/sauna-crm/leads/${effectiveCrmLeadId}/documents`, {
                 method: 'POST',
                 body: formDataUpload,
               });
@@ -1242,7 +1249,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
             }
           }
         }
-      } else if (amocrmData?.crmLeadId && finalOrderId) {
+      } else if (effectiveCrmLeadId && finalOrderId) {
         // No amoCRM ID but has CRM lead — upload PDF directly to CRM lead documents
         try {
           const formDataUpload = new FormData();
@@ -1250,7 +1257,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           formDataUpload.append('doc_type', 'kp');
           formDataUpload.append('doc_name', `КП ${formData.fullName || ''} ${finalOrderId}`.trim());
           
-          const uploadRes = await fetch(`${API_URL}/api/sauna-crm/leads/${amocrmData.crmLeadId}/documents`, {
+          const uploadRes = await fetch(`${API_URL}/api/sauna-crm/leads/${effectiveCrmLeadId}/documents`, {
             method: 'POST',
             body: formDataUpload,
           });
@@ -1263,9 +1270,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       }
 
       // Save calculator data back to CRM lead if opened from Sauna CRM
-      if (amocrmData?.crmLeadId && finalOrderId) {
+      if (effectiveCrmLeadId && finalOrderId) {
         try {
-          await axios.put(`${API_URL}/api/sauna-crm/leads/${amocrmData.crmLeadId}/calculator-data`, {
+          await axios.put(`${API_URL}/api/sauna-crm/leads/${effectiveCrmLeadId}/calculator-data`, {
             calculatorData: {
               orderId: finalOrderId,
               selectedModel: formData.selectedModel,
