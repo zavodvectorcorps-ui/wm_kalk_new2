@@ -75,6 +75,7 @@ class CRMLead(BaseModel):
     field_9: Optional[str] = None
     field_10: Optional[str] = None
     readyDate: Optional[str] = None  # Production ready date
+    pouringDate: Optional[str] = None  # Foundation pouring date (дата заливки)
     productionDate: Optional[str] = None
     deliveryDate: Optional[str] = None
     modelName: Optional[str] = None
@@ -168,14 +169,14 @@ async def get_all_leads(
             else:
                 # Fallback: match by username
                 query["manager"] = {"$regex": manager_username, "$options": "i"}
-    # Date filters on readyDate
+    # Date filters on pouringDate (дата заливки)
     if date_from or date_to:
         date_q = {}
         if date_from:
             date_q["$gte"] = date_from
         if date_to:
             date_q["$lte"] = date_to + "T23:59:59"
-        query["readyDate"] = date_q
+        query["pouringDate"] = date_q
 
     leads = await db.sauna_crm_leads.find(query, {"_id": 0}).to_list(1000)
     settings = await get_crm_settings()
@@ -360,16 +361,16 @@ async def link_document(lead_id: str, data: dict):
 
 @router.get("/calendar")
 async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
-    """Get orders for production calendar grouped by readyDate."""
+    """Get orders for production calendar grouped by pouringDate (дата заливки)."""
     leads = await db.sauna_crm_leads.find(
-        {"readyDate": {"$exists": True, "$ne": None, "$nin": [""]}},
+        {"pouringDate": {"$exists": True, "$ne": None, "$nin": [""]}},
         {"_id": 0}
     ).to_list(5000)
     
     # Filter by month/year and group by date
     by_date = {}
     for lead in leads:
-        rd = lead.get("readyDate", "")
+        rd = lead.get("pouringDate", "")
         if not rd:
             continue
         try:
@@ -382,7 +383,7 @@ async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
                     "id": lead.get("id"),
                     "clientName": lead.get("clientName", ""),
                     "modelName": lead.get("modelName") or lead.get("field_1", ""),
-                    "readyDate": rd,
+                    "pouringDate": rd,
                     "stageId": lead.get("stageId"),
                     "totalAmount": lead.get("totalAmount") or lead.get("field_2"),
                     "phone": lead.get("phone", ""),

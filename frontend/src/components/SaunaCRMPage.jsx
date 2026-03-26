@@ -63,7 +63,7 @@ const SaunaCRMPage = () => {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   
-  // Sort: per-stage column sorting by readyDate. Key = stageId, value = 'asc' | 'desc' | ''
+  // Sort: per-stage column sorting by pouringDate. Key = stageId, value = 'asc' | 'desc' | ''
   const [columnSort, setColumnSort] = useState({});
   const toggleColumnSort = (stageId) => {
     setColumnSort(prev => {
@@ -79,8 +79,8 @@ const SaunaCRMPage = () => {
   const sortLeadsByDate = (arr, order) => {
     if (!order) return arr;
     return [...arr].sort((a, b) => {
-      const da = (a.readyDate || a.createdAt || '').slice(0, 10);
-      const db2 = (b.readyDate || b.createdAt || '').slice(0, 10);
+      const da = (a.pouringDate || a.createdAt || '').slice(0, 10);
+      const db2 = (b.pouringDate || b.createdAt || '').slice(0, 10);
       if (!da && !db2) return 0;
       if (!da) return 1;
       if (!db2) return -1;
@@ -472,13 +472,13 @@ const SaunaCRMPage = () => {
     }
     // Manager
     if (filterManager && (l.manager || '') !== filterManager) return false;
-    // Date range (by readyDate)
+    // Date range (by pouringDate)
     if (filterDateFrom) {
-      const rd = (l.readyDate || '').slice(0, 10);
+      const rd = (l.pouringDate || '').slice(0, 10);
       if (!rd || rd < filterDateFrom) return false;
     }
     if (filterDateTo) {
-      const rd = (l.readyDate || '').slice(0, 10);
+      const rd = (l.pouringDate || '').slice(0, 10);
       if (!rd || rd > filterDateTo) return false;
     }
     return true;
@@ -688,7 +688,7 @@ const SaunaCRMPage = () => {
                         {(lead.totalAmount || lead.field_2) && (
                           <Badge variant="outline" className="mt-1 text-xs">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</Badge>
                         )}
-                        {lead.readyDate && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{lead.readyDate.slice(0, 10)}</p>}
+                        {lead.pouringDate && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{lead.pouringDate.slice(0, 10)}</p>}
                         {(lead.documents || []).length > 0 && (
                           <div className="flex gap-1 mt-1">
                             {lead.documents.map(d => (
@@ -754,7 +754,7 @@ const SaunaCRMPage = () => {
                     </div>
                     <Badge style={{ backgroundColor: stage?.color + '20', color: stage?.color }}>{stage?.name}</Badge>
                     {(lead.totalAmount || lead.field_2) && <span className="font-medium text-sm">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</span>}
-                    {lead.readyDate && <span className="text-xs text-muted-foreground">{lead.readyDate.slice(0, 10)}</span>}
+                    {lead.pouringDate && <span className="text-xs text-muted-foreground">{lead.pouringDate.slice(0, 10)}</span>}
                   </CardContent>
                 </Card>
               );
@@ -851,7 +851,11 @@ const SaunaCRMPage = () => {
               )}
 
               {/* Production Dates */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Дата заливки</Label>
+                  <Input type="date" value={(editData.pouringDate || '').slice(0, 10)} onChange={(e) => setEditData(p => ({ ...p, pouringDate: e.target.value }))} data-testid="lead-pouringDate" />
+                </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Дата производства</Label>
                   <Input type="date" value={(editData.productionDate || '').slice(0, 10)} onChange={(e) => setEditData(p => ({ ...p, productionDate: e.target.value }))} data-testid="lead-productionDate" />
@@ -1261,6 +1265,7 @@ const SaunaCRMPage = () => {
                         <SelectTrigger className="flex-1"><SelectValue placeholder="Поле в CRM" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Не выбрано</SelectItem>
+                          <SelectItem value="pouringDate">Дата заливки</SelectItem>
                           <SelectItem value="readyDate">Дата готовности</SelectItem>
                           <SelectItem value="productionDate">Дата производства</SelectItem>
                           <SelectItem value="deliveryDate">Дата доставки</SelectItem>
