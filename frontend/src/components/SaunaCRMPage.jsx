@@ -81,8 +81,8 @@ const SaunaCRMPage = () => {
   const sortLeadsByDate = (arr, order) => {
     if (!order) return arr;
     return [...arr].sort((a, b) => {
-      const da = (a[calendarDateField] || a.createdAt || '').slice(0, 10);
-      const db2 = (b[calendarDateField] || b.createdAt || '').slice(0, 10);
+      const da = String(a[calendarDateField] || a.createdAt || '').slice(0, 10);
+      const db2 = String(b[calendarDateField] || b.createdAt || '').slice(0, 10);
       if (!da && !db2) return 0;
       if (!da) return 1;
       if (!db2) return -1;
@@ -476,11 +476,11 @@ const SaunaCRMPage = () => {
     if (filterManager && (l.manager || '') !== filterManager) return false;
     // Date range (by calendarDateField)
     if (filterDateFrom) {
-      const rd = (l[calendarDateField] || '').slice(0, 10);
+      const rd = String(l[calendarDateField] || '').slice(0, 10);
       if (!rd || rd < filterDateFrom) return false;
     }
     if (filterDateTo) {
-      const rd = (l[calendarDateField] || '').slice(0, 10);
+      const rd = String(l[calendarDateField] || '').slice(0, 10);
       if (!rd || rd > filterDateTo) return false;
     }
     return true;
@@ -690,7 +690,7 @@ const SaunaCRMPage = () => {
                         {(lead.totalAmount || lead.field_2) && (
                           <Badge variant="outline" className="mt-1 text-xs">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</Badge>
                         )}
-                        {lead[calendarDateField] && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{lead[calendarDateField].slice(0, 10)}</p>}
+                        {lead[calendarDateField] && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{String(lead[calendarDateField]).slice(0, 10)}</p>}
                         {(lead.documents || []).length > 0 && (
                           <div className="flex gap-1 mt-1">
                             {lead.documents.map(d => (
@@ -756,7 +756,7 @@ const SaunaCRMPage = () => {
                     </div>
                     <Badge style={{ backgroundColor: stage?.color + '20', color: stage?.color }}>{stage?.name}</Badge>
                     {(lead.totalAmount || lead.field_2) && <span className="font-medium text-sm">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</span>}
-                    {lead[calendarDateField] && <span className="text-xs text-muted-foreground">{lead[calendarDateField].slice(0, 10)}</span>}
+                    {lead[calendarDateField] && <span className="text-xs text-muted-foreground">{String(lead[calendarDateField]).slice(0, 10)}</span>}
                   </CardContent>
                 </Card>
               );
