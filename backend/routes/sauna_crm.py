@@ -53,6 +53,7 @@ class CRMSettings(BaseModel):
     lastSyncAt: Optional[str] = None
     clientNameFieldId: Optional[str] = None  # amoCRM field ID for client name
     modelFieldId: Optional[str] = None  # amoCRM field ID for sauna model
+    calendarDateField: Optional[str] = None  # Which field to use for calendar & date filtering (e.g. "field_3", "prepaymentDate")
 
 
 class CRMLead(BaseModel):
@@ -168,14 +169,16 @@ async def get_all_leads(
             else:
                 # Fallback: match by username
                 query["manager"] = {"$regex": manager_username, "$options": "i"}
-    # Date filters on prepaymentDate (дата получения залички)
+    # Date filters — use field configured in settings (calendarDateField)
     if date_from or date_to:
+        settings = await db.sauna_crm_settings.find_one({}, {"_id": 0})
+        date_field = (settings or {}).get("calendarDateField") or "prepaymentDate"
         date_q = {}
         if date_from:
             date_q["$gte"] = date_from
         if date_to:
             date_q["$lte"] = date_to + "T23:59:59"
-        query["prepaymentDate"] = date_q
+        query[date_field] = date_q
 
     leads = await db.sauna_crm_leads.find(query, {"_id": 0}).to_list(1000)
     settings = await get_crm_settings()
@@ -360,16 +363,19 @@ async def link_document(lead_id: str, data: dict):
 
 @router.get("/calendar")
 async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
-    """Get orders for production calendar grouped by prepaymentDate (дата получения залички)."""
+    """Get orders for production calendar grouped by configured date field."""
+    settings = await db.sauna_crm_settings.find_one({}, {"_id": 0})
+    date_field = (settings or {}).get("calendarDateField") or "prepaymentDate"
+    
     leads = await db.sauna_crm_leads.find(
-        {"prepaymentDate": {"$exists": True, "$ne": None, "$nin": [""]}},
+        {date_field: {"$exists": True, "$ne": None, "$nin": [""]}},
         {"_id": 0}
     ).to_list(5000)
     
     # Filter by month/year and group by date
     by_date = {}
     for lead in leads:
-        rd = lead.get("prepaymentDate", "")
+        rd = lead.get(date_field, "")
         if not rd:
             continue
         try:
@@ -382,7 +388,7 @@ async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
                     "id": lead.get("id"),
                     "clientName": lead.get("clientName", ""),
                     "modelName": lead.get("modelName") or lead.get("field_1", ""),
-                    "prepaymentDate": rd,
+                    "dateValue": rd,
                     "stageId": lead.get("stageId"),
                     "totalAmount": lead.get("totalAmount") or lead.get("field_2"),
                     "phone": lead.get("phone", ""),

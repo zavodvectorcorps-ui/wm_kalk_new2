@@ -76,11 +76,13 @@ const SaunaCRMPage = () => {
   const [sortDateOrder, setSortDateOrder] = useState('');
   const toggleSort = () => setSortDateOrder(prev => prev === '' ? 'asc' : prev === 'asc' ? 'desc' : '');
 
+  const calendarDateField = settings?.calendarDateField || 'prepaymentDate';
+  
   const sortLeadsByDate = (arr, order) => {
     if (!order) return arr;
     return [...arr].sort((a, b) => {
-      const da = (a.prepaymentDate || a.createdAt || '').slice(0, 10);
-      const db2 = (b.prepaymentDate || b.createdAt || '').slice(0, 10);
+      const da = (a[calendarDateField] || a.createdAt || '').slice(0, 10);
+      const db2 = (b[calendarDateField] || b.createdAt || '').slice(0, 10);
       if (!da && !db2) return 0;
       if (!da) return 1;
       if (!db2) return -1;
@@ -472,13 +474,13 @@ const SaunaCRMPage = () => {
     }
     // Manager
     if (filterManager && (l.manager || '') !== filterManager) return false;
-    // Date range (by prepaymentDate)
+    // Date range (by calendarDateField)
     if (filterDateFrom) {
-      const rd = (l.prepaymentDate || '').slice(0, 10);
+      const rd = (l[calendarDateField] || '').slice(0, 10);
       if (!rd || rd < filterDateFrom) return false;
     }
     if (filterDateTo) {
-      const rd = (l.prepaymentDate || '').slice(0, 10);
+      const rd = (l[calendarDateField] || '').slice(0, 10);
       if (!rd || rd > filterDateTo) return false;
     }
     return true;
@@ -688,7 +690,7 @@ const SaunaCRMPage = () => {
                         {(lead.totalAmount || lead.field_2) && (
                           <Badge variant="outline" className="mt-1 text-xs">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</Badge>
                         )}
-                        {lead.prepaymentDate && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{lead.prepaymentDate.slice(0, 10)}</p>}
+                        {lead[calendarDateField] && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{lead[calendarDateField].slice(0, 10)}</p>}
                         {(lead.documents || []).length > 0 && (
                           <div className="flex gap-1 mt-1">
                             {lead.documents.map(d => (
@@ -754,7 +756,7 @@ const SaunaCRMPage = () => {
                     </div>
                     <Badge style={{ backgroundColor: stage?.color + '20', color: stage?.color }}>{stage?.name}</Badge>
                     {(lead.totalAmount || lead.field_2) && <span className="font-medium text-sm">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</span>}
-                    {lead.prepaymentDate && <span className="text-xs text-muted-foreground">{lead.prepaymentDate.slice(0, 10)}</span>}
+                    {lead[calendarDateField] && <span className="text-xs text-muted-foreground">{lead[calendarDateField].slice(0, 10)}</span>}
                   </CardContent>
                 </Card>
               );
@@ -1113,6 +1115,26 @@ const SaunaCRMPage = () => {
 
               <TabsContent value="fields">
                 <div className="space-y-3">
+                  {/* Calendar date field selector */}
+                  <div className="p-3 border rounded-lg bg-muted/30">
+                    <Label className="text-sm font-medium mb-2 block">Поле даты для фильтрации и календаря</Label>
+                    <Select
+                      value={settingsForm.calendarDateField || 'prepaymentDate'}
+                      onValueChange={(v) => setSettingsForm(p => ({ ...p, calendarDateField: v }))}
+                    >
+                      <SelectTrigger className="w-full" data-testid="calendar-date-field-select"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="prepaymentDate">Дата предоплаты (prepaymentDate)</SelectItem>
+                        <SelectItem value="readyDate">Дата готовности (readyDate)</SelectItem>
+                        <SelectItem value="productionDate">Дата производства (productionDate)</SelectItem>
+                        <SelectItem value="deliveryDate">Дата доставки (deliveryDate)</SelectItem>
+                        {(settingsForm.fields || []).filter(f => f.enabled).map(f => (
+                          <SelectItem key={f.id} value={f.id}>{f.name} ({f.id})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">Это поле будет использоваться для фильтрации сделок по дате и отображения в календаре</p>
+                  </div>
                   {(settingsForm.fields || []).map((field, idx) => (
                     <div key={field.id} className="flex items-center gap-3 p-3 border rounded-lg">
                       <Switch
