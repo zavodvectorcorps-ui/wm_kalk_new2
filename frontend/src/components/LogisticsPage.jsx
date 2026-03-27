@@ -1872,12 +1872,13 @@ const TripDetailsCard = ({
           </div>
           
           {/* amoCRM Pipeline and Stage selection */}
-          {amocrmPipelines && amocrmPipelines.length > 0 && (
-            <div className="p-3 bg-blue-50 rounded-lg space-y-2">
-              <div className="flex items-center gap-2 text-xs font-medium text-blue-700">
-                <ExternalLink className="h-3 w-3" />
-                Перенести в amoCRM
-              </div>
+          <div className="p-3 bg-blue-50 rounded-lg space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium text-blue-700">
+              <ExternalLink className="h-3 w-3" />
+              Перенести в amoCRM
+            </div>
+            {amocrmPipelines && amocrmPipelines.length > 0 ? (
+              <>
               <div className="grid grid-cols-2 gap-2">
                 <Select 
                   value={selectedTrip.amocrmPipelineId || 'none'} 
@@ -1943,8 +1944,11 @@ const TripDetailsCard = ({
                   Переместить сейчас
                 </Button>
               )}
-            </div>
-          )}
+              </>
+            ) : (
+              <p className="text-xs text-blue-500">Воронки amoCRM не загружены. Проверьте настройки интеграции.</p>
+            )}
+          </div>
           
           {tripRouteInfo && (
             <div className="flex gap-3 p-2 bg-purple-50 rounded-lg text-sm">
