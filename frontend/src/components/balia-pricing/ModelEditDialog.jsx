@@ -52,8 +52,13 @@ export const ModelEditDialog = memo(({
       if (!data.heaterVariants || data.heaterVariants.length === 0) {
         data.heaterVariants = [
           { type: 'integrated', price: data.basePrice || 0, imageUrl: data.imageUrl || '' },
-          { type: 'external', price: data.basePrice || 0, imageUrl: '' }
+          { type: 'external', price: data.basePrice || 0, imageUrl: '' },
+          { type: 'none', price: data.basePrice || 0, imageUrl: '' }
         ];
+      }
+      // Ensure 'none' variant exists for existing models
+      if (!data.heaterVariants.find(v => v.type === 'none')) {
+        data.heaterVariants.push({ type: 'none', price: data.basePrice || 0, imageUrl: '' });
       }
       if (!data.specs) {
         data.specs = {};
@@ -145,6 +150,7 @@ export const ModelEditDialog = memo(({
 
   const integratedVariant = formData.heaterVariants?.find(v => v.type === 'integrated') || { type: 'integrated', price: 0, imageUrl: '' };
   const externalVariant = formData.heaterVariants?.find(v => v.type === 'external') || { type: 'external', price: 0, imageUrl: '' };
+  const noneVariant = formData.heaterVariants?.find(v => v.type === 'none') || { type: 'none', price: 0, imageUrl: '' };
 
   const handleSave = () => {
     const updatedData = {
@@ -312,6 +318,22 @@ export const ModelEditDialog = memo(({
                   />
                   <span className="text-sm">Внешняя (Zewnętrzny)</span>
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.availableHeaterTypes?.includes('none') ?? false}
+                    onChange={(e) => {
+                      const types = formData.availableHeaterTypes || ['integrated', 'external'];
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, availableHeaterTypes: [...new Set([...types, 'none'])] }));
+                      } else {
+                        setFormData(prev => ({ ...prev, availableHeaterTypes: types.filter(t => t !== 'none') }));
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300"
+                  />
+                  <span className="text-sm">Без печи (Bez pieca)</span>
+                </label>
               </div>
               <p className="text-xs text-orange-600">Выберите, какие типы печей можно выбрать для этой модели в калькуляторе</p>
             </div>
@@ -345,6 +367,24 @@ export const ModelEditDialog = memo(({
                 onRemoveImage={() => removeVariantImage('external')}
               />
             </div>
+            
+            {/* None Heater Variant */}
+            {formData.availableHeaterTypes?.includes('none') && (
+              <div className="grid grid-cols-2 gap-4">
+                <VariantEditor 
+                  variant={noneVariant}
+                  variantType="none"
+                  label="Без печи (Bez pieca)"
+                  currencySymbol={currencySymbol}
+                  eurRate={eurRate}
+                  uploadingVariant={uploadingVariant}
+                  onPriceChange={(price) => updateVariantPrice('none', price)}
+                  onFieldChange={(field, value) => updateVariantField('none', field, value)}
+                  onImageUpload={(e) => handleVariantImageUpload(e, 'none')}
+                  onRemoveImage={() => removeVariantImage('none')}
+                />
+              </div>
+            )}
           </div>
 
           {/* Bowl Types Section */}

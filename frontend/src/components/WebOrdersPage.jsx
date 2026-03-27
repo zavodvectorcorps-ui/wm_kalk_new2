@@ -474,7 +474,7 @@ export const WebOrdersPage = ({ onEditInCalculator }) => {
                 <div>
                   <p className="text-sm text-muted-foreground">{txt.heater}</p>
                   <p className="font-semibold">
-                    {selectedOrder.heaterVariantType === 'integrated' ? txt.integrated : txt.external}
+                    {selectedOrder.heaterVariantType === 'integrated' ? txt.integrated : selectedOrder.heaterVariantType === 'none' ? (txt.noHeater || 'Без печи') : txt.external}
                   </p>
                 </div>
               </div>

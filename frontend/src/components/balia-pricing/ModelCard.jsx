@@ -81,8 +81,8 @@ export const ModelCard = memo(({
           <div className="space-y-1 mt-1">
             {displayVariants.map(v => (
               <div key={v.type} className="flex items-center gap-2 text-sm">
-                <Badge variant={v.type === 'integrated' ? 'default' : 'outline'} className="text-xs">
-                  {v.type === 'integrated' ? 'Встр.' : 'Внеш.'}
+                <Badge variant={v.type === 'integrated' ? 'default' : v.type === 'none' ? 'secondary' : 'outline'} className="text-xs">
+                  {v.type === 'integrated' ? 'Встр.' : v.type === 'external' ? 'Внеш.' : 'Без печи'}
                 </Badge>
                 <span className="font-bold text-blue-600">{v.price} {currencySymbol}</span>
                 {v.imageUrl && <CheckCircle className="h-3 w-3 text-green-500" />}

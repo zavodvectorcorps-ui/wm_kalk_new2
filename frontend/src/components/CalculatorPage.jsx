@@ -823,7 +823,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         heaterType: formData.selectedHeaterType,
         heaterTypeName: formData.selectedHeaterType === 'integrated' 
           ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
-          : (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь'),
+          : formData.selectedHeaterType === 'external'
+          ? (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь')
+          : (lang === 'pl' ? 'Bez pieca' : 'Без печи'),
         selectedHeaterVariantId: selectedHeaterVariant?.id || `${selectedModel?.id}_${formData.selectedHeaterType}`,
         selections: formData.selections,
         selectedOptions,
@@ -881,7 +883,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         heaterType: formData.selectedHeaterType,
         heaterTypeName: formData.selectedHeaterType === 'integrated' 
           ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
-          : (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь'),
+          : formData.selectedHeaterType === 'external'
+          ? (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь')
+          : (lang === 'pl' ? 'Bez pieca' : 'Без печи'),
         selectedHeaterVariantId: selectedHeaterVariant?.id || `${selectedModel?.id}_${formData.selectedHeaterType}`,
         selections: formData.selections,
         selectedOptions,
@@ -1362,7 +1366,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                         const isVariantSelected = formData.selectedHeaterType === variant.type;
                         const variantLabel = variant.type === 'integrated' 
                           ? (lang === 'pl' ? 'Zintegrowany piec' : 'Встроенная печь')
-                          : (lang === 'pl' ? 'Zewnętrzny piec' : 'Внешняя печь');
+                          : variant.type === 'external'
+                          ? (lang === 'pl' ? 'Zewnętrzny piec' : 'Внешняя печь')
+                          : (lang === 'pl' ? 'Bez pieca' : 'Без печи');
                         
                         return (
                           <div
