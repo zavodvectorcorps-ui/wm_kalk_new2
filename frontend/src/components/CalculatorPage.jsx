@@ -1832,6 +1832,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                       <span className="text-muted-foreground">
                         {selectedHeaterVariant.type === 'integrated' 
                           ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
+                          : selectedHeaterVariant.type === 'none'
+                          ? (lang === 'pl' ? 'Bez pieca' : 'Без печи')
                           : (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь')}
                       </span>
                       <Check className="h-4 w-4 text-green-600" />

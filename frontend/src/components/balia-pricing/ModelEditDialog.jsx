@@ -440,8 +440,8 @@ export const ModelEditDialog = memo(({
               </p>
               
               {/* Tabs for heater types */}
-              {['integrated', 'external'].map(heaterType => {
-                const heaterLabel = heaterType === 'integrated' ? '🔥 Встроенная печь (Piec zintegrowany)' : '🏠 Внешняя печь (Piec zewnętrzny)';
+              {['integrated', 'external', 'none'].map(heaterType => {
+                const heaterLabel = heaterType === 'integrated' ? '🔥 Встроенная печь (Piec zintegrowany)' : heaterType === 'none' ? '❌ Без печи (Bez pieca)' : '🏠 Внешняя печь (Piec zewnętrzny)';
                 const isAvailable = formData.availableHeaterTypes?.includes(heaterType) ?? true;
                 
                 if (!isAvailable) return null;

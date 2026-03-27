@@ -882,7 +882,7 @@ const ExcelMappingTab = ({
                   </p>
                   {model.heaterVariants.map((hv, idx) => (
                     <div key={idx} className="flex items-center gap-4 flex-wrap bg-amber-50 p-2 rounded">
-                      <span className="text-sm">{hv.type === 'integrated' ? (lang === 'ru' ? 'Встроенная' : 'Zintegrowany') : (lang === 'ru' ? 'Внешняя' : 'Zewnętrzny')}</span>
+                      <span className="text-sm">{hv.type === 'integrated' ? (lang === 'ru' ? 'Встроенная' : 'Zintegrowany') : hv.type === 'none' ? (lang === 'ru' ? 'Без печи' : 'Bez pieca') : (lang === 'ru' ? 'Внешняя' : 'Zewnętrzny')}</span>
                       <div className="flex items-center gap-2">
                         <Label className="text-xs text-muted-foreground">ID:</Label>
                         <Input

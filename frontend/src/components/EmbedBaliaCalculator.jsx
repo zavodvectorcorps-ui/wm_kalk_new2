@@ -366,7 +366,7 @@ export const EmbedBaliaCalculator = () => {
                       />
                     )}
                     <p className="font-medium text-center">
-                      {variant.type === 'integrated' ? 'Piec zintegrowany' : 'Piec zewnętrzny'}
+                      {variant.type === 'integrated' ? 'Piec zintegrowany' : variant.type === 'none' ? 'Bez pieca' : 'Piec zewnętrzny'}
                     </p>
                     <p className="text-blue-600 font-bold text-center mt-1">
                       {variant.price?.toLocaleString()} {currencySymbol}
@@ -398,7 +398,7 @@ export const EmbedBaliaCalculator = () => {
                 <div className="md:w-2/3 space-y-2">
                   <h3 className="font-semibold text-lg">{getName(selectedModel)}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {selectedHeaterVariant?.type === 'integrated' ? 'Piec zintegrowany' : 'Piec zewnętrzny'}
+                    {selectedHeaterVariant?.type === 'integrated' ? 'Piec zintegrowany' : selectedHeaterVariant?.type === 'none' ? 'Bez pieca' : 'Piec zewnętrzny'}
                   </p>
                   
                   {/* Hint/Description - prefer Polish */}
