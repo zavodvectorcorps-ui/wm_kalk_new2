@@ -85,7 +85,7 @@ async def get_sauna_orders(username: str = None, role: str = None, for_logistics
             {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},
         ]
     
-    orders = await db.sauna_orders.find(query, {"_id": 0}).to_list(1000)
+    orders = await db.sauna_orders.find(query, {"_id": 0}).sort("createdAt", -1).to_list(5000)
     return orders
 
 
