@@ -14,7 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   MapPin, Route, Truck, Clock, Navigation, RefreshCw, ChevronDown, ChevronUp,
   Package, Plus, User, Phone, FileText, X, Hash, CheckCircle, Send,
-  Users, Trash2, Settings, GripVertical, Sparkles, ArrowUp, ArrowDown,
+  Users, Trash2, Settings, GripVertical, Sparkles, ArrowUp, ArrowDown, ArrowDownUp,
   ExternalLink, DollarSign, MessageSquare, AlertCircle, Filter, Eye, Warehouse,
   Calendar, Printer, Search, Bell, History
 } from 'lucide-react';
@@ -123,6 +123,7 @@ export const LogisticsPage = () => {
     updateOrderStatusInTrip,
     removeOrderFromTrip,
     optimizeTripRoute,
+    reverseTripRoute,
     buildTripRoute,
     printTripOrders,
     moveOrderUp,
@@ -743,6 +744,7 @@ export const LogisticsPage = () => {
                 syncingToAmocrm={syncingToAmocrm}
                 deleteTrip={deleteTrip}
                 optimizeTripRoute={optimizeTripRoute}
+                reverseTripRoute={reverseTripRoute}
                 buildTripRoute={buildTripRoute}
                 updateOrderStatusInTrip={updateOrderStatusInTrip}
                 removeOrderFromTrip={removeOrderFromTrip}
@@ -1670,7 +1672,7 @@ const TripsView = ({
   sectionData, drivers, isLoaded, warehouseCoords, warehouseAddress, tripDirections, tripRouteInfo,
   buildingTripRoute, optimizingRoute, draggedOrderIndex, tripMapRef, updateTrip, updateTripStatus, 
   syncTripToAmocrm, syncingToAmocrm, deleteTrip,
-  optimizeTripRoute, buildTripRoute, updateOrderStatusInTrip, removeOrderFromTrip, moveOrderUp, moveOrderDown, moveOrderToPosition,
+  optimizeTripRoute, reverseTripRoute, buildTripRoute, updateOrderStatusInTrip, removeOrderFromTrip, moveOrderUp, moveOrderDown, moveOrderToPosition,
   handleDragStart, handleDragOver, handleDrop, handleDragEnd, setActiveInnerTab,
   formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders,
   getFilteredTrips, searchQuery, amocrmPipelines, API_URL, readOnly = false
@@ -1755,6 +1757,7 @@ const TripsView = ({
           syncingToAmocrm={syncingToAmocrm}
           deleteTrip={deleteTrip}
           optimizeTripRoute={optimizeTripRoute}
+          reverseTripRoute={reverseTripRoute}
           buildTripRoute={buildTripRoute}
           buildingTripRoute={buildingTripRoute}
           updateOrderStatusInTrip={updateOrderStatusInTrip}
@@ -1796,7 +1799,7 @@ const TripsView = ({
 
 const TripDetailsCard = ({
   selectedTrip, setSelectedTrip, sectionKey, sectionData, drivers, tripRouteInfo, optimizingRoute,
-  draggedOrderIndex, updateTrip, updateTripStatus, syncTripToAmocrm, syncingToAmocrm, deleteTrip, optimizeTripRoute, buildTripRoute, buildingTripRoute, updateOrderStatusInTrip,
+  draggedOrderIndex, updateTrip, updateTripStatus, syncTripToAmocrm, syncingToAmocrm, deleteTrip, optimizeTripRoute, reverseTripRoute, buildTripRoute, buildingTripRoute, updateOrderStatusInTrip,
   removeOrderFromTrip, moveOrderUp, moveOrderDown, moveOrderToPosition, handleDragStart, handleDragOver, handleDrop,
   handleDragEnd, formatDistance, formatDuration, TRIP_STATUSES, ORDER_TRIP_STATUSES, printTripOrders, amocrmPipelines, API_URL, readOnly = false
 }) => {
@@ -1989,6 +1992,10 @@ const TripDetailsCard = ({
                   <Button size="sm" variant="outline" onClick={optimizeTripRoute} disabled={optimizingRoute} className="gap-1 h-7 text-xs" data-testid="optimize-route-btn">
                     {optimizingRoute ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                     Оптимизировать
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={reverseTripRoute} className="gap-1 h-7 text-xs" data-testid="reverse-route-btn">
+                    <ArrowDownUp className="h-3 w-3" />
+                    Развернуть
                   </Button>
                 </div>
               )}

@@ -1352,6 +1352,19 @@ export const useLogistics = () => {
     }
   };
 
+  // Reverse trip route order
+  const reverseTripRoute = async () => {
+    if (!selectedTrip || !selectedTrip.orderIds || selectedTrip.orderIds.length < 2) {
+      toast.error('Нужно минимум 2 заказа для разворота');
+      return;
+    }
+    const reversed = [...selectedTrip.orderIds].reverse();
+    await updateTripOrderIds(selectedTrip.id, reversed);
+    toast.success('Маршрут развёрнут');
+    // Rebuild route with new order
+    setTimeout(() => buildTripRoute(), 300);
+  };
+
   // Build trip route
   const buildTripRoute = useCallback(async () => {
     if (!selectedTrip || !selectedTrip.orderIds || selectedTrip.orderIds.length < 1) {
@@ -2400,6 +2413,7 @@ export const useLogistics = () => {
     updateOrderStatusInTrip,
     removeOrderFromTrip,
     optimizeTripRoute,
+    reverseTripRoute,
     buildTripRoute,
     printTripOrders,
     moveOrderUp,
