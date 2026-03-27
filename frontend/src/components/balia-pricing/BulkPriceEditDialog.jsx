@@ -45,6 +45,7 @@ export const BulkPriceEditDialog = memo(({
     all: lang === 'ru' ? 'Все варианты' : 'Wszystkie warianty',
     integrated: lang === 'ru' ? 'Только встроенная печь' : 'Tylko zintegrowany',
     external: lang === 'ru' ? 'Только внешняя печь' : 'Tylko zewnętrzny',
+    electric: lang === 'ru' ? 'Только электрическая печь' : 'Tylko elektryczny',
     none: lang === 'ru' ? 'Только без печи' : 'Tylko bez pieca',
     preview: lang === 'ru' ? 'Предпросмотр' : 'Podgląd',
     example: lang === 'ru' ? 'Пример: 1000 → ' : 'Przykład: 1000 → ',
@@ -120,6 +121,7 @@ export const BulkPriceEditDialog = memo(({
                 <SelectItem value="all">{txt.all}</SelectItem>
                 <SelectItem value="integrated">{txt.integrated}</SelectItem>
                 <SelectItem value="external">{txt.external}</SelectItem>
+                <SelectItem value="electric">{txt.electric}</SelectItem>
                 <SelectItem value="none">{txt.none}</SelectItem>
               </SelectContent>
             </Select>

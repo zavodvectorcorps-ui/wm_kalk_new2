@@ -922,7 +922,7 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
     elements.append(Paragraph("🛁 WYBRANY MODEL", section_style))
     
     heater_type = request.heaterType or 'external'
-    heater_type_name = "Zintegrowany" if heater_type == 'integrated' else ("Bez pieca" if heater_type == 'none' else "Zewnętrzny")
+    heater_type_name = "Zintegrowany" if heater_type == 'integrated' else ("Bez pieca" if heater_type == 'none' else ("Elektryczny" if heater_type == 'electric' else "Zewnętrzny"))
     
     model_info = [
         ["Model:", request.modelName or "-"],

@@ -825,6 +825,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
           ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
           : formData.selectedHeaterType === 'external'
           ? (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь')
+          : formData.selectedHeaterType === 'electric'
+          ? (lang === 'pl' ? 'Piec elektryczny' : 'Электрическая печь')
           : (lang === 'pl' ? 'Bez pieca' : 'Без печи'),
         selectedHeaterVariantId: selectedHeaterVariant?.id || `${selectedModel?.id}_${formData.selectedHeaterType}`,
         selections: formData.selections,
@@ -885,6 +887,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
           ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
           : formData.selectedHeaterType === 'external'
           ? (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь')
+          : formData.selectedHeaterType === 'electric'
+          ? (lang === 'pl' ? 'Piec elektryczny' : 'Электрическая печь')
           : (lang === 'pl' ? 'Bez pieca' : 'Без печи'),
         selectedHeaterVariantId: selectedHeaterVariant?.id || `${selectedModel?.id}_${formData.selectedHeaterType}`,
         selections: formData.selections,
@@ -1368,6 +1372,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                           ? (lang === 'pl' ? 'Zintegrowany piec' : 'Встроенная печь')
                           : variant.type === 'external'
                           ? (lang === 'pl' ? 'Zewnętrzny piec' : 'Внешняя печь')
+                          : variant.type === 'electric'
+                          ? (lang === 'pl' ? 'Piec elektryczny' : 'Электрическая печь')
                           : (lang === 'pl' ? 'Bez pieca' : 'Без печи');
                         
                         return (
@@ -1832,9 +1838,11 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                       <span className="text-muted-foreground">
                         {selectedHeaterVariant.type === 'integrated' 
                           ? (lang === 'pl' ? 'Piec zintegrowany' : 'Встроенная печь')
-                          : selectedHeaterVariant.type === 'none'
-                          ? (lang === 'pl' ? 'Bez pieca' : 'Без печи')
-                          : (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь')}
+                          : selectedHeaterVariant.type === 'external'
+                          ? (lang === 'pl' ? 'Piec zewnętrzny' : 'Внешняя печь')
+                          : selectedHeaterVariant.type === 'electric'
+                          ? (lang === 'pl' ? 'Piec elektryczny' : 'Электрическая печь')
+                          : (lang === 'pl' ? 'Bez pieca' : 'Без печи')}
                       </span>
                       <Check className="h-4 w-4 text-green-600" />
                     </div>

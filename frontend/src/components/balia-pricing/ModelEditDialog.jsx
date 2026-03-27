@@ -53,12 +53,16 @@ export const ModelEditDialog = memo(({
         data.heaterVariants = [
           { type: 'integrated', price: data.basePrice || 0, imageUrl: data.imageUrl || '' },
           { type: 'external', price: data.basePrice || 0, imageUrl: '' },
+          { type: 'electric', price: data.basePrice || 0, imageUrl: '' },
           { type: 'none', price: data.basePrice || 0, imageUrl: '' }
         ];
       }
-      // Ensure 'none' variant exists for existing models
+      // Ensure 'none' and 'electric' variants exist for existing models
       if (!data.heaterVariants.find(v => v.type === 'none')) {
         data.heaterVariants.push({ type: 'none', price: data.basePrice || 0, imageUrl: '' });
+      }
+      if (!data.heaterVariants.find(v => v.type === 'electric')) {
+        data.heaterVariants.push({ type: 'electric', price: data.basePrice || 0, imageUrl: '' });
       }
       if (!data.specs) {
         data.specs = {};
@@ -150,6 +154,7 @@ export const ModelEditDialog = memo(({
 
   const integratedVariant = formData.heaterVariants?.find(v => v.type === 'integrated') || { type: 'integrated', price: 0, imageUrl: '' };
   const externalVariant = formData.heaterVariants?.find(v => v.type === 'external') || { type: 'external', price: 0, imageUrl: '' };
+  const electricVariant = formData.heaterVariants?.find(v => v.type === 'electric') || { type: 'electric', price: 0, imageUrl: '' };
   const noneVariant = formData.heaterVariants?.find(v => v.type === 'none') || { type: 'none', price: 0, imageUrl: '' };
 
   const handleSave = () => {
@@ -334,6 +339,22 @@ export const ModelEditDialog = memo(({
                   />
                   <span className="text-sm">Без печи (Bez pieca)</span>
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.availableHeaterTypes?.includes('electric') ?? false}
+                    onChange={(e) => {
+                      const types = formData.availableHeaterTypes || ['integrated', 'external'];
+                      if (e.target.checked) {
+                        setFormData(prev => ({ ...prev, availableHeaterTypes: [...new Set([...types, 'electric'])] }));
+                      } else {
+                        setFormData(prev => ({ ...prev, availableHeaterTypes: types.filter(t => t !== 'electric') }));
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300"
+                  />
+                  <span className="text-sm">Электрическая (Piec elektryczny)</span>
+                </label>
               </div>
               <p className="text-xs text-orange-600">Выберите, какие типы печей можно выбрать для этой модели в калькуляторе</p>
             </div>
@@ -382,6 +403,24 @@ export const ModelEditDialog = memo(({
                   onFieldChange={(field, value) => updateVariantField('none', field, value)}
                   onImageUpload={(e) => handleVariantImageUpload(e, 'none')}
                   onRemoveImage={() => removeVariantImage('none')}
+                />
+              </div>
+            )}
+
+            {/* Electric Heater Variant */}
+            {formData.availableHeaterTypes?.includes('electric') && (
+              <div className="grid grid-cols-2 gap-4">
+                <VariantEditor 
+                  variant={electricVariant}
+                  variantType="electric"
+                  label="Электрическая печь (Piec elektryczny)"
+                  currencySymbol={currencySymbol}
+                  eurRate={eurRate}
+                  uploadingVariant={uploadingVariant}
+                  onPriceChange={(price) => updateVariantPrice('electric', price)}
+                  onFieldChange={(field, value) => updateVariantField('electric', field, value)}
+                  onImageUpload={(e) => handleVariantImageUpload(e, 'electric')}
+                  onRemoveImage={() => removeVariantImage('electric')}
                 />
               </div>
             )}
@@ -440,8 +479,8 @@ export const ModelEditDialog = memo(({
               </p>
               
               {/* Tabs for heater types */}
-              {['integrated', 'external', 'none'].map(heaterType => {
-                const heaterLabel = heaterType === 'integrated' ? '🔥 Встроенная печь (Piec zintegrowany)' : heaterType === 'none' ? '❌ Без печи (Bez pieca)' : '🏠 Внешняя печь (Piec zewnętrzny)';
+              {['integrated', 'external', 'electric', 'none'].map(heaterType => {
+                const heaterLabel = heaterType === 'integrated' ? '🔥 Встроенная печь (Piec zintegrowany)' : heaterType === 'none' ? '❌ Без печи (Bez pieca)' : heaterType === 'electric' ? '⚡ Электрическая печь (Piec elektryczny)' : '🏠 Внешняя печь (Piec zewnętrzny)';
                 const isAvailable = formData.availableHeaterTypes?.includes(heaterType) ?? true;
                 
                 if (!isAvailable) return null;
