@@ -1052,6 +1052,36 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
                 />
               </div>
               
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Телефон компании</Label>
+                  <Input
+                    value={template?.texts?.companyPhone || ''}
+                    onChange={(e) => handleTextChange('companyPhone', e.target.value)}
+                    placeholder="+48 732 099 201"
+                    data-testid="pdf-company-phone"
+                  />
+                </div>
+                <div>
+                  <Label>Email компании</Label>
+                  <Input
+                    value={template?.texts?.companyEmail || ''}
+                    onChange={(e) => handleTextChange('companyEmail', e.target.value)}
+                    placeholder="wmsauna@gmail.com"
+                    data-testid="pdf-company-email"
+                  />
+                </div>
+                <div>
+                  <Label>Сайт компании</Label>
+                  <Input
+                    value={template?.texts?.companyWebsite || ''}
+                    onChange={(e) => handleTextChange('companyWebsite', e.target.value)}
+                    placeholder="www.wm-sauna.pl"
+                    data-testid="pdf-company-website"
+                  />
+                </div>
+              </div>
+              
               <div>
                 <Label>Заголовок промо-блока</Label>
                 <Input

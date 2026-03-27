@@ -60,6 +60,9 @@ DEFAULT_PDF_TEMPLATE = {
     },
     "texts": {
         "headerTitle": "OFERTA HANDLOWA",
+        "companyPhone": "+48 732 099 201",
+        "companyEmail": "wmsauna@gmail.com",
+        "companyWebsite": "www.wm-sauna.pl",
         "promoTitle": "PROMOCJA",
         "promoText": "Darmowa balia do schłodzenia<br/>lub beczka z sauną!",
         "warrantyText": "GWARANCJA: 12 miesiące od daty montażu",
@@ -658,9 +661,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         logo_cell,
         '',
         Paragraph(f'''<b>{header_title}</b><br/>
-        <font size="9" color="#95856e">Tel: +48 732 099 201</font><br/>
-        <font size="9" color="#95856e">Email: wmsauna@gmail.com</font><br/>
-        <font size="9" color="#95856e">www.wm-sauna.pl</font>''',
+        <font size="9" color="#95856e">Tel: {template_texts.get('companyPhone', '+48 732 099 201')}</font><br/>
+        <font size="9" color="#95856e">Email: {template_texts.get('companyEmail', 'wmsauna@gmail.com')}</font><br/>
+        <font size="9" color="#95856e">{template_texts.get('companyWebsite', 'www.wm-sauna.pl')}</font>''',
         ParagraphStyle('HeaderRight', fontName='DejaVuSans', fontSize=16, alignment=TA_RIGHT, textColor=BROWN))
     ]]
     header_table = Table(header_data, colWidths=[200, 130, 200])
