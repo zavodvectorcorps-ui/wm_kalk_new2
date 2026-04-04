@@ -30,6 +30,8 @@ greenhouse_orders = db["greenhouse_orders"]
 balia_orders = db["orders"]
 sauna_orders = db["sauna_orders"]
 delivery_photos = db["delivery_photos"]
+sauna_crm_leads = db["sauna_crm_leads"]
+sauna_crm_settings = db["sauna_crm_settings"]
 
 
 def get_all_orders_by_amocrm_id(amocrm_id: str):
@@ -1059,6 +1061,14 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         section = list(all_orders.keys())[0]
         order = all_orders[section]
     
+    # Get Sauna CRM lead data (separate from calculator orders)
+    sauna_crm_lead = sauna_crm_leads.find_one({"amocrm_id": str(lead_id)}, {"_id": 0})
+    
+    # Get CRM stages config for status labels
+    crm_settings = sauna_crm_settings.find_one({}, {"_id": 0})
+    crm_stages = crm_settings.get("stages", []) if crm_settings else []
+    crm_stage_map = {s["id"]: s for s in crm_stages}
+    
     # Get trip info
     trip_info = None
     photo_info = None
@@ -1079,7 +1089,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         if photo:
             photo_info = {"hasPhoto": True}
     
-    # Status config
+    # Status config for delivery/order statuses
     status_config = {
         "pending": {"label": "Ожидает", "color": "#6b7280", "bg": "#f3f4f6"},
         "preparing": {"label": "Готовится", "color": "#eab308", "bg": "#fefce8"},
@@ -1091,12 +1101,43 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         "cancelled": {"label": "Отменён", "color": "#ef4444", "bg": "#fef2f2"}
     }
     
+    # CRM stage status config for saunas
+    sauna_status_config = {
+        "new": {"label": "Новый", "color": "#3b82f6", "bg": "#eff6ff"},
+        "invoice_sent": {"label": "Выставлен счёт", "color": "#8b5cf6", "bg": "#f5f3ff"},
+        "prepayment_received": {"label": "Предоплата получена", "color": "#f59e0b", "bg": "#fffbeb"},
+        "approved_by_production": {"label": "Согласован производством", "color": "#06b6d4", "bg": "#ecfeff"},
+        "in_production": {"label": "В производстве", "color": "#22c55e", "bg": "#f0fdf4"},
+        "ready": {"label": "Готов", "color": "#10b981", "bg": "#d1fae5"},
+        "delivered": {"label": "Доставлен", "color": "#059669", "bg": "#a7f3d0"},
+    }
+    
     order_status = "not_found"
     status_label = "Не найден"
     status_color = "#6b7280"
     status_bg = "#f3f4f6"
     
-    if order:
+    # Determine status: prioritize sauna CRM stage if available
+    if sauna_crm_lead:
+        crm_stage_id = sauna_crm_lead.get("stageId", "new")
+        # First check CRM stage map from settings
+        if crm_stage_id in crm_stage_map:
+            stage_info = crm_stage_map[crm_stage_id]
+            status_label = stage_info.get("name", crm_stage_id)
+            status_color = stage_info.get("color", "#6b7280")
+            status_bg = "#f3f4f6"
+        # Then check our local sauna status config
+        elif crm_stage_id in sauna_status_config:
+            cfg = sauna_status_config[crm_stage_id]
+            status_label = cfg["label"]
+            status_color = cfg["color"]
+            status_bg = cfg["bg"]
+        else:
+            status_label = crm_stage_id
+            status_color = "#6b7280"
+            status_bg = "#f3f4f6"
+        order_status = crm_stage_id
+    elif order:
         order_status = order.get("tripOrderStatus") or order.get("deliveryStatus") or order.get("status") or "new"
         cfg = status_config.get(order_status, status_config["pending"])
         status_label = cfg["label"]
@@ -1742,7 +1783,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
     </style>
 </head>
 <body>
-    <div class="widget">>
+    <div class="widget">
 """
 
     if order:
@@ -1775,17 +1816,22 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         has_any_orders = bool(all_orders)
         
         # Get total and payment info
-        # Different collections use different field names:
-        # - balia/sauna: total, totalPrice
-        # - greenhouse: dealSum, debtSum, amountDue
-        total = (
-            order.get('total') or 
-            order.get('totalPrice') or 
-            order.get('dealSum') or 
-            order.get('amountDue') or 
-            0
-        )
-        received_amount = order.get('receivedAmount') or 0
+        # For saunas with CRM data, use CRM lead info
+        # For greenhouse/balia, use order fields
+        if sauna_crm_lead and section == 'sauna':
+            total = sauna_crm_lead.get('totalAmount') or order.get('total') or 0
+            received_amount = sauna_crm_lead.get('advancePayment') or sauna_crm_lead.get('paidAmount') or 0
+            customer_name = sauna_crm_lead.get('clientName') or order.get('fullName') or '-'
+        else:
+            total = (
+                order.get('total') or 
+                order.get('totalPrice') or 
+                order.get('dealSum') or 
+                order.get('amountDue') or 
+                0
+            )
+            received_amount = order.get('receivedAmount') or 0
+            customer_name = order.get('fullName') or order.get('customerName') or '-'
         
         # For greenhouse, debtSum is already calculated
         debt_from_order = order.get('debtSum')
@@ -1798,7 +1844,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             received_float = float(received_amount) if received_amount else 0
             
             # Use debtSum if available (greenhouse), otherwise calculate
-            if debt_from_order is not None and debt_from_order != '':
+            if debt_from_order is not None and debt_from_order != '' and section != 'sauna':
                 debt = float(debt_from_order)
             else:
                 debt = total_float - received_float
@@ -1816,9 +1862,6 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             received_formatted = str(received_amount)
             debt_formatted = "0"
         
-        # Customer name
-        customer_name = order.get('fullName') or order.get('customerName') or '-'
-        
         # Check if important order (Allegro)
         is_important = order.get('isImportant') or order.get('important') or False
         
@@ -1831,6 +1874,47 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         if 'OPŁACONE' in tag_names or 'OPLACONE' in tag_names:
             is_paid_allegro = True
         
+        # Sauna CRM dates
+        sauna_prepayment_date = ""
+        sauna_ready_date = ""
+        sauna_production_date = ""
+        sauna_model_name = ""
+        sauna_crm_id = ""
+        has_sauna_crm = bool(sauna_crm_lead)
+        
+        if sauna_crm_lead:
+            sauna_crm_id = sauna_crm_lead.get("id", "")
+            sauna_model_name = sauna_crm_lead.get("modelName", "")
+            
+            for date_field, date_var in [
+                ("prepaymentDate", "sauna_prepayment_date"),
+                ("readyDate", "sauna_ready_date"),
+                ("productionDate", "sauna_production_date"),
+            ]:
+                raw = sauna_crm_lead.get(date_field, "")
+                if raw:
+                    try:
+                        if isinstance(raw, str) and len(raw) >= 10:
+                            dt_obj = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+                            formatted = dt_obj.strftime('%d.%m.%Y')
+                        else:
+                            formatted = str(raw)
+                    except:
+                        formatted = str(raw)
+                    if date_var == "sauna_prepayment_date":
+                        sauna_prepayment_date = formatted
+                    elif date_var == "sauna_ready_date":
+                        sauna_ready_date = formatted
+                    elif date_var == "sauna_production_date":
+                        sauna_production_date = formatted
+        
+        # Sauna CRM documents (contract, tech spec)
+        sauna_docs = sauna_crm_lead.get("documents", []) if sauna_crm_lead else []
+        has_contract = any(d.get("type") == "contract" for d in sauna_docs)
+        has_tech_spec = any(d.get("type") == "tech_spec" for d in sauna_docs)
+        contract_url = next((d.get("url") for d in sauna_docs if d.get("type") == "contract"), "")
+        tech_spec_url = next((d.get("url") for d in sauna_docs if d.get("type") == "tech_spec"), "")
+        
         html += f"""
         <div class="header">
             <div class="header-title">Информация о заказе</div>
@@ -1840,7 +1924,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         <!-- Important Order Badge (Allegro) -->
         {f'''<div class="section">
             <div class="allegro-badge">
-                <span class="allegro-icon">🛒</span>
+                <span class="allegro-icon">&#128722;</span>
                 <span>Заказ Allegro</span>
             </div>
         </div>''' if is_important else ''}
@@ -1860,11 +1944,101 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                     <span class="status-dot" style="background: {status_color};"></span>
                     {status_label}
                 </div>
-                {f'<span class="photo-badge">📷 Фото доставки</span>' if photo_info else ''}
+                {f'<span class="photo-badge">&#128247; Фото доставки</span>' if photo_info else ''}
+            </div>
+        </div>
+"""
+
+        # ============ SAUNA CRM INFO SECTION ============
+        if has_sauna_crm:
+            html += f"""
+        <!-- Sauna CRM Details -->
+        <div class="section">
+            <div class="section-title">Сауна — CRM</div>
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label">CRM ID</span>
+                    <span class="info-value">{sauna_crm_id}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Клиент</span>
+                    <span class="info-value">{customer_name}</span>
+                </div>
+                {f'''<div class="info-row">
+                    <span class="info-label">Модель</span>
+                    <span class="info-value highlight">{sauna_model_name}</span>
+                </div>''' if sauna_model_name else ''}
+                <div class="info-row">
+                    <span class="info-label">Сумма заказа</span>
+                    <span class="info-value">{total_formatted} {currency}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Оплачено (аванс)</span>
+                    <span class="info-value {'success' if received_float > 0 else ''}">{received_formatted} {currency}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Задолженность</span>
+                    <span class="info-value {'warning' if debt > 0 else 'success'}">{debt_formatted} {currency}</span>
+                </div>
+                {f'''<div class="info-row">
+                    <span class="info-label">Дата аванса</span>
+                    <span class="info-value">{sauna_prepayment_date}</span>
+                </div>''' if sauna_prepayment_date else ''}
+                {f'''<div class="info-row">
+                    <span class="info-label">Дата готовности</span>
+                    <span class="info-value">{sauna_ready_date}</span>
+                </div>''' if sauna_ready_date else ''}
+                {f'''<div class="info-row">
+                    <span class="info-label">Дата производства</span>
+                    <span class="info-value">{sauna_production_date}</span>
+                </div>''' if sauna_production_date else ''}
+                <div class="info-row">
+                    <span class="info-label">Договор</span>
+                    <span class="info-value">
+                        <span class="kp-badge {'kp-yes' if has_contract else 'kp-no'}">
+                            {'&#10003; Да' if has_contract else '&#10007; Нет'}
+                        </span>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Тех. задание</span>
+                    <span class="info-value">
+                        <span class="kp-badge {'kp-yes' if has_tech_spec else 'kp-no'}">
+                            {'&#10003; Да' if has_tech_spec else '&#10007; Нет'}
+                        </span>
+                    </span>
+                </div>
             </div>
         </div>
         
-        <!-- Order Details -->
+        <!-- Sauna Documents Links -->
+        {f'''<div class="section">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                {f'<a href="{contract_url}" target="_blank" class="btn-view" style="flex: 1; text-align: center; text-decoration: none;">&#128196; Договор</a>' if contract_url else ''}
+                {f'<a href="{tech_spec_url}" target="_blank" class="btn-view" style="flex: 1; text-align: center; text-decoration: none;">&#128203; Тех. задание</a>' if tech_spec_url else ''}
+            </div>
+        </div>''' if (contract_url or tech_spec_url) else ''}
+        
+        <!-- Create Contract Button -->
+        <div class="section">
+            <button type="button" class="btn-edit" id="btn-create-contract" onclick="createContract()" data-testid="create-contract-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10,9 9,9 8,9"/>
+                </svg>
+                {'Пересоздать договор' if has_contract else 'Создать договор'}
+            </button>
+            <div id="contract-status" class="gifts-status" style="display:none;"></div>
+        </div>
+"""
+
+        # ============ NON-SAUNA ORDER DETAILS ============
+        if not has_sauna_crm:
+            html += f"""
+        <!-- Order Details (balia/greenhouse) -->
         <div class="section">
             <div class="section-title">Детали заказа</div>
             <div class="info-card">
@@ -1890,7 +2064,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 </div>
                 <div class="info-row">
                     <span class="info-label">Задолженность</span>
-                    <span class="info-value {'success' if is_paid_allegro else ('warning' if debt > 0 else 'success')}">{'✓ Оплачен на Allegro' if is_paid_allegro else f'{debt_formatted} {currency}'}</span>
+                    <span class="info-value {'success' if is_paid_allegro else ('warning' if debt > 0 else 'success')}">{'&#10003; Оплачен на Allegro' if is_paid_allegro else f'{debt_formatted} {currency}'}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Создан</span>
@@ -1908,13 +2082,15 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                     <span class="info-label">КП создано</span>
                     <span class="info-value">
                         <span class="kp-badge {'kp-yes' if has_pdf else 'kp-no'}">
-                            {'✓ Да' if has_pdf else '✗ Нет'}
+                            {'&#10003; Да' if has_pdf else '&#10007; Нет'}
                         </span>
                     </span>
                 </div>
             </div>
         </div>
-        
+"""
+
+        html += f"""
         <!-- Edit Buttons Section -->
         {f'''<div class="section">
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -2018,9 +2194,110 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
 """
 
     else:
-        html += f"""
+        # Even without a calculator order, show sauna CRM info if available
+        if sauna_crm_lead:
+            sauna_crm_id = sauna_crm_lead.get("id", "")
+            customer_name = sauna_crm_lead.get("clientName", "-")
+            sauna_model_name = sauna_crm_lead.get("modelName", "")
+            total_amount = sauna_crm_lead.get("totalAmount", 0)
+            advance = sauna_crm_lead.get("advancePayment") or sauna_crm_lead.get("paidAmount") or 0
+            try:
+                total_float = float(total_amount) if total_amount else 0
+                adv_float = float(advance) if advance else 0
+                total_fmt = f"{total_float:,.0f}".replace(",", " ")
+                adv_fmt = f"{adv_float:,.0f}".replace(",", " ")
+            except:
+                total_fmt = str(total_amount)
+                adv_fmt = str(advance)
+            
+            # Get dates
+            sauna_prepayment_date_nf = ""
+            sauna_ready_date_nf = ""
+            for df, val_ref in [("prepaymentDate", "sauna_prepayment_date_nf"), ("readyDate", "sauna_ready_date_nf")]:
+                raw_dt = sauna_crm_lead.get(df, "")
+                if raw_dt:
+                    try:
+                        dt_obj = datetime.fromisoformat(str(raw_dt).replace('Z', '+00:00'))
+                        locals()[val_ref] = dt_obj.strftime('%d.%m.%Y')
+                    except:
+                        locals()[val_ref] = str(raw_dt)
+            
+            sauna_docs_nf = sauna_crm_lead.get("documents", [])
+            has_contract_nf = any(d.get("type") == "contract" for d in sauna_docs_nf)
+            has_tech_spec_nf = any(d.get("type") == "tech_spec" for d in sauna_docs_nf)
+            contract_url_nf = next((d.get("url") for d in sauna_docs_nf if d.get("type") == "contract"), "")
+            tech_spec_url_nf = next((d.get("url") for d in sauna_docs_nf if d.get("type") == "tech_spec"), "")
+            
+            html += f"""
+        <div class="header">
+            <div class="header-title">Информация о заказе</div>
+            <div class="header-subtitle">amoCRM ID: {lead_id}</div>
+        </div>
+        
+        <!-- Status -->
+        <div class="section">
+            <div class="section-title">Статус</div>
+            <div class="status-row">
+                <div class="status-badge" style="background: {status_bg}; color: {status_color};">
+                    <span class="status-dot" style="background: {status_color};"></span>
+                    {status_label}
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Сауна — CRM</div>
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label">CRM ID</span>
+                    <span class="info-value">{sauna_crm_id}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Клиент</span>
+                    <span class="info-value">{customer_name}</span>
+                </div>
+                {f'<div class="info-row"><span class="info-label">Модель</span><span class="info-value highlight">{sauna_model_name}</span></div>' if sauna_model_name else ''}
+                <div class="info-row">
+                    <span class="info-label">Сумма заказа</span>
+                    <span class="info-value">{total_fmt} zl</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Оплачено (аванс)</span>
+                    <span class="info-value">{adv_fmt} zl</span>
+                </div>
+                {f'<div class="info-row"><span class="info-label">Дата аванса</span><span class="info-value">{sauna_prepayment_date_nf}</span></div>' if sauna_prepayment_date_nf else ''}
+                {f'<div class="info-row"><span class="info-label">Дата готовности</span><span class="info-value">{sauna_ready_date_nf}</span></div>' if sauna_ready_date_nf else ''}
+            </div>
+        </div>
+        
+        <!-- Document links -->
+        {f'''<div class="section"><div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            {f'<a href="{contract_url_nf}" target="_blank" class="btn-view" style="flex:1;text-align:center;text-decoration:none;">&#128196; Договор</a>' if contract_url_nf else ''}
+            {f'<a href="{tech_spec_url_nf}" target="_blank" class="btn-view" style="flex:1;text-align:center;text-decoration:none;">&#128203; Тех. задание</a>' if tech_spec_url_nf else ''}
+        </div></div>''' if (contract_url_nf or tech_spec_url_nf) else ''}
+        
+        <!-- Create Contract Button -->
+        <div class="section">
+            <button type="button" class="btn-edit" id="btn-create-contract" onclick="createContract()" data-testid="create-contract-btn-nf">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                {'Пересоздать договор' if has_contract_nf else 'Создать договор'}
+            </button>
+            <div id="contract-status" class="gifts-status" style="display:none;"></div>
+        </div>
+        
+        <div class="not-found" style="padding: 15px;">
+            <div class="not-found-hint">КП не создано. Создайте через калькулятор ниже.</div>
+        </div>
+"""
+        else:
+            html += f"""
         <div class="not-found">
-            <div class="not-found-icon">📦</div>
+            <div class="not-found-icon">&#128230;</div>
             <div class="not-found-text">Заказ не найден</div>
             <div class="not-found-hint">Создайте заказ через калькулятор ниже</div>
         </div>
@@ -2087,7 +2364,63 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         document.addEventListener('click', function() {{
             setTimeout(sendHeight, 100);
         }});
+        
+        // Create Contract function
+        async function createContract() {{
+            const crmLeadId = '{sauna_crm_lead.get("id", "") if sauna_crm_lead else ""}';
+            if (!crmLeadId) {{
+                showContractStatus('Ошибка: CRM лид не найден для этой сделки', true);
+                return;
+            }}
+            
+            const btn = document.getElementById('btn-create-contract');
+            const origText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span style="display:inline-block;width:18px;height:18px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></span> Создание...';
+            
+            try {{
+                const apiBase = '{base_url}';
+                const resp = await fetch(apiBase + '/api/sauna-crm/generate-contract', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ leadId: crmLeadId }})
+                }});
+                
+                const data = await resp.json();
+                
+                if (data.status === 'ok' && data.contractUrl) {{
+                    showContractStatus('Договор создан! Ссылка отправлена в amoCRM.', false);
+                    // Open contract in new tab
+                    const url = data.contractUrl.startsWith('http') ? data.contractUrl : apiBase + data.contractUrl;
+                    window.open(url, '_blank');
+                    // Reload widget after short delay
+                    setTimeout(() => {{ window.location.reload(); }}, 2000);
+                }} else {{
+                    showContractStatus('Ошибка: ' + (data.detail || 'Не удалось создать договор'), true);
+                }}
+            }} catch (err) {{
+                showContractStatus('Ошибка сети: ' + err.message, true);
+            }} finally {{
+                btn.disabled = false;
+                btn.innerHTML = origText;
+            }}
+        }}
+        
+        function showContractStatus(msg, isError) {{
+            const el = document.getElementById('contract-status');
+            if (el) {{
+                el.style.display = 'block';
+                el.className = 'gifts-status ' + (isError ? 'error' : 'success');
+                el.textContent = msg;
+                setTimeout(() => {{ el.style.display = 'none'; }}, 5000);
+            }}
+        }}
     </script>
+    <style>
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
+    </style>
 </body>
 </html>
 """

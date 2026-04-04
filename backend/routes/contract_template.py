@@ -10,6 +10,8 @@ import re
 import logging
 import httpx
 
+from routes.amocrm import add_note_to_amocrm, get_amocrm_settings
+
 router = APIRouter(prefix="/sauna-crm/contract-template", tags=["Contract Template"])
 logger = logging.getLogger(__name__)
 
@@ -705,6 +707,29 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
     )
 
     logger.info(f"=== CONTRACT GENERATION COMPLETE for lead_id={lead_id}, url={file_url}, kpAttached={kp_attached} ===")
+
+    # Push contract link to amoCRM as a note
+    amocrm_id = lead.get("amocrm_id")
+    if amocrm_id and file_url:
+        try:
+            settings_amo = get_amocrm_settings()
+            domain = settings_amo.get("amocrm_domain", "")
+            token = settings_amo.get("amocrm_token", "")
+            if domain and token:
+                note_text = (
+                    f"Договор создан\n"
+                    f"Клиент: {client_name}\n"
+                    f"Скачать: {file_url}\n"
+                    f"{now.strftime('%d.%m.%Y %H:%M')}"
+                )
+                await add_note_to_amocrm(amocrm_id, note_text, domain, token)
+                logger.info(f"Contract link sent to amoCRM lead {amocrm_id}")
+            else:
+                logger.info(f"amoCRM credentials not configured, skipping contract note for lead {amocrm_id}")
+        except Exception as e:
+            logger.error(f"Failed to send contract link to amoCRM: {e}")
+    else:
+        logger.info(f"No amocrm_id on lead {lead_id}, skipping amoCRM note")
 
     return {
         "status": "ok",

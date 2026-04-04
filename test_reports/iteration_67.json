@@ -1,0 +1,136 @@
+{
+  "summary": "Widget Contract Generation features fully tested. All 21 backend tests passed. Widget correctly renders Sauna CRM section with all required data, contract generation works, CRM stages properly configured.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_widget_contract_gen.py",
+    "/app/test_reports/pytest/pytest_results_iteration67.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_widget_contract_gen.py"
+  ],
+  "success_rate": {
+    "backend": "100% - 21/21 tests passed",
+    "frontend": "100% - All widget features verified via Playwright"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"},
+    "test_amocrm_lead": "TEST_AMO_123 -> CRM lead CRM-59FC9032",
+    "test_non_sauna_lead": "99999 -> balia order WMB-20-02-2026-110528"
+  },
+  "seed_data_creation": "Used existing test data: CRM lead CRM-59FC9032 with sauna order WMS-20-02-2026-105210",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Widget contract generation features complete. Test lead TEST_AMO_123 has CRM lead CRM-59FC9032 with contract and KP documents. Widget endpoint: /api/widget/embed/{lead_id}. Contract generation: POST /api/sauna-crm/generate-contract with {leadId}. CRM stages include approved_by_production.",
+  "test_results_summary": {
+    "feature_1_widget_sauna_crm_section": {
+      "description": "Widget shows 'Сауна — CRM' section when CRM lead exists",
+      "status": "PASS",
+      "verification": "Section title 'САУНА — CRM' visible, shows CRM ID, client name, model, amounts, dates, document statuses"
+    },
+    "feature_2_crm_data_display": {
+      "description": "Widget shows correct CRM data (ID, client, model, total, dates)",
+      "status": "PASS",
+      "verification": {
+        "crm_id": "CRM-59FC9032",
+        "client_name": "Jan Testowy",
+        "model": "Sauna Kwadro-Beczka 235x200 cm",
+        "total_amount": "35 000 zł",
+        "dates_shown": ["ready: 25.03.2026", "production: 20.03.2026"]
+      }
+    },
+    "feature_3_crm_stage_status": {
+      "description": "Widget shows correct CRM stage status (not generic 'Ожидает')",
+      "status": "PASS",
+      "verification": "Status badge shows 'Новый' (from CRM stage 'new'), not generic 'Ожидает'"
+    },
+    "feature_4_create_contract_button": {
+      "description": "Widget has 'Создать договор' / 'Пересоздать договор' button",
+      "status": "PASS",
+      "verification": {
+        "button_found": true,
+        "button_text": "Пересоздать договор (contract exists)",
+        "data_testid": "create-contract-btn",
+        "js_function": "createContract() calls /api/sauna-crm/generate-contract"
+      }
+    },
+    "feature_5_non_sauna_orders": {
+      "description": "Widget shows 'Детали заказа' for non-sauna orders (no CRM lead)",
+      "status": "PASS",
+      "verification": {
+        "lead_99999": "Shows 'ДЕТАЛИ ЗАКАЗА' section with balia order details",
+        "sauna_crm_hidden": "No 'Сауна — CRM' section shown"
+      }
+    },
+    "feature_6_contract_generation": {
+      "description": "POST /api/sauna-crm/generate-contract works and returns contractUrl",
+      "status": "PASS",
+      "verification": {
+        "endpoint": "/api/sauna-crm/generate-contract",
+        "response_status": 200,
+        "returns_contractUrl": true,
+        "returns_kpAttached": true,
+        "uploads_to_cloudinary": true
+      }
+    },
+    "feature_7_crm_stages": {
+      "description": "CRM stages include 'approved_by_production' (Согласован производством)",
+      "status": "PASS",
+      "verification": {
+        "stages_count": 6,
+        "stages": [
+          "invoice_sent: Выставлен счёт",
+          "prepayment_received: Предоплата получена",
+          "approved_by_production: Согласован производством",
+          "in_production: В производстве",
+          "ready: Готов",
+          "delivered: Доставлен"
+        ]
+      }
+    },
+    "feature_8_document_links": {
+      "description": "Widget shows document links when documents exist",
+      "status": "PASS",
+      "verification": {
+        "contract_link": "Cloudinary URL shown",
+        "contract_status": "✓ Да",
+        "tech_spec_status": "✗ Нет"
+      }
+    },
+    "feature_9_payment_info": {
+      "description": "Widget shows payment info from CRM lead (not greenhouse fields)",
+      "status": "PASS",
+      "verification": {
+        "total_amount": "35 000 zł (from CRM lead totalAmount)",
+        "paid_amount": "0 zł (from CRM lead paidAmount)",
+        "debt": "35 000 zł (calculated)"
+      }
+    }
+  },
+  "backend_test_results": {
+    "total_tests": 21,
+    "passed": 21,
+    "failed": 0,
+    "test_classes": [
+      "TestWidgetEmbedEndpoint (12 tests)",
+      "TestWidgetNonSaunaOrders (2 tests)",
+      "TestContractGenerationEndpoint (3 tests)",
+      "TestCRMStagesConfiguration (3 tests)",
+      "TestWidgetPaymentInfo (1 test)"
+    ]
+  },
+  "screenshots": [
+    ".screenshots/widget_sauna_crm.png",
+    ".screenshots/widget_non_sauna.png"
+  ],
+  "amoCRM_note_behavior": "amoCRM note sending is correctly skipped when credentials not configured (expected in test environment)"
+}

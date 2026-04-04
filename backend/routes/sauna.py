@@ -2337,6 +2337,27 @@ async def generate_tech_spec_pdf(request: dict):
                     {"$push": {"documents": doc_entry}}
                 )
                 logger.info(f"Tech spec PDF linked to CRM lead {lead_id}")
+
+                # Push tech spec link to amoCRM as a note
+                crm_lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0, "amocrm_id": 1, "clientName": 1})
+                amocrm_id = crm_lead.get("amocrm_id") if crm_lead else None
+                if amocrm_id:
+                    try:
+                        settings_amo = get_amocrm_settings()
+                        amo_domain = settings_amo.get("amocrm_domain", "")
+                        amo_token = settings_amo.get("amocrm_token", "")
+                        if amo_domain and amo_token:
+                            note_text = (
+                                f"Техническое задание создано\n"
+                                f"Клиент: {crm_lead.get('clientName', '')}\n"
+                                f"Модель: {order.get('modelName', '')}\n"
+                                f"Скачать: {cloudinary_url}\n"
+                                f"{datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')}"
+                            )
+                            await add_note_to_amocrm(amocrm_id, note_text, amo_domain, amo_token)
+                            logger.info(f"Tech spec link sent to amoCRM lead {amocrm_id}")
+                    except Exception as e:
+                        logger.error(f"Failed to send tech spec link to amoCRM: {e}")
         except Exception as e:
             logger.error(f"Failed to upload tech spec PDF to Cloudinary: {e}")
 
