@@ -3,42 +3,32 @@
 ## Original Problem Statement
 Build a "Modular Sauna Configurator" with comprehensive CRM, production management, logistics, and sales features.
 
-## Core Modules
-1. Sauna Calculator, 2. Balia Calculator, 3. Sauna Mini-CRM, 4. Sauna Production, 5. Warehouse, 6. Sales, 7. Logistics, 8. Training, 9. Admin Panel
-
 ## Tech Stack
 Frontend: React + Shadcn/UI + Tailwind CSS | Backend: FastAPI + Python | DB: MongoDB
-Integrations: amoCRM, Cloudinary, Telegram, Google Maps, Google Sheets, Nano Banana (Gemini AI)
+Integrations: amoCRM, Cloudinary, Telegram, Google Maps
 
 ## What's Been Implemented
 
 ### Session 5 (April 4, 2026)
 
-**Contract/Tech Spec links to amoCRM:**
-- After contract/tech spec generation, links are automatically pushed to amoCRM as notes
+**Contract/Tech Spec links to amoCRM** — auto-push links as notes after generation
 
-**amoCRM Widget Enhancements:**
-- Widget shows "Сауна — CRM" section with dates, payment, documents, statuses
-- "Создать/Пересоздать договор" button directly in widget
-- Shows all 4 date types: Дата аванса, Дата производства, Дата готовности, Дата доставки
-- Non-sauna orders show classic "Детали заказа" format
+**amoCRM Widget** — Sauna CRM section, 4 date types, contract button, separate from greenhouse
 
-**CRM Stage "Заказ выполнен" (collapsed):**
-- New stage added with `collapsed: true`, collapsible kanban columns
+**Collapsed stages** — "Заказ выполнен" (collapsed in kanban), collapsible columns
 
-**amoCRM Stage Sync:**
-- Moves amoCRM card to mapped pipeline stage (PATCH with pipeline_id + status_id)
-- Settings UI with dropdown selectors for amoCRM pipeline/stage mapping
+**amoCRM stage sync** — PATCH pipeline_id + status_id, dropdown mapping UI
 
-**Sync-from-amoCRM updates existing cards:**
-- Updates stageId when lead moved in amoCRM (tracked as 'synced_from_amocrm')
-- Updates totalAmount (budget), clientName, modelName, phone, manager, custom fields
-- Updates amocrm_link
+**Sync-from-amoCRM** — updates existing cards (stage, budget, fields, comment)
 
-**Production dates auto-push to amoCRM:**
-- When productionDate, readyDate, deliveryDate change in CRM-sauna → auto-push as note to amoCRM
-- Also syncs via syncBackFields if custom field mappings configured
-- Only pushes actually changed dates (not all dates on every save)
+**Production dates auto-push** — productionDate/readyDate/deliveryDate → amoCRM notes
+
+**Change History & Notifications:**
+- `changeLog[]` — records every field change from amoCRM sync (field, old→new, timestamp)
+- `hasUnreviewedChanges` — amber warning badge (!) on kanban/list cards, pulsing animation
+- "Просмотрено" button clears flag, changeLog remains as collapsed history
+- `amoComment` — manager's comment from amoCRM custom field, displayed in blue on cards + detail
+- `commentFieldId` setting — configurable amoCRM field ID for comment sync
 
 ### Previous Sessions
 - Session 4: amoCRM sync fixes, CRM linking, heater variants, logistics, sales/bonuses
@@ -56,27 +46,22 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps, Google Sheets, Nano Ban
 7. completed: Заказ выполнен (collapsed)
 
 ## Prioritized Backlog
+### P1
+- [ ] Fix automatic variant application in LayoutConfiguratorPage.jsx
+- [ ] Google Sheets integration (BLOCKED)
 
-### P1 - High Priority
-- [ ] Fix automatic variant application bug in LayoutConfiguratorPage.jsx
-- [ ] Complete Google Sheets integration (BLOCKED on user enabling APIs)
-
-### P2 - Medium Priority
-- [ ] Refactor amocrm.py and LayoutConfiguratorPage.jsx (monolithic files)
-- [ ] UI for importing/restoring project backup
+### P2
+- [ ] Refactor amocrm.py, widget.py (monolithic)
+- [ ] UI for project backup import
 - [ ] Replace deprecated Google Maps Autocomplete
 - [ ] Fix unstable login sessions
 
 ## Key API Endpoints
-- POST /api/sauna-crm/generate-contract
-- POST /api/sauna/generate-tech-spec-pdf
+- PUT /api/sauna-crm/leads/{id}/acknowledge-changes
+- POST /api/sauna-crm/sync-from-amocrm
+- PUT /api/sauna-crm/leads/{id} (triggers dates push)
 - GET /api/widget/embed/{lead_id}
-- GET /api/sauna-crm/settings
-- PUT /api/sauna-crm/settings/stages
-- GET /api/integrations/amocrm/pipelines
-- PUT /api/sauna-crm/leads/{id}/stage (triggers amoCRM sync)
-- PUT /api/sauna-crm/leads/{id} (triggers production dates push)
-- POST /api/sauna-crm/sync-from-amocrm (updates existing cards)
+- POST /api/sauna-crm/generate-contract
 
 ## Credentials
 - Admin: admin / admin123
