@@ -12,30 +12,51 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps, Google Sheets, Nano Ban
 
 ## What's Been Implemented
 
+### Session 5 (April 4, 2026)
+
+**Contract/Tech Spec links to amoCRM:**
+- After contract generation (`generate_contract_with_kp`), link is automatically pushed to amoCRM as a note
+- After tech spec PDF generation (`generate_tech_spec_pdf`), link is pushed to amoCRM as a note
+- Both check for `amocrm_id` on the CRM lead and amoCRM credentials before sending
+- Graceful fallback when amoCRM credentials not configured
+
+**amoCRM Widget Enhancements (Sauna CRM):**
+- Widget now shows separate "Сауна — CRM" section with data from `sauna_crm_leads` collection
+- Displays: CRM ID, client name, model, total amount, payment (advance), dates (prepayment, ready, production)
+- Shows document statuses: Contract (Yes/No), Tech Spec (Yes/No) with clickable links
+- "Создать договор" / "Пересоздать договор" button directly in widget, calls `/api/sauna-crm/generate-contract`
+- Proper CRM stage status displayed (from `sauna_crm_settings.stages` or local map)
+- Non-sauna orders (balia/greenhouse) continue to show classic "Детали заказа" format
+- Fixed HTML typo (extra `>` in widget div)
+
+**CRM Stages Updated:**
+- invoice_sent: Выставлен счёт
+- prepayment_received: Предоплата получена
+- approved_by_production: Согласован производством (NEW)
+- in_production: В производстве
+- ready: Готов
+- delivered: Доставлен
+
+### Session 4 (March 24, 2026)
+- Fixed amoCRM Sync 500 Error
+- Fixed CRM lead linking (crmLeadId loss on reload)
+- Manual order relinking in CRM card
+- Configurable date field for CRM filtering/calendar
+- "Без печи" + "Электрическая печь" heater variants
+- "Развернуть маршрут" button in Logistics
+- Sales/bonuses from CRM leads by prepaymentDate
+- Dynamic contact info in PDF templates
+
+### Session 3 (March 21, 2026)
+- Contract Template Management System (DOCX templates, placeholders, mappings)
+- Storekeeper Role with granular permissions
+
 ### Session 2 (March 20, 2026)
+- Manager-specific CRM access, Date filters, Custom lead titles
+- Sales sync, Bonus calculations, Contract generation
 
-**CRM/Sales Enhancements:**
-- Manager-specific CRM access (amoCRM name mapping in user settings)
-- Date filters on CRM & Production kanban
-- Custom lead title: bold client name + model below
-- Per-column date sorting (↕ button in each kanban column header)
-- Calendar uses readyDate
-- Sales sync imports ALL CRM leads, bonus by prepaymentDate
-- Custom amoCRM field IDs in CRM Settings (clientNameFieldId, modelFieldId)
-
-**Contract Generation (UMOWA):**
-- DOCX template with auto-substitution: client name, model, amounts, dates, offer number
-- Backend: POST /api/sauna-crm/generate-contract → Cloudinary upload
-- Client name priority: custom amoCRM field → contact → deal name  
-- Deposit amount from CRM advance payment field
-- Old contracts auto-replaced (document deduplication)
-- Button visible on ALL kanban stages
-- КП PDF and calculator PDF URLs returned for attachment
-
-**Backup Fix:** 15 missing collections added to export/import/telegram backup
-
-### Session 1 — Previous Work
-Tech Spec PDF, Production List, Google Sheets sync (blocked), Sales automation, User access controls, Warehouse enhancements, Document deduplication
+### Session 1
+- Tech Spec PDF, Production List, Google Sheets sync (blocked), User access controls
 
 ## Prioritized Backlog
 
@@ -45,86 +66,20 @@ Tech Spec PDF, Production List, Google Sheets sync (blocked), Sales automation, 
 - [ ] Finalize "Save layout to order" feature end-to-end
 
 ### P2 - Medium Priority
-- [ ] Refactor amocrm.py and LayoutConfiguratorPage.jsx
+- [ ] Refactor amocrm.py and LayoutConfiguratorPage.jsx (monolithic files)
 - [ ] UI for importing/restoring project backup
 - [ ] Replace deprecated Google Maps Autocomplete
 - [ ] Fix unstable login sessions
 
 ## Key API Endpoints
-- POST /api/sauna-crm/generate-contract — Generate DOCX contract with dynamic mappings + KP attachment
-- GET /api/sauna-crm/contract-template/settings — Template settings with mappings and available sources
-- POST /api/sauna-crm/contract-template/settings — Save template mappings and attachKp flag
-- POST /api/sauna-crm/contract-template/upload — Upload custom DOCX template
-- GET /api/sauna-crm/contract-template/placeholders — Extract placeholders from current template
-- GET /api/sauna-crm/leads?manager_username=X&date_from=Y&date_to=Z
-- GET /api/sauna-crm/settings — includes clientNameFieldId, modelFieldId
-- POST /api/sales/sync-from-crm — ALL CRM leads
-- POST /api/backup/export — 32+ collections
-
-**Contract Template Management System — Session 3 (March 21, 2026):**
-- Custom DOCX template upload via UI (drag & drop)
-- Automatic placeholder extraction from uploaded templates (regex `{{VARIABLE_NAME}}`)
-- Configurable field mappings: each placeholder → CRM lead field / calculator field / computed value / static text
-- 33 available source fields across 7 categories (client, payment, production, CRM fields, computed, calculator, other)
-- Custom variable creation: add new `{{CUSTOM_...}}` placeholders with labels and default values
-- Toggle to attach KP PDF as images at the end of the contract (Załącznik nr 1)
-- KP PDF conversion to images via PyMuPDF for embedding in DOCX
-- Fixed placeholder replacement: handles run-splitting in python-docx (merged runs approach)
-- Old static KP image removal from template before inserting dynamic KP
-- Backend: 4 new endpoints under /api/sauna-crm/contract-template/ (settings GET/POST, upload, placeholders)
-- Frontend: New `ContractTemplateSettings.jsx` component integrated as "Шаблон договора" tab in CRM Settings
-- Settings stored in MongoDB `contract_template_settings` collection
-
-**Storekeeper Role (Кладовщик) — Session 3 (March 20, 2026):**
-- New role 'storekeeper' with granular permissions
-- Full access to Warehouse (Magazyn) — view, status changes — NO delete
-- Read-only access to Logistics (Logistyka) — view trips/orders, no create/edit/delete
-- canDelete = !isStorekeeper() in WarehousePage.jsx
-- readOnly = isStorekeeper() in LogisticsPage.jsx
-- Backend: 'storekeeper' in valid roles for create & update user endpoints
-- AuthContext: isStorekeeper(), hasAccess() returns true for warehouse+logistics
-- Bug fixed: update_user was missing 'storekeeper' in valid roles validation
-- Bug fixed: canDelete used function reference instead of function call
+- POST /api/sauna-crm/generate-contract
+- POST /api/sauna/generate-tech-spec-pdf
+- POST /api/integrations/amocrm/upload-calculator-pdf
+- GET /api/widget/embed/{lead_id} (amoCRM widget)
+- GET /api/sauna-crm/settings
+- PUT /api/sauna-crm/settings/stages
 
 ## Credentials
 - Admin: admin / admin123
 - Storekeeper: kladovshchik / kladovshchik123
 - Marketer: marketer / marketer123
-
-### Session 4 (March 24, 2026)
-
-**Bug Fix: amoCRM Sync 500 Error (`'NoneType' object is not iterable`)**
-- Fixed 7 places in `sync_leads_from_amocrm` where amoCRM API could return `null` instead of arrays
-- Replaced `.get("key", [])` with `or []` pattern to handle both missing keys and `null` values
-- Affected: leads list, custom_fields_values, contacts, users cache, field values
-
-**Bug Fix: КП не привязывалось к карточке CRM при открытии из CRM**
-- Root cause: `window.location.href` вызывает полную перезагрузку. `user` = null при первом useEffect → `crmLeadId` не сохранялся в sessionStorage → терялся при загрузке заказа
-- Fix 1: `crmLeadId` теперь сохраняется/восстанавливается через sessionStorage
-- Fix 2: Добавлен `effectiveCrmLeadId` — резервный механизм получения crmLeadId из 3 источников (amocrmData, editingOrder, sessionStorage)
-
-**Feature: Ручная смена привязки заказа в карточке CRM**
-- Добавлена кнопка "Сменить привязку" для лидов с уже привязанным заказом
-- Поле ввода нового ID заказа с кнопкой подтверждения
-
-**Feature: Настраиваемое поле даты для фильтрации и календаря CRM**
-- В настройках CRM добавлен выбор "Поле даты для фильтрации и календаря"
-- Опции: prepaymentDate, readyDate, productionDate, deliveryDate + все включённые кастомные поля
-- Backend фильтрация, календарь, сортировка канбана и список используют выбранное поле
-- Кнопка "Отмена" для возврата к обычному виду
-
-**Feature: Третий вариант печи "Без печи" (Bez pieca) в калькуляторе купелей**
-- Добавлен тип `none` в heaterVariants — чекбокс, VariantEditor, цена, изображение
-- Калькулятор отображает "Bez pieca / Без печи" при выборе
-- Заказ и PDF сохраняют корректное название типа
-- ModelCard, BulkPriceEdit, WebOrders обновлены для поддержки нового типа
-
-**Feature: Четвёртый вариант "Электрическая печь" (Piec elektryczny) в купелях**
-- Добавлен тип `electric` во все компоненты купелей
-
-**Refactor: Продажи/бонусы теперь читают из CRM-лидов (sauna_crm_leads)**
-- Статистика, расчёт бонусов и список продаж фильтруются по `prepaymentDate` (дата аванса)
-- Менеджеры берутся из CRM-лидов
-- `totalAmount` = бюджет из amoCRM (поле price)
-- Роутер `sales_tracking.py` подключён к server.py
-- Sync-back `productionDate` в amoCRM уже работает через syncBackFields
