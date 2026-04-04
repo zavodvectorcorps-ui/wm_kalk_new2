@@ -396,8 +396,7 @@ export const SalesTrackingPage = () => {
                       <TableHead>Наименование</TableHead>
                       <TableHead>Клиент</TableHead>
                       <TableHead className="text-right">Сумма</TableHead>
-                      <TableHead className="text-right">Оплачено</TableHead>
-                      <TableHead>Дата заказа</TableHead>
+                      <TableHead>Дата аванса</TableHead>
                       <TableHead>Статус</TableHead>
                       <TableHead>Менеджер</TableHead>
                       <TableHead className="w-[100px]">Действия</TableHead>
@@ -406,13 +405,13 @@ export const SalesTrackingPage = () => {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                         </TableCell>
                       </TableRow>
                     ) : records.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           Нет записей
                         </TableCell>
                       </TableRow>
@@ -427,10 +426,7 @@ export const SalesTrackingPage = () => {
                           <TableCell className="text-right font-medium">
                             {record.totalAmount?.toLocaleString()} zł
                           </TableCell>
-                          <TableCell className="text-right">
-                            {record.paidAmount?.toLocaleString() || 0} zł
-                          </TableCell>
-                          <TableCell>{record.orderDate}</TableCell>
+                          <TableCell>{record.prepaymentDate?.slice(0, 10) || record.orderDate}</TableCell>
                           <TableCell>
                             <Badge className={STATUS_COLORS[record.status] || 'bg-gray-100'}>
                               {record.status}

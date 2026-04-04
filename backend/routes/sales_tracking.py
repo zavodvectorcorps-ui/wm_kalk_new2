@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/sales-tracking", tags=["sales-tracking"])
 logger = logging.getLogger(__name__)
 
 sales_collection = db["sales_records"]
+crm_leads_collection = db["sauna_crm_leads"]
 bonus_settings_collection = db["bonus_settings"]
 
 # Ensure indexes
@@ -82,37 +83,54 @@ async def get_sales_records(
     endDate: Optional[str] = Query(None, description="End date filter (YYYY-MM-DD)"),
     manager: Optional[str] = Query(None, description="Manager name filter"),
     status: Optional[str] = Query(None, description="Status filter"),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(200, ge=1, le=1000),
     skip: int = Query(0, ge=0)
 ):
-    """Get all sales records with optional filters."""
+    """Get sales records from CRM leads filtered by prepaymentDate (дата аванса)."""
     query = {}
     
-    # Date filter
+    # Date filter by prepaymentDate
     if startDate or endDate:
         date_filter = {}
         if startDate:
             date_filter["$gte"] = startDate
         if endDate:
-            date_filter["$lte"] = endDate
-        if date_filter:
-            query["orderDate"] = date_filter
+            date_filter["$lte"] = endDate + "T23:59:59"
+        date_filter["$ne"] = None
+        query["prepaymentDate"] = date_filter
     
     # Manager filter
     if manager:
         query["manager"] = {"$regex": manager, "$options": "i"}
     
-    # Status filter
+    # Stage filter (status)
     if status:
-        query["status"] = status
+        query["stageId"] = status
     
-    total = sales_collection.count_documents(query)
-    records = list(sales_collection.find(query, {"_id": 0}).sort("orderDate", -1).skip(skip).limit(limit))
+    total = await crm_leads_collection.count_documents(query)
+    leads = await crm_leads_collection.find(query, {"_id": 0}).sort("prepaymentDate", -1).skip(skip).limit(limit).to_list(limit)
     
-    # Add id field from _id for frontend
-    for record in records:
-        if "id" not in record:
-            record["id"] = record.get("orderNumber", str(ObjectId()))
+    # Map CRM leads to sales record format
+    records = []
+    for lead in leads:
+        records.append({
+            "id": lead.get("id", ""),
+            "orderNumber": lead.get("id", ""),
+            "productName": lead.get("modelName") or lead.get("field_1", ""),
+            "clientName": lead.get("clientName", ""),
+            "totalAmount": lead.get("totalAmount") or 0,
+            "advanceZl": lead.get("advancePayment") or 0,
+            "orderDate": lead.get("prepaymentDate", ""),
+            "prepaymentDate": lead.get("prepaymentDate", ""),
+            "deliveryDate": lead.get("deliveryDate", ""),
+            "status": lead.get("stageId", ""),
+            "manager": lead.get("manager", ""),
+            "notes": lead.get("notes", ""),
+            "phone": lead.get("phone", ""),
+            "productionDate": lead.get("productionDate", ""),
+            "readyDate": lead.get("readyDate", ""),
+            "source": "crm",
+        })
     
     return {
         "records": records,
@@ -132,12 +150,12 @@ async def create_sale_record(record: SaleRecord):
     # Generate order number if not provided
     if not record_dict.get("orderNumber"):
         today = datetime.now(timezone.utc).strftime("%d-%m-%Y")
-        count = sales_collection.count_documents({}) + 1
+        count = await sales_collection.count_documents({}) + 1
         record_dict["orderNumber"] = f"SALE-{today}-{count:04d}"
     
     record_dict["id"] = record_dict["orderNumber"]
     
-    sales_collection.insert_one(record_dict)
+    await sales_collection.insert_one(record_dict)
     
     # Remove MongoDB _id from response
     record_dict.pop("_id", None)
@@ -151,7 +169,7 @@ async def update_sale_record(record_id: str, update: SaleRecordUpdate):
     update_dict = {k: v for k, v in update.model_dump().items() if v is not None}
     update_dict["updatedAt"] = datetime.now(timezone.utc).isoformat()
     
-    result = sales_collection.update_one(
+    result = await sales_collection.update_one(
         {"$or": [{"id": record_id}, {"orderNumber": record_id}]},
         {"$set": update_dict}
     )
@@ -165,7 +183,7 @@ async def update_sale_record(record_id: str, update: SaleRecordUpdate):
 @router.delete("/records/{record_id}")
 async def delete_sale_record(record_id: str):
     """Delete a sale record."""
-    result = sales_collection.delete_one(
+    result = await sales_collection.delete_one(
         {"$or": [{"id": record_id}, {"orderNumber": record_id}]}
     )
     
@@ -179,9 +197,12 @@ async def delete_sale_record(record_id: str):
 
 @router.get("/managers")
 async def get_managers():
-    """Get unique list of managers from sales records."""
-    managers = sales_collection.distinct("manager")
-    return {"managers": [m for m in managers if m]}
+    """Get unique list of managers from CRM leads and sales records."""
+    crm_managers = await crm_leads_collection.distinct("manager")
+    sales_managers = await sales_collection.distinct("manager")
+    all_managers = list(set([m for m in (crm_managers + sales_managers) if m]))
+    all_managers.sort()
+    return {"managers": all_managers}
 
 
 # ============ STATUSES LIST ============
@@ -205,7 +226,7 @@ async def get_statuses():
 @router.get("/bonus-settings")
 async def get_bonus_settings():
     """Get bonus settings for all managers."""
-    settings = list(bonus_settings_collection.find({}, {"_id": 0}))
+    settings = await bonus_settings_collection.find({}, {"_id": 0}).to_list(1000)
     return {"settings": settings}
 
 
@@ -215,7 +236,7 @@ async def save_bonus_settings(settings: BonusSettings):
     settings_dict = settings.model_dump()
     settings_dict["updatedAt"] = datetime.now(timezone.utc).isoformat()
     
-    bonus_settings_collection.update_one(
+    await bonus_settings_collection.update_one(
         {"managerId": settings.managerId},
         {"$set": settings_dict},
         upsert=True
@@ -232,36 +253,32 @@ async def get_sales_statistics(
     endDate: str = Query(..., description="End date (YYYY-MM-DD)"),
     manager: Optional[str] = Query(None, description="Manager name filter")
 ):
-    """Get sales statistics for a date range and optionally filter by manager."""
+    """Get sales statistics from CRM leads filtered by prepaymentDate (дата аванса)."""
     query = {
-        "orderDate": {"$gte": startDate, "$lte": endDate}
+        "prepaymentDate": {"$gte": startDate, "$lte": endDate + "T23:59:59"},
     }
+    # Exclude leads without prepaymentDate
+    query["prepaymentDate"]["$ne"] = None
     
     if manager:
         query["manager"] = {"$regex": manager, "$options": "i"}
     
-    # Aggregate statistics
+    # Aggregate statistics from CRM leads
     pipeline = [
         {"$match": query},
         {"$group": {
             "_id": "$manager",
-            "totalSales": {"$sum": "$totalAmount"},
-            "totalPaid": {"$sum": {"$ifNull": ["$paidAmount", 0]}},
+            "totalSales": {"$sum": {"$ifNull": ["$totalAmount", 0]}},
             "ordersCount": {"$sum": 1},
-            "completedOrders": {
-                "$sum": {"$cond": [{"$eq": ["$status", "реализовано"]}, 1, 0]}
-            },
-            "pendingOrders": {
-                "$sum": {"$cond": [{"$ne": ["$status", "реализовано"]}, 1, 0]}
-            }
         }},
         {"$sort": {"totalSales": -1}}
     ]
     
-    results = list(sales_collection.aggregate(pipeline))
+    results = await crm_leads_collection.aggregate(pipeline).to_list(5000)
     
     # Get bonus settings
-    bonus_settings = {s["managerName"]: s["bonusPercent"] for s in bonus_settings_collection.find({}, {"_id": 0})}
+    bonus_docs = await bonus_settings_collection.find({}, {"_id": 0}).to_list(1000)
+    bonus_settings = {s["managerName"]: s["bonusPercent"] for s in bonus_docs}
     
     # Calculate bonuses
     statistics = []
@@ -269,30 +286,24 @@ async def get_sales_statistics(
     totalAllBonus = 0
     
     for r in results:
-        manager_name = r["_id"]
-        bonus_percent = bonus_settings.get(manager_name, 5.0)  # Default 5%
-        completed_sales = 0
-        
-        # Calculate completed sales amount for bonus
-        completed_query = {**query, "manager": manager_name, "status": "реализовано"}
-        completed_records = list(sales_collection.find(completed_query, {"totalAmount": 1}))
-        completed_sales = sum(rec.get("totalAmount", 0) for rec in completed_records)
-        
-        bonus_amount = completed_sales * (bonus_percent / 100)
+        manager_name = r["_id"] or "Неизвестный"
+        bonus_percent = bonus_settings.get(manager_name, 5.0)
+        total_sales = r["totalSales"]
+        bonus_amount = total_sales * (bonus_percent / 100)
         
         statistics.append({
             "manager": manager_name,
-            "totalSales": r["totalSales"],
-            "completedSales": completed_sales,
-            "totalPaid": r["totalPaid"],
+            "totalSales": total_sales,
+            "completedSales": total_sales,
             "ordersCount": r["ordersCount"],
-            "completedOrders": r["completedOrders"],
-            "pendingOrders": r["pendingOrders"],
+            "completedOrders": r["ordersCount"],
+            "pendingOrders": 0,
+            "totalPaid": 0,
             "bonusPercent": bonus_percent,
             "bonusAmount": round(bonus_amount, 2)
         })
         
-        totalAllSales += r["totalSales"]
+        totalAllSales += total_sales
         totalAllBonus += bonus_amount
     
     return {
@@ -314,16 +325,15 @@ async def calculate_bonus(
     manager: str = Query(..., description="Manager name"),
     bonusPercent: float = Query(..., description="Bonus percentage", ge=0, le=100)
 ):
-    """Calculate bonus for a specific manager."""
+    """Calculate bonus for a specific manager based on CRM leads by prepaymentDate."""
     query = {
-        "orderDate": {"$gte": startDate, "$lte": endDate},
+        "prepaymentDate": {"$gte": startDate, "$lte": endDate + "T23:59:59", "$ne": None},
         "manager": {"$regex": f"^{manager}$", "$options": "i"},
-        "status": "реализовано"  # Only completed orders count for bonus
     }
     
-    records = list(sales_collection.find(query, {"_id": 0, "totalAmount": 1, "orderNumber": 1, "productName": 1, "clientName": 1, "orderDate": 1}))
+    records = await crm_leads_collection.find(query, {"_id": 0, "id": 1, "totalAmount": 1, "clientName": 1, "modelName": 1, "prepaymentDate": 1}).to_list(5000)
     
-    total_sales = sum(r.get("totalAmount", 0) for r in records)
+    total_sales = sum(r.get("totalAmount", 0) or 0 for r in records)
     bonus_amount = total_sales * (bonusPercent / 100)
     
     return {
@@ -333,7 +343,13 @@ async def calculate_bonus(
         "completedOrders": len(records),
         "totalSales": round(total_sales, 2),
         "bonusAmount": round(bonus_amount, 2),
-        "orders": records
+        "orders": [{
+            "orderNumber": r.get("id", ""),
+            "clientName": r.get("clientName", ""),
+            "productName": r.get("modelName", ""),
+            "totalAmount": r.get("totalAmount", 0),
+            "orderDate": r.get("prepaymentDate", ""),
+        } for r in records]
     }
 
 
@@ -353,13 +369,13 @@ async def import_sales_records(records: List[SaleRecord]):
             
             if not record_dict.get("orderNumber"):
                 today = datetime.now(timezone.utc).strftime("%d-%m-%Y")
-                count = sales_collection.count_documents({}) + imported + 1
+                count = await sales_collection.count_documents({}) + imported + 1
                 record_dict["orderNumber"] = f"IMPORT-{today}-{count:04d}"
             
             record_dict["id"] = record_dict["orderNumber"]
             
             # Upsert to avoid duplicates
-            sales_collection.update_one(
+            await sales_collection.update_one(
                 {"orderNumber": record_dict["orderNumber"]},
                 {"$set": record_dict},
                 upsert=True

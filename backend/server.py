@@ -32,6 +32,7 @@ from routes.sauna_crm import router as sauna_crm_router
 from routes.sauna_production import router as sauna_production_router
 from routes.faq import router as faq_router
 from routes.sales import router as sales_router
+from routes.sales_tracking import router as sales_tracking_router
 from routes.pdf_templates import router as pdf_templates_router
 from routes.training import router as training_router
 from routes.content import router as content_router
@@ -95,6 +96,7 @@ app.include_router(content_router, prefix="/api")
 app.include_router(content_generator_router)
 app.include_router(layout_configurator_router)
 app.include_router(sales_router)
+app.include_router(sales_tracking_router)
 
 # Initialize backup database reference
 from database import db

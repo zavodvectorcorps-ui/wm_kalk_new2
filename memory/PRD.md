@@ -118,3 +118,13 @@ Tech Spec PDF, Production List, Google Sheets sync (blocked), Sales automation, 
 - Калькулятор отображает "Bez pieca / Без печи" при выборе
 - Заказ и PDF сохраняют корректное название типа
 - ModelCard, BulkPriceEdit, WebOrders обновлены для поддержки нового типа
+
+**Feature: Четвёртый вариант "Электрическая печь" (Piec elektryczny) в купелях**
+- Добавлен тип `electric` во все компоненты купелей
+
+**Refactor: Продажи/бонусы теперь читают из CRM-лидов (sauna_crm_leads)**
+- Статистика, расчёт бонусов и список продаж фильтруются по `prepaymentDate` (дата аванса)
+- Менеджеры берутся из CRM-лидов
+- `totalAmount` = бюджет из amoCRM (поле price)
+- Роутер `sales_tracking.py` подключён к server.py
+- Sync-back `productionDate` в amoCRM уже работает через syncBackFields
