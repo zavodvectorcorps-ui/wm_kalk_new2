@@ -1,0 +1,147 @@
+{
+  "summary": "Tested NEW features: changeLog, hasUnreviewedChanges, amoComment. All 12 backend tests passed. All frontend UI features verified via Playwright. Fixed missing commentFieldId in CRMSettings Pydantic model.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_changelog_features.py",
+    "/app/test_reports/pytest/pytest_results_iteration70.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/routes/sauna_crm.py (added commentFieldId to CRMSettings model)",
+    "/app/backend/tests/test_changelog_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% - 12/12 tests passed",
+    "frontend": "100% - All UI features verified"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"},
+    "test_lead": "CRM-59FC9032 with hasUnreviewedChanges=true, amoComment, changeLog"
+  },
+  "seed_data_creation": "Test lead CRM-59FC9032 updated with stageId='invoice_sent' to appear in CRM kanban. hasUnreviewedChanges reset to true after tests.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "changeLog, hasUnreviewedChanges, amoComment features fully tested. Test lead CRM-59FC9032 has test data. Settings page has commentFieldId input in 'Синхронизация' tab under 'Кастомные поля amoCRM' section.",
+  "test_results_summary": {
+    "feature_1_changeLog_in_api": {
+      "description": "GET /api/sauna-crm/leads/{id} returns changeLog array with entries",
+      "status": "PASS",
+      "verification": {
+        "endpoint": "/api/sauna-crm/leads/CRM-59FC9032",
+        "changeLog_entries": 3,
+        "entry_fields": ["field", "label", "oldValue", "newValue", "timestamp", "source"]
+      }
+    },
+    "feature_2_hasUnreviewedChanges_in_api": {
+      "description": "GET /api/sauna-crm/leads/{id} returns hasUnreviewedChanges boolean",
+      "status": "PASS"
+    },
+    "feature_3_amoComment_in_api": {
+      "description": "GET /api/sauna-crm/leads/{id} returns amoComment string",
+      "status": "PASS",
+      "verification": {
+        "amoComment": "Добавить доп. полку внутри сауны, клиент просил"
+      }
+    },
+    "feature_4_acknowledge_changes_endpoint": {
+      "description": "PUT /api/sauna-crm/leads/{id}/acknowledge-changes sets hasUnreviewedChanges to false",
+      "status": "PASS",
+      "verification": {
+        "endpoint": "/api/sauna-crm/leads/CRM-59FC9032/acknowledge-changes",
+        "preserves_changeLog": true
+      }
+    },
+    "feature_5_commentFieldId_in_settings": {
+      "description": "GET /api/sauna-crm/settings returns commentFieldId, POST can save it",
+      "status": "PASS"
+    },
+    "feature_6_kanban_warning_badge": {
+      "description": "CRM kanban card shows amber warning badge (!) when hasUnreviewedChanges=true",
+      "status": "PASS",
+      "verification": {
+        "amber_ring": "ring-2 ring-amber-400 CSS class on card",
+        "warning_badge": "Animated amber '!' badge with data-testid='change-badge-{id}'",
+        "screenshot": ".screenshots/kanban_warning_badge.png"
+      }
+    },
+    "feature_7_kanban_amoComment": {
+      "description": "CRM kanban card shows blue italic amoComment text",
+      "status": "PASS",
+      "verification": {
+        "css_classes": "text-blue-600 italic",
+        "icon": "MessageSquare icon"
+      }
+    },
+    "feature_8_lead_detail_amoComment_block": {
+      "description": "Lead detail dialog shows 'Комментарий менеджера (amoCRM)' block",
+      "status": "PASS",
+      "verification": {
+        "data_testid": "amo-comment-display",
+        "border": "blue border (border-blue-200)",
+        "screenshot": ".screenshots/lead_detail_with_changes.png"
+      }
+    },
+    "feature_9_lead_detail_changeLog_block": {
+      "description": "Lead detail dialog shows 'Изменения из amoCRM' block with changeLog entries",
+      "status": "PASS",
+      "verification": {
+        "border": "amber border (border-amber-300)",
+        "entries_shown": "newest-first, field label, old→new value, timestamp"
+      }
+    },
+    "feature_10_acknowledge_button": {
+      "description": "'Просмотрено' button in lead detail clears hasUnreviewedChanges flag",
+      "status": "PASS",
+      "verification": {
+        "data_testid": "acknowledge-changes-btn",
+        "toast_message": "Изменения отмечены как просмотренные",
+        "screenshot": ".screenshots/lead_detail_after_acknowledge.png"
+      }
+    },
+    "feature_11_collapsed_history": {
+      "description": "After acknowledging, changeLog still visible as collapsed 'История изменений'",
+      "status": "PASS",
+      "verification": {
+        "element": "details summary:has-text('История изменений')"
+      }
+    },
+    "feature_12_list_view_amoComment": {
+      "description": "List view shows amoComment in blue italic text",
+      "status": "PASS",
+      "verification": {
+        "screenshot": ".screenshots/list_view.png"
+      }
+    },
+    "feature_13_settings_commentFieldId_input": {
+      "description": "Settings has 'ID поля Комментарий менеджера' input field",
+      "status": "PASS",
+      "verification": {
+        "tab": "Синхронизация",
+        "section": "Кастомные поля amoCRM",
+        "data_testid": "crm-comment-field-id",
+        "screenshot": ".screenshots/settings_sync_tab.png"
+      }
+    }
+  },
+  "bug_fix_applied": {
+    "file": "/app/backend/routes/sauna_crm.py",
+    "issue": "commentFieldId was missing from CRMSettings Pydantic model, causing POST /api/sauna-crm/settings to not save the field",
+    "fix": "Added 'commentFieldId: Optional[str] = None' to CRMSettings model at line 59"
+  },
+  "screenshots": [
+    ".screenshots/kanban_warning_badge.png",
+    ".screenshots/lead_detail_with_changes.png",
+    ".screenshots/lead_detail_after_acknowledge.png",
+    ".screenshots/list_view.png",
+    ".screenshots/settings_sync_tab.png"
+  ]
+}

@@ -15,7 +15,8 @@ import {
   Phone, Mail, MapPin, DollarSign, Clock, User, 
   ExternalLink, Send, Loader2, Plus, X, Search,
   ChevronDown, ChevronUp, Package, Star, StarOff,
-  Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle, ArrowUpDown
+  Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle, ArrowUpDown,
+  MessageSquare, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -756,7 +757,7 @@ const SaunaCRMPage = () => {
                     return (
                     <Card
                       key={lead.id}
-                      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${isDragging ? 'opacity-40 scale-95' : ''}`}
+                      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${isDragging ? 'opacity-40 scale-95' : ''} ${lead.hasUnreviewedChanges ? 'ring-2 ring-amber-400 ring-offset-1' : ''}`}
                       draggable
                       onDragStart={(e) => handleDragStart(e, lead)}
                       onDragEnd={handleDragEnd}
@@ -766,9 +767,19 @@ const SaunaCRMPage = () => {
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between mb-1">
                           <span className="font-bold text-sm truncate">{lead.clientName || 'Без имени'}</span>
-                          {lead.isImportant && <Star className="w-4 h-4 text-amber-500 fill-amber-500 flex-shrink-0" />}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {lead.hasUnreviewedChanges && (
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold animate-pulse" title="Есть непросмотренные изменения из amoCRM" data-testid={`change-badge-${lead.id}`}>!</span>
+                            )}
+                            {lead.isImportant && <Star className="w-4 h-4 text-amber-500 fill-amber-500" />}
+                          </div>
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{lead.modelName || lead.field_1 || '—'}</p>
+                        {lead.amoComment && (
+                          <p className="text-xs text-blue-600 truncate mt-0.5 italic" title={lead.amoComment}>
+                            <MessageSquare className="w-3 h-3 inline mr-0.5" />{lead.amoComment}
+                          </p>
+                        )}
                         {lead.manager && <p className="text-xs text-muted-foreground truncate"><User className="w-3 h-3 inline mr-1" />{lead.manager}</p>}
                         {(lead.totalAmount || lead.field_2) && (
                           <Badge variant="outline" className="mt-1 text-xs">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</Badge>
@@ -827,15 +838,19 @@ const SaunaCRMPage = () => {
             {sortLeadsByDate(filteredLeads, sortDateOrder).map(lead => {
               const stage = stages.find(s => s.id === lead.stageId);
               return (
-                <Card key={lead.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => openLead(lead)} data-testid={`list-lead-${lead.id}`}>
+                <Card key={lead.id} className={`cursor-pointer hover:shadow-md transition-shadow ${lead.hasUnreviewedChanges ? 'ring-2 ring-amber-400 ring-offset-1' : ''}`} onClick={() => openLead(lead)} data-testid={`list-lead-${lead.id}`}>
                   <CardContent className="p-4 flex items-center gap-4">
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: stage?.color || '#ccc' }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-bold truncate">{lead.clientName || 'Без имени'}</span>
+                        {lead.hasUnreviewedChanges && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold animate-pulse" title="Есть непросмотренные изменения из amoCRM">!</span>
+                        )}
                         {lead.isImportant && <Star className="w-4 h-4 text-amber-500 fill-amber-500" />}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{lead.modelName || lead.field_1 || '—'} {lead.manager ? `• ${lead.manager}` : ''} {lead.phone ? `• ${lead.phone}` : ''}</p>
+                      {lead.amoComment && <p className="text-xs text-blue-600 truncate italic"><MessageSquare className="w-3 h-3 inline mr-0.5" />{lead.amoComment}</p>}
                     </div>
                     <Badge style={{ backgroundColor: stage?.color + '20', color: stage?.color }}>{stage?.name}</Badge>
                     {(lead.totalAmount || lead.field_2) && <span className="font-medium text-sm">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</span>}
@@ -956,6 +971,72 @@ const SaunaCRMPage = () => {
                 <Label className="text-xs text-muted-foreground">Заметки</Label>
                 <Textarea value={editData.notes || ''} onChange={(e) => setEditData(p => ({ ...p, notes: e.target.value }))} rows={3} data-testid="lead-notes" />
               </div>
+
+              {/* amoCRM Comment from manager */}
+              {selectedLead?.amoComment && (
+                <div className="p-3 rounded-lg border border-blue-200 bg-blue-50/50">
+                  <Label className="text-xs text-blue-700 font-semibold flex items-center gap-1.5 mb-1">
+                    <MessageSquare className="w-3.5 h-3.5" />Комментарий менеджера (amoCRM)
+                  </Label>
+                  <p className="text-sm text-blue-900 whitespace-pre-wrap" data-testid="amo-comment-display">{selectedLead.amoComment}</p>
+                </div>
+              )}
+
+              {/* Change Log from amoCRM */}
+              {selectedLead?.hasUnreviewedChanges && (
+                <div className="p-3 rounded-lg border border-amber-300 bg-amber-50/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs text-amber-800 font-semibold flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />Изменения из amoCRM (непросмотренные)
+                    </Label>
+                    <Button size="sm" variant="outline" className="h-7 text-xs border-amber-300 text-amber-700 hover:bg-amber-100"
+                      onClick={async () => {
+                        try {
+                          await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}/acknowledge-changes`, { method: 'PUT', headers: authHeaders });
+                          setSelectedLead(p => ({ ...p, hasUnreviewedChanges: false }));
+                          setEditData(p => ({ ...p, hasUnreviewedChanges: false }));
+                          fetchLeads();
+                          toast.success('Изменения отмечены как просмотренные');
+                        } catch { toast.error('Ошибка'); }
+                      }}
+                      data-testid="acknowledge-changes-btn"
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1" />Просмотрено
+                    </Button>
+                  </div>
+                  <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                    {(selectedLead.changeLog || []).filter(e => e.source === 'amocrm').slice(-15).reverse().map((entry, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs py-1 border-b border-amber-200/50 last:border-0">
+                        <span className="text-amber-500 flex-shrink-0 mt-0.5">&bull;</span>
+                        <span className="font-medium text-amber-800 flex-shrink-0 w-28 truncate">{entry.label}</span>
+                        <span className="text-muted-foreground flex-shrink-0">{entry.oldValue || '—'}</span>
+                        <span className="text-muted-foreground flex-shrink-0">&rarr;</span>
+                        <span className="font-medium text-amber-900">{entry.newValue || '—'}</span>
+                        <span className="text-muted-foreground ml-auto flex-shrink-0 text-[10px]">{entry.timestamp ? new Date(entry.timestamp).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Full Change History (collapsed) */}
+              {(selectedLead?.changeLog || []).length > 0 && !selectedLead?.hasUnreviewedChanges && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors py-1">
+                    История изменений ({(selectedLead.changeLog || []).length})
+                  </summary>
+                  <div className="mt-2 space-y-1 max-h-[200px] overflow-y-auto border rounded-lg p-2">
+                    {(selectedLead.changeLog || []).slice(-20).reverse().map((entry, idx) => (
+                      <div key={idx} className="flex items-start gap-2 py-1 border-b border-muted/50 last:border-0">
+                        <span className="text-muted-foreground flex-shrink-0 mt-0.5">&bull;</span>
+                        <span className="font-medium flex-shrink-0 w-28 truncate">{entry.label}</span>
+                        <span className="text-muted-foreground">{entry.oldValue || '—'} &rarr; {entry.newValue || '—'}</span>
+                        <span className="text-muted-foreground ml-auto flex-shrink-0 text-[10px]">{entry.timestamp ? new Date(entry.timestamp).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
 
               {/* Calculator & Tech Spec */}
               <div>
@@ -1425,6 +1506,15 @@ const SaunaCRMPage = () => {
                           onChange={(e) => setSettingsForm(p => ({ ...p, modelFieldId: e.target.value }))}
                           placeholder="например: 654321"
                           data-testid="crm-model-field-id"
+                        />
+                      </div>
+                      <div className="space-y-1 col-span-2">
+                        <Label className="text-xs">ID поля "Комментарий менеджера" <span className="text-muted-foreground">(для уточнений из amoCRM)</span></Label>
+                        <Input
+                          value={settingsForm.commentFieldId || ''}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, commentFieldId: e.target.value }))}
+                          placeholder="ID кастомного поля в amoCRM для комментариев"
+                          data-testid="crm-comment-field-id"
                         />
                       </div>
                     </div>

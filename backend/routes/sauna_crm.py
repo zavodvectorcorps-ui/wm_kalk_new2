@@ -56,6 +56,7 @@ class CRMSettings(BaseModel):
     clientNameFieldId: Optional[str] = None  # amoCRM field ID for client name
     modelFieldId: Optional[str] = None  # amoCRM field ID for sauna model
     calendarDateField: Optional[str] = None  # Which field to use for calendar & date filtering (e.g. "field_3", "prepaymentDate")
+    commentFieldId: Optional[str] = None  # amoCRM field ID for manager comment
 
 
 class CRMLead(BaseModel):
@@ -89,6 +90,9 @@ class CRMLead(BaseModel):
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updatedAt: Optional[str] = None
     stageHistory: List[Dict[str, Any]] = []
+    changeLog: List[Dict[str, Any]] = []
+    hasUnreviewedChanges: bool = False
+    amoComment: str = ""
     notes: str = ""
     isImportant: bool = False
 
@@ -119,6 +123,7 @@ def get_default_settings() -> dict:
             {"id": "completed", "name": "Заказ выполнен", "amoStageId": "", "amoPipelineId": "", "color": "#6b7280", "sortOrder": 7, "collapsed": True},
         ],
         "syncBackFields": [],
+        "commentFieldId": "",
         "autoSyncEnabled": True,
         "lastSyncAt": None
     }
@@ -251,6 +256,19 @@ async def update_lead(lead_id: str, data: dict):
     
     updated = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     return updated
+
+
+@router.put("/leads/{lead_id}/acknowledge-changes")
+async def acknowledge_changes(lead_id: str):
+    """Mark amoCRM changes as reviewed by production."""
+    result = await db.sauna_crm_leads.update_one(
+        {"id": lead_id},
+        {"$set": {"hasUnreviewedChanges": False, "updatedAt": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return {"status": "ok"}
+
 
 
 @router.put("/leads/{lead_id}/stage")
@@ -712,21 +730,60 @@ async def sync_leads_from_amocrm():
                     
                     if existing:
                         # Update existing lead fields from amoCRM
-                        update_data = {"updatedAt": datetime.now(timezone.utc).isoformat()}
-                        # Priority: custom amoCRM field > contact name > keep existing
+                        now_ts = datetime.now(timezone.utc).isoformat()
+                        update_data = {"updatedAt": now_ts}
+                        
+                        # Build proposed field updates
+                        proposed = {}
                         if custom_client_name:
-                            update_data["clientName"] = custom_client_name
+                            proposed["clientName"] = custom_client_name
                         elif contact_name:
-                            update_data["clientName"] = contact_name
+                            proposed["clientName"] = contact_name
                         if custom_model_name:
-                            update_data["modelName"] = custom_model_name
+                            proposed["modelName"] = custom_model_name
                         if contact_phone:
-                            update_data["phone"] = contact_phone
+                            proposed["phone"] = contact_phone
                         if manager_name:
-                            update_data["manager"] = manager_name
-                        update_data.update(field_vals)
+                            proposed["manager"] = manager_name
+                        proposed.update(field_vals)
                         if amo_lead.get("price"):
-                            update_data["totalAmount"] = amo_lead["price"]
+                            proposed["totalAmount"] = amo_lead["price"]
+                        
+                        # Extract comment from amoCRM custom field
+                        comment_fid = settings.get("commentFieldId", "")
+                        if comment_fid:
+                            for cf in (custom_fields or []):
+                                if str(cf.get("field_id", "")) == comment_fid:
+                                    vals = cf.get("values") or []
+                                    new_comment = vals[0].get("value", "") if vals else ""
+                                    if new_comment != existing.get("amoComment", ""):
+                                        proposed["amoComment"] = new_comment
+                                    break
+                        
+                        # Detect actual changes — compare proposed vs existing
+                        CHANGE_LABELS = {
+                            "clientName": "Клиент", "modelName": "Модель", "phone": "Телефон",
+                            "manager": "Менеджер", "totalAmount": "Бюджет", "amoComment": "Комментарий менеджера",
+                            "stageId": "Этап",
+                        }
+                        # Add labels for custom fields
+                        for fm in settings.get("fields", []):
+                            CHANGE_LABELS[fm["id"]] = fm["name"]
+                        
+                        change_entries = []
+                        for key, new_val in proposed.items():
+                            old_val = existing.get(key, "")
+                            if str(new_val) != str(old_val) and new_val:
+                                change_entries.append({
+                                    "field": key,
+                                    "label": CHANGE_LABELS.get(key, key),
+                                    "oldValue": str(old_val) if old_val else "",
+                                    "newValue": str(new_val),
+                                    "timestamp": now_ts,
+                                    "source": "amocrm"
+                                })
+                        
+                        update_data.update(proposed)
                         
                         # Update stage if lead moved to a different pipeline stage in amoCRM
                         current_stage_id = existing.get("stageId", "")
@@ -736,10 +793,29 @@ async def sync_leads_from_amocrm():
                             history.append({
                                 "fromStage": current_stage_id,
                                 "toStage": stage["id"],
-                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "timestamp": now_ts,
                                 "action": "synced_from_amocrm"
                             })
                             update_data["stageHistory"] = history
+                            # Also record stage change in changeLog
+                            stage_names = {s["id"]: s["name"] for s in settings.get("stages", [])}
+                            change_entries.append({
+                                "field": "stageId",
+                                "label": "Этап",
+                                "oldValue": stage_names.get(current_stage_id, current_stage_id),
+                                "newValue": stage_names.get(stage["id"], stage["id"]),
+                                "timestamp": now_ts,
+                                "source": "amocrm"
+                            })
+                        
+                        # If any changes detected — append to changeLog, set flag
+                        if change_entries:
+                            change_log = existing.get("changeLog", [])
+                            change_log.extend(change_entries)
+                            # Keep last 100 entries
+                            update_data["changeLog"] = change_log[-100:]
+                            update_data["hasUnreviewedChanges"] = True
+                            logger.info(f"amoCRM changes detected for lead {existing.get('id')}: {[e['label'] for e in change_entries]}")
                         
                         # Update amoCRM link in case domain changed
                         update_data["amocrm_link"] = f"https://{domain}/leads/detail/{amo_id}"
@@ -762,6 +838,9 @@ async def sync_leads_from_amocrm():
                             "documents": [],
                             "createdAt": datetime.now(timezone.utc).isoformat(),
                             "stageHistory": [{"stageId": stage["id"], "timestamp": datetime.now(timezone.utc).isoformat(), "action": "imported_from_amocrm"}],
+                            "changeLog": [],
+                            "hasUnreviewedChanges": False,
+                            "amoComment": "",
                             "notes": "",
                             "isImportant": False,
                             **field_vals
