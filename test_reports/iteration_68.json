@@ -1,0 +1,120 @@
+{
+  "summary": "CRM Collapsed Stages and amoCRM Stage Sync features fully tested. All 13 backend tests passed. UI tests verified collapsed kanban column, expand/collapse functionality, settings dialog with stage configuration, and amoCRM mapping fields.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_crm_collapsed_stages.py",
+    "/app/test_reports/pytest/pytest_results_iteration68.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_crm_collapsed_stages.py"
+  ],
+  "success_rate": {
+    "backend": "100% - 13/13 tests passed",
+    "frontend": "100% - All UI features verified via Playwright"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"},
+    "test_crm_lead": "CRM-942B9B7B (no amocrm_id)",
+    "test_crm_lead_with_amo": "CRM-59FC9032 (amocrm_id: TEST_AMO_123)"
+  },
+  "seed_data_creation": "Used existing test data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "CRM collapsed stages feature complete. 'Заказ выполнен' (completed) stage has collapsed=true in settings. Kanban shows collapsed column as 48px narrow vertical bar. Click expands to 300px. Each expanded column has ChevronLeft collapse button. Settings dialog Этапы tab shows 'Свёрнут' checkbox for each stage. amoCRM mapping uses Pipeline ID/Stage ID text inputs (fallback mode when pipelines not loaded). sync_stage_to_amocrm logs correctly when credentials not configured or mapping missing.",
+  "test_results_summary": {
+    "feature_1_completed_stage_exists": {
+      "description": "GET /api/sauna-crm/settings returns 'completed' stage (Заказ выполнен)",
+      "status": "PASS",
+      "verification": "Stage id='completed', name='Заказ выполнен' found in settings"
+    },
+    "feature_2_completed_stage_collapsed": {
+      "description": "Completed stage has collapsed=true by default",
+      "status": "PASS",
+      "verification": "collapsed=True in settings, kanban column width=48px"
+    },
+    "feature_3_kanban_collapsed_column": {
+      "description": "CRM kanban shows collapsed column as narrow vertical bar",
+      "status": "PASS",
+      "verification": {
+        "collapsed_width": "48px",
+        "expanded_width": "300px",
+        "vertical_text": "Found writing-mode style for vertical text"
+      }
+    },
+    "feature_4_expand_collapse_toggle": {
+      "description": "Clicking collapsed column expands it, collapse button collapses it",
+      "status": "PASS",
+      "verification": "Click on collapsed -> expands to 300px, click ChevronLeft -> collapses to 48px"
+    },
+    "feature_5_collapse_buttons": {
+      "description": "Each expanded kanban column has collapse button (ChevronLeft)",
+      "status": "PASS",
+      "verification": "Found 6 collapse buttons with data-testid='collapse-col-{stageId}'"
+    },
+    "feature_6_settings_stages_tab": {
+      "description": "Settings Этапы tab shows stage config with collapsed checkbox",
+      "status": "PASS",
+      "verification": {
+        "stages_shown": 7,
+        "collapsed_checkboxes": 7,
+        "completed_stage_checked": true
+      }
+    },
+    "feature_7_load_pipelines_button": {
+      "description": "'Загрузить воронки amoCRM' button exists in settings",
+      "status": "PASS",
+      "verification": "Button found with data-testid='load-amo-pipelines-btn'"
+    },
+    "feature_8_amo_mapping_fields": {
+      "description": "Stage mapping shows Pipeline ID and Stage ID inputs",
+      "status": "PASS",
+      "verification": "7 Pipeline ID inputs and 7 Stage ID inputs found (fallback mode)"
+    },
+    "feature_9_pipelines_endpoint": {
+      "description": "GET /api/integrations/amocrm/pipelines returns valid response",
+      "status": "PASS",
+      "verification": "Returns {pipelines: [], error: 'amoCRM не настроен'} when not configured"
+    },
+    "feature_10_stage_sync_logging": {
+      "description": "PUT /api/sauna-crm/leads/{id}/stage triggers sync_stage_to_amocrm with logging",
+      "status": "PASS",
+      "verification": {
+        "log_no_amocrm_id": "Stage sync skipped: lead CRM-942B9B7B has no amocrm_id",
+        "log_no_mapping": "Stage sync skipped: stage 'completed' has no amoStageId mapping"
+      }
+    },
+    "feature_11_crm_stage_config_model": {
+      "description": "Backend CRMStageConfig model accepts 'collapsed' field",
+      "status": "PASS",
+      "verification": "All stages in settings have collapsed field (True or False)"
+    }
+  },
+  "backend_test_results": {
+    "total_tests": 13,
+    "passed": 13,
+    "failed": 0,
+    "test_classes": [
+      "TestCRMCollapsedStages (4 tests)",
+      "TestAmoCRMPipelinesEndpoint (2 tests)",
+      "TestStageSyncToAmoCRM (2 tests)",
+      "TestStageSettingsUI (3 tests)",
+      "TestDefaultStagesConfiguration (2 tests)"
+    ]
+  },
+  "screenshots": [
+    ".screenshots/kanban_collapsed_stage.png",
+    ".screenshots/stages_settings.png",
+    ".screenshots/after_drag_drop.png"
+  ],
+  "amoCRM_sync_behavior": "sync_stage_to_amocrm correctly logs skip reasons: 'credentials not configured', 'no amocrm_id', 'no amoStageId mapping'. When all conditions met, would PATCH /api/v4/leads/{amocrm_id} with status_id and pipeline_id."
+}

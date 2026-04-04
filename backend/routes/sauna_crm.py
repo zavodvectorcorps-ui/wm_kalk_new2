@@ -43,6 +43,7 @@ class CRMStageConfig(BaseModel):
     amoPipelineId: str = ""
     color: str = "#3b82f6"
     sortOrder: int = 1
+    collapsed: bool = False
 
 
 class CRMSettings(BaseModel):
@@ -114,6 +115,7 @@ def get_default_settings() -> dict:
             {"id": "in_production", "name": "В производстве", "amoStageId": "", "amoPipelineId": "", "color": "#22c55e", "sortOrder": 4},
             {"id": "ready", "name": "Готов", "amoStageId": "", "amoPipelineId": "", "color": "#10b981", "sortOrder": 5},
             {"id": "delivered", "name": "Доставлен", "amoStageId": "", "amoPipelineId": "", "color": "#059669", "sortOrder": 6},
+            {"id": "completed", "name": "Заказ выполнен", "amoStageId": "", "amoPipelineId": "", "color": "#6b7280", "sortOrder": 7, "collapsed": True},
         ],
         "syncBackFields": [],
         "autoSyncEnabled": True,
@@ -499,23 +501,31 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
 # ============== AMOCRM SYNC ==============
 
 async def sync_stage_to_amocrm(lead_id: str, stage_id: str):
-    """Sync stage change to amoCRM."""
+    """Sync stage change to amoCRM — moves the lead card to the mapped pipeline stage."""
     try:
         lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
         if not lead or not lead.get("amocrm_id"):
+            logger.info(f"Stage sync skipped: lead {lead_id} has no amocrm_id")
             return
         settings = await get_crm_settings()
         stage_config = next((s for s in settings.get("stages", []) if s["id"] == stage_id), None)
         if not stage_config or not stage_config.get("amoStageId"):
+            logger.info(f"Stage sync skipped: stage '{stage_id}' has no amoStageId mapping")
+            return
+        if not stage_config.get("amoPipelineId"):
+            logger.info(f"Stage sync skipped: stage '{stage_id}' has no amoPipelineId mapping")
             return
         amo = get_amo_settings_sync()
         domain = amo.get("amocrm_domain", "")
         token = amo.get("amocrm_token", "")
         if not domain or not token:
+            logger.info("Stage sync skipped: amoCRM credentials not configured")
             return
-        payload = {"status_id": int(stage_config["amoStageId"])}
-        if stage_config.get("amoPipelineId"):
-            payload["pipeline_id"] = int(stage_config["amoPipelineId"])
+        payload = {
+            "status_id": int(stage_config["amoStageId"]),
+            "pipeline_id": int(stage_config["amoPipelineId"])
+        }
+        logger.info(f"Syncing stage to amoCRM: lead={lead_id}, amocrm_id={lead['amocrm_id']}, pipeline_id={payload['pipeline_id']}, status_id={payload['status_id']}")
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.patch(
                 f"https://{domain}/api/v4/leads/{lead['amocrm_id']}",
@@ -524,7 +534,9 @@ async def sync_stage_to_amocrm(lead_id: str, stage_id: str):
             )
             if resp.status_code == 200:
                 await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": {"lastAmoSyncAt": datetime.now(timezone.utc).isoformat()}})
-                logger.info(f"CRM stage synced to amoCRM: lead={lead_id}, stage={stage_id}")
+                logger.info(f"amoCRM stage sync OK: lead={lead_id} moved to pipeline={payload['pipeline_id']} stage={payload['status_id']}")
+            else:
+                logger.error(f"amoCRM stage sync failed: lead={lead_id}, status={resp.status_code}, body={resp.text[:200]}")
     except Exception as e:
         logger.error(f"Error syncing stage to amoCRM: {e}")
 

@@ -107,6 +107,13 @@ const SaunaCRMPage = () => {
   const [draggedLead, setDraggedLead] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
   
+  // Collapsed columns (for "Заказ выполнен" etc.)
+  const [collapsedCols, setCollapsedCols] = useState({});
+  
+  // amoCRM pipelines for stage mapping dropdowns
+  const [amoPipelines, setAmoPipelines] = useState([]);
+  const [loadingPipelines, setLoadingPipelines] = useState(false);
+  
   const token = localStorage.getItem('authToken');
   const authHeaders = { 'Authorization': `Bearer ${token}` };
 
@@ -118,6 +125,17 @@ const SaunaCRMPage = () => {
         const data = await res.json();
         setSettings(data);
         setSettingsForm(data);
+        // Initialize collapsed columns from settings
+        const initCollapsed = {};
+        (data.stages || []).forEach(s => {
+          if (s.collapsed) initCollapsed[s.id] = true;
+        });
+        setCollapsedCols(prev => {
+          // Only set defaults if not already explicitly toggled
+          const merged = { ...initCollapsed };
+          Object.keys(prev).forEach(k => { merged[k] = prev[k]; });
+          return merged;
+        });
       }
     } catch (e) { console.error(e); }
   }, []);
@@ -170,6 +188,27 @@ const SaunaCRMPage = () => {
   }, [fetchSettings, fetchLeads]);
 
   useEffect(() => { fetchCalendar(); }, [fetchCalendar]);
+
+  // Fetch amoCRM pipelines for stage mapping
+  const fetchAmoPipelines = async () => {
+    setLoadingPipelines(true);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/amocrm/pipelines`, { headers: authHeaders });
+      if (res.ok) {
+        const data = await res.json();
+        setAmoPipelines(data.pipelines || []);
+        if ((data.pipelines || []).length === 0 && data.error) {
+          toast.error(data.error);
+        }
+      }
+    } catch (e) { console.error(e); toast.error('Не удалось загрузить воронки amoCRM'); }
+    setLoadingPipelines(false);
+  };
+
+  // Toggle collapsed column
+  const toggleCollapsed = (stageId) => {
+    setCollapsedCols(prev => ({ ...prev, [stageId]: !prev[stageId] }));
+  };
 
   // ---- Actions ----
   const syncFromAmoCRM = async () => {
@@ -316,7 +355,10 @@ const SaunaCRMPage = () => {
         method: 'PUT', headers: authHeaders
       });
       if (res.ok) {
-        toast.success('Этап изменён');
+        const stageName = stages.find(s => s.id === targetStageId)?.name || targetStageId;
+        const stageConf = stages.find(s => s.id === targetStageId);
+        const hasAmoMapping = stageConf?.amoStageId && stageConf?.amoPipelineId;
+        toast.success(`Этап изменён: ${stageName}${hasAmoMapping ? ' (+ синхронизация с amoCRM)' : ''}`);
         fetchLeads();
         fetchCalendar();
       } else toast.error('Ошибка смены этапа');
@@ -640,35 +682,76 @@ const SaunaCRMPage = () => {
               <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="clear-filters-btn"><X className="w-4 h-4 mr-1" />Сбросить</Button>
             )}
           </div>
-          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(280px, 1fr))` }}>
+          <div className="flex gap-4 overflow-x-auto pb-2">
             {stages.map(stage => {
               const isOver = dragOverStage === stage.id;
+              const isCollapsed = collapsedCols[stage.id];
+              const stageLeads = leadsByStage[stage.id] || [];
+              
+              // Collapsed column — narrow vertical strip
+              if (isCollapsed) {
+                return (
+                  <div
+                    key={stage.id}
+                    className={`rounded-lg transition-all cursor-pointer flex-shrink-0 ${isOver ? 'ring-2 ring-offset-1' : ''}`}
+                    style={{ backgroundColor: stage.color + '20', width: '48px', minHeight: '200px' }}
+                    onDragOver={(e) => handleDragOver(e, stage.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, stage.id)}
+                    onClick={() => toggleCollapsed(stage.id)}
+                    data-testid={`kanban-stage-${stage.id}`}
+                    title={`${stage.name} (${stageLeads.length}) — нажмите чтобы развернуть`}
+                  >
+                    <div className="flex flex-col items-center pt-3 pb-3 h-full">
+                      <div className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: stage.color }} />
+                      <Badge variant="secondary" className="text-[10px] mb-2">{stageLeads.length}</Badge>
+                      <span
+                        className="text-xs font-semibold"
+                        style={{ color: stage.color, writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                      >
+                        {stage.name}
+                      </span>
+                      <ChevronRight className="w-4 h-4 mt-auto" style={{ color: stage.color }} />
+                    </div>
+                  </div>
+                );
+              }
+              
+              // Regular expanded column
               return (
               <div
                 key={stage.id}
-                className={`rounded-lg p-3 transition-all ${isOver ? 'ring-2 ring-offset-1' : ''}`}
-                style={{ backgroundColor: stage.color + (isOver ? '30' : '15'), ...(isOver ? { ringColor: stage.color } : {}) }}
+                className={`rounded-lg p-3 transition-all flex-shrink-0 ${isOver ? 'ring-2 ring-offset-1' : ''}`}
+                style={{ backgroundColor: stage.color + (isOver ? '30' : '15'), width: '300px', minWidth: '280px' }}
                 onDragOver={(e) => handleDragOver(e, stage.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, stage.id)}
                 data-testid={`kanban-stage-${stage.id}`}
               >
                 <h3 className="font-semibold text-sm mb-3 flex items-center gap-2" style={{ color: stage.color }}>
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
-                  {stage.name}
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: stage.color }} />
+                  <span className="truncate">{stage.name}</span>
                   <button
                     onClick={() => toggleColumnSort(stage.id)}
-                    className={`ml-1 p-0.5 rounded hover:bg-black/10 transition-colors ${columnSort[stage.id] ? 'bg-black/10' : ''}`}
+                    className={`ml-1 p-0.5 rounded hover:bg-black/10 transition-colors flex-shrink-0 ${columnSort[stage.id] ? 'bg-black/10' : ''}`}
                     title="Сортировать по дате"
                     data-testid={`sort-col-${stage.id}`}
                   >
                     <ArrowUpDown className="w-3.5 h-3.5" />
                   </button>
                   {columnSort[stage.id] && <span className="text-[10px]">{columnSort[stage.id] === 'asc' ? '↑' : '↓'}</span>}
-                  <Badge variant="secondary" className="ml-auto text-xs">{(leadsByStage[stage.id] || []).length}</Badge>
+                  <Badge variant="secondary" className="ml-auto text-xs flex-shrink-0">{stageLeads.length}</Badge>
+                  <button
+                    onClick={() => toggleCollapsed(stage.id)}
+                    className="p-0.5 rounded hover:bg-black/10 transition-colors flex-shrink-0"
+                    title="Свернуть колонку"
+                    data-testid={`collapse-col-${stage.id}`}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
                 </h3>
                 <div className="space-y-2 max-h-[600px] overflow-y-auto min-h-[80px]">
-                  {sortLeadsByDate(leadsByStage[stage.id] || [], columnSort[stage.id]).map(lead => {
+                  {sortLeadsByDate(stageLeads, columnSort[stage.id]).map(lead => {
                     const isDragging = draggedLead?.id === lead.id;
                     return (
                     <Card
@@ -1188,59 +1271,136 @@ const SaunaCRMPage = () => {
 
               <TabsContent value="stages">
                 <div className="space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-muted-foreground">Настройте этапы CRM и маппинг с воронками amoCRM</p>
+                    <Button variant="outline" size="sm" onClick={fetchAmoPipelines} disabled={loadingPipelines} data-testid="load-amo-pipelines-btn">
+                      {loadingPipelines ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+                      Загрузить воронки amoCRM
+                    </Button>
+                  </div>
                   {(settingsForm.stages || []).map((stage, idx) => (
-                    <div key={stage.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                      <input
-                        type="color"
-                        value={stage.color}
-                        onChange={(e) => {
-                          const stages = [...settingsForm.stages];
-                          stages[idx] = { ...stages[idx], color: e.target.value };
-                          setSettingsForm(p => ({ ...p, stages }));
-                        }}
-                        className="w-8 h-8 rounded cursor-pointer"
-                      />
-                      <Input
-                        className="flex-1"
-                        value={stage.name}
-                        onChange={(e) => {
-                          const stages = [...settingsForm.stages];
-                          stages[idx] = { ...stages[idx], name: e.target.value };
-                          setSettingsForm(p => ({ ...p, stages }));
-                        }}
-                        placeholder="Название этапа"
-                      />
-                      <Input
-                        className="w-28"
-                        value={stage.amoPipelineId}
-                        onChange={(e) => {
-                          const stages = [...settingsForm.stages];
-                          stages[idx] = { ...stages[idx], amoPipelineId: e.target.value };
-                          setSettingsForm(p => ({ ...p, stages }));
-                        }}
-                        placeholder="Pipeline ID"
-                      />
-                      <Input
-                        className="w-28"
-                        value={stage.amoStageId}
-                        onChange={(e) => {
-                          const stages = [...settingsForm.stages];
-                          stages[idx] = { ...stages[idx], amoStageId: e.target.value };
-                          setSettingsForm(p => ({ ...p, stages }));
-                        }}
-                        placeholder="Stage ID"
-                      />
-                      <Button size="icon" variant="ghost" className="text-red-500" onClick={() => {
-                        setSettingsForm(p => ({ ...p, stages: p.stages.filter((_, i) => i !== idx) }));
-                      }}><Trash2 className="w-4 h-4" /></Button>
+                    <div key={stage.id} className="p-3 border rounded-lg space-y-2">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={stage.color}
+                          onChange={(e) => {
+                            const stages = [...settingsForm.stages];
+                            stages[idx] = { ...stages[idx], color: e.target.value };
+                            setSettingsForm(p => ({ ...p, stages }));
+                          }}
+                          className="w-8 h-8 rounded cursor-pointer flex-shrink-0"
+                        />
+                        <Input
+                          className="flex-1"
+                          value={stage.name}
+                          onChange={(e) => {
+                            const stages = [...settingsForm.stages];
+                            stages[idx] = { ...stages[idx], name: e.target.value };
+                            setSettingsForm(p => ({ ...p, stages }));
+                          }}
+                          placeholder="Название этапа"
+                        />
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0 cursor-pointer" title="Свёрнут по умолчанию в канбане">
+                          <input
+                            type="checkbox"
+                            checked={stage.collapsed || false}
+                            onChange={(e) => {
+                              const stages = [...settingsForm.stages];
+                              stages[idx] = { ...stages[idx], collapsed: e.target.checked };
+                              setSettingsForm(p => ({ ...p, stages }));
+                            }}
+                            className="rounded"
+                          />
+                          Свёрнут
+                        </label>
+                        <Button size="icon" variant="ghost" className="text-red-500 flex-shrink-0" onClick={() => {
+                          setSettingsForm(p => ({ ...p, stages: p.stages.filter((_, i) => i !== idx) }));
+                        }}><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                      {/* amoCRM mapping */}
+                      <div className="flex items-center gap-2 pl-11">
+                        <span className="text-xs text-muted-foreground flex-shrink-0 w-16">amoCRM:</span>
+                        {amoPipelines.length > 0 ? (
+                          <>
+                            <Select
+                              value={stage.amoPipelineId || "none"}
+                              onValueChange={(v) => {
+                                const stages = [...settingsForm.stages];
+                                stages[idx] = { ...stages[idx], amoPipelineId: v === "none" ? "" : v, amoStageId: "" };
+                                setSettingsForm(p => ({ ...p, stages }));
+                              }}
+                            >
+                              <SelectTrigger className="w-[180px] h-8 text-xs" data-testid={`amo-pipeline-${stage.id}`}>
+                                <SelectValue placeholder="Воронка" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">— Не привязана —</SelectItem>
+                                {amoPipelines.map(p => (
+                                  <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select
+                              value={stage.amoStageId || "none"}
+                              onValueChange={(v) => {
+                                const stages = [...settingsForm.stages];
+                                stages[idx] = { ...stages[idx], amoStageId: v === "none" ? "" : v };
+                                setSettingsForm(p => ({ ...p, stages }));
+                              }}
+                            >
+                              <SelectTrigger className="w-[200px] h-8 text-xs" data-testid={`amo-stage-${stage.id}`}>
+                                <SelectValue placeholder="Этап воронки" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">— Не привязан —</SelectItem>
+                                {(amoPipelines.find(p => String(p.id) === String(stage.amoPipelineId))?.statuses || []).map(s => (
+                                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </>
+                        ) : (
+                          <>
+                            <Input
+                              className="w-28 h-8 text-xs"
+                              value={stage.amoPipelineId}
+                              onChange={(e) => {
+                                const stages = [...settingsForm.stages];
+                                stages[idx] = { ...stages[idx], amoPipelineId: e.target.value };
+                                setSettingsForm(p => ({ ...p, stages }));
+                              }}
+                              placeholder="Pipeline ID"
+                            />
+                            <Input
+                              className="w-28 h-8 text-xs"
+                              value={stage.amoStageId}
+                              onChange={(e) => {
+                                const stages = [...settingsForm.stages];
+                                stages[idx] = { ...stages[idx], amoStageId: e.target.value };
+                                setSettingsForm(p => ({ ...p, stages }));
+                              }}
+                              placeholder="Stage ID"
+                            />
+                          </>
+                        )}
+                        {stage.amoStageId && stage.amoPipelineId && (
+                          <Badge variant="outline" className="text-[10px] text-green-600 border-green-300 flex-shrink-0">Связан</Badge>
+                        )}
+                      </div>
                     </div>
                   ))}
                   <Button variant="outline" size="sm" onClick={() => {
                     setSettingsForm(p => ({
                       ...p,
-                      stages: [...p.stages, { id: `stage_${Date.now()}`, name: 'Новый этап', amoStageId: '', amoPipelineId: '', color: '#6b7280', sortOrder: p.stages.length + 1 }]
+                      stages: [...p.stages, { id: `stage_${Date.now()}`, name: 'Новый этап', amoStageId: '', amoPipelineId: '', color: '#6b7280', sortOrder: p.stages.length + 1, collapsed: false }]
                     }));
                   }}><Plus className="w-4 h-4 mr-1" />Добавить этап</Button>
+                  {amoPipelines.length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Нажмите "Загрузить воронки amoCRM" для выбора этапов из выпадающего списка. При переносе заказа в CRM карточка в amoCRM автоматически переместится в привязанный этап.
+                    </p>
+                  )}
                 </div>
               </TabsContent>
 
