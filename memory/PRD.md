@@ -15,41 +15,45 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps, Google Sheets, Nano Ban
 ### Session 5 (April 4, 2026)
 
 **Contract/Tech Spec links to amoCRM:**
-- After contract generation, link is automatically pushed to amoCRM as a note
-- After tech spec PDF generation, link is pushed to amoCRM as a note
-- Both check for `amocrm_id` on the CRM lead and amoCRM credentials before sending
+- After contract/tech spec generation, links are automatically pushed to amoCRM as notes
 
 **amoCRM Widget Enhancements:**
 - Widget shows "Сауна — CRM" section with dates, payment, documents, statuses
 - "Создать/Пересоздать договор" button directly in widget
-- Non-sauna orders continue to show classic "Детали заказа" format
+- Shows all 4 date types: Дата аванса, Дата производства, Дата готовности, Дата доставки
+- Non-sauna orders show classic "Детали заказа" format
 
 **CRM Stage "Заказ выполнен" (collapsed):**
-- New stage added as last stage with `collapsed: true`
-- Kanban columns now support collapse/expand toggle
-- Collapsed column shows as 48px narrow vertical bar, click to expand
+- New stage added with `collapsed: true`, collapsible kanban columns
 
-**amoCRM Stage Sync improvements:**
-- `sync_stage_to_amocrm` now sends both `pipeline_id` and `status_id` (moves card in amoCRM)
-- Improved logging for debugging sync issues
-- Settings UI for stages has dropdown selectors for amoCRM pipeline/stage mapping
-- "Загрузить воронки amoCRM" button loads pipelines from amoCRM API
-- Fallback to manual ID inputs when pipelines not loaded
+**amoCRM Stage Sync:**
+- Moves amoCRM card to mapped pipeline stage (PATCH with pipeline_id + status_id)
+- Settings UI with dropdown selectors for amoCRM pipeline/stage mapping
 
-**CRM Stages Updated:**
-- invoice_sent: Выставлен счёт
-- prepayment_received: Предоплата получена
-- approved_by_production: Согласован производством
-- in_production: В производстве
-- ready: Готов
-- delivered: Доставлен
-- completed: Заказ выполнен (collapsed by default)
+**Sync-from-amoCRM updates existing cards:**
+- Updates stageId when lead moved in amoCRM (tracked as 'synced_from_amocrm')
+- Updates totalAmount (budget), clientName, modelName, phone, manager, custom fields
+- Updates amocrm_link
+
+**Production dates auto-push to amoCRM:**
+- When productionDate, readyDate, deliveryDate change in CRM-sauna → auto-push as note to amoCRM
+- Also syncs via syncBackFields if custom field mappings configured
+- Only pushes actually changed dates (not all dates on every save)
 
 ### Previous Sessions
 - Session 4: amoCRM sync fixes, CRM linking, heater variants, logistics, sales/bonuses
 - Session 3: Contract template system, Storekeeper role
 - Session 2: Manager CRM access, date filters, contract generation
 - Session 1: Tech spec PDF, production list, user access controls
+
+## CRM Stages
+1. invoice_sent: Выставлен счёт
+2. prepayment_received: Предоплата получена
+3. approved_by_production: Согласован производством
+4. in_production: В производстве
+5. ready: Готов
+6. delivered: Доставлен
+7. completed: Заказ выполнен (collapsed)
 
 ## Prioritized Backlog
 
@@ -71,6 +75,8 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps, Google Sheets, Nano Ban
 - PUT /api/sauna-crm/settings/stages
 - GET /api/integrations/amocrm/pipelines
 - PUT /api/sauna-crm/leads/{id}/stage (triggers amoCRM sync)
+- PUT /api/sauna-crm/leads/{id} (triggers production dates push)
+- POST /api/sauna-crm/sync-from-amocrm (updates existing cards)
 
 ## Credentials
 - Admin: admin / admin123
