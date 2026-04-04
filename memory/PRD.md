@@ -15,55 +15,47 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps, Google Sheets, Nano Ban
 ### Session 5 (April 4, 2026)
 
 **Contract/Tech Spec links to amoCRM:**
-- After contract generation (`generate_contract_with_kp`), link is automatically pushed to amoCRM as a note
-- After tech spec PDF generation (`generate_tech_spec_pdf`), link is pushed to amoCRM as a note
+- After contract generation, link is automatically pushed to amoCRM as a note
+- After tech spec PDF generation, link is pushed to amoCRM as a note
 - Both check for `amocrm_id` on the CRM lead and amoCRM credentials before sending
-- Graceful fallback when amoCRM credentials not configured
 
-**amoCRM Widget Enhancements (Sauna CRM):**
-- Widget now shows separate "Сауна — CRM" section with data from `sauna_crm_leads` collection
-- Displays: CRM ID, client name, model, total amount, payment (advance), dates (prepayment, ready, production)
-- Shows document statuses: Contract (Yes/No), Tech Spec (Yes/No) with clickable links
-- "Создать договор" / "Пересоздать договор" button directly in widget, calls `/api/sauna-crm/generate-contract`
-- Proper CRM stage status displayed (from `sauna_crm_settings.stages` or local map)
-- Non-sauna orders (balia/greenhouse) continue to show classic "Детали заказа" format
-- Fixed HTML typo (extra `>` in widget div)
+**amoCRM Widget Enhancements:**
+- Widget shows "Сауна — CRM" section with dates, payment, documents, statuses
+- "Создать/Пересоздать договор" button directly in widget
+- Non-sauna orders continue to show classic "Детали заказа" format
+
+**CRM Stage "Заказ выполнен" (collapsed):**
+- New stage added as last stage with `collapsed: true`
+- Kanban columns now support collapse/expand toggle
+- Collapsed column shows as 48px narrow vertical bar, click to expand
+
+**amoCRM Stage Sync improvements:**
+- `sync_stage_to_amocrm` now sends both `pipeline_id` and `status_id` (moves card in amoCRM)
+- Improved logging for debugging sync issues
+- Settings UI for stages has dropdown selectors for amoCRM pipeline/stage mapping
+- "Загрузить воронки amoCRM" button loads pipelines from amoCRM API
+- Fallback to manual ID inputs when pipelines not loaded
 
 **CRM Stages Updated:**
 - invoice_sent: Выставлен счёт
 - prepayment_received: Предоплата получена
-- approved_by_production: Согласован производством (NEW)
+- approved_by_production: Согласован производством
 - in_production: В производстве
 - ready: Готов
 - delivered: Доставлен
+- completed: Заказ выполнен (collapsed by default)
 
-### Session 4 (March 24, 2026)
-- Fixed amoCRM Sync 500 Error
-- Fixed CRM lead linking (crmLeadId loss on reload)
-- Manual order relinking in CRM card
-- Configurable date field for CRM filtering/calendar
-- "Без печи" + "Электрическая печь" heater variants
-- "Развернуть маршрут" button in Logistics
-- Sales/bonuses from CRM leads by prepaymentDate
-- Dynamic contact info in PDF templates
-
-### Session 3 (March 21, 2026)
-- Contract Template Management System (DOCX templates, placeholders, mappings)
-- Storekeeper Role with granular permissions
-
-### Session 2 (March 20, 2026)
-- Manager-specific CRM access, Date filters, Custom lead titles
-- Sales sync, Bonus calculations, Contract generation
-
-### Session 1
-- Tech Spec PDF, Production List, Google Sheets sync (blocked), User access controls
+### Previous Sessions
+- Session 4: amoCRM sync fixes, CRM linking, heater variants, logistics, sales/bonuses
+- Session 3: Contract template system, Storekeeper role
+- Session 2: Manager CRM access, date filters, contract generation
+- Session 1: Tech spec PDF, production list, user access controls
 
 ## Prioritized Backlog
 
 ### P1 - High Priority
 - [ ] Fix automatic variant application bug in LayoutConfiguratorPage.jsx
 - [ ] Complete Google Sheets integration (BLOCKED on user enabling APIs)
-- [ ] Finalize "Save layout to order" feature end-to-end
 
 ### P2 - Medium Priority
 - [ ] Refactor amocrm.py and LayoutConfiguratorPage.jsx (monolithic files)
@@ -74,10 +66,11 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps, Google Sheets, Nano Ban
 ## Key API Endpoints
 - POST /api/sauna-crm/generate-contract
 - POST /api/sauna/generate-tech-spec-pdf
-- POST /api/integrations/amocrm/upload-calculator-pdf
-- GET /api/widget/embed/{lead_id} (amoCRM widget)
+- GET /api/widget/embed/{lead_id}
 - GET /api/sauna-crm/settings
 - PUT /api/sauna-crm/settings/stages
+- GET /api/integrations/amocrm/pipelines
+- PUT /api/sauna-crm/leads/{id}/stage (triggers amoCRM sync)
 
 ## Credentials
 - Admin: admin / admin123
