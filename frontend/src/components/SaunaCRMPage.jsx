@@ -1372,16 +1372,34 @@ const SaunaCRMPage = () => {
                           <SelectItem value="money">Деньги</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Input
-                        className="w-32"
-                        value={field.amoFieldId}
-                        onChange={(e) => {
+                      <Select
+                        value={field.amoFieldId?.startsWith('_') ? field.amoFieldId : 'custom'}
+                        onValueChange={(v) => {
                           const fields = [...settingsForm.fields];
-                          fields[idx] = { ...fields[idx], amoFieldId: e.target.value };
+                          fields[idx] = { ...fields[idx], amoFieldId: v === 'custom' ? '' : v };
                           setSettingsForm(p => ({ ...p, fields }));
                         }}
-                        placeholder="amoCRM ID"
-                      />
+                      >
+                        <SelectTrigger className="w-40"><SelectValue placeholder="Источник amoCRM" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="custom">ID поля...</SelectItem>
+                          <SelectItem value="_budget">Бюджет (price)</SelectItem>
+                          <SelectItem value="_name">Название сделки</SelectItem>
+                          <SelectItem value="_responsible">Ответственный</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {(!field.amoFieldId || !field.amoFieldId.startsWith('_')) && (
+                        <Input
+                          className="w-28"
+                          value={field.amoFieldId || ''}
+                          onChange={(e) => {
+                            const fields = [...settingsForm.fields];
+                            fields[idx] = { ...fields[idx], amoFieldId: e.target.value };
+                            setSettingsForm(p => ({ ...p, fields }));
+                          }}
+                          placeholder="amoCRM ID"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

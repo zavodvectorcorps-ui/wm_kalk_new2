@@ -23,18 +23,15 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps
 
 **Production dates auto-push** — productionDate/readyDate/deliveryDate → amoCRM notes
 
-**Change History & Notifications:**
-- `changeLog[]` — records every field change from amoCRM sync
-- `hasUnreviewedChanges` — amber warning badge (!) on kanban/list cards
-- "Просмотрено" button clears flag, changeLog remains as collapsed history
-- `amoComment` — manager's comment from amoCRM, displayed in blue on cards
-- `commentFieldId` setting — configurable amoCRM field ID for comment sync
+**Change History & Notifications** — changeLog, hasUnreviewedChanges badge, amoComment
 
-**Per-lead sync from amoCRM:**
-- POST /api/sauna-crm/leads/{id}/sync-from-amocrm — fetches latest data for specific lead
-- "Обновить из amoCRM" button in lead detail dialog
-- Works independently of stage mapping (fixes budget sync issue)
-- Detects changes, records changeLog, sets hasUnreviewedChanges
+**Per-lead sync from amoCRM** — button "Обновить из amoCRM" on each lead card
+
+**Standard amoCRM field mapping:**
+- CRM custom fields can now map to standard amoCRM fields (not just custom field IDs)
+- Dropdown in settings: `Бюджет (price)`, `Название сделки`, `Ответственный`
+- Example: "Wartość sauny" → `_budget` → reads from `amo_lead["price"]`
+- Works in both bulk sync and per-lead sync
 
 ### Previous Sessions
 - Session 4: amoCRM sync fixes, CRM linking, heater variants, logistics, sales/bonuses
@@ -43,13 +40,7 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps
 - Session 1: Tech spec PDF, production list, user access controls
 
 ## CRM Stages
-1. invoice_sent: Выставлен счёт
-2. prepayment_received: Предоплата получена
-3. approved_by_production: Согласован производством
-4. in_production: В производстве
-5. ready: Готов
-6. delivered: Доставлен
-7. completed: Заказ выполнен (collapsed)
+1-7: invoice_sent → prepayment_received → approved_by_production → in_production → ready → delivered → completed (collapsed)
 
 ## Prioritized Backlog
 ### P1
@@ -60,15 +51,6 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps
 - [ ] Refactor amocrm.py, widget.py (monolithic)
 - [ ] UI for project backup import
 - [ ] Replace deprecated Google Maps Autocomplete
-- [ ] Fix unstable login sessions
-
-## Key API Endpoints
-- POST /api/sauna-crm/leads/{id}/sync-from-amocrm (per-lead sync)
-- PUT /api/sauna-crm/leads/{id}/acknowledge-changes
-- POST /api/sauna-crm/sync-from-amocrm (bulk sync)
-- PUT /api/sauna-crm/leads/{id} (triggers dates push)
-- GET /api/widget/embed/{lead_id}
-- POST /api/sauna-crm/generate-contract
 
 ## Credentials
 - Admin: admin / admin123

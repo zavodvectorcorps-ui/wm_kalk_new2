@@ -289,7 +289,7 @@ async def sync_single_lead_from_amocrm(lead_id: str):
         raise HTTPException(status_code=400, detail="amoCRM не настроен")
     
     settings = await get_crm_settings()
-    field_mappings = {f["amoFieldId"]: f["id"] for f in settings.get("fields", []) if f.get("amoFieldId")}
+    field_mappings = {f["amoFieldId"]: f["id"] for f in settings.get("fields", []) if f.get("amoFieldId") and not f["amoFieldId"].startswith("_")}
     
     CHANGE_LABELS = {
         "clientName": "Клиент", "modelName": "Модель", "phone": "Телефон",
@@ -336,27 +336,13 @@ async def sync_single_lead_from_amocrm(lead_id: str):
                 if ur.status_code == 200:
                     manager_name = ur.json().get("name", "")
             
-            # Extract custom fields
+            # Extract custom + standard fields
             custom_fields = amo_lead.get("custom_fields_values") or []
-            field_vals = {}
-            custom_client_name = ""
-            custom_model_name = ""
+            field_vals, custom_client_name, custom_model_name = extract_standard_and_custom_fields(
+                amo_lead, custom_fields, field_mappings, settings
+            )
             
-            client_name_fid = settings.get("clientNameFieldId", "")
-            model_fid = settings.get("modelFieldId", "")
             comment_fid = settings.get("commentFieldId", "")
-            
-            for cf in custom_fields:
-                fid = str(cf.get("field_id", ""))
-                vals = cf.get("values") or []
-                val = vals[0].get("value", "") if vals else ""
-                
-                if fid == client_name_fid:
-                    custom_client_name = val
-                elif fid == model_fid:
-                    custom_model_name = val
-                elif fid in field_mappings:
-                    field_vals[field_mappings[fid]] = val
             
             # Build proposed changes
             now_ts = datetime.now(timezone.utc).isoformat()
@@ -695,6 +681,50 @@ PRODUCTION_DATE_LABELS = {
 }
 
 
+# Standard amoCRM field IDs (prefix with _)
+STANDARD_AMO_FIELDS = {
+    "_budget": lambda lead: lead.get("price"),
+    "_name": lambda lead: lead.get("name"),
+    "_responsible": lambda lead: None,  # handled separately via responsible_user_id
+}
+
+
+def extract_standard_and_custom_fields(amo_lead, custom_fields, field_mappings, settings):
+    """Extract field values from both standard and custom amoCRM fields."""
+    field_vals = {}
+    custom_client_name = ""
+    custom_model_name = ""
+    
+    client_name_fid = settings.get("clientNameFieldId", "")
+    model_fid = settings.get("modelFieldId", "")
+    
+    # 1) Process custom fields from amoCRM
+    for cf in (custom_fields or []):
+        fid = str(cf.get("field_id", ""))
+        vals = cf.get("values") or []
+        val = vals[0].get("value", "") if vals else ""
+        
+        if fid == client_name_fid:
+            custom_client_name = val
+        elif fid == model_fid:
+            custom_model_name = val
+        elif fid in field_mappings:
+            field_vals[field_mappings[fid]] = val
+    
+    # 2) Process standard field mappings (amoFieldId starts with _)
+    all_fields = settings.get("fields", [])
+    for f in all_fields:
+        amo_fid = f.get("amoFieldId", "")
+        if amo_fid in STANDARD_AMO_FIELDS and f.get("enabled", True):
+            extractor = STANDARD_AMO_FIELDS[amo_fid]
+            val = extractor(amo_lead)
+            if val is not None:
+                field_vals[f["id"]] = val
+    
+    return field_vals, custom_client_name, custom_model_name
+
+
+
 async def push_production_dates_to_amocrm(lead_id: str, amocrm_id: str, dates_changed: dict):
     """Push production dates to amoCRM as a note + via syncBackFields custom fields."""
     try:
@@ -798,7 +828,7 @@ async def sync_leads_from_amocrm():
     
     try:
         headers_amo = {"Authorization": f"Bearer {token}"}
-        field_mappings = {f["amoFieldId"]: f["id"] for f in settings.get("fields", []) if f.get("amoFieldId")}
+        field_mappings = {f["amoFieldId"]: f["id"] for f in settings.get("fields", []) if f.get("amoFieldId") and not f["amoFieldId"].startswith("_")}
         
         # Cache users for manager names
         users_cache = {}
@@ -841,29 +871,11 @@ async def sync_leads_from_amocrm():
                     amo_id = str(amo_lead["id"])
                     existing = await db.sauna_crm_leads.find_one({"amocrm_id": amo_id})
                     
-                    # Extract custom fields
+                    # Extract custom + standard fields
                     custom_fields = amo_lead.get("custom_fields_values") or []
-                    field_vals = {}
-                    for cf in (custom_fields or []):
-                        cf_id = str(cf.get("field_id", ""))
-                        if cf_id in field_mappings:
-                            vals = cf.get("values") or []
-                            if vals:
-                                field_vals[field_mappings[cf_id]] = vals[0].get("value", "")
-                    
-                    # Extract client name from custom amoCRM field (priority: custom field > contact > deal name)
-                    custom_client_name = ""
-                    custom_model_name = ""
-                    client_name_fid = settings.get("clientNameFieldId", "")
-                    model_fid = settings.get("modelFieldId", "")
-                    for cf in (custom_fields or []):
-                        cf_id = str(cf.get("field_id", ""))
-                        vals = cf.get("values") or []
-                        val = vals[0].get("value", "") if vals else ""
-                        if client_name_fid and cf_id == client_name_fid and val:
-                            custom_client_name = val
-                        if model_fid and cf_id == model_fid and val:
-                            custom_model_name = val
+                    field_vals, custom_client_name, custom_model_name = extract_standard_and_custom_fields(
+                        amo_lead, custom_fields, field_mappings, settings
+                    )
                     
                     # Extract contacts
                     amo_embedded = amo_lead.get("_embedded") or {}
