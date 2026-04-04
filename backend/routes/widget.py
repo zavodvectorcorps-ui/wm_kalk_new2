@@ -1878,6 +1878,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         sauna_prepayment_date = ""
         sauna_ready_date = ""
         sauna_production_date = ""
+        sauna_delivery_date = ""
         sauna_model_name = ""
         sauna_crm_id = ""
         has_sauna_crm = bool(sauna_crm_lead)
@@ -1890,6 +1891,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 ("prepaymentDate", "sauna_prepayment_date"),
                 ("readyDate", "sauna_ready_date"),
                 ("productionDate", "sauna_production_date"),
+                ("deliveryDate", "sauna_delivery_date"),
             ]:
                 raw = sauna_crm_lead.get(date_field, "")
                 if raw:
@@ -1907,6 +1909,8 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                         sauna_ready_date = formatted
                     elif date_var == "sauna_production_date":
                         sauna_production_date = formatted
+                    elif date_var == "sauna_delivery_date":
+                        sauna_delivery_date = formatted
         
         # Sauna CRM documents (contract, tech spec)
         sauna_docs = sauna_crm_lead.get("documents", []) if sauna_crm_lead else []
@@ -1992,6 +1996,10 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                     <span class="info-label">Дата производства</span>
                     <span class="info-value">{sauna_production_date}</span>
                 </div>''' if sauna_production_date else ''}
+                {f'''<div class="info-row">
+                    <span class="info-label">Дата доставки</span>
+                    <span class="info-value">{sauna_delivery_date}</span>
+                </div>''' if sauna_delivery_date else ''}
                 <div class="info-row">
                     <span class="info-label">Договор</span>
                     <span class="info-value">
@@ -2211,16 +2219,15 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 adv_fmt = str(advance)
             
             # Get dates
-            sauna_prepayment_date_nf = ""
-            sauna_ready_date_nf = ""
-            for df, val_ref in [("prepaymentDate", "sauna_prepayment_date_nf"), ("readyDate", "sauna_ready_date_nf")]:
+            sauna_dates_nf = {}
+            for df in ["prepaymentDate", "readyDate", "productionDate", "deliveryDate"]:
                 raw_dt = sauna_crm_lead.get(df, "")
                 if raw_dt:
                     try:
                         dt_obj = datetime.fromisoformat(str(raw_dt).replace('Z', '+00:00'))
-                        locals()[val_ref] = dt_obj.strftime('%d.%m.%Y')
+                        sauna_dates_nf[df] = dt_obj.strftime('%d.%m.%Y')
                     except:
-                        locals()[val_ref] = str(raw_dt)
+                        sauna_dates_nf[df] = str(raw_dt)
             
             sauna_docs_nf = sauna_crm_lead.get("documents", [])
             has_contract_nf = any(d.get("type") == "contract" for d in sauna_docs_nf)
@@ -2265,8 +2272,10 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                     <span class="info-label">Оплачено (аванс)</span>
                     <span class="info-value">{adv_fmt} zl</span>
                 </div>
-                {f'<div class="info-row"><span class="info-label">Дата аванса</span><span class="info-value">{sauna_prepayment_date_nf}</span></div>' if sauna_prepayment_date_nf else ''}
-                {f'<div class="info-row"><span class="info-label">Дата готовности</span><span class="info-value">{sauna_ready_date_nf}</span></div>' if sauna_ready_date_nf else ''}
+                {f'<div class="info-row"><span class="info-label">Дата аванса</span><span class="info-value">{sauna_dates_nf.get("prepaymentDate", "")}</span></div>' if sauna_dates_nf.get("prepaymentDate") else ''}
+                {f'<div class="info-row"><span class="info-label">Дата производства</span><span class="info-value">{sauna_dates_nf.get("productionDate", "")}</span></div>' if sauna_dates_nf.get("productionDate") else ''}
+                {f'<div class="info-row"><span class="info-label">Дата готовности</span><span class="info-value">{sauna_dates_nf.get("readyDate", "")}</span></div>' if sauna_dates_nf.get("readyDate") else ''}
+                {f'<div class="info-row"><span class="info-label">Дата доставки</span><span class="info-value">{sauna_dates_nf.get("deliveryDate", "")}</span></div>' if sauna_dates_nf.get("deliveryDate") else ''}
             </div>
         </div>
         

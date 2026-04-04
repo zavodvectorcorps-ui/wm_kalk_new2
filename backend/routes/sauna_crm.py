@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from database import db
 from services.cloudinary_service import upload_pdf as cloudinary_upload_pdf, is_cloudinary_configured
+from routes.amocrm import add_note_to_amocrm
 import httpx
 import os
 import logging
@@ -231,11 +232,23 @@ async def update_lead(lead_id: str, data: dict):
         data["stageHistory"] = history
         await sync_stage_to_amocrm(lead_id, data["stageId"])
     
+    # Check if production dates changed — push to amoCRM
+    production_date_fields = ["productionDate", "readyDate", "deliveryDate"]
+    dates_changed = {}
+    for df in production_date_fields:
+        if df in data and data[df] != existing.get(df):
+            dates_changed[df] = data[df]
+    
     # Remove _id if present
     data.pop("_id", None)
     data.pop("id", None)
     
     await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": data})
+    
+    # Push changed production dates to amoCRM as a note
+    if dates_changed and existing.get("amocrm_id"):
+        await push_production_dates_to_amocrm(lead_id, existing["amocrm_id"], dates_changed)
+    
     updated = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     return updated
 
@@ -500,6 +513,60 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
 
 # ============== AMOCRM SYNC ==============
 
+PRODUCTION_DATE_LABELS = {
+    "productionDate": "Дата производства",
+    "readyDate": "Дата готовности",
+    "deliveryDate": "Дата доставки",
+}
+
+
+async def push_production_dates_to_amocrm(lead_id: str, amocrm_id: str, dates_changed: dict):
+    """Push production dates to amoCRM as a note + via syncBackFields custom fields."""
+    try:
+        amo = get_amo_settings_sync()
+        domain = amo.get("amocrm_domain", "")
+        token = amo.get("amocrm_token", "")
+        if not domain or not token:
+            logger.info("Production dates push skipped: amoCRM credentials not configured")
+            return
+        
+        # 1) Push as a note to amoCRM — managers always see it
+        lines = ["Обновление дат производства:"]
+        for field_key, value in dates_changed.items():
+            label = PRODUCTION_DATE_LABELS.get(field_key, field_key)
+            lines.append(f"  {label}: {value or '—'}")
+        note_text = "\n".join(lines)
+        
+        await add_note_to_amocrm(amocrm_id, note_text, domain, token)
+        logger.info(f"Production dates note sent to amoCRM: lead={lead_id}, amocrm_id={amocrm_id}, fields={list(dates_changed.keys())}")
+        
+        # 2) Also push via syncBackFields if configured
+        settings = await get_crm_settings()
+        sync_back = settings.get("syncBackFields", [])
+        if sync_back:
+            custom_fields = []
+            for mapping in sync_back:
+                fid = mapping.get("fieldId", "")
+                amo_fid = mapping.get("amoFieldId", "")
+                if fid in dates_changed and amo_fid:
+                    val = dates_changed[fid]
+                    if val:
+                        custom_fields.append({"field_id": int(amo_fid), "values": [{"value": str(val)}]})
+            if custom_fields:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.patch(
+                        f"https://{domain}/api/v4/leads/{amocrm_id}",
+                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                        json={"custom_fields_values": custom_fields}
+                    )
+                    if resp.status_code == 200:
+                        logger.info(f"Production dates synced to amoCRM custom fields: lead={lead_id}")
+                    else:
+                        logger.error(f"amoCRM custom fields sync failed: {resp.status_code} {resp.text[:200]}")
+    except Exception as e:
+        logger.error(f"Error pushing production dates to amoCRM: {e}")
+
+
 async def sync_stage_to_amocrm(lead_id: str, stage_id: str):
     """Sync stage change to amoCRM — moves the lead card to the mapped pipeline stage."""
     try:
@@ -660,6 +727,23 @@ async def sync_leads_from_amocrm():
                         update_data.update(field_vals)
                         if amo_lead.get("price"):
                             update_data["totalAmount"] = amo_lead["price"]
+                        
+                        # Update stage if lead moved to a different pipeline stage in amoCRM
+                        current_stage_id = existing.get("stageId", "")
+                        if current_stage_id != stage["id"]:
+                            update_data["stageId"] = stage["id"]
+                            history = existing.get("stageHistory", [])
+                            history.append({
+                                "fromStage": current_stage_id,
+                                "toStage": stage["id"],
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "action": "synced_from_amocrm"
+                            })
+                            update_data["stageHistory"] = history
+                        
+                        # Update amoCRM link in case domain changed
+                        update_data["amocrm_link"] = f"https://{domain}/leads/detail/{amo_id}"
+                        
                         await db.sauna_crm_leads.update_one({"amocrm_id": amo_id}, {"$set": update_data})
                         updated += 1
                     else:
