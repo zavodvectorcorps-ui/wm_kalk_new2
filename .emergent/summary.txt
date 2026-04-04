@@ -1,148 +1,168 @@
 <analysis>**original_problem_statement:**
-The user initiated the session to fix a persistent and critical bug where generating a contract would result in a 500 Internal Server Error. Over the course of the session, this single issue was resolved, but it uncovered a cascade of related bugs and led to several new feature requests:
+The session began with debugging a 500 Internal Server Error during amoCRM synchronization (). As the session progressed, the user requested multiple bug fixes and enhancements across the platform:
+1. Fix CRM order linking (KP PDF not attaching to CRM card because  was lost on page reload).
+2. Add manual order relinking in the CRM card UI.
+3. Add two new heater variants in the Balia calculator (Без печи/none and Электрическая печь/electric) across all UI and PDF generation points.
+4. Add a Reverse Route (Развернуть маршрут) button in Logistics.
+5. Fix the Push to amoCRM block disappearing in Logistics.
+6. Configure the CRM filtering and calendar to use Data otrzymania zaliczki () instead of the default ready date.
+7. Update Sales and Bonus tracking to calculate based on CRM leads and the .
+8. Move hardcoded company phone, email, and website from the Sauna PDF generator into dynamic template settings.
+9. **CURRENT/LAST REQUEST**: After generating a contract or a tech spec in the CRM, upload the link to these documents directly to the amoCRM card. Additionally, add a Create Contract button directly inside the amoCRM widget interface so managers don't have to open the standalone CRM.
 
-1.  **Contract Generation Failure (Initial Bug):** Contracts failed to generate with a 500 error. The agent added robust error handling, which revealed the underlying issue: the contract was being created, but the Commercial Proposal (КП) PDF was not being attached.
-2.  **MongoDB Timeout:** The root cause of the attachment failure was a MongoDB read timeout when the backend tried to fetch PDF data from the  collection, even for direct Cloudinary URLs.
-3.  **CRM Integration Failure:** After fixing the PDF attachment, a new issue arose where the generated КП was no longer being linked to the corresponding lead card in the CRM. This was traced to the  not being passed from the CRM page to the calculator.
-4.  **Feature - Editable Prices:** The user requested the ability to edit the prices of bench variants in the sauna pricing settings.
-5.  **PDF Content Bug:** The user reported that the Foundation option, while included in the total price, was missing from the list of selected options in the generated PDF. They also requested that its name be changed from dodaj belki to Koszt fundamentu.
-6.  **Feature - Website API:** The user requested a Description for website field for sauna models and a public API to pull all model data (variants, options, comparison tables) for their external website.
-7.  **Feature - Marketer Role:** The user requested a new Marketer user role with specific permissions to edit pricing and models but with no access to sales, orders, or production data.
-8.  **CRM Sync Failure (Current Issue):** After implementing the above, the user reported that the Sync from amoCRM function was failing with a 500 error. The specific error message is .
+**User's preferred language**: Russian. INSTRUCT next agent to respond in the user's preferred language only.
 
-**User's preferred language**: Russian
-
-**what currently exists?**
-The application is a full-stack system for managing a sauna business. In this session, the agent performed a deep refactoring of the contract generation and CRM integration flows, making them significantly more resilient to database timeouts. Several new features were also implemented: editable prices for sub-options, a new Marketer user role with granular permissions, and a new public API to expose sauna model data for an external website. The agent is currently in the middle of debugging a 500 error in the amoCRM synchronization process.
+**what currently exists?** 
+A full-stack React/FastAPI application for managing sauna/balia orders. It features a complex layout configurator, dynamic pricing, PDF generation (contracts, commercial proposals, tech specs), logistics routing via Google Maps, sales tracking, and deep two-way integration with amoCRM.
 
 **Last working item**:
--   **Last item agent was working**: Debugging a  on the  endpoint. The user provided the specific error from the production server: . The agent was investigating  to find where the code attempts to iterate over a  value, likely from an unexpected amoCRM API response.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (The issue is not reproducible in the preview environment, as it lacks production amoCRM credentials).
--   **Which testing method agent to use?**: backend testing agent (The agent must analyze the code path based on the specific error message, add defensive code, and then ask the user to test on production).
--   **User Testing Done**: N
+- **Last item agent was working**: Implementing the logic to upload generated Contract and Tech Spec PDF links to amoCRM, and adding a Create Contract button inside the amoCRM widget frontend. The agent was reviewing , , and  to identify where the PDFs are generated and how to hook into the amoCRM upload pipeline.
+- **Status**: NOT STARTED
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: backend testing agent (for API logic sending links to amo) and screenshot tool (for widget UI).
+- **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1:  fails with  (P0 - HIGHEST)**
--   **Issue 2: Verify KP attachment to CRM card for new orders (P1)**
--   **Issue 3: Incorrect automatic variant application in configurator (P2 - RECURRING)**
--   **Issue 4: Unstable user login sessions & Deployment timeouts (P2 - RECURRING)**
--   **Issue 5: User verification of mobile Kanban swipe (P2)**
+Issue 1: Upload Contract and Tech Spec links to amoCRM card upon generation (P0)
+Issue 2: Add Create Contract button in amoCRM widget UI (P0)
+Issue 3: Incorrect automatic variant application in configurator (P2 - RECURRING)
+Issue 4: Unstable user login sessions & Deployment timeouts (P2 - RECURRING)
 
-**Issues Detail**:
--   **Issue 1:  fails with **
-    -   **Attempted fixes**: The agent wrapped several synchronous database calls in  within  blocks, suspecting a DB timeout was the cause. This did not solve the problem.
-    -   **Next debug checklist**:
-        1.  Review , function .
-        2.  The error strongly suggests a  loop is being attempted on a  value. The most likely candidate is the loop over  on line 573 ().
-        3.  The variable  comes from . If the amoCRM API returns a response without  or , this expression will evaluate to .
-        4.  **Proposed Fix:** Change line 573 to provide a default empty list: .
-    -   **Why fix this issue and what will be achieved with the fix?**: This is blocking a critical business process of syncing leads from the main CRM into the application.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y (Syncing logic is fragile).
-    -   **Should Test frontend/backend/both after fix?**: Backend.
-
--   **Issue 2: Verify KP attachment to CRM card for new orders**
-    -   **Attempted fixes**: The agent implemented a significant fix to pass  from the CRM page into the calculator via URL parameters. Diagnostic  notifications were also added to the frontend to help debug this flow.
-    -   **Next debug checklist**: Ask the user to perform the flow again:
-        1.  Open a lead from the CRM page in the calculator.
-        2.  Make a change and save a new KP.
-        3.  Observe if the KP link appears in the Documents section of the lead details in the CRM UI.
-        4.  Ask the user to report the text of any yellow or green  notifications that appear during the process.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a core part of the sales workflow. The fix ensures that commercial proposals are correctly archived against the customer's record.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Both.
-
--   **Issue 3: Incorrect automatic variant application in configurator**
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-
--   **Issue 4: Unstable user login sessions & Deployment timeouts**
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-
--   **Issue 5: User verification of mobile Kanban swipe**
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: N
+Issues Detail:
+- Issue 1: Upload Contract/Tech Spec links to amoCRM
+   - Attempted fixes: Agent was just gathering context.
+   - Next debug checklist: 
+     - Check  () and  ().
+     - Look at how  handles PDF uploads () and reuse the logic to push notes/links to the specific .
+   - Why fix this issue and what will be achieved with the fix?: Streamlines manager workflow by automatically pushing crucial documents to the primary CRM (amoCRM).
+   - Status: NOT STARTED
+   - Is recurring issue? N
+   - Should Test frontend/backend/both after fix?: Backend
+- Issue 2: Add Create Contract button in amoCRM widget
+   - Attempted fixes: None.
+   - Next debug checklist: Find the widget component (likely  or similar widget entry point) and add a button that triggers the  endpoint.
+   - Why fix this issue and what will be achieved with the fix?: Allows managers to generate contracts without leaving amoCRM.
+   - Status: NOT STARTED
+   - Is recurring issue? N
+   - Should Test frontend/backend/both after fix?: Frontend
 
 **In progress Task List**:
--   **Task 1: Complete Google Sheets Integration (P1)**
-    -   **Status**: BLOCKED (The user needs to enable the Google Sheets API and Google Drive API in their Google Cloud Project console).
+(None active besides the last working items)
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    -   **P1**: Finalize and test the Save layout to order feature end-to-end.
--   **Future Tasks**:
-    -   **P1**: Refactor the monolithic  and  files.
-    -   **P2**: Add a UI for importing/restoring a project backup from a file.
-    -   **P2**: Replace the deprecated Google Maps Autocomplete component.
+Future Tasks:
+- P1: Refactor the monolithic  and  files.
+- P2: Add a UI for importing/restoring a project backup from a file.
+- P2: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
--   **Bug Fix (Multi-part): Contract/KP Generation & CRM Linking**:
-    -   Resolved 500 errors in contract generation by adding extensive error handling and fixing a DB timeout issue. The logic now correctly downloads direct Cloudinary URLs via HTTP, avoiding unnecessary DB lookups.
-    -   Fixed a critical bug where generated KPs were not being linked to CRM cards by correctly passing  from the CRM page to the calculator.
-    -   Hardened backend endpoints against DB timeouts by wrapping database calls (e.g., to ) in  blocks.
--   **Feature: Editable Variant Prices**: Implemented editable name and price fields for option variants in the pricing settings UI ().
--   **Bug Fix: Foundation in PDF**: Fixed logic in  that incorrectly excluded the Foundation option from the generated PDF's option list. The name was also corrected to Koszt fundamentu.
--   **Feature: Website API**:
-    -   Added a Description for website field to sauna models.
-    -   Created a new public API endpoint  to expose all model data for an external website.
-    -   Authored API documentation in .
--   **Feature: Marketer User Role**:
-    -   Created a new Marketer role with permissions to edit pricing/models but with no access to sales/orders/production.
-    -   Implemented the role on the backend () and frontend (, , ).
+- Fixed 500 error in  by adding null checks () for amoCRM API responses.
+- Fixed  loss on page reload using  and fallback logic.
+- Added UI for manual order relinking in the CRM card.
+- Added Без печи (none) and Электрическая печь (electric) heater variants for Balia.
+- Added Развернуть маршрут (Reverse) button in Logistics map.
+- Fixed missing Push to amoCRM block in Logistics (added fallback UI when pipelines fail to load).
+- Reconfigured CRM date filtering/calendar to use  (configurable via settings).
+- Updated Sales Tracking and Bonus calculation to pull data from  using  and Async motor cursors.
+- Moved hardcoded contact info in Sauna PDF to dynamic settings in .
+- Increased Sauna orders fetch limit from 1000 to 5000.
+
+**Earlier issues found/mentioned but not fixed**
+None newly mentioned.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**:
-    -   Contract Generation Bugs.
-    -   Incorrect automatic variant application in configurator.
-    -   Unstable user login sessions & Deployment timeouts.
--   **Recurrence count**: 3+
--   **Status**: IN PROGRESS (Contract generation was fixed, but related CRM issues appeared. Other issues were not started).
+- Issue recurrence in previous fork: Incorrect variant application, unstable login sessions.
+- Recurrence count: 4
+- Status: NOT STARTED
+Note: These are longstanding technical debt items that are deprioritized in favor of active feature requests.
 
 **Code Architecture**
-websiteDescription/public/modelscrmLeadIdcrmLeadIdcanViewPricingcrmLeadId
+React frontend + FastAPI backend + MongoDB
+- : Contains domain-specific routers (, , , ).
+- : Contains feature components (, , ).
+
+**Key Technical Concepts**
+Frontend: React, Tailwind, Shadcn UI, Google Maps API.
+Backend: FastAPI, Async Motor (MongoDB), PyMongo, httpx (for amoCRM calls), ReportLab/DocxTemplate (PDF generation).
+
+**key DB schema**
+- : uid=0(root) gid=0(root) groups=0(root), , , , 
+- : Legacy table, but bonus calculations now read from .
+- : uid=0(root) gid=0(root) groups=0(root),  (holds , , etc.)
+
+**changes in tech stack**
+None.
 
 **All files of reference**
--    (Currently being debugged)
--   
--   
--   
--   
--   
--   
--   
--   
+- 
+- 
+- 
+- 
+-  (or the equivalent amo widget component)
+
+**Areas that need refactoring**
+-  (Massive monolithic file, >3000 lines).
+-  (Extremely large, >2700 lines).
 
 **key api endpoints**
--   : **(CURRENTLY BROKEN)** Fails with a 500 error ().
--   : Logic was significantly refactored for robustness and to handle different KP URL types.
--   : Now more resilient to DB logging failures.
--   : **(NEW)** Publicly accessible endpoint to fetch all sauna model data for an external website.
--   : **(NEW)** Publicly accessible endpoint for a single model's details.
+- 
+- 
+-  (Useful reference for amoCRM file pushing)
 
 **Critical Info for New Agent**
--   **You MUST respond in Russian.**
--   Your immediate task is to fix the  error in . The fix is almost certainly to add  to the line that retrieves leads from the amoCRM API response in  (around line 573).
--   The application's interaction with MongoDB is a recurring source of instability, particularly  (synchronous) calls within  functions. Be extremely defensive and wrap all database interactions in  blocks, especially in long-running background tasks like CRM sync.
--   A new Marketer user role has been created. The credentials are  / .
+- **LANGUAGE**: The user communicates in Russian. You MUST reply in Russian.
+- **MONGODB ASYNC WARNING**: In backend files like  or , the  object uses Motor (async). Never use . You MUST use . Failure to do so will result in , which the previous agent had to fix.
+- For the current pending task: Check how  creates a note in amoCRM with the PDF link. You will need to extract or replicate that logic to post the Contract and Tech Spec links to the corresponding amoCRM lead card after they are generated.
+- For the amoCRM widget button: Identify which frontend component serves as the amoCRM widget (usually an  component or injected via a specific route).
 
 **documents and test reports created in this job**
--   
+-  (Updated with latest completed tasks).
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **LATEST**: User reports 500 error on CRM sync: .
-2.  **Agent**: Asks user to try syncing again and provide the exact error message from the developer console.
-3.  **User**: Reports that CRM sync still fails with a 500 error.
-4.  **User**: Reports they can't find the Marketer role in the user management page.
-5.  **Agent**: Finishes implementing the Marketer role and confirms it works via screenshots.
-6.  **User**: Requests a new Marketer role with specific permissions.
-7.  **User**: Confirms they found the description for website field.
-8.  **Agent**: Finishes implementing the website API and asks for confirmation.
-9.  **User**: Requests the website API and description for website field.
-10. **User**: Confirms the Foundation option now appears in the PDF and requests its name be changed to Koszt fundamentu.
+1. **LATEST (PENDING)**: User requests that after generating a contract and tech spec in CRM, the links should be uploaded to amoCRM. Also wants a Create Contract button in the amoCRM widget to do this directly.
+2. Agent: Finishes Sales tracking updates.
+3. User: Outlines logic for CRM saunas: track sales, bonuses, and calendar by Data otrzymania zaliczki (prepaymentDate), read prices from amoCRM budget, sync production date back to amoCRM.
+4. Agent: Fixes missing logistics block.
+5. User: Reports the amoCRM push block disappeared in Logistics after adding the reverse button.
+6. Agent: Moves phone/email to PDF templates settings.
+7. User: Asks to make phone number in Sauna PDF editable via template settings instead of hardcoded.
+8. Agent: Fixes Bez pieca and adds Piec elektryczny.
+9. User: Requests adding a 4th variant Электрическая печь (Electric heater) everywhere.
+10. User: Points out that Без печи (None) heater variant is showing up as Zewnętrzny piec in some summary blocks.
+
+**Project Health Check:**
+App is functional. Recent bugs related to MongoDB async cursors and JS  on numbers were resolved.
+
+**3rd Party Integrations**
+- amoCRM (CRM sync, Webhooks, Notes API) — requires User API credentials (currently set up via OAuth/tokens in DB).
+- Cloudinary (PDF hosting) — configured via .env.
+- Google Maps API (Logistics routing).
+
+**Testing status**
+- Testing agent used after significant changes: NO
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: []
+- Known regressions: None
 
 **Credentials to test flow:**
--   Admin:  / 
--   Marketer:  / </analysis>
+- Admin:  / 
+- Storekeeper:  / 
+- Marketer:  / 
+
+**What agent forgot to execute**
+- The agent was just given the request about pushing contract/tech-spec links to amoCRM and adding the widget button, but the context ended before implementation began.
+
+**Debugging checklist for current issue**
+    Issue: Push Contract/Tech Spec links to amoCRM & Add widget button
+    
+    Backend files to check: 
+    -  (Look for )
+    -  (Look for )
+    -  (Look for how notes/links are pushed to amoCRM API)
+  
+    Frontend files to check:
+    - Look for the component that handles the amoCRM widget view (e.g.,  or similar, check  routes for ).
+    
+    Action Plan:
+    1. Update backend PDF generation endpoints to accept/fetch  and make an HTTP request to amoCRM API to attach the file link as a note to the lead.
+    2. Add a UI button in the widget frontend to call .</analysis>

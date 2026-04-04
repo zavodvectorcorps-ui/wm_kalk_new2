@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://amocrm-sync-fix.preview.emergentagent.com
+Preview: https://widget-contract-gen.preview.emergentagent.com
 ```
 
 ---
