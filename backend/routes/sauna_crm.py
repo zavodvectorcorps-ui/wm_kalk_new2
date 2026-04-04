@@ -271,6 +271,163 @@ async def acknowledge_changes(lead_id: str):
 
 
 
+@router.post("/leads/{lead_id}/sync-from-amocrm")
+async def sync_single_lead_from_amocrm(lead_id: str):
+    """Fetch latest data for a specific lead from amoCRM and update it."""
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    amocrm_id = lead.get("amocrm_id")
+    if not amocrm_id:
+        raise HTTPException(status_code=400, detail="Lead не привязан к amoCRM")
+    
+    amo = get_amo_settings_sync()
+    domain = amo.get("amocrm_domain", "")
+    token = amo.get("amocrm_token", "")
+    if not domain or not token:
+        raise HTTPException(status_code=400, detail="amoCRM не настроен")
+    
+    settings = await get_crm_settings()
+    field_mappings = {f["amoFieldId"]: f["id"] for f in settings.get("fields", []) if f.get("amoFieldId")}
+    
+    CHANGE_LABELS = {
+        "clientName": "Клиент", "modelName": "Модель", "phone": "Телефон",
+        "manager": "Менеджер", "totalAmount": "Бюджет", "amoComment": "Комментарий менеджера",
+    }
+    for fm in settings.get("fields", []):
+        CHANGE_LABELS[fm["id"]] = fm["name"]
+    
+    try:
+        headers_amo = {"Authorization": f"Bearer {token}"}
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            # Fetch lead from amoCRM
+            resp = await client.get(
+                f"https://{domain}/api/v4/leads/{amocrm_id}?with=contacts",
+                headers=headers_amo
+            )
+            if resp.status_code != 200:
+                raise HTTPException(status_code=502, detail=f"amoCRM вернул ошибку: {resp.status_code}")
+            
+            amo_lead = resp.json()
+            
+            # Get contact info
+            contact_name = ""
+            contact_phone = ""
+            contacts = (amo_lead.get("_embedded") or {}).get("contacts") or []
+            if contacts:
+                contact_id = contacts[0].get("id")
+                if contact_id:
+                    cr = await client.get(f"https://{domain}/api/v4/contacts/{contact_id}", headers=headers_amo)
+                    if cr.status_code == 200:
+                        contact_data = cr.json()
+                        contact_name = contact_data.get("name", "")
+                        for cf in (contact_data.get("custom_fields_values") or []):
+                            if cf.get("field_code") == "PHONE":
+                                vals = cf.get("values") or []
+                                if vals:
+                                    contact_phone = vals[0].get("value", "")
+            
+            # Get manager name
+            manager_name = ""
+            responsible_id = amo_lead.get("responsible_user_id")
+            if responsible_id:
+                ur = await client.get(f"https://{domain}/api/v4/users/{responsible_id}", headers=headers_amo)
+                if ur.status_code == 200:
+                    manager_name = ur.json().get("name", "")
+            
+            # Extract custom fields
+            custom_fields = amo_lead.get("custom_fields_values") or []
+            field_vals = {}
+            custom_client_name = ""
+            custom_model_name = ""
+            
+            client_name_fid = settings.get("clientNameFieldId", "")
+            model_fid = settings.get("modelFieldId", "")
+            comment_fid = settings.get("commentFieldId", "")
+            
+            for cf in custom_fields:
+                fid = str(cf.get("field_id", ""))
+                vals = cf.get("values") or []
+                val = vals[0].get("value", "") if vals else ""
+                
+                if fid == client_name_fid:
+                    custom_client_name = val
+                elif fid == model_fid:
+                    custom_model_name = val
+                elif fid in field_mappings:
+                    field_vals[field_mappings[fid]] = val
+            
+            # Build proposed changes
+            now_ts = datetime.now(timezone.utc).isoformat()
+            proposed = {}
+            
+            if custom_client_name:
+                proposed["clientName"] = custom_client_name
+            elif contact_name:
+                proposed["clientName"] = contact_name
+            if custom_model_name:
+                proposed["modelName"] = custom_model_name
+            if contact_phone:
+                proposed["phone"] = contact_phone
+            if manager_name:
+                proposed["manager"] = manager_name
+            proposed.update(field_vals)
+            if amo_lead.get("price"):
+                proposed["totalAmount"] = amo_lead["price"]
+            
+            # Extract comment
+            if comment_fid:
+                for cf in custom_fields:
+                    if str(cf.get("field_id", "")) == comment_fid:
+                        vals = cf.get("values") or []
+                        new_comment = vals[0].get("value", "") if vals else ""
+                        if new_comment != lead.get("amoComment", ""):
+                            proposed["amoComment"] = new_comment
+                        break
+            
+            # Detect changes
+            change_entries = []
+            for key, new_val in proposed.items():
+                old_val = lead.get(key, "")
+                if str(new_val) != str(old_val) and new_val:
+                    change_entries.append({
+                        "field": key,
+                        "label": CHANGE_LABELS.get(key, key),
+                        "oldValue": str(old_val) if old_val else "",
+                        "newValue": str(new_val),
+                        "timestamp": now_ts,
+                        "source": "amocrm"
+                    })
+            
+            update_data = {"updatedAt": now_ts, "amocrm_link": f"https://{domain}/leads/detail/{amocrm_id}"}
+            update_data.update(proposed)
+            
+            if change_entries:
+                change_log = lead.get("changeLog", [])
+                change_log.extend(change_entries)
+                update_data["changeLog"] = change_log[-100:]
+                update_data["hasUnreviewedChanges"] = True
+            
+            await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": update_data})
+            
+            logger.info(f"Single lead sync from amoCRM: {lead_id}, changes: {[e['label'] for e in change_entries]}")
+            
+            return {
+                "status": "ok",
+                "changes": len(change_entries),
+                "changedFields": [e["label"] for e in change_entries]
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error syncing single lead from amoCRM: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
 @router.put("/leads/{lead_id}/stage")
 async def change_lead_stage(lead_id: str, stage_id: str = Query(...)):
     existing = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})

@@ -111,6 +111,9 @@ const SaunaCRMPage = () => {
   // Collapsed columns (for "Заказ выполнен" etc.)
   const [collapsedCols, setCollapsedCols] = useState({});
   
+  // Sync single lead
+  const [syncingLead, setSyncingLead] = useState(false);
+  
   // amoCRM pipelines for stage mapping dropdowns
   const [amoPipelines, setAmoPipelines] = useState([]);
   const [loadingPipelines, setLoadingPipelines] = useState(false);
@@ -880,6 +883,40 @@ const SaunaCRMPage = () => {
                 <a href={selectedLead.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
                   <ExternalLink className="w-4 h-4" />
                 </a>
+              )}
+              {selectedLead?.amocrm_id && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs text-muted-foreground hover:text-blue-600"
+                  disabled={syncingLead}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setSyncingLead(true);
+                    try {
+                      const res = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}/sync-from-amocrm`, { method: 'POST', headers: authHeaders });
+                      const data = await res.json();
+                      if (res.ok) {
+                        if (data.changes > 0) {
+                          toast.success(`Обновлено ${data.changes} полей: ${data.changedFields.join(', ')}`);
+                        } else {
+                          toast.info('Данные актуальны, изменений нет');
+                        }
+                        const updated = await (await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}`, { headers: authHeaders })).json();
+                        setSelectedLead(updated);
+                        setEditData(updated);
+                        fetchLeads();
+                      } else {
+                        toast.error(data.detail || 'Ошибка синхронизации');
+                      }
+                    } catch { toast.error('Ошибка сети'); }
+                    setSyncingLead(false);
+                  }}
+                  data-testid="sync-lead-from-amo-btn"
+                >
+                  {syncingLead ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+                  Обновить из amoCRM
+                </Button>
               )}
             </DialogTitle>
             <DialogDescription>ID: {selectedLead?.id} {selectedLead?.amocrm_id ? `• amoCRM: ${selectedLead.amocrm_id}` : ''}</DialogDescription>
