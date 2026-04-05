@@ -83,6 +83,8 @@ class CRMLead(BaseModel):
     deliveryDate: Optional[str] = None
     modelName: Optional[str] = None
     totalAmount: Optional[float] = None
+    advancePayment: Optional[float] = None
+    remainingAmount: Optional[float] = None
     paidAmount: Optional[float] = None
     documents: List[Dict[str, Any]] = []
     calculatorData: Optional[Dict[str, Any]] = None
@@ -124,6 +126,8 @@ def get_default_settings() -> dict:
         ],
         "syncBackFields": [],
         "commentFieldId": "",
+        "advanceFieldId": "",
+        "remainingFieldId": "",
         "autoSyncEnabled": True,
         "lastSyncAt": None
     }
@@ -294,6 +298,7 @@ async def sync_single_lead_from_amocrm(lead_id: str):
     CHANGE_LABELS = {
         "clientName": "Клиент", "modelName": "Модель", "phone": "Телефон",
         "manager": "Менеджер", "totalAmount": "Бюджет", "amoComment": "Комментарий менеджера",
+        "advancePayment": "Аванс", "remainingAmount": "Остаток",
     }
     for fm in settings.get("fields", []):
         CHANGE_LABELS[fm["id"]] = fm["name"]
@@ -361,6 +366,10 @@ async def sync_single_lead_from_amocrm(lead_id: str):
             proposed.update(field_vals)
             if amo_lead.get("price"):
                 proposed["totalAmount"] = amo_lead["price"]
+            
+            # Extract advance/remaining from amoCRM
+            adv_rem = extract_advance_remaining(amo_lead, custom_fields, settings)
+            proposed.update(adv_rem)
             
             # Extract comment
             if comment_fid:
@@ -746,6 +755,40 @@ def extract_standard_and_custom_fields(amo_lead, custom_fields, field_mappings, 
     return field_vals, custom_client_name, custom_model_name
 
 
+def extract_advance_remaining(amo_lead, custom_fields, settings):
+    """Extract advancePayment and remainingAmount from amoCRM custom fields."""
+    advance_fid = settings.get("advanceFieldId", "")
+    remaining_fid = settings.get("remainingFieldId", "")
+    result = {}
+    
+    for cf in (custom_fields or []):
+        fid = str(cf.get("field_id", ""))
+        vals = cf.get("values") or []
+        val = vals[0].get("value", "") if vals else ""
+        
+        if advance_fid and fid == advance_fid and val:
+            try:
+                result["advancePayment"] = float(str(val).replace(" ", "").replace(",", "."))
+            except (ValueError, TypeError):
+                result["advancePayment"] = val
+        
+        if remaining_fid and fid == remaining_fid and val:
+            try:
+                result["remainingAmount"] = float(str(val).replace(" ", "").replace(",", "."))
+            except (ValueError, TypeError):
+                result["remainingAmount"] = val
+    
+    # Auto-calculate remaining if we have total and advance but no remaining field
+    if "advancePayment" in result and "remainingAmount" not in result:
+        total = amo_lead.get("price") or 0
+        try:
+            result["remainingAmount"] = float(total) - float(result["advancePayment"])
+        except (ValueError, TypeError):
+            pass
+    
+    return result
+
+
 
 async def push_production_dates_to_amocrm(lead_id: str, amocrm_id: str, dates_changed: dict):
     """Push production dates to amoCRM as a note + via syncBackFields custom fields."""
@@ -940,6 +983,10 @@ async def sync_leads_from_amocrm():
                         if amo_lead.get("price"):
                             proposed["totalAmount"] = amo_lead["price"]
                         
+                        # Extract advance/remaining from amoCRM
+                        adv_rem = extract_advance_remaining(amo_lead, custom_fields, settings)
+                        proposed.update(adv_rem)
+                        
                         # Extract comment from amoCRM custom field
                         comment_fid = settings.get("commentFieldId", "")
                         if comment_fid:
@@ -955,7 +1002,7 @@ async def sync_leads_from_amocrm():
                         CHANGE_LABELS = {
                             "clientName": "Клиент", "modelName": "Модель", "phone": "Телефон",
                             "manager": "Менеджер", "totalAmount": "Бюджет", "amoComment": "Комментарий менеджера",
-                            "stageId": "Этап",
+                            "stageId": "Этап", "advancePayment": "Аванс", "remainingAmount": "Остаток",
                         }
                         # Add labels for custom fields
                         for fm in settings.get("fields", []):

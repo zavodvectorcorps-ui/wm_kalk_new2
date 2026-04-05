@@ -1821,6 +1821,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         if sauna_crm_lead and section == 'sauna':
             total = sauna_crm_lead.get('totalAmount') or order.get('total') or 0
             received_amount = sauna_crm_lead.get('advancePayment') or sauna_crm_lead.get('paidAmount') or 0
+            remaining = sauna_crm_lead.get('remainingAmount')
             customer_name = sauna_crm_lead.get('clientName') or order.get('fullName') or '-'
         else:
             total = (
@@ -1831,6 +1832,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 0
             )
             received_amount = order.get('receivedAmount') or 0
+            remaining = None
             customer_name = order.get('fullName') or order.get('customerName') or '-'
         
         # For greenhouse, debtSum is already calculated
@@ -1843,8 +1845,10 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             total_float = float(total) if total else 0
             received_float = float(received_amount) if received_amount else 0
             
-            # Use debtSum if available (greenhouse), otherwise calculate
-            if debt_from_order is not None and debt_from_order != '' and section != 'sauna':
+            # Use remainingAmount from CRM if available (sauna), debtSum (greenhouse), or calculate
+            if remaining is not None and remaining != '':
+                debt = float(remaining)
+            elif debt_from_order is not None and debt_from_order != '' and section != 'sauna':
                 debt = float(debt_from_order)
             else:
                 debt = total_float - received_float
@@ -2209,14 +2213,18 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             sauna_model_name = sauna_crm_lead.get("modelName", "")
             total_amount = sauna_crm_lead.get("totalAmount", 0)
             advance = sauna_crm_lead.get("advancePayment") or sauna_crm_lead.get("paidAmount") or 0
+            remaining_nf = sauna_crm_lead.get("remainingAmount")
             try:
                 total_float = float(total_amount) if total_amount else 0
                 adv_float = float(advance) if advance else 0
+                remaining_val = float(remaining_nf) if remaining_nf else (total_float - adv_float)
                 total_fmt = f"{total_float:,.0f}".replace(",", " ")
                 adv_fmt = f"{adv_float:,.0f}".replace(",", " ")
+                remaining_fmt = f"{remaining_val:,.0f}".replace(",", " ")
             except:
                 total_fmt = str(total_amount)
                 adv_fmt = str(advance)
+                remaining_fmt = "0"
             
             # Get dates
             sauna_dates_nf = {}
@@ -2270,7 +2278,11 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 </div>
                 <div class="info-row">
                     <span class="info-label">Оплачено (аванс)</span>
-                    <span class="info-value">{adv_fmt} zl</span>
+                    <span class="info-value {'success' if adv_float > 0 else ''}">{adv_fmt} zl</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Остаток</span>
+                    <span class="info-value {'warning' if remaining_val > 0 else 'success'}">{remaining_fmt} zl</span>
                 </div>
                 {f'<div class="info-row"><span class="info-label">Дата аванса</span><span class="info-value">{sauna_dates_nf.get("prepaymentDate", "")}</span></div>' if sauna_dates_nf.get("prepaymentDate") else ''}
                 {f'<div class="info-row"><span class="info-label">Дата производства</span><span class="info-value">{sauna_dates_nf.get("productionDate", "")}</span></div>' if sauna_dates_nf.get("productionDate") else ''}

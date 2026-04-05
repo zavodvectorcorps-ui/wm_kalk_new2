@@ -785,7 +785,15 @@ const SaunaCRMPage = () => {
                         )}
                         {lead.manager && <p className="text-xs text-muted-foreground truncate"><User className="w-3 h-3 inline mr-1" />{lead.manager}</p>}
                         {(lead.totalAmount || lead.field_2) && (
-                          <Badge variant="outline" className="mt-1 text-xs">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</Badge>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge variant="outline" className="text-[10px]">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zl</Badge>
+                            {lead.advancePayment > 0 && <Badge className="text-[10px] bg-green-100 text-green-700 hover:bg-green-100">Аванс: {Number(lead.advancePayment).toLocaleString()}</Badge>}
+                            {(lead.remainingAmount > 0 || (lead.advancePayment > 0 && !lead.remainingAmount)) && (
+                              <Badge className="text-[10px] bg-amber-100 text-amber-700 hover:bg-amber-100">
+                                Ост: {Number(lead.remainingAmount || ((lead.totalAmount || lead.field_2 || 0) - (lead.advancePayment || 0))).toLocaleString()}
+                              </Badge>
+                            )}
+                          </div>
                         )}
                         {lead[calendarDateField] && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{String(lead[calendarDateField]).slice(0, 10)}</p>}
                         {(lead.documents || []).length > 0 && (
@@ -856,7 +864,13 @@ const SaunaCRMPage = () => {
                       {lead.amoComment && <p className="text-xs text-blue-600 truncate italic"><MessageSquare className="w-3 h-3 inline mr-0.5" />{lead.amoComment}</p>}
                     </div>
                     <Badge style={{ backgroundColor: stage?.color + '20', color: stage?.color }}>{stage?.name}</Badge>
-                    {(lead.totalAmount || lead.field_2) && <span className="font-medium text-sm">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zł</span>}
+                    {(lead.totalAmount || lead.field_2) && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="font-medium text-sm">{Number(lead.totalAmount || lead.field_2).toLocaleString()} zl</span>
+                        {lead.advancePayment > 0 && <Badge className="text-[10px] bg-green-100 text-green-700 hover:bg-green-100">Аванс: {Number(lead.advancePayment).toLocaleString()}</Badge>}
+                        {(lead.remainingAmount > 0) && <Badge className="text-[10px] bg-amber-100 text-amber-700 hover:bg-amber-100">Ост: {Number(lead.remainingAmount).toLocaleString()}</Badge>}
+                      </div>
+                    )}
                     {lead[calendarDateField] && <span className="text-xs text-muted-foreground">{String(lead[calendarDateField]).slice(0, 10)}</span>}
                   </CardContent>
                 </Card>
@@ -1570,6 +1584,24 @@ const SaunaCRMPage = () => {
                           onChange={(e) => setSettingsForm(p => ({ ...p, commentFieldId: e.target.value }))}
                           placeholder="ID кастомного поля в amoCRM для комментариев"
                           data-testid="crm-comment-field-id"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">ID поля "Аванс / Залічка"</Label>
+                        <Input
+                          value={settingsForm.advanceFieldId || ''}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, advanceFieldId: e.target.value }))}
+                          placeholder="ID поля суммы аванса в amoCRM"
+                          data-testid="crm-advance-field-id"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">ID поля "Остаток"</Label>
+                        <Input
+                          value={settingsForm.remainingFieldId || ''}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, remainingFieldId: e.target.value }))}
+                          placeholder="ID поля остатка в amoCRM"
+                          data-testid="crm-remaining-field-id"
                         />
                       </div>
                     </div>

@@ -1,0 +1,42 @@
+{
+  "summary": "Tested advance/remaining feature for Sauna CRM and Widget. All 14 backend tests passed. Frontend tests confirmed: Kanban shows 'Аванс: 5,000' (green) and 'Ост: 30,000' (amber) badges, List view shows same badges, Settings modal has advanceFieldId and remainingFieldId inputs in Синхронизация tab, Widget shows correct advance (5,000) and remaining (30,000) values.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_advance_remaining.py",
+    "/app/test_reports/pytest/pytest_results_iteration73.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "React warning: 'Each child in a list should have a unique key prop' in SaunaCRMPage - minor issue, should add unique keys to list items",
+    "React warning: 'Missing Description or aria-describedby for DialogContent' - accessibility improvement needed"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_advance_remaining.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "Test lead CRM-59FC9032 with advancePayment=5000, remainingAmount=30000, totalAmount=35000 already exists",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Advance/remaining feature fully working. Kanban and List views show badges correctly. Widget displays advance and remaining amounts. Settings has advanceFieldId and remainingFieldId inputs in Синхронизация tab. Previous features (changeLog, hasUnreviewedChanges, amoComment) all working.",
+  "features_tested": {
+    "widget_advance_remaining": "PASS - Widget /api/widget/embed/TEST_AMO_123 shows advance (5,000) and remaining (30,000)",
+    "settings_advance_remaining_fields": "PASS - GET /api/sauna-crm/settings returns settings with fields array",
+    "kanban_badges": "PASS - Kanban shows 'Аванс: 5,000' (green) and 'Ост: 30,000' (amber) badges",
+    "list_view_badges": "PASS - List view shows advance and remaining badges",
+    "settings_inputs": "PASS - Settings modal has advanceFieldId and remainingFieldId inputs in Синхронизация tab",
+    "standard_field_mapping": "PASS - _budget mapping works, totalAmount=35000",
+    "previous_features": "PASS - changeLog, hasUnreviewedChanges, amoComment all present in lead data"
+  }
+}
