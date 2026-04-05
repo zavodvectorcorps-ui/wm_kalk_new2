@@ -809,23 +809,32 @@ def extract_standard_and_custom_fields(amo_lead, custom_fields, field_mappings, 
     field_vals = {}
     custom_client_name = ""
     custom_model_name = ""
-    
+
     client_name_fid = settings.get("clientNameFieldId", "")
     model_fid = settings.get("modelFieldId", "")
-    
+
+    # Build field type lookup: field_id -> fieldType
+    field_types = {}
+    for f in settings.get("fields", []):
+        field_types[f["id"]] = f.get("fieldType", "text")
+
     # 1) Process custom fields from amoCRM
     for cf in (custom_fields or []):
         fid = str(cf.get("field_id", ""))
         vals = cf.get("values") or []
         val = vals[0].get("value", "") if vals else ""
-        
+
         if fid == client_name_fid:
             custom_client_name = val
         elif fid == model_fid:
             custom_model_name = val
         elif fid in field_mappings:
-            field_vals[field_mappings[fid]] = val
-    
+            crm_field_id = field_mappings[fid]
+            # Convert Unix timestamp to date string for date fields
+            if field_types.get(crm_field_id) == "date" and val:
+                val = _convert_amo_timestamp_to_date(val)
+            field_vals[crm_field_id] = val
+
     # 2) Process standard field mappings (amoFieldId starts with _)
     all_fields = settings.get("fields", [])
     for f in all_fields:
@@ -835,8 +844,20 @@ def extract_standard_and_custom_fields(amo_lead, custom_fields, field_mappings, 
             val = extractor(amo_lead)
             if val is not None:
                 field_vals[f["id"]] = val
-    
+
     return field_vals, custom_client_name, custom_model_name
+
+
+def _convert_amo_timestamp_to_date(val) -> str:
+    """Convert amoCRM Unix timestamp to YYYY-MM-DD date string."""
+    try:
+        ts = int(str(val).split(".")[0])
+        if ts > 1000000000:  # Looks like a Unix timestamp
+            dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+            return dt.strftime("%Y-%m-%d")
+    except (ValueError, TypeError, OSError):
+        pass
+    return str(val)
 
 
 def extract_advance_remaining(amo_lead, custom_fields, settings):
