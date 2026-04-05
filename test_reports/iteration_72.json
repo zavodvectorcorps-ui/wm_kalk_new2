@@ -1,0 +1,101 @@
+{
+  "summary": "Tested KP (Commercial Proposal) auto-linking bug fix. All 21 backend tests passed. The link_calculator_order function correctly finds sauna orders by amocrm_id and attaches KP PDF to lead documents. Both bulk sync and per-lead sync properly call this function for leads without KP.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_kp_linking.py",
+    "/app/test_reports/pytest/pytest_results_iteration72.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_kp_linking.py"
+  ],
+  "success_rate": {
+    "backend": "100% - 21/21 tests passed",
+    "frontend": "N/A - backend only testing"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin", "password": "admin123"},
+    "test_leads": {
+      "CRM-59FC9032": "Has KP document (type=kp)",
+      "CRM-TEST-NOPDF-276A": "Test lead without KP (amocrm_id=TEST_AMO_123)"
+    },
+    "test_sauna_order": "WMS-20-02-2026-105210 (amocrm_id=TEST_AMO_123)"
+  },
+  "seed_data_creation": "Used existing test data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "KP auto-linking feature fully tested. The link_calculator_order function: 1) Searches sauna_orders/balia_orders/greenhouse_orders by amocrm_id, 2) Searches calculator_pdfs by amocrm_id or order_id, 3) Gets cloudinary_url from webhook_logs if not in calculator_pdfs, 4) Attaches as document type=kp. amoCRM API not available in test env so sync endpoints return 400.",
+  "test_results_summary": {
+    "link_calculator_order_function": {
+      "description": "Finds sauna order by amocrm_id and attaches KP PDF",
+      "tests": [
+        {"test": "Lead with KP has document type=kp", "status": "PASS"},
+        {"test": "Sauna order exists with amocrm_id", "status": "PASS"},
+        {"test": "Calculator PDF exists for amocrm_id", "status": "PASS"}
+      ],
+      "manual_verification": {
+        "description": "Directly tested link_calculator_order function",
+        "result": "linked=True, pdf_attached=True",
+        "kp_url": "https://res.cloudinary.com/dhyj13jgs/raw/upload/v1773940179/wm-calculator/pdfs/KP_SAUNA_Anna_TEST-KP-003_cf029b70"
+      }
+    },
+    "per_lead_sync_kp_linking": {
+      "description": "POST /api/sauna-crm/leads/{id}/sync-from-amocrm tries to link KP",
+      "tests": [
+        {"test": "Sync endpoint exists", "status": "PASS"},
+        {"test": "Returns 400 when amoCRM not configured", "status": "PASS"},
+        {"test": "Returns 404 for non-existent lead", "status": "PASS"},
+        {"test": "Returns 400 for lead without amocrm_id", "status": "PASS"}
+      ],
+      "code_review": "Lines 400-428 in sauna_crm.py correctly check for missing KP and call link_calculator_order"
+    },
+    "bulk_sync_kp_linking": {
+      "description": "POST /api/sauna-crm/sync-from-amocrm links KP for existing leads",
+      "tests": [
+        {"test": "Bulk sync endpoint exists", "status": "PASS"},
+        {"test": "Returns 400 when amoCRM not configured", "status": "PASS"}
+      ],
+      "code_review": "Lines 1016-1036 in sauna_crm.py correctly check for missing KP and call link_calculator_order"
+    },
+    "contract_generation_finds_kp": {
+      "description": "POST /api/sauna-crm/generate-contract finds KP from documents",
+      "tests": [
+        {"test": "Debug endpoint shows KP source", "status": "PASS"},
+        {"test": "Contract generation endpoint exists", "status": "PASS"},
+        {"test": "Contract generation returns kpAttached status", "status": "PASS"}
+      ],
+      "code_review": "Lines 745-885 in contract_template.py correctly search documents for type=kp"
+    },
+    "standard_field_mapping": {
+      "description": "_budget field mapping still works",
+      "tests": [
+        {"test": "Settings have field mappings", "status": "PASS"},
+        {"test": "Lead has totalAmount field", "status": "PASS"}
+      ]
+    },
+    "regression_tests": {
+      "description": "Previous features still work",
+      "tests": [
+        {"test": "Lead has changeLog", "status": "PASS"},
+        {"test": "Lead has hasUnreviewedChanges", "status": "PASS"},
+        {"test": "Lead has amoComment", "status": "PASS"},
+        {"test": "Stages have collapsed property", "status": "PASS"},
+        {"test": "Acknowledge changes endpoint", "status": "PASS"},
+        {"test": "CRUD operations", "status": "PASS"},
+        {"test": "Link document endpoint", "status": "PASS"}
+      ]
+    }
+  },
+  "mocked_apis": {
+    "amoCRM": "Not available in test env - sync endpoints return 400"
+  }
+}

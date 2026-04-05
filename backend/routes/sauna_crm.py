@@ -397,12 +397,34 @@ async def sync_single_lead_from_amocrm(lead_id: str):
             
             await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": update_data})
             
+            # If lead has no KP — try to find and link it
+            kp_linked = False
+            has_kp = any(d.get("type") == "kp" for d in lead.get("documents", []))
+            has_pdf_url = bool(lead.get("calculatorPdfUrl"))
+            if not has_kp and not has_pdf_url:
+                lead_copy = {**lead, **update_data}
+                link_result = await link_calculator_order(amocrm_id, lead_copy)
+                if link_result.get("pdf_attached") or link_result.get("linked"):
+                    link_update = {}
+                    for lf in ["calculatorOrderId", "calculatorCollection", "calculatorPdfUrl", "documents"]:
+                        if lead_copy.get(lf):
+                            link_update[lf] = lead_copy[lf]
+                    if link_update:
+                        await db.sauna_crm_leads.update_one({"id": lead_id}, {"$set": link_update})
+                        kp_linked = True
+                        logger.info(f"KP linked during single-lead sync: {lead_id}")
+            
             logger.info(f"Single lead sync from amoCRM: {lead_id}, changes: {[e['label'] for e in change_entries]}")
+            
+            changed_fields = [e["label"] for e in change_entries]
+            if kp_linked:
+                changed_fields.append("КП (подтянуто)")
             
             return {
                 "status": "ok",
-                "changes": len(change_entries),
-                "changedFields": [e["label"] for e in change_entries]
+                "changes": len(change_entries) + (1 if kp_linked else 0),
+                "changedFields": changed_fields,
+                "kpLinked": kp_linked
             }
     
     except HTTPException:
@@ -990,6 +1012,29 @@ async def sync_leads_from_amocrm():
                         update_data["amocrm_link"] = f"https://{domain}/leads/detail/{amo_id}"
                         
                         await db.sauna_crm_leads.update_one({"amocrm_id": amo_id}, {"$set": update_data})
+                        
+                        # If existing lead has no KP — try to find and link it
+                        has_kp = any(d.get("type") == "kp" for d in existing.get("documents", []))
+                        has_pdf_url = bool(existing.get("calculatorPdfUrl"))
+                        if not has_kp and not has_pdf_url:
+                            # Build a mutable copy of the existing lead to pass to link_calculator_order
+                            lead_copy = {**existing, **update_data}
+                            link_result = await link_calculator_order(amo_id, lead_copy)
+                            if link_result.get("pdf_attached") or link_result.get("linked"):
+                                # Save the linked data back
+                                link_update = {}
+                                if lead_copy.get("calculatorOrderId"):
+                                    link_update["calculatorOrderId"] = lead_copy["calculatorOrderId"]
+                                if lead_copy.get("calculatorCollection"):
+                                    link_update["calculatorCollection"] = lead_copy["calculatorCollection"]
+                                if lead_copy.get("calculatorPdfUrl"):
+                                    link_update["calculatorPdfUrl"] = lead_copy["calculatorPdfUrl"]
+                                if lead_copy.get("documents"):
+                                    link_update["documents"] = lead_copy["documents"]
+                                if link_update:
+                                    await db.sauna_crm_leads.update_one({"amocrm_id": amo_id}, {"$set": link_update})
+                                    logger.info(f"KP linked to existing lead during sync: amocrm_id={amo_id}, pdf={link_result.get('pdf_attached')}")
+                        
                         updated += 1
                     else:
                         new_lead = {
