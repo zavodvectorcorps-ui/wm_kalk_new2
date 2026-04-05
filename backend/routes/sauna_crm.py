@@ -58,6 +58,8 @@ class CRMSettings(BaseModel):
     modelFieldId: Optional[str] = None  # amoCRM field ID for sauna model
     calendarDateField: Optional[str] = None  # Which field to use for calendar & date filtering (e.g. "field_3", "prepaymentDate")
     commentFieldId: Optional[str] = None  # amoCRM field ID for manager comment
+    advanceFieldId: Optional[str] = None  # amoCRM field ID for advance payment
+    remainingFieldId: Optional[str] = None  # amoCRM field ID for remaining amount
 
 
 class CRMLead(BaseModel):
