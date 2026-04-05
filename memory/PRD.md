@@ -7,39 +7,25 @@ Build a "Modular Sauna Configurator" with comprehensive CRM, production manageme
 Frontend: React + Shadcn/UI + Tailwind CSS | Backend: FastAPI + Python | DB: MongoDB
 Integrations: amoCRM, Cloudinary, Telegram, Google Maps
 
-## What's Been Implemented
+## Session 5 Features (April 4-5, 2026)
 
-### Session 5 (April 4-5, 2026)
-
-**Contract/Tech Spec links to amoCRM** — auto-push links as notes after generation
-**amoCRM Widget** — Sauna CRM section, 4 date types, contract button, separate from greenhouse
-**Collapsed stages** — "Заказ выполнен" (collapsed in kanban), collapsible columns
-**amoCRM stage sync** — PATCH pipeline_id + status_id, dropdown mapping UI
-**Sync-from-amoCRM** — updates existing cards (stage, budget, fields, comment)
-**Production dates auto-push** — productionDate/readyDate/deliveryDate → amoCRM notes
-**Change History & Notifications** — changeLog, hasUnreviewedChanges badge, amoComment
-**Per-lead sync from amoCRM** — button "Обновить из amoCRM" on each lead card
-**Standard amoCRM field mapping** — _budget, _name, _responsible for standard fields
-**KP auto-linking during sync** — if CRM lead has no KP, link_calculator_order finds and attaches it from calculator_pdfs collection. Works for both bulk sync and per-lead sync.
-
-### Previous Sessions
-- Session 4: amoCRM sync fixes, CRM linking, heater variants, logistics, sales/bonuses
-- Session 3: Contract template system, Storekeeper role
-- Session 2: Manager CRM access, date filters, contract generation
-- Session 1: Tech spec PDF, production list, user access controls
+- Contract/Tech Spec links auto-push to amoCRM as notes
+- amoCRM Widget: Sauna CRM section, dates, contract button, advance/remaining
+- Collapsed stages (kanban), amoCRM stage sync (pipeline_id + status_id)
+- Sync-from-amoCRM updates existing cards (stage, budget, fields, comment)
+- Production dates auto-push to amoCRM
+- Change History (changeLog), warning badge (!), amoComment from managers
+- Per-lead sync button "Обновить из amoCRM"
+- Standard amoCRM field mapping (_budget, _name, _responsible)
+- KP auto-linking during sync
+- **Advance/Remaining**: advanceFieldId/remainingFieldId settings, green/amber badges on kanban/list cards, widget shows correct advance+remaining from amoCRM
 
 ## CRM Stages
-1-7: invoice_sent → prepayment_received → approved_by_production → in_production → ready → delivered → completed (collapsed)
+invoice_sent → prepayment_received → approved_by_production → in_production → ready → delivered → completed (collapsed)
 
 ## Prioritized Backlog
-### P1
-- [ ] Fix automatic variant application in LayoutConfiguratorPage.jsx
-- [ ] Google Sheets integration (BLOCKED)
-
-### P2
-- [ ] Refactor amocrm.py, widget.py (monolithic)
-- [ ] UI for project backup import
-- [ ] Replace deprecated Google Maps Autocomplete
+- P1: Fix automatic variant application in LayoutConfiguratorPage.jsx
+- P2: Refactor amocrm.py/widget.py, UI backup import, Google Maps Autocomplete
 
 ## Credentials
 - Admin: admin / admin123
