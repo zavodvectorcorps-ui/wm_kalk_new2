@@ -9,29 +9,18 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps
 
 ## What's Been Implemented
 
-### Session 5 (April 4, 2026)
+### Session 5 (April 4-5, 2026)
 
 **Contract/Tech Spec links to amoCRM** — auto-push links as notes after generation
-
 **amoCRM Widget** — Sauna CRM section, 4 date types, contract button, separate from greenhouse
-
 **Collapsed stages** — "Заказ выполнен" (collapsed in kanban), collapsible columns
-
 **amoCRM stage sync** — PATCH pipeline_id + status_id, dropdown mapping UI
-
 **Sync-from-amoCRM** — updates existing cards (stage, budget, fields, comment)
-
 **Production dates auto-push** — productionDate/readyDate/deliveryDate → amoCRM notes
-
 **Change History & Notifications** — changeLog, hasUnreviewedChanges badge, amoComment
-
 **Per-lead sync from amoCRM** — button "Обновить из amoCRM" on each lead card
-
-**Standard amoCRM field mapping:**
-- CRM custom fields can now map to standard amoCRM fields (not just custom field IDs)
-- Dropdown in settings: `Бюджет (price)`, `Название сделки`, `Ответственный`
-- Example: "Wartość sauny" → `_budget` → reads from `amo_lead["price"]`
-- Works in both bulk sync and per-lead sync
+**Standard amoCRM field mapping** — _budget, _name, _responsible for standard fields
+**KP auto-linking during sync** — if CRM lead has no KP, link_calculator_order finds and attaches it from calculator_pdfs collection. Works for both bulk sync and per-lead sync.
 
 ### Previous Sessions
 - Session 4: amoCRM sync fixes, CRM linking, heater variants, logistics, sales/bonuses
