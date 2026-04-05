@@ -18,14 +18,18 @@ Integrations: amoCRM, Cloudinary, Telegram, Google Maps
 - Per-lead sync button "Обновить из amoCRM"
 - Standard amoCRM field mapping (_budget, _name, _responsible)
 - KP auto-linking during sync
-- **Advance/Remaining**: advanceFieldId/remainingFieldId settings, green/amber badges on kanban/list cards, widget shows correct advance+remaining from amoCRM
+- Advance/Remaining: advanceFieldId/remainingFieldId settings, green/amber badges on kanban/list cards, widget shows correct advance+remaining from amoCRM
 
-## Session 6 Fix (April 5, 2026)
+## Session 6 Fixes (April 5, 2026)
 
-- **524 Timeout Fix**: Refactored `sync_leads_from_amocrm` to use FastAPI `BackgroundTasks`. Endpoint now returns 202 immediately; sync runs in background with progress tracking.
-- **Sync Status Endpoint**: `GET /api/sauna-crm/sync-status` returns real-time progress (imported/updated/errors/stage progress).
-- **Sync Progress UI**: Frontend polls sync status every 2s, displays progress bar with stage info, imported/updated counters, and completion message.
-- **Concurrent Lead Processing**: Leads are processed in batches of 5 using `asyncio.gather` for faster throughput.
+- **524 Timeout Fix**: Refactored `sync_leads_from_amocrm` to use FastAPI `BackgroundTasks`. Endpoint returns 202 immediately; sync runs in background with progress tracking.
+- **Sync Status Endpoint**: `GET /api/sauna-crm/sync-status` for real-time progress.
+- **Sync Progress UI**: Frontend polls sync status every 2s, displays animated progress bar with counters.
+- **Concurrent Lead Processing**: Batches of 5 using `asyncio.gather`.
+- **BUG FIX: advanceFieldId/remainingFieldId not saving**: Added missing fields to CRMSettings Pydantic model. Previously Pydantic stripped these fields during save, so advance/remaining mapping was never persisted.
+- **BUG FIX: New leads missing advance/comment**: `extract_advance_remaining()` and comment extraction now called for NEW leads during bulk sync (was only called for existing leads).
+- **UX: Auto-detect running sync on mount**: If user refreshes page during sync, progress bar resumes automatically.
+- **UX: Persistent sync results**: Completion banner stays visible for 15s with dismiss button.
 
 ## CRM Stages
 invoice_sent -> prepayment_received -> approved_by_production -> in_production -> ready -> delivered -> completed (collapsed)
