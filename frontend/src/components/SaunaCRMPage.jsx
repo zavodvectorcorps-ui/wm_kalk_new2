@@ -229,18 +229,44 @@ const SaunaCRMPage = () => {
           if (syncPollRef.current) { clearInterval(syncPollRef.current); syncPollRef.current = null; }
           setSyncing(false);
           if (data.status === 'completed') {
-            toast.success(data.message);
+            toast.success(`Синхронизация завершена! ${data.message}`, { duration: 8000 });
             fetchLeads();
             fetchCalendar();
             fetchSettings();
           } else {
-            toast.error(data.message || 'Ошибка синхронизации');
+            toast.error(data.message || 'Ошибка синхронизации', { duration: 8000 });
           }
-          // Clear progress after 5s
-          setTimeout(() => setSyncProgress(null), 5000);
+          // Keep the result visible for 15s so user can see it
+          setTimeout(() => setSyncProgress(null), 15000);
         }
       }
     } catch (e) { console.error('Poll error', e); }
+  }, []);
+
+  // Check if sync is already running on mount (user might have refreshed page during sync)
+  useEffect(() => {
+    const checkRunningSync = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/sauna-crm/sync-status`, { headers: authHeaders });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'running') {
+            setSyncing(true);
+            setSyncProgress(data);
+            syncPollRef.current = setInterval(pollSyncStatus, 2000);
+          } else if (data.status === 'completed' && data.completedAt) {
+            // Show last completed sync for a few seconds
+            const completedAt = new Date(data.completedAt);
+            const now = new Date();
+            if ((now - completedAt) < 60000) { // show if completed less than 60s ago
+              setSyncProgress(data);
+              setTimeout(() => setSyncProgress(null), 10000);
+            }
+          }
+        }
+      } catch {}
+    };
+    checkRunningSync();
   }, []);
 
   // Cleanup polling on unmount
@@ -259,7 +285,7 @@ const SaunaCRMPage = () => {
         if (data.status === 'already_running') {
           toast.info(data.message);
         } else {
-          toast.info(data.message || 'Синхронизация запущена');
+          toast.info('Синхронизация запущена, ожидайте...', { duration: 5000 });
         }
         // Start polling for progress
         setSyncProgress({ status: 'running', message: 'Запуск синхронизации...', imported: 0, updated: 0, errors: 0, processedStages: 0, totalStages: 0 });
@@ -613,34 +639,45 @@ const SaunaCRMPage = () => {
 
       {/* Sync Progress Indicator */}
       {syncProgress && syncProgress.status !== 'idle' && (
-        <div className={`mb-4 p-3 rounded-lg border transition-all ${
-          syncProgress.status === 'running' ? 'bg-blue-50 border-blue-200' :
-          syncProgress.status === 'completed' ? 'bg-green-50 border-green-200' :
-          'bg-red-50 border-red-200'
+        <div className={`mb-4 p-4 rounded-lg border-2 transition-all shadow-sm ${
+          syncProgress.status === 'running' ? 'bg-blue-50 border-blue-300 animate-pulse' :
+          syncProgress.status === 'completed' ? 'bg-green-50 border-green-300' :
+          'bg-red-50 border-red-300'
         }`} data-testid="sync-progress-bar">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              {syncProgress.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
-              {syncProgress.status === 'completed' && <RefreshCw className="w-4 h-4 text-green-600" />}
-              {syncProgress.status === 'error' && <AlertTriangle className="w-4 h-4 text-red-600" />}
-              <span className={`text-sm font-medium ${
+              {syncProgress.status === 'running' && <Loader2 className="w-5 h-5 animate-spin text-blue-600" />}
+              {syncProgress.status === 'completed' && <RefreshCw className="w-5 h-5 text-green-600" />}
+              {syncProgress.status === 'error' && <AlertTriangle className="w-5 h-5 text-red-600" />}
+              <span className={`text-sm font-semibold ${
                 syncProgress.status === 'running' ? 'text-blue-700' :
                 syncProgress.status === 'completed' ? 'text-green-700' : 'text-red-700'
-              }`}>{syncProgress.message}</span>
+              }`}>
+                {syncProgress.status === 'running' ? 'Синхронизация...' : syncProgress.status === 'completed' ? 'Синхронизация завершена' : 'Ошибка синхронизации'}
+              </span>
             </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              {syncProgress.imported > 0 && <span>Импорт: <strong>{syncProgress.imported}</strong></span>}
-              {syncProgress.updated > 0 && <span>Обновлено: <strong>{syncProgress.updated}</strong></span>}
-              {syncProgress.errors > 0 && <span className="text-red-600">Ошибок: <strong>{syncProgress.errors}</strong></span>}
+            <div className="flex items-center gap-4 text-xs">
+              {syncProgress.imported > 0 && <span className="text-green-700 font-medium">+ {syncProgress.imported} новых</span>}
+              {syncProgress.updated > 0 && <span className="text-blue-700 font-medium">{syncProgress.updated} обновлено</span>}
+              {syncProgress.errors > 0 && <span className="text-red-600 font-medium">{syncProgress.errors} ошибок</span>}
             </div>
           </div>
+          <p className="text-xs text-muted-foreground mb-2">{syncProgress.message}</p>
           {syncProgress.status === 'running' && syncProgress.totalStages > 0 && (
-            <div className="w-full bg-blue-100 rounded-full h-1.5">
+            <div className="w-full bg-blue-100 rounded-full h-2">
               <div
-                className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                className="bg-blue-500 h-2 rounded-full transition-all duration-700 ease-out"
                 style={{ width: `${Math.max(5, (syncProgress.processedStages / syncProgress.totalStages) * 100)}%` }}
               />
             </div>
+          )}
+          {syncProgress.status === 'running' && (!syncProgress.totalStages || syncProgress.totalStages === 0) && (
+            <div className="w-full bg-blue-100 rounded-full h-2 overflow-hidden">
+              <div className="bg-blue-500 h-2 rounded-full w-1/3 animate-pulse" />
+            </div>
+          )}
+          {syncProgress.status === 'completed' && (
+            <button onClick={() => setSyncProgress(null)} className="text-xs text-muted-foreground hover:text-foreground mt-1 underline">Скрыть</button>
           )}
         </div>
       )}

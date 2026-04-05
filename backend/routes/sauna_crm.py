@@ -1180,6 +1180,19 @@ async def _process_single_amo_lead(
 
         return "updated"
     else:
+        # Extract advance/remaining for new leads
+        adv_rem = extract_advance_remaining(amo_lead, custom_fields, settings)
+
+        # Extract comment for new leads
+        comment_fid = settings.get("commentFieldId", "")
+        amo_comment = ""
+        if comment_fid:
+            for cf in (custom_fields or []):
+                if str(cf.get("field_id", "")) == comment_fid:
+                    vals = cf.get("values") or []
+                    amo_comment = vals[0].get("value", "") if vals else ""
+                    break
+
         new_lead = {
             "id": f"CRM-{uuid.uuid4().hex[:8].upper()}",
             "stageId": stage["id"],
@@ -1197,10 +1210,11 @@ async def _process_single_amo_lead(
             "stageHistory": [{"stageId": stage["id"], "timestamp": datetime.now(timezone.utc).isoformat(), "action": "imported_from_amocrm"}],
             "changeLog": [],
             "hasUnreviewedChanges": False,
-            "amoComment": "",
+            "amoComment": amo_comment,
             "notes": "",
             "isImportant": False,
-            **field_vals
+            **field_vals,
+            **adv_rem
         }
 
         await link_calculator_order(amo_id, new_lead)
