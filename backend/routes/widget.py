@@ -981,7 +981,6 @@ async def get_calculator_url(
 @router.get("/download")
 async def download_widget():
     """Download amoCRM widget as ZIP file."""
-    from fastapi.responses import FileResponse
     import os
     import subprocess
     
@@ -1920,8 +1919,10 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         sauna_docs = sauna_crm_lead.get("documents", []) if sauna_crm_lead else []
         has_contract = any(d.get("type") == "contract" for d in sauna_docs)
         has_tech_spec = any(d.get("type") == "tech_spec" for d in sauna_docs)
+        has_kp = any(d.get("type") == "kp" for d in sauna_docs)
         contract_url = next((d.get("url") for d in sauna_docs if d.get("type") == "contract"), "")
         tech_spec_url = next((d.get("url") for d in sauna_docs if d.get("type") == "tech_spec"), "")
+        kp_url = next((d.get("url") for d in sauna_docs if d.get("type") == "kp"), "") or (sauna_crm_lead.get("calculatorPdfUrl", "") if sauna_crm_lead else "")
         
         html += f"""
         <div class="header">
@@ -1930,7 +1931,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         </div>
         
         <!-- Important Order Badge (Allegro) -->
-        {f'''<div class="section">
+        {'''<div class="section">
             <div class="allegro-badge">
                 <span class="allegro-icon">&#128722;</span>
                 <span>Заказ Allegro</span>
@@ -1952,7 +1953,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                     <span class="status-dot" style="background: {status_color};"></span>
                     {status_label}
                 </div>
-                {f'<span class="photo-badge">&#128247; Фото доставки</span>' if photo_info else ''}
+                {'<span class="photo-badge">&#128247; Фото доставки</span>' if photo_info else ''}
             </div>
         </div>
 """
@@ -2005,6 +2006,14 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                     <span class="info-value">{sauna_delivery_date}</span>
                 </div>''' if sauna_delivery_date else ''}
                 <div class="info-row">
+                    <span class="info-label">КП (предложение)</span>
+                    <span class="info-value">
+                        <span class="kp-badge {'kp-yes' if has_kp else 'kp-no'}">
+                            {'&#10003; Прикреплено' if has_kp else '&#10007; Не прикреплено'}
+                        </span>
+                    </span>
+                </div>
+                <div class="info-row">
                     <span class="info-label">Договор</span>
                     <span class="info-value">
                         <span class="kp-badge {'kp-yes' if has_contract else 'kp-no'}">
@@ -2026,13 +2035,18 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         <!-- Sauna Documents Links -->
         {f'''<div class="section">
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                {f'<a href="{kp_url}" target="_blank" class="btn-view" style="flex: 1; text-align: center; text-decoration: none;">&#128203; КП</a>' if kp_url else ''}
                 {f'<a href="{contract_url}" target="_blank" class="btn-view" style="flex: 1; text-align: center; text-decoration: none;">&#128196; Договор</a>' if contract_url else ''}
                 {f'<a href="{tech_spec_url}" target="_blank" class="btn-view" style="flex: 1; text-align: center; text-decoration: none;">&#128203; Тех. задание</a>' if tech_spec_url else ''}
             </div>
-        </div>''' if (contract_url or tech_spec_url) else ''}
+        </div>''' if (kp_url or contract_url or tech_spec_url) else ''}
         
         <!-- Create Contract Button -->
         <div class="section">
+            {'''<div style="background: #FFF3CD; border: 1px solid #FFEEBA; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; font-size: 12px; color: #856404; display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 16px;">&#9888;</span>
+                <span>КП не прикреплено. Сначала создайте КП через калькулятор, затем синхронизируйте.</span>
+            </div>''' if not has_kp else ''}
             <button type="button" class="btn-edit" id="btn-create-contract" onclick="createContract()" data-testid="create-contract-btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
                     <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -2127,7 +2141,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             # Sort by timestamp descending and take last 5
             sorted_history = sorted(change_history, key=lambda x: x.get('timestamp', ''), reverse=True)[:5]
             
-            history_html = f"""
+            history_html = """
         <!-- Change History -->
         <div class="section">
             <div class="section-title">📋 История изменений</div>
@@ -2316,7 +2330,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
         </div>
 """
         else:
-            html += f"""
+            html += """
         <div class="not-found">
             <div class="not-found-icon">&#128230;</div>
             <div class="not-found-text">Заказ не найден</div>
