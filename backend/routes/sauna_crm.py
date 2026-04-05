@@ -618,7 +618,7 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
     """Find calculator order by amocrm_id and attach PDF as document."""
     result = {"linked": False, "pdf_attached": False}
     now = datetime.now(timezone.utc).isoformat()
-    
+
     try:
         # Search across all calculator order collections
         for collection_name in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
@@ -632,104 +632,106 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
                 if calc_order.get("modelName"):
                     crm_lead["modelName"] = calc_order["modelName"]
                 result["linked"] = True
+                logger.info(f"Calculator order linked: amocrm_id={amocrm_id}, order_id={calc_order.get('id')}, collection={collection_name}")
                 break
-        
-        # Search for PDF in calculator_pdfs collection (non-critical — don't crash sync if MongoDB times out)
+
+        # Search for PDF using motor async (same client as rest of the app)
+        pdf_doc = None
         try:
-            from pymongo import MongoClient
-            sync_client = MongoClient(MONGO_URL, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000, socketTimeoutMS=10000)
-            sync_db = sync_client[DB_NAME]
-            
-            pdf_doc = sync_db["calculator_pdfs"].find_one(
+            pdf_doc = await db["calculator_pdfs"].find_one(
                 {"amocrm_id": amocrm_id},
-                {"pdf_data": 0}  # Don't load binary data, just metadata
+                {"pdf_data": 0}
             )
-            
+            if pdf_doc:
+                logger.info(f"PDF found by amocrm_id={amocrm_id}, has_cloudinary={bool(pdf_doc.get('cloudinary_url'))}")
+
+            if not pdf_doc and crm_lead.get("calculatorOrderId"):
+                pdf_doc = await db["calculator_pdfs"].find_one(
+                    {"order_id": crm_lead["calculatorOrderId"]},
+                    {"pdf_data": 0}
+                )
+                if pdf_doc:
+                    logger.info(f"PDF found by order_id={crm_lead['calculatorOrderId']}, has_cloudinary={bool(pdf_doc.get('cloudinary_url'))}")
+
             if not pdf_doc:
-                # Try searching by order_id from linked calculator order
-                if crm_lead.get("calculatorOrderId"):
-                    pdf_doc = sync_db["calculator_pdfs"].find_one(
-                        {"order_id": crm_lead["calculatorOrderId"]},
-                        {"pdf_data": 0}
-                    )
+                logger.info(f"No PDF found in calculator_pdfs for amocrm_id={amocrm_id}, order_id={crm_lead.get('calculatorOrderId')}")
         except Exception as e:
-            logger.warning(f"calculator_pdfs query timeout during sync (non-fatal): {e}")
-            pdf_doc = None
-        
+            logger.warning(f"calculator_pdfs query error (non-fatal): {e}")
+
+        # Determine PDF URL
+        cloudinary_url = None
         if pdf_doc:
-            # Get Cloudinary URL — check calculator_pdfs first, then webhook_logs
             cloudinary_url = pdf_doc.get("cloudinary_url")
-            
+
             if not cloudinary_url:
+                # Check webhook_logs for cloudinary URL
                 try:
-                    log_entry = sync_db["webhook_logs"].find_one(
+                    log_entry = await db["webhook_logs"].find_one(
                         {"type": "calculator_pdf_upload", "amocrm_id": amocrm_id, "cloudinary_url": {"$exists": True, "$ne": None}},
                         {"_id": 0, "cloudinary_url": 1},
                         sort=[("timestamp", -1)]
                     )
                     if log_entry:
                         cloudinary_url = log_entry.get("cloudinary_url")
-                except Exception as e:
-                    logger.warning(f"webhook_logs query timeout (non-fatal): {e}")
-            
+                except Exception:
+                    pass
+
             if not cloudinary_url and crm_lead.get("calculatorOrderId"):
                 try:
-                    log_entry = sync_db["webhook_logs"].find_one(
+                    log_entry = await db["webhook_logs"].find_one(
                         {"type": "calculator_pdf_upload", "order_id": crm_lead["calculatorOrderId"], "cloudinary_url": {"$exists": True, "$ne": None}},
                         {"_id": 0, "cloudinary_url": 1},
                         sort=[("timestamp", -1)]
                     )
                     if log_entry:
                         cloudinary_url = log_entry.get("cloudinary_url")
-                except Exception as e:
-                    logger.warning(f"webhook_logs query by order_id timeout (non-fatal): {e}")
-            
-            if cloudinary_url:
-                pdf_url = cloudinary_url
-            elif pdf_doc.get("pdf_data") or pdf_doc.get("order_id") or crm_lead.get("calculatorOrderId"):
-                # Fallback: generate download URL via API endpoint
-                dl_order_id = pdf_doc.get("order_id") or crm_lead.get("calculatorOrderId", "")
-                if dl_order_id:
-                    base_url = os.environ.get("APP_DOMAIN", "")
-                    if base_url:
-                        base_url = f"https://{base_url}"
-                    else:
-                        try:
-                            with open("/app/frontend/.env", "r") as f:
-                                for line in f:
-                                    if line.startswith("REACT_APP_BACKEND_URL="):
-                                        base_url = line.strip().split("=", 1)[1]
-                                        break
-                        except Exception:
-                            base_url = ""
-                    if base_url:
-                        pdf_url = f"{base_url}/api/integrations/amocrm/calculator-pdf/{dl_order_id}"
-                    else:
-                        pdf_url = None
+                except Exception:
+                    pass
+
+        if cloudinary_url:
+            pdf_url = cloudinary_url
+        elif pdf_doc:
+            # Fallback: use download URL via API endpoint
+            dl_order_id = pdf_doc.get("order_id") or crm_lead.get("calculatorOrderId", "")
+            if dl_order_id:
+                base_url = os.environ.get("APP_DOMAIN", "")
+                if base_url:
+                    base_url = f"https://{base_url}"
                 else:
-                    pdf_url = None
+                    try:
+                        with open("/app/frontend/.env", "r") as f:
+                            for line in f:
+                                if line.startswith("REACT_APP_BACKEND_URL="):
+                                    base_url = line.strip().split("=", 1)[1]
+                                    break
+                    except Exception:
+                        base_url = ""
+                pdf_url = f"{base_url}/api/integrations/amocrm/calculator-pdf/{dl_order_id}" if base_url else None
             else:
                 pdf_url = None
+        else:
+            pdf_url = None
 
-            if pdf_url:
-                # Remove old kp documents to avoid duplicates
-                crm_lead["documents"] = [d for d in crm_lead.get("documents", []) if d.get("type") != "kp"]
-                pdf_document = {
-                    "id": str(uuid.uuid4())[:8],
-                    "type": "kp",
-                    "name": f"КП {crm_lead.get('clientName', '')}".strip(),
-                    "url": pdf_url,
-                    "filename": pdf_doc.get("filename", "КП.pdf"),
-                    "uploadedAt": now,
-                    "source": "calculator_auto"
-                }
-                crm_lead["documents"].append(pdf_document)
-                crm_lead["calculatorPdfUrl"] = pdf_url
-                result["pdf_attached"] = True
-                logger.info(f"PDF attached to CRM lead from calculator: amocrm_id={amocrm_id}, url_type={'cloudinary' if cloudinary_url else 'download'}")
+        if pdf_url:
+            crm_lead["documents"] = [d for d in crm_lead.get("documents", []) if d.get("type") != "kp"]
+            pdf_document = {
+                "id": str(uuid.uuid4())[:8],
+                "type": "kp",
+                "name": f"КП {crm_lead.get('clientName', '')}".strip(),
+                "url": pdf_url,
+                "filename": pdf_doc.get("filename", "КП.pdf") if pdf_doc else "КП.pdf",
+                "uploadedAt": now,
+                "source": "calculator_auto"
+            }
+            crm_lead["documents"].append(pdf_document)
+            crm_lead["calculatorPdfUrl"] = pdf_url
+            result["pdf_attached"] = True
+            logger.info(f"KP attached: amocrm_id={amocrm_id}, url_type={'cloudinary' if cloudinary_url else 'download'}")
+        elif result["linked"]:
+            logger.info(f"Order linked but no PDF found for amocrm_id={amocrm_id}")
     except Exception as e:
         logger.error(f"Error linking calculator order: {e}")
-    
+
     return result
 
 
