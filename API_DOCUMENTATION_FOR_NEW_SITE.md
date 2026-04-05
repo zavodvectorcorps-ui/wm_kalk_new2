@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://widget-contract-gen.preview.emergentagent.com
+Preview: https://bulk-sync-refactor.preview.emergentagent.com
 ```
 
 ---

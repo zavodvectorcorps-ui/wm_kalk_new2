@@ -1,5 +1,5 @@
 """Sauna CRM routes - Mini CRM for sauna orders with amoCRM integration."""
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, BackgroundTasks
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
@@ -10,6 +10,7 @@ import httpx
 import os
 import logging
 import uuid
+import asyncio
 
 router = APIRouter(prefix="/sauna-crm", tags=["Sauna CRM"])
 logger = logging.getLogger(__name__)
@@ -879,22 +880,65 @@ async def sync_stage_to_amocrm(lead_id: str, stage_id: str):
 
 
 @router.post("/sync-from-amocrm")
-async def sync_leads_from_amocrm():
-    """Import leads from amoCRM based on configured stages."""
+async def sync_leads_from_amocrm(background_tasks: BackgroundTasks):
+    """Import leads from amoCRM based on configured stages. Runs in background to avoid timeout."""
     settings = await get_crm_settings()
     amo = get_amo_settings_sync()
     domain = amo.get("amocrm_domain", "")
     token = amo.get("amocrm_token", "")
     if not domain or not token:
         raise HTTPException(status_code=400, detail="amoCRM не настроен")
-    
+
+    # Check if sync is already running
+    existing_sync = await db.sauna_crm_sync_status.find_one({"status": "running"}, {"_id": 0})
+    if existing_sync:
+        return {"status": "already_running", "message": "Синхронизация уже выполняется", "syncId": existing_sync.get("syncId")}
+
+    sync_id = f"sync-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Create sync status document
+    await db.sauna_crm_sync_status.delete_many({})  # Clean old statuses
+    await db.sauna_crm_sync_status.insert_one({
+        "syncId": sync_id,
+        "status": "running",
+        "startedAt": now,
+        "imported": 0,
+        "updated": 0,
+        "errors": 0,
+        "totalStages": len([s for s in settings.get("stages", []) if s.get("amoStageId") and s.get("amoPipelineId")]),
+        "processedStages": 0,
+        "currentStage": "",
+        "message": "Запуск синхронизации..."
+    })
+
+    # Launch background task
+    background_tasks.add_task(
+        _run_sync_background, sync_id, settings, domain, token
+    )
+
+    return {"status": "accepted", "message": "Синхронизация запущена в фоновом режиме", "syncId": sync_id}
+
+
+@router.get("/sync-status")
+async def get_sync_status():
+    """Get current sync progress."""
+    status = await db.sauna_crm_sync_status.find_one({}, {"_id": 0})
+    if not status:
+        return {"status": "idle", "message": "Нет активных синхронизаций"}
+    return status
+
+
+async def _run_sync_background(sync_id: str, settings: dict, domain: str, token: str):
+    """Background task for mass sync from amoCRM."""
     imported = 0
     updated = 0
-    
+    errors = 0
+
     try:
         headers_amo = {"Authorization": f"Bearer {token}"}
         field_mappings = {f["amoFieldId"]: f["id"] for f in settings.get("fields", []) if f.get("amoFieldId") and not f["amoFieldId"].startswith("_")}
-        
+
         # Cache users for manager names
         users_cache = {}
         try:
@@ -903,223 +947,265 @@ async def sync_leads_from_amocrm():
                 if ur.status_code == 200:
                     for u in (ur.json().get("_embedded") or {}).get("users") or []:
                         users_cache[u["id"]] = u.get("name", "")
+        except Exception as e:
+            logger.warning(f"Failed to cache amoCRM users: {e}")
+
+        mapped_stages = [s for s in settings.get("stages", []) if s.get("amoStageId") and s.get("amoPipelineId")]
+
+        for stage_idx, stage in enumerate(mapped_stages):
+            stage_name = stage.get("name", stage["id"])
+            await db.sauna_crm_sync_status.update_one(
+                {"syncId": sync_id},
+                {"$set": {"currentStage": stage_name, "processedStages": stage_idx, "message": f"Этап: {stage_name}..."}}
+            )
+
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    resp = await client.get(
+                        f"https://{domain}/api/v4/leads",
+                        headers=headers_amo,
+                        params={
+                            "filter[statuses][0][status_id]": stage["amoStageId"],
+                            "filter[statuses][0][pipeline_id]": stage["amoPipelineId"],
+                            "with": "contacts",
+                            "limit": 250
+                        }
+                    )
+
+                    if resp.status_code == 204:
+                        continue
+                    if resp.status_code != 200:
+                        logger.error(f"amoCRM API error for stage {stage_name}: {resp.status_code}")
+                        errors += 1
+                        continue
+
+                    resp_data = resp.json() or {}
+                    leads_data = (resp_data.get("_embedded") or {}).get("leads") or []
+
+                    # Process leads in batches with limited concurrency
+                    batch_size = 5
+                    for i in range(0, len(leads_data), batch_size):
+                        batch = leads_data[i:i + batch_size]
+                        tasks = []
+                        for amo_lead in batch:
+                            tasks.append(
+                                _process_single_amo_lead(
+                                    amo_lead, stage, domain, token, headers_amo,
+                                    field_mappings, settings, users_cache
+                                )
+                            )
+                        results = await asyncio.gather(*tasks, return_exceptions=True)
+                        for r in results:
+                            if isinstance(r, Exception):
+                                logger.error(f"Error processing lead in batch: {r}")
+                                errors += 1
+                            elif r == "imported":
+                                imported += 1
+                            elif r == "updated":
+                                updated += 1
+
+                        # Update progress after each batch
+                        await db.sauna_crm_sync_status.update_one(
+                            {"syncId": sync_id},
+                            {"$set": {"imported": imported, "updated": updated, "errors": errors,
+                                      "message": f"Этап: {stage_name} ({i + len(batch)}/{len(leads_data)})..."}}
+                        )
+
+            except Exception as e:
+                logger.error(f"Error processing stage {stage_name}: {e}")
+                errors += 1
+
+        # Finalize
+        now = datetime.now(timezone.utc).isoformat()
+        await db.sauna_crm_settings.update_one({}, {"$set": {"lastSyncAt": now}}, upsert=True)
+        await db.sauna_crm_sync_status.update_one(
+            {"syncId": sync_id},
+            {"$set": {
+                "status": "completed",
+                "completedAt": now,
+                "imported": imported,
+                "updated": updated,
+                "errors": errors,
+                "processedStages": len(mapped_stages),
+                "currentStage": "",
+                "message": f"Импортировано: {imported}, обновлено: {updated}" + (f", ошибок: {errors}" if errors else "")
+            }}
+        )
+        logger.info(f"Sync completed: imported={imported}, updated={updated}, errors={errors}")
+
+    except Exception as e:
+        logger.error(f"Background sync fatal error: {e}")
+        await db.sauna_crm_sync_status.update_one(
+            {"syncId": sync_id},
+            {"$set": {"status": "error", "message": f"Ошибка: {str(e)}", "completedAt": datetime.now(timezone.utc).isoformat()}}
+        )
+
+
+async def _process_single_amo_lead(
+    amo_lead: dict, stage: dict, domain: str, token: str, headers_amo: dict,
+    field_mappings: dict, settings: dict, users_cache: dict
+) -> str:
+    """Process a single amoCRM lead during bulk sync. Returns 'imported', 'updated', or raises."""
+    amo_id = str(amo_lead["id"])
+
+    existing = await db.sauna_crm_leads.find_one({"amocrm_id": amo_id})
+
+    # Extract custom + standard fields
+    custom_fields = amo_lead.get("custom_fields_values") or []
+    field_vals, custom_client_name, custom_model_name = extract_standard_and_custom_fields(
+        amo_lead, custom_fields, field_mappings, settings
+    )
+
+    # Extract contacts
+    amo_embedded = amo_lead.get("_embedded") or {}
+    contacts = amo_embedded.get("contacts") or []
+    contact_name = contacts[0].get("name", "") if contacts else ""
+    contact_phone = ""
+    if contacts:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                cr = await client.get(f"https://{domain}/api/v4/contacts/{contacts[0]['id']}", headers=headers_amo)
+                if cr.status_code == 200:
+                    for cf in (cr.json().get("custom_fields_values") or []):
+                        if cf.get("field_code") == "PHONE" and (cf.get("values") or []):
+                            contact_phone = cf["values"][0].get("value", "")
+                            break
         except Exception:
             pass
-        
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            for stage in settings.get("stages", []):
-                if not stage.get("amoStageId") or not stage.get("amoPipelineId"):
-                    continue
-                
-                resp = await client.get(
-                    f"https://{domain}/api/v4/leads",
-                    headers=headers_amo,
-                    params={
-                        "filter[statuses][0][status_id]": stage["amoStageId"],
-                        "filter[statuses][0][pipeline_id]": stage["amoPipelineId"],
-                        "with": "contacts",
-                        "limit": 250
-                    }
-                )
-                
-                if resp.status_code == 204:
-                    continue
-                if resp.status_code != 200:
-                    logger.error(f"amoCRM API error: {resp.status_code}")
-                    continue
-                
-                resp_data = resp.json() or {}
-                embedded = resp_data.get("_embedded") or {}
-                leads_data = embedded.get("leads") or []
-                
-                for amo_lead in leads_data:
-                    amo_id = str(amo_lead["id"])
-                    existing = await db.sauna_crm_leads.find_one({"amocrm_id": amo_id})
-                    
-                    # Extract custom + standard fields
-                    custom_fields = amo_lead.get("custom_fields_values") or []
-                    field_vals, custom_client_name, custom_model_name = extract_standard_and_custom_fields(
-                        amo_lead, custom_fields, field_mappings, settings
-                    )
-                    
-                    # Extract contacts
-                    amo_embedded = amo_lead.get("_embedded") or {}
-                    contacts = amo_embedded.get("contacts") or []
-                    contact_name = contacts[0].get("name", "") if contacts else ""
-                    contact_phone = ""
-                    if contacts:
-                        try:
-                            cr = await client.get(f"https://{domain}/api/v4/contacts/{contacts[0]['id']}", headers=headers_amo, timeout=10)
-                            if cr.status_code == 200:
-                                for cf in (cr.json().get("custom_fields_values") or []):
-                                    if cf.get("field_code") == "PHONE" and (cf.get("values") or []):
-                                        contact_phone = cf["values"][0].get("value", "")
-                                        break
-                        except Exception:
-                            pass
-                    
-                    # Get manager name
-                    responsible_id = amo_lead.get("responsible_user_id")
-                    manager_name = users_cache.get(responsible_id, "") if responsible_id else ""
-                    
-                    if existing:
-                        # Update existing lead fields from amoCRM
-                        now_ts = datetime.now(timezone.utc).isoformat()
-                        update_data = {"updatedAt": now_ts}
-                        
-                        # Build proposed field updates
-                        proposed = {}
-                        if custom_client_name:
-                            proposed["clientName"] = custom_client_name
-                        elif contact_name:
-                            proposed["clientName"] = contact_name
-                        if custom_model_name:
-                            proposed["modelName"] = custom_model_name
-                        if contact_phone:
-                            proposed["phone"] = contact_phone
-                        if manager_name:
-                            proposed["manager"] = manager_name
-                        proposed.update(field_vals)
-                        if amo_lead.get("price"):
-                            proposed["totalAmount"] = amo_lead["price"]
-                        
-                        # Extract advance/remaining from amoCRM
-                        adv_rem = extract_advance_remaining(amo_lead, custom_fields, settings)
-                        proposed.update(adv_rem)
-                        
-                        # Extract comment from amoCRM custom field
-                        comment_fid = settings.get("commentFieldId", "")
-                        if comment_fid:
-                            for cf in (custom_fields or []):
-                                if str(cf.get("field_id", "")) == comment_fid:
-                                    vals = cf.get("values") or []
-                                    new_comment = vals[0].get("value", "") if vals else ""
-                                    if new_comment != existing.get("amoComment", ""):
-                                        proposed["amoComment"] = new_comment
-                                    break
-                        
-                        # Detect actual changes — compare proposed vs existing
-                        CHANGE_LABELS = {
-                            "clientName": "Клиент", "modelName": "Модель", "phone": "Телефон",
-                            "manager": "Менеджер", "totalAmount": "Бюджет", "amoComment": "Комментарий менеджера",
-                            "stageId": "Этап", "advancePayment": "Аванс", "remainingAmount": "Остаток",
-                        }
-                        # Add labels for custom fields
-                        for fm in settings.get("fields", []):
-                            CHANGE_LABELS[fm["id"]] = fm["name"]
-                        
-                        change_entries = []
-                        for key, new_val in proposed.items():
-                            old_val = existing.get(key, "")
-                            if str(new_val) != str(old_val) and new_val:
-                                change_entries.append({
-                                    "field": key,
-                                    "label": CHANGE_LABELS.get(key, key),
-                                    "oldValue": str(old_val) if old_val else "",
-                                    "newValue": str(new_val),
-                                    "timestamp": now_ts,
-                                    "source": "amocrm"
-                                })
-                        
-                        update_data.update(proposed)
-                        
-                        # Update stage if lead moved to a different pipeline stage in amoCRM
-                        current_stage_id = existing.get("stageId", "")
-                        if current_stage_id != stage["id"]:
-                            update_data["stageId"] = stage["id"]
-                            history = existing.get("stageHistory", [])
-                            history.append({
-                                "fromStage": current_stage_id,
-                                "toStage": stage["id"],
-                                "timestamp": now_ts,
-                                "action": "synced_from_amocrm"
-                            })
-                            update_data["stageHistory"] = history
-                            # Also record stage change in changeLog
-                            stage_names = {s["id"]: s["name"] for s in settings.get("stages", [])}
-                            change_entries.append({
-                                "field": "stageId",
-                                "label": "Этап",
-                                "oldValue": stage_names.get(current_stage_id, current_stage_id),
-                                "newValue": stage_names.get(stage["id"], stage["id"]),
-                                "timestamp": now_ts,
-                                "source": "amocrm"
-                            })
-                        
-                        # If any changes detected — append to changeLog, set flag
-                        if change_entries:
-                            change_log = existing.get("changeLog", [])
-                            change_log.extend(change_entries)
-                            # Keep last 100 entries
-                            update_data["changeLog"] = change_log[-100:]
-                            update_data["hasUnreviewedChanges"] = True
-                            logger.info(f"amoCRM changes detected for lead {existing.get('id')}: {[e['label'] for e in change_entries]}")
-                        
-                        # Update amoCRM link in case domain changed
-                        update_data["amocrm_link"] = f"https://{domain}/leads/detail/{amo_id}"
-                        
-                        await db.sauna_crm_leads.update_one({"amocrm_id": amo_id}, {"$set": update_data})
-                        
-                        # If existing lead has no KP — try to find and link it
-                        has_kp = any(d.get("type") == "kp" for d in existing.get("documents", []))
-                        has_pdf_url = bool(existing.get("calculatorPdfUrl"))
-                        if not has_kp and not has_pdf_url:
-                            # Build a mutable copy of the existing lead to pass to link_calculator_order
-                            lead_copy = {**existing, **update_data}
-                            link_result = await link_calculator_order(amo_id, lead_copy)
-                            if link_result.get("pdf_attached") or link_result.get("linked"):
-                                # Save the linked data back
-                                link_update = {}
-                                if lead_copy.get("calculatorOrderId"):
-                                    link_update["calculatorOrderId"] = lead_copy["calculatorOrderId"]
-                                if lead_copy.get("calculatorCollection"):
-                                    link_update["calculatorCollection"] = lead_copy["calculatorCollection"]
-                                if lead_copy.get("calculatorPdfUrl"):
-                                    link_update["calculatorPdfUrl"] = lead_copy["calculatorPdfUrl"]
-                                if lead_copy.get("documents"):
-                                    link_update["documents"] = lead_copy["documents"]
-                                if link_update:
-                                    await db.sauna_crm_leads.update_one({"amocrm_id": amo_id}, {"$set": link_update})
-                                    logger.info(f"KP linked to existing lead during sync: amocrm_id={amo_id}, pdf={link_result.get('pdf_attached')}")
-                        
-                        updated += 1
-                    else:
-                        new_lead = {
-                            "id": f"CRM-{uuid.uuid4().hex[:8].upper()}",
-                            "stageId": stage["id"],
-                            "clientName": custom_client_name or contact_name or amo_lead.get("name", ""),
-                            "modelName": custom_model_name or "",
-                            "phone": contact_phone,
-                            "email": "",
-                            "address": "",
-                            "manager": manager_name,
-                            "amocrm_id": amo_id,
-                            "amocrm_link": f"https://{domain}/leads/detail/{amo_id}",
-                            "totalAmount": amo_lead.get("price"),
-                            "documents": [],
-                            "createdAt": datetime.now(timezone.utc).isoformat(),
-                            "stageHistory": [{"stageId": stage["id"], "timestamp": datetime.now(timezone.utc).isoformat(), "action": "imported_from_amocrm"}],
-                            "changeLog": [],
-                            "hasUnreviewedChanges": False,
-                            "amoComment": "",
-                            "notes": "",
-                            "isImportant": False,
-                            **field_vals
-                        }
-                        
-                        # Link with calculator order and attach PDF
-                        await link_calculator_order(amo_id, new_lead)
-                        
-                        await db.sauna_crm_leads.insert_one(new_lead)
-                        imported += 1
-        
-        await db.sauna_crm_settings.update_one({}, {"$set": {"lastSyncAt": datetime.now(timezone.utc).isoformat()}}, upsert=True)
-        return {"status": "ok", "imported": imported, "updated": updated, "message": f"Импортировано: {imported}, обновлено: {updated}"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Sync error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+
+    # Get manager name
+    responsible_id = amo_lead.get("responsible_user_id")
+    manager_name = users_cache.get(responsible_id, "") if responsible_id else ""
+
+    if existing:
+        now_ts = datetime.now(timezone.utc).isoformat()
+        update_data = {"updatedAt": now_ts}
+
+        proposed = {}
+        if custom_client_name:
+            proposed["clientName"] = custom_client_name
+        elif contact_name:
+            proposed["clientName"] = contact_name
+        if custom_model_name:
+            proposed["modelName"] = custom_model_name
+        if contact_phone:
+            proposed["phone"] = contact_phone
+        if manager_name:
+            proposed["manager"] = manager_name
+        proposed.update(field_vals)
+        if amo_lead.get("price"):
+            proposed["totalAmount"] = amo_lead["price"]
+
+        adv_rem = extract_advance_remaining(amo_lead, custom_fields, settings)
+        proposed.update(adv_rem)
+
+        comment_fid = settings.get("commentFieldId", "")
+        if comment_fid:
+            for cf in (custom_fields or []):
+                if str(cf.get("field_id", "")) == comment_fid:
+                    vals = cf.get("values") or []
+                    new_comment = vals[0].get("value", "") if vals else ""
+                    if new_comment != existing.get("amoComment", ""):
+                        proposed["amoComment"] = new_comment
+                    break
+
+        CHANGE_LABELS = {
+            "clientName": "Клиент", "modelName": "Модель", "phone": "Телефон",
+            "manager": "Менеджер", "totalAmount": "Бюджет", "amoComment": "Комментарий менеджера",
+            "stageId": "Этап", "advancePayment": "Аванс", "remainingAmount": "Остаток",
+        }
+        for fm in settings.get("fields", []):
+            CHANGE_LABELS[fm["id"]] = fm["name"]
+
+        change_entries = []
+        for key, new_val in proposed.items():
+            old_val = existing.get(key, "")
+            if str(new_val) != str(old_val) and new_val:
+                change_entries.append({
+                    "field": key,
+                    "label": CHANGE_LABELS.get(key, key),
+                    "oldValue": str(old_val) if old_val else "",
+                    "newValue": str(new_val),
+                    "timestamp": now_ts,
+                    "source": "amocrm"
+                })
+
+        update_data.update(proposed)
+
+        current_stage_id = existing.get("stageId", "")
+        if current_stage_id != stage["id"]:
+            update_data["stageId"] = stage["id"]
+            history = existing.get("stageHistory", [])
+            history.append({
+                "fromStage": current_stage_id,
+                "toStage": stage["id"],
+                "timestamp": now_ts,
+                "action": "synced_from_amocrm"
+            })
+            update_data["stageHistory"] = history
+            stage_names = {s["id"]: s["name"] for s in settings.get("stages", [])}
+            change_entries.append({
+                "field": "stageId",
+                "label": "Этап",
+                "oldValue": stage_names.get(current_stage_id, current_stage_id),
+                "newValue": stage_names.get(stage["id"], stage["id"]),
+                "timestamp": now_ts,
+                "source": "amocrm"
+            })
+
+        if change_entries:
+            change_log = existing.get("changeLog", [])
+            change_log.extend(change_entries)
+            update_data["changeLog"] = change_log[-100:]
+            update_data["hasUnreviewedChanges"] = True
+            logger.info(f"amoCRM changes detected for lead {existing.get('id')}: {[e['label'] for e in change_entries]}")
+
+        update_data["amocrm_link"] = f"https://{domain}/leads/detail/{amo_id}"
+        await db.sauna_crm_leads.update_one({"amocrm_id": amo_id}, {"$set": update_data})
+
+        # KP linking for existing leads
+        has_kp = any(d.get("type") == "kp" for d in existing.get("documents", []))
+        has_pdf_url = bool(existing.get("calculatorPdfUrl"))
+        if not has_kp and not has_pdf_url:
+            lead_copy = {**existing, **update_data}
+            link_result = await link_calculator_order(amo_id, lead_copy)
+            if link_result.get("pdf_attached") or link_result.get("linked"):
+                link_update = {}
+                for lf in ["calculatorOrderId", "calculatorCollection", "calculatorPdfUrl", "documents"]:
+                    if lead_copy.get(lf):
+                        link_update[lf] = lead_copy[lf]
+                if link_update:
+                    await db.sauna_crm_leads.update_one({"amocrm_id": amo_id}, {"$set": link_update})
+                    logger.info(f"KP linked to existing lead during sync: amocrm_id={amo_id}")
+
+        return "updated"
+    else:
+        new_lead = {
+            "id": f"CRM-{uuid.uuid4().hex[:8].upper()}",
+            "stageId": stage["id"],
+            "clientName": custom_client_name or contact_name or amo_lead.get("name", ""),
+            "modelName": custom_model_name or "",
+            "phone": contact_phone,
+            "email": "",
+            "address": "",
+            "manager": manager_name,
+            "amocrm_id": amo_id,
+            "amocrm_link": f"https://{domain}/leads/detail/{amo_id}",
+            "totalAmount": amo_lead.get("price"),
+            "documents": [],
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "stageHistory": [{"stageId": stage["id"], "timestamp": datetime.now(timezone.utc).isoformat(), "action": "imported_from_amocrm"}],
+            "changeLog": [],
+            "hasUnreviewedChanges": False,
+            "amoComment": "",
+            "notes": "",
+            "isImportant": False,
+            **field_vals
+        }
+
+        await link_calculator_order(amo_id, new_lead)
+        await db.sauna_crm_leads.insert_one(new_lead)
+        return "imported"
 
 
 @router.post("/leads/{lead_id}/sync-to-amocrm")

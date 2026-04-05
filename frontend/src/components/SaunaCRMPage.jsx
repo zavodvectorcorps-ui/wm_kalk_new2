@@ -214,19 +214,62 @@ const SaunaCRMPage = () => {
     setCollapsedCols(prev => ({ ...prev, [stageId]: !prev[stageId] }));
   };
 
+  // Sync progress
+  const [syncProgress, setSyncProgress] = useState(null);
+  const syncPollRef = React.useRef(null);
+
+  const pollSyncStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/sync-status`, { headers: authHeaders });
+      if (res.ok) {
+        const data = await res.json();
+        setSyncProgress(data);
+        if (data.status === 'completed' || data.status === 'error') {
+          // Stop polling
+          if (syncPollRef.current) { clearInterval(syncPollRef.current); syncPollRef.current = null; }
+          setSyncing(false);
+          if (data.status === 'completed') {
+            toast.success(data.message);
+            fetchLeads();
+            fetchCalendar();
+            fetchSettings();
+          } else {
+            toast.error(data.message || 'Ошибка синхронизации');
+          }
+          // Clear progress after 5s
+          setTimeout(() => setSyncProgress(null), 5000);
+        }
+      }
+    } catch (e) { console.error('Poll error', e); }
+  }, []);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => { if (syncPollRef.current) clearInterval(syncPollRef.current); };
+  }, []);
+
   // ---- Actions ----
   const syncFromAmoCRM = async () => {
     setSyncing(true);
+    setSyncProgress(null);
     try {
       const res = await fetch(`${API_URL}/api/sauna-crm/sync-from-amocrm`, { method: 'POST', headers: authHeaders });
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message);
-        fetchLeads();
-        fetchCalendar();
-      } else toast.error(data.detail || 'Ошибка');
-    } catch (e) { toast.error('Ошибка синхронизации'); }
-    setSyncing(false);
+        if (data.status === 'already_running') {
+          toast.info(data.message);
+        } else {
+          toast.info(data.message || 'Синхронизация запущена');
+        }
+        // Start polling for progress
+        setSyncProgress({ status: 'running', message: 'Запуск синхронизации...', imported: 0, updated: 0, errors: 0, processedStages: 0, totalStages: 0 });
+        if (syncPollRef.current) clearInterval(syncPollRef.current);
+        syncPollRef.current = setInterval(pollSyncStatus, 2000);
+      } else {
+        toast.error(data.detail || 'Ошибка');
+        setSyncing(false);
+      }
+    } catch (e) { toast.error('Ошибка синхронизации'); setSyncing(false); }
   };
 
   const openLead = (lead) => {
@@ -567,6 +610,40 @@ const SaunaCRMPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Sync Progress Indicator */}
+      {syncProgress && syncProgress.status !== 'idle' && (
+        <div className={`mb-4 p-3 rounded-lg border transition-all ${
+          syncProgress.status === 'running' ? 'bg-blue-50 border-blue-200' :
+          syncProgress.status === 'completed' ? 'bg-green-50 border-green-200' :
+          'bg-red-50 border-red-200'
+        }`} data-testid="sync-progress-bar">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {syncProgress.status === 'running' && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+              {syncProgress.status === 'completed' && <RefreshCw className="w-4 h-4 text-green-600" />}
+              {syncProgress.status === 'error' && <AlertTriangle className="w-4 h-4 text-red-600" />}
+              <span className={`text-sm font-medium ${
+                syncProgress.status === 'running' ? 'text-blue-700' :
+                syncProgress.status === 'completed' ? 'text-green-700' : 'text-red-700'
+              }`}>{syncProgress.message}</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {syncProgress.imported > 0 && <span>Импорт: <strong>{syncProgress.imported}</strong></span>}
+              {syncProgress.updated > 0 && <span>Обновлено: <strong>{syncProgress.updated}</strong></span>}
+              {syncProgress.errors > 0 && <span className="text-red-600">Ошибок: <strong>{syncProgress.errors}</strong></span>}
+            </div>
+          </div>
+          {syncProgress.status === 'running' && syncProgress.totalStages > 0 && (
+            <div className="w-full bg-blue-100 rounded-full h-1.5">
+              <div
+                className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${Math.max(5, (syncProgress.processedStages / syncProgress.totalStages) * 100)}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* View Tabs */}
       <Tabs value={activeView} onValueChange={setActiveView} className="mb-6">

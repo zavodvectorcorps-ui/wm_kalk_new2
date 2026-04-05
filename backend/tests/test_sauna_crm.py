@@ -9,7 +9,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://widget-contract-gen.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://bulk-sync-refactor.preview.emergentagent.com')
 API_URL = f"{BASE_URL}/api"
 
 

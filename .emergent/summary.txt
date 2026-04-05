@@ -1,168 +1,144 @@
 <analysis>**original_problem_statement:**
-The session began with debugging a 500 Internal Server Error during amoCRM synchronization (). As the session progressed, the user requested multiple bug fixes and enhancements across the platform:
-1. Fix CRM order linking (KP PDF not attaching to CRM card because  was lost on page reload).
-2. Add manual order relinking in the CRM card UI.
-3. Add two new heater variants in the Balia calculator (Без печи/none and Электрическая печь/electric) across all UI and PDF generation points.
-4. Add a Reverse Route (Развернуть маршрут) button in Logistics.
-5. Fix the Push to amoCRM block disappearing in Logistics.
-6. Configure the CRM filtering and calendar to use Data otrzymania zaliczki () instead of the default ready date.
-7. Update Sales and Bonus tracking to calculate based on CRM leads and the .
-8. Move hardcoded company phone, email, and website from the Sauna PDF generator into dynamic template settings.
-9. **CURRENT/LAST REQUEST**: After generating a contract or a tech spec in the CRM, upload the link to these documents directly to the amoCRM card. Additionally, add a Create Contract button directly inside the amoCRM widget interface so managers don't have to open the standalone CRM.
+The application is a full-stack Modular Sauna/Balia Configurator with CRM, production management, logistics, and amoCRM integration. In this session, the user requested significant enhancements to the Sauna CRM and amoCRM integration: 
+1. Uploading generated Contract and Tech Spec links as notes to amoCRM.
+2. Adding a Create Contract button directly inside the amoCRM widget.
+3. Adding a new Заказ выполнен (completed) stage and supporting collapsible columns in the Kanban board.
+4. Auto-syncing production dates (production, ready, delivery) back to amoCRM.
+5. Tracking field changes from amoCRM with a Change Log, showing a warning  badge for unreviewed changes, and syncing manager comments.
+6. Allowing standard amoCRM fields (like  / ) to map to CRM fields (like Wartość sauny).
+7. Auto-linking the Commercial Proposal (KP) PDF when a lead is synced from amoCRM (even if the PDF was generated after the lead was created).
+8. Syncing and displaying Advance Payment (Аванс) and Remaining Amount (Остаток) in the widget and CRM Kanban cards.
+
+**CURRENT/LAST REQUEST:** The user reported a severe bug: The mass synchronization fails with a  error (). As a result, the Advance amount didn't appear, the KP didn't attach to the card, and badges didn't update.
 
 **User's preferred language**: Russian. INSTRUCT next agent to respond in the user's preferred language only.
 
 **what currently exists?** 
-A full-stack React/FastAPI application for managing sauna/balia orders. It features a complex layout configurator, dynamic pricing, PDF generation (contracts, commercial proposals, tech specs), logistics routing via Google Maps, sales tracking, and deep two-way integration with amoCRM.
+A full-stack React/FastAPI application for managing sauna/balia orders with a complex layout configurator, dynamic pricing, PDF contract/tech-spec generation, Google Maps logistics, and two-way amoCRM integration (pipeline mapping, webhook sync, and widget embedding).
 
 **Last working item**:
-- **Last item agent was working**: Implementing the logic to upload generated Contract and Tech Spec PDF links to amoCRM, and adding a Create Contract button inside the amoCRM widget frontend. The agent was reviewing , , and  to identify where the PDFs are generated and how to hook into the amoCRM upload pipeline.
-- **Status**: NOT STARTED
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**: backend testing agent (for API logic sending links to amo) and screenshot tool (for widget UI).
-- **User Testing Done**: N
+    - **Last item agent was working**: Investigating the  on the  endpoint. The agent was checking the route definitions right before the session ended.
+    - **Status**: IN PROGRESS
+    - **Agent Testing Done**: N
+    - **Which testing method agent to use?**: backend testing agent (to verify bulk sync refactor) and frontend testing agent.
+    - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-Issue 1: Upload Contract and Tech Spec links to amoCRM card upon generation (P0)
-Issue 2: Add Create Contract button in amoCRM widget UI (P0)
-Issue 3: Incorrect automatic variant application in configurator (P2 - RECURRING)
-Issue 4: Unstable user login sessions & Deployment timeouts (P2 - RECURRING)
-
-Issues Detail:
-- Issue 1: Upload Contract/Tech Spec links to amoCRM
-   - Attempted fixes: Agent was just gathering context.
-   - Next debug checklist: 
-     - Check  () and  ().
-     - Look at how  handles PDF uploads () and reuse the logic to push notes/links to the specific .
-   - Why fix this issue and what will be achieved with the fix?: Streamlines manager workflow by automatically pushing crucial documents to the primary CRM (amoCRM).
-   - Status: NOT STARTED
-   - Is recurring issue? N
-   - Should Test frontend/backend/both after fix?: Backend
-- Issue 2: Add Create Contract button in amoCRM widget
-   - Attempted fixes: None.
-   - Next debug checklist: Find the widget component (likely  or similar widget entry point) and add a button that triggers the  endpoint.
-   - Why fix this issue and what will be achieved with the fix?: Allows managers to generate contracts without leaving amoCRM.
-   - Status: NOT STARTED
-   - Is recurring issue? N
-   - Should Test frontend/backend/both after fix?: Frontend
+  Issue 1: 524 Timeout on mass sync () (P0)
+  Issue 2: Advance, KP linking, and badges failing to appear (P0 - blocked on Issue 1)
+  Issue 3: Incorrect automatic variant application in configurator (P1 - RECURRING)
+  Issue 4: Unstable user login sessions & Deployment timeouts (P2 - RECURRING)
+  
+  Issues Detail:
+  - Issue 1: 524 Timeout on mass sync
+     - Attempted fixes: The agent just ran a grep command to find the endpoints but made no code changes yet.
+     - Next debug checklist: Check  -> . A 524 is a proxy timeout. The function likely makes a massive amount of sequential HTTP requests to the amoCRM API for all pipelines and leads, taking longer than the reverse proxy timeout (usually 30-60s). It MUST be refactored to use FastAPI  to return a  immediately while running the sync in the background, or limit concurrency using .
+     - Why fix this issue and what will be achieved with the fix?: The mass sync is completely broken on production due to lead volume, preventing data from flowing between amoCRM and the internal CRM.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Both
+     - Blocked on other issue: None
+  - Issue 2: Advance, KP linking, and badges failing to update
+     - Attempted fixes: None explicitly for the failure state. The agent successfully implemented these features in isolation, but they fail during bulk sync because the API crashes (524) and rolls back or aborts.
+     - Next debug checklist: Fix Issue 1. Then verify that the background sync properly runs the  and  tasks for each lead without crashing.
+     - Why fix this issue and what will be achieved with the fix?: Ensures data integrity.
+     - Status: BLOCKED (on Issue 1)
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Both
 
 **In progress Task List**:
-(None active besides the last working items)
+ None active besides the sync bug.
 
 **Upcoming and Future Tasks**
-Future Tasks:
-- P1: Refactor the monolithic  and  files.
-- P2: Add a UI for importing/restoring a project backup from a file.
-- P2: Replace the deprecated Google Maps Autocomplete component.
+  Future Tasks:
+  - P1: Fix bug with automatic variant application in the configurator.
+  - P2: Refactor monolithic files: , , , .
+  - P2: Add a UI for importing/restoring a project backup from a file.
+  - P2: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
-- Fixed 500 error in  by adding null checks () for amoCRM API responses.
-- Fixed  loss on page reload using  and fallback logic.
-- Added UI for manual order relinking in the CRM card.
-- Added Без печи (none) and Электрическая печь (electric) heater variants for Balia.
-- Added Развернуть маршрут (Reverse) button in Logistics map.
-- Fixed missing Push to amoCRM block in Logistics (added fallback UI when pipelines fail to load).
-- Reconfigured CRM date filtering/calendar to use  (configurable via settings).
-- Updated Sales Tracking and Bonus calculation to pull data from  using  and Async motor cursors.
-- Moved hardcoded contact info in Sauna PDF to dynamic settings in .
-- Increased Sauna orders fetch limit from 1000 to 5000.
+- Added Contract and Tech Spec PDF links push to amoCRM (DONE)
+- Added Create Contract button and Sauna separated view in amoCRM Widget (DONE)
+- Added Заказ выполнен (completed) stage and collapsible Kanban columns (DONE)
+- Added auto-push of production dates back to amoCRM notes/custom fields (DONE)
+- Added  tracking, ! warning badge for unreviewed amoCRM edits, and manager comment sync (DONE)
+- Added Acknowledge (review) changes endpoint and UI button (DONE)
+- Mapped standard amoCRM fields (->_budget, , ) to CRM custom fields (DONE)
+- Added automatic KP (Commercial Proposal) PDF linking when a lead is synced/updated from amoCRM (DONE)
+- Added Advance () and Remaining () extraction, displayed on Kanban and Widget (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-None newly mentioned.
+None newly mentioned outside of the 524 timeout.
 
 **Known issue recurrence from previous fork**
-- Issue recurrence in previous fork: Incorrect variant application, unstable login sessions.
-- Recurrence count: 4
-- Status: NOT STARTED
-Note: These are longstanding technical debt items that are deprioritized in favor of active feature requests.
+  - Issue recurrence in previous fork: Incorrect variant application, unstable login sessions.
+  - Recurrence count: 5
+  - Status: NOT STARTED
 
 **Code Architecture**
 React frontend + FastAPI backend + MongoDB
-- : Contains domain-specific routers (, , , ).
-- : Contains feature components (, , ).
+- : Manages the Sauna CRM endpoints, Stage Settings, and amoCRM mass/single syncing.
+- : PDF Contract generation logic.
+- : The main Kanban UI, Settings tabs, and Lead Detail Dialog.
+- : Generates the HTML for the amoCRM embedded widget.
 
 **Key Technical Concepts**
-Frontend: React, Tailwind, Shadcn UI, Google Maps API.
-Backend: FastAPI, Async Motor (MongoDB), PyMongo, httpx (for amoCRM calls), ReportLab/DocxTemplate (PDF generation).
+React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), httpx (for external amoCRM API calls).
 
 **key DB schema**
-- : uid=0(root) gid=0(root) groups=0(root), , , , 
-- : Legacy table, but bonus calculations now read from .
-- : uid=0(root) gid=0(root) groups=0(root),  (holds , , etc.)
+  - : 
 
 **changes in tech stack**
-None.
+None
 
 **All files of reference**
-- 
-- 
-- 
-- 
--  (or the equivalent amo widget component)
+  -  (Updated with massive sync logic, change logs, and standard field parsing)
+  -  (Updated to display separated Sauna dates, statuses, advance/remaining)
+  -  (Updated with new UI settings, collapsible columns, and badges)
 
 **Areas that need refactoring**
--  (Massive monolithic file, >3000 lines).
--  (Extremely large, >2700 lines).
+ (Now over 1300 lines due to extensive sync logic),  (>3200 lines),  (>3200 lines),  (>1600 lines).
 
 **key api endpoints**
-- 
-- 
--  (Useful reference for amoCRM file pushing)
+  -  (Failing with 524 Timeout)
+  -  (Single lead sync)
 
 **Critical Info for New Agent**
 - **LANGUAGE**: The user communicates in Russian. You MUST reply in Russian.
-- **MONGODB ASYNC WARNING**: In backend files like  or , the  object uses Motor (async). Never use . You MUST use . Failure to do so will result in , which the previous agent had to fix.
-- For the current pending task: Check how  creates a note in amoCRM with the PDF link. You will need to extract or replicate that logic to post the Contract and Tech Spec links to the corresponding amoCRM lead card after they are generated.
-- For the amoCRM widget button: Identify which frontend component serves as the amoCRM widget (usually an  component or injected via a specific route).
+- **524 TIMEOUT FIX**:  in  is causing a 524 reverse proxy timeout because it loops over pipelines and leads, making synchronous  calls to amoCRM, which takes longer than the allowed HTTP window. Refactor this endpoint to use FastAPI . Make the route immediately return  while the actual sync runs asynchronously. 
+- **AMOCRM TEST ENV**: In the local test pod, amoCRM credentials are not set up. Sync functions gracefully exit with  or return a . This is fully expected. The 524 timeout happens when the user runs it on production where credentials exist and data is heavy.
 
 **documents and test reports created in this job**
--  (Updated with latest completed tasks).
+  -  to  (7 iteration test reports created verifying all the isolated features)
+  - 
 
-**Last 10 User Messages and any pending HUMAN messages**
-1. **LATEST (PENDING)**: User requests that after generating a contract and tech spec in CRM, the links should be uploaded to amoCRM. Also wants a Create Contract button in the amoCRM widget to do this directly.
-2. Agent: Finishes Sales tracking updates.
-3. User: Outlines logic for CRM saunas: track sales, bonuses, and calendar by Data otrzymania zaliczki (prepaymentDate), read prices from amoCRM budget, sync production date back to amoCRM.
-4. Agent: Fixes missing logistics block.
-5. User: Reports the amoCRM push block disappeared in Logistics after adding the reverse button.
-6. Agent: Moves phone/email to PDF templates settings.
-7. User: Asks to make phone number in Sauna PDF editable via template settings instead of hardcoded.
-8. Agent: Fixes Bez pieca and adds Piec elektryczny.
-9. User: Requests adding a 4th variant Электрическая печь (Electric heater) everywhere.
-10. User: Points out that Без печи (None) heater variant is showing up as Zewnętrzny piec in some summary blocks.
+**Last 10 User Messages and any pending HUMAN messages** 
+1. *Agent*: Finished and tested Advance/Remaining fields.
+2. *User* **(PENDING)**: Reported that synchronization is failing. Синхронизация не проходит... Failed to load resource: the server responded with a status of 524... Аванс не появился в амо, КП не привязывается... 
+3. *Agent*: Fixed missing KP linking when pulling existing leads from amoCRM.
+4. *User*: Pointed out that dragging deals into the CRM doesn't auto-link the previously generated KP.
+5. *Agent*: Mapped standard  field to resolve the Wartość sauny issue.
+6. *User*: Uploaded screenshots showing  didn't sync from the amoCRM  field because it lacks a custom ID.
+7. *Agent*: Added change logs,   warning badge, and comment field.
+8. *User*: Requested history tracking for field changes, a  warning badge on the CRM card, and syncing manager comments.
+9. *Agent*: Added automatic date pushes and updated existing cards during amoCRM sync.
+10. *User*: Asked to update existing CRM cards during amo sync and automatically push production dates back to amoCRM.
 
 **Project Health Check:**
-App is functional. Recent bugs related to MongoDB async cursors and JS  on numbers were resolved.
+App is running. Heavy mass sync from amoCRM is Broken (524 Timeout). Isolated endpoints and frontends are functional.
 
 **3rd Party Integrations**
-- amoCRM (CRM sync, Webhooks, Notes API) — requires User API credentials (currently set up via OAuth/tokens in DB).
-- Cloudinary (PDF hosting) — configured via .env.
-- Google Maps API (Logistics routing).
+  - amoCRM (CRM sync, Webhooks, Notes API) — requires User API credentials.
+  - Cloudinary (PDF hosting) — configured via .env.
 
 **Testing status**
-- Testing agent used after significant changes: NO
-- Troubleshoot agent used after agent stuck in loop: NO
-- Test files created: []
-- Known regressions: None
+  - Testing agent used after significant changes: YES (Heavily used, 7 iterations)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: 524 timeout on bulk sync due to large data payload logic blocking the HTTP response.
 
 **Credentials to test flow:**
-- Admin:  / 
-- Storekeeper:  / 
-- Marketer:  / 
+  - Admin:  / 
 
 **What agent forgot to execute**
-- The agent was just given the request about pushing contract/tech-spec links to amoCRM and adding the widget button, but the context ended before implementation began.
-
-**Debugging checklist for current issue**
-    Issue: Push Contract/Tech Spec links to amoCRM & Add widget button
-    
-    Backend files to check: 
-    -  (Look for )
-    -  (Look for )
-    -  (Look for how notes/links are pushed to amoCRM API)
-  
-    Frontend files to check:
-    - Look for the component that handles the amoCRM widget view (e.g.,  or similar, check  routes for ).
-    
-    Action Plan:
-    1. Update backend PDF generation endpoints to accept/fetch  and make an HTTP request to amoCRM API to attach the file link as a note to the lead.
-    2. Add a UI button in the widget frontend to call .</analysis>
+The agent realized the 524 error was happening, grepped the file for the sync endpoint but the context length ran out before implementing the  fix for the mass sync route.</analysis>
