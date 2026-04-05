@@ -612,6 +612,53 @@ async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
     return {"month": month, "year": year, "byDate": by_date, "totalOrders": sum(len(v) for v in by_date.values())}
 
 
+
+@router.get("/debug-kp/{amocrm_id}")
+async def debug_kp_linking(amocrm_id: str):
+    """Debug endpoint to check why KP is not linking for a specific amoCRM lead."""
+    result = {"amocrm_id": amocrm_id, "checks": {}}
+
+    # 1. Check sauna_orders
+    for coll in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
+        order = await db[coll].find_one({"amocrm_id": amocrm_id}, {"_id": 0, "id": 1, "modelName": 1, "amocrm_id": 1})
+        if order:
+            result["checks"]["calculator_order"] = {"found": True, "collection": coll, "order_id": order.get("id"), "amocrm_id_stored": order.get("amocrm_id")}
+            break
+    else:
+        result["checks"]["calculator_order"] = {"found": False}
+
+    # 2. Check calculator_pdfs by amocrm_id
+    pdf_by_amo = await db["calculator_pdfs"].find_one({"amocrm_id": amocrm_id}, {"_id": 0, "pdf_data": 0})
+    if pdf_by_amo:
+        result["checks"]["pdf_by_amocrm_id"] = {"found": True, "order_id": pdf_by_amo.get("order_id"), "has_cloudinary": bool(pdf_by_amo.get("cloudinary_url")), "cloudinary_url": pdf_by_amo.get("cloudinary_url", ""), "filename": pdf_by_amo.get("filename", "")}
+    else:
+        result["checks"]["pdf_by_amocrm_id"] = {"found": False}
+
+    # 3. Check calculator_pdfs by order_id (if we found the order)
+    order_id = result["checks"].get("calculator_order", {}).get("order_id", "")
+    if order_id:
+        pdf_by_order = await db["calculator_pdfs"].find_one({"order_id": order_id}, {"_id": 0, "pdf_data": 0})
+        if pdf_by_order:
+            result["checks"]["pdf_by_order_id"] = {"found": True, "amocrm_id_stored": pdf_by_order.get("amocrm_id"), "has_cloudinary": bool(pdf_by_order.get("cloudinary_url")), "cloudinary_url": pdf_by_order.get("cloudinary_url", ""), "filename": pdf_by_order.get("filename", "")}
+        else:
+            result["checks"]["pdf_by_order_id"] = {"found": False, "searched_order_id": order_id}
+
+    # 4. Check CRM lead
+    crm_lead = await db["sauna_crm_leads"].find_one({"amocrm_id": amocrm_id}, {"_id": 0, "id": 1, "calculatorOrderId": 1, "calculatorPdfUrl": 1, "documents": 1})
+    if crm_lead:
+        has_kp = any(d.get("type") == "kp" for d in crm_lead.get("documents", []))
+        result["checks"]["crm_lead"] = {"found": True, "crm_id": crm_lead.get("id"), "calculatorOrderId": crm_lead.get("calculatorOrderId"), "calculatorPdfUrl": crm_lead.get("calculatorPdfUrl"), "has_kp_doc": has_kp, "doc_count": len(crm_lead.get("documents", []))}
+    else:
+        result["checks"]["crm_lead"] = {"found": False}
+
+    # 5. List ALL documents in calculator_pdfs (count + last 3)
+    total_pdfs = await db["calculator_pdfs"].count_documents({})
+    recent_pdfs = await db["calculator_pdfs"].find({}, {"_id": 0, "pdf_data": 0}).sort("created_at", -1).limit(3).to_list(3)
+    result["checks"]["calculator_pdfs_stats"] = {"total_count": total_pdfs, "recent": [{"order_id": p.get("order_id"), "amocrm_id": p.get("amocrm_id"), "has_cloudinary": bool(p.get("cloudinary_url")), "created_at": p.get("created_at")} for p in recent_pdfs]}
+
+    return result
+
+
 # ============== CALCULATOR LINK ==============
 
 async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
@@ -621,10 +668,11 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
 
     try:
         # Search across all calculator order collections
+        calc_order = None
         for collection_name in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
             calc_order = await db[collection_name].find_one(
                 {"amocrm_id": amocrm_id},
-                {"_id": 0, "id": 1, "fullName": 1, "modelName": 1, "totalAmount": 1}
+                {"_id": 0, "id": 1, "fullName": 1, "modelName": 1, "totalAmount": 1, "kpCloudinaryUrl": 1}
             )
             if calc_order:
                 crm_lead["calculatorOrderId"] = calc_order.get("id")
@@ -632,7 +680,7 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
                 if calc_order.get("modelName"):
                     crm_lead["modelName"] = calc_order["modelName"]
                 result["linked"] = True
-                logger.info(f"Calculator order linked: amocrm_id={amocrm_id}, order_id={calc_order.get('id')}, collection={collection_name}")
+                logger.info(f"Calculator order linked: amocrm_id={amocrm_id}, order_id={calc_order.get('id')}, collection={collection_name}, has_kpUrl={bool(calc_order.get('kpCloudinaryUrl'))}")
                 break
 
         # Search for PDF using motor async (same client as rest of the app)
@@ -690,6 +738,10 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
 
         if cloudinary_url:
             pdf_url = cloudinary_url
+        elif calc_order and calc_order.get("kpCloudinaryUrl"):
+            # Fallback: use kpCloudinaryUrl stored directly on the calculator order
+            pdf_url = calc_order["kpCloudinaryUrl"]
+            logger.info(f"Using kpCloudinaryUrl from order for amocrm_id={amocrm_id}")
         elif pdf_doc:
             # Fallback: use download URL via API endpoint
             dl_order_id = pdf_doc.get("order_id") or crm_lead.get("calculatorOrderId", "")

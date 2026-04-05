@@ -2153,6 +2153,18 @@ async def upload_calculator_pdf_to_amocrm(
                     )
                 except Exception:
                     pass
+                # Also save cloudinary_url directly to the calculator order for reliability
+                try:
+                    for coll_name in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
+                        upd_result = db[coll_name].update_one(
+                            {"id": order_id},
+                            {"$set": {"kpCloudinaryUrl": cloudinary_url}}
+                        )
+                        if upd_result.modified_count > 0:
+                            logger.info(f"Saved kpCloudinaryUrl to {coll_name}/{order_id}")
+                            break
+                except Exception as e:
+                    logger.warning(f"Failed to save kpCloudinaryUrl to order: {e}")
                 debug_log["steps"].append({
                     "step": 0,
                     "name": "cloudinary_upload",
