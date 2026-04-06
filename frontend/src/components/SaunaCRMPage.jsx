@@ -1816,14 +1816,18 @@ const SaunaCRMPage = () => {
                         </select>
                       </div>
                       <div>
-                        <Label className="text-xs text-muted-foreground">ID поля amoCRM "Предоплата получена" (флаг)</Label>
-                        <Input
-                          className="mt-1"
-                          placeholder="Например: 1234567"
+                        <Label className="text-xs text-muted-foreground">Поле "Предоплата получена" (флаг)</Label>
+                        <select
+                          className="w-full mt-1 border rounded-md px-3 py-2 text-sm"
                           value={settingsForm.salesPrepaymentFlagFieldId || ''}
                           onChange={(e) => setSettingsForm(p => ({ ...p, salesPrepaymentFlagFieldId: e.target.value }))}
                           data-testid="sales-flag-field-input"
-                        />
+                        >
+                          <option value="">Не выбран (только по этапу)</option>
+                          {(settingsForm.fields || []).filter(f => f.amoFieldId).map(f => (
+                            <option key={f.id} value={f.amoFieldId}>{f.name} (amoCRM: {f.amoFieldId})</option>
+                          ))}
+                        </select>
                         <p className="text-xs text-muted-foreground mt-0.5">Только сделки с этим флагом попадут в Продажи</p>
                       </div>
                       <div>

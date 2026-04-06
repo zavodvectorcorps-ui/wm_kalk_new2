@@ -483,15 +483,25 @@ async def sync_sales_from_crm():
 
     # Sales filter settings
     sales_stage_id = crm_settings.get("salesStageId", "")
-    sales_flag_field = crm_settings.get("salesPrepaymentFlagFieldId", "")
+    sales_flag_amo_field = crm_settings.get("salesPrepaymentFlagFieldId", "")
     sales_date_field = crm_settings.get("salesDateFieldId", "")
 
-    # Build query: filter by stage AND/OR prepayment flag
+    # Resolve amoCRM flag field ID → CRM field ID
+    sales_flag_crm_field = ""
+    if sales_flag_amo_field:
+        for f in crm_settings.get("fields", []):
+            if f.get("amoFieldId") == sales_flag_amo_field:
+                sales_flag_crm_field = f["id"]
+                break
+        if not sales_flag_crm_field:
+            # Maybe user entered CRM field ID directly (e.g. "field_5")
+            sales_flag_crm_field = sales_flag_amo_field
+
+    # Build query
     query = {}
     conditions = []
 
     if sales_stage_id:
-        # Only leads in this stage or later stages
         stage_ids = [s["id"] for s in stages]
         try:
             idx = stage_ids.index(sales_stage_id)
@@ -500,14 +510,12 @@ async def sync_sales_from_crm():
         except ValueError:
             conditions.append({"stageId": sales_stage_id})
 
-    if sales_flag_field:
-        # Only leads where the flag field has a truthy value
-        conditions.append({sales_flag_field: {"$exists": True, "$nin": [None, "", "0", "false", False, 0]}})
+    if sales_flag_crm_field:
+        conditions.append({sales_flag_crm_field: {"$exists": True, "$nin": [None, "", "0", "false", False, 0]}})
 
     if conditions:
         query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
     else:
-        # Fallback: only leads past first stage
         first_stage_id = stages[0]["id"] if stages else "invoice_sent"
         query = {"stageId": {"$ne": first_stage_id}}
 
@@ -517,9 +525,9 @@ async def sync_sales_from_crm():
     imported = 0
     updated = 0
     skipped = 0
+    removed = 0
     now = datetime.now(timezone.utc).isoformat()
 
-    # Stage → status mapping
     stage_to_status = {}
     for s in stages:
         sid = s.get("id", "")
@@ -527,9 +535,7 @@ async def sync_sales_from_crm():
             stage_to_status[sid] = "запланировано"
         elif sid in ("approved_by_production", "in_production"):
             stage_to_status[sid] = "в процессе"
-        elif sid in ("ready", "delivered"):
-            stage_to_status[sid] = "реализовано"
-        elif sid in ("completed",):
+        elif sid in ("ready", "delivered", "completed"):
             stage_to_status[sid] = "реализовано"
         else:
             stage_to_status[sid] = "новый"
@@ -542,11 +548,10 @@ async def sync_sales_from_crm():
 
         order_id = lead.get("calculatorOrderId") or lead_id
 
-        # Sale date = configured sales date field (дата получения аванса)
+        # Sale date: configured field → prepaymentDate → calendarDateField → createdAt
         order_date = ""
         if sales_date_field and lead.get(sales_date_field):
             order_date = str(lead[sales_date_field])[:10]
-        # Fallback chain
         if not order_date and lead.get("prepaymentDate"):
             order_date = str(lead["prepaymentDate"])[:10]
         if not order_date:
@@ -602,12 +607,13 @@ async def sync_sales_from_crm():
             imported += 1
 
     # Cleanup: remove old CRM-synced sales whose leads no longer match the filter
-    synced_lead_ids = {lead.get("id") for lead in crm_leads if lead.get("id")}
-    old_crm_sales = await collection.find({"source": "crm_sync"}, {"_id": 1, "crm_lead_id": 1}).to_list(10000)
-    removed = 0
-    for old_sale in old_crm_sales:
-        if old_sale.get("crm_lead_id") and old_sale["crm_lead_id"] not in synced_lead_ids:
-            await collection.delete_one({"_id": old_sale["_id"]})
-            removed += 1
+    # Only cleanup if we actually have filter criteria set (don't delete everything on misconfiguration)
+    if sales_stage_id or sales_flag_crm_field:
+        synced_lead_ids = {lead.get("id") for lead in crm_leads if lead.get("id")}
+        old_crm_sales = await collection.find({"source": "crm_sync"}, {"_id": 1, "crm_lead_id": 1}).to_list(10000)
+        for old_sale in old_crm_sales:
+            if old_sale.get("crm_lead_id") and old_sale["crm_lead_id"] not in synced_lead_ids:
+                await collection.delete_one({"_id": old_sale["_id"]})
+                removed += 1
 
     return {"imported": imported, "updated": updated, "skipped": skipped, "removed": removed, "total_processed": len(crm_leads)}
