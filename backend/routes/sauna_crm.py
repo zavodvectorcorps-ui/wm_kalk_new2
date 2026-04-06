@@ -607,6 +607,7 @@ async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
                     "stageId": lead.get("stageId"),
                     "totalAmount": lead.get("totalAmount") or lead.get("field_2"),
                     "phone": lead.get("phone", ""),
+                    "manager": lead.get("manager", ""),
                 })
         except (ValueError, TypeError):
             continue

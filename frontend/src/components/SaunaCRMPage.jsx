@@ -727,8 +727,8 @@ const SaunaCRMPage = () => {
                           {orders.length > 0 && (
                             <div className="mt-1 space-y-0.5">
                               {orders.slice(0, 2).map((o, idx) => (
-                                <div key={idx} className="text-[10px] px-1 py-0.5 bg-blue-100 text-blue-700 rounded truncate">
-                                  {o.modelName || o.clientName}
+                                <div key={idx} className="text-[10px] px-1 py-0.5 bg-blue-100 text-blue-700 rounded truncate" title={`${o.clientName || ''} — ${o.manager || ''}`}>
+                                  {o.clientName || o.modelName}{o.manager ? ` · ${o.manager.split(' ')[0]}` : ''}
                                 </div>
                               ))}
                               {orders.length > 2 && (
@@ -764,6 +764,7 @@ const SaunaCRMPage = () => {
                                 {order.totalAmount && <Badge variant="outline" className="text-xs">{Number(order.totalAmount).toLocaleString()} zł</Badge>}
                               </div>
                               <p className="text-xs text-muted-foreground">{order.modelName || '—'}</p>
+                              {order.manager && <p className="text-xs text-blue-600 font-medium mt-0.5">{order.manager}</p>}
                               {order.phone && <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><Phone className="w-3 h-3" />{order.phone}</p>}
                             </CardContent>
                           </Card>

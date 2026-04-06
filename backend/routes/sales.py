@@ -475,10 +475,18 @@ async def get_statistics(
 
 @router.post("/sync-from-crm")
 async def sync_sales_from_crm():
-    """Sync sales records from ALL sauna_crm_leads (not just with calculator orders)."""
+    """Sync sales records from sauna_crm_leads that are past the first stage."""
     import uuid as uuid_mod
+    
+    # Get CRM settings to know stage order and date fields
+    crm_settings = await db.sauna_crm_settings.find_one({}, {"_id": 0}) or {}
+    stages = crm_settings.get("stages", [])
+    first_stage_id = stages[0]["id"] if stages else "invoice_sent"
+    calendar_date_field = crm_settings.get("calendarDateField", "")
+    
+    # Only sync leads that are NOT in the first stage (already past initial contact)
     crm_leads = await db.sauna_crm_leads.find(
-        {},
+        {"stageId": {"$ne": first_stage_id}},
         {"_id": 0}
     ).to_list(5000)
 
@@ -488,49 +496,75 @@ async def sync_sales_from_crm():
     skipped = 0
     now = datetime.now(timezone.utc).isoformat()
 
+    # Build stage name map for status
+    stage_to_status = {}
+    for s in stages:
+        sid = s.get("id", "")
+        if sid in ("prepayment_received",):
+            stage_to_status[sid] = "запланировано"
+        elif sid in ("approved_by_production", "in_production"):
+            stage_to_status[sid] = "в процессе"
+        elif sid in ("ready", "delivered"):
+            stage_to_status[sid] = "реализовано"
+        elif sid in ("completed",):
+            stage_to_status[sid] = "реализовано"
+        else:
+            stage_to_status[sid] = "новый"
+
     for lead in crm_leads:
         lead_id = lead.get("id", "")
-        order_id = lead.get("calculatorOrderId") or lead_id
-        if not order_id:
+        if not lead_id:
             skipped += 1
             continue
 
-        # Try to get calculator order for price data
-        calc_order = None
-        calc_col = lead.get("calculatorCollection", "sauna_orders")
-        calc_order_id = lead.get("calculatorOrderId")
-        if calc_order_id:
-            calc_order = await db[calc_col].find_one({"id": calc_order_id}, {"_id": 0})
+        order_id = lead.get("calculatorOrderId") or lead_id
 
-        total = 0
-        if calc_order:
-            total = calc_order.get("totalPrice") or calc_order.get("total") or calc_order.get("price") or 0
+        # Determine the best date to use as order_date
+        order_date = ""
+        # 1. Try the calendar date field configured in settings
+        if calendar_date_field and lead.get(calendar_date_field):
+            order_date = str(lead[calendar_date_field])[:10]
+        # 2. Try prepaymentDate
+        if not order_date and lead.get("prepaymentDate"):
+            order_date = str(lead["prepaymentDate"])[:10]
+        # 3. Try productionDate
+        if not order_date and lead.get("productionDate"):
+            order_date = str(lead["productionDate"])[:10]
+        # 4. Fallback to createdAt
+        if not order_date and lead.get("createdAt"):
+            order_date = str(lead["createdAt"])[:10]
 
-        # Use CRM lead fields
+        # Determine delivery date from CRM fields
+        delivery_date = ""
+        if lead.get("deliveryDate"):
+            delivery_date = str(lead["deliveryDate"])[:10]
+
+        # Status from stage
+        stage_id = lead.get("stageId", "")
+        status = stage_to_status.get(stage_id, "новый")
+
         sale_data = {
             "order_id": order_id,
             "crm_lead_id": lead_id,
-            "product_name": lead.get("modelName") or lead.get("field_1") or "",
+            "product_name": lead.get("modelName") or "",
             "client_name": lead.get("clientName", ""),
-            "total_amount": lead.get("totalAmount") or total,
+            "total_amount": lead.get("totalAmount") or 0,
             "paid_amount": lead.get("advancePayment") or 0,
             "advance_amount": lead.get("advancePayment") or 0,
-            "order_date": (lead.get("orderDate") or lead.get("createdAt", ""))[:10] if (lead.get("orderDate") or lead.get("createdAt")) else "",
-            "prepayment_date": lead.get("prepaymentDate") or "",
-            "prepayment_terms": lead.get("paymentMethod") or "",
-            "payment_method": lead.get("paymentMethod") or "",
-            "delivery_date": lead.get("deliveryDate") or "",
-            "status": "в производстве" if lead.get("inProduction") else "новый",
-            "manager": lead.get("manager") or lead.get("responsible") or "",
-            "notes": lead.get("productionComment") or lead.get("notes") or "",
+            "order_date": order_date,
+            "prepayment_date": str(lead.get("prepaymentDate", ""))[:10] if lead.get("prepaymentDate") else "",
+            "delivery_date": delivery_date,
+            "status": status,
+            "manager": lead.get("manager", ""),
+            "notes": lead.get("notes") or "",
             "source": "crm_sync",
         }
 
-        existing = await collection.find_one({"$or": [{"order_id": order_id}, {"crm_lead_id": lead_id}]})
+        existing = await collection.find_one({"$or": [{"crm_lead_id": lead_id}, {"order_id": order_id}]})
         if existing:
-            # Update only auto-fields, keep manual edits
             upd = {}
-            for k in ["product_name", "client_name", "total_amount", "status", "crm_lead_id", "manager", "prepayment_date", "delivery_date", "order_date"]:
+            for k in ["product_name", "client_name", "total_amount", "paid_amount", "advance_amount",
+                       "status", "crm_lead_id", "manager", "prepayment_date", "delivery_date", "order_date"]:
                 if sale_data.get(k):
                     upd[k] = sale_data[k]
             upd["updated_at"] = now
