@@ -601,4 +601,13 @@ async def sync_sales_from_crm():
             await collection.insert_one(sale_doc)
             imported += 1
 
-    return {"imported": imported, "updated": updated, "skipped": skipped, "total_processed": len(crm_leads)}
+    # Cleanup: remove old CRM-synced sales whose leads no longer match the filter
+    synced_lead_ids = {lead.get("id") for lead in crm_leads if lead.get("id")}
+    old_crm_sales = await collection.find({"source": "crm_sync"}, {"_id": 1, "crm_lead_id": 1}).to_list(10000)
+    removed = 0
+    for old_sale in old_crm_sales:
+        if old_sale.get("crm_lead_id") and old_sale["crm_lead_id"] not in synced_lead_ids:
+            await collection.delete_one({"_id": old_sale["_id"]})
+            removed += 1
+
+    return {"imported": imported, "updated": updated, "skipped": skipped, "removed": removed, "total_processed": len(crm_leads)}
