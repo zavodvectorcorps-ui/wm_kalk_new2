@@ -52,7 +52,8 @@ class CRMSettings(BaseModel):
     fields: List[CRMFieldConfig] = []
     stages: List[CRMStageConfig] = []
     syncBackFields: List[Dict[str, str]] = []  # [{fieldId, amoFieldId}]
-    autoSyncEnabled: bool = True
+    autoSyncEnabled: bool = False
+    autoSyncIntervalMinutes: int = 15
     lastSyncAt: Optional[str] = None
     clientNameFieldId: Optional[str] = None  # amoCRM field ID for client name
     modelFieldId: Optional[str] = None  # amoCRM field ID for sauna model
@@ -131,7 +132,8 @@ def get_default_settings() -> dict:
         "commentFieldId": "",
         "advanceFieldId": "",
         "remainingFieldId": "",
-        "autoSyncEnabled": True,
+        "autoSyncEnabled": False,
+        "autoSyncIntervalMinutes": 15,
         "lastSyncAt": None
     }
 

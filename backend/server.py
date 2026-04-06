@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 
 # Background task control
 backup_scheduler_task = None
+crm_auto_sync_task = None
 
 # Create the main app
 app = FastAPI(
@@ -101,6 +102,75 @@ app.include_router(sales_tracking_router)
 # Initialize backup database reference
 from database import db
 set_backup_db(db)
+
+
+async def crm_auto_sync_scheduler():
+    """Background scheduler for periodic CRM-sauna sync from amoCRM."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("CRM auto-sync scheduler waiting 2 minutes before first check...")
+    await asyncio.sleep(120)  # Wait 2 min after startup
+
+    while True:
+        try:
+            settings = await db["sauna_crm_settings"].find_one({}, {"_id": 0})
+            if not settings:
+                await asyncio.sleep(300)
+                continue
+
+            auto_enabled = settings.get("autoSyncEnabled", False)
+            interval = max(5, settings.get("autoSyncIntervalMinutes", 15))
+
+            if not auto_enabled:
+                await asyncio.sleep(60)
+                continue
+
+            # Check if sync is already running
+            running = await db["sauna_crm_sync_status"].find_one({"status": "running"}, {"_id": 0})
+            if running:
+                logger.info("CRM auto-sync: skipped, sync already running")
+                await asyncio.sleep(60)
+                continue
+
+            logger.info(f"CRM auto-sync: starting periodic sync (interval={interval}min)")
+
+            # Trigger sync using the same background logic
+            from routes.sauna_crm import _run_sync_background, get_crm_settings, get_amo_settings_sync
+            import uuid as _uuid
+            crm_settings = await get_crm_settings()
+            amo = get_amo_settings_sync()
+            amo_domain = amo.get("amocrm_domain", "")
+            amo_token = amo.get("amocrm_token", "")
+
+            if not amo_domain or not amo_token:
+                await asyncio.sleep(interval * 60)
+                continue
+
+            sync_id = f"auto-{_uuid.uuid4().hex[:8]}"
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc).isoformat()
+            mapped_stages = [s for s in crm_settings.get("stages", []) if s.get("amoStageId") and s.get("amoPipelineId")]
+
+            await db["sauna_crm_sync_status"].delete_many({})
+            await db["sauna_crm_sync_status"].insert_one({
+                "syncId": sync_id, "status": "running", "startedAt": now,
+                "imported": 0, "updated": 0, "errors": 0,
+                "totalStages": len(mapped_stages), "processedStages": 0,
+                "currentStage": "", "message": "Автосинхронизация..."
+            })
+
+            await _run_sync_background(sync_id, crm_settings, amo_domain, amo_token)
+            logger.info(f"CRM auto-sync completed: {sync_id}")
+
+            await asyncio.sleep(interval * 60)
+
+        except asyncio.CancelledError:
+            logger.info("CRM auto-sync scheduler cancelled")
+            break
+        except Exception as e:
+            logger.error(f"CRM auto-sync scheduler error: {e}")
+            await asyncio.sleep(300)
+
 
 
 async def backup_scheduler():
@@ -293,13 +363,17 @@ async def startup_event():
     logger.info(f"Instance started with JWT_SECRET hash: {secret_hash}")
     
     # Schedule heavy tasks to run in background (non-blocking)
-    global deferred_startup_task, backup_scheduler_task
+    global deferred_startup_task, backup_scheduler_task, crm_auto_sync_task
     deferred_startup_task = asyncio.create_task(deferred_startup_tasks())
     logger.info("Deferred startup tasks scheduled")
     
     # Start backup scheduler in background
     backup_scheduler_task = asyncio.create_task(backup_scheduler())
     logger.info("Backup scheduler task started")
+    
+    # Start CRM auto-sync scheduler
+    crm_auto_sync_task = asyncio.create_task(crm_auto_sync_scheduler())
+    logger.info("CRM auto-sync scheduler started")
 
 
 @app.on_event("shutdown")
@@ -324,6 +398,15 @@ async def shutdown_event():
         except asyncio.CancelledError:
             pass
         logger.info("Backup scheduler stopped")
+    
+    # Cancel CRM auto-sync scheduler
+    if crm_auto_sync_task:
+        crm_auto_sync_task.cancel()
+        try:
+            await crm_auto_sync_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("CRM auto-sync scheduler stopped")
 
 
 # Health check endpoint for Kubernetes (without /api prefix)

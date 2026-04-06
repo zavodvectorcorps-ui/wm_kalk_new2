@@ -1116,7 +1116,9 @@ const SaunaCRMPage = () => {
               )}
 
               {/* Production Dates */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="mt-2 border-t pt-3">
+                <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">Заполняется производством</p>
+                <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Дата производства</Label>
                   <Input type="date" value={(editData.productionDate || '').slice(0, 10)} onChange={(e) => setEditData(p => ({ ...p, productionDate: e.target.value }))} data-testid="lead-productionDate" />
@@ -1128,6 +1130,7 @@ const SaunaCRMPage = () => {
                 <div>
                   <Label className="text-xs text-muted-foreground">Дата доставки</Label>
                   <Input type="date" value={(editData.deliveryDate || '').slice(0, 10)} onChange={(e) => setEditData(p => ({ ...p, deliveryDate: e.target.value }))} data-testid="lead-deliveryDate" />
+                </div>
                 </div>
               </div>
 
@@ -1761,6 +1764,37 @@ const SaunaCRMPage = () => {
                   <Button variant="outline" size="sm" onClick={() => {
                     setSettingsForm(p => ({ ...p, syncBackFields: [...(p.syncBackFields || []), { fieldId: '', amoFieldId: '' }] }));
                   }}><Plus className="w-4 h-4 mr-1" />Добавить маппинг</Button>
+
+                  {/* Auto-sync settings */}
+                  <div className="mt-6 pt-4 border-t">
+                    <p className="text-sm font-medium mb-3">Автоматическая синхронизация</p>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={settingsForm.autoSyncEnabled || false}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, autoSyncEnabled: e.target.checked }))}
+                          className="w-4 h-4 rounded border-gray-300"
+                          data-testid="auto-sync-enabled"
+                        />
+                        <span className="text-sm">Включить автосинхронизацию</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">каждые</span>
+                        <Input
+                          type="number"
+                          min={5}
+                          max={120}
+                          className="w-20"
+                          value={settingsForm.autoSyncIntervalMinutes || 15}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, autoSyncIntervalMinutes: parseInt(e.target.value) || 15 }))}
+                          data-testid="auto-sync-interval"
+                        />
+                        <span className="text-xs text-muted-foreground">мин.</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">При включении CRM будет автоматически синхронизироваться с amoCRM с заданным интервалом</p>
+                  </div>
                 </div>
               </TabsContent>
 

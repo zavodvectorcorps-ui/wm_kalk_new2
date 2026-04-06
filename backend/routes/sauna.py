@@ -1132,6 +1132,106 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         elements.append(comment_table)
         elements.append(Spacer(1, 8))
     
+    # ========== LAYOUT VARIANTS ON PAGE 1 (moved from Page 2) ==========
+    other_layouts_for_size_p1 = getattr(request, 'otherLayoutsForSize', []) or []
+    selected_layout_size_p1 = getattr(request, 'selectedLayoutSize', None)
+    
+    if other_layouts_for_size_p1:
+        elements.append(Spacer(1, 8))
+        layout_title_p1 = f'MOŻLIWE WARIANTY WYKONANIA W ROZMIARZE {selected_layout_size_p1}' if selected_layout_size_p1 else 'MOŻLIWE WARIANTY WYKONANIA'
+        elements.append(Paragraph(layout_title_p1, 
+            ParagraphStyle('LayoutTitleP1', fontName='DejaVuSans-Bold', fontSize=12, 
+                          textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=8)))
+        elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
+        elements.append(Spacer(1, 8))
+        
+        # Determine optimal grid layout
+        def get_p1_columns(item_count: int) -> tuple:
+            if item_count <= 2:
+                return (2, 255)
+            elif item_count <= 3:
+                return (3, 168)
+            else:
+                return (4, 125)
+        
+        num_cols_p1, col_width_p1 = get_p1_columns(len(other_layouts_for_size_p1))
+        layout_rows_p1 = []
+        current_row_p1 = []
+        
+        for layout in other_layouts_for_size_p1:
+            card_content = []
+            
+            layout_img = None
+            layout_image_url = layout.get('imageUrl', '')
+            if layout_image_url:
+                try:
+                    img_data = await load_image(layout_image_url, timeout=2)
+                    if img_data:
+                        img_data = optimize_image_for_pdf(img_data, max_size=200, quality=50)
+                        pil_img = PILImage.open(io.BytesIO(img_data))
+                        orig_w, orig_h = pil_img.size
+                        ratio = min((col_width_p1-20) / orig_w, 80 / orig_h)
+                        new_w, new_h = int(orig_w * ratio), int(orig_h * ratio)
+                        layout_img = RLImage(io.BytesIO(img_data), width=new_w, height=new_h)
+                except Exception as e:
+                    logger.warning(f"Could not load layout image: {e}")
+            
+            if layout_img:
+                card_content.append(layout_img)
+            
+            layout_name = layout.get('name', 'Wariant')
+            card_content.append(Paragraph(f'<b>{layout_name}</b>', 
+                ParagraphStyle('LP1Name', fontName='DejaVuSans-Bold', fontSize=9, textColor=BROWN_DARK, alignment=TA_CENTER, spaceBefore=4)))
+            
+            dims = []
+            if layout.get('peopleCount'):
+                dims.append(f"{layout['peopleCount']} os.")
+            if layout.get('steamRoomSize') and layout['steamRoomSize'] != '0':
+                dims.append(f"{layout['steamRoomSize']}")
+            if layout.get('entranceSide'):
+                dims.append(f"{layout['entranceSide']}")
+            if dims:
+                card_content.append(Paragraph(' | '.join(dims), 
+                    ParagraphStyle('LP1Dims', fontName='DejaVuSans', fontSize=7, textColor=MUTED, alignment=TA_CENTER)))
+            
+            if layout.get('description'):
+                desc = layout['description'][:80] + '...' if len(layout.get('description', '')) > 80 else layout.get('description', '')
+                card_content.append(Paragraph(desc, 
+                    ParagraphStyle('LP1Desc', fontName='DejaVuSans', fontSize=7, textColor=TEXT_COLOR, alignment=TA_CENTER, leading=9)))
+            
+            card = Table([[c] for c in card_content], colWidths=[col_width_p1-10])
+            card.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
+                ('BOX', (0, 0), (-1, -1), 1, BROWN_BORDER),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            
+            current_row_p1.append(card)
+            if len(current_row_p1) == num_cols_p1:
+                layout_rows_p1.append(current_row_p1)
+                current_row_p1 = []
+        
+        if current_row_p1:
+            while len(current_row_p1) < num_cols_p1:
+                current_row_p1.append('')
+            layout_rows_p1.append(current_row_p1)
+        
+        if layout_rows_p1:
+            grid = Table(layout_rows_p1, colWidths=[col_width_p1] * num_cols_p1)
+            grid.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(grid)
+        elements.append(Spacer(1, 8))
+    
     # ========== OPTIONS SECTION (Two columns) ==========
     options_items = []
     quantities = getattr(request, 'quantities', {}) or {}
@@ -1408,9 +1508,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     plus_only_categories = getattr(request, 'plusOnlyCategories', []) or []
     all_available_options = getattr(request, 'allAvailableOptions', []) or []
     
-    # Other layouts for the same size from Layout Catalog
-    other_layouts_for_size = getattr(request, 'otherLayoutsForSize', []) or []
-    selected_layout_size = getattr(request, 'selectedLayoutSize', None)
+    # Other layouts for the same size from Layout Catalog (now rendered on Page 1)
+    # Variables are still loaded here for potential future page2 use, but rendering moved to Page 1
     
     # PDF Page 2 settings from request
     page2_enabled = getattr(request, 'pdfPage2Enabled', True)
@@ -1431,8 +1530,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         else:
             return (4, 125)
     
-    # Only add Page 2 if enabled and we have content to show
-    if page2_enabled and (model_variants or all_available_options or other_layouts_for_size):
+    # Only add Page 2 if enabled and we have content to show (layouts moved to page 1)
+    has_page2_content = (model_variants and page2_show_variants) or all_available_options
+    if page2_enabled and has_page2_content:
         elements.append(PageBreak())
         
         # Helper function to load image for PDF card (uses cached load_image)
@@ -1454,96 +1554,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 logger.warning(f"Could not load card image: {e}")
             return None
         
-        # ===== SECTION 0: Other Layouts from Layout Catalog =====
-        logger.info(f"PDF Page 2 - other_layouts_for_size count: {len(other_layouts_for_size) if other_layouts_for_size else 0}")
-        
-        if other_layouts_for_size:
-            # Title with selected size
-            layout_title = f'MOŻLIWE WARIANTY WYKONANIA W ROZMIARZE {selected_layout_size}' if selected_layout_size else 'MOŻLIWE WARIANTY WYKONANIA'
-            elements.append(Paragraph(layout_title, 
-                ParagraphStyle('Page2Title', fontName='DejaVuSans-Bold', fontSize=14, 
-                              textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=12)))
-            elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
-            elements.append(Spacer(1, 12))
-            
-            # Create grid of layout cards with images
-            num_cols, col_width = get_optimal_columns(len(other_layouts_for_size))
-            layout_rows = []
-            current_row = []
-            
-            for layout in other_layouts_for_size:
-                # Build card content
-                card_content = []
-                
-                # Try to load image
-                layout_img = None
-                layout_image_url = layout.get('imageUrl', '')
-                if layout_image_url:
-                    try:
-                        layout_img = await load_card_image(layout_image_url, max_width=col_width-20, max_height=80)
-                    except Exception as e:
-                        logger.warning(f"Could not load layout image: {e}")
-                
-                if layout_img:
-                    card_content.append(layout_img)
-                
-                # Layout name
-                layout_name = layout.get('name', 'Wariant')
-                card_content.append(Paragraph(f'<b>{layout_name}</b>', 
-                    ParagraphStyle('LayoutName', fontName='DejaVuSans-Bold', fontSize=9, textColor=BROWN_DARK, alignment=TA_CENTER, spaceBefore=4)))
-                
-                # Dimensions info
-                dims = []
-                if layout.get('peopleCount'):
-                    dims.append(f"👥 {layout['peopleCount']}")
-                if layout.get('steamRoomSize') and layout['steamRoomSize'] != '0':
-                    dims.append(f"🔥 {layout['steamRoomSize']}")
-                if layout.get('entranceSide'):
-                    dims.append(f"🚪 {layout['entranceSide']}")
-                if dims:
-                    card_content.append(Paragraph(' | '.join(dims), 
-                        ParagraphStyle('LayoutDims', fontName='DejaVuSans', fontSize=7, textColor=MUTED, alignment=TA_CENTER)))
-                
-                # Description
-                if layout.get('description'):
-                    desc = layout['description'][:80] + '...' if len(layout.get('description', '')) > 80 else layout.get('description', '')
-                    card_content.append(Paragraph(desc, 
-                        ParagraphStyle('LayoutDesc', fontName='DejaVuSans', fontSize=7, textColor=TEXT_COLOR, alignment=TA_CENTER, leading=9)))
-                
-                # Create card table
-                card = Table([[c] for c in card_content], colWidths=[col_width-10])
-                card.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
-                    ('BOX', (0, 0), (-1, -1), 1, BROWN_BORDER),
-                    ('TOPPADDING', (0, 0), (-1, -1), 6),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ]))
-                
-                current_row.append(card)
-                if len(current_row) == num_cols:
-                    layout_rows.append(current_row)
-                    current_row = []
-            
-            # Add remaining cards
-            if current_row:
-                while len(current_row) < num_cols:
-                    current_row.append('')
-                layout_rows.append(current_row)
-            
-            if layout_rows:
-                layouts_table = Table(layout_rows, colWidths=[col_width] * num_cols)
-                layouts_table.setStyle(TableStyle([
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('TOPPADDING', (0, 0), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                ]))
-                elements.append(layouts_table)
-                elements.append(Spacer(1, 16))
+        # ===== SECTION 0: Layout Variants - MOVED TO PAGE 1 =====
+        # (Layout variants are now rendered on page 1, before options section)
         
         # ===== SECTION 1: Model Variants =====
         logger.info(f"PDF Page 2 - model_variants count: {len(model_variants) if model_variants else 0}")
