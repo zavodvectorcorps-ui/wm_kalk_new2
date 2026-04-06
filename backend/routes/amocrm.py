@@ -329,7 +329,7 @@ async def fetch_leads_batch_from_amocrm(lead_ids: List[str], domain: str, token:
                     logger.info(f"Batch fetched {len(leads)} leads from amoCRM (requested {len(batch)})")
                     
                 elif response.status_code == 429:
-                    logger.warning(f"amoCRM API rate limit exceeded during batch fetch")
+                    logger.warning("amoCRM API rate limit exceeded during batch fetch")
                     # Wait and retry once
                     await asyncio.sleep(1)
                     response = await client.get(url, headers=headers, params=params)
@@ -1383,6 +1383,10 @@ async def receive_webhook_section(
         
         logger.info(f"Updated {section} order from amoCRM: {existing_order['id']}")
         
+        # Auto-sync CRM-sauna lead when sauna webhook is received
+        if section == "sauna" and lead_id:
+            await _auto_sync_crm_lead(lead_id, domain, token, log_entry)
+        
         return {"status": "ok", "order_id": existing_order["id"], "section": section, "action": "updated"}
     
     # Create new order
@@ -1402,7 +1406,95 @@ async def receive_webhook_section(
     
     logger.info(f"Created {section} order from amoCRM: {order_data['id']}")
     
+    # Auto-sync CRM-sauna lead when sauna webhook is received
+    if section == "sauna" and lead_id:
+        await _auto_sync_crm_lead(lead_id, domain, token, log_entry)
+    
     return {"status": "ok", "order_id": order_data["id"], "section": section, "action": "created"}
+
+
+async def _auto_sync_crm_lead(lead_id: str, domain: str, token: str, log_entry: dict):
+    """Auto-sync a single lead into CRM-sauna when webhook is received.
+    Uses the single-lead sync logic from sauna_crm module via HTTP call."""
+    try:
+        from database import db as async_db
+
+        # Get CRM settings to check if lead belongs to a mapped stage
+        crm_settings = await async_db["sauna_crm_settings"].find_one({}, {"_id": 0})
+        if not crm_settings:
+            logger.info("CRM auto-sync skipped: no CRM settings configured")
+            return
+
+        mapped_stages = [s for s in crm_settings.get("stages", []) if s.get("amoStageId") and s.get("amoPipelineId")]
+        if not mapped_stages:
+            logger.info("CRM auto-sync skipped: no stages mapped to amoCRM")
+            return
+
+        if not domain or not token:
+            logger.info("CRM auto-sync skipped: no amoCRM credentials")
+            return
+
+        # Fetch lead data from amoCRM API
+        headers_amo = {"Authorization": f"Bearer {token}"}
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"https://{domain}/api/v4/leads/{lead_id}",
+                headers=headers_amo,
+                params={"with": "contacts"}
+            )
+            if resp.status_code != 200:
+                logger.warning(f"CRM auto-sync: failed to fetch lead {lead_id}: {resp.status_code}")
+                return
+            amo_lead = resp.json()
+
+        # Check if this lead's status matches any mapped CRM stage
+        amo_status_id = str(amo_lead.get("status_id", ""))
+        amo_pipeline_id = str(amo_lead.get("pipeline_id", ""))
+
+        target_stage = None
+        for stage in mapped_stages:
+            if str(stage.get("amoStageId")) == amo_status_id and str(stage.get("amoPipelineId")) == amo_pipeline_id:
+                target_stage = stage
+                break
+
+        if not target_stage:
+            logger.info(f"CRM auto-sync: lead {lead_id} status {amo_status_id} not mapped to any CRM stage, skipping")
+            return
+
+        # Import the processing function from sauna_crm
+        from routes.sauna_crm import _process_single_amo_lead, extract_advance_remaining
+
+        # Build field mappings
+        field_mappings = {f["amoFieldId"]: f["id"] for f in crm_settings.get("fields", []) if f.get("amoFieldId") and not f["amoFieldId"].startswith("_")}
+
+        # Cache users for manager name
+        users_cache = {}
+        responsible_id = amo_lead.get("responsible_user_id")
+        if responsible_id:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as uc:
+                    ur = await uc.get(f"https://{domain}/api/v4/users/{responsible_id}", headers=headers_amo)
+                    if ur.status_code == 200:
+                        user_data = ur.json()
+                        users_cache[responsible_id] = user_data.get("name", "")
+            except Exception:
+                pass
+
+        # Process the lead using the same logic as bulk sync
+        result = await _process_single_amo_lead(
+            amo_lead, target_stage, domain, token, headers_amo,
+            field_mappings, crm_settings, users_cache
+        )
+
+        logger.info(f"CRM auto-sync complete for lead {lead_id}: {result}")
+        if log_entry:
+            log_entry["crm_auto_sync"] = {"result": result, "stage": target_stage.get("name", target_stage["id"])}
+
+    except Exception as e:
+        logger.error(f"CRM auto-sync error for lead {lead_id}: {e}")
+        if log_entry:
+            log_entry["crm_auto_sync_error"] = str(e)
+
 
 
 @router.delete("/orders/{section}")
@@ -2058,7 +2150,7 @@ async def upload_calculator_pdf_to_amocrm(
     
     Uses Kommo Drive file service with proper Content-Range headers.
     """
-    logger.info(f"=== upload_calculator_pdf V12-range called ===")
+    logger.info("=== upload_calculator_pdf V12-range called ===")
     logger.info(f"amocrm_id={amocrm_id}, order_id={order_id}, calculator_type={calculator_type}, employee={employee_name}, total={total_amount}")
     
     settings = get_amocrm_settings()
@@ -2499,7 +2591,6 @@ async def test_file_upload_to_amocrm(
 @router.get("/calculator-pdf/{order_id}")
 async def download_calculator_pdf(order_id: str):
     """Download saved calculator PDF by order ID."""
-    from fastapi.responses import Response
     
     pdf_collection = db["calculator_pdfs"]
     pdf_doc = pdf_collection.find_one({"order_id": order_id}, {"_id": 0})

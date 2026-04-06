@@ -849,11 +849,18 @@ def extract_standard_and_custom_fields(amo_lead, custom_fields, field_mappings, 
 
 
 def _convert_amo_timestamp_to_date(val) -> str:
-    """Convert amoCRM Unix timestamp to YYYY-MM-DD date string."""
+    """Convert amoCRM Unix timestamp to YYYY-MM-DD date string.
+    amoCRM stores dates as midnight in the user's timezone.
+    We use Europe/Warsaw since this is a Polish business app."""
     try:
         ts = int(str(val).split(".")[0])
         if ts > 1000000000:  # Looks like a Unix timestamp
-            dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+            try:
+                from zoneinfo import ZoneInfo
+                dt = datetime.fromtimestamp(ts, tz=ZoneInfo("Europe/Warsaw"))
+            except Exception:
+                # Fallback: add 4 hours to compensate for CET/CEST offset
+                dt = datetime.fromtimestamp(ts + 14400, tz=timezone.utc)
             return dt.strftime("%Y-%m-%d")
     except (ValueError, TypeError, OSError):
         pass
