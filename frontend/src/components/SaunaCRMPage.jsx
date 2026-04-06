@@ -1796,6 +1796,52 @@ const SaunaCRMPage = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">При включении CRM будет автоматически синхронизироваться с amoCRM с заданным интервалом</p>
                   </div>
+
+                  {/* Sales sync settings */}
+                  <div className="mt-6 pt-4 border-t">
+                    <p className="text-sm font-medium mb-3">Синхронизация с Продажами</p>
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Этап, начиная с которого сделки попадают в Продажи</Label>
+                        <select
+                          className="w-full mt-1 border rounded-md px-3 py-2 text-sm"
+                          value={settingsForm.salesStageId || ''}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, salesStageId: e.target.value }))}
+                          data-testid="sales-stage-select"
+                        >
+                          <option value="">Не выбран (все кроме первого)</option>
+                          {(settingsForm.stages || []).map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">ID поля amoCRM "Предоплата получена" (флаг)</Label>
+                        <Input
+                          className="mt-1"
+                          placeholder="Например: 1234567"
+                          value={settingsForm.salesPrepaymentFlagFieldId || ''}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, salesPrepaymentFlagFieldId: e.target.value }))}
+                          data-testid="sales-flag-field-input"
+                        />
+                        <p className="text-xs text-muted-foreground mt-0.5">Только сделки с этим флагом попадут в Продажи</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Поле CRM для даты продажи (дата получения аванса)</Label>
+                        <select
+                          className="w-full mt-1 border rounded-md px-3 py-2 text-sm"
+                          value={settingsForm.salesDateFieldId || ''}
+                          onChange={(e) => setSettingsForm(p => ({ ...p, salesDateFieldId: e.target.value }))}
+                          data-testid="sales-date-field-select"
+                        >
+                          <option value="">Автоматически</option>
+                          {(settingsForm.fields || []).filter(f => f.fieldType === 'date').map(f => (
+                            <option key={f.id} value={f.id}>{f.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 

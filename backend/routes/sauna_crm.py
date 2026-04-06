@@ -61,6 +61,10 @@ class CRMSettings(BaseModel):
     commentFieldId: Optional[str] = None  # amoCRM field ID for manager comment
     advanceFieldId: Optional[str] = None  # amoCRM field ID for advance payment
     remainingFieldId: Optional[str] = None  # amoCRM field ID for remaining amount
+    # Sales sync settings
+    salesPrepaymentFlagFieldId: Optional[str] = None  # amoCRM field ID for "Предоплата получена" flag
+    salesDateFieldId: Optional[str] = None  # CRM field ID for sale date (дата получения аванса)
+    salesStageId: Optional[str] = None  # CRM stage from which leads go to Sales (e.g. "prepayment_received")
 
 
 class CRMLead(BaseModel):

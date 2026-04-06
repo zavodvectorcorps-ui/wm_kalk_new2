@@ -475,20 +475,43 @@ async def get_statistics(
 
 @router.post("/sync-from-crm")
 async def sync_sales_from_crm():
-    """Sync sales records from sauna_crm_leads that are past the first stage."""
+    """Sync sales records from CRM leads that have prepayment flag and are in the configured stage."""
     import uuid as uuid_mod
-    
-    # Get CRM settings to know stage order and date fields
+
     crm_settings = await db.sauna_crm_settings.find_one({}, {"_id": 0}) or {}
     stages = crm_settings.get("stages", [])
-    first_stage_id = stages[0]["id"] if stages else "invoice_sent"
-    calendar_date_field = crm_settings.get("calendarDateField", "")
-    
-    # Only sync leads that are NOT in the first stage (already past initial contact)
-    crm_leads = await db.sauna_crm_leads.find(
-        {"stageId": {"$ne": first_stage_id}},
-        {"_id": 0}
-    ).to_list(5000)
+
+    # Sales filter settings
+    sales_stage_id = crm_settings.get("salesStageId", "")
+    sales_flag_field = crm_settings.get("salesPrepaymentFlagFieldId", "")
+    sales_date_field = crm_settings.get("salesDateFieldId", "")
+
+    # Build query: filter by stage AND/OR prepayment flag
+    query = {}
+    conditions = []
+
+    if sales_stage_id:
+        # Only leads in this stage or later stages
+        stage_ids = [s["id"] for s in stages]
+        try:
+            idx = stage_ids.index(sales_stage_id)
+            allowed_stages = stage_ids[idx:]
+            conditions.append({"stageId": {"$in": allowed_stages}})
+        except ValueError:
+            conditions.append({"stageId": sales_stage_id})
+
+    if sales_flag_field:
+        # Only leads where the flag field has a truthy value
+        conditions.append({sales_flag_field: {"$exists": True, "$nin": [None, "", "0", "false", False, 0]}})
+
+    if conditions:
+        query = {"$and": conditions} if len(conditions) > 1 else conditions[0]
+    else:
+        # Fallback: only leads past first stage
+        first_stage_id = stages[0]["id"] if stages else "invoice_sent"
+        query = {"stageId": {"$ne": first_stage_id}}
+
+    crm_leads = await db.sauna_crm_leads.find(query, {"_id": 0}).to_list(5000)
 
     collection = get_sales_collection()
     imported = 0
@@ -496,7 +519,7 @@ async def sync_sales_from_crm():
     skipped = 0
     now = datetime.now(timezone.utc).isoformat()
 
-    # Build stage name map for status
+    # Stage → status mapping
     stage_to_status = {}
     for s in stages:
         sid = s.get("id", "")
@@ -519,27 +542,24 @@ async def sync_sales_from_crm():
 
         order_id = lead.get("calculatorOrderId") or lead_id
 
-        # Determine the best date to use as order_date
+        # Sale date = configured sales date field (дата получения аванса)
         order_date = ""
-        # 1. Try the calendar date field configured in settings
-        if calendar_date_field and lead.get(calendar_date_field):
-            order_date = str(lead[calendar_date_field])[:10]
-        # 2. Try prepaymentDate
+        if sales_date_field and lead.get(sales_date_field):
+            order_date = str(lead[sales_date_field])[:10]
+        # Fallback chain
         if not order_date and lead.get("prepaymentDate"):
             order_date = str(lead["prepaymentDate"])[:10]
-        # 3. Try productionDate
-        if not order_date and lead.get("productionDate"):
-            order_date = str(lead["productionDate"])[:10]
-        # 4. Fallback to createdAt
+        if not order_date:
+            calendar_date_field = crm_settings.get("calendarDateField", "")
+            if calendar_date_field and lead.get(calendar_date_field):
+                order_date = str(lead[calendar_date_field])[:10]
         if not order_date and lead.get("createdAt"):
             order_date = str(lead["createdAt"])[:10]
 
-        # Determine delivery date from CRM fields
         delivery_date = ""
         if lead.get("deliveryDate"):
             delivery_date = str(lead["deliveryDate"])[:10]
 
-        # Status from stage
         stage_id = lead.get("stageId", "")
         status = stage_to_status.get(stage_id, "новый")
 
