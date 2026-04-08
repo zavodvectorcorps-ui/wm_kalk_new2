@@ -1908,9 +1908,9 @@ export const FAQView = ({ calculatorType = 'both' }) => {
   );
 };
 
-// FAQ Admin Component (for admins)
+// FAQ Admin Component (for admins and marketers)
 export const FAQAdmin = ({ calculatorType = null }) => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isMarketer } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editItem, setEditItem] = useState(null);
@@ -1996,7 +1996,7 @@ export const FAQAdmin = ({ calculatorType = null }) => {
     return matchesCalculator && matchesCategory;
   });
 
-  if (!isAdmin || !isAdmin()) {
+  if ((!isAdmin || !isAdmin()) && (!isMarketer || !isMarketer())) {
     return <div className="p-4 text-center text-muted-foreground">Доступ запрещён</div>;
   }
 
