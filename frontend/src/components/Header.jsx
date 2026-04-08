@@ -162,8 +162,8 @@ export const Header = ({
                   FAQ
                 </Button>
               )}
-              {/* FAQ Admin - only for admins */}
-              {showNavigation && isAdminAuthenticated && (
+              {/* FAQ Admin - for admins and marketers */}
+              {showNavigation && (isAdminAuthenticated || isMarketer()) && (
                 <Button
                   variant={activeTab === 'faq-admin' ? 'default' : 'ghost'}
                   size="sm"
@@ -370,7 +370,7 @@ export const Header = ({
                   <HelpCircle className="h-4 w-4" />
                   FAQ
                 </Button>
-                {isAdminAuthenticated && (
+                {(isAdminAuthenticated || isMarketer()) && (
                   <Button
                     variant={activeTab === 'faq-admin' ? 'default' : 'ghost'}
                     size="sm"

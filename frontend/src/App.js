@@ -461,7 +461,7 @@ const AppContent = () => {
             {activeTab === 'embed' && isAdmin() && <EmbedCodePage />}
             {activeTab === 'users' && isAdmin() && <UserManagement />}
             {activeTab === 'faq' && <FAQPage calculatorType="balia" />}
-            {activeTab === 'faq-admin' && isAdmin() && <FAQAdminComponent calculatorType="balia" />}
+            {activeTab === 'faq-admin' && (isAdmin() || isMarketer()) && <FAQAdminComponent calculatorType="balia" />}
             {activeTab === 'training' && <TrainingPage user={user} />}
           </Suspense>
         </main>
@@ -522,7 +522,7 @@ const AppContent = () => {
           <Suspense fallback={<PageLoader />}>
             <FAQPage calculatorType="sauna" />
           </Suspense>
-        ) : activeTab === 'faq-admin' && isAdmin() ? (
+        ) : activeTab === 'faq-admin' && (isAdmin() || isMarketer()) ? (
           <Suspense fallback={<PageLoader />}>
             <FAQAdminComponent calculatorType="sauna" />
           </Suspense>
