@@ -41,6 +41,9 @@ fields, stages, syncBackFields, autoSyncEnabled, autoSyncIntervalMinutes, lastSy
 clientNameFieldId, modelFieldId, calendarDateField, commentFieldId,
 advanceFieldId, remainingFieldId, salesPrepaymentFlagFieldId, salesDateFieldId, salesStageId
 
+## Session 7 Fixes (April 8, 2026)
+- Fixed Marketer role access to FAQ Admin, Planowki editor, and Layout Variants (FAQView `isAdmin` check extended to include marketer role)
+
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx
 - P2: Refactor monolithic files (amocrm.py, widget.py, sauna_crm.py, SaunaCRMPage.jsx)

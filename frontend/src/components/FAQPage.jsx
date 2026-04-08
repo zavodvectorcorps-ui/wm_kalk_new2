@@ -350,7 +350,7 @@ export const FAQView = ({ calculatorType = 'both' }) => {
   const [expandedModels, setExpandedModels] = useState(new Set());
   const [saunaModels, setSaunaModels] = useState([]); // List of sauna models with their variants
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'marketer';
   const userId = user?.id || user?.username;
   const username = user?.username;
 
