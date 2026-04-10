@@ -6,7 +6,7 @@ import { Badge } from '../ui/badge';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Plus, ArrowUp, ArrowDown, Edit2, Trash2, LayoutGrid, List, Info, Upload, X, Image as ImageIcon, Video } from 'lucide-react';
+import { Plus, ArrowUp, ArrowDown, Edit2, Trash2, LayoutGrid, List, Info, Upload, X, Image as ImageIcon, Video, Copy } from 'lucide-react';
 import { AddModelDialog, EditModelDialog } from './ModelDialog';
 
 export const ModelsTab = ({
@@ -263,13 +263,27 @@ export const ModelsTab = ({
                         size="sm"
                         variant="outline"
                         onClick={() => onEditModel(model)}
+                        title="Редактировать"
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const copy = { ...model, id: `model_${Date.now()}`, name: model.name + ' (копия)' };
+                          delete copy._id;
+                          handleAddModel(copy);
+                        }}
+                        title="Дублировать"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="destructive"
                         onClick={() => handleDeleteModel(model.id)}
+                        title="Удалить"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
