@@ -44,8 +44,9 @@ advanceFieldId, remainingFieldId, salesPrepaymentFlagFieldId, salesDateFieldId, 
 ## Session 7 Fixes (April 8-10, 2026)
 - Fixed Marketer role access to FAQ Admin, Planowki editor, and Layout Variants
 - FAQ Layout Variants: Custom arbitrary sizes, duplicate button, dynamic sorting
-- Calculator: "Оплата сертификатом" (-18%) compound discount button
+- Calculator: "Оплата сертификатом" compound discount button (without 18% in text)
 - PDF: Removed discount percentage, shows only price before/after and savings
+- Certificate history: Auto-logging when orders with certificate saved, history table in Statistics page
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx
