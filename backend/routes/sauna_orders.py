@@ -1,6 +1,7 @@
 """Sauna orders CRUD operations."""
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
+from typing import Optional
 import logging
 
 from database import db
@@ -26,6 +27,24 @@ async def create_sauna_order(order: SaunaOrder):
     
     # Save order first
     await db.sauna_orders.insert_one(order_dict)
+    
+    # Log certificate usage if applied
+    if order_dict.get('certificateDiscount'):
+        try:
+            cert_log = {
+                "orderId": order_dict.get('id', ''),
+                "clientName": order_dict.get('fullName', ''),
+                "modelName": order_dict.get('modelName', ''),
+                "subtotal": order_dict.get('subtotal', 0),
+                "discountPercent": order_dict.get('discountPercent', 0),
+                "totalAfterDiscount": order_dict.get('total', 0),
+                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * 0.18),
+                "createdBy": order_dict.get('createdBy', ''),
+                "createdAt": datetime.now(timezone.utc).isoformat()
+            }
+            await db.certificate_history.insert_one(cert_log)
+        except Exception as e:
+            logger.warning(f"Failed to log certificate usage: {e}")
     
     # Then send Telegram notification with PDF
     pdf_generated = False
@@ -148,6 +167,24 @@ async def update_sauna_order(order_id: str, order: SaunaOrder):
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Log certificate usage if newly applied
+    if order_dict.get('certificateDiscount') and not existing.get('certificateDiscount'):
+        try:
+            cert_log = {
+                "orderId": order_id,
+                "clientName": order_dict.get('fullName', ''),
+                "modelName": order_dict.get('modelName', ''),
+                "subtotal": order_dict.get('subtotal', 0),
+                "discountPercent": order_dict.get('discountPercent', 0),
+                "totalAfterDiscount": order_dict.get('total', 0),
+                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * 0.18),
+                "createdBy": order_dict.get('updatedBy', order_dict.get('createdBy', '')),
+                "createdAt": datetime.now(timezone.utc).isoformat()
+            }
+            await db.certificate_history.insert_one(cert_log)
+        except Exception as e:
+            logger.warning(f"Failed to log certificate usage on update: {e}")
     
     # Return updated order
     updated = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
@@ -349,3 +386,12 @@ async def get_order_tech_spec(order_id: str):
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order.get("techSpec", {})
+
+
+@router.get("/certificate-history")
+async def get_certificate_history(limit: int = 50, skip: int = 0):
+    """Get certificate discount usage history."""
+    cursor = db.certificate_history.find({}, {"_id": 0}).sort("createdAt", -1).skip(skip).limit(limit)
+    items = await cursor.to_list(length=limit)
+    total = await db.certificate_history.count_documents({})
+    return {"items": items, "total": total}

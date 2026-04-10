@@ -321,12 +321,15 @@ export const StatisticsPage = ({ calculatorType = 'sauna' }) => {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : !stats || stats.totalOrders === 0 ? (
+        <>
         <Card>
           <CardContent className="py-12 text-center">
             <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground">{txt.noData}</p>
           </CardContent>
         </Card>
+        {isSauna && <CertificateHistorySection lang={lang} />}
+        </>
       ) : (
         <>
           {/* Main Stats Cards */}
@@ -604,9 +607,135 @@ export const StatisticsPage = ({ calculatorType = 'sauna' }) => {
               </CardContent>
             </Card>
           )}
+          {/* Certificate History - only for sauna */}
+          {isSauna && <CertificateHistorySection lang={lang} />}
         </>
       )}
     </div>
+  );
+};
+
+// Certificate History Section
+const CertificateHistorySection = ({ lang }) => {
+  const [history, setHistory] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const txt = lang === 'pl' ? {
+    title: 'Historia płatności certyfikatem',
+    client: 'Klient',
+    model: 'Model',
+    savings: 'Oszczędność',
+    manager: 'Menedżer',
+    date: 'Data',
+    noData: 'Brak historii certyfikatów',
+    show: 'Pokaż historię certyfikatów',
+    hide: 'Ukryj',
+    totalSavings: 'Łączne oszczędności',
+    total: 'Razem',
+    priceBeforeDiscount: 'Cena przed rabatem',
+    priceAfterDiscount: 'Cena po rabacie',
+  } : {
+    title: 'История оплаты сертификатом',
+    client: 'Клиент',
+    model: 'Модель',
+    savings: 'Экономия',
+    manager: 'Менеджер',
+    date: 'Дата',
+    noData: 'Нет истории сертификатов',
+    show: 'Показать историю сертификатов',
+    hide: 'Скрыть',
+    totalSavings: 'Всего сэкономлено',
+    total: 'Итого',
+    priceBeforeDiscount: 'Цена до скидки',
+    priceAfterDiscount: 'Цена после скидки',
+  };
+
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/api/sauna/certificate-history?limit=100`);
+      setHistory(response.data.items || []);
+      setTotal(response.data.total || 0);
+    } catch (error) {
+      console.error('Error fetching certificate history:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (expanded) fetchHistory();
+  }, [expanded]);
+
+  const totalSavings = history.reduce((sum, h) => sum + (h.certificateSavings || 0), 0);
+
+  return (
+    <Card className="border-blue-200" data-testid="certificate-history-section">
+      <CardHeader className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <CardTitle className="text-lg flex items-center justify-between">
+          <div className="flex items-center gap-2 text-blue-700">
+            <Percent className="h-5 w-5" />
+            {txt.title}
+            {total > 0 && <Badge variant="secondary" className="ml-2">{total}</Badge>}
+          </div>
+          <Button variant="ghost" size="sm">
+            {expanded ? txt.hide : txt.show}
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      {expanded && (
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+            </div>
+          ) : history.length === 0 ? (
+            <p className="text-center text-muted-foreground py-4">{txt.noData}</p>
+          ) : (
+            <div className="space-y-3">
+              {totalSavings > 0 && (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 flex justify-between items-center">
+                  <span className="font-medium text-blue-700">{txt.totalSavings}:</span>
+                  <span className="text-lg font-bold text-blue-800">{Math.round(totalSavings).toLocaleString('pl-PL')} PLN</span>
+                </div>
+              )}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-muted-foreground">
+                      <th className="text-left py-2 px-2">{txt.date}</th>
+                      <th className="text-left py-2 px-2">{txt.client}</th>
+                      <th className="text-left py-2 px-2">{txt.model}</th>
+                      <th className="text-right py-2 px-2">{txt.priceBeforeDiscount}</th>
+                      <th className="text-right py-2 px-2">{txt.priceAfterDiscount}</th>
+                      <th className="text-right py-2 px-2">{txt.savings}</th>
+                      <th className="text-left py-2 px-2">{txt.manager}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((item, idx) => (
+                      <tr key={idx} className="border-b hover:bg-muted/50">
+                        <td className="py-2 px-2 whitespace-nowrap">
+                          {item.createdAt ? new Date(item.createdAt).toLocaleDateString('pl-PL') : '-'}
+                        </td>
+                        <td className="py-2 px-2">{item.clientName || '-'}</td>
+                        <td className="py-2 px-2 text-xs">{item.modelName || '-'}</td>
+                        <td className="py-2 px-2 text-right">{Math.round(item.subtotal || 0).toLocaleString('pl-PL')} PLN</td>
+                        <td className="py-2 px-2 text-right font-medium">{Math.round(item.totalAfterDiscount || 0).toLocaleString('pl-PL')} PLN</td>
+                        <td className="py-2 px-2 text-right text-blue-700 font-medium">-{Math.round(item.certificateSavings || 0).toLocaleString('pl-PL')} PLN</td>
+                        <td className="py-2 px-2">{item.createdBy || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      )}
+    </Card>
   );
 };
 

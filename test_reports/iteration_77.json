@@ -1,0 +1,48 @@
+{
+  "summary": "Tested 2 new features: (1) Certificate button text without (-18%) suffix, (2) Certificate history tracking and display in Statistics page. All 8 backend tests passed. Frontend tests confirmed all features working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_certificate_history_iteration77.py",
+    "/app/test_reports/pytest/pytest_results_iteration77.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_certificate_history_iteration77.py"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "Created test order with certificateDiscount=true to verify logging (cleaned up after test)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Two features fully implemented and tested: 1) Certificate button text in calculator now shows 'Płatność certyfikatem' WITHOUT (-18%) suffix in Polish mode. 2) Certificate history tracking: when orders with certificateDiscount=true are created, they are logged to certificate_history collection. Statistics page (Statystyki tab) has CertificateHistorySection at the bottom with data-testid='certificate-history-section'. Section is collapsible, shows 'Brak historii certyfikatów' when empty, and displays table with columns: Data, Klient, Model, Cena przed rabatem, Cena po rabacie, Oszczędność, Menedżer when history exists.",
+  "features_tested": {
+    "certificate_button_text_polish": "PASS - Button shows 'Płatność certyfikatem' without (-18%)",
+    "certificate_button_text_russian": "PASS - constants.js has 'Оплата сертификатом' without (-18%)",
+    "certificate_button_toggle": "PASS - Button toggles ON/OFF, shows toast 'Rabat certyfikatu usunięty' when toggled off",
+    "certificate_history_api_exists": "PASS - GET /api/sauna/certificate-history returns {items: [], total: 0}",
+    "certificate_history_api_pagination": "PASS - Supports limit and skip parameters",
+    "certificate_history_logging_on_create": "PASS - Creating order with certificateDiscount=true logs to certificate_history",
+    "certificate_history_no_logging_without_discount": "PASS - Creating order without certificateDiscount does NOT log",
+    "statistics_page_certificate_section": "PASS - CertificateHistorySection visible in Statistics page",
+    "certificate_section_collapsible": "PASS - Section has collapsible header with expanded state",
+    "certificate_section_empty_message": "PASS - Shows 'Brak historii certyfikatów' when empty",
+    "certificate_section_table": "PASS - Shows table with Data, Klient, Model, Cena przed rabatem, Cena po rabacie, Oszczędność, Menedżer columns",
+    "certificate_section_total_savings": "PASS - Shows 'Łączne oszczędności' with total PLN amount"
+  },
+  "api_endpoints_verified": {
+    "GET /api/sauna/certificate-history": "Returns {items: [], total: 0} structure with pagination support",
+    "POST /api/sauna/orders (with certificateDiscount)": "Logs to certificate_history collection automatically"
+  }
+}
