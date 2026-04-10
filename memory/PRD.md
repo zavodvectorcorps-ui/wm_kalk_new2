@@ -41,8 +41,11 @@ fields, stages, syncBackFields, autoSyncEnabled, autoSyncIntervalMinutes, lastSy
 clientNameFieldId, modelFieldId, calendarDateField, commentFieldId,
 advanceFieldId, remainingFieldId, salesPrepaymentFlagFieldId, salesDateFieldId, salesStageId
 
-## Session 7 Fixes (April 8, 2026)
-- Fixed Marketer role access to FAQ Admin, Planowki editor, and Layout Variants (FAQView `isAdmin` check extended to include marketer role)
+## Session 7 Fixes (April 8-10, 2026)
+- Fixed Marketer role access to FAQ Admin, Planowki editor, and Layout Variants
+- FAQ Layout Variants: Custom arbitrary sizes, duplicate button, dynamic sorting
+- Calculator: "Оплата сертификатом" (-18%) compound discount button
+- PDF: Removed discount percentage, shows only price before/after and savings
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx
