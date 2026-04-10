@@ -765,6 +765,7 @@ const CustomerInfoCard = ({ formData, setFormData, handleInputChange, txt }) => 
 
 const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
   const [selectedGroup, setSelectedGroup] = React.useState(null);
+  const [showingGroups, setShowingGroups] = React.useState(true);
   
   // Build groups from models
   const models = prices.models || [];
@@ -785,23 +786,20 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
     return map;
   }, [models, hasGroups]);
 
-  // Auto-detect group from selected model
-  const selectedModel = models.find(m => m.id === formData.selectedModel);
-  const activeGroup = selectedGroup || (selectedModel?.modelGroup) || null;
+  const activeGroup = showingGroups ? null : selectedGroup;
   
   const handleGroupClick = (groupName) => {
     const groupModels = groups[groupName].models;
+    setSelectedGroup(groupName);
+    setShowingGroups(false);
     if (groupModels.length === 1) {
-      // Auto-select if only one model in group
       handleModelChange(groupModels[0].id);
-      setSelectedGroup(groupName);
-    } else {
-      setSelectedGroup(groupName);
     }
   };
 
   const handleBackToGroups = () => {
     setSelectedGroup(null);
+    setShowingGroups(true);
   };
 
   // Render a single model card
