@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -412,6 +412,16 @@ const GalleryImagesEditor = ({ images = [], onChange }) => {
 
 export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAdd, txt, allModels }) => {
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
+  const [layoutSizes, setLayoutSizes] = useState([]);
+  
+  useEffect(() => {
+    if (open) {
+      fetch(`${API_URL}/api/faq/layout-variants/grouped`)
+        .then(r => r.json())
+        .then(data => setLayoutSizes((data || []).map(g => g.modelSize)))
+        .catch(() => {});
+    }
+  }, [open]);
   
   const handleHintImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -568,14 +578,9 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
             className="w-full px-3 py-2 border rounded-md text-sm"
           >
             <option value="">Не указан (выбор вручную)</option>
-            <option value="2m">2m</option>
-            <option value="2.5m">2.5m</option>
-            <option value="3m">3m</option>
-            <option value="3.5m">3.5m</option>
-            <option value="4m">4m</option>
-            <option value="4.5m">4.5m</option>
-            <option value="5m">5m</option>
-            <option value="6m">6m</option>
+            {layoutSizes.map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
           </select>
         </div>
 
@@ -738,6 +743,16 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
 
 export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingModel, onSave, txt, allModels }) => {
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
+  const [layoutSizes, setLayoutSizes] = useState([]);
+  
+  useEffect(() => {
+    if (open) {
+      fetch(`${API_URL}/api/faq/layout-variants/grouped`)
+        .then(r => r.json())
+        .then(data => setLayoutSizes((data || []).map(g => g.modelSize)))
+        .catch(() => {});
+    }
+  }, [open]);
   
   const handleHintImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -894,14 +909,9 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
               <option value="">Не указан (выбор вручную)</option>
-              <option value="2m">2m</option>
-              <option value="2.5m">2.5m</option>
-              <option value="3m">3m</option>
-              <option value="3.5m">3.5m</option>
-              <option value="4m">4m</option>
-              <option value="4.5m">4.5m</option>
-              <option value="5m">5m</option>
-              <option value="6m">6m</option>
+              {layoutSizes.map(size => (
+                <option key={size} value={size}>{size}</option>
+              ))}
             </select>
           </div>
 
