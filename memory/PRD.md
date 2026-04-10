@@ -47,6 +47,7 @@ advanceFieldId, remainingFieldId, salesPrepaymentFlagFieldId, salesDateFieldId, 
 - Calculator: "Оплата сертификатом" compound discount button (without 18% in text)
 - PDF: Removed discount percentage, shows only price before/after and savings
 - Certificate history: Auto-logging when orders with certificate saved, history table in Statistics page
+- Model Grouping: Two-level model selection in calculator (Group → Sub-models with back button), new modelGroup field in model settings
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx
