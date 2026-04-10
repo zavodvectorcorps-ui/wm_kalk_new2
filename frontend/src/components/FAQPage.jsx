@@ -486,6 +486,17 @@ export const FAQView = ({ calculatorType = 'both' }) => {
     }
   };
 
+  const handleDuplicateLayoutVariant = async (variantId) => {
+    try {
+      await axios.post(`${API_URL}/api/faq/layout-variants/${variantId}/duplicate`);
+      toast.success('Планировка дублирована');
+      fetchLayoutVariants();
+    } catch (error) {
+      console.error('Error duplicating layout variant:', error);
+      toast.error('Ошибка дублирования');
+    }
+  };
+
   const toggleModelExpand = (modelSize) => {
     setExpandedModels(prev => {
       const newSet = new Set(prev);
@@ -1032,6 +1043,14 @@ export const FAQView = ({ calculatorType = 'both' }) => {
                                     >
                                       <Edit className="h-3 w-3 mr-1" />
                                       Изменить
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDuplicateLayoutVariant(variant.id)}
+                                      title="Дублировать планировку"
+                                    >
+                                      <Copy className="h-3 w-3" />
                                     </Button>
                                     <Button
                                       variant="destructive"
@@ -1650,19 +1669,24 @@ export const FAQView = ({ calculatorType = 'both' }) => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Размер сауны *</Label>
-                <Select 
-                  value={newLayoutVariant.modelSize} 
-                  onValueChange={v => setNewLayoutVariant({ ...newLayoutVariant, modelSize: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['2m', '2.5m', '3m', '3.5m', '4m', '5m', '6m'].map(size => (
-                      <SelectItem key={size} value={size}>{size}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Input
+                    value={newLayoutVariant.modelSize}
+                    onChange={e => setNewLayoutVariant({ ...newLayoutVariant, modelSize: e.target.value })}
+                    placeholder="Например: 2m, 3.5m, 7m"
+                    list="model-sizes-list"
+                  />
+                  <datalist id="model-sizes-list">
+                    {(() => {
+                      const existingSizes = new Set(layoutVariants.map(g => g.modelSize));
+                      ['2m', '2.5m', '3m', '3.5m', '4m', '5m', '6m'].forEach(s => existingSizes.add(s));
+                      return [...existingSizes].sort((a, b) => parseFloat(a) - parseFloat(b)).map(size => (
+                        <option key={size} value={size} />
+                      ));
+                    })()}
+                  </datalist>
+                </div>
+                <p className="text-xs text-muted-foreground">Выберите существующий или введите новый размер</p>
               </div>
               <div className="space-y-2">
                 <Label>Номер варианта *</Label>

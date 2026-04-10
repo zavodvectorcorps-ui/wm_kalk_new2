@@ -1,0 +1,48 @@
+{
+  "summary": "Tested 3 new features: FAQ Layout Variants (custom size, duplicate, model binding), Calculator Certificate Discount (18% compound), and PDF discount display. All backend tests passed (10/10). Frontend tests confirmed all features working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/sauna/generate-pdf", "issue": "Font error 'dejavusans' in test environment - pre-existing issue, not related to new features"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_features_iteration76.py",
+    "/app/test_reports/pytest/pytest_results_iteration76.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_features_iteration76.py"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 passed, 1 skipped)",
+    "frontend": "100%"
+  },
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "None - used existing test data",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Three features fully implemented and tested: 1) FAQ Layout Variants now support custom sizes (input with placeholder 'Например: 2m, 3.5m, 7m'), duplicate button on each variant card (title='Дублировать планировку'), and model binding via checkboxes. 2) Calculator has certificate discount button (data-testid='certificate-discount-btn') that applies 18% compound discount. 3) PDF discount section shows only price before/after and savings, no percentage.",
+  "features_tested": {
+    "layout_variants_get": "PASS - GET /api/faq/layout-variants returns variants list",
+    "layout_variants_grouped": "PASS - GET /api/faq/layout-variants/grouped returns grouped variants sorted numerically",
+    "layout_variants_duplicate_api": "PASS - POST /api/faq/layout-variants/{id}/duplicate creates copy with '(копия)' suffix",
+    "layout_variants_duplicate_404": "PASS - Duplicating non-existent variant returns 404",
+    "layout_variants_custom_size": "PASS - Can create variant with arbitrary size like '7.5m'",
+    "certificate_discount_button": "PASS - Button visible with data-testid='certificate-discount-btn', text 'Płatność certyfikatem (-18%)'",
+    "certificate_discount_toggle": "PASS - Button toggles ON/OFF, turns blue when active",
+    "certificate_discount_calculation": "PASS - With 10% standard + 18% certificate: 14200 * 0.90 * 0.82 = 10,480 PLN",
+    "certificate_discount_order": "PASS - Orders can store certificateDiscount field",
+    "pdf_discount_no_percentage": "PASS - PDF discount section shows 'Cena przed rabatem', 'Cena po rabacie', 'Oszczędzasz' - no 'Rabat: X%'",
+    "frontend_duplicate_button": "PASS - Duplicate button visible on variant cards with title 'Дублировать планировку'",
+    "frontend_duplicate_action": "PASS - Clicking duplicate creates new variant, shows success toast 'Планировка дублирована'",
+    "frontend_custom_size_input": "PASS - Add layout dialog has size input with placeholder 'Например: 2m, 3.5m, 7m'",
+    "frontend_model_binding": "PASS - Add layout dialog has checkboxes to bind layout to specific model variants"
+  }
+}

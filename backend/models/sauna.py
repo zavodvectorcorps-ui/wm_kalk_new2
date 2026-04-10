@@ -211,6 +211,7 @@ class SaunaOrder(BaseModel):
     foundationPrice: int = 0
     discount: int = 0
     discountPercent: float = 0.0
+    certificateDiscount: bool = False
     selections: Dict[str, Any] = {}
     quantities: Dict[str, int] = {}  # Added for quantity tracking
     selectedOptions: List[Dict[str, Any]] = []  # Added for consistency

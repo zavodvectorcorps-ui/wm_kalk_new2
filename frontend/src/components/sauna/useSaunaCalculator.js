@@ -15,6 +15,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const [initialLoading, setInitialLoading] = useState(true);
   const [prices, setPrices] = useState({ models: [], categories: [] });
   const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [certificateDiscount, setCertificateDiscount] = useState(false);
   
   // Edit mode states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -210,6 +211,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       }
       
       setAppliedDiscount(editingOrder.discountPercent || 0);
+      setCertificateDiscount(editingOrder.certificateDiscount || false);
       setAdminGifts(editingOrder.adminGifts || []);
       setAdminDiscountApproved(editingOrder.adminDiscountApproved || false);
       
@@ -500,9 +502,13 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const calculateTotal = useCallback(() => {
     const subtotal = calculateSubtotal();
     const discountAmount = subtotal * (appliedDiscount / 100);
+    let afterDiscount = subtotal - discountAmount;
+    if (certificateDiscount) {
+      afterDiscount = afterDiscount * 0.82; // additional 18%
+    }
     // Delivery is shown separately, NOT included in total
-    return subtotal - discountAmount;
-  }, [calculateSubtotal, appliedDiscount]);
+    return afterDiscount;
+  }, [calculateSubtotal, appliedDiscount, certificateDiscount]);
 
   // Input handlers
   const handleInputChange = (e) => {
@@ -541,6 +547,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     
     setFormData(prev => ({ ...prev, selectedModel: modelId, selectedModelVariant: firstVariantId }));
     setAppliedDiscount(0);
+    setCertificateDiscount(false);
     
     // Auto-select layout size: use layoutSize field if set, otherwise try to extract from model name
     let layoutSize = newModel?.layoutSize;
@@ -572,6 +579,17 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     } else {
       toast.error(txt.noDiscountForModel);
     }
+  };
+
+  const handleToggleCertificateDiscount = () => {
+    setCertificateDiscount(prev => {
+      if (!prev) {
+        toast.success(txt.certificateApplied);
+      } else {
+        toast.info(txt.certificateRemoved);
+      }
+      return !prev;
+    });
   };
 
   const handleRadioChange = (categoryId, optionId) => {
@@ -841,7 +859,10 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       // Calculate total - subtotal already excludes gifts via calculateOptionsTotal() and calculateFoundationPrice()
       // So we just apply discount to subtotal
       const discountAmount = subtotal * (appliedDiscount / 100);
-      const total = subtotal - discountAmount;
+      let total = subtotal - discountAmount;
+      if (certificateDiscount) {
+        total = total * 0.82; // additional 18% certificate discount
+      }
       
       const orderId = isEditMode && editOrderId ? editOrderId : undefined;
       
@@ -871,6 +892,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         basePrice: effectivePrice,
         foundationPrice: calculateFoundationPrice(),
         discountPercent: appliedDiscount,
+        certificateDiscount: certificateDiscount,
         selections: formData.selections,
         quantities: formData.quantities || {},
         variantSelections: formData.variantSelections || {},
@@ -1309,6 +1331,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
 
     setFormData({ ...getInitialFormData(), selections: initialSelections });
     setAppliedDiscount(0);
+    setCertificateDiscount(false);
     setAdminGifts([]);
     setAdminDiscountApproved(false);
     setRequestedDiscount(0);
@@ -1346,6 +1369,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     prices,
     formData,
     appliedDiscount,
+    certificateDiscount,
     isEditMode,
     editOrderId,
     adminGifts,
@@ -1401,6 +1425,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     handleModelChange,
     handleModelVariantChange,
     handleApplyStandardDiscount,
+    handleToggleCertificateDiscount,
     handleRadioChange,
     handleCheckboxChange,
     handleQuantityChange,

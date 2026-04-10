@@ -731,7 +731,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         if discount_percent > 0:
             savings = subtotal - total_after_discount
             discount_content = Paragraph(f'''<b><font color="#2D7A3E" size="14">ZASTOSOWANA ZNIŻKA</font></b><br/><br/>
-            <font size="12" color="#2D7A3E"><b>Rabat: {discount_percent:.0f}%</b></font><br/>
             <font size="11">Cena przed rabatem: {subtotal:,.0f} PLN</font><br/>
             <font size="11" color="#2D7A3E"><b>Cena po rabacie: {total_after_discount:,.0f} PLN</b></font><br/>
             <font size="10" color="#666666"><i>Oszczędzasz: {savings:,.0f} PLN</i></font>'''.replace(',', ' '),
@@ -1441,7 +1440,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     discount_note = ''
     if discount_percent > 0:
         subtotal_int = int(round(subtotal))
-        discount_note = f"<br/><font size='8' color='#F0F9F5'>Rabat: {discount_percent:.0f}% (cena bez rabatu: {subtotal_int:,} PLN)</font>".replace(',', ' ')
+        savings_int = int(round(subtotal - total_after_discount))
+        discount_note = f"<br/><font size='8' color='#F0F9F5'>Cena bez rabatu: {subtotal_int:,} PLN | Oszczędzasz: {savings_int:,} PLN</font>".replace(',', ' ')
     
     # Build left content as a single Paragraph with HTML-like formatting
     left_html = f'''<font color="white"><b>WARTOŚĆ CAŁKOWITA OFERTY (brutto z VAT)</b></font><br/><br/>

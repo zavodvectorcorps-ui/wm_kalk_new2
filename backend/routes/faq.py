@@ -970,6 +970,28 @@ async def delete_layout_variant(variant_id: str):
     return {"status": "deleted"}
 
 
+@router.post("/layout-variants/{variant_id}/duplicate")
+async def duplicate_layout_variant(variant_id: str):
+    """Duplicate an existing layout variant."""
+    original = layout_variants_collection.find_one({"id": variant_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Layout variant not found")
+    
+    # Create a copy with new ID and incremented variant number
+    new_variant = dict(original)
+    new_variant["id"] = f"lv-{ObjectId()}"
+    new_variant["variantNumber"] = (original.get("variantNumber", 1) or 1) + 1
+    new_variant["variantName"] = (original.get("variantName", "") or "") + " (копия)"
+    new_variant["variantNamePl"] = (original.get("variantNamePl", "") or "") + " (kopia)"
+    new_variant["createdAt"] = datetime.now(timezone.utc).isoformat()
+    new_variant["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    
+    layout_variants_collection.insert_one(new_variant)
+    result = layout_variants_collection.find_one({"id": new_variant["id"]}, {"_id": 0})
+    return result
+
+
+
 @router.get("/layout-variants/grouped")
 async def get_layout_variants_grouped():
     """Get layout variants grouped by model size for FAQ display."""
@@ -980,7 +1002,6 @@ async def get_layout_variants_grouped():
     
     # Group by model size
     grouped = {}
-    model_order = ["2m", "2.5m", "3m", "3.5m", "4m", "5m", "6m"]
     
     for variant in variants:
         size = variant.get("modelSize", "unknown")
@@ -988,22 +1009,21 @@ async def get_layout_variants_grouped():
             grouped[size] = []
         grouped[size].append(variant)
     
-    # Return as ordered list
-    result = []
-    for size in model_order:
-        if size in grouped:
-            result.append({
-                "modelSize": size,
-                "variants": grouped[size]
-            })
+    # Sort all sizes numerically
+    def size_sort_key(s):
+        try:
+            return float(s.replace('m', '').replace(',', '.'))
+        except (ValueError, AttributeError):
+            return 999
     
-    # Add any remaining sizes not in model_order
-    for size in grouped:
-        if size not in model_order:
-            result.append({
-                "modelSize": size,
-                "variants": grouped[size]
-            })
+    sorted_sizes = sorted(grouped.keys(), key=size_sort_key)
+    
+    result = []
+    for size in sorted_sizes:
+        result.append({
+            "modelSize": size,
+            "variants": grouped[size]
+        })
     
     return result
 

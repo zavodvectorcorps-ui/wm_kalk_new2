@@ -274,7 +274,7 @@ const CategoryHint = ({ category }) => {
 
 export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPrefill = null, onAmocrmPrefillUsed = null }) => {
   const {
-    loading, initialLoading, prices, formData, appliedDiscount,
+    loading, initialLoading, prices, formData, appliedDiscount, certificateDiscount,
     isEditMode, editOrderId, adminGifts, adminDiscountApproved,
     requestedDiscount, requestedDiscountNote, isAdminUser, canGiveGifts, lang, txt,
     model, optionsTotal, foundationPrice, deliveryPrice, subtotal, discountAmount, total,
@@ -284,7 +284,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     layoutVariants, layoutLoading, autoSelectedLayoutSize,
     setFormData, setAdminDiscountApproved, setRequestedDiscount, setRequestedDiscountNote,
     handleInputChange, handleDiscountChange, handleModelChange, handleModelVariantChange,
-    handleApplyStandardDiscount, handleRadioChange, handleCheckboxChange,
+    handleApplyStandardDiscount, handleToggleCertificateDiscount, handleRadioChange, handleCheckboxChange,
     handleQuantityChange, handleVariantChange, handleSubOptionChange, toggleGift, removeOption,
     handleSaveAndGeneratePDF, handleClearForm,
     handleCancelEdit, getCategoryName, isOptionVisible, getOptionBasePrice
@@ -641,6 +641,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             setRequestedDiscountNote={setRequestedDiscountNote}
             handleDiscountChange={handleDiscountChange}
             handleApplyStandardDiscount={handleApplyStandardDiscount}
+            handleToggleCertificateDiscount={handleToggleCertificateDiscount}
+            certificateDiscount={certificateDiscount}
             handleSaveAndGeneratePDF={handleSaveAndGeneratePDF}
             handleClearForm={handleClearForm}
             handleCancelEdit={handleCancelEdit}
@@ -1605,10 +1607,10 @@ const RadioOptions = ({ category, options, formData, foundationPrice, handleRadi
 };
 
 const SummaryCard = ({
-  model, modelVariant, modelPrice, prices, formData, appliedDiscount, subtotal, discountAmount, foundationPrice, deliveryPrice, total,
+  model, modelVariant, modelPrice, prices, formData, appliedDiscount, certificateDiscount, subtotal, discountAmount, foundationPrice, deliveryPrice, total,
   roomSizes, isAdminUser, canGiveGifts, isEditMode, adminGifts, toggleGift, removeOption, adminDiscountApproved, setAdminDiscountApproved,
   requestedDiscount, setRequestedDiscount, requestedDiscountNote, setRequestedDiscountNote,
-  handleDiscountChange, handleApplyStandardDiscount, handleSaveAndGeneratePDF,
+  handleDiscountChange, handleApplyStandardDiscount, handleToggleCertificateDiscount, handleSaveAndGeneratePDF,
   handleClearForm, handleCancelEdit, getCategoryName, isOptionVisible, getOptionBasePrice, maxManagerDiscount, loading, lang, txt
 }) => {
   // Check if foundation is a gift
@@ -1723,12 +1725,16 @@ const SummaryCard = ({
             {/* Discount Section */}
             <DiscountSection
               appliedDiscount={appliedDiscount}
+              certificateDiscount={certificateDiscount}
               discountAmount={discountAmount}
               isAdminUser={isAdminUser}
               adminDiscountApproved={adminDiscountApproved}
               setAdminDiscountApproved={setAdminDiscountApproved}
               handleDiscountChange={handleDiscountChange}
               handleApplyStandardDiscount={handleApplyStandardDiscount}
+              handleToggleCertificateDiscount={handleToggleCertificateDiscount}
+              subtotal={subtotal}
+              total={total}
               maxManagerDiscount={maxManagerDiscount}
               lang={lang}
               txt={txt}
@@ -1798,9 +1804,12 @@ const SummaryCard = ({
                 <span className="font-medium">{txt.total}</span>
                 <span className="text-2xl font-bold">{formatPrice(Math.round(total))} PLN</span>
               </div>
-              {appliedDiscount > 0 && (
+              {(appliedDiscount > 0 || certificateDiscount) && (
                 <div className="text-xs text-amber-100 mt-1">
-                  {txt.discount}: {appliedDiscount}% ({txt.priceBeforeDiscount}: {formatPrice(subtotal)} PLN)
+                  {appliedDiscount > 0 && <span>{txt.discount}: {appliedDiscount}%</span>}
+                  {appliedDiscount > 0 && certificateDiscount && <span> + </span>}
+                  {certificateDiscount && <span>Certyfikat: 18%</span>}
+                  <span> ({txt.priceBeforeDiscount}: {formatPrice(subtotal)} PLN)</span>
                 </div>
               )}
               {deliveryPrice > 0 && !isDeliveryGift && (
@@ -1943,7 +1952,10 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
   );
 };
 
-const DiscountSection = ({ appliedDiscount, discountAmount, isAdminUser, adminDiscountApproved, setAdminDiscountApproved, handleDiscountChange, handleApplyStandardDiscount, maxManagerDiscount, lang, txt }) => (
+const DiscountSection = ({ appliedDiscount, certificateDiscount, discountAmount, isAdminUser, adminDiscountApproved, setAdminDiscountApproved, handleDiscountChange, handleApplyStandardDiscount, handleToggleCertificateDiscount, subtotal, total, maxManagerDiscount, lang, txt }) => {
+  const certSavings = certificateDiscount ? (subtotal - discountAmount) * 0.18 : 0;
+  const totalSavings = discountAmount + certSavings;
+  return (
   <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-3">
     <div className="flex items-center gap-2 text-green-700 font-medium">
       <Percent className="h-4 w-4" />
@@ -1957,6 +1969,20 @@ const DiscountSection = ({ appliedDiscount, discountAmount, isAdminUser, adminDi
       <Tag className="h-4 w-4 mr-2" />
       {txt.applyStandardDiscount}
     </Button>
+    <Button
+      type="button"
+      variant={certificateDiscount ? "default" : "outline"}
+      size="sm"
+      onClick={handleToggleCertificateDiscount}
+      className={certificateDiscount
+        ? "w-full bg-blue-600 hover:bg-blue-700 text-white"
+        : "w-full border-blue-300 text-blue-700 hover:bg-blue-100"
+      }
+      data-testid="certificate-discount-btn"
+    >
+      <Tag className="h-4 w-4 mr-2" />
+      {txt.certificatePayment}
+    </Button>
     
     {isAdminUser && appliedDiscount > maxManagerDiscount && (
       <div className="flex items-center gap-2 pt-2 border-t border-green-200">
@@ -1968,20 +1994,29 @@ const DiscountSection = ({ appliedDiscount, discountAmount, isAdminUser, adminDi
       </div>
     )}
     
-    {appliedDiscount > 0 && (
-      <div className="text-sm text-green-700">
-        <div className="flex justify-between">
-          <span>{txt.discount} ({appliedDiscount}%)</span>
-          <span className="font-medium">-{formatPrice(Math.round(discountAmount))} PLN</span>
-        </div>
-        <div className="flex justify-between mt-1">
+    {(appliedDiscount > 0 || certificateDiscount) && (
+      <div className="text-sm text-green-700 space-y-1">
+        {appliedDiscount > 0 && (
+          <div className="flex justify-between">
+            <span>{txt.discount} ({appliedDiscount}%)</span>
+            <span className="font-medium">-{formatPrice(Math.round(discountAmount))} PLN</span>
+          </div>
+        )}
+        {certificateDiscount && (
+          <div className="flex justify-between text-blue-700">
+            <span>{txt.certificatePayment}</span>
+            <span className="font-medium">-{formatPrice(Math.round(certSavings))} PLN</span>
+          </div>
+        )}
+        <div className="flex justify-between pt-1 border-t border-green-200">
           <span>{txt.youSave}:</span>
-          <span className="font-bold">{formatPrice(Math.round(discountAmount))} PLN</span>
+          <span className="font-bold">{formatPrice(Math.round(totalSavings))} PLN</span>
         </div>
       </div>
     )}
   </div>
 );
+};
 
 const RequestedDiscountSection = ({ requestedDiscount, setRequestedDiscount, requestedDiscountNote, setRequestedDiscountNote, lang, txt }) => (
   <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
