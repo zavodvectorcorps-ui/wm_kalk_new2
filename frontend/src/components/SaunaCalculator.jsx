@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { toast } from 'sonner';
 import { 
   FileDown, Save, RotateCcw, Loader2, User, Phone, Calendar,
-  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon, Check, Home, FileText, Trash2, Layout
+  Percent, Calculator, Tag, Mail, X, Edit, Gift, Shield, Package, Info, Play, Image as ImageIcon, Check, Home, FileText, Trash2, Layout, ChevronLeft
 } from 'lucide-react';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
@@ -763,7 +763,104 @@ const CustomerInfoCard = ({ formData, setFormData, handleInputChange, txt }) => 
   </Card>
 );
 
-const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
+const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
+  const [selectedGroup, setSelectedGroup] = React.useState(null);
+  
+  // Build groups from models
+  const models = prices.models || [];
+  const hasGroups = models.some(m => m.modelGroup);
+  
+  const groups = React.useMemo(() => {
+    if (!hasGroups) return null;
+    const map = {};
+    models.forEach(m => {
+      const g = m.modelGroup || '__ungrouped__';
+      if (!map[g]) {
+        map[g] = { name: g, models: [], imageUrl: m.modelGroupImageUrl || m.imageUrl, minPrice: m.basePrice, maxDiscount: m.discount || 0 };
+      }
+      map[g].models.push(m);
+      if (m.basePrice < map[g].minPrice) map[g].minPrice = m.basePrice;
+      if ((m.discount || 0) > map[g].maxDiscount) map[g].maxDiscount = m.discount;
+    });
+    return map;
+  }, [models, hasGroups]);
+
+  // Auto-detect group from selected model
+  const selectedModel = models.find(m => m.id === formData.selectedModel);
+  const activeGroup = selectedGroup || (selectedModel?.modelGroup) || null;
+  
+  const handleGroupClick = (groupName) => {
+    const groupModels = groups[groupName].models;
+    if (groupModels.length === 1) {
+      // Auto-select if only one model in group
+      handleModelChange(groupModels[0].id);
+      setSelectedGroup(groupName);
+    } else {
+      setSelectedGroup(groupName);
+    }
+  };
+
+  const handleBackToGroups = () => {
+    setSelectedGroup(null);
+  };
+
+  // Render a single model card
+  const renderModelCard = (m) => (
+    <div
+      key={m.id}
+      onClick={() => handleModelChange(m.id)}
+      className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+        formData.selectedModel === m.id 
+          ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200' 
+          : 'border-border hover:border-amber-300 hover:bg-amber-50/50'
+      }`}
+      data-testid={`model-card-${m.id}`}
+    >
+      <HintIcon hint={m.hint} hintImageUrl={m.hintImageUrl} hintVideoUrl={m.hintVideoUrl} size="md" />
+      {m.imageUrl && (
+        <div className="aspect-video mb-2 rounded overflow-hidden bg-muted">
+          <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+        </div>
+      )}
+      <div className="text-sm font-medium">{m.name}</div>
+      <div className="text-lg font-bold text-amber-700">{formatPrice(m.basePrice)} PLN</div>
+      {m.discount > 0 && (
+        <div className="flex items-center gap-1 text-xs text-green-600">
+          <Tag className="h-3 w-3" />
+          {txt.discount}: {m.discount}%
+        </div>
+      )}
+      {m.foundationPrice > 0 && (
+        <div className="text-xs text-muted-foreground">
+          {txt.foundation}: +{m.foundationPrice} PLN
+        </div>
+      )}
+      {m.capacity && (
+        <div className="text-xs text-muted-foreground flex items-center gap-1">
+          <span>👥</span>
+          <span>{m.capacity} osób</span>
+        </div>
+      )}
+      {(m.relaxRoomSize || m.steamRoomSize) && (
+        <div className="mt-2 pt-2 border-t border-amber-200 text-xs space-y-1">
+          {m.relaxRoomSize && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>Przebieralnia:</span>
+              <span className="font-medium text-amber-800">{m.relaxRoomSize}</span>
+            </div>
+          )}
+          {m.steamRoomSize && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>Pokój parowy:</span>
+              <span className="font-medium text-amber-800">{m.steamRoomSize}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
   <Card className="shadow-md">
     <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
       <CardTitle className="flex items-center gap-2 text-lg text-amber-800">
@@ -772,7 +869,6 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
       </CardTitle>
     </CardHeader>
     <CardContent className="pt-4">
-      {/* Models section general hint */}
       {(prices.modelsHint || prices.modelsHintImageUrl || prices.modelsHintVideoUrl) && (
         <div className="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
           <div className="flex items-start gap-2">
@@ -782,10 +878,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
                 <p className="text-sm text-amber-800 whitespace-pre-line">{prices.modelsHint}</p>
               )}
               {(prices.modelsHintImageUrl || prices.modelsHintVideoUrl) && (
-                <ModelsHintMedia 
-                  hintImageUrl={prices.modelsHintImageUrl} 
-                  hintVideoUrl={prices.modelsHintVideoUrl} 
-                />
+                <ModelsHintMedia hintImageUrl={prices.modelsHintImageUrl} hintVideoUrl={prices.modelsHintVideoUrl} />
               )}
             </div>
           </div>
@@ -797,87 +890,97 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
             <SelectValueOrange placeholder={txt.selectModel} />
           </SelectTriggerOrange>
           <SelectContentOrange>
-            {prices.models?.map((m) => (
-              <SelectItemOrange key={m.id} value={m.id}>
-                <div className="flex items-center gap-2">
-                  {m.imageUrl && <img src={m.imageUrl} alt={m.name} className="w-8 h-6 object-cover rounded" loading="lazy" />}
-                  <span>{m.name}</span>
-                  {(m.hint || m.hintImageUrl || m.hintVideoUrl) && <Info className="h-3 w-3 text-amber-500" />}
-                  <span className="text-amber-700 font-medium ml-auto">{formatPrice(m.basePrice)} PLN</span>
-                  {m.discount > 0 && <span className="text-green-600 text-xs">-{m.discount}%</span>}
-                </div>
-              </SelectItemOrange>
-            ))}
+            {hasGroups ? (
+              Object.entries(groups).map(([groupName, group]) => (
+                <React.Fragment key={groupName}>
+                  {groupName !== '__ungrouped__' && (
+                    <div className="px-2 py-1 text-xs font-semibold text-amber-700 bg-amber-50">{groupName}</div>
+                  )}
+                  {group.models.map(m => (
+                    <SelectItemOrange key={m.id} value={m.id}>
+                      <div className="flex items-center gap-2">
+                        {m.imageUrl && <img src={m.imageUrl} alt={m.name} className="w-8 h-6 object-cover rounded" loading="lazy" />}
+                        <span>{m.name}</span>
+                        <span className="text-amber-700 font-medium ml-auto">{formatPrice(m.basePrice)} PLN</span>
+                        {m.discount > 0 && <span className="text-green-600 text-xs">-{m.discount}%</span>}
+                      </div>
+                    </SelectItemOrange>
+                  ))}
+                </React.Fragment>
+              ))
+            ) : (
+              models.map((m) => (
+                <SelectItemOrange key={m.id} value={m.id}>
+                  <div className="flex items-center gap-2">
+                    {m.imageUrl && <img src={m.imageUrl} alt={m.name} className="w-8 h-6 object-cover rounded" loading="lazy" />}
+                    <span>{m.name}</span>
+                    {(m.hint || m.hintImageUrl || m.hintVideoUrl) && <Info className="h-3 w-3 text-amber-500" />}
+                    <span className="text-amber-700 font-medium ml-auto">{formatPrice(m.basePrice)} PLN</span>
+                    {m.discount > 0 && <span className="text-green-600 text-xs">-{m.discount}%</span>}
+                  </div>
+                </SelectItemOrange>
+              ))
+            )}
           </SelectContentOrange>
         </SelectOrange>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {prices.models?.map((m) => (
+      ) : hasGroups && !activeGroup ? (
+        /* Step 1: Show group cards */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="model-groups-grid">
+          {Object.entries(groups).filter(([k]) => k !== '__ungrouped__').map(([groupName, group]) => (
             <div
-              key={m.id}
-              onClick={() => handleModelChange(m.id)}
-              className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
-                formData.selectedModel === m.id 
-                  ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200' 
-                  : 'border-border hover:border-amber-300 hover:bg-amber-50/50'
-              }`}
+              key={groupName}
+              onClick={() => handleGroupClick(groupName)}
+              className="cursor-pointer rounded-lg border-2 border-border hover:border-amber-400 hover:bg-amber-50/50 p-4 transition-all text-center"
+              data-testid={`model-group-${groupName}`}
             >
-              {/* Hint icon for model with media support */}
-              <HintIcon 
-                hint={m.hint} 
-                hintImageUrl={m.hintImageUrl} 
-                hintVideoUrl={m.hintVideoUrl}
-                size="md"
-              />
-              {m.imageUrl && (
-                <div className="aspect-video mb-2 rounded overflow-hidden bg-muted">
-                  <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+              {group.imageUrl && (
+                <div className="aspect-video mb-3 rounded overflow-hidden bg-muted mx-auto">
+                  <img src={group.imageUrl} alt={groupName} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 </div>
               )}
-              <div className="text-sm font-medium">{m.name}</div>
-              <div className="text-lg font-bold text-amber-700">{formatPrice(m.basePrice)} PLN</div>
-              {m.discount > 0 && (
-                <div className="flex items-center gap-1 text-xs text-green-600">
+              <div className="text-base font-semibold text-amber-800">{groupName}</div>
+              <div className="text-sm text-muted-foreground mt-1">
+                {group.models.length} {group.models.length === 1 ? 'rozmiar' : group.models.length < 5 ? 'rozmiary' : 'rozmiarów'}
+              </div>
+              <div className="text-sm font-medium text-amber-700 mt-1">
+                od {formatPrice(group.minPrice)} PLN
+              </div>
+              {group.maxDiscount > 0 && (
+                <div className="flex items-center justify-center gap-1 text-xs text-green-600 mt-1">
                   <Tag className="h-3 w-3" />
-                  {txt.discount}: {m.discount}%
-                </div>
-              )}
-              {m.foundationPrice > 0 && (
-                <div className="text-xs text-muted-foreground">
-                  {txt.foundation}: +{m.foundationPrice} PLN
-                </div>
-              )}
-              {/* Capacity display */}
-              {m.capacity && (
-                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                  <span>👥</span>
-                  <span>{m.capacity} osób</span>
-                </div>
-              )}
-              {/* Room sizes display */}
-              {(m.relaxRoomSize || m.steamRoomSize) && (
-                <div className="mt-2 pt-2 border-t border-amber-200 text-xs space-y-1">
-                  {m.relaxRoomSize && (
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Przebieralnia:</span>
-                      <span className="font-medium text-amber-800">{m.relaxRoomSize}</span>
-                    </div>
-                  )}
-                  {m.steamRoomSize && (
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Pokój parowy:</span>
-                      <span className="font-medium text-amber-800">{m.steamRoomSize}</span>
-                    </div>
-                  )}
+                  {txt.discount}: {group.maxDiscount}%
                 </div>
               )}
             </div>
           ))}
+          {/* Ungrouped models shown directly */}
+          {groups['__ungrouped__']?.models.map(m => renderModelCard(m))}
+        </div>
+      ) : hasGroups && activeGroup ? (
+        /* Step 2: Show models in selected group */
+        <div>
+          <button
+            onClick={handleBackToGroups}
+            className="flex items-center gap-2 text-sm text-amber-700 hover:text-amber-900 mb-4 transition-colors"
+            data-testid="back-to-groups-btn"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            {activeGroup}
+          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="model-submodels-grid">
+            {groups[activeGroup]?.models.map(m => renderModelCard(m))}
+          </div>
+        </div>
+      ) : (
+        /* No groups - flat list */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {models.map(m => renderModelCard(m))}
         </div>
       )}
     </CardContent>
   </Card>
-);
+  );
+};
 
 // Model Variant Selector Component (like heater selection in hot tubs)
 const ModelVariantSelector = ({ model, formData, handleModelVariantChange, prices, lang, txt }) => {

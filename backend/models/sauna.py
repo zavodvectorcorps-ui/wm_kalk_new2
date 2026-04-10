@@ -36,6 +36,9 @@ class SaunaModel(BaseModel):
     imageUrl: str = ""
     sortOrder: int = 1
     active: bool = True
+    # Model group for calculator grouping (e.g., "Квадро", "Бочка", "Викинг", "Парус")
+    modelGroup: Optional[str] = None
+    modelGroupImageUrl: Optional[str] = None
     hint: Optional[str] = None
     hintImageUrl: Optional[str] = None
     hintVideoUrl: Optional[str] = None

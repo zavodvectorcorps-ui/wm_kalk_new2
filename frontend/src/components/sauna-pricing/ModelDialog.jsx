@@ -451,6 +451,23 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
             placeholder="Sauna Kwadro-Beczka 235x200 cm"
           />
         </div>
+        <div>
+          <Label>Группа модели</Label>
+          <div className="relative">
+            <Input
+              value={newModel.modelGroup || ''}
+              onChange={(e) => setNewModel(prev => ({ ...prev, modelGroup: e.target.value }))}
+              placeholder="Например: Квадро, Бочка, Викинг, Парус"
+              list="model-groups-list-add"
+            />
+            <datalist id="model-groups-list-add">
+              {[...new Set((allModels || []).map(m => m.modelGroup).filter(Boolean))].map(g => (
+                <option key={g} value={g} />
+              ))}
+            </datalist>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Модели с одинаковой группой будут объединены в калькуляторе</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>{txt.basePrice}</Label>
@@ -759,6 +776,23 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
               value={editingModel.name}
               onChange={(e) => setEditingModel(prev => ({ ...prev, name: e.target.value }))}
             />
+          </div>
+          <div>
+            <Label>Группа модели</Label>
+            <div className="relative">
+              <Input
+                value={editingModel.modelGroup || ''}
+                onChange={(e) => setEditingModel(prev => ({ ...prev, modelGroup: e.target.value }))}
+                placeholder="Например: Квадро, Бочка, Викинг, Парус"
+                list="model-groups-list-edit"
+              />
+              <datalist id="model-groups-list-edit">
+                {[...new Set((allModels || []).map(m => m.modelGroup).filter(Boolean))].map(g => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Модели с одинаковой группой будут объединены в калькуляторе</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
