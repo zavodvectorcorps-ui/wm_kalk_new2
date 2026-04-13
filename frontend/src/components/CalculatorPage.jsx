@@ -840,9 +840,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         createdBy: user?.username || '',
         // Admin fields
         adminGifts: adminGifts,
-        adminDiscountApproved: discountPercent > 10 && isAdminUser ? adminDiscountApproved : false,
-        adminDiscountApprovedBy: discountPercent > 10 && adminDiscountApproved ? user?.username : '',
-        adminDiscountApprovedAt: discountPercent > 10 && adminDiscountApproved ? new Date().toISOString() : '',
+        adminDiscountApproved: false,
+        adminDiscountApprovedBy: '',
+        adminDiscountApprovedAt: '',
         // Manager requested discount
         requestedDiscount: !isAdminUser ? requestedDiscount : 0,
         requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
@@ -1868,32 +1868,17 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                       <Input
                         type="number"
                         min="0"
-                        max={isAdminUser ? 100 : 10}
+                        max={isAdminUser ? 100 : (prices.maxManagerDiscount || 10)}
                         value={discountPercent}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
-                          const max = isAdminUser ? 100 : 10;
+                          const max = isAdminUser ? 100 : (prices.maxManagerDiscount || 10);
                           setDiscountPercent(Math.max(0, Math.min(max, val)));
                         }}
                         className="w-20 h-8"
                       />
-                      <span className="text-sm text-muted-foreground">% (max {isAdminUser ? '100' : '10'})</span>
+                      <span className="text-sm text-muted-foreground">% (max {isAdminUser ? '100' : (prices.maxManagerDiscount || 10)})</span>
                     </div>
-                    
-                    {/* Admin discount approval checkbox - show when discount > 10% */}
-                    {isAdminUser && discountPercent > 10 && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-green-200">
-                        <Checkbox
-                          id="adminDiscountApproval"
-                          checked={adminDiscountApproved}
-                          onCheckedChange={setAdminDiscountApproved}
-                        />
-                        <Label htmlFor="adminDiscountApproval" className="text-sm text-green-700 cursor-pointer flex items-center gap-1">
-                          <Shield className="h-4 w-4" />
-                          {lang === 'pl' ? 'Zatwierdzam rabat jako administrator' : 'Одобряю скидку как администратор'}
-                        </Label>
-                      </div>
-                    )}
                     
                     {discountPercent > 0 && (
                       <div className="text-sm text-green-700 space-y-1">
