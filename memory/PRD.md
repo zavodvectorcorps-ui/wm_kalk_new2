@@ -49,6 +49,13 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - Backend: amoCRM Events API sync, event normalization, per-manager stats, scoring system, AI deep analysis
   - Frontend: Integrated as "По событиям" tab in Lead Analytics page with manager table, detail view, event feed, settings
   - Tested: 100% pass rate (14/14 backend, all frontend tests)
+- Closed/Lost Stage Exclusion (April 14, 2026)
+  - amoCRM status 143 ("Закрыто и не реализовано") auto-excluded from main statistics (stalled, not processed, problem leads)
+  - New "Закрытые" tab for monitoring closed/lost deals with per-manager breakdown
+  - New /api/lead-analytics/closed-lost endpoint
+  - Summary, Managers, Problem Leads — all exclude closed/lost; separate counter added
+  - Settings: closedLostStageIds for custom closed stages (143 hardcoded as default)
+  - Tested: 100% pass rate (20/20 backend, all frontend tests)
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
