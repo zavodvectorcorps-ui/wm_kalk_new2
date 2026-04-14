@@ -53,6 +53,7 @@ advanceFieldId, remainingFieldId, salesPrepaymentFlagFieldId, salesDateFieldId, 
 - Fixed "Back to groups" button in calculator (was stuck due to selectedModel.modelGroup fallback)
 - Fixed balia calculator discount limit (was hardcoded to 10%, now uses maxManagerDiscount from settings, removed admin approval requirement)
 - **Lead Analytics Module (Phase 1 MVP)**: New "Контроль лидов" section (admin only) with amoCRM integration — sync leads, compute metrics (time to first action, processing status), Summary KPIs, Per-manager ranking, Problem leads list, Settings (pipeline, SLA, bot users, stages)
+- **Lead Analytics Phase 2 (AI)**: GPT-5.2 powered AI recommendations — department summary, per-manager analysis, common errors analysis, per-lead problem advice with follow-up text generation
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx
