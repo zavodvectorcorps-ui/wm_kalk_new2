@@ -143,6 +143,16 @@ async def start_advanced_sync(background_tasks: BackgroundTasks,
     return {"status": "started", "sync_id": sync_id}
 
 
+@router.post("/clear")
+async def clear_advanced_data():
+    """Drop all cached advanced analytics data so next sync starts fresh."""
+    r1 = await db.advanced_analytics_data.delete_many({})
+    r2 = await db.advanced_analytics_sync.delete_many({})
+    return {"status": "ok", "deletedData": r1.deleted_count, "deletedSync": r2.deleted_count}
+
+
+
+
 @router.get("/sync-status")
 async def get_advanced_sync_status():
     s = await db.advanced_analytics_sync.find_one({}, {"_id": 0}, sort=[("startedAt", -1)])

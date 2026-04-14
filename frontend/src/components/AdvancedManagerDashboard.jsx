@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import {
   RefreshCw, Loader2, AlertTriangle, Phone, PhoneIncoming, PhoneOutgoing,
   Clock, CheckCircle, XCircle, ExternalLink, Zap, Users, Target,
-  MessageSquare, TrendingUp, ChevronDown, ChevronUp, Flame, CircleDot
+  MessageSquare, TrendingUp, ChevronDown, ChevronUp, Flame, CircleDot, Trash2
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -309,10 +309,23 @@ const AdvancedManagerDashboard = () => {
             </p>
           )}
         </div>
-        <Button onClick={handleSync} disabled={syncing} size="sm" data-testid="advanced-sync-btn">
-          {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-          Обновить данные
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={async () => {
+            try {
+              await axios.post(`${API_URL}/api/lead-analytics/advanced/clear`);
+              setData(null);
+              setAiText('');
+              toast.success('Данные очищены');
+            } catch (e) { toast.error('Ошибка очистки'); }
+          }} data-testid="advanced-clear-btn">
+            <Trash2 className="h-4 w-4 mr-1" />
+            Очистить
+          </Button>
+          <Button onClick={handleSync} disabled={syncing} size="sm" data-testid="advanced-sync-btn">
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+            Обновить данные
+          </Button>
+        </div>
       </div>
 
       {noData ? (
