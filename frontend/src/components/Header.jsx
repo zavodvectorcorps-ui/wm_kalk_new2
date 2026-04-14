@@ -227,19 +227,7 @@ export const Header = ({
                   CRM
                 </Button>
               )}
-              {/* Lead Analytics - admin only */}
-              {isAdminAuthenticated && (
-                <Button
-                  variant={activeTab === 'lead-analytics' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => handleTabChange('lead-analytics')}
-                  className="flex items-center gap-2"
-                  data-testid="lead-analytics-tab-btn"
-                >
-                  <Activity className="h-4 w-4" />
-                  {txt.leadAnalytics}
-                </Button>
-              )}
+              {/* Lead Analytics - moved to standalone section on main page */}
             </>
           )}
           {showUsers && isAdminAuthenticated && (
@@ -447,18 +435,7 @@ export const Header = ({
                     CRM
                   </Button>
                 )}
-                {/* Lead Analytics - admin only (mobile) */}
-                {isAdminAuthenticated && (
-                  <Button
-                    variant={activeTab === 'lead-analytics' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => handleTabChange('lead-analytics')}
-                    className="w-full justify-start gap-2"
-                  >
-                    <Activity className="h-4 w-4" />
-                    {txt.leadAnalytics}
-                  </Button>
-                )}
+                {/* Lead Analytics - moved to standalone section on main page */}
               </>
             )}
             {showUsers && isAdminAuthenticated && (

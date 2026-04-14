@@ -38,7 +38,6 @@ const TrainingPage = lazy(() => import('./components/TrainingPage'));
 const LayoutConfiguratorPage = lazy(() => import('./components/LayoutConfiguratorPage'));
 const SalesPage = lazy(() => import('./components/SalesPage'));
 const LeadAnalyticsPage = lazy(() => import('./components/LeadAnalyticsPage'));
-const AdvancedManagerDashboard = lazy(() => import('./components/AdvancedManagerDashboard'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -553,10 +552,6 @@ const AppContent = () => {
           <Suspense fallback={<PageLoader />}>
             <SaunaCRMPage />
           </Suspense>
-        ) : activeTab === 'lead-analytics' && isAdmin() ? (
-          <Suspense fallback={<PageLoader />}>
-            <LeadAnalyticsPage />
-          </Suspense>
         ) : activeTab === 'training' ? (
           <Suspense fallback={<PageLoader />}>
             <TrainingPage user={user} />
@@ -576,7 +571,7 @@ const AppContent = () => {
     );
   }
 
-  // Analytics Page (standalone)
+  // Analytics Page (standalone — full lead analytics + advanced)
   if (currentCalculator === 'analytics') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -601,7 +596,7 @@ const AppContent = () => {
         </div>
         <main className="container mx-auto px-4 py-4 max-w-7xl">
           <Suspense fallback={<PageLoader />}>
-            <AdvancedManagerDashboard />
+            <LeadAnalyticsPage />
           </Suspense>
         </main>
         <Toaster position="top-right" richColors />
