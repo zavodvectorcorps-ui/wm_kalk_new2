@@ -448,6 +448,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global exception handler to ensure CORS headers on 500 errors
+from fastapi.responses import JSONResponse
+from starlette.requests import Request
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error: {exc}", exc_info=True)
+    origin = request.headers.get("origin", "")
+    headers = {}
+    if origin in allowed_origins or "*" in allowed_origins:
+        headers["access-control-allow-origin"] = origin or "*"
+        headers["access-control-allow-credentials"] = "true"
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers=headers
+    )
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()

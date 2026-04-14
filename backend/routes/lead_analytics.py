@@ -712,7 +712,7 @@ async def _get_ai_chat():
     from emergentintegrations.llm.chat import LlmChat
     api_key = os.environ.get("EMERGENT_LLM_KEY", "")
     if not api_key:
-        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY не настроен")
+        raise HTTPException(status_code=400, detail="EMERGENT_LLM_KEY не настроен. Добавьте ключ в настройках.")
     chat = LlmChat(
         api_key=api_key,
         session_id=f"lead-analytics-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
