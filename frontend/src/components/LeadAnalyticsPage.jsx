@@ -439,6 +439,17 @@ const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
         </CardContent>
       </Card>
 
+      {/* Analytics Start Date */}
+      <Card className="border border-blue-200">
+        <CardHeader><CardTitle className="text-base">Дата начала аналитики</CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground mb-3">Сделки, созданные до этой даты, не загружаются при синхронизации. Позволяет исключить старые данные.</p>
+          <Input type="date" value={settings.analyticsStartDate || '2026-01-01'}
+            onChange={e => setSettings(prev => ({ ...prev, analyticsStartDate: e.target.value }))}
+            className="w-48" />
+        </CardContent>
+      </Card>
+
       {/* Stages */}
       {statuses.length > 0 && (
         <>

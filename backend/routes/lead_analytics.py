@@ -19,6 +19,7 @@ router = APIRouter(prefix="/lead-analytics", tags=["Lead Analytics"])
 
 class AnalyticsSettings(BaseModel):
     pipelineId: str = ""
+    analyticsStartDate: str = "2026-01-01"  # Don't load deals created before this date
     newLeadStageIds: List[str] = []  # stages considered "new lead"
     managerWorkStageIds: List[str] = []  # stages where manager starts working (after bot)
     successStageIds: List[str] = []  # stages considered successful processing
@@ -177,21 +178,22 @@ async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, dat
     try:
         pipeline_id = settings.get("pipelineId", "")
 
-        # Date filters
+        # Date filters — use analyticsStartDate as minimum
         ts_from = None
         ts_to = None
+        analytics_start = settings.get("analyticsStartDate", "2026-01-01")
+        if analytics_start:
+            ts_from = int(datetime.fromisoformat(analytics_start).timestamp())
         if date_from_str:
-            ts_from = int(datetime.fromisoformat(date_from_str).timestamp())
+            date_from_ts = int(datetime.fromisoformat(date_from_str).timestamp())
+            if ts_from is None or date_from_ts > ts_from:
+                ts_from = date_from_ts
         if date_to_str:
             ts_to = int(datetime.fromisoformat(date_to_str).timestamp())
 
         # Fetch leads
         leads = await _fetch_leads_for_pipeline(pipeline_id, ts_from, ts_to)
-        # Exclude "Закрыто и не реализовано" (status 143) — don't analyze at all
-        closed_lost_ids = set(str(x) for x in settings.get("closedLostStageIds", []))
-        closed_lost_ids.add("143")
-        leads = [l for l in leads if str(l.get("status_id", "")) not in closed_lost_ids]
-        logger.info(f"Lead analytics sync {sync_id}: fetched {len(leads)} leads (excl. closed/lost)")
+        logger.info(f"Lead analytics sync {sync_id}: fetched {len(leads)} leads (from {analytics_start})")
 
         # Fetch users for name mapping
         users = await _fetch_amo_users()
