@@ -187,7 +187,11 @@ async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, dat
 
         # Fetch leads
         leads = await _fetch_leads_for_pipeline(pipeline_id, ts_from, ts_to)
-        logger.info(f"Lead analytics sync {sync_id}: fetched {len(leads)} leads")
+        # Exclude "Закрыто и не реализовано" (status 143) — don't analyze at all
+        closed_lost_ids = set(str(x) for x in settings.get("closedLostStageIds", []))
+        closed_lost_ids.add("143")
+        leads = [l for l in leads if str(l.get("status_id", "")) not in closed_lost_ids]
+        logger.info(f"Lead analytics sync {sync_id}: fetched {len(leads)} leads (excl. closed/lost)")
 
         # Fetch users for name mapping
         users = await _fetch_amo_users()
@@ -516,7 +520,7 @@ async def get_summary(date_from: str = None, date_to: str = None):
 
 
 @router.get("/managers")
-async def get_manager_stats():
+async def get_manager_stats(date_from: str = None, date_to: str = None):
     """Get per-manager statistics."""
     # Get latest sync
     last_sync = await db.lead_analytics_sync.find_one(
@@ -526,9 +530,48 @@ async def get_manager_stats():
         return {"managers": []}
 
     sync_id = last_sync.get("sync_id")
-    managers = await db.lead_analytics_managers.find(
-        {"sync_id": sync_id}, {"_id": 0}
-    ).to_list(length=100)
+    query = {"sync_id": sync_id}
+
+    # If date filters, recompute from leads instead of using cached manager stats
+    if date_from or date_to:
+        lead_query = {"sync_id": sync_id, "processingStatus": {"$ne": "closed_lost"}}
+        if date_from:
+            lead_query["createdAt"] = {"$gte": date_from}
+        if date_to:
+            lead_query.setdefault("createdAt", {})["$lte"] = date_to + "T23:59:59"
+        leads = await db.lead_analytics_leads.find(lead_query, {"_id": 0}).to_list(length=10000)
+
+        manager_map = {}
+        for lead in leads:
+            uid = lead.get("responsibleUserId", "unknown")
+            if uid not in manager_map:
+                manager_map[uid] = {
+                    "userId": uid, "userName": lead.get("responsibleUserName", ""),
+                    "totalLeads": 0, "processedFast": 0, "processedLate": 0,
+                    "notProcessed": 0, "weakProcessing": 0, "closedLost": 0,
+                    "stalledCount": 0, "withProgress": 0, "reactionTimes": [], "totalActions": 0,
+                }
+            m = manager_map[uid]
+            m["totalLeads"] += 1
+            status = lead.get("processingStatus", "")
+            if status == "processed_fast": m["processedFast"] += 1
+            elif status == "processed_late": m["processedLate"] += 1
+            elif status == "not_processed": m["notProcessed"] += 1
+            elif status == "weak_processing": m["weakProcessing"] += 1
+            if lead.get("isStalled"): m["stalledCount"] += 1
+            if lead.get("hasProgress"): m["withProgress"] += 1
+            if lead.get("timeToFirstActionHours") is not None:
+                m["reactionTimes"].append(lead["timeToFirstActionHours"])
+            m["totalActions"] += lead.get("totalActions", 0)
+
+        managers = []
+        for uid, m in manager_map.items():
+            rt = m.pop("reactionTimes", [])
+            m["avgReactionHours"] = round(sum(rt) / len(rt), 2) if rt else None
+            m["processedPercent"] = round((m["processedFast"] + m["processedLate"]) / m["totalLeads"] * 100, 1) if m["totalLeads"] > 0 else 0
+            managers.append(m)
+    else:
+        managers = await db.lead_analytics_managers.find(query, {"_id": 0}).to_list(length=100)
 
     # Sort by processedPercent descending (rating)
     managers.sort(key=lambda m: m.get("processedPercent", 0), reverse=True)
@@ -539,16 +582,21 @@ async def get_manager_stats():
 
 
 @router.get("/problem-leads")
-async def get_problem_leads(limit: int = 100):
+async def get_problem_leads(date_from: str = None, date_to: str = None, limit: int = 100):
     """Get leads with problems (not processed, stalled, no progress). Excludes closed/lost."""
     query = {
         "processingStatus": {"$ne": "closed_lost"},
+        "isClosedLost": {"$ne": True},
         "$or": [
             {"processingStatus": "not_processed"},
             {"processingStatus": "weak_processing"},
             {"isStalled": True},
         ]
     }
+    if date_from:
+        query["createdAt"] = {"$gte": date_from}
+    if date_to:
+        query.setdefault("createdAt", {})["$lte"] = date_to + "T23:59:59"
     leads = await db.lead_analytics_leads.find(
         query, {"_id": 0}
     ).sort("idleHours", -1).to_list(length=limit)

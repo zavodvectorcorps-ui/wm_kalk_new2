@@ -730,8 +730,8 @@ const LeadAnalyticsPage = () => {
       if (dateTo) params.date_to = dateTo;
       const [sumRes, mgrRes, probRes, statusRes] = await Promise.all([
         axios.get(`${API_URL}/api/lead-analytics/summary`, { params }),
-        axios.get(`${API_URL}/api/lead-analytics/managers`),
-        axios.get(`${API_URL}/api/lead-analytics/problem-leads`),
+        axios.get(`${API_URL}/api/lead-analytics/managers`, { params }),
+        axios.get(`${API_URL}/api/lead-analytics/problem-leads`, { params }),
         axios.get(`${API_URL}/api/lead-analytics/sync-status`),
       ]);
       setSummary(sumRes.data);
