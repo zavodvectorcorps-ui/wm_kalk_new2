@@ -5,59 +5,55 @@ Build a "Modular Sauna Configurator" with comprehensive CRM, production manageme
 
 ## Tech Stack
 Frontend: React + Shadcn/UI + Tailwind CSS | Backend: FastAPI + Python | DB: MongoDB
-Integrations: amoCRM, Cloudinary, Telegram, Google Maps
+Integrations: amoCRM, Cloudinary, Telegram, Google Maps, GPT-5.2 (emergentintegrations)
 
 ## Session 6 Fixes & Features (April 5-6, 2026)
 
 ### Bug Fixes
-- 524 Timeout → BackgroundTasks + progress bar
-- advanceFieldId/remainingFieldId not saving → added to Pydantic model
-- New leads missing advance/comment → extract called for new leads
-- KP not attaching → motor async + kpCloudinaryUrl fallback
-- Date off-by-one → Europe/Warsaw timezone conversion
-- Sales sync wrong dates & too many records → see below
+- 524 Timeout -> BackgroundTasks + progress bar
+- advanceFieldId/remainingFieldId not saving -> added to Pydantic model
+- New leads missing advance/comment -> extract called for new leads
+- KP not attaching -> motor async + kpCloudinaryUrl fallback
+- Date off-by-one -> Europe/Warsaw timezone conversion
+- Sales sync wrong dates & too many records
 
 ### New Features
 - Sync Progress UI with auto-detect on page load
 - amoCRM Widget: KP status + warning before contract
 - Webhook auto-sync for sauna section
 - Periodic auto-sync scheduler (5-120 min configurable)
-- "Заполняется производством" header in CRM lead card
 - Calendar: manager name in badges and order cards
 - PDF: layout variants moved to Page 1, no blank pages
-- Debug KP endpoint: `GET /api/sauna-crm/debug-kp/{amocrm_id}`
+- Debug KP endpoint
 
 ### Sales Sync Overhaul
-- **salesStageId**: Only leads from this stage onward go to Sales (e.g. "prepayment_received")
-- **salesPrepaymentFlagFieldId**: amoCRM field ID for "Предоплата получена" flag — only flagged leads sync
-- **salesDateFieldId**: CRM field for sale date (дата получения аванса)
-- All three configurable in CRM Settings → amoCRM tab → "Синхронизация с Продажами"
+- salesStageId, salesPrepaymentFlagFieldId, salesDateFieldId configurable in CRM Settings
 
 ## CRM Stages
-invoice_sent → prepayment_received → approved_by_production → in_production → ready → delivered → completed
-
-## CRM Settings Fields (Pydantic model)
-fields, stages, syncBackFields, autoSyncEnabled, autoSyncIntervalMinutes, lastSyncAt,
-clientNameFieldId, modelFieldId, calendarDateField, commentFieldId,
-advanceFieldId, remainingFieldId, salesPrepaymentFlagFieldId, salesDateFieldId, salesStageId
+invoice_sent -> prepayment_received -> approved_by_production -> in_production -> ready -> delivered -> completed
 
 ## Session 7 Fixes (April 8-14, 2026)
-- Fixed Marketer role access to FAQ Admin, Planowki editor, and Layout Variants
-- FAQ Layout Variants: Custom arbitrary sizes, duplicate button, dynamic sorting
-- Calculator: "Оплата сертификатом" compound discount button (without 18% in text)
-- PDF: Removed discount percentage, shows only price before/after and savings
-- Certificate history: Auto-logging when orders with certificate saved, history table in Statistics page
-- Model Grouping: Two-level model selection in calculator (Group → Sub-models with back button), new modelGroup field in model settings
-- Model Duplication: Copy button in model list (Cennik → Models)
-- Dynamic layout sizes: Model dialog pulls custom sizes from layout-variants API
-- Fixed "Back to groups" button in calculator (was stuck due to selectedModel.modelGroup fallback)
-- Fixed balia calculator discount limit (was hardcoded to 10%, now uses maxManagerDiscount from settings, removed admin approval requirement)
-- **Lead Analytics Module (Phase 1 MVP)**: New "Контроль лидов" section (admin only) with amoCRM integration — sync leads, compute metrics (time to first action, processing status), Summary KPIs, Per-manager ranking, Problem leads list, Settings (pipeline, SLA, bot users, stages)
-- **Lead Analytics Phase 2 (AI)**: GPT-5.2 powered AI recommendations — department summary, per-manager analysis, common errors analysis, per-lead problem advice with follow-up text generation
+- Fixed Marketer role access to FAQ Admin, Planowki editor, Layout Variants
+- FAQ Layout Variants: Custom sizes, duplicate button, dynamic sorting
+- Calculator: Certificate Discount logic (18% without showing %)
+- PDF: Removed discount percentage, shows only amounts
+- Certificate history: Auto-logging, history table in Statistics
+- Model Grouping: Two-level model selection (Group -> Sub-models)
+- Model Duplication: Copy button in model list
+- Dynamic layout sizes: Model dialog pulls sizes from API
+- Fixed "Back to groups" button in calculator
+- Fixed balia calculator discount limit (uses settings instead of hardcoded 10%)
+- Lead Analytics Phase 1 MVP: SLA tracking, manager ranking, problem leads
+- Lead Analytics Phase 2 (AI): GPT-5.2 department summary, manager analysis, common errors, per-lead advice
+- Lead Analytics Phase 3: Manager Events Analytics module (April 14, 2026)
+  - Backend: amoCRM Events API sync, event normalization, per-manager stats, scoring system, AI deep analysis
+  - Frontend: Integrated as "По событиям" tab in Lead Analytics page with manager table, detail view, event feed, settings
+  - Tested: 100% pass rate (14/14 backend, all frontend tests)
 
 ## Prioritized Backlog
-- P1: Fix automatic variant application in LayoutConfiguratorPage.jsx
-- P2: Refactor monolithic files (amocrm.py, widget.py, sauna_crm.py, SaunaCRMPage.jsx)
+- P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
+- P2: Fix unstable login sessions / deployment timeouts
+- P2: Refactor monolithic files (amocrm.py >3300 lines, widget.py, sauna_crm.py, SaunaCRMPage.jsx)
 - P2: UI for backup import/restore from file
 - P2: Replace deprecated Google Maps Autocomplete component
 
