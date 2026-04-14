@@ -41,13 +41,18 @@ fields, stages, syncBackFields, autoSyncEnabled, autoSyncIntervalMinutes, lastSy
 clientNameFieldId, modelFieldId, calendarDateField, commentFieldId,
 advanceFieldId, remainingFieldId, salesPrepaymentFlagFieldId, salesDateFieldId, salesStageId
 
-## Session 7 Fixes (April 8-10, 2026)
+## Session 7 Fixes (April 8-14, 2026)
 - Fixed Marketer role access to FAQ Admin, Planowki editor, and Layout Variants
 - FAQ Layout Variants: Custom arbitrary sizes, duplicate button, dynamic sorting
 - Calculator: "Оплата сертификатом" compound discount button (without 18% in text)
 - PDF: Removed discount percentage, shows only price before/after and savings
 - Certificate history: Auto-logging when orders with certificate saved, history table in Statistics page
 - Model Grouping: Two-level model selection in calculator (Group → Sub-models with back button), new modelGroup field in model settings
+- Model Duplication: Copy button in model list (Cennik → Models)
+- Dynamic layout sizes: Model dialog pulls custom sizes from layout-variants API
+- Fixed "Back to groups" button in calculator (was stuck due to selectedModel.modelGroup fallback)
+- Fixed balia calculator discount limit (was hardcoded to 10%, now uses maxManagerDiscount from settings, removed admin approval requirement)
+- **Lead Analytics Module (Phase 1 MVP)**: New "Контроль лидов" section (admin only) with amoCRM integration — sync leads, compute metrics (time to first action, processing status), Summary KPIs, Per-manager ranking, Problem leads list, Settings (pipeline, SLA, bot users, stages)
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx
