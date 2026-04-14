@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame, Settings, BarChart3, Globe, Code, HelpCircle, FileImage, GraduationCap, ShoppingCart, Briefcase } from 'lucide-react';
+import { Calculator, FileText, DollarSign, LogOut, Lock, Menu, X, Users, Waves, Flame, Settings, BarChart3, Globe, Code, HelpCircle, FileImage, GraduationCap, ShoppingCart, Briefcase, Activity } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
@@ -27,6 +27,7 @@ export const Header = ({
       wmSauna: 'WM-Sauna',
       techSpec: 'Тех.Задание',
       statistics: 'Статистика',
+      leadAnalytics: 'Контроль лидов',
     },
     pl: {
       users: 'Pracownicy',
@@ -35,6 +36,7 @@ export const Header = ({
       wmSauna: 'WM-Sauna',
       techSpec: 'Spec.Tech.',
       statistics: 'Statystyki',
+      leadAnalytics: 'Kontrola leadów',
     },
   };
 
@@ -223,6 +225,19 @@ export const Header = ({
                 >
                   <Briefcase className="h-4 w-4" />
                   CRM
+                </Button>
+              )}
+              {/* Lead Analytics - admin only */}
+              {isAdminAuthenticated && (
+                <Button
+                  variant={activeTab === 'lead-analytics' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleTabChange('lead-analytics')}
+                  className="flex items-center gap-2"
+                  data-testid="lead-analytics-tab-btn"
+                >
+                  <Activity className="h-4 w-4" />
+                  {txt.leadAnalytics}
                 </Button>
               )}
             </>
@@ -430,6 +445,18 @@ export const Header = ({
                   >
                     <Briefcase className="h-4 w-4" />
                     CRM
+                  </Button>
+                )}
+                {/* Lead Analytics - admin only (mobile) */}
+                {isAdminAuthenticated && (
+                  <Button
+                    variant={activeTab === 'lead-analytics' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleTabChange('lead-analytics')}
+                    className="w-full justify-start gap-2"
+                  >
+                    <Activity className="h-4 w-4" />
+                    {txt.leadAnalytics}
                   </Button>
                 )}
               </>

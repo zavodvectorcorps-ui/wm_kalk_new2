@@ -37,6 +37,7 @@ const PDFTemplateEditor = lazy(() => import('./components/PDFTemplateEditor'));
 const TrainingPage = lazy(() => import('./components/TrainingPage'));
 const LayoutConfiguratorPage = lazy(() => import('./components/LayoutConfiguratorPage'));
 const SalesPage = lazy(() => import('./components/SalesPage'));
+const LeadAnalyticsPage = lazy(() => import('./components/LeadAnalyticsPage'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -541,6 +542,10 @@ const AppContent = () => {
         ) : activeTab === 'crm' && (isAdmin() || hasAccess('sauna')) ? (
           <Suspense fallback={<PageLoader />}>
             <SaunaCRMPage />
+          </Suspense>
+        ) : activeTab === 'lead-analytics' && isAdmin() ? (
+          <Suspense fallback={<PageLoader />}>
+            <LeadAnalyticsPage />
           </Suspense>
         ) : activeTab === 'training' ? (
           <Suspense fallback={<PageLoader />}>
