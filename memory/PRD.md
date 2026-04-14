@@ -57,6 +57,14 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - Settings: closedLostStageIds for custom closed stages (143 hardcoded as default)
   - AI-анализ причин закрытия: GPT-5.2 анализирует паттерны, менеджеров, рекомендации и чек-лист перед закрытием
   - Tested: 100% pass rate (20/20 + 15/15 backend, all frontend tests)
+- Advanced Manager Analytics (April 14, 2026)
+  - Расширенная аналитика 3 менеджеров (Vlada, Andrzej, Viyaleta) по pipeline 8969514
+  - Метрики по этапам (Jeszcze nie wiem, Не дозвонились) с алертами
+  - Флаг пустой суммы (>30% = предупреждение), анализ звонков (входящие/исходящие, длительность)
+  - Концентрация нагрузки (>35% = алерт), дашборд "Срочные действия" (топ-10, цветовая маркировка)
+  - AI сравнительный анализ менеджеров (GPT-5.2): рейтинг по 5 критериям
+  - Специфические проверки: Vlada (смены этапов), Andrzej (post-КП follow-up), Viyaleta (звонки vs чаты, примечания)
+  - Tested: 100% pass rate (15/15 backend, all frontend tests)
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
