@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import {
   BarChart3, Users, AlertTriangle, Settings, RefreshCw, Loader2, Clock,
   CheckCircle, XCircle, AlertCircle, TrendingUp, ExternalLink, ChevronDown, ChevronUp,
-  Activity, Timer, Target, Zap, ArrowUpDown, Filter, Ban
+  Activity, Timer, Target, Zap, ArrowUpDown, Filter, Ban, Trash2
 } from 'lucide-react';
 import ManagerEventsAnalytics from './ManagerEventsAnalytics';
 import AdvancedManagerDashboard from './AdvancedManagerDashboard';
@@ -831,6 +831,17 @@ const LeadAnalyticsPage = () => {
           <Button variant="outline" size="sm" onClick={fetchSummary} disabled={loading}>
             <Filter className="h-4 w-4 mr-1" />
             Применить
+          </Button>
+          <Button variant="outline" size="sm" onClick={async () => {
+            if (!window.confirm('Очистить ВСЕ данные аналитики? Потребуется повторная синхронизация.')) return;
+            try {
+              await axios.post(`${API_URL}/api/lead-analytics/clear-all`);
+              setSummary({}); setManagers([]); setProblemLeads([]); setSyncStatus(null);
+              toast.success('Все данные очищены');
+            } catch (e) { toast.error('Ошибка очистки'); }
+          }} data-testid="clear-all-btn">
+            <Trash2 className="h-4 w-4 mr-1" />
+            Очистить всё
           </Button>
           <Button onClick={handleSync} disabled={syncing} size="sm">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}

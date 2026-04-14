@@ -155,6 +155,23 @@ async def get_sync_status():
     return status or {"status": "never"}
 
 
+@router.post("/clear-all")
+async def clear_all_analytics_data():
+    """Clear ALL analytics data across all modules for a fresh start."""
+    results = {}
+    for col_name in [
+        "lead_analytics_leads", "lead_analytics_managers", "lead_analytics_sync",
+        "lead_analytics_ai_history",
+        "amocrm_events", "event_manager_stats", "event_analytics_sync",
+        "advanced_analytics_data", "advanced_analytics_sync",
+    ]:
+        r = await db[col_name].delete_many({})
+        results[col_name] = r.deleted_count
+    return {"status": "ok", "deleted": results}
+
+
+
+
 async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, date_to_str: str = None):
     """Background task: fetch leads, events, notes, tasks and compute metrics."""
     try:
