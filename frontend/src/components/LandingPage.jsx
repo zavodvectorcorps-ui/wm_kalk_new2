@@ -232,33 +232,6 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
               </CardContent>
             </Card>
           )}
-
-          {/* Analytics Card - Only visible for admins */}
-          {canAccessAdmin && (
-            <Card 
-              className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-indigo-500/50"
-              onClick={() => onSelectCalculator('analytics')}
-              data-testid="analytics-card"
-            >
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors bg-indigo-500/10 group-hover:bg-indigo-500/20">
-                    <BarChart3 className="w-8 h-8 text-indigo-500" />
-                  </div>
-                  <h2 className="text-xl font-bold text-foreground mb-2">
-                    {txt.analyticsTitle}
-                  </h2>
-                  <p className="text-muted-foreground text-sm mb-4">
-                    {txt.analyticsDesc}
-                  </p>
-                  <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-indigo-500/50 text-indigo-600 hover:bg-indigo-500/10 hover:text-indigo-600">
-                    {txt.select}
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Second Row: Logistics, Driver, Warehouse */}
@@ -370,6 +343,35 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                 </CardContent>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* Third Row: Analytics */}
+        {canAccessAdmin && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mt-6">
+            <Card 
+              className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-indigo-500/50"
+              onClick={() => onSelectCalculator('analytics')}
+              data-testid="analytics-card"
+            >
+              <CardContent className="p-8">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors bg-indigo-500/10 group-hover:bg-indigo-500/20">
+                    <BarChart3 className="w-10 h-10 text-indigo-500" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground mb-3">
+                    {txt.analyticsTitle}
+                  </h2>
+                  <p className="text-muted-foreground mb-6">
+                    {txt.analyticsDesc}
+                  </p>
+                  <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-indigo-500/50 text-indigo-600 hover:bg-indigo-500/10 hover:text-indigo-600">
+                    {txt.select}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
