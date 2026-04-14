@@ -248,6 +248,13 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
                           user_map: dict, settings: dict) -> dict:
     """Compute all metrics for a single lead."""
     bot_ids = set(str(x) for x in settings.get("botUserIds", []))
+    # Auto-detect bots by name patterns
+    BOT_NAME_PATTERNS = ["salesbot", "робот", "robot", "tilda", "бот", "bot",
+                         "биржа лидов", "digital pipeline", "автоматизация"]
+    for uid, uname in user_map.items():
+        name_lower = uname.lower()
+        if any(p in name_lower for p in BOT_NAME_PATTERNS):
+            bot_ids.add(str(uid))
     sla_hours = settings.get("slaFirstActionHours", 5)
     stalled_hours = settings.get("stalledThresholdHours", 24)
     manager_work_stages = set(str(x) for x in settings.get("managerWorkStageIds", []))  # noqa: F841
@@ -347,9 +354,11 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
     # Processing status
     is_in_success_stage = status_id in success_stages
     is_closed_lost = status_id in closed_lost_stages
+    # If responsible user is a bot, treat as not processed by human
+    responsible_is_bot = responsible_id in bot_ids
     if is_closed_lost:
         processing_status = "closed_lost"
-    elif not actions:
+    elif responsible_is_bot or not actions:
         processing_status = "not_processed"
     elif time_to_first_action is not None and time_to_first_action <= sla_hours:
         if stage_change_count > 1 or is_in_success_stage:
