@@ -14,7 +14,6 @@ import {
   Activity, Timer, Target, Zap, ArrowUpDown, Filter, Ban
 } from 'lucide-react';
 import ManagerEventsAnalytics from './ManagerEventsAnalytics';
-import AdvancedManagerDashboard from './AdvancedManagerDashboard';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -800,7 +799,6 @@ const LeadAnalyticsPage = () => {
   const tabs = [
     { id: 'summary', label: 'Сводка', icon: BarChart3 },
     { id: 'managers', label: 'По менеджерам', icon: Users },
-    { id: 'advanced', label: 'Расш. аналитика', icon: Target },
     { id: 'problems', label: 'Проблемные', icon: AlertTriangle, count: problemLeads.length },
     { id: 'closed', label: 'Закрытые', icon: Ban, count: summary.closedLost || 0 },
     { id: 'events', label: 'По событиям', icon: Activity },
@@ -863,7 +861,6 @@ const LeadAnalyticsPage = () => {
       {/* Content */}
       {activeTab === 'summary' && <SummaryTab summary={summary} loading={loading} />}
       {activeTab === 'managers' && <ManagersTab managers={managers} loading={loading} />}
-      {activeTab === 'advanced' && <AdvancedManagerDashboard />}
       {activeTab === 'problems' && <ProblemLeadsTab leads={problemLeads} loading={loading} />}
       {activeTab === 'closed' && <ClosedLostTab dateFrom={dateFrom} dateTo={dateTo} />}
       {activeTab === 'events' && <ManagerEventsAnalytics />}
