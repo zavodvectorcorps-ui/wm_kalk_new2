@@ -55,7 +55,8 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - New /api/lead-analytics/closed-lost endpoint
   - Summary, Managers, Problem Leads — all exclude closed/lost; separate counter added
   - Settings: closedLostStageIds for custom closed stages (143 hardcoded as default)
-  - Tested: 100% pass rate (20/20 backend, all frontend tests)
+  - AI-анализ причин закрытия: GPT-5.2 анализирует паттерны, менеджеров, рекомендации и чек-лист перед закрытием
+  - Tested: 100% pass rate (20/20 + 15/15 backend, all frontend tests)
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
