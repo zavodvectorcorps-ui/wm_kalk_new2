@@ -40,6 +40,7 @@ from routes.content_generator import router as content_generator_router
 from routes.layout_configurator import router as layout_configurator_router
 from routes.contract_template import router as contract_template_router
 from routes.lead_analytics import router as lead_analytics_router
+from routes.manager_events_analytics import router as manager_events_router
 
 # Configure logging
 logging.basicConfig(
@@ -100,6 +101,7 @@ app.include_router(layout_configurator_router)
 app.include_router(sales_router)
 app.include_router(sales_tracking_router)
 app.include_router(lead_analytics_router, prefix="/api")
+app.include_router(manager_events_router, prefix="/api")
 
 # Initialize backup database reference
 from database import db
