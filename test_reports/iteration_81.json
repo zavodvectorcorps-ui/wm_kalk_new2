@@ -1,0 +1,68 @@
+{
+  "summary": "Tested Phase 3 Manager Events Analytics module. All 6 backend endpoints working correctly (14/14 tests passed). Frontend 'По событиям' tab renders ManagerEventsAnalytics component with manager table, sync button, date filters, and settings subtab with checkboxes and weight inputs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_manager_events_analytics_iteration81.py",
+    "/app/test_reports/pytest/pytest_results_iteration81.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_manager_events_analytics_iteration81.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "None - tested with empty data (no events synced, expected behavior)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Manager Events Analytics (Phase 3) fully implemented. Key test IDs: data-testid='tab-events' (events tab button), data-testid='event-analytics' (events analytics container), data-testid='event-managers-table' (manager table), data-testid='event-settings' (settings form), data-testid='event-tab-managers' and data-testid='event-tab-settings' (subtabs within events). Data will be empty until amoCRM sync is run. All 6 main tabs in Lead Analytics page working: Сводка, По менеджерам, Проблемные, По событиям, AI-рекомендации, Настройки.",
+  "features_tested": {
+    "backend_get_event_settings": "PASS - GET /api/lead-analytics/events/settings returns default settings with usefulEventTypes, weights, thresholds",
+    "backend_put_event_settings": "PASS - PUT /api/lead-analytics/events/settings saves and persists settings",
+    "backend_get_sync_status": "PASS - GET /api/lead-analytics/events/sync-status returns status (never/running/completed/error)",
+    "backend_get_manager_stats": "PASS - GET /api/lead-analytics/events/manager-stats returns managers list with sync_id",
+    "backend_get_event_feed": "PASS - GET /api/lead-analytics/events/event-feed returns events list with filters support",
+    "backend_get_manager_detail": "PASS - GET /api/lead-analytics/events/manager-detail/{user_id} returns detail data with events, problemLeads, etc.",
+    "backend_post_sync": "PASS - POST /api/lead-analytics/events/sync starts background sync",
+    "backend_existing_endpoints": "PASS - All existing lead-analytics endpoints still working (settings, summary, managers, problem-leads, sync-status)",
+    "frontend_tab_events_visible": "PASS - 'По событиям' tab visible in Lead Analytics page",
+    "frontend_event_analytics_component": "PASS - ManagerEventsAnalytics component renders (data-testid='event-analytics')",
+    "frontend_manager_table_or_empty": "PASS - Shows empty state message when no data synced",
+    "frontend_sync_button": "PASS - Sync button present",
+    "frontend_date_filters": "PASS - Date filter inputs present (4 inputs total)",
+    "frontend_settings_subtab": "PASS - Settings subtab inside events clickable",
+    "frontend_event_settings_form": "PASS - Event settings form with checkboxes (10) and number inputs (7)",
+    "frontend_save_button": "PASS - Save settings button present",
+    "frontend_all_tabs_clickable": "PASS - All 6 main tabs (Сводка, По менеджерам, Проблемные, По событиям, AI-рекомендации, Настройки) clickable"
+  },
+  "api_endpoints_verified": {
+    "GET /api/lead-analytics/events/settings": "Returns default settings with usefulEventTypes, progressStageIds, successStageIds, slaFirstActionHours, stalledThresholdHours, weights",
+    "PUT /api/lead-analytics/events/settings": "Saves settings, returns {status: 'ok'}",
+    "GET /api/lead-analytics/events/sync-status": "Returns {status: 'never'|'running'|'completed'|'error', ...}",
+    "GET /api/lead-analytics/events/manager-stats": "Returns {managers: [], sync_id: null|string}",
+    "GET /api/lead-analytics/events/event-feed": "Returns {events: [], total: int} with filter support (manager_id, event_type, date_from, date_to, limit, skip)",
+    "GET /api/lead-analytics/events/manager-detail/{user_id}": "Returns {stats, events, totalEvents, problemLeads, noFirstAction, noProgress, longIdle}",
+    "POST /api/lead-analytics/events/sync": "Starts background sync, returns {status: 'started', sync_id: string}"
+  },
+  "data_testids_verified": {
+    "tab-events": "Events tab button in Lead Analytics page",
+    "event-analytics": "ManagerEventsAnalytics component container",
+    "event-managers-table": "Manager table (when data present)",
+    "event-settings": "Event settings form",
+    "event-tab-managers": "Managers subtab within events",
+    "event-tab-settings": "Settings subtab within events"
+  },
+  "navigation_path": "Login > Click 'Sauna' card > Click 'Kontrola leadów' tab in header > Click 'По событиям' tab",
+  "notes": "amoCRM integration is real but requires domain/token configured. Endpoints work but return empty data if amoCRM not configured. Event settings include 10 event type checkboxes and 7 number inputs for thresholds and weights."
+}

@@ -13,6 +13,7 @@ import {
   CheckCircle, XCircle, AlertCircle, TrendingUp, ExternalLink, ChevronDown, ChevronUp,
   Activity, Timer, Target, Zap, ArrowUpDown, Filter
 } from 'lucide-react';
+import ManagerEventsAnalytics from './ManagerEventsAnalytics';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -646,6 +647,7 @@ const LeadAnalyticsPage = () => {
     { id: 'summary', label: 'Сводка', icon: BarChart3 },
     { id: 'managers', label: 'По менеджерам', icon: Users },
     { id: 'problems', label: 'Проблемные', icon: AlertTriangle, count: problemLeads.length },
+    { id: 'events', label: 'По событиям', icon: Activity },
     { id: 'ai', label: 'AI-рекомендации', icon: Zap },
     { id: 'settings', label: 'Настройки', icon: Settings },
   ];
@@ -706,6 +708,7 @@ const LeadAnalyticsPage = () => {
       {activeTab === 'summary' && <SummaryTab summary={summary} loading={loading} />}
       {activeTab === 'managers' && <ManagersTab managers={managers} loading={loading} />}
       {activeTab === 'problems' && <ProblemLeadsTab leads={problemLeads} loading={loading} />}
+      {activeTab === 'events' && <ManagerEventsAnalytics />}
       {activeTab === 'ai' && <AIRecommendationsTab dateFrom={dateFrom} dateTo={dateTo} problemLeads={problemLeads} />}
       {activeTab === 'settings' && <SettingsTab settings={settings} setSettings={setSettings} onSave={handleSaveSettings} savingSettings={savingSettings} />}
     </div>
