@@ -283,19 +283,21 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
         note_events = sum(1 for e in evts if "note" in e.get("type", ""))
         useful_events = sum(1 for e in evts if e.get("type") in useful_types)
 
-        # Lead-based metrics
-        total_leads = len(lds)
-        processed = sum(1 for l in lds if l.get("processingStatus") in ("processed_fast", "processed_late"))
-        not_processed = sum(1 for l in lds if l.get("processingStatus") == "not_processed")
-        weak = sum(1 for l in lds if l.get("processingStatus") == "weak_processing")
-        stalled = sum(1 for l in lds if l.get("isStalled"))
-        with_progress = sum(1 for l in lds if l.get("hasProgress"))
-        to_success = sum(1 for l in lds if l.get("statusId") in success_stages)
-        single_action = sum(1 for l in lds if l.get("totalActions") == 1)
-        no_progress_stage = sum(1 for l in lds if not l.get("hasProgress") and l.get("totalActions", 0) > 0)
+        # Lead-based metrics — exclude closed_lost from main stats
+        active_lds = [l for l in lds if l.get("processingStatus") != "closed_lost"]
+        closed_lost_count = len(lds) - len(active_lds)
+        total_leads = len(active_lds)
+        processed = sum(1 for l in active_lds if l.get("processingStatus") in ("processed_fast", "processed_late"))
+        not_processed = sum(1 for l in active_lds if l.get("processingStatus") == "not_processed")
+        weak = sum(1 for l in active_lds if l.get("processingStatus") == "weak_processing")
+        stalled = sum(1 for l in active_lds if l.get("isStalled"))
+        with_progress = sum(1 for l in active_lds if l.get("hasProgress"))
+        to_success = sum(1 for l in active_lds if l.get("statusId") in success_stages)
+        single_action = sum(1 for l in active_lds if l.get("totalActions") == 1)
+        no_progress_stage = sum(1 for l in active_lds if not l.get("hasProgress") and l.get("totalActions", 0) > 0)
 
-        first_action_leads = sum(1 for l in lds if l.get("timeToFirstActionHours") is not None)
-        reaction_times = [l["timeToFirstActionHours"] for l in lds if l.get("timeToFirstActionHours") is not None]
+        first_action_leads = sum(1 for l in active_lds if l.get("timeToFirstActionHours") is not None)
+        reaction_times = [l["timeToFirstActionHours"] for l in active_lds if l.get("timeToFirstActionHours") is not None]
         avg_reaction = round(sum(reaction_times) / len(reaction_times), 2) if reaction_times else None
         processed_pct = round(processed / total_leads * 100, 1) if total_leads > 0 else 0
 
@@ -321,8 +323,9 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
             "taskEvents": task_events,
             "noteEvents": note_events,
             "newLeadActions": new_lead_actions,
-            # Lead metrics
+            # Lead metrics (excluding closed/lost)
             "totalLeads": total_leads,
+            "closedLostLeads": closed_lost_count,
             "processedLeads": processed,
             "notProcessedLeads": not_processed,
             "weakLeads": weak,

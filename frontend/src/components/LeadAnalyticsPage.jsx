@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import {
   BarChart3, Users, AlertTriangle, Settings, RefreshCw, Loader2, Clock,
   CheckCircle, XCircle, AlertCircle, TrendingUp, ExternalLink, ChevronDown, ChevronUp,
-  Activity, Timer, Target, Zap, ArrowUpDown, Filter
+  Activity, Timer, Target, Zap, ArrowUpDown, Filter, Ban
 } from 'lucide-react';
 import ManagerEventsAnalytics from './ManagerEventsAnalytics';
 
@@ -41,6 +41,7 @@ const SummaryTab = ({ summary, loading }) => {
     { label: 'Не обработано', value: summary.notProcessed || 0, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50 border-red-200' },
     { label: 'Слабая обработка', value: summary.weakProcessing || 0, icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200' },
     { label: 'Зависших', value: summary.stalledCount || 0, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50 border-rose-200' },
+    { label: 'Закрыто/не реал.', value: summary.closedLost || 0, icon: Ban, color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200' },
   ];
 
   if (loading) return <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /></div>;
@@ -50,7 +51,7 @@ const SummaryTab = ({ summary, loading }) => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" data-testid="summary-kpis">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3" data-testid="summary-kpis">
         {kpis.map((kpi, i) => (
           <Card key={i} className={`${kpi.bg} border`}>
             <CardContent className="p-4">
@@ -161,6 +162,7 @@ const ManagersTab = ({ managers, loading }) => {
               <th className="text-center py-3 px-3">% обработки</th>
               <th className="text-center py-3 px-3">Ср. реакция</th>
               <th className="text-center py-3 px-3">Зависших</th>
+              <th className="text-center py-3 px-3">Закрытых</th>
               <th className="text-center py-3 px-3">С прогрессом</th>
             </tr>
           </thead>
@@ -188,6 +190,7 @@ const ManagersTab = ({ managers, loading }) => {
                 </td>
                 <td className="text-center py-3 px-3">{m.avgReactionHours != null ? formatHours(m.avgReactionHours) : '—'}</td>
                 <td className="text-center py-3 px-3 text-rose-600">{m.stalledCount}</td>
+                <td className="text-center py-3 px-3 text-gray-500">{m.closedLost || 0}</td>
                 <td className="text-center py-3 px-3 text-blue-600">{m.withProgress}</td>
               </tr>
             ))}
@@ -256,6 +259,104 @@ const ProblemLeadsTab = ({ leads, loading }) => {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+};
+
+// ==================== CLOSED/LOST TAB ====================
+const ClosedLostTab = ({ dateFrom, dateTo }) => {
+  const [data, setData] = useState({ leads: [], total: 0, byManager: [] });
+  const [loading, setLoading] = useState(true);
+  const [filterManager, setFilterManager] = useState('all');
+
+  useEffect(() => {
+    const fetchClosedLost = async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (dateFrom) params.date_from = dateFrom;
+        if (dateTo) params.date_to = dateTo;
+        if (filterManager && filterManager !== 'all') params.manager_id = filterManager;
+        const res = await axios.get(`${API_URL}/api/lead-analytics/closed-lost`, { params });
+        setData(res.data);
+      } catch (e) {
+        console.error('Error fetching closed lost:', e);
+      } finally { setLoading(false); }
+    };
+    fetchClosedLost();
+  }, [dateFrom, dateTo, filterManager]);
+
+  if (loading) return <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /></div>;
+
+  return (
+    <div className="space-y-4" data-testid="closed-lost-tab">
+      {/* Manager breakdown */}
+      {data.byManager.length > 0 && (
+        <Card className="border border-gray-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Ban className="h-4 w-4 text-gray-500" />
+              <span className="font-medium text-sm">Закрытые сделки по менеджерам</span>
+              <span className="text-xs text-muted-foreground ml-auto">Всего: {data.total}</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant={filterManager === 'all' ? 'default' : 'outline'}
+                className="cursor-pointer" onClick={() => setFilterManager('all')}>
+                Все ({data.total})
+              </Badge>
+              {data.byManager.map(m => (
+                <Badge key={m.userId} variant={filterManager === m.userId ? 'default' : 'outline'}
+                  className="cursor-pointer" onClick={() => setFilterManager(m.userId)}>
+                  {m.userName}: {m.count}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!data.leads.length ? (
+        <div className="text-center py-12 text-muted-foreground">Нет закрытых сделок в выбранном периоде.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="text-left py-3 px-3">Сделка</th>
+                <th className="text-left py-3 px-3">Клиент</th>
+                <th className="text-left py-3 px-3">Менеджер</th>
+                <th className="text-left py-3 px-3">Создана</th>
+                <th className="text-center py-3 px-3">Действий</th>
+                <th className="text-center py-3 px-3">Примечаний</th>
+                <th className="text-center py-3 px-3">Коммуникация</th>
+                <th className="text-center py-3 px-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.leads.map((l) => (
+                <tr key={l.amocrm_lead_id} className="border-b hover:bg-muted/30 transition-colors">
+                  <td className="py-3 px-3 font-medium max-w-[200px] truncate">{l.leadName || '—'}</td>
+                  <td className="py-3 px-3">{l.contactName || '—'}</td>
+                  <td className="py-3 px-3">{l.responsibleUserName || '—'}</td>
+                  <td className="py-3 px-3 whitespace-nowrap text-xs">{l.createdAt ? new Date(l.createdAt).toLocaleDateString('ru-RU') : '—'}</td>
+                  <td className="text-center py-3 px-3">{l.totalActions || 0}</td>
+                  <td className="text-center py-3 px-3">{l.noteCount || 0}</td>
+                  <td className="text-center py-3 px-3">
+                    {l.hasCommunication ? <CheckCircle className="h-4 w-4 text-emerald-500 mx-auto" /> : <XCircle className="h-4 w-4 text-red-400 mx-auto" />}
+                  </td>
+                  <td className="text-center py-3 px-3">
+                    {l.amocrm_link && (
+                      <a href={l.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
@@ -341,6 +442,21 @@ const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
                 {statuses.map(s => (
                   <Badge key={s.id} variant={(settings.successStageIds || []).includes(s.id) ? 'default' : 'outline'}
                     className="cursor-pointer" onClick={() => toggleArrayField('successStageIds', s.id)}>
+                    {s.name}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-gray-300">
+            <CardHeader><CardTitle className="text-base">Этапы "Закрыто и не реализовано"</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-3">Сделки на этих этапах исключаются из основной статистики и не считаются зависшими. Отслеживаются отдельно во вкладке "Закрытые".</p>
+              <div className="flex flex-wrap gap-2">
+                {statuses.map(s => (
+                  <Badge key={s.id} variant={(settings.closedLostStageIds || []).includes(s.id) ? 'destructive' : 'outline'}
+                    className="cursor-pointer" onClick={() => toggleArrayField('closedLostStageIds', s.id)}>
                     {s.name}
                   </Badge>
                 ))}
@@ -647,6 +763,7 @@ const LeadAnalyticsPage = () => {
     { id: 'summary', label: 'Сводка', icon: BarChart3 },
     { id: 'managers', label: 'По менеджерам', icon: Users },
     { id: 'problems', label: 'Проблемные', icon: AlertTriangle, count: problemLeads.length },
+    { id: 'closed', label: 'Закрытые', icon: Ban, count: summary.closedLost || 0 },
     { id: 'events', label: 'По событиям', icon: Activity },
     { id: 'ai', label: 'AI-рекомендации', icon: Zap },
     { id: 'settings', label: 'Настройки', icon: Settings },
@@ -698,7 +815,7 @@ const LeadAnalyticsPage = () => {
             >
               <Icon className="h-4 w-4" />
               {tab.label}
-              {tab.count > 0 && <Badge variant="destructive" className="text-xs px-1.5 py-0">{tab.count}</Badge>}
+              {tab.count > 0 && <Badge variant={tab.id === 'closed' ? 'secondary' : 'destructive'} className="text-xs px-1.5 py-0">{tab.count}</Badge>}
             </button>
           );
         })}
@@ -708,6 +825,7 @@ const LeadAnalyticsPage = () => {
       {activeTab === 'summary' && <SummaryTab summary={summary} loading={loading} />}
       {activeTab === 'managers' && <ManagersTab managers={managers} loading={loading} />}
       {activeTab === 'problems' && <ProblemLeadsTab leads={problemLeads} loading={loading} />}
+      {activeTab === 'closed' && <ClosedLostTab dateFrom={dateFrom} dateTo={dateTo} />}
       {activeTab === 'events' && <ManagerEventsAnalytics />}
       {activeTab === 'ai' && <AIRecommendationsTab dateFrom={dateFrom} dateTo={dateTo} problemLeads={problemLeads} />}
       {activeTab === 'settings' && <SettingsTab settings={settings} setSettings={setSettings} onSave={handleSaveSettings} savingSettings={savingSettings} />}
