@@ -428,6 +428,131 @@ const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
   );
 };
 
+// ==================== AI RECOMMENDATIONS TAB ====================
+const AIRecommendationsTab = ({ dateFrom, dateTo, problemLeads }) => {
+  const [departmentText, setDepartmentText] = useState('');
+  const [managerText, setManagerText] = useState('');
+  const [errorsText, setErrorsText] = useState('');
+  const [leadAdvice, setLeadAdvice] = useState({});
+  const [loadingDept, setLoadingDept] = useState(false);
+  const [loadingMgr, setLoadingMgr] = useState(false);
+  const [loadingErrors, setLoadingErrors] = useState(false);
+  const [loadingLead, setLoadingLead] = useState(null);
+
+  const generateDepartment = async () => {
+    setLoadingDept(true);
+    try {
+      const params = {};
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
+      const res = await axios.post(`${API_URL}/api/lead-analytics/ai/department-summary`, null, { params });
+      setDepartmentText(res.data.text);
+    } catch (e) {
+      toast.error('Ошибка генерации: ' + (e.response?.data?.detail || e.message));
+    } finally { setLoadingDept(false); }
+  };
+
+  const generateManagers = async () => {
+    setLoadingMgr(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/lead-analytics/ai/manager-analysis`);
+      setManagerText(res.data.text);
+    } catch (e) {
+      toast.error('Ошибка генерации: ' + (e.response?.data?.detail || e.message));
+    } finally { setLoadingMgr(false); }
+  };
+
+  const generateErrors = async () => {
+    setLoadingErrors(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/lead-analytics/ai/common-errors`);
+      setErrorsText(res.data.text);
+    } catch (e) {
+      toast.error('Ошибка генерации: ' + (e.response?.data?.detail || e.message));
+    } finally { setLoadingErrors(false); }
+  };
+
+  const generateLeadAdvice = async (leadId) => {
+    setLoadingLead(leadId);
+    try {
+      const res = await axios.post(`${API_URL}/api/lead-analytics/ai/problem-lead-advice?lead_id=${leadId}`);
+      setLeadAdvice(prev => ({ ...prev, [leadId]: res.data.text }));
+    } catch (e) {
+      toast.error('Ошибка: ' + (e.response?.data?.detail || e.message));
+    } finally { setLoadingLead(null); }
+  };
+
+  const AIBlock = ({ title, text, loading: isLoading, onGenerate, icon: Icon }) => (
+    <Card className="border">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Icon className="h-5 w-5 text-violet-600" />
+          {title}
+        </CardTitle>
+        <Button size="sm" onClick={onGenerate} disabled={isLoading} variant="outline" className="border-violet-300 text-violet-700 hover:bg-violet-50">
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Zap className="h-4 w-4 mr-1" />}
+          {text ? 'Обновить' : 'Сгенерировать'}
+        </Button>
+      </CardHeader>
+      {text && (
+        <CardContent>
+          <div className="prose prose-sm max-w-none text-sm leading-relaxed whitespace-pre-line bg-violet-50/50 rounded-lg p-4 border border-violet-100">
+            {text}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+
+  return (
+    <div className="space-y-4" data-testid="ai-tab">
+      <AIBlock title="Общий вывод по отделу" text={departmentText} loading={loadingDept} onGenerate={generateDepartment} icon={BarChart3} />
+      <AIBlock title="Анализ по менеджерам" text={managerText} loading={loadingMgr} onGenerate={generateManagers} icon={Users} />
+      <AIBlock title="Типовые ошибки и рекомендации" text={errorsText} loading={loadingErrors} onGenerate={generateErrors} icon={AlertTriangle} />
+
+      {/* Per-lead advice for problem leads */}
+      {problemLeads.length > 0 && (
+        <Card className="border">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Target className="h-5 w-5 text-violet-600" />
+              Советы по проблемным сделкам
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {problemLeads.slice(0, 10).map((lead) => (
+              <div key={lead.amocrm_lead_id} className="border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="font-medium text-sm">{lead.leadName || '—'}</span>
+                    <span className="text-xs text-muted-foreground ml-2">({lead.responsibleUserName})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {lead.amocrm_link && (
+                      <a href={lead.amocrm_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={() => generateLeadAdvice(lead.amocrm_lead_id)}
+                      disabled={loadingLead === lead.amocrm_lead_id} className="text-violet-700 h-7 px-2">
+                      {loadingLead === lead.amocrm_lead_id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+                {leadAdvice[lead.amocrm_lead_id] && (
+                  <div className="text-sm bg-violet-50/50 rounded p-3 border border-violet-100 whitespace-pre-line">
+                    {leadAdvice[lead.amocrm_lead_id]}
+                  </div>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
 // ==================== MAIN PAGE ====================
 const LeadAnalyticsPage = () => {
   const [activeTab, setActiveTab] = useState('summary');
@@ -521,6 +646,7 @@ const LeadAnalyticsPage = () => {
     { id: 'summary', label: 'Сводка', icon: BarChart3 },
     { id: 'managers', label: 'По менеджерам', icon: Users },
     { id: 'problems', label: 'Проблемные', icon: AlertTriangle, count: problemLeads.length },
+    { id: 'ai', label: 'AI-рекомендации', icon: Zap },
     { id: 'settings', label: 'Настройки', icon: Settings },
   ];
 
@@ -580,6 +706,7 @@ const LeadAnalyticsPage = () => {
       {activeTab === 'summary' && <SummaryTab summary={summary} loading={loading} />}
       {activeTab === 'managers' && <ManagersTab managers={managers} loading={loading} />}
       {activeTab === 'problems' && <ProblemLeadsTab leads={problemLeads} loading={loading} />}
+      {activeTab === 'ai' && <AIRecommendationsTab dateFrom={dateFrom} dateTo={dateTo} problemLeads={problemLeads} />}
       {activeTab === 'settings' && <SettingsTab settings={settings} setSettings={setSettings} onSave={handleSaveSettings} savingSettings={savingSettings} />}
     </div>
   );

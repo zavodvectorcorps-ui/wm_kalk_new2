@@ -1,14 +1,17 @@
 """Lead Analytics Module - Manager performance tracking for amoCRM leads."""
 import logging
+import os
 import httpx
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
 from database import db
 from routes.amocrm import get_amocrm_settings
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/lead-analytics", tags=["Lead Analytics"])
 
@@ -567,3 +570,275 @@ async def get_pipelines_and_users():
             })
 
     return {"pipelines": pipelines, "users": users}
+
+
+
+# --- AI Recommendations ---
+
+async def _get_ai_chat():
+    """Initialize LLM chat for analytics."""
+    from emergentintegrations.llm.chat import LlmChat
+    api_key = os.environ.get("EMERGENT_LLM_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY не настроен")
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"lead-analytics-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+        system_message="""Ты — аналитик отдела продаж. Анализируешь данные по обработке входящих лидов менеджерами.
+Пиши на русском языке. Будь конкретен, используй цифры из предоставленных данных.
+Не используй markdown-заголовки (#), пиши простым текстом с абзацами.
+Формат: краткие абзацы с выводами и рекомендациями."""
+    ).with_model("openai", "gpt-5.2")
+    return chat
+
+
+@router.post("/ai/department-summary")
+async def ai_department_summary(date_from: str = None, date_to: str = None):
+    """AI-generated department summary."""
+    from emergentintegrations.llm.chat import UserMessage
+
+    # Get summary data
+    query = {}
+    if date_from:
+        query["createdAt"] = {"$gte": date_from}
+    if date_to:
+        query.setdefault("createdAt", {})["$lte"] = date_to + "T23:59:59"
+    leads = await db.lead_analytics_leads.find(query, {"_id": 0}).to_list(length=5000)
+
+    if not leads:
+        return {"text": "Нет данных для анализа. Запустите синхронизацию лидов."}
+
+    total = len(leads)
+    fast = sum(1 for ld in leads if ld.get("processingStatus") == "processed_fast")
+    late = sum(1 for ld in leads if ld.get("processingStatus") == "processed_late")
+    not_proc = sum(1 for ld in leads if ld.get("processingStatus") == "not_processed")
+    weak = sum(1 for ld in leads if ld.get("processingStatus") == "weak_processing")
+    stalled = sum(1 for ld in leads if ld.get("isStalled"))
+    reactions = [ld["timeToFirstActionHours"] for ld in leads if ld.get("timeToFirstActionHours") is not None]
+    avg_reaction = round(sum(reactions) / len(reactions), 2) if reactions else None
+
+    prompt = f"""Проанализируй работу отдела продаж за период.
+
+Данные:
+- Всего лидов: {total}
+- Обработано быстро (в рамках SLA): {fast} ({round(fast/total*100)}%)
+- Обработано с задержкой: {late} ({round(late/total*100)}%)
+- Не обработано: {not_proc} ({round(not_proc/total*100)}%)
+- Слабая обработка (действие было, но без прогресса): {weak} ({round(weak/total*100)}%)
+- Зависших сделок: {stalled}
+- Среднее время до первого действия: {avg_reaction} часов
+- Период: {date_from or 'не указан'} — {date_to or 'не указан'}
+
+Напиши:
+1. Краткий общий вывод по отделу (2-3 предложения)
+2. Основные проблемы (если есть)
+3. Конкретные рекомендации по улучшению
+4. Что делается хорошо (если есть)"""
+
+    try:
+        chat = await _get_ai_chat()
+        text = await chat.send_message(UserMessage(text=prompt))
+        # Save to history
+        await db.lead_analytics_ai_history.insert_one({
+            "type": "department_summary",
+            "date_from": date_from, "date_to": date_to,
+            "text": text,
+            "createdAt": datetime.now(timezone.utc).isoformat()
+        })
+        return {"text": text}
+    except Exception as e:
+        logger.error(f"AI department summary error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ai/manager-analysis")
+async def ai_manager_analysis(manager_id: str = None):
+    """AI-generated per-manager analysis."""
+    from emergentintegrations.llm.chat import UserMessage
+
+    # Get latest manager stats
+    last_sync = await db.lead_analytics_sync.find_one(
+        {"status": "completed"}, {"_id": 0}, sort=[("completedAt", -1)]
+    )
+    if not last_sync:
+        return {"analyses": []}
+
+    sync_id = last_sync.get("sync_id")
+    query = {"sync_id": sync_id}
+    if manager_id:
+        query["userId"] = manager_id
+    managers = await db.lead_analytics_managers.find(query, {"_id": 0}).to_list(length=50)
+
+    if not managers:
+        return {"analyses": []}
+
+    # Build data block for each manager
+    manager_blocks = []
+    for m in managers:
+        manager_blocks.append(
+            f"Менеджер: {m.get('userName', 'Неизвестно')}\n"
+            f"  Лидов: {m.get('totalLeads', 0)}\n"
+            f"  Быстро обработано: {m.get('processedFast', 0)}\n"
+            f"  С задержкой: {m.get('processedLate', 0)}\n"
+            f"  Не обработано: {m.get('notProcessed', 0)}\n"
+            f"  Слабая обработка: {m.get('weakProcessing', 0)}\n"
+            f"  % обработки: {m.get('processedPercent', 0)}%\n"
+            f"  Ср. время реакции: {m.get('avgReactionHours', 'нет данных')} ч\n"
+            f"  Зависших: {m.get('stalledCount', 0)}\n"
+            f"  С прогрессом по этапам: {m.get('withProgress', 0)}"
+        )
+
+    prompt = f"""Проанализируй работу каждого менеджера по обработке лидов.
+
+Данные по менеджерам:
+{chr(10).join(manager_blocks)}
+
+По каждому менеджеру напиши (через пустую строку):
+- Имя менеджера (жирным, т.е. **Имя**)
+- Оценка работы (1-2 предложения)
+- Сильные стороны
+- Что нужно улучшить
+- Конкретная рекомендация"""
+
+    try:
+        chat = await _get_ai_chat()
+        text = await chat.send_message(UserMessage(text=prompt))
+        await db.lead_analytics_ai_history.insert_one({
+            "type": "manager_analysis",
+            "manager_id": manager_id,
+            "text": text,
+            "createdAt": datetime.now(timezone.utc).isoformat()
+        })
+        return {"text": text}
+    except Exception as e:
+        logger.error(f"AI manager analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ai/problem-lead-advice")
+async def ai_problem_lead_advice(lead_id: int):
+    """AI advice for a specific problem lead."""
+    from emergentintegrations.llm.chat import UserMessage
+
+    lead = await db.lead_analytics_leads.find_one({"amocrm_lead_id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Лид не найден")
+
+    status_labels = {
+        "processed_fast": "обработано быстро",
+        "processed_late": "обработано с задержкой",
+        "not_processed": "не обработано",
+        "weak_processing": "слабая обработка"
+    }
+
+    prompt = f"""Проанализируй проблемную сделку и дай рекомендации менеджеру.
+
+Данные сделки:
+- Название: {lead.get('leadName', '')}
+- Клиент: {lead.get('contactName', '')}
+- Менеджер: {lead.get('responsibleUserName', '')}
+- Дата создания: {lead.get('createdAt', '')}
+- Статус обработки: {status_labels.get(lead.get('processingStatus', ''), lead.get('processingStatus', ''))}
+- Время до первого действия: {lead.get('timeToFirstActionHours', 'нет')} часов
+- Время бездействия: {lead.get('idleHours', 0):.0f} часов
+- Кол-во действий: {lead.get('totalActions', 0)}
+- Смена этапов: {lead.get('stageChangeCount', 0)}
+- Есть примечания: {'да' if lead.get('hasNotes') else 'нет'}
+- Есть задачи: {'да' if lead.get('hasTasks') else 'нет'}
+- Есть коммуникация: {'да' if lead.get('hasCommunication') else 'нет'}
+- Прогресс по этапам: {'да' if lead.get('hasProgress') else 'нет'}
+- Зависшая: {'да' if lead.get('isStalled') else 'нет'}
+
+Напиши:
+1. Краткий анализ ситуации (2 предложения)
+2. Что пошло не так
+3. Рекомендуемый следующий шаг для менеджера
+4. Вариант follow-up сообщения клиенту (1-2 предложения, дружелюбно и профессионально)"""
+
+    try:
+        chat = await _get_ai_chat()
+        text = await chat.send_message(UserMessage(text=prompt))
+        await db.lead_analytics_ai_history.insert_one({
+            "type": "problem_lead_advice",
+            "lead_id": lead_id,
+            "text": text,
+            "createdAt": datetime.now(timezone.utc).isoformat()
+        })
+        return {"text": text, "leadId": lead_id}
+    except Exception as e:
+        logger.error(f"AI problem lead advice error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ai/common-errors")
+async def ai_common_errors():
+    """AI analysis of common errors and improvement suggestions."""
+    from emergentintegrations.llm.chat import UserMessage
+
+    # Get all problem leads
+    problem_leads = await db.lead_analytics_leads.find(
+        {"$or": [
+            {"processingStatus": "not_processed"},
+            {"processingStatus": "weak_processing"},
+            {"isStalled": True},
+        ]}, {"_id": 0}
+    ).to_list(length=500)
+
+    if not problem_leads:
+        return {"text": "Нет проблемных сделок для анализа. Отличная работа отдела!"}
+
+    # Aggregate patterns
+    by_manager = {}
+    by_status = {"not_processed": 0, "weak_processing": 0, "stalled": 0}
+    no_notes = 0
+    no_tasks = 0
+    no_communication = 0
+
+    for ld in problem_leads:
+        mgr = ld.get("responsibleUserName", "unknown")
+        by_manager[mgr] = by_manager.get(mgr, 0) + 1
+        st = ld.get("processingStatus", "")
+        if st in by_status:
+            by_status[st] += 1
+        if ld.get("isStalled"):
+            by_status["stalled"] += 1
+        if not ld.get("hasNotes"):
+            no_notes += 1
+        if not ld.get("hasTasks"):
+            no_tasks += 1
+        if not ld.get("hasCommunication"):
+            no_communication += 1
+
+    manager_summary = "\n".join(f"  {name}: {count} проблемных" for name, count in sorted(by_manager.items(), key=lambda x: -x[1]))
+
+    prompt = f"""Проанализируй типовые ошибки отдела продаж на основе проблемных сделок.
+
+Статистика проблемных сделок ({len(problem_leads)} всего):
+- Не обработано: {by_status['not_processed']}
+- Слабая обработка: {by_status['weak_processing']}
+- Зависших: {by_status['stalled']}
+- Без примечаний: {no_notes}
+- Без задач: {no_tasks}
+- Без коммуникации: {no_communication}
+
+По менеджерам:
+{manager_summary}
+
+Напиши:
+1. Список типовых ошибок (пронумерованный)
+2. Системные проблемы (если видишь паттерны)
+3. Конкретные рекомендации по улучшению процессов
+4. Приоритетные действия на ближайшую неделю"""
+
+    try:
+        chat = await _get_ai_chat()
+        text = await chat.send_message(UserMessage(text=prompt))
+        await db.lead_analytics_ai_history.insert_one({
+            "type": "common_errors",
+            "text": text,
+            "createdAt": datetime.now(timezone.utc).isoformat()
+        })
+        return {"text": text}
+    except Exception as e:
+        logger.error(f"AI common errors error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
