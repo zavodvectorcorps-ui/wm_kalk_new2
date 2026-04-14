@@ -907,3 +907,106 @@ async def ai_common_errors():
     except Exception as e:
         logger.error(f"AI common errors error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ai/closed-lost-analysis")
+async def ai_closed_lost_analysis(date_from: str = None, date_to: str = None):
+    """AI analysis of closed/lost deals — patterns, reasons, and recommendations."""
+    from emergentintegrations.llm.chat import UserMessage
+
+    query = {"processingStatus": "closed_lost"}
+    if date_from:
+        query["createdAt"] = {"$gte": date_from}
+    if date_to:
+        query.setdefault("createdAt", {})["$lte"] = date_to + "T23:59:59"
+
+    closed_leads = await db.lead_analytics_leads.find(query, {"_id": 0}).to_list(length=5000)
+
+    if not closed_leads:
+        return {"text": "Нет закрытых сделок для анализа."}
+
+    total = len(closed_leads)
+
+    # Per-manager breakdown
+    by_manager = {}
+    for ld in closed_leads:
+        mgr = ld.get("responsibleUserName", "Неизвестно")
+        if mgr not in by_manager:
+            by_manager[mgr] = {"count": 0, "with_comm": 0, "with_notes": 0,
+                               "with_tasks": 0, "with_progress": 0, "actions": [],
+                               "reaction_times": []}
+        m = by_manager[mgr]
+        m["count"] += 1
+        if ld.get("hasCommunication"):
+            m["with_comm"] += 1
+        if ld.get("hasNotes"):
+            m["with_notes"] += 1
+        if ld.get("hasTasks"):
+            m["with_tasks"] += 1
+        if ld.get("hasProgress"):
+            m["with_progress"] += 1
+        m["actions"].append(ld.get("totalActions", 0))
+        if ld.get("timeToFirstActionHours") is not None:
+            m["reaction_times"].append(ld["timeToFirstActionHours"])
+
+    # Overall stats
+    no_comm = sum(1 for ld in closed_leads if not ld.get("hasCommunication"))
+    no_notes = sum(1 for ld in closed_leads if not ld.get("hasNotes"))
+    no_tasks = sum(1 for ld in closed_leads if not ld.get("hasTasks"))
+    no_actions = sum(1 for ld in closed_leads if (ld.get("totalActions") or 0) == 0)
+    single_action = sum(1 for ld in closed_leads if (ld.get("totalActions") or 0) == 1)
+    with_progress = sum(1 for ld in closed_leads if ld.get("hasProgress"))
+    all_actions = [ld.get("totalActions", 0) for ld in closed_leads]
+    avg_actions = round(sum(all_actions) / len(all_actions), 1) if all_actions else 0
+    reaction_times = [ld["timeToFirstActionHours"] for ld in closed_leads if ld.get("timeToFirstActionHours") is not None]
+    avg_reaction = round(sum(reaction_times) / len(reaction_times), 1) if reaction_times else None
+
+    manager_lines = []
+    for mgr_name, m in sorted(by_manager.items(), key=lambda x: -x[1]["count"]):
+        avg_a = round(sum(m["actions"]) / len(m["actions"]), 1) if m["actions"] else 0
+        avg_r = round(sum(m["reaction_times"]) / len(m["reaction_times"]), 1) if m["reaction_times"] else None
+        manager_lines.append(
+            f"  {mgr_name}: {m['count']} закрытых, "
+            f"ср. действий: {avg_a}, "
+            f"с коммуникацией: {m['with_comm']}/{m['count']}, "
+            f"с прогрессом: {m['with_progress']}/{m['count']}, "
+            f"ср. реакция: {avg_r or 'нет'} ч"
+        )
+
+    prompt = f"""Проанализируй закрытые/нереализованные сделки отдела продаж. Это сделки, которые менеджеры не смогли довести до продажи.
+
+Общая статистика ({total} закрытых сделок):
+- Без коммуникации (звонки, сообщения): {no_comm} ({round(no_comm/total*100)}%)
+- Без примечаний: {no_notes} ({round(no_notes/total*100)}%)
+- Без задач: {no_tasks} ({round(no_tasks/total*100)}%)
+- Без единого действия: {no_actions} ({round(no_actions/total*100)}%)
+- Только 1 действие и закрыто: {single_action} ({round(single_action/total*100)}%)
+- С прогрессом по этапам перед закрытием: {with_progress} ({round(with_progress/total*100)}%)
+- Среднее кол-во действий до закрытия: {avg_actions}
+- Среднее время реакции: {avg_reaction or 'нет данных'} ч
+- Период: {date_from or 'не указан'} — {date_to or 'не указан'}
+
+По менеджерам:
+{chr(10).join(manager_lines)}
+
+Напиши подробный анализ:
+1. Ключевые паттерны — почему сделки закрываются без реализации (на основе данных)
+2. На каком этапе чаще всего теряются клиенты (до коммуникации, после первого контакта, после нескольких действий)
+3. Какие менеджеры закрывают больше всех и есть ли у них паттерны
+4. Сделки без действий — это системная проблема или единичные случаи
+5. Три главных рекомендации по снижению % закрытых
+6. Предложи конкретный чек-лист для менеджера перед закрытием сделки (3-5 пунктов)"""
+
+    try:
+        chat = await _get_ai_chat()
+        text = await chat.send_message(UserMessage(text=prompt))
+        await db.lead_analytics_ai_history.insert_one({
+            "type": "closed_lost_analysis",
+            "date_from": date_from, "date_to": date_to,
+            "text": text,
+            "createdAt": datetime.now(timezone.utc).isoformat()
+        })
+        return {"text": text}
+    except Exception as e:
+        logger.error(f"AI closed-lost analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -268,6 +268,8 @@ const ClosedLostTab = ({ dateFrom, dateTo }) => {
   const [data, setData] = useState({ leads: [], total: 0, byManager: [] });
   const [loading, setLoading] = useState(true);
   const [filterManager, setFilterManager] = useState('all');
+  const [aiText, setAiText] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     const fetchClosedLost = async () => {
@@ -286,10 +288,45 @@ const ClosedLostTab = ({ dateFrom, dateTo }) => {
     fetchClosedLost();
   }, [dateFrom, dateTo, filterManager]);
 
+  const generateAI = async () => {
+    setAiLoading(true);
+    try {
+      const params = {};
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
+      const res = await axios.post(`${API_URL}/api/lead-analytics/ai/closed-lost-analysis`, null, { params });
+      setAiText(res.data.text);
+    } catch (e) {
+      toast.error('Ошибка AI-анализа: ' + (e.response?.data?.detail || e.message));
+    } finally { setAiLoading(false); }
+  };
+
   if (loading) return <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-500" /></div>;
 
   return (
     <div className="space-y-4" data-testid="closed-lost-tab">
+      {/* AI analysis */}
+      <Card className="border border-violet-200">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-base flex items-center gap-2 text-violet-700">
+            <Zap className="h-5 w-5" />
+            AI-анализ причин закрытия
+          </CardTitle>
+          <Button size="sm" onClick={generateAI} disabled={aiLoading} variant="outline"
+            className="border-violet-300 text-violet-700 hover:bg-violet-50" data-testid="closed-lost-ai-btn">
+            {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Zap className="h-4 w-4 mr-1" />}
+            {aiText ? 'Обновить анализ' : 'Анализировать паттерны'}
+          </Button>
+        </CardHeader>
+        {aiText && (
+          <CardContent>
+            <div className="text-sm leading-relaxed whitespace-pre-line bg-violet-50/50 rounded-lg p-4 border border-violet-100" data-testid="closed-lost-ai-text">
+              {aiText}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Manager breakdown */}
       {data.byManager.length > 0 && (
         <Card className="border border-gray-200">
