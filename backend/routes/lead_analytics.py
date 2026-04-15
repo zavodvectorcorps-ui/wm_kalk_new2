@@ -132,8 +132,9 @@ async def _fetch_amo_users() -> list:
 # --- Sync Logic ---
 
 @router.post("/sync")
-async def start_sync(background_tasks: BackgroundTasks, date_from: str = None, date_to: str = None):
-    """Start background sync of leads from amoCRM for analytics."""
+async def start_sync(background_tasks: BackgroundTasks,
+                     date_from: str = None, date_to: str = None, force: bool = False):
+    """Start background sync. force=true for full resync, otherwise incremental."""
     settings = await get_analytics_settings()
     pipeline_id = settings.get("pipelineId", "")
     if not pipeline_id:
@@ -143,11 +144,13 @@ async def start_sync(background_tasks: BackgroundTasks, date_from: str = None, d
     await db.lead_analytics_sync.insert_one({
         "sync_id": sync_id, "status": "running",
         "startedAt": datetime.now(timezone.utc).isoformat(),
-        "date_from": date_from, "date_to": date_to
+        "date_from": date_from, "date_to": date_to,
+        "mode": "full" if force else "incremental",
+        "progress": "подготовка..."
     })
 
-    background_tasks.add_task(_run_sync, sync_id, settings, date_from, date_to)
-    return {"status": "started", "sync_id": sync_id}
+    background_tasks.add_task(_run_sync, sync_id, settings, date_from, date_to, force)
+    return {"status": "started", "sync_id": sync_id, "mode": "full" if force else "incremental"}
 
 
 @router.get("/sync-status")
@@ -173,12 +176,12 @@ async def clear_all_analytics_data():
 
 
 
-async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, date_to_str: str = None):
-    """Background task: fetch leads, events, notes, tasks and compute metrics."""
+async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, date_to_str: str = None, force: bool = False):
+    """Background task: incremental sync — only fetch events/notes/tasks for changed leads."""
     try:
         pipeline_id = settings.get("pipelineId", "")
 
-        # Date filters — use analyticsStartDate as minimum
+        # Date filters
         ts_from = None
         ts_to = None
         analytics_start = settings.get("analyticsStartDate", "2026-01-01")
@@ -191,31 +194,55 @@ async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, dat
         if date_to_str:
             ts_to = int(datetime.fromisoformat(date_to_str).timestamp())
 
-        # Fetch leads
+        # 1. Fetch leads list (fast — just lead metadata)
+        await _update_sync_progress(sync_id, "загрузка списка сделок...")
         leads = await _fetch_leads_for_pipeline(pipeline_id, ts_from, ts_to)
-        logger.info(f"Lead analytics sync {sync_id}: fetched {len(leads)} leads (from {analytics_start})")
+        total_leads = len(leads)
+        logger.info(f"Sync {sync_id}: fetched {total_leads} leads from amoCRM")
 
-        # Fetch users for name mapping
+        # 2. Build cache of existing lead updated_at
+        cached_updated = {}
+        if not force:
+            cached_docs = await db.lead_analytics_leads.find(
+                {}, {"amocrm_lead_id": 1, "amo_updated_at": 1, "_id": 0}
+            ).to_list(length=20000)
+            for doc in cached_docs:
+                cached_updated[doc.get("amocrm_lead_id")] = doc.get("amo_updated_at", 0)
+
+        # 3. Split into changed and unchanged
+        changed_leads = []
+        unchanged_ids = []
+        for lead in leads:
+            lid = lead.get("id")
+            amo_updated = lead.get("updated_at", 0)
+            if not force and lid in cached_updated and cached_updated[lid] == amo_updated:
+                unchanged_ids.append(lid)
+            else:
+                changed_leads.append(lead)
+
+        logger.info(f"Sync {sync_id}: {len(changed_leads)} changed, {len(unchanged_ids)} unchanged (force={force})")
+        await _update_sync_progress(sync_id, f"обработка {len(changed_leads)} изменённых из {total_leads}...")
+
+        # 4. Fetch users
         users = await _fetch_amo_users()
         user_map = {str(u["id"]): u.get("name", f"User {u['id']}") for u in users}
 
+        # 5. Process changed leads
         processed = 0
-        for lead in leads:
+        for i, lead in enumerate(changed_leads):
             lead_id = lead.get("id")
             if not lead_id:
                 continue
 
-            # Fetch related data
             events = await _fetch_events_for_lead(lead_id)
             notes = await _fetch_notes_for_lead(lead_id)
             tasks = await _fetch_tasks_for_lead(lead_id)
 
-            # Compute metrics
             record = _compute_lead_metrics(lead, events, notes, tasks, user_map, settings)
+            record["amo_updated_at"] = lead.get("updated_at", 0)
             record["sync_id"] = sync_id
             record["syncedAt"] = datetime.now(timezone.utc).isoformat()
 
-            # Upsert
             await db.lead_analytics_leads.update_one(
                 {"amocrm_lead_id": lead_id},
                 {"$set": record},
@@ -223,7 +250,28 @@ async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, dat
             )
             processed += 1
 
-        # Compute manager aggregates
+            if (i + 1) % 10 == 0 or i == len(changed_leads) - 1:
+                await _update_sync_progress(sync_id, f"обработано {i+1}/{len(changed_leads)} сделок")
+
+        # 6. Update sync_id for unchanged leads (keep old data, just mark as current sync)
+        if unchanged_ids:
+            await db.lead_analytics_leads.update_many(
+                {"amocrm_lead_id": {"$in": unchanged_ids}},
+                {"$set": {"sync_id": sync_id, "syncedAt": datetime.now(timezone.utc).isoformat()}}
+            )
+
+        # 7. Remove leads deleted from amoCRM
+        all_amo_ids = [l.get("id") for l in leads if l.get("id")]
+        if all_amo_ids:
+            deleted = await db.lead_analytics_leads.delete_many({
+                "amocrm_lead_id": {"$nin": all_amo_ids},
+                "pipelineId": pipeline_id
+            })
+            if deleted.deleted_count:
+                logger.info(f"Sync {sync_id}: removed {deleted.deleted_count} deleted leads")
+
+        # 8. Compute manager aggregates
+        await _update_sync_progress(sync_id, "расчёт статистики менеджеров...")
         await _compute_manager_stats(sync_id, settings)
 
         await db.lead_analytics_sync.update_one(
@@ -231,10 +279,13 @@ async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, dat
             {"$set": {
                 "status": "completed",
                 "completedAt": datetime.now(timezone.utc).isoformat(),
-                "leadsProcessed": processed
+                "leadsProcessed": processed,
+                "leadsSkipped": len(unchanged_ids),
+                "leadsTotal": total_leads,
+                "progress": f"готово: {processed} обработано, {len(unchanged_ids)} пропущено"
             }}
         )
-        logger.info(f"Lead analytics sync {sync_id}: completed, {processed} leads processed")
+        logger.info(f"Sync {sync_id}: completed — {processed} processed, {len(unchanged_ids)} skipped")
     except Exception as e:
         logger.error(f"Lead analytics sync {sync_id} failed: {e}", exc_info=True)
         await db.lead_analytics_sync.update_one(
@@ -242,6 +293,12 @@ async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, dat
             {"$set": {"status": "error", "error": str(e),
                        "completedAt": datetime.now(timezone.utc).isoformat()}}
         )
+
+
+async def _update_sync_progress(sync_id: str, progress: str):
+    await db.lead_analytics_sync.update_one(
+        {"sync_id": sync_id}, {"$set": {"progress": progress}}
+    )
 
 
 def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,

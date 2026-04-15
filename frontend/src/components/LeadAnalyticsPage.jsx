@@ -767,14 +767,15 @@ const LeadAnalyticsPage = () => {
 
   useEffect(() => { fetchSummary(); fetchSettings(); }, []);
 
-  const handleSync = async () => {
+  const handleSync = async (force = false) => {
     setSyncing(true);
     try {
       const params = {};
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
+      if (force) params.force = true;
       await axios.post(`${API_URL}/api/lead-analytics/sync`, null, { params });
-      toast.success('Синхронизация запущена');
+      toast.success(force ? 'Полная синхронизация запущена' : 'Инкрементальная синхронизация запущена');
       // Poll status
       const poll = setInterval(async () => {
         const res = await axios.get(`${API_URL}/api/lead-analytics/sync-status`);
@@ -783,7 +784,7 @@ const LeadAnalyticsPage = () => {
           clearInterval(poll);
           setSyncing(false);
           if (res.data.status === 'completed') {
-            toast.success(`Синхронизировано: ${res.data.leadsProcessed} лидов`);
+            toast.success(`Готово: ${res.data.leadsProcessed || 0} обработано, ${res.data.leadsSkipped || 0} пропущено`);
             fetchSummary();
           } else {
             toast.error('Ошибка синхронизации');
@@ -831,7 +832,9 @@ const LeadAnalyticsPage = () => {
           {syncStatus && syncStatus.status !== 'never' && (
             <p className="text-xs text-muted-foreground mt-1">
               Последняя синхронизация: {syncStatus.completedAt ? new Date(syncStatus.completedAt).toLocaleString('ru-RU') : 'в процессе'}
-              {syncStatus.leadsProcessed != null && ` (${syncStatus.leadsProcessed} лидов)`}
+              {syncStatus.leadsProcessed != null && ` / ${syncStatus.leadsProcessed} обработано`}
+              {syncStatus.leadsSkipped != null && syncStatus.leadsSkipped > 0 && `, ${syncStatus.leadsSkipped} пропущено`}
+              {syncStatus.mode && ` (${syncStatus.mode === 'full' ? 'полная' : 'инкрементальная'})`}
             </p>
           )}
         </div>
@@ -854,12 +857,24 @@ const LeadAnalyticsPage = () => {
             <Trash2 className="h-4 w-4 mr-1" />
             Очистить всё
           </Button>
-          <Button onClick={handleSync} disabled={syncing} size="sm">
+          <Button onClick={() => handleSync(false)} disabled={syncing} size="sm" data-testid="sync-btn">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             Синхронизировать
           </Button>
+          <Button onClick={() => handleSync(true)} disabled={syncing} size="sm" variant="outline" data-testid="full-sync-btn">
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Полная
+          </Button>
         </div>
       </div>
+
+      {/* Sync progress */}
+      {syncing && syncStatus?.progress && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-blue-50 p-2 rounded border border-blue-200">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          <span>{syncStatus.progress}</span>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 border-b">
