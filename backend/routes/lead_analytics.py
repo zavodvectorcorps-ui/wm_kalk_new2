@@ -716,27 +716,40 @@ async def get_pipelines_and_users():
 
 # --- AI Recommendations ---
 
-async def _get_ai_chat():
-    """Initialize LLM chat for analytics."""
-    from emergentintegrations.llm.chat import LlmChat
+EMERGENT_PROXY_URL = "https://integrations.emergentagent.com/llm"
+
+async def _call_llm(system_message: str, user_prompt: str) -> str:
+    """Call LLM via Emergent proxy using direct HTTP (no litellm dependency)."""
+    import httpx
     api_key = os.environ.get("EMERGENT_LLM_KEY", "")
     if not api_key:
-        raise HTTPException(status_code=400, detail="EMERGENT_LLM_KEY не настроен. Добавьте ключ в настройках.")
-    chat = LlmChat(
-        api_key=api_key,
-        session_id=f"lead-analytics-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
-        system_message="""Ты — аналитик отдела продаж. Анализируешь данные по обработке входящих лидов менеджерами.
+        raise HTTPException(status_code=400, detail="EMERGENT_LLM_KEY не настроен")
+    async with httpx.AsyncClient(timeout=120) as client:
+        resp = await client.post(
+            f"{EMERGENT_PROXY_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": "gpt-5.2",
+                "messages": [
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_prompt},
+                ],
+            }
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"LLM error: {resp.status_code} {resp.text[:300]}")
+        data = resp.json()
+        return data["choices"][0]["message"]["content"]
+
+AI_SYSTEM_MSG = """Ты — аналитик отдела продаж. Анализируешь данные по обработке входящих лидов менеджерами.
 Пиши на русском языке. Будь конкретен, используй цифры из предоставленных данных.
 Не используй markdown-заголовки (#), пиши простым текстом с абзацами.
 Формат: краткие абзацы с выводами и рекомендациями."""
-    ).with_model("openai", "gpt-5.2")
-    return chat
 
 
 @router.post("/ai/department-summary")
 async def ai_department_summary(date_from: str = None, date_to: str = None):
     """AI-generated department summary."""
-    from emergentintegrations.llm.chat import UserMessage
 
     # Get summary data
     query = {}
@@ -777,9 +790,7 @@ async def ai_department_summary(date_from: str = None, date_to: str = None):
 4. Что делается хорошо (если есть)"""
 
     try:
-        chat = await _get_ai_chat()
-        text = await chat.send_message(UserMessage(text=prompt))
-        # Save to history
+        text = await _call_llm(AI_SYSTEM_MSG, prompt)
         await db.lead_analytics_ai_history.insert_one({
             "type": "department_summary",
             "date_from": date_from, "date_to": date_to,
@@ -795,7 +806,6 @@ async def ai_department_summary(date_from: str = None, date_to: str = None):
 @router.post("/ai/manager-analysis")
 async def ai_manager_analysis(manager_id: str = None):
     """AI-generated per-manager analysis."""
-    from emergentintegrations.llm.chat import UserMessage
 
     # Get latest manager stats
     last_sync = await db.lead_analytics_sync.find_one(
@@ -842,8 +852,7 @@ async def ai_manager_analysis(manager_id: str = None):
 - Конкретная рекомендация"""
 
     try:
-        chat = await _get_ai_chat()
-        text = await chat.send_message(UserMessage(text=prompt))
+        text = await _call_llm(AI_SYSTEM_MSG, prompt)
         await db.lead_analytics_ai_history.insert_one({
             "type": "manager_analysis",
             "manager_id": manager_id,
@@ -859,7 +868,6 @@ async def ai_manager_analysis(manager_id: str = None):
 @router.post("/ai/problem-lead-advice")
 async def ai_problem_lead_advice(lead_id: int):
     """AI advice for a specific problem lead."""
-    from emergentintegrations.llm.chat import UserMessage
 
     lead = await db.lead_analytics_leads.find_one({"amocrm_lead_id": lead_id}, {"_id": 0})
     if not lead:
@@ -897,8 +905,7 @@ async def ai_problem_lead_advice(lead_id: int):
 4. Вариант follow-up сообщения клиенту (1-2 предложения, дружелюбно и профессионально)"""
 
     try:
-        chat = await _get_ai_chat()
-        text = await chat.send_message(UserMessage(text=prompt))
+        text = await _call_llm(AI_SYSTEM_MSG, prompt)
         await db.lead_analytics_ai_history.insert_one({
             "type": "problem_lead_advice",
             "lead_id": lead_id,
@@ -914,7 +921,6 @@ async def ai_problem_lead_advice(lead_id: int):
 @router.post("/ai/common-errors")
 async def ai_common_errors():
     """AI analysis of common errors and improvement suggestions."""
-    from emergentintegrations.llm.chat import UserMessage
 
     # Get all problem leads
     problem_leads = await db.lead_analytics_leads.find(
@@ -972,8 +978,7 @@ async def ai_common_errors():
 4. Приоритетные действия на ближайшую неделю"""
 
     try:
-        chat = await _get_ai_chat()
-        text = await chat.send_message(UserMessage(text=prompt))
+        text = await _call_llm(AI_SYSTEM_MSG, prompt)
         await db.lead_analytics_ai_history.insert_one({
             "type": "common_errors",
             "text": text,
@@ -988,7 +993,6 @@ async def ai_common_errors():
 @router.post("/ai/closed-lost-analysis")
 async def ai_closed_lost_analysis(date_from: str = None, date_to: str = None):
     """AI analysis of closed/lost deals — patterns, reasons, and recommendations."""
-    from emergentintegrations.llm.chat import UserMessage
 
     query = {"processingStatus": "closed_lost"}
     if date_from:
@@ -1074,8 +1078,7 @@ async def ai_closed_lost_analysis(date_from: str = None, date_to: str = None):
 6. Предложи конкретный чек-лист для менеджера перед закрытием сделки (3-5 пунктов)"""
 
     try:
-        chat = await _get_ai_chat()
-        text = await chat.send_message(UserMessage(text=prompt))
+        text = await _call_llm(AI_SYSTEM_MSG, prompt)
         await db.lead_analytics_ai_history.insert_one({
             "type": "closed_lost_analysis",
             "date_from": date_from, "date_to": date_to,

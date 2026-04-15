@@ -548,7 +548,6 @@ async def get_advanced_dashboard():
 
 @router.post("/ai/comparison")
 async def ai_manager_comparison():
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
 
     data = await get_advanced_dashboard()
     managers = data.get("managers", [])
@@ -599,14 +598,26 @@ async def ai_manager_comparison():
 5. Персональная рекомендация для каждого менеджера (1-2 предложения)."""
 
     try:
+        import httpx
         api_key = os.environ.get("EMERGENT_LLM_KEY", "")
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"adv-comparison-{datetime.now(timezone.utc).strftime('%H%M%S')}",
-            system_message="Ты — жёсткий аналитик продаж. Пиши на русском, конкретно, с цифрами. Не приукрашивай."
-        ).with_model("openai", "gpt-5.2")
-        text = await chat.send_message(UserMessage(text=prompt))
+        if not api_key:
+            raise HTTPException(status_code=400, detail="EMERGENT_LLM_KEY не настроен")
+        system_msg = "Ты — жёсткий аналитик продаж. Пиши на русском, конкретно, с цифрами. Не приукрашивай."
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(
+                "https://integrations.emergentagent.com/llm/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": "gpt-5.2", "messages": [
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": prompt},
+                ]}
+            )
+            if resp.status_code != 200:
+                raise HTTPException(status_code=502, detail=f"LLM error: {resp.status_code} {resp.text[:300]}")
+            text = resp.json()["choices"][0]["message"]["content"]
         return {"text": text}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"AI comparison error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
