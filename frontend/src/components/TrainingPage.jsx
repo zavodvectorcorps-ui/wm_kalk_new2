@@ -877,26 +877,18 @@ const TrainingPage = ({ user }) => {
               </Card>
             )}
 
-            {/* HTML Content (iframe) */}
+            {/* HTML Content — full page */}
             {selectedLesson.htmlContent && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Code className="h-4 w-4" />
-                    HTML-материал
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <iframe
-                    srcDoc={selectedLesson.htmlContent}
-                    className="w-full border-0 rounded-b-lg"
-                    style={{ minHeight: '500px', height: '70vh' }}
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                    title="HTML content"
-                    data-testid="html-content-iframe"
-                  />
-                </CardContent>
-              </Card>
+              <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+                <iframe
+                  srcDoc={selectedLesson.htmlContent}
+                  className="w-full border-0"
+                  style={{ height: 'calc(100vh - 120px)' }}
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                  title="HTML content"
+                  data-testid="html-content-iframe"
+                />
+              </div>
             )}
 
             {/* Files */}
