@@ -20,7 +20,7 @@ import {
   FileQuestion, Save, X, ArrowLeft, BarChart3, Settings, Grip,
   ChevronDown, ChevronUp, PlayCircle, CheckCircle, XCircle, RefreshCw, FileImage,
   MessageSquareQuote, HelpCircle, Send, ThumbsUp, Search, Filter, Download,
-  Upload, File, FileText, Image, Paperclip
+  Upload, File, FileText, Image, Paperclip, Code
 } from 'lucide-react';
 
 const API_URL = (() => { 
@@ -54,6 +54,7 @@ const TrainingPage = ({ user }) => {
   const [usersStats, setUsersStats] = useState([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef(null);
+  const htmlFileRef = useRef(null);
   
   // Objections states
   const [objections, setObjections] = useState([]);
@@ -872,6 +873,28 @@ const TrainingPage = ({ user }) => {
               <Card>
                 <CardContent className="p-6 prose prose-sm max-w-none">
                   <div dangerouslySetInnerHTML={{ __html: selectedLesson.content }} />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* HTML Content (iframe) */}
+            {selectedLesson.htmlContent && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Code className="h-4 w-4" />
+                    HTML-материал
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <iframe
+                    srcDoc={selectedLesson.htmlContent}
+                    className="w-full border-0 rounded-b-lg"
+                    style={{ minHeight: '500px', height: '70vh' }}
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                    title="HTML content"
+                    data-testid="html-content-iframe"
+                  />
                 </CardContent>
               </Card>
             )}
@@ -2217,6 +2240,78 @@ const TrainingPage = ({ user }) => {
               </div>
 
               {/* Test settings */}
+              <div className="space-y-4">
+                <h3 className="font-medium flex items-center gap-2">
+                  <Code className="h-4 w-4" />
+                  HTML-контент
+                </h3>
+                <p className="text-xs text-muted-foreground">Загрузите .html файл или вставьте HTML-код. Контент отображается в iframe.</p>
+                
+                {/* Upload HTML file */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={htmlFileRef}
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const courseId = editingCourse?.id;
+                      const lessonId = editingLesson?.id;
+                      const saved = courses.find(c => c.id === courseId)?.lessons?.some(l => l.id === lessonId);
+                      if (!saved) { toast.error('Сначала сохраните урок'); return; }
+                      const fd = new FormData();
+                      fd.append('file', f);
+                      try {
+                        await axios.post(`${API_URL}/api/training/courses/${courseId}/lessons/${lessonId}/html-upload`, fd);
+                        toast.success('HTML загружен');
+                        const reader = new FileReader();
+                        reader.onload = (ev) => setEditingLesson(prev => ({ ...prev, htmlContent: ev.target.result }));
+                        reader.readAsText(f);
+                      } catch (err) { toast.error(err.response?.data?.detail || 'Ошибка'); }
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                    accept=".html,.htm"
+                  />
+                  <Button variant="outline" size="sm" onClick={() => htmlFileRef.current?.click()}
+                    disabled={!editingLesson?.id || !courses.find(c => c.id === editingCourse?.id)?.lessons?.some(l => l.id === editingLesson?.id)}>
+                    <Upload className="h-4 w-4 mr-1" />
+                    Загрузить .html
+                  </Button>
+                  {editingLesson?.htmlContent && (
+                    <Button variant="ghost" size="sm" className="text-red-500"
+                      onClick={() => setEditingLesson(prev => ({ ...prev, htmlContent: null }))}>
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Очистить
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Code editor */}
+                <Textarea
+                  value={editingLesson?.htmlContent || ''}
+                  onChange={e => setEditingLesson({ ...editingLesson, htmlContent: e.target.value })}
+                  placeholder="<!DOCTYPE html>\n<html>\n<body>\n  <h1>Заголовок</h1>\n</body>\n</html>"
+                  rows={8}
+                  className="font-mono text-xs"
+                />
+                
+                {/* Preview */}
+                {editingLesson?.htmlContent && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Предпросмотр:</p>
+                    <iframe
+                      srcDoc={editingLesson.htmlContent}
+                      className="w-full border rounded"
+                      style={{ minHeight: '300px' }}
+                      sandbox="allow-scripts allow-same-origin"
+                      title="HTML preview"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Test settings — original */}
               <div className="space-y-4">
                 <h3 className="font-medium flex items-center gap-2">
                   <FileQuestion className="h-4 w-4" />

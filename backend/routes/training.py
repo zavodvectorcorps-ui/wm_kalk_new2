@@ -60,14 +60,15 @@ class Lesson(BaseModel):
     id: str = Field(default_factory=lambda: str(ObjectId()))
     title: str
     description: Optional[str] = ""
-    thumbnailUrl: Optional[str] = None  # Thumbnail/cover image URL (can be GIF from Synthesia)
-    videoEmbed: Optional[str] = None  # Synthesia embed code (iframe)
-    videoUrl: Optional[str] = None  # Alternative: direct video URL or uploaded video
-    videoFileId: Optional[str] = None  # ID of uploaded video file in training_files collection
-    content: Optional[str] = ""  # Additional text content (markdown)
-    files: List[LessonFile] = []  # Attached files (PDF, documents, etc.)
+    thumbnailUrl: Optional[str] = None
+    videoEmbed: Optional[str] = None
+    videoUrl: Optional[str] = None
+    videoFileId: Optional[str] = None
+    content: Optional[str] = ""
+    htmlContent: Optional[str] = None  # Raw HTML content (uploaded file or code editor)
+    files: List[LessonFile] = []
     questions: List[Question] = []
-    passingScore: int = 100  # Minimum % to pass (0-100)
+    passingScore: int = 100
     order: int = 0
     isActive: bool = True
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -250,6 +251,28 @@ async def delete_lesson(course_id: str, lesson_id: str):
         raise HTTPException(status_code=404, detail="Курс не найден")
     
     return {"message": "Урок удалён"}
+
+
+@router.post("/courses/{course_id}/lessons/{lesson_id}/html-upload")
+async def upload_html_file(course_id: str, lesson_id: str, file: UploadFile = File(...)):
+    """Upload an HTML file as lesson content."""
+    if not file.filename or not file.filename.lower().endswith(('.html', '.htm')):
+        raise HTTPException(status_code=400, detail="Допускаются только .html / .htm файлы")
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Максимальный размер HTML-файла: 10MB")
+    html_text = content.decode('utf-8', errors='replace')
+    result = await db.training_courses.update_one(
+        {"id": course_id, "lessons.id": lesson_id},
+        {"$set": {
+            "lessons.$.htmlContent": html_text,
+            "updatedAt": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Урок не найден")
+    return {"status": "ok", "size": len(html_text), "filename": file.filename}
+
 
 
 @router.post("/courses/{course_id}/lessons/{lesson_id}/files")
