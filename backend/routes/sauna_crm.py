@@ -1047,6 +1047,18 @@ async def get_sync_status():
     return status
 
 
+
+@router.post("/sync-reset")
+async def reset_stuck_sync():
+    """Force-reset a stuck sync status."""
+    status = await db.sauna_crm_sync_status.find_one({}, {"_id": 0})
+    if not status or status.get("status") != "running":
+        return {"status": "ok", "message": "Нет зависшей синхронизации"}
+    await db.sauna_crm_sync_status.delete_many({})
+    return {"status": "ok", "message": f"Синхронизация {status.get('syncId', '')} сброшена"}
+
+
+
 async def _run_sync_background(sync_id: str, settings: dict, domain: str, token: str):
     """Background task for mass sync from amoCRM."""
     imported = 0
