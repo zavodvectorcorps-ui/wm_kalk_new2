@@ -268,6 +268,9 @@ async def create_indexes():
     await db.sauna_leads.create_index("createdAt")
     await db.sauna_leads.create_index("status")
     await db.sauna_leads.create_index([("createdAt", -1)])
+    
+    # CRM leads — prevent duplicates by amocrm_id
+    await db.sauna_crm_leads.create_index("amocrm_id", unique=True, sparse=True)
 
 
 async def deferred_startup_tasks():

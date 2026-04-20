@@ -1057,6 +1057,25 @@ async def reset_stuck_sync():
     await db.sauna_crm_sync_status.delete_many({})
     return {"status": "ok", "message": f"Синхронизация {status.get('syncId', '')} сброшена"}
 
+@router.post("/deduplicate")
+async def deduplicate_crm_leads():
+    """Remove duplicate leads by amocrm_id, keeping the most recently updated."""
+    pipeline = [
+        {"$group": {"_id": "$amocrm_id", "count": {"$sum": 1}, "ids": {"$push": "$_id"}, "updatedAts": {"$push": "$updatedAt"}}},
+        {"$match": {"count": {"$gt": 1}}}
+    ]
+    duplicates = await db.sauna_crm_leads.aggregate(pipeline).to_list(length=5000)
+    removed = 0
+    for dup in duplicates:
+        ids = dup["ids"]
+        # Keep the last one (most recent), remove the rest
+        ids_to_remove = ids[:-1]
+        r = await db.sauna_crm_leads.delete_many({"_id": {"$in": ids_to_remove}})
+        removed += r.deleted_count
+    return {"status": "ok", "duplicatesFound": len(duplicates), "removed": removed}
+
+
+
 
 
 async def _run_sync_background(sync_id: str, settings: dict, domain: str, token: str):
@@ -1178,7 +1197,11 @@ async def _process_single_amo_lead(
     """Process a single amoCRM lead during bulk sync. Returns 'imported', 'updated', or raises."""
     amo_id = str(amo_lead["id"])
 
-    existing = await db.sauna_crm_leads.find_one({"amocrm_id": amo_id})
+    # Try both string and int match to avoid duplicates from type mismatch
+    existing = await db.sauna_crm_leads.find_one({"$or": [
+        {"amocrm_id": amo_id},
+        {"amocrm_id": int(amo_id)} if amo_id.isdigit() else {"amocrm_id": amo_id}
+    ]})
 
     # Extract custom + standard fields
     custom_fields = amo_lead.get("custom_fields_values") or []
@@ -1348,7 +1371,12 @@ async def _process_single_amo_lead(
         }
 
         await link_calculator_order(amo_id, new_lead)
-        await db.sauna_crm_leads.insert_one(new_lead)
+        # Use upsert to prevent duplicates from concurrent processing
+        await db.sauna_crm_leads.update_one(
+            {"amocrm_id": amo_id},
+            {"$setOnInsert": new_lead},
+            upsert=True
+        )
         return "imported"
 
 
