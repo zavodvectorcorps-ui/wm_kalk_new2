@@ -631,6 +631,17 @@ const SaunaCRMPage = () => {
             {syncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
             Синхронизировать
           </Button>
+          {syncing && (
+            <Button variant="outline" size="sm" className="text-red-600 border-red-300" onClick={async () => {
+              try {
+                await fetch(`${API_URL}/api/sauna-crm/sync-reset`, { method: 'POST', headers: authHeaders });
+                setSyncing(false); setSyncProgress(null);
+                toast?.success?.('Синхронизация сброшена') || alert('Синхронизация сброшена');
+              } catch(e) { console.error(e); }
+            }} data-testid="crm-sync-reset-btn">
+              Сбросить
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} data-testid="crm-settings-btn">
             <Settings className="w-4 h-4 mr-2" />Настройки
           </Button>
