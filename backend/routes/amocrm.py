@@ -307,15 +307,17 @@ async def fetch_leads_batch_from_amocrm(lead_ids: List[str], domain: str, token:
         batch = lead_ids[i:i + batch_size]
         
         # Build filter query params for batch
+        # amoCRM requires filter[id][] array format, not comma-separated
         params = {"with": "contacts", "limit": batch_size}
-        # amoCRM accepts filter[id] with comma-separated IDs or array
-        params["filter[id]"] = ",".join(str(lid) for lid in batch)
+        filter_params = [(f"filter[id][]", str(lid)) for lid in batch]
         
         url = f"https://{domain}/api/v4/leads"
         
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(url, headers=headers, params=params)
+                # Use params list for repeated keys
+                full_params = list(params.items()) + filter_params
+                response = await client.get(url, headers=headers, params=full_params)
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -330,9 +332,8 @@ async def fetch_leads_batch_from_amocrm(lead_ids: List[str], domain: str, token:
                     
                 elif response.status_code == 429:
                     logger.warning("amoCRM API rate limit exceeded during batch fetch")
-                    # Wait and retry once
-                    await asyncio.sleep(1)
-                    response = await client.get(url, headers=headers, params=params)
+                    await asyncio.sleep(2)
+                    response = await client.get(url, headers=headers, params=full_params)
                     if response.status_code == 200:
                         data = response.json()
                         leads = data.get("_embedded", {}).get("leads", [])
