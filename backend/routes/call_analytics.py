@@ -629,3 +629,112 @@ async def update_rule(rule_id: str, rule: Rule):
 async def delete_rule(rule_id: str):
     await db[RULES_COL].delete_one({"id": rule_id})
     return {"status": "ok"}
+
+
+from fastapi import UploadFile, File
+
+@router.post("/rules/upload")
+async def upload_rules_file(file: UploadFile = File(...)):
+    """Upload rules from JSON file. Format: array of rule objects or single object."""
+    content = await file.read()
+    try:
+        data = json.loads(content.decode('utf-8'))
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Невалидный JSON")
+
+    if isinstance(data, dict):
+        data = [data]
+    if not isinstance(data, list):
+        raise HTTPException(status_code=400, detail="Ожидается массив правил или один объект")
+
+    imported = 0
+    for item in data:
+        rule = {
+            "id": item.get("id", str(uuid.uuid4())[:8]),
+            "name": item.get("name", "Без названия"),
+            "description": item.get("description", ""),
+            "promptTemplate": item.get("promptTemplate", ""),
+            "isDefault": item.get("isDefault", False),
+            "configJson": item.get("configJson", {}),
+        }
+        if rule["isDefault"]:
+            await db[RULES_COL].update_many({}, {"$set": {"isDefault": False}})
+        await db[RULES_COL].update_one({"id": rule["id"]}, {"$set": rule}, upsert=True)
+        imported += 1
+    return {"status": "ok", "imported": imported}
+
+
+@router.post("/rules/seed")
+async def seed_default_rules():
+    """Create starter rules if none exist."""
+    existing = await db[RULES_COL].count_documents({})
+    if existing > 0:
+        return {"status": "skipped", "message": f"Уже есть {existing} правил"}
+
+    defaults = [
+        {
+            "id": "incoming",
+            "name": "Входящий лид",
+            "description": "Стандартная оценка для входящих заявок. Клиент сам обратился — важно быстро установить контакт, выявить потребности и закрыть на следующий шаг.",
+            "isDefault": True,
+            "promptTemplate": "",
+            "configJson": {
+                "weights": {
+                    "greeting": 1.0,
+                    "needs": 1.5,
+                    "presentation": 1.2,
+                    "objections": 1.0,
+                    "next_step": 1.5,
+                    "politeness": 1.0,
+                    "compliance": 0.8
+                },
+                "critical_checks": ["needs", "next_step"],
+                "description": "Входящий лид — клиент уже заинтересован. Главное: выявить потребность (что именно хочет, размеры, бюджет, сроки) и договориться о следующем шаге (КП, встреча, замер). Если менеджер не задал уточняющих вопросов или не предложил следующий шаг — это провал."
+            }
+        },
+        {
+            "id": "cold_call",
+            "name": "Холодный звонок",
+            "description": "Исходящий звонок клиенту, который не оставлял заявку. Акцент на приветствие, вовлечение и мягкое выявление интереса.",
+            "isDefault": False,
+            "promptTemplate": "",
+            "configJson": {
+                "weights": {
+                    "greeting": 2.0,
+                    "needs": 1.5,
+                    "presentation": 1.0,
+                    "objections": 1.5,
+                    "next_step": 1.2,
+                    "politeness": 1.5,
+                    "compliance": 0.5
+                },
+                "critical_checks": ["greeting", "politeness"],
+                "description": "Холодный звонок — клиент не ждёт звонка. Критически важно: вежливое приветствие с представлением, быстрое обозначение причины звонка, деликатные вопросы для выявления потребности. Грубость, навязчивость или отсутствие представления — серьёзные ошибки. Если клиент отказывается — вежливо завершить, не давить."
+            }
+        },
+        {
+            "id": "follow_up_kp",
+            "name": "Дообзвон после КП/расчёта",
+            "description": "Звонок клиенту после отправки коммерческого предложения или расчёта. Акцент на работу с возражениями и закрытие сделки.",
+            "isDefault": False,
+            "promptTemplate": "",
+            "configJson": {
+                "weights": {
+                    "greeting": 0.8,
+                    "needs": 0.8,
+                    "presentation": 1.5,
+                    "objections": 2.0,
+                    "next_step": 2.0,
+                    "politeness": 1.0,
+                    "compliance": 0.8
+                },
+                "critical_checks": ["objections", "next_step"],
+                "description": "Follow-up после КП — клиент уже видел предложение. Главное: узнать реакцию на КП, обработать возражения (цена, сроки, сравнение с конкурентами), предложить альтернативы и закрыть на конкретный следующий шаг (договор, предоплата, встреча). Если менеджер просто 'звонит узнать' без конкретики — слабая работа."
+            }
+        }
+    ]
+
+    for rule in defaults:
+        await db[RULES_COL].insert_one(rule)
+
+    return {"status": "ok", "created": len(defaults)}

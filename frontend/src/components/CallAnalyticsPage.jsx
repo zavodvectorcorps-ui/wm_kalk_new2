@@ -361,9 +361,19 @@ const CallDetail = ({ callId, onBack }) => {
 const RulesTab = () => {
   const [rules, setRules] = useState([]);
   const [editing, setEditing] = useState(null);
+  const fileRef = React.useRef(null);
 
   const fetch = async () => { const r = await axios.get(`${API}/api/call-analytics/rules`); setRules(r.data); };
   useEffect(() => { fetch(); }, []);
+
+  // Auto-seed on first load if empty
+  useEffect(() => {
+    if (rules.length === 0) {
+      axios.post(`${API}/api/call-analytics/rules/seed`).then(r => {
+        if (r.data.status === 'ok') { toast.success(`Создано ${r.data.created} стартовых правил`); fetch(); }
+      }).catch(() => {});
+    }
+  }, [rules.length]);
 
   const save = async () => {
     try {
@@ -374,35 +384,68 @@ const RulesTab = () => {
     } catch(e) { toast.error('Ошибка'); }
   };
 
+  const handleFileUpload = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const fd = new FormData();
+    fd.append('file', f);
+    try {
+      const r = await axios.post(`${API}/api/call-analytics/rules/upload`, fd);
+      toast.success(`Импортировано: ${r.data.imported} правил`);
+      fetch();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Ошибка импорта'); }
+    e.target.value = '';
+  };
+
   if (editing) return (
     <div className="space-y-3" data-testid="rule-editor">
       <Button variant="ghost" size="sm" onClick={() => setEditing(null)}><ChevronLeft className="h-4 w-4 mr-1"/>Назад</Button>
       <div><label className="text-xs text-muted-foreground">Название</label><Input value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})}/></div>
       <div><label className="text-xs text-muted-foreground">Описание</label><Textarea value={editing.description} onChange={e => setEditing({...editing, description: e.target.value})} rows={2}/></div>
-      <div><label className="text-xs text-muted-foreground">Промпт-шаблон</label><Textarea value={editing.promptTemplate} onChange={e => setEditing({...editing, promptTemplate: e.target.value})} rows={6} className="font-mono text-xs"/></div>
+      <div><label className="text-xs text-muted-foreground">Промпт-шаблон (дополнительный контекст для AI)</label><Textarea value={editing.promptTemplate} onChange={e => setEditing({...editing, promptTemplate: e.target.value})} rows={4} className="font-mono text-xs" placeholder="Оставьте пустым для стандартного промпта"/></div>
+      <div><label className="text-xs text-muted-foreground">Конфигурация (JSON)</label><Textarea value={JSON.stringify(editing.configJson || {}, null, 2)} onChange={e => { try { setEditing({...editing, configJson: JSON.parse(e.target.value)}); } catch {} }} rows={8} className="font-mono text-xs"/></div>
       <div className="flex items-center gap-2">
         <input type="checkbox" checked={editing.isDefault} onChange={e => setEditing({...editing, isDefault: e.target.checked})}/>
         <label className="text-sm">По умолчанию</label>
       </div>
-      <Button onClick={save}><Save className="h-4 w-4 mr-1"/>Сохранить</Button>
+      <div className="flex gap-2">
+        <Button onClick={save}><Save className="h-4 w-4 mr-1"/>Сохранить</Button>
+        {!editing._isNew && (
+          <Button variant="destructive" size="sm" onClick={async () => {
+            await axios.delete(`${API}/api/call-analytics/rules/${editing.id}`);
+            toast.success('Удалено'); setEditing(null); fetch();
+          }}><Trash2 className="h-4 w-4 mr-1"/>Удалить</Button>
+        )}
+      </div>
     </div>
   );
 
   return (
     <div className="space-y-3" data-testid="rules-tab">
-      <Button size="sm" onClick={() => setEditing({ _isNew: true, name:'', description:'', promptTemplate:'', isDefault: false, configJson:{} })}>
-        <Plus className="h-4 w-4 mr-1"/>Новое правило
-      </Button>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => setEditing({ _isNew: true, name:'', description:'', promptTemplate:'', isDefault: false, configJson:{} })}>
+          <Plus className="h-4 w-4 mr-1"/>Новое правило
+        </Button>
+        <input type="file" ref={fileRef} onChange={handleFileUpload} className="hidden" accept=".json"/>
+        <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+          <FileText className="h-4 w-4 mr-1"/>Импорт из JSON
+        </Button>
+      </div>
       {rules.map(r => (
-        <div key={r.id} className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-muted/30" onClick={() => setEditing(r)}>
+        <div key={r.id} className={`flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-muted/30 ${r.isDefault ? 'border-blue-300 bg-blue-50/30' : ''}`} onClick={() => setEditing(r)}>
           <div className="flex-1">
             <div className="font-medium text-sm">{r.name}</div>
             <div className="text-xs text-muted-foreground">{r.description}</div>
+            {r.configJson?.critical_checks && (
+              <div className="flex gap-1 mt-1">
+                {r.configJson.critical_checks.map(c => <Badge key={c} variant="outline" className="text-[10px]">{c}</Badge>)}
+              </div>
+            )}
           </div>
-          {r.isDefault && <Badge>По умолч.</Badge>}
+          {r.isDefault && <Badge className="bg-blue-500">По умолч.</Badge>}
         </div>
       ))}
-      {!rules.length && <div className="text-center py-8 text-muted-foreground">Нет правил. Создайте первое.</div>}
+      {!rules.length && <div className="text-center py-8 text-muted-foreground">Загрузка правил...</div>}
     </div>
   );
 };
