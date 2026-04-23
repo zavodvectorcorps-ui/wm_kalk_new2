@@ -458,35 +458,65 @@ async def _transcribe_single(call_id: str):
             return
 
         # Send to Whisper
-        # Detect format from URL or content-type
-        ct = audio_resp.headers.get("content-type", "audio/mpeg")
-        if ".wav" in audio_url.lower():
+        # Detect actual audio format from file header
+        header = audio_bytes[:16]
+        if header[:3] == b'ID3' or header[:2] == b'\xff\xfb' or header[:2] == b'\xff\xf3':
+            ext, mime = "mp3", "audio/mpeg"
+        elif header[:4] == b'RIFF':
             ext, mime = "wav", "audio/wav"
-        elif ".ogg" in audio_url.lower():
+        elif header[:4] == b'fLaC':
+            ext, mime = "flac", "audio/flac"
+        elif header[:4] == b'OggS':
             ext, mime = "ogg", "audio/ogg"
-        elif ".m4a" in audio_url.lower():
+        elif header[4:8] == b'ftyp':
             ext, mime = "m4a", "audio/m4a"
         else:
             ext, mime = "mp3", "audio/mpeg"
+            logger.info(f"Call {call_id}: unknown audio header {header[:8].hex()}, will convert to mp3")
 
-        logger.info(f"Transcribing call {call_id}: {len(audio_bytes)} bytes, ext={ext}, url={audio_url[:80]}")
+        logger.info(f"Transcribing call {call_id}: {len(audio_bytes)} bytes, detected={ext}, url={audio_url[:80]}")
 
-        # Write to temp file (Whisper may need proper file)
-        with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp:
-            tmp.write(audio_bytes)
-            tmp_path = tmp.name
+        # Save original and convert to mp3 via ffmpeg for maximum compatibility
+        with tempfile.NamedTemporaryFile(suffix=f".original", delete=False) as tmp_in:
+            tmp_in.write(audio_bytes)
+            tmp_in_path = tmp_in.name
 
+        tmp_out_path = tmp_in_path + ".mp3"
         try:
-            with open(tmp_path, "rb") as f:
-                async with httpx.AsyncClient(timeout=300) as cl:
-                    whisper_resp = await cl.post(
-                        f"{EMERGENT_PROXY}/audio/transcriptions",
-                        headers={"Authorization": f"Bearer {api_key}"},
-                        files={"file": (f"call.{ext}", f, mime)},
-                        data={"model": "whisper-1", "response_format": "verbose_json"}
-                    )
+            import subprocess
+            result = subprocess.run(
+                ["ffmpeg", "-y", "-i", tmp_in_path, "-acodec", "libmp3lame", "-ar", "16000", "-ac", "1", tmp_out_path],
+                capture_output=True, timeout=120
+            )
+            if result.returncode != 0:
+                ffmpeg_err = result.stderr.decode()[-200:]
+                logger.error(f"ffmpeg error for {call_id}: {ffmpeg_err}")
+                # Try sending original if ffmpeg fails
+                tmp_out_path = tmp_in_path
+                ext = "mp3"
+
+            with open(tmp_out_path, "rb") as f:
+                converted_bytes = f.read()
+
+            logger.info(f"Call {call_id}: converted to mp3, {len(converted_bytes)} bytes")
+
+            async with httpx.AsyncClient(timeout=300) as cl:
+                whisper_resp = await cl.post(
+                    f"{EMERGENT_PROXY}/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    files={"file": ("call.mp3", converted_bytes, "audio/mpeg")},
+                    data={"model": "whisper-1", "response_format": "verbose_json"}
+                )
         finally:
-            os.unlink(tmp_path)
+            try:
+                os.unlink(tmp_in_path)
+            except:
+                pass
+            try:
+                if tmp_out_path != tmp_in_path:
+                    os.unlink(tmp_out_path)
+            except:
+                pass
 
         if whisper_resp.status_code != 200:
             error_detail = whisper_resp.text[:500]
