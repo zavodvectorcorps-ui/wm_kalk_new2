@@ -145,33 +145,52 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
         logger.info(f"Call sync {sync_id}: {len(all_leads)} leads in pipeline (filtered from {ts_from})")
         await _update_call_sync(sync_id, f"найдено {len(all_leads)} сделок (обновлённых с {datetime.fromtimestamp(ts_from, tz=timezone.utc).strftime('%d.%m.%Y') if ts_from else 'начала'}), загрузка звонков...")
 
-        # Fetch call notes for each lead
+        # Fetch call notes — try lead notes first, then contact notes
         imported = 0
         updated = 0
-        lead_cache = {}
-        for ld in all_leads:
-            lead_cache[str(ld["id"])] = ld
-
+        users_cache = {}
         processed_leads = 0
+        total_notes_scanned = 0
+
         for ld in all_leads:
             lid = ld["id"]
-            # Fetch notes for this lead
+            # Fetch call notes — try lead notes first, then contact notes
             notes = []
+            call_notes = []
             try:
-                note_params = [
-                    ("filter[note_type][]", "call_in"),
-                    ("filter[note_type][]", "call_out"),
-                    ("limit", "250"),
-                ]
+                # 1. All notes from lead (no filter — amoCRM may not support note_type filter)
                 async with httpx.AsyncClient(timeout=15) as cl:
                     nr = await cl.get(
                         f"https://{domain}/api/v4/leads/{lid}/notes",
                         headers=headers,
-                        params=note_params
+                        params=[("limit", "250")]
                     )
                 if nr.status_code == 200:
-                    notes = nr.json().get("_embedded", {}).get("notes", [])
-                    logger.debug(f"Lead {lid}: {len(notes)} call notes found")
+                    all_notes = nr.json().get("_embedded", {}).get("notes", [])
+                    call_notes = [n for n in all_notes if n.get("note_type") in ("call_in", "call_out", 10, 11)]
+                    if not call_notes:
+                        logger.debug(f"Lead {lid}: {len(all_notes)} notes, 0 calls. Types: {set(n.get('note_type') for n in all_notes)}")
+
+                # 2. If no calls on lead, check contacts
+                if not call_notes:
+                    contacts = ld.get("_embedded", {}).get("contacts", [])
+                    for contact in contacts[:3]:
+                        cid = contact.get("id")
+                        if not cid:
+                            continue
+                        async with httpx.AsyncClient(timeout=15) as cl:
+                            cr = await cl.get(
+                                f"https://{domain}/api/v4/contacts/{cid}/notes",
+                                headers=headers,
+                                params=[("limit", "250")]
+                            )
+                        if cr.status_code == 200:
+                            c_notes = cr.json().get("_embedded", {}).get("notes", [])
+                            c_calls = [n for n in c_notes if n.get("note_type") in ("call_in", "call_out", 10, 11)]
+                            call_notes.extend(c_calls)
+                        await asyncio.sleep(0.1)
+
+                notes = call_notes
             except Exception as e:
                 logger.warning(f"Failed to fetch notes for lead {lid}: {e}")
 
@@ -182,34 +201,33 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
                     continue
 
                 params_n = note.get("params", {})
-                if not params_n:
-                    continue
+                note_type = note.get("note_type", "")
 
                 amo_call_id = str(note.get("id", ""))
                 existing = await db[CALLS_COL].find_one({"amo_call_id": amo_call_id})
 
-                # Extract contact info
+                # Direction from note type (string or int)
+                direction = "inbound" if note_type in ("call_in", 10) else "outbound"
+                duration = int(params_n.get("duration", 0)) if isinstance(params_n, dict) else 0
+                audio_url = params_n.get("link", "") if isinstance(params_n, dict) else ""
+                phone = params_n.get("phone", "") if isinstance(params_n, dict) else ""
+
+                # Contact info
                 contacts = ld.get("_embedded", {}).get("contacts", [])
                 client_name = contacts[0].get("name", "") if contacts else ld.get("name", "")
                 contact_id = str(contacts[0].get("id", "")) if contacts else ""
 
-                # Manager
-                resp_user_id = ld.get("responsible_user_id", "")
-
-                # Users cache
-                manager_name = ""
-                try:
-                    async with httpx.AsyncClient(timeout=10) as cl:
-                        ur = await cl.get(f"https://{domain}/api/v4/users/{resp_user_id}", headers=headers)
-                    if ur.status_code == 200:
-                        manager_name = ur.json().get("name", "")
-                except:
-                    pass
-
-                direction = "inbound" if note.get("note_type") == "call_in" else "outbound"
-                duration = int(params_n.get("duration", 0))
-                audio_url = params_n.get("link", "")
-                phone = params_n.get("phone", "")
+                # Manager (cached)
+                resp_user_id = str(ld.get("responsible_user_id", ""))
+                if resp_user_id and resp_user_id not in users_cache:
+                    try:
+                        async with httpx.AsyncClient(timeout=10) as cl:
+                            ur = await cl.get(f"https://{domain}/api/v4/users/{resp_user_id}", headers=headers)
+                        if ur.status_code == 200:
+                            users_cache[resp_user_id] = ur.json().get("name", "")
+                    except:
+                        users_cache[resp_user_id] = ""
+                manager_name = users_cache.get(resp_user_id, "")
 
                 call_data = {
                     "amo_call_id": amo_call_id,
@@ -263,6 +281,8 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
                     imported += 1
 
             processed_leads += 1
+            if processed_leads <= 5:
+                logger.info(f"Call sync lead {lid}: {len(notes)} calls found")
             if processed_leads % 20 == 0:
                 await _update_call_sync(sync_id, f"обработано {processed_leads}/{len(all_leads)} сделок, звонков: +{imported}")
             # Rate limit protection
