@@ -31,7 +31,7 @@ const SyncTab = () => {
   useEffect(() => {
     axios.get(`${API}/api/call-analytics/settings`).then(r => setSettings(r.data));
     axios.get(`${API}/api/call-analytics/sync-status`).then(r => setSyncStatus(r.data));
-    axios.get(`${API}/api/amocrm/pipelines`).then(r => setPipelines(r.data || [])).catch(() => {});
+    axios.get(`${API}/api/amocrm/pipelines`).then(r => setPipelines(r.data?.pipelines || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
