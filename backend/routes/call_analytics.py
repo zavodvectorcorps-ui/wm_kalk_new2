@@ -158,7 +158,7 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
             notes = []
             call_notes = []
             try:
-                # 1. All notes from lead (no filter — amoCRM may not support note_type filter)
+                # 1. All notes from lead (no filter — Binotel/other integrations use different note types)
                 async with httpx.AsyncClient(timeout=15) as cl:
                     nr = await cl.get(
                         f"https://{domain}/api/v4/leads/{lid}/notes",
@@ -167,9 +167,17 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
                     )
                 if nr.status_code == 200:
                     all_notes = nr.json().get("_embedded", {}).get("notes", [])
-                    call_notes = [n for n in all_notes if n.get("note_type") in ("call_in", "call_out", 10, 11)]
-                    if not call_notes:
-                        logger.debug(f"Lead {lid}: {len(all_notes)} notes, 0 calls. Types: {set(n.get('note_type') for n in all_notes)}")
+                    for n in all_notes:
+                        nt = n.get("note_type", "")
+                        p = n.get("params", {}) or {}
+                        # Accept: standard call types OR any note with duration/phone (Binotel, etc.)
+                        is_call = nt in ("call_in", "call_out", 10, 11)
+                        has_call_params = isinstance(p, dict) and (p.get("duration") or p.get("phone") or p.get("link"))
+                        if is_call or has_call_params:
+                            call_notes.append(n)
+                    if processed_leads < 3:
+                        note_types = set(str(n.get("note_type")) for n in all_notes)
+                        logger.info(f"Lead {lid}: {len(all_notes)} notes, types={note_types}, calls={len(call_notes)}")
 
                 # 2. If no calls on lead, check contacts
                 if not call_notes:
@@ -186,8 +194,16 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
                             )
                         if cr.status_code == 200:
                             c_notes = cr.json().get("_embedded", {}).get("notes", [])
-                            c_calls = [n for n in c_notes if n.get("note_type") in ("call_in", "call_out", 10, 11)]
-                            call_notes.extend(c_calls)
+                            for n in c_notes:
+                                nt = n.get("note_type", "")
+                                p = n.get("params", {}) or {}
+                                is_call = nt in ("call_in", "call_out", 10, 11)
+                                has_call_params = isinstance(p, dict) and (p.get("duration") or p.get("phone") or p.get("link"))
+                                if is_call or has_call_params:
+                                    call_notes.append(n)
+                            if processed_leads < 3:
+                                c_types = set(str(n.get("note_type")) for n in c_notes)
+                                logger.info(f"Contact {cid} of lead {lid}: {len(c_notes)} notes, types={c_types}, calls={len(call_notes)}")
                         await asyncio.sleep(0.1)
 
                 notes = call_notes
@@ -206,8 +222,17 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
                 amo_call_id = str(note.get("id", ""))
                 existing = await db[CALLS_COL].find_one({"amo_call_id": amo_call_id})
 
-                # Direction from note type (string or int)
-                direction = "inbound" if note_type in ("call_in", 10) else "outbound"
+                # Direction from note type (string or int) or from params
+                if note_type in ("call_in", 10):
+                    direction = "inbound"
+                elif note_type in ("call_out", 11):
+                    direction = "outbound"
+                elif isinstance(params_n, dict):
+                    # Binotel/other: try to detect from params
+                    call_type = str(params_n.get("call_type", params_n.get("callType", ""))).lower()
+                    direction = "inbound" if "in" in call_type else "outbound"
+                else:
+                    direction = "unknown"
                 duration = int(params_n.get("duration", 0)) if isinstance(params_n, dict) else 0
                 audio_url = params_n.get("link", "") if isinstance(params_n, dict) else ""
                 phone = params_n.get("phone", "") if isinstance(params_n, dict) else ""
