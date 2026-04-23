@@ -353,13 +353,11 @@ async def transcribe_call(call_id: str, background_tasks: BackgroundTasks):
 @router.post("/process-pending")
 async def process_pending(background_tasks: BackgroundTasks, limit: int = 10):
     """Process pending calls: transcribe + analyze."""
-    # Find calls needing transcription
     new_calls = await db[CALLS_COL].find(
         {"status": "new", "audio_url": {"$ne": ""}},
         {"id": 1, "_id": 0}
     ).limit(limit).to_list(length=limit)
 
-    # Find calls needing analysis
     transcribed = await db[CALLS_COL].find(
         {"status": "transcribed", "transcript_ru": {"$ne": None}},
         {"id": 1, "_id": 0}
@@ -371,6 +369,50 @@ async def process_pending(background_tasks: BackgroundTasks, limit: int = 10):
         background_tasks.add_task(_analyze_single, c["id"])
 
     return {"queued_transcribe": len(new_calls), "queued_analyze": len(transcribed)}
+
+
+@router.get("/stats")
+async def get_call_stats():
+    """Get counts by status."""
+    pipeline = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+    results = await db[CALLS_COL].aggregate(pipeline).to_list(length=20)
+    stats = {r["_id"]: r["count"] for r in results}
+    total = sum(stats.values())
+    return {"total": total, "byStatus": stats}
+
+
+@router.post("/process-all")
+async def process_all(background_tasks: BackgroundTasks):
+    """Queue ALL pending calls for processing."""
+    new_calls = await db[CALLS_COL].find(
+        {"status": "new", "audio_url": {"$ne": ""}},
+        {"id": 1, "_id": 0}
+    ).to_list(length=1000)
+
+    transcribed = await db[CALLS_COL].find(
+        {"status": "transcribed", "transcript_ru": {"$ne": None}},
+        {"id": 1, "_id": 0}
+    ).to_list(length=1000)
+
+    # Reset errors for retry
+    errors = await db[CALLS_COL].find(
+        {"status": "error", "audio_url": {"$ne": ""}},
+        {"id": 1, "_id": 0}
+    ).to_list(length=1000)
+    if errors:
+        error_ids = [c["id"] for c in errors]
+        await db[CALLS_COL].update_many({"id": {"$in": error_ids}}, {"$set": {"status": "new"}})
+
+    for c in new_calls + errors:
+        background_tasks.add_task(_transcribe_single, c["id"])
+    for c in transcribed:
+        background_tasks.add_task(_analyze_single, c["id"])
+
+    return {
+        "queued_transcribe": len(new_calls) + len(errors),
+        "queued_analyze": len(transcribed),
+        "errors_reset": len(errors)
+    }
 
 
 async def _transcribe_single(call_id: str):
@@ -387,16 +429,27 @@ async def _transcribe_single(call_id: str):
 
         await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "transcribing"}})
 
-        # Download audio (may need amoCRM auth)
+        # Download audio (may need auth or specific headers)
         amo = get_amocrm_settings()
-        dl_headers = {}
+        dl_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
         if amo.get("amocrm_token") and amo.get("amocrm_domain") and amo["amocrm_domain"] in audio_url:
             dl_headers["Authorization"] = f"Bearer {amo['amocrm_token']}"
 
         async with httpx.AsyncClient(timeout=120, follow_redirects=True) as cl:
             audio_resp = await cl.get(audio_url, headers=dl_headers)
+        
+        content_type = audio_resp.headers.get("content-type", "")
         if audio_resp.status_code != 200:
-            await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": f"Audio download failed: {audio_resp.status_code}"}})
+            error_msg = f"Audio download failed: HTTP {audio_resp.status_code}"
+            await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": error_msg}})
+            return
+        
+        # Check if we got actual audio, not HTML page
+        if "text/html" in content_type and len(audio_resp.content) < 10000:
+            error_msg = f"Audio URL returned HTML instead of audio (content-type: {content_type})"
+            await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": error_msg}})
             return
 
         audio_bytes = audio_resp.content

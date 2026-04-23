@@ -14,6 +14,25 @@ import {
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const fmtDur = (s) => { if (!s) return '—'; const m = Math.floor(s/60); return `${m}:${String(s%60).padStart(2,'0')}`; };
+
+// ── PROCESSING STATS ──
+const ProcessingStats = () => {
+  const [stats, setStats] = useState(null);
+  useEffect(() => { axios.get(`${API}/api/call-analytics/stats`).then(r => setStats(r.data)).catch(() => {}); }, []);
+  if (!stats) return null;
+  const s = stats.byStatus || {};
+  return (
+    <div className="flex flex-wrap gap-2 text-xs">
+      <Badge variant="outline">Всего: {stats.total}</Badge>
+      {s.new > 0 && <Badge className="bg-gray-100 text-gray-700">Новые: {s.new}</Badge>}
+      {s.transcribing > 0 && <Badge className="bg-blue-100 text-blue-700">Транскрибация: {s.transcribing}</Badge>}
+      {s.transcribed > 0 && <Badge className="bg-indigo-100 text-indigo-700">Транскрибировано: {s.transcribed}</Badge>}
+      {s.analyzing > 0 && <Badge className="bg-violet-100 text-violet-700">Анализ: {s.analyzing}</Badge>}
+      {s.analyzed > 0 && <Badge className="bg-emerald-100 text-emerald-700">Готово: {s.analyzed}</Badge>}
+      {s.error > 0 && <Badge className="bg-red-100 text-red-700">Ошибки: {s.error}</Badge>}
+    </div>
+  );
+};
 const fmtDate = (d) => d ? new Date(d).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
 const scoreColor = (s) => s == null ? 'text-gray-400' : s >= 8 ? 'text-emerald-600' : s >= 5 ? 'text-amber-600' : 'text-red-600';
 const scoreBg = (s) => s == null ? 'bg-gray-100' : s >= 8 ? 'bg-emerald-50 border-emerald-200' : s >= 5 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
@@ -140,16 +159,26 @@ const SyncTab = () => {
 
       <Card className="border">
         <CardHeader><CardTitle className="text-base">Обработка звонков</CardTitle></CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground mb-2">Запустить транскрибацию и AI-анализ для необработанных звонков</p>
-          <Button size="sm" onClick={async () => {
-            try {
-              const r = await axios.post(`${API}/api/call-analytics/process-pending`, null, { params: { limit: 5 } });
-              toast.success(`В очереди: ${r.data.queued_transcribe} на транскрибацию, ${r.data.queued_analyze} на анализ`);
-            } catch(e) { toast.error('Ошибка'); }
-          }}>
-            <Zap className="h-4 w-4 mr-1"/> Обработать (до 5)
-          </Button>
+        <CardContent className="space-y-3">
+          <ProcessingStats />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={async () => {
+              try {
+                const r = await axios.post(`${API}/api/call-analytics/process-all`);
+                toast.success(`Запущено: ${r.data.queued_transcribe} на транскрибацию, ${r.data.queued_analyze} на анализ${r.data.errors_reset ? `, ${r.data.errors_reset} ошибок сброшено` : ''}`);
+              } catch(e) { toast.error('Ошибка'); }
+            }}>
+              <Zap className="h-4 w-4 mr-1"/> Обработать все
+            </Button>
+            <Button size="sm" variant="outline" onClick={async () => {
+              try {
+                const r = await axios.post(`${API}/api/call-analytics/process-pending`, null, { params: { limit: 5 } });
+                toast.success(`В очереди: ${r.data.queued_transcribe} на транскрибацию, ${r.data.queued_analyze} на анализ`);
+              } catch(e) { toast.error('Ошибка'); }
+            }}>
+              <Zap className="h-4 w-4 mr-1"/> Обработать 5
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -294,6 +323,9 @@ const CallDetail = ({ callId, onBack }) => {
             <div><span className="text-muted-foreground text-xs">Направление</span><div>{call.direction === 'inbound' ? 'Входящий' : 'Исходящий'}</div></div>
             <div><span className="text-muted-foreground text-xs">Язык</span><div>{call.language || '—'}</div></div>
             <div><span className="text-muted-foreground text-xs">Статус</span><Badge variant="outline">{call.status}</Badge></div>
+            {call.error && (
+              <div className="col-span-2"><span className="text-muted-foreground text-xs">Ошибка</span><div className="text-xs text-red-600 bg-red-50 p-1.5 rounded mt-0.5">{call.error}</div></div>
+            )}
             <div>
               {call.amo_link && <a href={call.amo_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1"><ExternalLink className="h-3 w-3"/>amoCRM</a>}
             </div>
