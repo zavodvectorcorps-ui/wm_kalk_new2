@@ -38,6 +38,7 @@ const TrainingPage = lazy(() => import('./components/TrainingPage'));
 const LayoutConfiguratorPage = lazy(() => import('./components/LayoutConfiguratorPage'));
 const SalesPage = lazy(() => import('./components/SalesPage'));
 const LeadAnalyticsPage = lazy(() => import('./components/LeadAnalyticsPage'));
+const CallAnalyticsPage = lazy(() => import('./components/CallAnalyticsPage'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -324,6 +325,15 @@ const AppContent = () => {
       }
       return;
     }
+
+    // Call Analytics - admin only
+    if (calculator === 'callAnalytics') {
+      if (isAdmin && isAdmin()) {
+        setCurrentCalculator('callAnalytics');
+        return;
+      }
+      return;
+    }
     
     // Check access for calculators
     if (!hasAccess(calculator)) {
@@ -575,29 +585,32 @@ const AppContent = () => {
   if (currentCalculator === 'analytics') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-        <Header 
-          activeTab={activeTab} 
-          onTabChange={handleTabChange}
-          isAdminAuthenticated={isAdmin()}
-          onAdminLogout={handleLogout}
-          showNavigation={false}
-          showUsers={false}
-        />
+        <Header activeTab={activeTab} onTabChange={handleTabChange} isAdminAuthenticated={isAdmin()} onAdminLogout={handleLogout} showNavigation={false} showUsers={false} />
         <div className="container mx-auto px-4 pt-4 max-w-7xl">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleBackToLanding}
-            className="gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {txt.backToSelection}
+          <Button variant="ghost" size="sm" onClick={handleBackToLanding} className="gap-2 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />{txt.backToSelection}
           </Button>
         </div>
         <main className="container mx-auto px-4 py-4 max-w-7xl">
-          <Suspense fallback={<PageLoader />}>
-            <LeadAnalyticsPage />
-          </Suspense>
+          <Suspense fallback={<PageLoader />}><LeadAnalyticsPage /></Suspense>
+        </main>
+        <Toaster position="top-right" richColors />
+      </div>
+    );
+  }
+
+  // Call Analytics Page
+  if (currentCalculator === 'callAnalytics') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <Header activeTab={activeTab} onTabChange={handleTabChange} isAdminAuthenticated={isAdmin()} onAdminLogout={handleLogout} showNavigation={false} showUsers={false} />
+        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+          <Button variant="ghost" size="sm" onClick={handleBackToLanding} className="gap-2 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />{txt.backToSelection}
+          </Button>
+        </div>
+        <main className="container mx-auto px-4 py-4 max-w-7xl">
+          <Suspense fallback={<PageLoader />}><CallAnalyticsPage /></Suspense>
         </main>
         <Toaster position="top-right" richColors />
       </div>

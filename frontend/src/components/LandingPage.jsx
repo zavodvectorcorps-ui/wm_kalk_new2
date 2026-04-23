@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, GraduationCap, TrendingUp, BarChart3 } from 'lucide-react';
+import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, GraduationCap, TrendingUp, BarChart3, Phone } from 'lucide-react';
 
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
@@ -33,6 +33,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       adminDesc: 'Управление всеми заказами, статистика и настройки цен',
       analyticsTitle: 'Аналитика менеджеров',
       analyticsDesc: 'Контроль менеджеров, срочные действия, AI-анализ и сравнение',
+      callAnalyticsTitle: 'Анализ звонков',
+      callAnalyticsDesc: 'Транскрибация, AI-оценка и аналитика звонков менеджеров',
       select: 'Выбрать',
       comingSoon: 'Скоро',
       noAccess: 'Нет доступа',
@@ -60,6 +62,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       adminDesc: 'Zarządzanie wszystkimi zamówieniami, statystyki i ustawienia cen',
       analyticsTitle: 'Analityka menedżerów',
       analyticsDesc: 'Kontrola menedżerów, pilne działania, analiza AI i porównanie',
+      callAnalyticsTitle: 'Analiza rozmów',
+      callAnalyticsDesc: 'Transkrypcja, ocena AI i analityka rozmów menedżerów',
       select: 'Wybierz',
       comingSoon: 'Wkrótce',
       noAccess: 'Brak dostępu',
@@ -366,6 +370,30 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                     {txt.analyticsDesc}
                   </p>
                   <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-indigo-500/50 text-indigo-600 hover:bg-indigo-500/10 hover:text-indigo-600">
+                    {txt.select}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-teal-500/50"
+              onClick={() => onSelectCalculator('callAnalytics')}
+              data-testid="call-analytics-card"
+            >
+              <CardContent className="p-8">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors bg-teal-500/10 group-hover:bg-teal-500/20">
+                    <Phone className="w-10 h-10 text-teal-500" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-foreground mb-3">
+                    {txt.callAnalyticsTitle}
+                  </h2>
+                  <p className="text-muted-foreground mb-6">
+                    {txt.callAnalyticsDesc}
+                  </p>
+                  <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-teal-500/50 text-teal-600 hover:bg-teal-500/10 hover:text-teal-600">
                     {txt.select}
                     <ArrowRight className="w-4 h-4" />
                   </Button>

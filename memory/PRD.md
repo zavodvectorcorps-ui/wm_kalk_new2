@@ -65,6 +65,11 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - AI сравнительный анализ менеджеров (GPT-5.2): рейтинг по 5 критериям
   - Специфические проверки: Vlada (смены этапов), Andrzej (post-КП follow-up), Viyaleta (звонки vs чаты, примечания)
   - Tested: 100% pass rate (15/15 backend, all frontend tests)
+- Call Analytics Module (April 23, 2026)
+  - Backend: amoCRM call sync (by pipeline/stage), Whisper transcription, GPT-5.2 analysis, rules CRUD
+  - Frontend: Standalone "Анализ звонков" page (4 tabs: Sync, Managers, Calls, Rules), call detail with audio/transcript/scores
+  - 7-point AI checklist: greeting, needs, presentation, objections, next_step, politeness, compliance
+  - Pipeline/stage selection, language detection (pl/ru), translation, background processing
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
