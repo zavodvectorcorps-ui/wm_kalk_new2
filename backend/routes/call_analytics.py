@@ -110,29 +110,40 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
 
         await _update_call_sync(sync_id, "загрузка лидов из amoCRM...")
 
-        # Fetch leads from selected stages
+        # Fetch leads from selected stages, filtered by updated_at >= ts_from
         all_leads = []
+        seen_ids = set()
         for sid in (stage_ids or [""]):
-            params = {"filter[statuses][0][pipeline_id]": pipeline_id, "limit": 250, "with": "contacts"}
+            params = [
+                ("filter[statuses][0][pipeline_id]", pipeline_id),
+                ("limit", "250"),
+                ("with", "contacts"),
+            ]
             if sid:
-                params["filter[statuses][0][status_id]"] = sid
+                params.append(("filter[statuses][0][status_id]", sid))
+            if ts_from:
+                params.append(("filter[updated_at][from]", str(ts_from)))
             page = 1
             while page <= 20:
-                params["page"] = page
+                page_params = params + [("page", str(page))]
                 async with httpx.AsyncClient(timeout=30) as cl:
-                    r = await cl.get(f"https://{domain}/api/v4/leads", headers=headers, params=params)
+                    r = await cl.get(f"https://{domain}/api/v4/leads", headers=headers, params=page_params)
                 if r.status_code == 204:
                     break
                 if r.status_code != 200:
+                    logger.warning(f"Call sync: leads fetch status={r.status_code}")
                     break
                 leads = r.json().get("_embedded", {}).get("leads", [])
-                all_leads.extend(leads)
+                for ld in leads:
+                    if ld["id"] not in seen_ids:
+                        all_leads.append(ld)
+                        seen_ids.add(ld["id"])
                 if len(leads) < 250:
                     break
                 page += 1
 
-        logger.info(f"Call sync {sync_id}: {len(all_leads)} leads in pipeline")
-        await _update_call_sync(sync_id, f"найдено {len(all_leads)} сделок, загрузка звонков...")
+        logger.info(f"Call sync {sync_id}: {len(all_leads)} leads in pipeline (filtered from {ts_from})")
+        await _update_call_sync(sync_id, f"найдено {len(all_leads)} сделок (обновлённых с {datetime.fromtimestamp(ts_from, tz=timezone.utc).strftime('%d.%m.%Y') if ts_from else 'начала'}), загрузка звонков...")
 
         # Fetch call notes for each lead
         imported = 0
@@ -147,14 +158,20 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
             # Fetch notes for this lead
             notes = []
             try:
+                note_params = [
+                    ("filter[note_type][]", "call_in"),
+                    ("filter[note_type][]", "call_out"),
+                    ("limit", "250"),
+                ]
                 async with httpx.AsyncClient(timeout=15) as cl:
                     nr = await cl.get(
                         f"https://{domain}/api/v4/leads/{lid}/notes",
                         headers=headers,
-                        params={"filter[note_type][]": ["call_in", "call_out"], "limit": 250}
+                        params=note_params
                     )
                 if nr.status_code == 200:
                     notes = nr.json().get("_embedded", {}).get("notes", [])
+                    logger.debug(f"Lead {lid}: {len(notes)} call notes found")
             except Exception as e:
                 logger.warning(f"Failed to fetch notes for lead {lid}: {e}")
 
@@ -248,6 +265,9 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
             processed_leads += 1
             if processed_leads % 20 == 0:
                 await _update_call_sync(sync_id, f"обработано {processed_leads}/{len(all_leads)} сделок, звонков: +{imported}")
+            # Rate limit protection
+            if processed_leads % 5 == 0:
+                await asyncio.sleep(0.3)
 
         # Update lastSyncAt
         now = datetime.now(timezone.utc).isoformat()
