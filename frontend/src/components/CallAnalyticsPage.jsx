@@ -27,11 +27,16 @@ const SyncTab = () => {
   const [pipelines, setPipelines] = useState([]);
   const [stages, setStages] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [amoStatus, setAmoStatus] = useState(null); // 'ok' | 'error' | null
 
   useEffect(() => {
     axios.get(`${API}/api/call-analytics/settings`).then(r => setSettings(r.data));
     axios.get(`${API}/api/call-analytics/sync-status`).then(r => setSyncStatus(r.data));
-    axios.get(`${API}/api/amocrm/pipelines`).then(r => setPipelines(r.data?.pipelines || [])).catch(() => {});
+    axios.get(`${API}/api/integrations/amocrm/pipelines`).then(r => {
+      const p = r.data?.pipelines || [];
+      setPipelines(p);
+      setAmoStatus(p.length > 0 ? 'ok' : 'empty');
+    }).catch(() => setAmoStatus('error'));
   }, []);
 
   useEffect(() => {
@@ -68,6 +73,12 @@ const SyncTab = () => {
       <Card className="border">
         <CardHeader><CardTitle className="text-base">Настройки источника</CardTitle></CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex items-center gap-2 text-xs mb-2">
+            {amoStatus === 'ok' && <><CheckCircle className="h-3.5 w-3.5 text-emerald-500"/><span className="text-emerald-700">amoCRM подключён ({pipelines.length} воронок)</span></>}
+            {amoStatus === 'empty' && <><AlertTriangle className="h-3.5 w-3.5 text-amber-500"/><span className="text-amber-700">amoCRM подключён, но воронки не найдены</span></>}
+            {amoStatus === 'error' && <><XCircle className="h-3.5 w-3.5 text-red-500"/><span className="text-red-700">amoCRM не подключён — проверьте настройки интеграции</span></>}
+            {amoStatus === null && <><Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400"/><span className="text-gray-500">Проверка подключения...</span></>}
+          </div>
           <div>
             <label className="text-xs text-muted-foreground">Воронка amoCRM</label>
             <select className="w-full border rounded px-3 py-2 text-sm mt-1"
