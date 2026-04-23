@@ -458,16 +458,43 @@ async def _transcribe_single(call_id: str):
             return
 
         # Send to Whisper
-        async with httpx.AsyncClient(timeout=300) as cl:
-            whisper_resp = await cl.post(
-                f"{EMERGENT_PROXY}/audio/transcriptions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                files={"file": ("call.mp3", io.BytesIO(audio_bytes), "audio/mpeg")},
-                data={"model": "whisper-1", "response_format": "verbose_json"}
-            )
+        # Detect format from URL or content-type
+        ct = audio_resp.headers.get("content-type", "audio/mpeg")
+        if ".wav" in audio_url.lower():
+            ext, mime = "wav", "audio/wav"
+        elif ".ogg" in audio_url.lower():
+            ext, mime = "ogg", "audio/ogg"
+        elif ".m4a" in audio_url.lower():
+            ext, mime = "m4a", "audio/m4a"
+        else:
+            ext, mime = "mp3", "audio/mpeg"
+
+        logger.info(f"Transcribing call {call_id}: {len(audio_bytes)} bytes, ext={ext}, url={audio_url[:80]}")
+
+        # Write to temp file (Whisper may need proper file)
+        with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp:
+            tmp.write(audio_bytes)
+            tmp_path = tmp.name
+
+        try:
+            with open(tmp_path, "rb") as f:
+                async with httpx.AsyncClient(timeout=300) as cl:
+                    whisper_resp = await cl.post(
+                        f"{EMERGENT_PROXY}/audio/transcriptions",
+                        headers={"Authorization": f"Bearer {api_key}"},
+                        files={"file": (f"call.{ext}", f, mime)},
+                        data={"model": "whisper-1", "response_format": "verbose_json"}
+                    )
+        finally:
+            os.unlink(tmp_path)
 
         if whisper_resp.status_code != 200:
-            await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": f"Whisper error: {whisper_resp.status_code}"}})
+            error_detail = whisper_resp.text[:500]
+            logger.error(f"Whisper error for {call_id}: {whisper_resp.status_code} — {error_detail}")
+            await db[CALLS_COL].update_one({"id": call_id}, {"$set": {
+                "status": "error",
+                "error": f"Whisper {whisper_resp.status_code}: {error_detail}"
+            }})
             return
 
         result = whisper_resp.json()
