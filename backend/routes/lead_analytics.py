@@ -200,6 +200,11 @@ async def _get_default_date_from() -> str:
     return settings.get("analyticsStartDate") or None
 
 
+def _date_field(date_field: str) -> str:
+    """Validate and resolve which date column to filter on. 'created' (default) or 'processed'."""
+    return "firstActionAt" if (date_field or "").lower() == "processed" else "createdAt"
+
+
 
 
 async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, date_to_str: str = None, force: bool = False):
@@ -580,16 +585,24 @@ async def _compute_manager_stats(sync_id: str, settings: dict):
 # --- Data Endpoints ---
 
 @router.get("/summary")
-async def get_summary(date_from: str = None, date_to: str = None):
-    """Get summary metrics for the dashboard."""
-    # Fallback to analyticsStartDate so legacy docs never leak through
-    if not date_from:
+async def get_summary(date_from: str = None, date_to: str = None, date_field: str = "created"):
+    """Get summary metrics for the dashboard.
+
+    date_field: 'created' (default) — фильтрует по дате создания сделки.
+                'processed' — по дате первого действия менеджера.
+    """
+    fld = _date_field(date_field)
+    # Fallback to analyticsStartDate so legacy docs never leak through (only for 'created' mode)
+    if not date_from and fld == "createdAt":
         date_from = await _get_default_date_from()
     query = {}
     if date_from:
-        query["createdAt"] = {"$gte": date_from}
+        query[fld] = {"$gte": date_from}
     if date_to:
-        query.setdefault("createdAt", {})["$lte"] = date_to + "T23:59:59"
+        query.setdefault(fld, {})["$lte"] = date_to + "T23:59:59"
+    if fld == "firstActionAt":
+        # Only leads that actually have a first action
+        query[fld] = {**query.get(fld, {}), "$ne": None}
 
     leads = await db.lead_analytics_leads.find(query, {"_id": 0}).to_list(length=10000)
 
@@ -636,10 +649,14 @@ async def get_summary(date_from: str = None, date_to: str = None):
 
 
 @router.get("/managers")
-async def get_manager_stats(date_from: str = None, date_to: str = None):
-    """Get per-manager statistics."""
-    # Always apply analyticsStartDate as lower bound so legacy data never leaks
-    if not date_from:
+async def get_manager_stats(date_from: str = None, date_to: str = None, date_field: str = "created"):
+    """Get per-manager statistics.
+
+    date_field: 'created' (default) или 'processed' — по дате первого действия менеджера.
+    """
+    fld = _date_field(date_field)
+    # Always apply analyticsStartDate as lower bound so legacy data never leaks (created mode only)
+    if not date_from and fld == "createdAt":
         date_from = await _get_default_date_from()
     # Get latest sync
     last_sync = await db.lead_analytics_sync.find_one(
@@ -651,13 +668,15 @@ async def get_manager_stats(date_from: str = None, date_to: str = None):
     sync_id = last_sync.get("sync_id")
     query = {"sync_id": sync_id}
 
-    # If date filters, recompute from leads instead of using cached manager stats
-    if date_from or date_to:
+    # If filtering by processed-date or any explicit period — recompute from leads.
+    if date_from or date_to or fld == "firstActionAt":
         lead_query = {"sync_id": sync_id, "processingStatus": {"$ne": "closed_lost"}}
         if date_from:
-            lead_query["createdAt"] = {"$gte": date_from}
+            lead_query[fld] = {"$gte": date_from}
         if date_to:
-            lead_query.setdefault("createdAt", {})["$lte"] = date_to + "T23:59:59"
+            lead_query.setdefault(fld, {})["$lte"] = date_to + "T23:59:59"
+        if fld == "firstActionAt":
+            lead_query[fld] = {**lead_query.get(fld, {}), "$ne": None}
         leads = await db.lead_analytics_leads.find(lead_query, {"_id": 0}).to_list(length=10000)
 
         manager_map = {}
@@ -701,9 +720,10 @@ async def get_manager_stats(date_from: str = None, date_to: str = None):
 
 
 @router.get("/problem-leads")
-async def get_problem_leads(date_from: str = None, date_to: str = None, limit: int = 100):
+async def get_problem_leads(date_from: str = None, date_to: str = None, date_field: str = "created", limit: int = 100):
     """Get leads with problems (not processed, stalled, no progress). Excludes closed/lost."""
-    if not date_from:
+    fld = _date_field(date_field)
+    if not date_from and fld == "createdAt":
         date_from = await _get_default_date_from()
     query = {
         "processingStatus": {"$ne": "closed_lost"},
@@ -715,9 +735,11 @@ async def get_problem_leads(date_from: str = None, date_to: str = None, limit: i
         ]
     }
     if date_from:
-        query["createdAt"] = {"$gte": date_from}
+        query[fld] = {"$gte": date_from}
     if date_to:
-        query.setdefault("createdAt", {})["$lte"] = date_to + "T23:59:59"
+        query.setdefault(fld, {})["$lte"] = date_to + "T23:59:59"
+    if fld == "firstActionAt":
+        query[fld] = {**query.get(fld, {}), "$ne": None}
     leads = await db.lead_analytics_leads.find(
         query, {"_id": 0}
     ).sort("idleHours", -1).to_list(length=limit)

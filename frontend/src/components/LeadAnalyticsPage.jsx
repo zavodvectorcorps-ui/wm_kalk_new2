@@ -746,11 +746,12 @@ const LeadAnalyticsPage = () => {
   const [savingSettings, setSavingSettings] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [dateField, setDateField] = useState('created'); // 'created' | 'processed'
 
   const fetchSummary = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { date_field: dateField };
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       const [sumRes, mgrRes, probRes, statusRes] = await Promise.all([
@@ -768,7 +769,7 @@ const LeadAnalyticsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, dateField]);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -853,6 +854,14 @@ const LeadAnalyticsPage = () => {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex rounded-md border bg-muted/30 p-0.5" data-testid="date-field-toggle">
+            <button type="button" onClick={() => setDateField('created')}
+              className={`px-2.5 py-1 text-xs rounded ${dateField === 'created' ? 'bg-white shadow-sm font-medium' : 'text-muted-foreground'}`}
+              data-testid="date-field-created">По созданию</button>
+            <button type="button" onClick={() => setDateField('processed')}
+              className={`px-2.5 py-1 text-xs rounded ${dateField === 'processed' ? 'bg-white shadow-sm font-medium' : 'text-muted-foreground'}`}
+              data-testid="date-field-processed">По обработке</button>
+          </div>
           <Button variant="outline" size="sm" className="h-9" onClick={() => {
             const t = new Date().toISOString().slice(0, 10);
             setDateFrom(t); setDateTo(t);
