@@ -2,6 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "@/index.css";
 import App from "@/App";
+import { initTheme } from "@/components/ThemeToggle";
+
+// Apply saved theme before render to prevent FOUC
+initTheme();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App />);

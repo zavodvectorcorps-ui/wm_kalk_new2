@@ -2,6 +2,7 @@
 import logging
 import os
 import httpx
+import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, BackgroundTasks
@@ -67,18 +68,33 @@ async def _amo_get(path: str, params: dict = None) -> Optional[dict]:
         return None
     url = f"https://{domain}{path}"
     headers = {"Authorization": f"Bearer {token}"}
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.get(url, headers=headers, params=params)
+    # Retry with exponential backoff on transient errors (timeouts, 502/503/429)
+    delays = [1.0, 3.0, 7.0]
+    for attempt, sleep_for in enumerate([0.0, *delays]):
+        if sleep_for:
+            await asyncio.sleep(sleep_for)
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.get(url, headers=headers, params=params)
             if resp.status_code == 200:
                 return resp.json()
-            elif resp.status_code == 204:
+            if resp.status_code == 204:
                 return {"_embedded": {}}
+            if resp.status_code in (429, 502, 503, 504) and attempt < len(delays):
+                logger.warning(f"amoCRM GET {path} {resp.status_code} — retry {attempt+1}/{len(delays)}")
+                continue
             logger.warning(f"amoCRM GET {path} returned {resp.status_code}")
             return None
-    except Exception as e:
-        logger.error(f"amoCRM GET {path} error: {e}")
-        return None
+        except (httpx.TimeoutException, httpx.NetworkError) as e:
+            if attempt < len(delays):
+                logger.warning(f"amoCRM GET {path} {type(e).__name__} — retry {attempt+1}/{len(delays)}")
+                continue
+            logger.error(f"amoCRM GET {path} timeout after retries: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"amoCRM GET {path} error: {e}")
+            return None
+    return None
 
 
 async def _fetch_all_pages(path: str, params: dict, embedded_key: str, max_pages: int = 20) -> list:

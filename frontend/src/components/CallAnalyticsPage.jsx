@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import {
   RefreshCw, Loader2, Phone, PhoneIncoming, PhoneOutgoing, Play,
   Clock, Star, AlertTriangle, ExternalLink, ChevronLeft, Settings,
-  Users, List, FileText, Zap, Filter, Trash2, Plus, Save, CheckCircle, XCircle
+  Users, List, FileText, Zap, Filter, Trash2, Plus, Save, CheckCircle, XCircle,
+  BarChart3
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -255,6 +256,107 @@ const SyncTab = () => {
           </p>
         </CardContent>
       </Card>
+    </div>
+  );
+};
+
+// ── HEATMAP TAB ──
+const HeatmapTab = ({ onSelectManager }) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const [dateFrom, setDateFrom] = useState(monthAgo);
+  const [dateTo, setDateTo] = useState(today);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await axios.get(`${API}/api/call-analytics/heatmap`, {
+        params: { date_from: dateFrom, date_to: dateTo }
+      });
+      setData(r.data);
+    } catch (e) { toast.error('Ошибка загрузки'); }
+    finally { setLoading(false); }
+  }, [dateFrom, dateTo]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Color cell by score (0-2 scale)
+  const cellColor = (val) => {
+    if (val == null) return 'bg-slate-100 dark:bg-slate-800 text-slate-400';
+    if (val >= 1.6) return 'bg-emerald-500/80 text-white';
+    if (val >= 1.2) return 'bg-emerald-300/70 text-emerald-900';
+    if (val >= 0.8) return 'bg-amber-300/70 text-amber-900';
+    if (val >= 0.4) return 'bg-orange-400/80 text-white';
+    return 'bg-red-500/80 text-white';
+  };
+
+  return (
+    <div className="space-y-4" data-testid="heatmap-tab">
+      <div className="flex items-end gap-2 flex-wrap">
+        <div><label className="text-xs text-muted-foreground">С</label><Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 mt-1"/></div>
+        <div><label className="text-xs text-muted-foreground">По</label><Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 mt-1"/></div>
+        <Button size="sm" onClick={load}><Filter className="h-4 w-4 mr-1"/>Применить</Button>
+        <div className="flex-1"/>
+        {data && <Badge variant="outline">{data.totalCalls} звонков · {data.managers?.length || 0} менеджеров</Badge>}
+      </div>
+
+      {loading ? <Loader2 className="h-6 w-6 animate-spin mx-auto"/> : !data?.managers?.length ? (
+        <div className="text-center py-12 text-muted-foreground">Нет данных за период</div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full text-xs">
+            <thead className="bg-muted/40">
+              <tr>
+                <th className="text-left py-2 px-3 sticky left-0 bg-muted/40 z-10 min-w-[160px]">Менеджер</th>
+                <th className="text-center py-2 px-2">Звонков</th>
+                <th className="text-center py-2 px-2">Ср.</th>
+                {data.columns.map(c => (
+                  <th key={c.key} className="text-center py-2 px-2 min-w-[80px]">
+                    <div className="font-medium leading-tight">{c.label}</div>
+                    {c.avg != null && <div className="text-[10px] text-muted-foreground font-normal mt-0.5">всего: {c.avg}</div>}
+                  </th>
+                ))}
+                <th className="text-center py-2 px-2">Негатив</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.managers.map(m => (
+                <tr key={m.managerId} className="border-t hover:bg-muted/20 cursor-pointer"
+                    onClick={() => onSelectManager?.(m.managerId, m.managerName)}
+                    data-testid={`heatmap-row-${m.managerId}`}>
+                  <td className="py-2 px-3 font-medium sticky left-0 bg-white dark:bg-slate-900 z-10">{m.managerName}</td>
+                  <td className="text-center py-2 px-2 text-muted-foreground">{m.totalCalls}</td>
+                  <td className={`text-center py-2 px-2 font-bold ${scoreColor(m.avgScore)}`}>{m.avgScore ?? '—'}</td>
+                  {data.columns.map(c => {
+                    const v = m.cells[c.key];
+                    const delta = v != null && c.avg != null ? (v - c.avg).toFixed(2) : null;
+                    return (
+                      <td key={c.key} className="py-1 px-1">
+                        <div className={`rounded text-center py-2 font-bold tabular-nums ${cellColor(v)}`} title={delta != null ? `Δ от среднего: ${delta > 0 ? '+' : ''}${delta}` : ''}>
+                          {v != null ? v.toFixed(1) : '—'}
+                        </div>
+                      </td>
+                    );
+                  })}
+                  <td className="text-center py-2 px-2">
+                    {m.negativeCount > 0 ? <Badge variant="destructive" className="text-[10px]">{m.negativeCount}</Badge> : '0'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="px-3 py-2 text-[11px] text-muted-foreground border-t flex items-center gap-3 flex-wrap">
+            <span>Цветовая шкала:</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500/80"/> &lt;0.4</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-400/80"/> 0.4–0.8</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-300/70"/> 0.8–1.2</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-300/70"/> 1.2–1.6</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-500/80"/> ≥1.6</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -940,6 +1042,7 @@ const CallAnalyticsPage = () => {
 
   const tabs = [
     { id: 'sync', label: 'Синхронизация', icon: RefreshCw },
+    { id: 'heatmap', label: 'Сравнение', icon: BarChart3 },
     { id: 'managers', label: 'Менеджеры', icon: Users },
     { id: 'calls', label: 'Все звонки', icon: Phone },
     { id: 'rules', label: 'Правила оценки', icon: Settings },
@@ -982,6 +1085,7 @@ const CallAnalyticsPage = () => {
       </div>
 
       {tab === 'sync' && <SyncTab />}
+      {tab === 'heatmap' && <HeatmapTab onSelectManager={(id, name) => setManagerDashboard({ id, name })} />}
       {tab === 'managers' && <ManagersTab
         onSelectManager={(id, name) => setManagerDashboard({ id, name })}
         onViewCalls={(id, name) => setManagerCalls({ id, name })}

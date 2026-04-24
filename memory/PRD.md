@@ -70,16 +70,43 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - Frontend: Standalone "Анализ звонков" page (4 tabs: Sync, Managers, Calls, Rules), call detail with audio/transcript/scores
   - 7-point AI checklist: greeting, needs, presentation, objections, next_step, politeness, compliance
   - Pipeline/stage selection, language detection (pl/ru), translation, background processing
-- Call Analytics improvements (April 24, 2026)
+- Call Analytics improvements (April 24-25, 2026)
   - Live processing progress with auto-polling (3s during work, 15s idle) + progress bar
   - Stricter sync filter: notes are imported as calls only if they have call-type OR real audio link OR duration>0 (phone alone no longer enough)
   - /calls endpoint: `only_with_audio=true` by default — removes empty notes from list
   - POST /call-analytics/calls/purge-empty — clean already-imported garbage
   - Smart rule selection: auto-match by direction (inbound→"incoming", outbound→"cold_call") or `configJson.appliesTo`
   - Each analyzed call now stores `rule_id_used` / `rule_name_used`
-  - NEW Manager Dashboard (GET /managers/{id}/dashboard): period stats, score distribution, avg per check-list category, top recurring issues, rule breakdown, last 50 call samples
-  - NEW AI verdict (POST /managers/{id}/summary): GPT-5.2 produces verdict/strengths/weaknesses/prioritised recommendations/trainingFocus/riskFlags from aggregated stats (cached 10 min)
-  - UI: click manager row → Manager Dashboard; "Звонки" button → raw call list; "AI-отчёт по периоду" button inside dashboard
+  - Manager Dashboard (GET /managers/{id}/dashboard): period stats, score distribution, avg per check-list category, top recurring issues, rule breakdown, last 50 call samples
+  - AI verdict (POST /managers/{id}/summary): GPT-5.2 produces verdict/strengths/weaknesses/prioritised recommendations/trainingFocus/riskFlags from aggregated stats (cached 10 min)
+  - Stale-call auto-reset: any call stuck in transcribing/analyzing for >10 min → status=error. Triggered automatically on /process-all, /process-pending, plus manual /reset-stale endpoint and "Сбросить зависшие" button
+  - Quality filter on /calls: `category=good|problem|critical` (≥8 / 5–7 / <5 or has_strong_negative)
+  - NEW Heatmap: GET /heatmap returns matrix [manager][checklist-category]=avg score with global column averages → frontend Heatmap tab with colored cells
+  - Concurrency limit: Whisper Semaphore(4), GPT analysis Semaphore(8) — prevents 429s
+  - Analysis cache: hash(transcript+rule_id) → reuse previous AI verdict (re-analysis is free)
+- Lead Analytics: data integrity (April 24-25, 2026)
+  - Defensive client-side filter on `created_at` (amoCRM sometimes returns out-of-window leads)
+  - Auto-purge of legacy leads (createdAtTs < analyticsStartDate) on every sync
+  - All endpoints (`/summary`, `/managers`, `/problem-leads`, `/closed-lost`, `/leads`) default to analyticsStartDate as lower bound
+  - POST /purge-before-start-date (with optional start_date param) — manual cleanup button in UI
+  - GET /diagnose-sync — shows amoCRM raw count vs filtered vs would-sync-without-closed
+  - "Не загружать сделки на этапах Закрыто/Потеряно" setting (default: ON)
+  - Quick-period buttons (Сегодня, Эта неделя, Этот месяц, Сбросить)
+  - Date-field toggle: "По созданию" / "По обработке" (firstActionAt) — filter analytics by when manager actually touched the lead
+  - amoCRM GET helper now retries on 429/502/503/504/timeout with exponential backoff
+- Sauna CRM: stuck-sync recovery (April 25, 2026)
+  - Heartbeat field updated on every progress tick
+  - Auto-reset on /sync-from-amocrm if previous sync's heartbeat is older than 5 min
+  - GET /sync-status flags `status="stale"` for stuck syncs with clear hint
+  - Frontend handles `stale` status: stops spinner, red toast "Нажмите Сбросить"
+  - asyncio.wait_for(timeout=90) on each batch — single hung lead can't freeze the entire job
+  - NEW: Duplicate detection (GET /duplicates) by phone or amocrm_id; GET groups returned with all leads
+  - NEW: Smart merge (POST /merge-duplicates) — picks "winner" lead, copies non-empty fields from losers, concatenates documents/history/changeLog, deletes losers
+  - Frontend: "Дубликаты" button in CRM header opens DuplicatesModal with two tabs (по телефону / по amoCRM ID), each row has "Оставить эту"
+- Dark Theme (April 25, 2026)
+  - ThemeToggle component (Sun/Moon icon) integrated into Header
+  - Persisted in localStorage; respects prefers-color-scheme on first visit
+  - initTheme() called in index.js before render to prevent FOUC
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)

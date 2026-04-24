@@ -16,10 +16,11 @@ import {
   ExternalLink, Send, Loader2, Plus, X, Search,
   ChevronDown, ChevronUp, Package, Star, StarOff,
   Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle, ArrowUpDown,
-  MessageSquare, Eye
+  MessageSquare, Eye, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
+import { DuplicatesModal } from './DuplicatesModal';
 import { TechSpecModal } from './tech-spec';
 import { ContractTemplateSettings } from './ContractTemplateSettings';
 
@@ -56,6 +57,7 @@ const SaunaCRMPage = () => {
   
   // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
   const [settingsForm, setSettingsForm] = useState(null);
   
   // Search & Filters
@@ -648,6 +650,9 @@ const SaunaCRMPage = () => {
               Сбросить
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={() => setShowDuplicatesModal(true)} data-testid="crm-duplicates-btn">
+            <Users className="w-4 h-4 mr-2" />Дубликаты
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} data-testid="crm-settings-btn">
             <Settings className="w-4 h-4 mr-2" />Настройки
           </Button>
@@ -1449,6 +1454,7 @@ const SaunaCRMPage = () => {
       </Dialog>
 
       {/* Settings Modal */}
+      <DuplicatesModal open={showDuplicatesModal} onClose={() => setShowDuplicatesModal(false)} onMerged={fetchLeads} />
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>

@@ -1109,6 +1109,122 @@ async def deduplicate_crm_leads():
     return {"status": "ok", "duplicatesFound": len(duplicates), "removed": removed}
 
 
+@router.get("/duplicates")
+async def find_duplicate_leads():
+    """Find groups of duplicate leads. Two strategies:
+       1. Same amocrm_id — clear duplicates from sync.
+       2. Same phone OR same (clientName lowercase) — possible same client from different channels.
+    """
+    # By amocrm_id (only when amocrm_id is non-empty)
+    by_amo = await db.sauna_crm_leads.aggregate([
+        {"$match": {"amocrm_id": {"$nin": [None, ""]}}},
+        {"$group": {
+            "_id": "$amocrm_id",
+            "count": {"$sum": 1},
+            "leads": {"$push": {"id": "$id", "clientName": "$clientName", "phone": "$phone",
+                                "createdAt": "$createdAt", "stageId": "$stageId",
+                                "totalAmount": "$totalAmount", "manager": "$manager"}}
+        }},
+        {"$match": {"count": {"$gt": 1}}},
+        {"$limit": 200}
+    ]).to_list(length=200)
+
+    # By phone (normalized — only digits, last 9)
+    by_phone = await db.sauna_crm_leads.aggregate([
+        {"$match": {"phone": {"$nin": [None, ""]}}},
+        {"$group": {
+            "_id": "$phone",
+            "count": {"$sum": 1},
+            "leads": {"$push": {"id": "$id", "clientName": "$clientName", "phone": "$phone",
+                                "createdAt": "$createdAt", "stageId": "$stageId", "amocrm_id": "$amocrm_id",
+                                "totalAmount": "$totalAmount", "manager": "$manager"}}
+        }},
+        {"$match": {"count": {"$gt": 1}}},
+        {"$limit": 200}
+    ]).to_list(length=200)
+
+    return {
+        "byAmoId": [{"key": d["_id"], "count": d["count"], "leads": d["leads"]} for d in by_amo],
+        "byPhone": [{"key": d["_id"], "count": d["count"], "leads": d["leads"]} for d in by_phone],
+    }
+
+
+@router.post("/merge-duplicates")
+async def merge_duplicates(payload: dict):
+    """Merge a group of duplicate leads into one.
+
+    Body: {"keepId": "CRM-XXX", "removeIds": ["CRM-YYY", "CRM-ZZZ"]}
+    Behavior:
+      - Picks the lead with `keepId` as the "winner".
+      - Copies any non-empty fields from removed leads into the winner if winner's field is empty.
+      - Concatenates `documents`, `stageHistory`, `changeLog`, `notes`.
+      - Deletes the duplicates.
+    """
+    keep_id = payload.get("keepId")
+    remove_ids = payload.get("removeIds") or []
+    if not keep_id or not remove_ids:
+        raise HTTPException(status_code=400, detail="keepId и removeIds обязательны")
+
+    keeper = await db.sauna_crm_leads.find_one({"id": keep_id}, {"_id": 0})
+    if not keeper:
+        raise HTTPException(status_code=404, detail="Главная сделка не найдена")
+
+    losers = await db.sauna_crm_leads.find({"id": {"$in": remove_ids}}, {"_id": 0}).to_list(length=20)
+    if not losers:
+        return {"status": "ok", "merged": 0, "message": "Нет сделок для объединения"}
+
+    merged_update = {}
+    string_fields = ["clientName", "modelName", "phone", "email", "address", "manager", "amocrm_id",
+                     "amocrm_link", "amoComment", "calculatorPdfUrl", "calculatorOrderId", "notes"]
+    for fld in string_fields:
+        if not keeper.get(fld):
+            for l in losers:
+                if l.get(fld):
+                    merged_update[fld] = l[fld]
+                    break
+
+    # Numeric: take max
+    for fld in ["totalAmount", "advancePayment", "remainingAmount"]:
+        vals = [keeper.get(fld) or 0] + [(l.get(fld) or 0) for l in losers]
+        max_v = max(vals)
+        if max_v and max_v != (keeper.get(fld) or 0):
+            merged_update[fld] = max_v
+
+    # Combine arrays/lists
+    combined_docs = list(keeper.get("documents") or [])
+    combined_history = list(keeper.get("stageHistory") or [])
+    combined_changelog = list(keeper.get("changeLog") or [])
+    seen_doc_ids = {d.get("id") for d in combined_docs if d.get("id")}
+    for l in losers:
+        for d in (l.get("documents") or []):
+            if d.get("id") and d["id"] not in seen_doc_ids:
+                combined_docs.append(d)
+                seen_doc_ids.add(d["id"])
+        combined_history.extend(l.get("stageHistory") or [])
+        combined_changelog.extend(l.get("changeLog") or [])
+    if combined_docs != (keeper.get("documents") or []):
+        merged_update["documents"] = combined_docs
+    if combined_history != (keeper.get("stageHistory") or []):
+        merged_update["stageHistory"] = combined_history
+    if combined_changelog:
+        # Append a system note about the merge
+        merged_update["changeLog"] = (combined_changelog + [{
+            "field": "_merge",
+            "label": "Объединение дубликатов",
+            "newValue": f"Слиты сделки: {', '.join(l.get('id', '') for l in losers)}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": "manual_merge",
+        }])[-200:]
+
+    if merged_update:
+        merged_update["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        await db.sauna_crm_leads.update_one({"id": keep_id}, {"$set": merged_update})
+
+    # Delete the losers
+    del_result = await db.sauna_crm_leads.delete_many({"id": {"$in": remove_ids}})
+    return {"status": "ok", "merged": del_result.deleted_count, "keepId": keep_id, "fieldsCopied": list(merged_update.keys())}
+
+
 
 
 

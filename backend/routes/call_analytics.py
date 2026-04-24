@@ -6,6 +6,7 @@ import json
 import uuid
 import io
 import tempfile
+import hashlib
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
@@ -22,8 +23,23 @@ CALLS_COL = "call_analytics_calls"
 RULES_COL = "call_analytics_rules"
 SETTINGS_COL = "call_analytics_settings"
 SYNC_COL = "call_analytics_sync"
+ANALYSIS_CACHE_COL = "call_analytics_analysis_cache"
 
 BINOTEL_API = "https://api.binotel.com/api/4.0"
+
+# Limit parallel Whisper / LLM calls to avoid rate limits & memory spikes.
+# 4 concurrent transcriptions ≈ steady throughput ~10-15 calls/min without 429s.
+_TRANSCRIBE_SEM = asyncio.Semaphore(4)
+_ANALYZE_SEM = asyncio.Semaphore(8)
+
+
+def _transcript_hash(text: str, rule_id: str = "") -> str:
+    """Stable hash of (transcript, rule_id) — used to cache AI analysis and avoid re-billing."""
+    h = hashlib.sha256()
+    h.update((rule_id or "").encode("utf-8"))
+    h.update(b"|")
+    h.update((text or "").encode("utf-8"))
+    return h.hexdigest()
 
 
 def _api_key():
@@ -631,6 +647,11 @@ async def process_all(background_tasks: BackgroundTasks):
 
 
 async def _transcribe_single(call_id: str):
+    async with _TRANSCRIBE_SEM:
+        await _transcribe_single_impl(call_id)
+
+
+async def _transcribe_single_impl(call_id: str):
     try:
         call = await db[CALLS_COL].find_one({"id": call_id})
         if not call:
@@ -908,6 +929,11 @@ async def _pick_rule_for_call(call: dict) -> dict:
 
 
 async def _analyze_single(call_id: str):
+    async with _ANALYZE_SEM:
+        await _analyze_single_impl(call_id)
+
+
+async def _analyze_single_impl(call_id: str):
     try:
         call = await db[CALLS_COL].find_one({"id": call_id})
         if not call or not call.get("transcript_ru"):
@@ -921,6 +947,34 @@ async def _analyze_single(call_id: str):
         rule = await _pick_rule_for_call(call)
         rule_id_used = rule.get("id") if rule else None
         rule_name_used = rule.get("name") if rule else None
+
+        # Cache: same transcript + same rule => reuse previous analysis (saves $$)
+        transcript = call.get("transcript_ru", "")
+        cache_key = _transcript_hash(transcript, rule_id_used or "")
+        cached = await db[ANALYSIS_CACHE_COL].find_one({"key": cache_key}, {"_id": 0})
+        if cached and cached.get("analysis"):
+            analysis = cached["analysis"]
+            update = {
+                "status": "analyzed",
+                "score": analysis.get("score"),
+                "has_strong_negative": analysis.get("has_strong_negative", False),
+                "checks_json": analysis.get("checks"),
+                "summary_ru": analysis.get("summary_ru", ""),
+                "key_issues_json": analysis.get("key_issues", []),
+                "recommendations_json": analysis.get("recommendations", []),
+                "rule_id_used": rule_id_used,
+                "rule_name_used": rule_name_used,
+                "analyzedAt": datetime.now(timezone.utc).isoformat(),
+                "cost_analyze": 0.0,
+                "from_cache": True,
+                "updatedAt": datetime.now(timezone.utc).isoformat(),
+            }
+            current = await db[CALLS_COL].find_one({"id": call_id}, {"cost_total": 1, "cost_whisper": 1, "cost_diarize": 1, "_id": 0})
+            prev_cost = (current.get("cost_whisper") or 0) + (current.get("cost_diarize") or 0)
+            update["cost_total"] = round(prev_cost, 4)
+            await db[CALLS_COL].update_one({"id": call_id}, {"$set": update})
+            logger.info(f"Analyzed call {call_id} from CACHE (key={cache_key[:12]})")
+            return
 
         rules_json = json.dumps(rule.get("configJson", {}) if rule else {}, ensure_ascii=False)
 
@@ -995,6 +1049,20 @@ async def _analyze_single(call_id: str):
         prev_cost = (current.get("cost_whisper") or 0) + (current.get("cost_diarize") or 0)
         update["cost_total"] = round(prev_cost + update["cost_analyze"], 4)
         await db[CALLS_COL].update_one({"id": call_id}, {"$set": update})
+        # Save to analysis cache (keyed by transcript+rule). Capped TTL of 90 days.
+        try:
+            await db[ANALYSIS_CACHE_COL].update_one(
+                {"key": cache_key},
+                {"$set": {
+                    "key": cache_key,
+                    "ruleId": rule_id_used,
+                    "analysis": analysis,
+                    "createdAt": datetime.now(timezone.utc).isoformat(),
+                }},
+                upsert=True,
+            )
+        except Exception as cache_err:
+            logger.warning(f"Failed to save analysis cache: {cache_err}")
         logger.info(f"Analyzed call {call_id}: score={analysis.get('score')}")
 
     except Exception as e:
@@ -1131,6 +1199,83 @@ async def get_manager_stats(date_from: str = None, date_to: str = None):
             "outbound": r["outbound"],
         })
     return {"managers": managers}
+
+
+@router.get("/heatmap")
+async def managers_heatmap(date_from: str = None, date_to: str = None):
+    """Heatmap: rows = managers, columns = check categories, cells = avg score.
+
+    Helps spot at a glance which manager is weak in which area
+    (greeting / needs / objections / next_step / etc.).
+    """
+    q = {"status": "analyzed"}
+    if date_from:
+        q["datetime"] = {"$gte": date_from}
+    if date_to:
+        q.setdefault("datetime", {})["$lte"] = date_to + "T23:59:59"
+
+    calls = await db[CALLS_COL].find(
+        q, {"_id": 0, "manager_id": 1, "manager_name": 1, "checks_json": 1, "score": 1, "has_strong_negative": 1}
+    ).to_list(length=5000)
+
+    keys = list(CHECK_LABELS.keys())
+    by_mgr = {}
+    for c in calls:
+        mid = c.get("manager_id") or "unknown"
+        if mid not in by_mgr:
+            by_mgr[mid] = {
+                "managerId": mid,
+                "managerName": c.get("manager_name") or f"ID:{mid}",
+                "totalCalls": 0,
+                "avgScoreSum": 0.0,
+                "avgScoreCnt": 0,
+                "negativeCount": 0,
+                "checks": {k: {"sum": 0.0, "cnt": 0} for k in keys},
+            }
+        m = by_mgr[mid]
+        m["totalCalls"] += 1
+        if c.get("score") is not None:
+            m["avgScoreSum"] += float(c["score"])
+            m["avgScoreCnt"] += 1
+        if c.get("has_strong_negative"):
+            m["negativeCount"] += 1
+        checks = c.get("checks_json") or {}
+        for k in keys:
+            v = checks.get(k)
+            if isinstance(v, dict) and v.get("score") is not None:
+                try:
+                    m["checks"][k]["sum"] += float(v["score"])
+                    m["checks"][k]["cnt"] += 1
+                except (TypeError, ValueError):
+                    pass
+
+    rows = []
+    for mid, m in by_mgr.items():
+        cells = {}
+        for k in keys:
+            t = m["checks"][k]
+            cells[k] = round(t["sum"] / t["cnt"], 2) if t["cnt"] else None
+        rows.append({
+            "managerId": mid,
+            "managerName": m["managerName"],
+            "totalCalls": m["totalCalls"],
+            "avgScore": round(m["avgScoreSum"] / m["avgScoreCnt"], 2) if m["avgScoreCnt"] else None,
+            "negativeCount": m["negativeCount"],
+            "cells": cells,
+        })
+    rows.sort(key=lambda r: -(r["avgScore"] or 0))
+
+    # Compute global per-column average for delta highlighting
+    column_avg = {}
+    for k in keys:
+        vals = [r["cells"][k] for r in rows if r["cells"][k] is not None]
+        column_avg[k] = round(sum(vals) / len(vals), 2) if vals else None
+
+    return {
+        "managers": rows,
+        "columns": [{"key": k, "label": v, "max": 2, "avg": column_avg[k]} for k, v in CHECK_LABELS.items()],
+        "totalCalls": sum(r["totalCalls"] for r in rows),
+    }
 
 
 # ── Manager Dashboard ─────────────────────────────
