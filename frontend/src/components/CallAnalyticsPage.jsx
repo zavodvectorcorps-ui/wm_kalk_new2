@@ -25,6 +25,7 @@ const ProcessingStats = () => {
     <div className="flex flex-wrap gap-2 text-xs">
       <Badge variant="outline">Всего: {stats.total}</Badge>
       {s.new > 0 && <Badge className="bg-gray-100 text-gray-700">Новые: {s.new}</Badge>}
+      {s.skipped > 0 && <Badge className="bg-slate-100 text-slate-500">Пропущено: {s.skipped}</Badge>}
       {s.transcribing > 0 && <Badge className="bg-blue-100 text-blue-700">Транскрибация: {s.transcribing}</Badge>}
       {s.transcribed > 0 && <Badge className="bg-indigo-100 text-indigo-700">Транскрибировано: {s.transcribed}</Badge>}
       {s.analyzing > 0 && <Badge className="bg-violet-100 text-violet-700">Анализ: {s.analyzing}</Badge>}
@@ -126,6 +127,15 @@ const SyncTab = () => {
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1"/> : <Save className="h-4 w-4 mr-1"/>}
             Сохранить настройки
           </Button>
+          <div className="pt-2 border-t">
+            <label className="text-xs text-muted-foreground">Мин. длительность звонка (сек)</label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input type="number" min={0} max={300} value={settings.minDurationSeconds ?? 30}
+                onChange={e => setSettings(p => ({...p, minDurationSeconds: parseInt(e.target.value) || 0}))}
+                className="w-24" />
+              <span className="text-xs text-muted-foreground">Звонки короче — пропускаются (экономия ~30-50%)</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

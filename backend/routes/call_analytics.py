@@ -36,6 +36,7 @@ class CallAnalyticsSettings(BaseModel):
     lastSyncAt: Optional[str] = None
     autoTranscribe: bool = True
     autoAnalyze: bool = True
+    minDurationSeconds: int = 30  # Skip calls shorter than this
 
 
 class Rule(BaseModel):
@@ -439,10 +440,19 @@ async def transcribe_call(call_id: str, background_tasks: BackgroundTasks):
 @router.post("/process-pending")
 async def process_pending(background_tasks: BackgroundTasks, limit: int = 10):
     """Process pending calls: transcribe + analyze."""
+    settings = await get_settings()
+    min_dur = settings.get("minDurationSeconds", 30)
+
     new_calls = await db[CALLS_COL].find(
-        {"status": "new", "audio_url": {"$ne": ""}},
+        {"status": "new", "audio_url": {"$ne": ""}, "duration_seconds": {"$gte": min_dur}},
         {"id": 1, "_id": 0}
     ).limit(limit).to_list(length=limit)
+
+    # Mark short calls as skipped
+    skipped = await db[CALLS_COL].update_many(
+        {"status": "new", "duration_seconds": {"$lt": min_dur, "$gt": 0}},
+        {"$set": {"status": "skipped", "error": f"Короткий звонок (<{min_dur}с)"}}
+    )
 
     transcribed = await db[CALLS_COL].find(
         {"status": "transcribed", "transcript_ru": {"$ne": None}},
@@ -454,7 +464,7 @@ async def process_pending(background_tasks: BackgroundTasks, limit: int = 10):
     for c in transcribed:
         background_tasks.add_task(_analyze_single, c["id"])
 
-    return {"queued_transcribe": len(new_calls), "queued_analyze": len(transcribed)}
+    return {"queued_transcribe": len(new_calls), "queued_analyze": len(transcribed), "skipped_short": skipped.modified_count}
 
 
 @router.get("/stats")
@@ -474,8 +484,17 @@ async def get_call_stats():
 @router.post("/process-all")
 async def process_all(background_tasks: BackgroundTasks):
     """Queue ALL pending calls for processing."""
+    settings = await get_settings()
+    min_dur = settings.get("minDurationSeconds", 30)
+
+    # Mark short calls as skipped
+    skipped = await db[CALLS_COL].update_many(
+        {"status": {"$in": ["new", "error"]}, "duration_seconds": {"$lt": min_dur, "$gt": 0}},
+        {"$set": {"status": "skipped", "error": f"Короткий звонок (<{min_dur}с)"}}
+    )
+
     new_calls = await db[CALLS_COL].find(
-        {"status": "new", "audio_url": {"$ne": ""}},
+        {"status": "new", "audio_url": {"$ne": ""}, "duration_seconds": {"$gte": min_dur}},
         {"id": 1, "_id": 0}
     ).to_list(length=1000)
 
@@ -484,9 +503,9 @@ async def process_all(background_tasks: BackgroundTasks):
         {"id": 1, "_id": 0}
     ).to_list(length=1000)
 
-    # Reset errors for retry
+    # Reset errors for retry (only long enough calls)
     errors = await db[CALLS_COL].find(
-        {"status": "error", "audio_url": {"$ne": ""}},
+        {"status": "error", "audio_url": {"$ne": ""}, "duration_seconds": {"$gte": min_dur}},
         {"id": 1, "_id": 0}
     ).to_list(length=1000)
     if errors:
@@ -501,7 +520,8 @@ async def process_all(background_tasks: BackgroundTasks):
     return {
         "queued_transcribe": len(new_calls) + len(errors),
         "queued_analyze": len(transcribed),
-        "errors_reset": len(errors)
+        "errors_reset": len(errors),
+        "skipped_short": skipped.modified_count
     }
 
 
@@ -587,18 +607,18 @@ async def _transcribe_single(call_id: str):
             # Diarize + translate to Russian
             diarized_ru = await _diarize_and_translate(transcript, call, "pl")
             update["transcript_ru"] = diarized_ru
-            cost_diarize = _estimate_gpt_cost(transcript, diarized_ru)
+            cost_diarize = _estimate_gpt_cost(transcript, diarized_ru, "gpt-4o-mini")
         elif lang_lower in ("russian", "ru"):
             update["language"] = "ru"
             diarized = await _diarize_and_translate(transcript, call, "ru")
             update["transcript_ru"] = diarized
-            cost_diarize = _estimate_gpt_cost(transcript, diarized)
+            cost_diarize = _estimate_gpt_cost(transcript, diarized, "gpt-4o-mini")
         else:
             update["transcript_pl"] = transcript
             update["language"] = lang_lower
             diarized_ru = await _diarize_and_translate(transcript, call, lang_lower)
             update["transcript_ru"] = diarized_ru
-            cost_diarize = _estimate_gpt_cost(transcript, diarized_ru)
+            cost_diarize = _estimate_gpt_cost(transcript, diarized_ru, "gpt-4o-mini")
 
         update["cost_whisper"] = cost_whisper
         update["cost_diarize"] = cost_diarize
@@ -618,11 +638,14 @@ async def _transcribe_single(call_id: str):
 
 
 
-def _estimate_gpt_cost(input_text: str, output_text: str) -> float:
-    """Estimate GPT-5.2 cost. ~$0.01/1K input tokens, ~$0.03/1K output tokens. ~4 chars per token."""
-    in_tokens = len(input_text or "") / 4
-    out_tokens = len(output_text or "") / 4
-    cost = (in_tokens * 0.01 + out_tokens * 0.03) / 1000
+def _estimate_gpt_cost(input_text: str, output_text: str, model: str = "gpt-5.2") -> float:
+    """Estimate GPT cost. gpt-5.2: $0.01/$0.03 per 1K tokens. gpt-4o-mini: $0.00015/$0.0006."""
+    in_t = len(input_text or "") / 4
+    out_t = len(output_text or "") / 4
+    if "mini" in model:
+        cost = (in_t * 0.00015 + out_t * 0.0006) / 1000
+    else:
+        cost = (in_t * 0.01 + out_t * 0.03) / 1000
     return round(cost, 4)
 
 
@@ -632,7 +655,7 @@ async def _translate_to_russian(text: str) -> str:
         resp = await cl.post(
             f"{EMERGENT_PROXY}/chat/completions",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": "gpt-5.2", "messages": [
+            json={"model": "gpt-4o-mini", "messages": [
                 {"role": "system", "content": "Переведи текст с польского на русский. Верни только перевод, без пояснений."},
                 {"role": "user", "content": text}
             ]}
@@ -682,7 +705,7 @@ async def _diarize_and_translate(transcript: str, call: dict, source_lang: str) 
             resp = await cl.post(
                 f"{EMERGENT_PROXY}/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={"model": "gpt-5.2", "messages": [
+                json={"model": "gpt-4o-mini", "messages": [
                     {"role": "system", "content": "Ты — эксперт по диаризации телефонных разговоров. Разбиваешь транскрипт на реплики М (менеджер) и К (клиент). Отвечай только диалогом, без пояснений."},
                     {"role": "user", "content": prompt}
                 ]}
