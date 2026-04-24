@@ -596,7 +596,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
 
           {/* Notes */}
           <Card className="shadow-md">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-transparent dark:to-transparent border-b border-amber-200/40 dark:border-amber-700/30">
+            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-amber-200/40 dark:border-amber-700/20">
               <CardTitle className="text-lg text-amber-800 dark:text-amber-300">{txt.notes}</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
@@ -714,7 +714,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
 
 const CustomerInfoCard = ({ formData, setFormData, handleInputChange, txt }) => (
   <Card className="shadow-md">
-    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-transparent dark:to-transparent border-b border-amber-200/40 dark:border-amber-700/30">
+    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-amber-200/40 dark:border-amber-700/20">
       <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-300">
         <User className="h-5 w-5" />
         {txt.customerInfo}
@@ -860,7 +860,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
 
   return (
   <Card className="shadow-md">
-    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-transparent dark:to-transparent border-b border-amber-200/40 dark:border-amber-700/30">
+    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-amber-200/40 dark:border-amber-700/20">
       <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-300">
         <Calculator className="h-5 w-5" />
         {txt.model} *
@@ -1293,7 +1293,7 @@ const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, ha
   
   return (
     <Card className="shadow-md">
-      <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-transparent dark:to-transparent border-b border-amber-200/40 dark:border-amber-700/30">
+      <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-amber-200/40 dark:border-amber-700/20">
         <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-300">
           <Icon className="h-5 w-5" />
           {getCategoryName(category)}
@@ -1726,7 +1726,7 @@ const SummaryCard = ({
   
   return (
   <Card className="shadow-lg border-amber-200">
-    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-transparent dark:to-transparent border-b border-amber-200/40 dark:border-amber-700/30">
+    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-amber-200/40 dark:border-amber-700/20">
       <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
         <Calculator className="h-5 w-5" />
         {txt.summary}

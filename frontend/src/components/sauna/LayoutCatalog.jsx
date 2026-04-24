@@ -111,7 +111,7 @@ export const LayoutCatalog = ({
   return (
     <Card className="shadow-md border-2 border-purple-200 dark:border-purple-900/50">
       <CardHeader 
-        className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-transparent dark:to-transparent border-b border-purple-200/40 dark:border-purple-700/30 cursor-pointer py-3"
+        className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-purple-200/40 dark:border-purple-700/20 cursor-pointer py-3"
         onClick={() => setExpanded(!expanded)}
       >
         <CardTitle className="flex items-center justify-between text-purple-800 dark:text-purple-300">
