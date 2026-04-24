@@ -224,7 +224,7 @@ const SaunaCRMPage = () => {
       if (res.ok) {
         const data = await res.json();
         setSyncProgress(data);
-        if (data.status === 'completed' || data.status === 'error') {
+        if (data.status === 'completed' || data.status === 'error' || data.status === 'stale') {
           // Stop polling
           if (syncPollRef.current) { clearInterval(syncPollRef.current); syncPollRef.current = null; }
           setSyncing(false);
@@ -233,6 +233,8 @@ const SaunaCRMPage = () => {
             fetchLeads();
             fetchCalendar();
             fetchSettings();
+          } else if (data.status === 'stale') {
+            toast.error(data.message || 'Синхронизация зависла. Сбросьте и запустите снова.', { duration: 12000 });
           } else {
             toast.error(data.message || 'Ошибка синхронизации', { duration: 8000 });
           }
@@ -254,6 +256,10 @@ const SaunaCRMPage = () => {
             setSyncing(true);
             setSyncProgress(data);
             syncPollRef.current = setInterval(pollSyncStatus, 2000);
+          } else if (data.status === 'stale') {
+            // Stale sync from earlier session — show banner so user can reset
+            setSyncProgress(data);
+            setSyncing(false);
           } else if (data.status === 'completed' && data.completedAt) {
             // Show last completed sync for a few seconds
             const completedAt = new Date(data.completedAt);

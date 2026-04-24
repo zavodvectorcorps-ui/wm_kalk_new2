@@ -1007,10 +1007,26 @@ async def sync_leads_from_amocrm(background_tasks: BackgroundTasks):
     if not domain or not token:
         raise HTTPException(status_code=400, detail="amoCRM не настроен")
 
-    # Check if sync is already running
+    # Auto-reset stuck syncs:
+    #  - status == "running" but no heartbeat for >5 min => background task likely killed by restart.
     existing_sync = await db.sauna_crm_sync_status.find_one({"status": "running"}, {"_id": 0})
     if existing_sync:
-        return {"status": "already_running", "message": "Синхронизация уже выполняется", "syncId": existing_sync.get("syncId")}
+        last_beat_iso = existing_sync.get("lastHeartbeat") or existing_sync.get("startedAt")
+        is_stale = False
+        try:
+            if last_beat_iso:
+                last_beat = datetime.fromisoformat(last_beat_iso.replace("Z", "+00:00"))
+                age_sec = (datetime.now(timezone.utc) - last_beat).total_seconds()
+                if age_sec > 300:  # 5 minutes without heartbeat = stale
+                    is_stale = True
+                    logger.warning(f"Sauna CRM sync: detected stale sync (age={age_sec:.0f}s, syncId={existing_sync.get('syncId')}) — auto-resetting")
+        except Exception:
+            is_stale = True
+
+        if is_stale:
+            await db.sauna_crm_sync_status.delete_many({})
+        else:
+            return {"status": "already_running", "message": "Синхронизация уже выполняется", "syncId": existing_sync.get("syncId")}
 
     sync_id = f"sync-{uuid.uuid4().hex[:8]}"
     now = datetime.now(timezone.utc).isoformat()
@@ -1021,6 +1037,7 @@ async def sync_leads_from_amocrm(background_tasks: BackgroundTasks):
         "syncId": sync_id,
         "status": "running",
         "startedAt": now,
+        "lastHeartbeat": now,
         "imported": 0,
         "updated": 0,
         "errors": 0,
@@ -1040,10 +1057,27 @@ async def sync_leads_from_amocrm(background_tasks: BackgroundTasks):
 
 @router.get("/sync-status")
 async def get_sync_status():
-    """Get current sync progress."""
+    """Get current sync progress. Detects and surfaces stale 'running' syncs."""
     status = await db.sauna_crm_sync_status.find_one({}, {"_id": 0})
     if not status:
         return {"status": "idle", "message": "Нет активных синхронизаций"}
+
+    # Detect stale "running" status (no heartbeat >5 min) — likely killed by a server restart
+    if status.get("status") == "running":
+        last_beat_iso = status.get("lastHeartbeat") or status.get("startedAt")
+        if last_beat_iso:
+            try:
+                last_beat = datetime.fromisoformat(last_beat_iso.replace("Z", "+00:00"))
+                age = (datetime.now(timezone.utc) - last_beat).total_seconds()
+                if age > 300:
+                    status["status"] = "stale"
+                    status["message"] = (
+                        f"Похоже, синхронизация зависла (нет активности {int(age/60)} мин). "
+                        "Нажмите «Сбросить» и запустите снова."
+                    )
+                    status["staleSeconds"] = int(age)
+            except Exception:
+                pass
     return status
 
 
@@ -1105,7 +1139,9 @@ async def _run_sync_background(sync_id: str, settings: dict, domain: str, token:
             stage_name = stage.get("name", stage["id"])
             await db.sauna_crm_sync_status.update_one(
                 {"syncId": sync_id},
-                {"$set": {"currentStage": stage_name, "processedStages": stage_idx, "message": f"Этап: {stage_name}..."}}
+                {"$set": {"currentStage": stage_name, "processedStages": stage_idx,
+                          "message": f"Этап: {stage_name}...",
+                          "lastHeartbeat": datetime.now(timezone.utc).isoformat()}}
             )
 
             try:
@@ -1143,7 +1179,16 @@ async def _run_sync_background(sync_id: str, settings: dict, domain: str, token:
                                     field_mappings, settings, users_cache
                                 )
                             )
-                        results = await asyncio.gather(*tasks, return_exceptions=True)
+                        # Hard timeout per batch — prevents background task from hanging forever
+                        try:
+                            results = await asyncio.wait_for(
+                                asyncio.gather(*tasks, return_exceptions=True),
+                                timeout=90.0
+                            )
+                        except asyncio.TimeoutError:
+                            logger.error(f"Batch timeout on stage {stage_name}, leads {i}-{i+len(batch)}")
+                            errors += len(batch)
+                            results = []
                         for r in results:
                             if isinstance(r, Exception):
                                 logger.error(f"Error processing lead in batch: {r}")
@@ -1157,7 +1202,8 @@ async def _run_sync_background(sync_id: str, settings: dict, domain: str, token:
                         await db.sauna_crm_sync_status.update_one(
                             {"syncId": sync_id},
                             {"$set": {"imported": imported, "updated": updated, "errors": errors,
-                                      "message": f"Этап: {stage_name} ({i + len(batch)}/{len(leads_data)})..."}}
+                                      "message": f"Этап: {stage_name} ({i + len(batch)}/{len(leads_data)})...",
+                                      "lastHeartbeat": datetime.now(timezone.utc).isoformat()}}
                         )
 
             except Exception as e:
