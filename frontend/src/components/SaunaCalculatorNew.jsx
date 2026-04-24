@@ -954,7 +954,7 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
               
               {/* Notes */}
               <Card className="shadow-md">
-                <CardHeader className="border-b border-amber-200/40 dark:border-amber-700/30 bg-transparent">
+                <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-transparent dark:to-transparent border-b border-amber-200/40 dark:border-amber-700/30">
                   <CardTitle className="text-lg text-amber-800 dark:text-amber-200">{txt.notes}</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
@@ -1057,7 +1057,7 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
 
 const CustomerInfoCard = ({ formData, setFormData, handleInputChange, txt }) => (
   <Card className="shadow-md">
-    <CardHeader className="border-b border-amber-200/40 dark:border-amber-700/30 bg-transparent">
+    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-transparent dark:to-transparent border-b border-amber-200/40 dark:border-amber-700/30">
       <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-200">
         <User className="h-5 w-5" />
         {txt.customerInfo}
@@ -1108,7 +1108,7 @@ const CustomerInfoCard = ({ formData, setFormData, handleInputChange, txt }) => 
 
 const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => (
   <Card className="shadow-md">
-    <CardHeader className="border-b border-amber-200/40 dark:border-amber-700/30 bg-transparent">
+    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-transparent dark:to-transparent border-b border-amber-200/40 dark:border-amber-700/30">
       <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-200">
         <Calculator className="h-5 w-5" />
         {txt.model} *
@@ -1523,7 +1523,7 @@ const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, ha
   
   return (
     <Card className="shadow-md">
-      <CardHeader className="border-b border-amber-200/40 dark:border-amber-700/30 bg-transparent">
+      <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-transparent dark:to-transparent border-b border-amber-200/40 dark:border-amber-700/30">
         <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-200">
           <Icon className="h-5 w-5" />
           {getCategoryName(category)}
