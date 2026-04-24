@@ -1,21 +1,23 @@
-<analysis>**original_problem_statement:** The application is a full-stack Modular Sauna/Balia Configurator with CRM, production management, logistics, and amoCRM integration. The recent requests focused on fixing a critical  error during mass sync from amoCRM, ensuring Commercial Proposal (KP) PDFs are reliably linked to CRM cards, correcting date timezone parsing from amoCRM, setting up periodic auto-synchronization, filtering the Sales sync by specific amoCRM stages/flags, adjusting PDF layouts (moving Planowki to the first page and removing empty pages), and granting the  role access to manage layouts in the FAQ Admin section.
+<analysis>**original_problem_statement:** 
+Build a Modular Sauna Configurator with comprehensive CRM, production management, logistics, and amoCRM integration. The recent requests focus heavily on extending the platform into an advanced Sales Analytics suite. The user requested multiple new analytics modules: Manager Events Analytics, Advanced Manager Analytics (tracking specific KPIs, zero-sum flags, urgent actions), and a massive Call Analytics module that fetches calls from amoCRM/Binotel, transcribes them using Whisper, diarizes the conversation, and provides AI-driven evaluations of manager performance based on customizable rules.
 
 **User's preferred language**: Russian (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only - in this case, **Russian**).
 
-**what currently exists?** A full-stack React/FastAPI application for managing sauna/balia orders with a complex layout configurator, dynamic pricing, PDF contract/tech-spec generation, a robust two-way amoCRM integration (pipeline mapping, background syncing, webhooks, and embedded widgets), a sales tracking module, and a production calendar. 
+**what currently exists?** 
+A highly mature full-stack React/FastAPI application for managing sauna/balia orders with a robust configurator, PDF contract generation, and two-way amoCRM integration. It now features an extensive, standalone Analytics section containing Lead Analytics (SLA tracking), Manager Events, Advanced Manager KPIs, and a full-fledged AI Call Analytics suite. It also includes a Training module with HTML rendering support, and internal CRM/Logistics tracking tools.
 
 **Last working item**:
-    - **Last item agent was working**: Granting the  role access to the  component (which manages layouts/planowki). The user reported that marketers could see the tabs but got an access denied block inside the page. The agent found the hardcoded  check inside  (specifically in the  component) and replaced it with . 
+    - **Last item agent was working**: Binotel API Integration for Call Audio download. Because direct Binotel amoCRM links return an HTML page behind an auth wall, the user provided Binotel API keys. The agent implemented the  function to fetch the real Amazon S3 audio URL for a call using the  Binotel endpoint, and integrated this into the  flow in .
     - **Status**: USER VERIFICATION PENDING
-    - **Agent Testing Done**: Y (Linted successfully)
-    - **Which testing method agent to use?**: manual testing by screenshot tool (Log in as marketer and verify access to FAQ Admin / Layouts).
+    - **Agent Testing Done**: N (Keys were just implemented)
+    - **Which testing method agent to use?**: backend testing agent / manual testing by curl
     - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
   Issue 1: Incorrect automatic variant application in configurator (P1)
   - Attempted fixes: None in this session.
-  - Next debug checklist: Check configurator component state logic and backend option selection logic to see why variants are applied incorrectly.
-  - Why fix this issue and what will be achieved with the fix?: Recurring issue that causes incorrect sauna configurations to be generated.
+  - Next debug checklist: Check configurator component state logic and backend option selection logic.
+  - Why fix this issue and what will be achieved with the fix?: Recurring issue causing incorrect sauna configurations to be generated.
   - Status: NOT STARTED
   - Is recurring issue? Y (Count: 5)
   - Should Test frontend/backend/both after fix?: Both
@@ -23,43 +25,114 @@
 
   Issue 2: Unstable user login sessions & Deployment timeouts (P2)
   - Attempted fixes: None in this session.
-  - Next debug checklist: Check JWT expiration logic and supervisor logs for potential memory leaks or timeout triggers.
-  - Why fix this issue and what will be achieved with the fix?: Improves user experience and platform stability.
+  - Next debug checklist: Check JWT expiration logic and supervisor logs for potential memory leaks.
+  - Why fix this issue and what will be achieved with the fix?: Improves platform stability.
   - Status: NOT STARTED
   - Is recurring issue? Y
   - Should Test frontend/backend/both after fix?: Backend
   - Blocked on other issue: None
 
 **In progress Task List**:
-  Task 1: Verify Marketer role access to FAQ Admin
-  - Where to resume: Ask the user to confirm if the marketer can now edit and create layouts, or verify it using the screenshot tool logged in as a marketer.
-  - What will be achieved with this?: Unblocks marketers from managing layouts.
+  Task 1: Test Call Analytics Audio Fetching & Transcription Pipeline
+  - Where to resume: Verify if the newly integrated Binotel API keys successfully fetch the  and S3 audio URL, and if the usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit SDK successfully transcribes the audio. 
+  - What will be achieved with this?: Unblocks the entire Call Analytics transcription workflow which was failing with 400 errors due to HTML files being downloaded instead of MP3s.
   - Status: TESTING PENDING
-  - Should Test frontend/backend/both after fix?: Frontend
-  - Blocked on something: User confirmation.
+  - Should Test frontend/backend/both after fix?: Backend (Call transcription flow)
+  - Blocked on something: User verification / E2E test.
 
 **Upcoming and Future Tasks**
   Future Tasks:
-  - P2: Refactor monolithic files: , , , , .
+  - P2: Refactor monolithic files ( > 3200 lines,  > 1500 lines).
   - P2: Add a UI for importing/restoring a project backup from a file.
   - P2: Replace the deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
-- Fixed  on mass sync from amoCRM (refactored to FastAPI ) (DONE)
-- Fixed settings persistence bug for  and  in Pydantic models (DONE)
-- Fixed KP PDF linking during amoCRM sync (Added fallback to download via API and ) (DONE)
-- Added Commercial Proposal (KP) visibility and warnings to the amoCRM Widget (DONE)
-- Fixed amoCRM date parsing bug by explicitly converting Unix timestamps to  timezone (DONE)
-- Added auto-sync of CRM cards upon receiving amoCRM webhooks (DONE)
-- Added Заполняется производством visual header to the CRM Kanban lead details (DONE)
-- Implemented automatic periodic CRM synchronization (via  background scheduler) with UI toggle in settings (DONE)
-- Restructured PDF generation: Moved layout plans to the first page and eliminated trailing empty pages (DONE)
-- Added Manager name displaying on CRM Calendar badges (DONE)
-- Refactored Sales Sync logic: Added specific filters (, , ) and implemented cleanup for outdated records (DONE)
-- Added  access to FAQ Admin components (, , ) (DONE)
+- Manager Events Analytics (Phase 3): Integrated as a tab inside Lead Analytics, backed by amoCRM events data (DONE)
+- Closed/Lost Deals Logic: Excluded amoCRM stage 143 from main SLA stats, added separate tab, implemented AI analysis for closed-lost reasons, added  to prevent fetching archaic data (DONE)
+- Advanced Manager Analytics: Created  for tracking urgent actions, specific stage bottlenecks, and empty deal prices for 3 tracked managers (DONE)
+- Dashboard Restructuring: Moved the entire Analytics suite to a standalone card on the Landing Page (3rd row) instead of hiding it inside the Sauna CRM (DONE)
+- Infra/Stability Fixes: Added Clear All sync button, fixed CORS on 500 errors globally, excluded bot actions (SalesBot, Tilda) from manager analytics, fixed  batch amoCRM request issue, fixed duplicate orders in CRM sync (upsert + unique index), added  tool (DONE)
+- Training Module Update: Added ability to upload  files for lessons, rendered via full-screen  (DONE)
+- Tech Stack Shift (CRITICAL): Completely removed  and  due to heavy dependencies causing deployment failures. Re-wrote all LLM endpoints to use standard  (for Emergent LLM proxy) and usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit SDK (for Whisper) (DONE)
+- Call Analytics Module (Massive Feature): Built . Fetches calls from amoCRM, automatically determines Binotel integration format, tracks API costs, skips calls < 30s, diarizes and translates using GPT-4o-mini, and scores calls against customizable rules using GPT-5.2 (DONE)
+- Binotel API Integration: Added  using user-provided API Key and Secret to bypass auth walls for audio files (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-  None newly identified. 
+  None newly identified.
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Incorrect automatic variant application in configurator, unstable login sessions.
@@ -68,77 +141,239 @@
 
 **Code Architecture**
 React frontend + FastAPI backend + MongoDB
-- : CRM endpoints, sync logic, calendar data, settings schemas.
-- : amoCRM API integrations, webhook handling.
-- : Core sauna order logic and PDF (ReportLab) generation.
-- : Sales analytics and sync filtering from CRM.
-- : Application entry point, CORS, background schedulers.
-- : Main Kanban board, CRM settings, calendar UI.
+- : (NEW) Handles amoCRM call sync, Binotel API fetching, OpenAI Whisper transcription, GPT-4o-mini diarization, GPT-5.2 evaluation, and cost estimation.
+- : (NEW) Dashboard for call synchronization, rules management, and individual call analysis.
+- : (NEW) Handles urgent actions and specific manager stage tracking.
+- : SLA tracking, syncing. Heavily updated for incremental sync and bot exclusion.
+- : amoCRM API integrations. (Updated batch  formatting).
 
 **Key Technical Concepts**
-React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), httpx, FastAPI BackgroundTasks, ReportLab (PDF), Cloudinary.
+React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), amoCRM API, Binotel API, OpenAI SDK (Whisper), Direct Emergent Proxy integration (HTTPX).
 
 **key DB schema**
   - : 
   - : 
-  - : 
-  - : 
+  - :  flag added.
+  - :  field added.
 
 **changes in tech stack**
-None.
+- **CRITICAL CHANGE**: The  and  libraries were **completely removed** from  and the codebase. They caused persistent deployment failures due to missing system dependencies (like Rust/tokenizers/ffmpeg). All AI completions are now executed using raw  requests to , and transcription is done using the standard usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit SDK (). Do not attempt to re-install .
+- The usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit SDK is now heavily relied upon for Whisper multipart file uploads.
 
 **All files of reference**
-  -  (Added background tasks, updated Pydantic settings schema)
-  -  (Rewrote CRM to Sales sync filtering and cleanup)
-  -  (Modified ReportLab PDF layout structure)
-  -  (Added  to webhook listener)
-  -  (Added )
-  -  (Added UI settings for Sales sync and Auto-sync)
-  - , ,  (Added  permission checks)
+  -  (Created, handles Binotel API, Whisper, GPT evaluations)
+  -  (Created, UI for Call Analytics)
+  -  (Created)
+  -  (Heavily modified, switched from litellm to httpx)
+  -  (Updated to handle HTML uploads)
+  -  (Added global exception handler for CORS)
+  -  (Added deduplication and sync reset logic)
+  -  (Updated with all recent phases)
 
 **Areas that need refactoring**
- (>1500 lines),  (>3200 lines),  (>3200 lines),  (>2300 lines),  (>1800 lines).
+ (>3300 lines), . Both are severely overgrown. 
 
 **key api endpoints**
-  -  (Now returns 202 Accepted immediately)
+  - 
+  - 
+  - 
   - 
   - 
   - 
 
 **Critical Info for New Agent**
-- **LANGUAGE**: The user communicates in Russian. You MUST reply in Russian.
-- **TIMEZONE LOGIC**: Dates coming from amoCRM are Unix timestamps in seconds. They MUST be parsed using the  timezone, otherwise, dates will shift by -1 day in the CRM.
-- **SYNC JOBS**: Both CRM Mass Sync and CRM-to-Sales Sync manipulate large amounts of data.  are utilized to prevent proxy timeout errors.
-- **AUTH ROLES**: Ensure that any features required by the marketer utilize  alongside  when adjusting access constraints. 
+- **LANGUAGE**: Reply strictly in Russian.
+- **LITELLM / EMERGENTINTEGRATIONS ARE GONE**: Do not import or use them. Use the  patterns established in  and  for text generation, and the usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit SDK for audio transcription. 
+- **BINOTEL API**: Binotel audio links from amoCRM are HTML pages, not MP3s. The agent just implemented  in  using Binotel API keys provided by the user. Ensure this flow is maintained and tested.
+- **COST OPTIMIZATION**: Call Analytics uses a multi-model flow to save money: Calls < 30s are skipped. GPT-4o-mini is used for diarization and translation. GPT-5.2 is reserved strictly for the final scoring prompt.
 
 **documents and test reports created in this job**
   - 
   - 
   - 
+  - 
+  -  (Updated extensively)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. *User*: Requested adding Marketer role access to the FAQ planowki (layouts) section.
-2. *Agent*: Located and updated role checks () in  and .
-3. *User*: Reported that the Marketer can see the tabs but receives an access denied message and cannot edit/create layouts.
-4. *Agent*: **(PENDING VERIFICATION)** Found the root cause (an  block inside the  component in ) and applied the fix. Needs user or self-verification to ensure the block is removed.
+1. *User*: Reported Whisper 400 error.
+2. *Agent*: Used OpenAI SDK instead of httpx for Whisper.
+3. *User*: Still Whisper 400 error. Binotel gives HTML page instead of MP3.
+4. *Agent*: Created debug endpoint to prove Binotel is returning HTML.
+5. *User*: Confirmed they can't download it manually either.
+6. *Agent*: Added manual audio upload fallback.
+7. *User*: Uploading manually fails with .
+8. *Agent*: Fixed variable naming leftover from litellm refactor.
+9. *User*: Asked to diarize the audio (split into client/manager dialogue) and optimize costs.
+10. *User*: (LATEST) Shared Binotel API Key and Secret, along with API docs, to automate the audio downloading process via . Agent implemented this and finished. User verification is pending.
 
 **Project Health Check:**
-App is running. Backend services and background auto-sync scheduler are actively running.
+Healthy.
 
 **3rd Party Integrations**
-  - amoCRM (CRM sync, Webhooks, Notes API) — requires User API credentials.
+  - amoCRM (CRM sync, Webhooks, Leads, Events) — requires User API credentials.
+  - Binotel API (Call Audio retrieval) — requires User API credentials (implemented in ).
+  - OpenAI GPT-5.2 & GPT-4o-mini (Text & Analysis) — uses Emergent LLM Key via raw .
+  - OpenAI Whisper (Transcription) — uses Emergent LLM Key via usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit SDK.
   - Cloudinary (PDF hosting) — configured via .env.
 
 **Testing status**
-  - Testing agent used after significant changes: YES (Iterations 74 and 75).
-  - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
-  - Known regressions: None currently.
+  - Testing agent used after significant changes: YES (Iterations 81-84).
+  - Troubleshoot agent used after agent stuck in loop: NO.
+  - Test files created: [iteration_81-84.json]
+  - Known regressions: None.
 
 **Credentials to test flow:**
   - Admin:  / 
   - Storekeeper:  / 
-  - Marketer:  /  (Use this to test the recent FAQ Admin access fix).
+  - Marketer:  / 
 
 **What agent forgot to execute**
-The agent applied the final  Marketer permission patch but didn't have a chance to take a screenshot or ask the user for confirmation before the session ended. Verify this fix first.</analysis>
+The agent successfully implemented the Binotel API request using the user's provided credentials and integrated it into the workflow. No explicit actions were forgotten, but the new Binotel API flow needs to be tested/verified by the user on the production environment. Continue by asking the user if the audio transcription is now working successfully.</analysis>

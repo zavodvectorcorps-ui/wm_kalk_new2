@@ -23,9 +23,75 @@ RULES_COL = "call_analytics_rules"
 SETTINGS_COL = "call_analytics_settings"
 SYNC_COL = "call_analytics_sync"
 
+BINOTEL_API = "https://api.binotel.com/api/4.0"
+
 
 def _api_key():
     return os.environ.get("EMERGENT_LLM_KEY", "")
+
+
+def _binotel_creds():
+    return {
+        "key": os.environ.get("BINOTEL_API_KEY", ""),
+        "secret": os.environ.get("BINOTEL_API_SECRET", ""),
+    }
+
+
+async def _binotel_get_calls(start_ts: int, end_ts: int, direction: str = "incoming") -> list:
+    """Fetch calls from Binotel API for a period. direction: 'incoming' or 'outgoing'."""
+    creds = _binotel_creds()
+    if not creds["key"]:
+        return []
+    endpoint = f"{BINOTEL_API}/stats/{direction}-calls-for-period.json"
+    body = {**creds, "startTime": str(start_ts), "stopTime": str(end_ts)}
+    try:
+        async with httpx.AsyncClient(timeout=30) as cl:
+            resp = await cl.post(endpoint, json=body)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("status") == "success":
+                return list(data.get("callDetails", {}).values())
+        logger.warning(f"Binotel {direction} calls: {resp.status_code} — {resp.text[:200]}")
+    except Exception as e:
+        logger.error(f"Binotel API error: {e}")
+    return []
+
+
+async def _binotel_get_audio_url(general_call_id: str) -> str:
+    """Get temporary audio URL from Binotel (valid 15 min)."""
+    creds = _binotel_creds()
+    if not creds["key"] or not general_call_id:
+        return ""
+    try:
+        async with httpx.AsyncClient(timeout=15) as cl:
+            resp = await cl.post(
+                f"{BINOTEL_API}/stats/call-record.json",
+                json={**creds, "generalCallID": str(general_call_id)}
+            )
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("status") == "success":
+                return data.get("url", "")
+            logger.warning(f"Binotel record: {data}")
+    except Exception as e:
+        logger.error(f"Binotel audio URL error: {e}")
+    return ""
+
+
+async def _find_binotel_call(phone: str, call_ts: int, direction: str) -> str:
+    """Find generalCallID by matching phone and approximate time."""
+    # Search in a window of ±5 minutes
+    start = call_ts - 300
+    end = call_ts + 300
+    bino_dir = "incoming" if direction == "inbound" else "outgoing"
+    calls = await _binotel_get_calls(start, end, bino_dir)
+    # Clean phone for matching
+    phone_clean = phone.replace("+", "").replace(" ", "").replace("-", "")[-9:]
+    for c in calls:
+        ext_num = str(c.get("externalNumber", "")).replace("+", "").replace(" ", "")[-9:]
+        if ext_num and phone_clean and ext_num == phone_clean:
+            return str(c.get("generalCallID", ""))
+    return ""
 
 
 # ── Models ────────────────────────────────────────
@@ -533,38 +599,54 @@ async def _transcribe_single(call_id: str):
         if not call.get("audio_url") and not call.get("audio_data"):
             return
 
-        audio_url = call["audio_url"]
+        audio_url = call.get("audio_url", "")
         api_key = _api_key()
         if not api_key:
             await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "No API key"}})
             return
 
+        amo = get_amocrm_settings()
         await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "transcribing"}})
 
-        # Get audio bytes — from uploaded data or from URL
+        # Get audio bytes — from uploaded data, Binotel API, or direct URL
         audio_bytes = None
         if call.get("audio_data"):
             import base64
             audio_bytes = base64.b64decode(call["audio_data"])
             logger.info(f"Call {call_id}: using uploaded audio ({len(audio_bytes)} bytes)")
-        elif audio_url:
-            # Download audio
-            amo = get_amocrm_settings()
-            dl_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            if amo.get("amocrm_token") and amo.get("amocrm_domain") and amo["amocrm_domain"] in audio_url:
-                dl_headers["Authorization"] = f"Bearer {amo['amocrm_token']}"
-            async with httpx.AsyncClient(timeout=120, follow_redirects=True) as cl:
-                audio_resp = await cl.get(audio_url, headers=dl_headers)
-            if audio_resp.status_code != 200:
-                await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": f"Download failed: HTTP {audio_resp.status_code}"}})
-                return
-            audio_bytes = audio_resp.content
-            if b"<html" in audio_bytes[:500].lower():
-                await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Binotel вернул HTML — нужна загрузка через браузер"}})
-                return
         else:
-            await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Нет аудио"}})
-            return
+            # Try Binotel API first (get fresh temporary URL)
+            binotel_url = ""
+            gcid = call.get("binotel_call_id", "")
+            if not gcid and call.get("phone") and call.get("datetime"):
+                call_ts = int(datetime.fromisoformat(call["datetime"]).timestamp())
+                gcid = await _find_binotel_call(call.get("phone", ""), call_ts, call.get("direction", ""))
+                if gcid:
+                    await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"binotel_call_id": gcid}})
+                    logger.info(f"Call {call_id}: found Binotel generalCallID={gcid}")
+
+            if gcid:
+                binotel_url = await _binotel_get_audio_url(gcid)
+                if binotel_url:
+                    logger.info(f"Call {call_id}: got Binotel audio URL")
+
+            download_url = binotel_url or audio_url
+            if download_url:
+                dl_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                if not binotel_url and amo.get("amocrm_token") and amo.get("amocrm_domain") and amo["amocrm_domain"] in download_url:
+                    dl_headers["Authorization"] = f"Bearer {amo['amocrm_token']}"
+                async with httpx.AsyncClient(timeout=120, follow_redirects=True) as cl:
+                    audio_resp = await cl.get(download_url, headers=dl_headers)
+                if audio_resp.status_code != 200:
+                    await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": f"Download failed: HTTP {audio_resp.status_code}"}})
+                    return
+                audio_bytes = audio_resp.content
+                if b"<html" in audio_bytes[:500].lower():
+                    await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Получена HTML-страница вместо аудио"}})
+                    return
+            else:
+                await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Нет аудио URL и не удалось найти в Binotel"}})
+                return
 
         if len(audio_bytes) > 25 * 1024 * 1024:
             await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Audio > 25MB"}})
