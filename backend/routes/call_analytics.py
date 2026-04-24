@@ -459,12 +459,16 @@ async def process_pending(background_tasks: BackgroundTasks, limit: int = 10):
 
 @router.get("/stats")
 async def get_call_stats():
-    """Get counts by status."""
+    """Get counts by status + total cost."""
     pipeline = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
     results = await db[CALLS_COL].aggregate(pipeline).to_list(length=20)
     stats = {r["_id"]: r["count"] for r in results}
     total = sum(stats.values())
-    return {"total": total, "byStatus": stats}
+    # Total cost
+    cost_pipeline = [{"$group": {"_id": None, "total_cost": {"$sum": {"$ifNull": ["$cost_total", 0]}}}}]
+    cost_result = await db[CALLS_COL].aggregate(cost_pipeline).to_list(length=1)
+    total_cost = round(cost_result[0]["total_cost"], 2) if cost_result else 0
+    return {"total": total, "byStatus": stats, "totalCost": total_cost}
 
 
 @router.post("/process-all")
@@ -571,6 +575,11 @@ async def _transcribe_single(call_id: str):
             return
 
         update = {"status": "transcribed", "language": language}
+        # Cost: Whisper = $0.006/min
+        dur_min = (call.get("duration_seconds") or 60) / 60
+        cost_whisper = round(dur_min * 0.006, 4)
+        cost_diarize = 0.0
+
         lang_lower = language.lower()
         if lang_lower in ("polish", "pl"):
             update["transcript_pl"] = transcript
@@ -578,15 +587,22 @@ async def _transcribe_single(call_id: str):
             # Diarize + translate to Russian
             diarized_ru = await _diarize_and_translate(transcript, call, "pl")
             update["transcript_ru"] = diarized_ru
+            cost_diarize = _estimate_gpt_cost(transcript, diarized_ru)
         elif lang_lower in ("russian", "ru"):
             update["language"] = "ru"
             diarized = await _diarize_and_translate(transcript, call, "ru")
             update["transcript_ru"] = diarized
+            cost_diarize = _estimate_gpt_cost(transcript, diarized)
         else:
             update["transcript_pl"] = transcript
             update["language"] = lang_lower
             diarized_ru = await _diarize_and_translate(transcript, call, lang_lower)
             update["transcript_ru"] = diarized_ru
+            cost_diarize = _estimate_gpt_cost(transcript, diarized_ru)
+
+        update["cost_whisper"] = cost_whisper
+        update["cost_diarize"] = cost_diarize
+        update["cost_total"] = round(cost_whisper + cost_diarize, 4)
 
         await db[CALLS_COL].update_one({"id": call_id}, {"$set": update})
         logger.info(f"Transcribed call {call_id}: lang={language}, len={len(transcript)}")
@@ -599,6 +615,15 @@ async def _transcribe_single(call_id: str):
     except Exception as e:
         logger.error(f"Transcription error for {call_id}: {e}", exc_info=True)
         await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": str(e)}})
+
+
+
+def _estimate_gpt_cost(input_text: str, output_text: str) -> float:
+    """Estimate GPT-5.2 cost. ~$0.01/1K input tokens, ~$0.03/1K output tokens. ~4 chars per token."""
+    in_tokens = len(input_text or "") / 4
+    out_tokens = len(output_text or "") / 4
+    cost = (in_tokens * 0.01 + out_tokens * 0.03) / 1000
+    return round(cost, 4)
 
 
 async def _translate_to_russian(text: str) -> str:
@@ -775,8 +800,13 @@ async def _analyze_single(call_id: str):
             "summary_ru": analysis.get("summary_ru", ""),
             "key_issues_json": analysis.get("key_issues", []),
             "recommendations_json": analysis.get("recommendations", []),
-            "analyzedAt": datetime.now(timezone.utc).isoformat()
+            "analyzedAt": datetime.now(timezone.utc).isoformat(),
+            "cost_analyze": _estimate_gpt_cost(user_prompt, text),
         }
+        # Update total cost
+        current = await db[CALLS_COL].find_one({"id": call_id}, {"cost_total": 1, "cost_whisper": 1, "cost_diarize": 1, "_id": 0})
+        prev_cost = (current.get("cost_whisper") or 0) + (current.get("cost_diarize") or 0)
+        update["cost_total"] = round(prev_cost + update["cost_analyze"], 4)
         await db[CALLS_COL].update_one({"id": call_id}, {"$set": update})
         logger.info(f"Analyzed call {call_id}: score={analysis.get('score')}")
 

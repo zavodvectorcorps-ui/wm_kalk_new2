@@ -30,6 +30,7 @@ const ProcessingStats = () => {
       {s.analyzing > 0 && <Badge className="bg-violet-100 text-violet-700">Анализ: {s.analyzing}</Badge>}
       {s.analyzed > 0 && <Badge className="bg-emerald-100 text-emerald-700">Готово: {s.analyzed}</Badge>}
       {s.error > 0 && <Badge className="bg-red-100 text-red-700">Ошибки: {s.error}</Badge>}
+      {stats.totalCost > 0 && <Badge className="bg-purple-100 text-purple-700">${stats.totalCost}</Badge>}
     </div>
   );
 };
@@ -285,6 +286,7 @@ const CallsList = ({ managerId, managerName, onBack, onSelectCall }) => {
                 <div className="text-xs text-muted-foreground">{fmtDate(c.datetime)} / {fmtDur(c.duration_seconds)} / {c.manager_name}</div>
               </div>
               <div className={`text-lg font-bold ${scoreColor(c.score)}`}>{c.score ?? '—'}</div>
+              {c.cost_total > 0 && <span className="text-[10px] text-purple-500">${c.cost_total}</span>}
               <Badge variant="outline" className="text-[10px]">{c.status}</Badge>
             </div>
           ))}
@@ -323,6 +325,9 @@ const CallDetail = ({ callId, onBack }) => {
             <div><span className="text-muted-foreground text-xs">Направление</span><div>{call.direction === 'inbound' ? 'Входящий' : 'Исходящий'}</div></div>
             <div><span className="text-muted-foreground text-xs">Язык</span><div>{call.language || '—'}</div></div>
             <div><span className="text-muted-foreground text-xs">Статус</span><Badge variant="outline">{call.status}</Badge></div>
+            {call.cost_total > 0 && (
+              <div><span className="text-muted-foreground text-xs">Стоимость</span><div className="text-purple-600 font-medium">${call.cost_total}</div></div>
+            )}
             {call.error && (
               <div className="col-span-2"><span className="text-muted-foreground text-xs">Ошибка</span><div className="text-xs text-red-600 bg-red-50 p-1.5 rounded mt-0.5">{call.error}</div></div>
             )}
