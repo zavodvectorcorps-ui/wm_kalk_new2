@@ -307,21 +307,21 @@ const ClosedLostTab = ({ dateFrom, dateTo }) => {
   return (
     <div className="space-y-4" data-testid="closed-lost-tab">
       {/* AI analysis */}
-      <Card className="border border-violet-200">
+      <Card className="border border-violet-200 dark:border-violet-900/50">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <CardTitle className="text-base flex items-center gap-2 text-violet-700">
+          <CardTitle className="text-base flex items-center gap-2 text-violet-700 dark:text-violet-300">
             <Zap className="h-5 w-5" />
             AI-анализ причин закрытия
           </CardTitle>
           <Button size="sm" onClick={generateAI} disabled={aiLoading} variant="outline"
-            className="border-violet-300 text-violet-700 hover:bg-violet-50" data-testid="closed-lost-ai-btn">
+            className="border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-600 dark:text-violet-300 dark:hover:bg-violet-950/40" data-testid="closed-lost-ai-btn">
             {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Zap className="h-4 w-4 mr-1" />}
             {aiText ? 'Обновить анализ' : 'Анализировать паттерны'}
           </Button>
         </CardHeader>
         {aiText && (
           <CardContent>
-            <div className="text-sm leading-relaxed whitespace-pre-line bg-violet-50/50 rounded-lg p-4 border border-violet-100" data-testid="closed-lost-ai-text">
+            <div className="text-sm leading-relaxed whitespace-pre-line bg-violet-50/50 dark:bg-violet-950/30 rounded-lg p-4 border border-violet-100 dark:border-violet-900/50" data-testid="closed-lost-ai-text">
               {aiText}
             </div>
           </CardContent>
@@ -694,17 +694,18 @@ const AIRecommendationsTab = ({ dateFrom, dateTo, problemLeads }) => {
     <Card className="border">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <Icon className="h-5 w-5 text-violet-600" />
-          {title}
+          <Icon className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+          <span className="text-violet-700 dark:text-violet-300">{title}</span>
         </CardTitle>
-        <Button size="sm" onClick={onGenerate} disabled={isLoading} variant="outline" className="border-violet-300 text-violet-700 hover:bg-violet-50">
+        <Button size="sm" onClick={onGenerate} disabled={isLoading} variant="outline"
+          className="border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-600 dark:text-violet-300 dark:hover:bg-violet-950/40">
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Zap className="h-4 w-4 mr-1" />}
           {text ? 'Обновить' : 'Сгенерировать'}
         </Button>
       </CardHeader>
       {text && (
         <CardContent>
-          <div className="prose prose-sm max-w-none text-sm leading-relaxed whitespace-pre-line bg-violet-50/50 rounded-lg p-4 border border-violet-100">
+          <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-line bg-violet-50/50 dark:bg-violet-950/30 rounded-lg p-4 border border-violet-100 dark:border-violet-900/50">
             {text}
           </div>
         </CardContent>
@@ -748,7 +749,7 @@ const AIRecommendationsTab = ({ dateFrom, dateTo, problemLeads }) => {
                   </div>
                 </div>
                 {leadAdvice[lead.amocrm_lead_id] && (
-                  <div className="text-sm bg-violet-50/50 rounded p-3 border border-violet-100 whitespace-pre-line">
+                  <div className="text-sm bg-violet-50/50 dark:bg-violet-950/30 rounded p-3 border border-violet-100 dark:border-violet-900/50 whitespace-pre-line">
                     {leadAdvice[lead.amocrm_lead_id]}
                   </div>
                 )}

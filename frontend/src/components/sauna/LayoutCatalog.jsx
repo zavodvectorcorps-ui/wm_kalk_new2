@@ -109,12 +109,12 @@ export const LayoutCatalog = ({
   }
 
   return (
-    <Card className="shadow-md border-2 border-purple-200">
+    <Card className="shadow-md border-2 border-purple-200 dark:border-purple-900/50">
       <CardHeader 
-        className="bg-gradient-to-r from-purple-50 to-pink-50 cursor-pointer py-3"
+        className="border-b border-purple-200/40 dark:border-purple-700/30 bg-transparent cursor-pointer py-3"
         onClick={() => setExpanded(!expanded)}
       >
-        <CardTitle className="flex items-center justify-between text-purple-800">
+        <CardTitle className="flex items-center justify-between text-purple-700 dark:text-purple-300">
           <div className="flex items-center gap-2">
             <LayoutGrid className="h-5 w-5" />
             <span className="text-base">{txt.title}</span>

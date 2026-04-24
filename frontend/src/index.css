@@ -216,22 +216,30 @@ code {
 }
 
 
-/* Dark theme: invert browser-native calendar/clock pickers in date/time inputs
-   so they're readable on dark backgrounds (Webkit/Chromium renders them dark by default). */
+/* Dark theme: Set color-scheme so all native form controls (date picker, calendar
+   icon, dropdown arrows, scrollbars) get the OS dark appearance.
+   On Webkit/Chromium this also automatically inverts the calendar picker icon. */
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="datetime-local"],
+.dark input[type="month"],
+.dark input[type="week"],
+.dark input[type="number"],
+.dark input,
+.dark select,
+.dark textarea {
+  color-scheme: dark;
+}
+
+/* Extra-strong filter on the picker indicator for browsers that don't fully respect color-scheme */
 .dark input[type="date"]::-webkit-calendar-picker-indicator,
 .dark input[type="time"]::-webkit-calendar-picker-indicator,
 .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
 .dark input[type="month"]::-webkit-calendar-picker-indicator,
 .dark input[type="week"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.85) brightness(1.2);
+  filter: invert(1) brightness(2);
   cursor: pointer;
-}
-
-/* Force readable text in date inputs under dark theme (Safari/Webkit) */
-.dark input[type="date"],
-.dark input[type="time"],
-.dark input[type="datetime-local"] {
-  color-scheme: dark;
+  opacity: 0.85;
 }
 
 /* Apply dark color-scheme globally so native UI (scrollbars, form controls) match */
