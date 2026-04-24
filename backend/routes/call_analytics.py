@@ -364,6 +364,36 @@ async def debug_audio_download(call_id: str):
     }
 
 
+@router.get("/debug-first-call")
+async def debug_first_call():
+    """Debug: check first call's audio download without needing call ID."""
+    call = await db[CALLS_COL].find_one({"audio_url": {"$ne": ""}}, {"_id": 0, "id": 1, "audio_url": 1, "manager_name": 1, "client_name": 1, "error": 1})
+    if not call:
+        return {"error": "Нет звонков с audio_url"}
+    audio_url = call["audio_url"]
+    amo = get_amocrm_settings()
+    dl_headers = {"User-Agent": "Mozilla/5.0"}
+    if amo.get("amocrm_token") and amo.get("amocrm_domain") and amo["amocrm_domain"] in audio_url:
+        dl_headers["Authorization"] = f"Bearer {amo['amocrm_token']}"
+    try:
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as cl:
+            resp = await cl.get(audio_url, headers=dl_headers)
+        content = resp.content
+        return {
+            "call_id": call["id"],
+            "audio_url": audio_url,
+            "http_status": resp.status_code,
+            "content_type": resp.headers.get("content-type", ""),
+            "size_bytes": len(content),
+            "is_html": b"<html" in content[:500].lower() or b"<!doctype" in content[:500].lower(),
+            "first_100_chars": content[:100].decode('utf-8', errors='replace'),
+            "diagnosis": "HTML-страница вместо аудио — Binotel требует авторизацию" if b"<html" in content[:500].lower() else "Файл скачан, формат: " + content[:4].hex()
+        }
+    except Exception as e:
+        return {"call_id": call["id"], "audio_url": audio_url, "error": str(e)}
+
+
+
 
 # ── Transcription ─────────────────────────────────
 
