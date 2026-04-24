@@ -606,28 +606,65 @@ const CallsList = ({ managerId, managerName, onBack, onSelectCall }) => {
   const [calls, setCalls] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState('all'); // all | good | problem | critical
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const params = { limit: 100 };
-      if (managerId) params.manager_id = managerId;
-      const r = await axios.get(`${API}/api/call-analytics/calls`, { params });
-      setCalls(r.data.calls || []);
-      setTotal(r.data.total || 0);
-      setLoading(false);
-    })();
-  }, [managerId]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const params = { limit: 100 };
+    if (managerId) params.manager_id = managerId;
+    if (category !== 'all') params.category = category;
+    const r = await axios.get(`${API}/api/call-analytics/calls`, { params });
+    setCalls(r.data.calls || []);
+    setTotal(r.data.total || 0);
+    setLoading(false);
+  }, [managerId, category]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const cats = [
+    { id: 'all', label: 'Все', cls: '' },
+    { id: 'good', label: 'Хорошие (≥8)', cls: 'data-[active=true]:bg-emerald-500 data-[active=true]:text-white' },
+    { id: 'problem', label: 'Проблемные (5–7)', cls: 'data-[active=true]:bg-amber-500 data-[active=true]:text-white' },
+    { id: 'critical', label: 'Критичные (<5 / негатив)', cls: 'data-[active=true]:bg-red-500 data-[active=true]:text-white' },
+  ];
 
   return (
     <div className="space-y-3" data-testid="calls-list">
-      {managerName && (
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1"/>Назад</Button>
-          <span className="font-medium">{managerName}</span>
-          <Badge variant="outline">{total} звонков</Badge>
-        </div>
-      )}
+      <div className="flex items-center gap-2 flex-wrap">
+        {managerName && (
+          <>
+            <Button variant="ghost" size="sm" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1"/>Назад</Button>
+            <span className="font-medium">{managerName}</span>
+          </>
+        )}
+        <Badge variant="outline" data-testid="calls-total-badge">{total} звонков</Badge>
+        <div className="flex-1"/>
+        <Button variant="ghost" size="sm" className="text-amber-700 hover:bg-amber-50" onClick={async () => {
+          try {
+            const r = await axios.post(`${API}/api/call-analytics/reset-stale`);
+            if (r.data.reset > 0) toast.success(`Сброшено зависших: ${r.data.reset}`);
+            else toast.info('Зависших не найдено');
+            load();
+          } catch(e) { toast.error('Ошибка'); }
+        }} data-testid="reset-stale-btn">
+          <RefreshCw className="h-3.5 w-3.5 mr-1"/>Сбросить зависшие
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5" data-testid="category-filter">
+        {cats.map(c => (
+          <button
+            key={c.id}
+            data-active={category === c.id}
+            onClick={() => setCategory(c.id)}
+            className={`px-3 py-1 rounded-full text-xs border transition ${category === c.id ? 'border-transparent shadow-sm' : 'bg-white hover:bg-muted/30'} ${c.cls}`}
+            data-testid={`category-${c.id}`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? <Loader2 className="h-6 w-6 animate-spin mx-auto"/> : (
         <div className="space-y-1.5">
           {calls.map(c => (
@@ -646,7 +683,7 @@ const CallsList = ({ managerId, managerName, onBack, onSelectCall }) => {
               <Badge variant="outline" className="text-[10px]">{c.status}</Badge>
             </div>
           ))}
-          {!calls.length && <div className="text-center py-8 text-muted-foreground">Нет звонков</div>}
+          {!calls.length && <div className="text-center py-8 text-muted-foreground">Нет звонков в этой категории</div>}
         </div>
       )}
     </div>

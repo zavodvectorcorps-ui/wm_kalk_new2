@@ -511,6 +511,8 @@ async def transcribe_call(call_id: str, background_tasks: BackgroundTasks):
 @router.post("/process-pending")
 async def process_pending(background_tasks: BackgroundTasks, limit: int = 10):
     """Process pending calls: transcribe + analyze."""
+    # Auto-reset any calls stuck from a previous server restart
+    await _reset_stale_calls()
     settings = await get_settings()
     min_dur = settings.get("minDurationSeconds", 30)
 
@@ -538,6 +540,36 @@ async def process_pending(background_tasks: BackgroundTasks, limit: int = 10):
     return {"queued_transcribe": len(new_calls), "queued_analyze": len(transcribed), "skipped_short": skipped.modified_count}
 
 
+async def _reset_stale_calls(stale_minutes: int = 10) -> int:
+    """Mark as 'error' any call stuck in transcribing/analyzing longer than stale_minutes.
+
+    Background tasks can be killed by a server restart while the DB still says
+    the call is being processed. This unblocks them so the next process-all picks them up.
+    """
+    threshold = datetime.now(timezone.utc) - timedelta(minutes=stale_minutes)
+    threshold_iso = threshold.isoformat()
+    result = await db[CALLS_COL].update_many(
+        {
+            "status": {"$in": ["transcribing", "analyzing"]},
+            "$or": [
+                {"updatedAt": {"$lt": threshold_iso}},
+                {"updatedAt": {"$exists": False}},
+            ],
+        },
+        {"$set": {"status": "error", "error": f"Зависший процесс (>{stale_minutes} мин без активности) — сброшен"}}
+    )
+    if result.modified_count:
+        logger.info(f"Reset {result.modified_count} stale calls (>{stale_minutes} min in transcribing/analyzing)")
+    return result.modified_count
+
+
+@router.post("/reset-stale")
+async def reset_stale_calls_endpoint(stale_minutes: int = 10):
+    """Manual button to reset stuck calls."""
+    n = await _reset_stale_calls(stale_minutes)
+    return {"status": "ok", "reset": n}
+
+
 @router.get("/stats")
 async def get_call_stats():
     """Get counts by status + total cost."""
@@ -555,6 +587,8 @@ async def get_call_stats():
 @router.post("/process-all")
 async def process_all(background_tasks: BackgroundTasks):
     """Queue ALL pending calls for processing."""
+    # Auto-reset any calls stuck from a previous server restart
+    await _reset_stale_calls()
     settings = await get_settings()
     min_dur = settings.get("minDurationSeconds", 30)
 
@@ -611,7 +645,7 @@ async def _transcribe_single(call_id: str):
             return
 
         amo = get_amocrm_settings()
-        await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "transcribing"}})
+        await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "transcribing", "updatedAt": datetime.now(timezone.utc).isoformat()}})
 
         # Get audio bytes — from uploaded data, Binotel API, or direct URL
         audio_bytes = None
@@ -912,7 +946,7 @@ async def _analyze_single(call_id: str):
 
 Верни JSON: score (0-10), has_strong_negative, checks (greeting/needs/presentation/objections/next_step/politeness/compliance с score 0-2 и comment), summary_ru, key_issues[], recommendations[]."""
 
-        await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "analyzing"}})
+        await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "analyzing", "updatedAt": datetime.now(timezone.utc).isoformat()}})
 
         async with httpx.AsyncClient(timeout=120) as cl:
             resp = await cl.post(
@@ -975,6 +1009,7 @@ async def get_calls(
     manager_id: str = None, date_from: str = None, date_to: str = None,
     status: str = None, score_min: float = None, score_max: float = None,
     has_negative: bool = None, only_with_audio: bool = True,
+    category: str = None,  # 'good' | 'problem' | 'critical'
     limit: int = 50, skip: int = 0
 ):
     query = {}
@@ -992,13 +1027,34 @@ async def get_calls(
         query.setdefault("score", {})["$lte"] = score_max
     if has_negative is not None:
         query["has_strong_negative"] = has_negative
+
+    # Quality category filter — based on AI score & strong-negative flag
+    cat = (category or "").lower()
+    if cat == "good":
+        query["score"] = {**query.get("score", {}), "$gte": 8}
+        query["has_strong_negative"] = {"$ne": True}
+    elif cat == "problem":
+        query["score"] = {**query.get("score", {}), "$gte": 5, "$lt": 8}
+        query["has_strong_negative"] = {"$ne": True}
+    elif cat == "critical":
+        # Either score < 5 OR strong negative flag
+        query["$or"] = [
+            {"score": {"$lt": 5, "$ne": None}},
+            {"has_strong_negative": True},
+        ]
+
     if only_with_audio:
         # Must have either an audio URL/data or a non-zero duration
-        query["$or"] = [
+        audio_or = [
             {"audio_url": {"$nin": ["", None]}},
             {"audio_data": {"$exists": True, "$ne": None}},
             {"duration_seconds": {"$gt": 0}},
         ]
+        if "$or" in query:
+            # Combine with existing $or via $and
+            query = {"$and": [{"$or": query.pop("$or")}, {"$or": audio_or}, query]}
+        else:
+            query["$or"] = audio_or
 
     calls = await db[CALLS_COL].find(query, {"_id": 0, "audio_data": 0}).sort("datetime", -1).skip(skip).to_list(length=limit)
     total = await db[CALLS_COL].count_documents(query)
