@@ -237,10 +237,13 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
                     for n in all_notes:
                         nt = n.get("note_type", "")
                         p = n.get("params", {}) or {}
-                        # Accept: standard call types OR any note with duration/phone (Binotel, etc.)
+                        # Strict filter: standard call types OR note with actual audio link OR duration>0
+                        # (phone alone is not enough — it may be a contact-info update, not a real call)
                         is_call = nt in ("call_in", "call_out", 10, 11)
-                        has_call_params = isinstance(p, dict) and (p.get("duration") or p.get("phone") or p.get("link"))
-                        if is_call or has_call_params:
+                        has_real_call = isinstance(p, dict) and (
+                            p.get("link") or int(p.get("duration") or 0) > 0
+                        )
+                        if is_call or has_real_call:
                             call_notes.append(n)
                     if processed_leads < 3:
                         note_types = set(str(n.get("note_type")) for n in all_notes)
@@ -265,8 +268,10 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
                                 nt = n.get("note_type", "")
                                 p = n.get("params", {}) or {}
                                 is_call = nt in ("call_in", "call_out", 10, 11)
-                                has_call_params = isinstance(p, dict) and (p.get("duration") or p.get("phone") or p.get("link"))
-                                if is_call or has_call_params:
+                                has_real_call = isinstance(p, dict) and (
+                                    p.get("link") or int(p.get("duration") or 0) > 0
+                                )
+                                if is_call or has_real_call:
                                     call_notes.append(n)
                             if processed_leads < 3:
                                 c_types = set(str(n.get("note_type")) for n in c_notes)
@@ -926,7 +931,8 @@ async def _analyze_single(call_id: str):
 async def get_calls(
     manager_id: str = None, date_from: str = None, date_to: str = None,
     status: str = None, score_min: float = None, score_max: float = None,
-    has_negative: bool = None, limit: int = 50, skip: int = 0
+    has_negative: bool = None, only_with_audio: bool = True,
+    limit: int = 50, skip: int = 0
 ):
     query = {}
     if manager_id:
@@ -943,10 +949,31 @@ async def get_calls(
         query.setdefault("score", {})["$lte"] = score_max
     if has_negative is not None:
         query["has_strong_negative"] = has_negative
+    if only_with_audio:
+        # Must have either an audio URL/data or a non-zero duration
+        query["$or"] = [
+            {"audio_url": {"$nin": ["", None]}},
+            {"audio_data": {"$exists": True, "$ne": None}},
+            {"duration_seconds": {"$gt": 0}},
+        ]
 
-    calls = await db[CALLS_COL].find(query, {"_id": 0}).sort("datetime", -1).skip(skip).to_list(length=limit)
+    calls = await db[CALLS_COL].find(query, {"_id": 0, "audio_data": 0}).sort("datetime", -1).skip(skip).to_list(length=limit)
     total = await db[CALLS_COL].count_documents(query)
     return {"calls": calls, "total": total}
+
+
+@router.post("/calls/purge-empty")
+async def purge_empty_calls():
+    """Delete calls that have no audio and no duration (garbage from loose sync filter)."""
+    result = await db[CALLS_COL].delete_many({
+        "$and": [
+            {"$or": [{"audio_url": ""}, {"audio_url": None}, {"audio_url": {"$exists": False}}]},
+            {"$or": [{"duration_seconds": 0}, {"duration_seconds": None}, {"duration_seconds": {"$exists": False}}]},
+            {"$or": [{"audio_data": {"$exists": False}}, {"audio_data": None}]},
+            {"status": {"$in": ["new", "skipped", "error"]}},
+        ]
+    })
+    return {"deleted": result.deleted_count}
 
 
 @router.get("/calls/{call_id}")

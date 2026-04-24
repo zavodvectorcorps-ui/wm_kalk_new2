@@ -15,23 +15,70 @@ import {
 const API = process.env.REACT_APP_BACKEND_URL;
 const fmtDur = (s) => { if (!s) return '—'; const m = Math.floor(s/60); return `${m}:${String(s%60).padStart(2,'0')}`; };
 
-// ── PROCESSING STATS ──
-const ProcessingStats = () => {
+// ── PROCESSING STATS with live polling ──
+const ProcessingStats = ({ refreshKey }) => {
   const [stats, setStats] = useState(null);
-  useEffect(() => { axios.get(`${API}/api/call-analytics/stats`).then(r => setStats(r.data)).catch(() => {}); }, []);
-  if (!stats) return null;
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer = null;
+
+    const tick = async () => {
+      try {
+        const r = await axios.get(`${API}/api/call-analytics/stats`);
+        if (cancelled) return;
+        setStats(r.data);
+        const s = r.data.byStatus || {};
+        const active = (s.transcribing || 0) + (s.analyzing || 0) + (s.new || 0) + (s.transcribed || 0);
+        // Poll faster while there's in-flight work
+        const delay = active > 0 ? 3000 : 15000;
+        timer = setTimeout(tick, delay);
+      } catch {
+        timer = setTimeout(tick, 10000);
+      }
+    };
+    tick();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [refreshKey]);
+
+  if (!stats) return <div className="text-xs text-muted-foreground">Загрузка статуса...</div>;
   const s = stats.byStatus || {};
+  const inFlight = (s.transcribing || 0) + (s.analyzing || 0);
+  const pending = (s.new || 0) + (s.transcribed || 0);
+  const done = (s.analyzed || 0);
+  const errors = (s.error || 0);
+  const skipped = (s.skipped || 0);
+  const totalRelevant = inFlight + pending + done + errors;
+  const pct = totalRelevant > 0 ? Math.round((done / totalRelevant) * 100) : 0;
+
   return (
-    <div className="flex flex-wrap gap-2 text-xs">
-      <Badge variant="outline">Всего: {stats.total}</Badge>
-      {s.new > 0 && <Badge className="bg-gray-100 text-gray-700">Новые: {s.new}</Badge>}
-      {s.skipped > 0 && <Badge className="bg-slate-100 text-slate-500">Пропущено: {s.skipped}</Badge>}
-      {s.transcribing > 0 && <Badge className="bg-blue-100 text-blue-700">Транскрибация: {s.transcribing}</Badge>}
-      {s.transcribed > 0 && <Badge className="bg-indigo-100 text-indigo-700">Транскрибировано: {s.transcribed}</Badge>}
-      {s.analyzing > 0 && <Badge className="bg-violet-100 text-violet-700">Анализ: {s.analyzing}</Badge>}
-      {s.analyzed > 0 && <Badge className="bg-emerald-100 text-emerald-700">Готово: {s.analyzed}</Badge>}
-      {s.error > 0 && <Badge className="bg-red-100 text-red-700">Ошибки: {s.error}</Badge>}
-      {stats.totalCost > 0 && <Badge className="bg-purple-100 text-purple-700">${stats.totalCost}</Badge>}
+    <div className="space-y-2">
+      {(inFlight > 0 || pending > 0) && (
+        <div className="space-y-1" data-testid="processing-progress">
+          <div className="flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1.5 text-blue-700 font-medium">
+              <Loader2 className="h-3.5 w-3.5 animate-spin"/>
+              Обработка: {done}/{totalRelevant} готово
+              {inFlight > 0 && <span className="text-violet-600">· сейчас {inFlight}</span>}
+            </span>
+            <span className="text-muted-foreground">{pct}%</span>
+          </div>
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-500" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2 text-xs">
+        <Badge variant="outline" data-testid="stat-total">Всего: {stats.total}</Badge>
+        {s.new > 0 && <Badge className="bg-gray-100 text-gray-700">В очереди: {s.new}</Badge>}
+        {s.transcribing > 0 && <Badge className="bg-blue-100 text-blue-700"><Loader2 className="h-3 w-3 animate-spin inline mr-1"/>Транскрибируется: {s.transcribing}</Badge>}
+        {s.transcribed > 0 && <Badge className="bg-indigo-100 text-indigo-700">Ждут анализа: {s.transcribed}</Badge>}
+        {s.analyzing > 0 && <Badge className="bg-violet-100 text-violet-700"><Loader2 className="h-3 w-3 animate-spin inline mr-1"/>Анализ: {s.analyzing}</Badge>}
+        {s.analyzed > 0 && <Badge className="bg-emerald-100 text-emerald-700" data-testid="stat-analyzed">Готово: {s.analyzed}</Badge>}
+        {skipped > 0 && <Badge className="bg-slate-100 text-slate-500">Пропущено: {skipped}</Badge>}
+        {errors > 0 && <Badge className="bg-red-100 text-red-700" data-testid="stat-errors">Ошибки: {errors}</Badge>}
+        {stats.totalCost > 0 && <Badge className="bg-purple-100 text-purple-700">${stats.totalCost}</Badge>}
+      </div>
     </div>
   );
 };
@@ -49,6 +96,7 @@ const SyncTab = () => {
   const [stages, setStages] = useState([]);
   const [saving, setSaving] = useState(false);
   const [amoStatus, setAmoStatus] = useState(null); // 'ok' | 'error' | null
+  const [processRefresh, setProcessRefresh] = useState(0);
 
   useEffect(() => {
     axios.get(`${API}/api/call-analytics/settings`).then(r => setSettings(r.data));
@@ -171,25 +219,40 @@ const SyncTab = () => {
       <Card className="border">
         <CardHeader><CardTitle className="text-base">Обработка звонков</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <ProcessingStats />
-          <div className="flex gap-2">
+          <ProcessingStats refreshKey={processRefresh} />
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={async () => {
               try {
                 const r = await axios.post(`${API}/api/call-analytics/process-all`);
                 toast.success(`Запущено: ${r.data.queued_transcribe} на транскрибацию, ${r.data.queued_analyze} на анализ${r.data.errors_reset ? `, ${r.data.errors_reset} ошибок сброшено` : ''}`);
+                setProcessRefresh(x => x + 1);
               } catch(e) { toast.error('Ошибка'); }
-            }}>
+            }} data-testid="process-all-btn">
               <Zap className="h-4 w-4 mr-1"/> Обработать все
             </Button>
             <Button size="sm" variant="outline" onClick={async () => {
               try {
                 const r = await axios.post(`${API}/api/call-analytics/process-pending`, null, { params: { limit: 5 } });
                 toast.success(`В очереди: ${r.data.queued_transcribe} на транскрибацию, ${r.data.queued_analyze} на анализ`);
+                setProcessRefresh(x => x + 1);
               } catch(e) { toast.error('Ошибка'); }
             }}>
               <Zap className="h-4 w-4 mr-1"/> Обработать 5
             </Button>
+            <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={async () => {
+              if (!window.confirm('Удалить все сохранённые звонки, у которых нет аудио и длительность = 0? Обработанные записи не затронутся.')) return;
+              try {
+                const r = await axios.post(`${API}/api/call-analytics/calls/purge-empty`);
+                toast.success(`Удалено пустых записей: ${r.data.deleted}`);
+                setProcessRefresh(x => x + 1);
+              } catch(e) { toast.error('Ошибка'); }
+            }} data-testid="purge-empty-btn">
+              <Trash2 className="h-4 w-4 mr-1"/> Очистить пустые
+            </Button>
           </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Прогресс обновляется автоматически каждые 3 сек. пока идёт обработка. «Очистить пустые» убирает импортированные записи без аудио и длительности (обычно это системные заметки amoCRM, а не реальные звонки).
+          </p>
         </CardContent>
       </Card>
     </div>
