@@ -228,24 +228,26 @@ code {
 .dark input,
 .dark select,
 .dark textarea {
-  color-scheme: dark;
+  color-scheme: dark !important;
 }
 
-/* Extra-strong filter on the picker indicator for browsers that don't fully respect color-scheme */
+html.dark {
+  color-scheme: dark !important;
+}
+
+/* Aggressive fallback: invert the native picker indicator entirely.
+   Use !important because some component libraries (radix/shadcn) set conflicting styles. */
 .dark input[type="date"]::-webkit-calendar-picker-indicator,
 .dark input[type="time"]::-webkit-calendar-picker-indicator,
 .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
 .dark input[type="month"]::-webkit-calendar-picker-indicator,
 .dark input[type="week"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(2);
+  filter: invert(1) brightness(100) !important;
   cursor: pointer;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 /* Apply dark color-scheme globally so native UI (scrollbars, form controls) match */
-html.dark {
-  color-scheme: dark;
-}
 
 /* Prevent horizontal page scroll — wide content (header tabs) scrolls inside its own container */
 html, body {

@@ -101,7 +101,7 @@ export const OrderFilters = ({
       
       {/* Date Range Filters */}
       <div className="flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-muted-foreground hidden sm:block" />
+        <Calendar className="h-4 w-4 text-muted-foreground dark:text-slate-300 hidden sm:block" />
         <Input
           type="date"
           value={dateFrom}
