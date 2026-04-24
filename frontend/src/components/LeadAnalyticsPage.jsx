@@ -884,10 +884,10 @@ const LeadAnalyticsPage = () => {
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex rounded-md border bg-muted/30 p-0.5" data-testid="date-field-toggle">
             <button type="button" onClick={() => setDateField('created')}
-              className={`px-2.5 py-1 text-xs rounded ${dateField === 'created' ? 'bg-white shadow-sm font-medium' : 'text-muted-foreground'}`}
+              className={`px-2.5 py-1 text-xs rounded transition-colors ${dateField === 'created' ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'}`}
               data-testid="date-field-created">По созданию</button>
             <button type="button" onClick={() => setDateField('processed')}
-              className={`px-2.5 py-1 text-xs rounded ${dateField === 'processed' ? 'bg-white shadow-sm font-medium' : 'text-muted-foreground'}`}
+              className={`px-2.5 py-1 text-xs rounded transition-colors ${dateField === 'processed' ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'}`}
               data-testid="date-field-processed">По обработке</button>
           </div>
           <Button variant="outline" size="sm" className="h-9" onClick={() => {

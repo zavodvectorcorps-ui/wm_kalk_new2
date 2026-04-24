@@ -135,7 +135,7 @@ export const OrderCard = ({
                       ⏳ геокодинг
                     </span>
                   ) : (
-                    <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 whitespace-nowrap">
+                    <span className="ml-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-300 whitespace-nowrap">
                       нет адреса
                     </span>
                   )}
@@ -176,7 +176,7 @@ export const OrderCard = ({
               </span>
             )}
             {order.changeHistory && order.changeHistory.length > 0 && (
-              <Badge variant="outline" className="text-xs py-0 px-1 bg-gray-100">
+              <Badge variant="outline" className="text-xs py-0 px-1 bg-gray-100 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
                 <FileText className="h-2 w-2 mr-1" />
                 {order.changeHistory.length} изм.
               </Badge>

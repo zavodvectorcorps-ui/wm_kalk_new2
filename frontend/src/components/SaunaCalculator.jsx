@@ -150,7 +150,7 @@ const ModelsHintMedia = ({ hintImageUrl, hintVideoUrl }) => {
     <>
       <button 
         onClick={() => setDialogOpen(true)}
-        className="mt-2 text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1 underline"
+        className="mt-2 text-xs text-amber-600 hover:text-amber-800 dark:text-amber-300 flex items-center gap-1 underline"
       >
         {hintImageUrl && <ImageIcon className="h-3 w-3" />}
         {hintVideoUrl && <Play className="h-3 w-3" />}
@@ -220,7 +220,7 @@ const CategoryHint = ({ category }) => {
             {hasMedia && (
               <button 
                 onClick={() => setDialogOpen(true)}
-                className="mt-1 text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1 underline"
+                className="mt-1 text-xs text-amber-600 hover:text-amber-800 dark:text-amber-300 flex items-center gap-1 underline"
               >
                 {category.hintImageUrl && <ImageIcon className="h-3 w-3" />}
                 {category.hintVideoUrl && <Play className="h-3 w-3" />}
@@ -430,7 +430,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
         <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Edit className="h-5 w-5 text-amber-600" />
-            <span className="font-medium text-amber-800">
+            <span className="font-medium text-amber-800 dark:text-amber-300">
               {txt.editingOrder}: {editOrderId}
             </span>
           </div>
@@ -596,8 +596,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
 
           {/* Notes */}
           <Card className="shadow-md">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40">
-              <CardTitle className="text-lg text-amber-800 dark:text-amber-200">{txt.notes}</CardTitle>
+            <CardHeader className="border-b border-amber-200/40 dark:border-amber-700/30 bg-transparent">
+              <CardTitle className="text-lg text-amber-700 dark:text-amber-400">{txt.notes}</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <Textarea
@@ -714,8 +714,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
 
 const CustomerInfoCard = ({ formData, setFormData, handleInputChange, txt }) => (
   <Card className="shadow-md">
-    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40">
-      <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-200">
+    <CardHeader className="border-b border-amber-200/40 dark:border-amber-700/30 bg-transparent">
+      <CardTitle className="flex items-center gap-2 text-lg text-amber-700 dark:text-amber-400">
         <User className="h-5 w-5" />
         {txt.customerInfo}
       </CardTitle>
@@ -844,13 +844,13 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
           {m.relaxRoomSize && (
             <div className="flex justify-between text-muted-foreground">
               <span>Przebieralnia:</span>
-              <span className="font-medium text-amber-800">{m.relaxRoomSize}</span>
+              <span className="font-medium text-amber-800 dark:text-amber-300">{m.relaxRoomSize}</span>
             </div>
           )}
           {m.steamRoomSize && (
             <div className="flex justify-between text-muted-foreground">
               <span>Pokój parowy:</span>
-              <span className="font-medium text-amber-800">{m.steamRoomSize}</span>
+              <span className="font-medium text-amber-800 dark:text-amber-300">{m.steamRoomSize}</span>
             </div>
           )}
         </div>
@@ -860,8 +860,8 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
 
   return (
   <Card className="shadow-md">
-    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40">
-      <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-200">
+    <CardHeader className="border-b border-amber-200/40 dark:border-amber-700/30 bg-transparent">
+      <CardTitle className="flex items-center gap-2 text-lg text-amber-700 dark:text-amber-400">
         <Calculator className="h-5 w-5" />
         {txt.model} *
       </CardTitle>
@@ -873,7 +873,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
             <Info className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               {prices.modelsHint && (
-                <p className="text-sm text-amber-800 whitespace-pre-line">{prices.modelsHint}</p>
+                <p className="text-sm text-amber-800 dark:text-amber-300 whitespace-pre-line">{prices.modelsHint}</p>
               )}
               {(prices.modelsHintImageUrl || prices.modelsHintVideoUrl) && (
                 <ModelsHintMedia hintImageUrl={prices.modelsHintImageUrl} hintVideoUrl={prices.modelsHintVideoUrl} />
@@ -936,7 +936,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
                   <img src={group.imageUrl} alt={groupName} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 </div>
               )}
-              <div className="text-base font-semibold text-amber-800">{groupName}</div>
+              <div className="text-base font-semibold text-amber-800 dark:text-amber-300">{groupName}</div>
               <div className="text-sm text-muted-foreground mt-1">
                 {group.models.length} {group.models.length === 1 ? 'rozmiar' : group.models.length < 5 ? 'rozmiary' : 'rozmiarów'}
               </div>
@@ -1293,8 +1293,8 @@ const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, ha
   
   return (
     <Card className="shadow-md">
-      <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40">
-        <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-200">
+      <CardHeader className="border-b border-amber-200/40 dark:border-amber-700/30 bg-transparent">
+        <CardTitle className="flex items-center gap-2 text-lg text-amber-700 dark:text-amber-400">
           <Icon className="h-5 w-5" />
           {getCategoryName(category)}
         </CardTitle>
@@ -1375,25 +1375,25 @@ const CheckboxOptions = ({ category, options, formData, foundationPrice, handleC
                   {option.terraceSize && (
                     <div className="flex items-center gap-1">
                       <span className="text-gray-500">Taras:</span>
-                      <span className="font-medium text-amber-800">{option.terraceSize}</span>
+                      <span className="font-medium text-amber-800 dark:text-amber-300">{option.terraceSize}</span>
                     </div>
                   )}
                   {option.relaxRoomSize && (
                     <div className="flex items-center gap-1">
                       <span className="text-gray-500">Pokój wyp.:</span>
-                      <span className="font-medium text-amber-800">{option.relaxRoomSize}</span>
+                      <span className="font-medium text-amber-800 dark:text-amber-300">{option.relaxRoomSize}</span>
                     </div>
                   )}
                   {option.steamRoomSize && (
                     <div className="flex items-center gap-1">
                       <span className="text-gray-500">Sauna:</span>
-                      <span className="font-medium text-amber-800">{option.steamRoomSize}</span>
+                      <span className="font-medium text-amber-800 dark:text-amber-300">{option.steamRoomSize}</span>
                     </div>
                   )}
                   {option.entranceSide && (
                     <div className="flex items-center gap-1">
                       <span className="text-gray-500">Wejście:</span>
-                      <span className="font-medium text-amber-800">{option.entranceSide}</span>
+                      <span className="font-medium text-amber-800 dark:text-amber-300">{option.entranceSide}</span>
                     </div>
                   )}
                 </div>
@@ -1405,7 +1405,7 @@ const CheckboxOptions = ({ category, options, formData, foundationPrice, handleC
           {/* Variants - show as cards like heater selection when option is checked */}
           {isChecked && hasVariants && (
             <div className="mt-2 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-              <Label className="text-sm font-semibold text-amber-800 mb-3 block">
+              <Label className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-3 block">
                 Выберите вариант:
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1623,25 +1623,25 @@ const RadioOptions = ({ category, options, formData, foundationPrice, handleRadi
                     {option.terraceSize && (
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500">Taras:</span>
-                        <span className="font-medium text-amber-800">{option.terraceSize}</span>
+                        <span className="font-medium text-amber-800 dark:text-amber-300">{option.terraceSize}</span>
                       </div>
                     )}
                     {option.relaxRoomSize && (
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500">Pokój wyp.:</span>
-                        <span className="font-medium text-amber-800">{option.relaxRoomSize}</span>
+                        <span className="font-medium text-amber-800 dark:text-amber-300">{option.relaxRoomSize}</span>
                       </div>
                     )}
                     {option.steamRoomSize && (
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500">Sauna:</span>
-                        <span className="font-medium text-amber-800">{option.steamRoomSize}</span>
+                        <span className="font-medium text-amber-800 dark:text-amber-300">{option.steamRoomSize}</span>
                       </div>
                     )}
                     {option.entranceSide && (
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500">Wejście:</span>
-                        <span className="font-medium text-amber-800">{option.entranceSide}</span>
+                        <span className="font-medium text-amber-800 dark:text-amber-300">{option.entranceSide}</span>
                       </div>
                     )}
                   </div>
@@ -1656,7 +1656,7 @@ const RadioOptions = ({ category, options, formData, foundationPrice, handleRadi
       {/* Variants - show as cards like heater selection in hot tubs */}
       {hasVariants && (
         <div className="mt-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-          <Label className="text-sm font-semibold text-amber-800 mb-3 block">
+          <Label className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-3 block">
             Выберите вариант для &quot;{selectedOption.name}&quot;:
           </Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1726,8 +1726,8 @@ const SummaryCard = ({
   
   return (
   <Card className="shadow-lg border-amber-200">
-    <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-950/50 dark:to-orange-950/50">
-      <CardTitle className="flex items-center gap-2 text-amber-800">
+    <CardHeader className="border-b border-amber-200/40 dark:border-amber-700/30 bg-transparent">
+      <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
         <Calculator className="h-5 w-5" />
         {txt.summary}
       </CardTitle>
@@ -1754,13 +1754,13 @@ const SummaryCard = ({
                   {roomSizes.relaxRoomSize && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Przebieralnia:</span>
-                      <span className="font-medium text-amber-800">{roomSizes.relaxRoomSize}</span>
+                      <span className="font-medium text-amber-800 dark:text-amber-300">{roomSizes.relaxRoomSize}</span>
                     </div>
                   )}
                   {roomSizes.steamRoomSize && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Pokój parowy:</span>
-                      <span className="font-medium text-amber-800">{roomSizes.steamRoomSize}</span>
+                      <span className="font-medium text-amber-800 dark:text-amber-300">{roomSizes.steamRoomSize}</span>
                     </div>
                   )}
                   {roomSizes.hasTerrace && (

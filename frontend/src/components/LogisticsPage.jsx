@@ -206,8 +206,8 @@ export const LogisticsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <Truck className="h-8 w-8 text-[#355c7d]" />
-          <h1 className="text-2xl font-bold text-gray-900">Логистика</h1>
+          <Truck className="h-8 w-8 text-[#355c7d] dark:text-sky-400" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Логистика</h1>
         </div>
         <div className="flex gap-2 flex-wrap">
           {!readOnly && <Button variant="outline" onClick={() => setShowSettingsModal(true)}>
@@ -1170,7 +1170,7 @@ const OrderCard = ({
               </span>
             )}
             {order.changeHistory && order.changeHistory.length > 0 && (
-              <Badge variant="outline" className="text-xs py-0 px-1 bg-gray-100">
+              <Badge variant="outline" className="text-xs py-0 px-1 bg-gray-100 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">
                 <FileText className="h-2 w-2 mr-1" />
                 {order.changeHistory.length} изм.
               </Badge>
