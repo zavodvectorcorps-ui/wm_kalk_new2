@@ -8,7 +8,7 @@ import io
 import tempfile
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
 from pydantic import BaseModel, Field
 from database import db
 from routes.amocrm import get_amocrm_settings
@@ -395,6 +395,34 @@ async def debug_first_call():
 
 
 
+@router.post("/calls/{call_id}/upload-audio")
+async def upload_audio_for_call(call_id: str, file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+    """Upload audio file for a call (when direct download is not possible)."""
+    call = await db[CALLS_COL].find_one({"id": call_id})
+    if not call:
+        raise HTTPException(status_code=404, detail="Звонок не найден")
+    content = await file.read()
+    if len(content) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Файл > 50MB")
+    if len(content) < 100:
+        raise HTTPException(status_code=400, detail="Файл слишком маленький — возможно скачалась HTML-страница")
+
+    # Save audio to GridFS or as base64 in DB
+    import base64
+    audio_b64 = base64.b64encode(content).decode()
+    await db[CALLS_COL].update_one({"id": call_id}, {"$set": {
+        "audio_data": audio_b64,
+        "audio_size": len(content),
+        "status": "new",
+        "error": None,
+        "updatedAt": datetime.now(timezone.utc).isoformat()
+    }})
+    if background_tasks:
+        background_tasks.add_task(_transcribe_single, call_id)
+    return {"status": "ok", "size": len(content), "callId": call_id}
+
+
+
 # ── Transcription ─────────────────────────────────
 
 @router.post("/calls/{call_id}/transcribe")
@@ -487,30 +515,31 @@ async def _transcribe_single(call_id: str):
 
         await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "transcribing"}})
 
-        # Download audio (may need auth or specific headers)
-        amo = get_amocrm_settings()
-        dl_headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
-        if amo.get("amocrm_token") and amo.get("amocrm_domain") and amo["amocrm_domain"] in audio_url:
-            dl_headers["Authorization"] = f"Bearer {amo['amocrm_token']}"
-
-        async with httpx.AsyncClient(timeout=120, follow_redirects=True) as cl:
-            audio_resp = await cl.get(audio_url, headers=dl_headers)
-        
-        content_type = audio_resp.headers.get("content-type", "")
-        if audio_resp.status_code != 200:
-            error_msg = f"Audio download failed: HTTP {audio_resp.status_code}"
-            await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": error_msg}})
+        # Get audio bytes — from uploaded data or from URL
+        audio_bytes = None
+        if call.get("audio_data"):
+            import base64
+            audio_bytes = base64.b64decode(call["audio_data"])
+            logger.info(f"Call {call_id}: using uploaded audio ({len(audio_bytes)} bytes)")
+        elif audio_url:
+            # Download audio
+            amo = get_amocrm_settings()
+            dl_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            if amo.get("amocrm_token") and amo.get("amocrm_domain") and amo["amocrm_domain"] in audio_url:
+                dl_headers["Authorization"] = f"Bearer {amo['amocrm_token']}"
+            async with httpx.AsyncClient(timeout=120, follow_redirects=True) as cl:
+                audio_resp = await cl.get(audio_url, headers=dl_headers)
+            if audio_resp.status_code != 200:
+                await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": f"Download failed: HTTP {audio_resp.status_code}"}})
+                return
+            audio_bytes = audio_resp.content
+            if b"<html" in audio_bytes[:500].lower():
+                await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Binotel вернул HTML — нужна загрузка через браузер"}})
+                return
+        else:
+            await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Нет аудио"}})
             return
-        
-        # Check if we got actual audio, not HTML page
-        if "text/html" in content_type and len(audio_resp.content) < 10000:
-            error_msg = f"Audio URL returned HTML instead of audio (content-type: {content_type})"
-            await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": error_msg}})
-            return
 
-        audio_bytes = audio_resp.content
         if len(audio_bytes) > 25 * 1024 * 1024:
             await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Audio > 25MB"}})
             return
@@ -823,8 +852,6 @@ async def delete_rule(rule_id: str):
     await db[RULES_COL].delete_one({"id": rule_id})
     return {"status": "ok"}
 
-
-from fastapi import UploadFile, File
 
 @router.post("/rules/upload")
 async def upload_rules_file(file: UploadFile = File(...)):

@@ -387,13 +387,53 @@ const CallDetail = ({ callId, onBack }) => {
       )}
 
       {tab === 'actions' && (
-        <div className="flex gap-2">
-          <Button size="sm" onClick={async () => {
-            try { await axios.post(`${API}/api/call-analytics/calls/${call.id}/transcribe`); toast.success('Транскрибация запущена'); } catch(e) { toast.error(e.response?.data?.detail || 'Ошибка'); }
-          }}><FileText className="h-4 w-4 mr-1"/>Транскрибировать</Button>
-          <Button size="sm" variant="outline" onClick={async () => {
-            try { await axios.post(`${API}/api/call-analytics/calls/${call.id}/analyze`); toast.success('Анализ запущен'); } catch(e) { toast.error(e.response?.data?.detail || 'Ошибка'); }
-          }}><Zap className="h-4 w-4 mr-1"/>Анализировать</Button>
+        <div className="space-y-3">
+          {/* Browser-side audio download + upload */}
+          {call.audio_url && (
+            <Card className="border border-blue-200">
+              <CardContent className="p-3 space-y-2">
+                <p className="text-xs text-muted-foreground">Binotel не даёт скачивать аудио серверу. Нажмите кнопку — браузер скачает файл и отправит на обработку:</p>
+                <Button size="sm" onClick={async () => {
+                  toast.info('Скачиваю аудио через браузер...');
+                  try {
+                    const resp = await fetch(call.audio_url);
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    const blob = await resp.blob();
+                    if (blob.size < 100) throw new Error('Файл слишком маленький');
+                    const fd = new FormData();
+                    fd.append('file', blob, 'call.mp3');
+                    await axios.post(`${API}/api/call-analytics/calls/${call.id}/upload-audio`, fd);
+                    toast.success('Аудио загружено и отправлено на транскрибацию!');
+                  } catch (e) { toast.error('Не удалось: ' + e.message); }
+                }}>
+                  <Play className="h-4 w-4 mr-1"/> Загрузить аудио через браузер
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          <div className="flex gap-2">
+            <Button size="sm" onClick={async () => {
+              try { await axios.post(`${API}/api/call-analytics/calls/${call.id}/transcribe`); toast.success('Транскрибация запущена'); } catch(e) { toast.error(e.response?.data?.detail || 'Ошибка'); }
+            }}><FileText className="h-4 w-4 mr-1"/>Транскрибировать</Button>
+            <Button size="sm" variant="outline" onClick={async () => {
+              try { await axios.post(`${API}/api/call-analytics/calls/${call.id}/analyze`); toast.success('Анализ запущен'); } catch(e) { toast.error(e.response?.data?.detail || 'Ошибка'); }
+            }}><Zap className="h-4 w-4 mr-1"/>Анализировать</Button>
+          </div>
+          {/* Manual file upload */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Или загрузите файл вручную:</p>
+            <input type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a" onChange={async (e) => {
+              const f = e.target.files?.[0];
+              if (!f) return;
+              const fd = new FormData();
+              fd.append('file', f);
+              try {
+                await axios.post(`${API}/api/call-analytics/calls/${call.id}/upload-audio`, fd);
+                toast.success('Файл загружен и отправлен на транскрибацию');
+              } catch (err) { toast.error(err.response?.data?.detail || 'Ошибка'); }
+              e.target.value = '';
+            }} className="text-xs" />
+          </div>
         </div>
       )}
     </div>
