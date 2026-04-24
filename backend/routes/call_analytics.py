@@ -276,6 +276,7 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
                 }
 
                 if existing:
+
                     await db[CALLS_COL].update_one(
                         {"amo_call_id": amo_call_id},
                         {"$set": {**call_data, "updatedAt": datetime.now(timezone.utc).isoformat()}}
@@ -335,6 +336,33 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
 
 async def _update_call_sync(sync_id, progress):
     await db[SYNC_COL].update_one({"syncId": sync_id}, {"$set": {"progress": progress}})
+
+
+
+@router.get("/calls/{call_id}/debug-audio")
+async def debug_audio_download(call_id: str):
+    """Debug: show what server actually downloads from the audio URL."""
+    call = await db[CALLS_COL].find_one({"id": call_id}, {"_id": 0})
+    if not call or not call.get("audio_url"):
+        return {"error": "No audio URL"}
+    audio_url = call["audio_url"]
+    amo = get_amocrm_settings()
+    dl_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    if amo.get("amocrm_token") and amo.get("amocrm_domain") and amo["amocrm_domain"] in audio_url:
+        dl_headers["Authorization"] = f"Bearer {amo['amocrm_token']}"
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as cl:
+        resp = await cl.get(audio_url, headers=dl_headers)
+    content = resp.content
+    return {
+        "url": audio_url,
+        "status": resp.status_code,
+        "content_type": resp.headers.get("content-type", ""),
+        "content_length": len(content),
+        "first_bytes_hex": content[:32].hex(),
+        "first_bytes_text": content[:200].decode('utf-8', errors='replace')[:200],
+        "is_html": b"<html" in content[:500].lower() or b"<!doctype" in content[:500].lower(),
+    }
+
 
 
 # ── Transcription ─────────────────────────────────
