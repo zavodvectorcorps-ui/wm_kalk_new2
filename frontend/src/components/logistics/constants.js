@@ -74,7 +74,7 @@ export const SECTIONS = {
     name: { ru: 'Теплицы', pl: 'Szklarnie' },
     icon: Warehouse,
     color: 'text-green-600',
-    bgColor: 'bg-green-100',
+    bgColor: 'bg-green-100 dark:bg-green-900/40 dark:text-green-200',
     borderColor: 'border-green-500',
     endpoint: '/api/greenhouse/orders',
     markerColor: '#16a34a'
@@ -84,7 +84,7 @@ export const SECTIONS = {
     name: { ru: 'Купели', pl: 'Balie' },
     icon: Waves,
     color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
+    bgColor: 'bg-blue-100 dark:bg-blue-900/40 dark:text-blue-200',
     borderColor: 'border-blue-500',
     endpoint: '/api/orders',
     markerColor: '#2563eb'
@@ -94,7 +94,7 @@ export const SECTIONS = {
     name: { ru: 'Сауны', pl: 'Sauny' },
     icon: Flame,
     color: 'text-orange-600',
-    bgColor: 'bg-orange-100',
+    bgColor: 'bg-orange-100 dark:bg-orange-900/40 dark:text-orange-200',
     borderColor: 'border-orange-500',
     endpoint: '/api/sauna/orders',
     markerColor: '#ea580c'
