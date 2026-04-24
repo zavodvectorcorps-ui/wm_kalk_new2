@@ -504,7 +504,9 @@ async def process_all(background_tasks: BackgroundTasks):
 async def _transcribe_single(call_id: str):
     try:
         call = await db[CALLS_COL].find_one({"id": call_id})
-        if not call or not call.get("audio_url"):
+        if not call:
+            return
+        if not call.get("audio_url") and not call.get("audio_data"):
             return
 
         audio_url = call["audio_url"]
@@ -567,10 +569,6 @@ async def _transcribe_single(call_id: str):
                 "error": f"Whisper: {error_msg}"
             }})
             return
-
-        result = whisper_resp.json()
-        transcript = result.get("text", "")
-        language = result.get("language", "unknown")
 
         update = {"status": "transcribed", "language": language}
         lang_lower = language.lower()
