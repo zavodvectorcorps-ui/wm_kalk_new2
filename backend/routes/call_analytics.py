@@ -485,7 +485,7 @@ async def debug_first_call():
 
 @router.post("/calls/{call_id}/upload-audio")
 async def upload_audio_for_call(call_id: str, file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
-    """Upload audio file for a call (when direct download is not possible)."""
+    """Upload audio file for a call. Stores in Cloudinary (falls back to base64 if Cloudinary not configured)."""
     call = await db[CALLS_COL].find_one({"id": call_id})
     if not call:
         raise HTTPException(status_code=404, detail="Звонок не найден")
@@ -495,19 +495,117 @@ async def upload_audio_for_call(call_id: str, file: UploadFile = File(...), back
     if len(content) < 100:
         raise HTTPException(status_code=400, detail="Файл слишком маленький — возможно скачалась HTML-страница")
 
-    # Save audio to GridFS or as base64 in DB
-    import base64
-    audio_b64 = base64.b64encode(content).decode()
-    await db[CALLS_COL].update_one({"id": call_id}, {"$set": {
-        "audio_data": audio_b64,
+    update = {
         "audio_size": len(content),
         "status": "new",
         "error": None,
-        "updatedAt": datetime.now(timezone.utc).isoformat()
-    }})
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Try Cloudinary first
+    from services.cloudinary_service import upload_audio as cloud_upload_audio, is_cloudinary_configured
+    if is_cloudinary_configured():
+        result = await cloud_upload_audio(content, f"call_{call_id}.{(file.filename or 'audio.mp3').rsplit('.', 1)[-1]}")
+        if result and result.get("url"):
+            update["audio_url"] = result["url"]
+            update["audio_cloudinary_id"] = result.get("public_id")
+            update["audio_data"] = None  # clean up old base64 if any
+        else:
+            # Cloudinary upload failed — fallback to base64
+            import base64
+            update["audio_data"] = base64.b64encode(content).decode()
+    else:
+        import base64
+        update["audio_data"] = base64.b64encode(content).decode()
+
+    await db[CALLS_COL].update_one({"id": call_id}, {"$set": update})
     if background_tasks:
         background_tasks.add_task(_transcribe_single, call_id)
-    return {"status": "ok", "size": len(content), "callId": call_id}
+    return {"status": "ok", "size": len(content), "callId": call_id, "storedAt": "cloudinary" if "audio_cloudinary_id" in update else "mongo_b64"}
+
+
+@router.post("/calls/migrate-audio-to-cloudinary")
+async def migrate_audio_to_cloudinary(batch_size: int = 10):
+    """Move base64 audio_data from MongoDB to Cloudinary in batches.
+
+    Idempotent: only processes calls that have `audio_data` and no `audio_cloudinary_id`.
+    Returns counts so the frontend can poll until `pending == 0`.
+    """
+    from services.cloudinary_service import upload_audio as cloud_upload_audio, is_cloudinary_configured
+    if not is_cloudinary_configured():
+        raise HTTPException(status_code=400, detail="Cloudinary не настроен в .env")
+
+    import base64
+    pending_total = await db[CALLS_COL].count_documents({"audio_data": {"$nin": [None, ""]}})
+    if pending_total == 0:
+        return {"status": "ok", "migrated": 0, "failed": 0, "remaining": 0, "message": "Нет звонков для миграции"}
+
+    cursor = db[CALLS_COL].find(
+        {"audio_data": {"$nin": [None, ""]}},
+        {"_id": 0, "id": 1, "audio_data": 1, "client_name": 1, "datetime": 1}
+    ).limit(batch_size)
+    calls = await cursor.to_list(length=batch_size)
+
+    migrated, failed = 0, 0
+    for c in calls:
+        try:
+            audio_b64 = c.get("audio_data") or ""
+            if not audio_b64:
+                continue
+            audio_bytes = base64.b64decode(audio_b64)
+            filename = f"call_{c['id']}_{(c.get('datetime') or 'audio')[:10]}.mp3"
+            result = await cloud_upload_audio(audio_bytes, filename)
+            if result and result.get("url"):
+                await db[CALLS_COL].update_one(
+                    {"id": c["id"]},
+                    {"$set": {
+                        "audio_url": result["url"],
+                        "audio_cloudinary_id": result.get("public_id"),
+                        "audio_data": None,  # free up the bytes
+                    }, "$unset": {"audio_data": ""}}
+                )
+                migrated += 1
+                logger.info(f"Migrated audio for {c['id']} → {result['url']}")
+            else:
+                failed += 1
+        except Exception as e:
+            logger.error(f"Migrate failed for {c.get('id')}: {e}")
+            failed += 1
+
+    remaining = await db[CALLS_COL].count_documents({"audio_data": {"$nin": [None, ""]}})
+    return {
+        "status": "ok",
+        "migrated": migrated,
+        "failed": failed,
+        "remaining": remaining,
+        "totalBefore": pending_total,
+    }
+
+
+@router.get("/calls/audio-storage-stats")
+async def audio_storage_stats():
+    """Quick stats on how much audio is in Mongo vs Cloudinary."""
+    in_mongo = await db[CALLS_COL].count_documents({"audio_data": {"$nin": [None, ""]}})
+    in_cloudinary = await db[CALLS_COL].count_documents({"audio_cloudinary_id": {"$nin": [None, ""]}})
+    no_audio = await db[CALLS_COL].count_documents({
+        "$and": [
+            {"$or": [{"audio_data": {"$in": [None, ""]}}, {"audio_data": {"$exists": False}}]},
+            {"$or": [{"audio_cloudinary_id": {"$in": [None, ""]}}, {"audio_cloudinary_id": {"$exists": False}}]},
+        ]
+    })
+    # Sample audio_size sum (only if stored)
+    pipeline = [
+        {"$match": {"audio_size": {"$exists": True, "$ne": None}}},
+        {"$group": {"_id": None, "totalBytes": {"$sum": "$audio_size"}, "count": {"$sum": 1}}}
+    ]
+    sz = await db[CALLS_COL].aggregate(pipeline).to_list(1)
+    total_bytes = sz[0]["totalBytes"] if sz else 0
+    return {
+        "inMongoB64": in_mongo,
+        "inCloudinary": in_cloudinary,
+        "noAudio": no_audio,
+        "approxTotalAudioMB": round(total_bytes / (1024 * 1024), 2),
+    }
 
 
 
@@ -711,6 +809,26 @@ async def _transcribe_single_impl(call_id: str):
         if len(audio_bytes) > 25 * 1024 * 1024:
             await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Audio > 25MB"}})
             return
+
+        # Persist a permanent copy in Cloudinary (Binotel URLs expire). Best-effort.
+        if not call.get("audio_cloudinary_id"):
+            try:
+                from services.cloudinary_service import upload_audio as cloud_upload_audio, is_cloudinary_configured
+                if is_cloudinary_configured():
+                    fname = f"call_{call_id}_{(call.get('datetime') or 'audio')[:10]}.mp3"
+                    cloud_res = await cloud_upload_audio(audio_bytes, fname)
+                    if cloud_res and cloud_res.get("url"):
+                        await db[CALLS_COL].update_one(
+                            {"id": call_id},
+                            {"$set": {
+                                "audio_url": cloud_res["url"],
+                                "audio_cloudinary_id": cloud_res.get("public_id"),
+                                "audio_size": len(audio_bytes),
+                            }, "$unset": {"audio_data": ""}}
+                        )
+                        logger.info(f"Call {call_id}: archived audio to Cloudinary")
+            except Exception as cloud_err:
+                logger.warning(f"Cloudinary archive failed for {call_id}: {cloud_err}")
 
         # Send to Whisper via OpenAI SDK (handles multipart correctly)
         logger.info(f"Transcribing call {call_id}: {len(audio_bytes)} bytes, url={audio_url[:80]}")

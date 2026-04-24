@@ -209,3 +209,49 @@ async def upload_pdf(pdf_bytes: bytes, filename: str, folder: str = "wm-calculat
 
 # Initialize on module load
 init_cloudinary()
+
+
+async def upload_audio(audio_bytes: bytes, filename: str, folder: str = "wm-calculator/calls") -> Optional[Dict]:
+    """Upload audio file (mp3/wav/m4a/etc.) to Cloudinary.
+
+    Cloudinary stores audio under resource_type="video" — that's their convention
+    and it works for streaming/direct download.
+    """
+    if not is_cloudinary_configured():
+        logger.warning("Cloudinary not configured — cannot upload audio")
+        return None
+    try:
+        import uuid as _uuid
+        unique_id = _uuid.uuid4().hex[:8]
+        safe_name = filename.replace(' ', '_').rsplit('.', 1)[0][:60]
+        public_id = f"{folder}/{safe_name}_{unique_id}"
+        result = cloudinary.uploader.upload(
+            audio_bytes,
+            public_id=public_id,
+            resource_type="video",  # audio uses video resource type in Cloudinary
+            overwrite=True,
+            access_mode="public",
+        )
+        logger.info(f"Uploaded audio to Cloudinary: {result.get('public_id')} ({result.get('bytes')} bytes)")
+        return {
+            "public_id": result.get("public_id"),
+            "url": result.get("secure_url"),
+            "bytes": result.get("bytes"),
+            "format": result.get("format"),
+            "duration": result.get("duration"),
+        }
+    except Exception as e:
+        logger.error(f"Cloudinary audio upload failed: {e}")
+        return None
+
+
+def delete_audio(public_id: str) -> bool:
+    """Delete audio from Cloudinary."""
+    if not is_cloudinary_configured():
+        return False
+    try:
+        result = cloudinary.uploader.destroy(public_id, resource_type="video", invalidate=True)
+        return result.get("result") == "ok"
+    except Exception as e:
+        logger.error(f"Cloudinary audio delete failed: {e}")
+        return False

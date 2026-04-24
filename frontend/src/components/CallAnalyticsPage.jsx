@@ -256,7 +256,106 @@ const SyncTab = () => {
           </p>
         </CardContent>
       </Card>
+
+      <AudioStorageCard />
     </div>
+  );
+};
+
+// ── AUDIO STORAGE CARD (Mongo→Cloudinary migration) ──
+const AudioStorageCard = () => {
+  const [stats, setStats] = useState(null);
+  const [migrating, setMigrating] = useState(false);
+  const [progress, setProgress] = useState(null);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await axios.get(`${API}/api/call-analytics/calls/audio-storage-stats`);
+      setStats(r.data);
+    } catch {}
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const migrate = async () => {
+    setMigrating(true);
+    setProgress({ migrated: 0, failed: 0 });
+    let totalMigrated = 0, totalFailed = 0;
+    try {
+      // Loop until remaining = 0 (or no progress)
+      while (true) {
+        const r = await axios.post(`${API}/api/call-analytics/calls/migrate-audio-to-cloudinary`, null, {
+          params: { batch_size: 5 }
+        });
+        const d = r.data;
+        totalMigrated += d.migrated || 0;
+        totalFailed += d.failed || 0;
+        setProgress({ migrated: totalMigrated, failed: totalFailed, remaining: d.remaining });
+        if (!d.remaining || (d.migrated === 0 && d.failed === 0)) break;
+        await new Promise(res => setTimeout(res, 300));
+      }
+      toast.success(`Миграция завершена: ${totalMigrated} перенесено${totalFailed ? `, ${totalFailed} ошибок` : ''}`);
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Ошибка миграции');
+    }
+    setMigrating(false);
+  };
+
+  if (!stats) return null;
+  const needsMigration = stats.inMongoB64 > 0;
+
+  return (
+    <Card className={`border ${needsMigration ? 'border-amber-300 bg-amber-50/30 dark:bg-amber-950/20' : 'border-emerald-300 bg-emerald-50/20 dark:bg-emerald-950/20'}`} data-testid="audio-storage-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          {needsMigration ? '⚠️' : '✅'} Хранение аудио
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="rounded border p-2 bg-white dark:bg-slate-900">
+            <div className="text-muted-foreground">В MongoDB (base64)</div>
+            <div className={`text-2xl font-bold ${stats.inMongoB64 > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{stats.inMongoB64}</div>
+          </div>
+          <div className="rounded border p-2 bg-white dark:bg-slate-900">
+            <div className="text-muted-foreground">В Cloudinary</div>
+            <div className="text-2xl font-bold text-emerald-600">{stats.inCloudinary}</div>
+          </div>
+          <div className="rounded border p-2 bg-white dark:bg-slate-900">
+            <div className="text-muted-foreground">Всего занято</div>
+            <div className="text-2xl font-bold text-slate-700 dark:text-slate-200">{stats.approxTotalAudioMB} <span className="text-xs">MB</span></div>
+          </div>
+        </div>
+
+        {needsMigration ? (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Хранение аудио в MongoDB замедляет работу базы и раздувает её. Перенесите все файлы в Cloudinary одним кликом — это бесплатно (входит в твой тариф) и не влияет на анализ. После миграции запись остаётся, но `audio_data` очищается.
+            </p>
+            <div className="flex items-center gap-2">
+              <Button onClick={migrate} disabled={migrating} size="sm" data-testid="migrate-audio-btn">
+                {migrating ? <Loader2 className="h-4 w-4 animate-spin mr-1"/> : <Zap className="h-4 w-4 mr-1"/>}
+                Перенести в Cloudinary
+              </Button>
+              {progress && (
+                <span className="text-xs text-muted-foreground">
+                  Перенесено: <b className="text-emerald-600">{progress.migrated}</b>
+                  {progress.failed > 0 && <> · ошибок: <b className="text-red-600">{progress.failed}</b></>}
+                  {progress.remaining != null && <> · осталось: <b>{progress.remaining}</b></>}
+                </span>
+              )}
+            </div>
+          </>
+        ) : stats.inCloudinary > 0 ? (
+          <p className="text-xs text-emerald-700 dark:text-emerald-400">
+            Все аудиофайлы хранятся в облаке. База данных лёгкая 👌
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Пока нет аудиофайлов.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
