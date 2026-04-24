@@ -400,7 +400,7 @@ const AppContent = () => {
         {activeTab === 'users' && isAdmin() ? (
           <>
             {/* Back Button */}
-            <div className="container mx-auto px-4 pt-4 max-w-7xl">
+            <div className="container mx-auto px-4 pt-4 max-w-screen-2xl">
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -459,7 +459,7 @@ const AppContent = () => {
         />
         
         {/* Back Button */}
-        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+        <div className="container mx-auto px-4 pt-4 max-w-screen-2xl">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -506,7 +506,7 @@ const AppContent = () => {
         />
         
         {/* Back Button */}
-        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+        <div className="container mx-auto px-4 pt-4 max-w-screen-2xl">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -586,12 +586,12 @@ const AppContent = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
         <Header activeTab={activeTab} onTabChange={handleTabChange} isAdminAuthenticated={isAdmin()} onAdminLogout={handleLogout} showNavigation={false} showUsers={false} />
-        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+        <div className="container mx-auto px-4 pt-4 max-w-screen-2xl">
           <Button variant="ghost" size="sm" onClick={handleBackToLanding} className="gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />{txt.backToSelection}
           </Button>
         </div>
-        <main className="container mx-auto px-4 py-4 max-w-7xl">
+        <main className="container mx-auto px-4 py-4 max-w-screen-2xl">
           <Suspense fallback={<PageLoader />}><LeadAnalyticsPage /></Suspense>
         </main>
         <Toaster position="top-right" richColors />
@@ -604,12 +604,12 @@ const AppContent = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
         <Header activeTab={activeTab} onTabChange={handleTabChange} isAdminAuthenticated={isAdmin()} onAdminLogout={handleLogout} showNavigation={false} showUsers={false} />
-        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+        <div className="container mx-auto px-4 pt-4 max-w-screen-2xl">
           <Button variant="ghost" size="sm" onClick={handleBackToLanding} className="gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />{txt.backToSelection}
           </Button>
         </div>
-        <main className="container mx-auto px-4 py-4 max-w-7xl">
+        <main className="container mx-auto px-4 py-4 max-w-screen-2xl">
           <Suspense fallback={<PageLoader />}><CallAnalyticsPage /></Suspense>
         </main>
         <Toaster position="top-right" richColors />
@@ -632,7 +632,7 @@ const AppContent = () => {
         />
         
         {/* Back Button */}
-        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+        <div className="container mx-auto px-4 pt-4 max-w-screen-2xl">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -698,7 +698,7 @@ const AppContent = () => {
         />
         
         {/* Back Button */}
-        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+        <div className="container mx-auto px-4 pt-4 max-w-screen-2xl">
           <Button 
             variant="ghost" 
             size="sm" 
@@ -710,7 +710,7 @@ const AppContent = () => {
           </Button>
         </div>
         
-        <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
           <Suspense fallback={<PageLoader />}>
             <TrainingPage user={user} />
           </Suspense>
@@ -736,7 +736,7 @@ const AppContent = () => {
         />
         
         {/* Back Button */}
-        <div className="container mx-auto px-4 pt-4 max-w-7xl">
+        <div className="container mx-auto px-4 pt-4 max-w-screen-2xl">
           <Button 
             variant="ghost" 
             size="sm" 

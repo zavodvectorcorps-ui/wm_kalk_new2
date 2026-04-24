@@ -76,24 +76,24 @@ export const Header = ({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-      <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
+      <div className="flex h-16 items-center justify-between px-4 mx-auto max-w-screen-2xl gap-4">
         {/* Logo and Title */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${headerConfig.iconBg}`}>
             {headerConfig.icon}
           </div>
-          <h1 className="text-lg md:text-xl font-bold tracking-tight">{headerConfig.title}</h1>
+          <h1 className="text-lg md:text-xl font-bold tracking-tight whitespace-nowrap">{headerConfig.title}</h1>
         </div>
         
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-2">
+        {/* Desktop Navigation — scrolls inside the header without pushing right-side controls off-screen */}
+        <nav className="hidden md:flex items-center gap-2 flex-1 min-w-0 overflow-x-auto scrollbar-hide">
           {showNavigation && (
             <>
               <Button
                 variant={activeTab === 'calculator' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => handleTabChange('calculator')}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 shrink-0 whitespace-nowrap"
               >
                 <Calculator className="h-4 w-4" />
                 {t('calculator')}
@@ -103,7 +103,7 @@ export const Header = ({
                 variant={activeTab === 'orders' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => handleTabChange('orders')}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 shrink-0 whitespace-nowrap"
               >
                 <FileText className="h-4 w-4" />
                 {t('orders')}
@@ -114,7 +114,7 @@ export const Header = ({
                   variant={activeTab === 'weborders' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => handleTabChange('weborders')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
                 >
                   <Globe className="h-4 w-4" />
                   {i18n.language === 'pl' ? 'Internet' : 'Интернет'}
@@ -125,7 +125,7 @@ export const Header = ({
                 variant={activeTab === 'statistics' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => handleTabChange('statistics')}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 shrink-0 whitespace-nowrap"
               >
                 <BarChart3 className="h-4 w-4" />
                 {txt.statistics}
@@ -136,7 +136,7 @@ export const Header = ({
                   variant={activeTab === 'pricing' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => handleTabChange('pricing')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
                 >
                   <DollarSign className="h-4 w-4" />
                   {t('pricing')}
@@ -147,7 +147,7 @@ export const Header = ({
                   variant={activeTab === 'embed' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => handleTabChange('embed')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
                 >
                   <Code className="h-4 w-4" />
                   {i18n.language === 'pl' ? 'Kod' : 'Код'}
@@ -159,7 +159,7 @@ export const Header = ({
                   variant={activeTab === 'faq' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => handleTabChange('faq')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
                 >
                   <HelpCircle className="h-4 w-4" />
                   FAQ
@@ -171,7 +171,7 @@ export const Header = ({
                   variant={activeTab === 'faq-admin' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => handleTabChange('faq-admin')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
                 >
                   <Settings className="h-4 w-4" />
                   FAQ ⚙
@@ -183,7 +183,7 @@ export const Header = ({
                   variant={activeTab === 'pdf-template' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => handleTabChange('pdf-template')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
                 >
                   <FileImage className="h-4 w-4" />
                   {i18n.language === 'pl' ? 'Szablon PDF' : 'Шаблон PDF'}
@@ -195,7 +195,7 @@ export const Header = ({
                   variant={activeTab === 'layout-configurator' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => handleTabChange('layout-configurator')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
                   data-testid="layout-configurator-menu-btn"
                 >
                   <Settings className="h-4 w-4" />
@@ -208,7 +208,7 @@ export const Header = ({
                   variant={activeTab === 'sales' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => handleTabChange('sales')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
                   data-testid="sales-tab-btn"
                 >
                   <ShoppingCart className="h-4 w-4" />
@@ -221,7 +221,7 @@ export const Header = ({
                   variant={activeTab === 'crm' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => handleTabChange('crm')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
                   data-testid="crm-tab-btn"
                 >
                   <Briefcase className="h-4 w-4" />
@@ -245,7 +245,7 @@ export const Header = ({
         </nav>
         
         {/* Right side: Admin badge, Language Switcher, Mobile Menu Button */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Desktop Admin Badge and Logout */}
           {isAdminAuthenticated ? (
             <div className="hidden md:flex items-center gap-2 mr-2">

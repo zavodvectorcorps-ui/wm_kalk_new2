@@ -427,7 +427,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
       
       {/* Edit Mode Banner */}
       {isEditMode && (
-        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
+        <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Edit className="h-5 w-5 text-amber-600" />
             <span className="font-medium text-amber-800">
@@ -596,8 +596,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
 
           {/* Notes */}
           <Card className="shadow-md">
-            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
-              <CardTitle className="text-lg text-amber-800">{txt.notes}</CardTitle>
+            <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40">
+              <CardTitle className="text-lg text-amber-800 dark:text-amber-200">{txt.notes}</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <Textarea
@@ -714,8 +714,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
 
 const CustomerInfoCard = ({ formData, setFormData, handleInputChange, txt }) => (
   <Card className="shadow-md">
-    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
-      <CardTitle className="flex items-center gap-2 text-lg text-amber-800">
+    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40">
+      <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-200">
         <User className="h-5 w-5" />
         {txt.customerInfo}
       </CardTitle>
@@ -860,15 +860,15 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
 
   return (
   <Card className="shadow-md">
-    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
-      <CardTitle className="flex items-center gap-2 text-lg text-amber-800">
+    <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40">
+      <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-200">
         <Calculator className="h-5 w-5" />
         {txt.model} *
       </CardTitle>
     </CardHeader>
     <CardContent className="pt-4">
       {(prices.modelsHint || prices.modelsHintImageUrl || prices.modelsHintVideoUrl) && (
-        <div className="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-900/50">
           <div className="flex items-start gap-2">
             <Info className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -1293,8 +1293,8 @@ const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, ha
   
   return (
     <Card className="shadow-md">
-      <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50">
-        <CardTitle className="flex items-center gap-2 text-lg text-amber-800">
+      <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40">
+        <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-200">
           <Icon className="h-5 w-5" />
           {getCategoryName(category)}
         </CardTitle>
@@ -1343,7 +1343,7 @@ const CheckboxOptions = ({ category, options, formData, foundationPrice, handleC
       
       return (
         <div key={option.id} className="space-y-2">
-          <div className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all ${isChecked ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`}>
+          <div className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all ${isChecked ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-400 dark:border-amber-700' : 'bg-muted/30 border-border hover:bg-muted/50'}`}>
             {/* Hint icon with media support */}
             <HintIcon 
               hint={option.hint} 
@@ -1515,7 +1515,7 @@ const DropdownHintBox = ({ option }) => {
   return (
     <>
       <div 
-        className={`flex items-start gap-1.5 p-2 bg-amber-50 rounded-md border border-amber-100 ${hasMedia ? 'cursor-pointer hover:bg-amber-100 transition-colors' : ''}`}
+        className={`flex items-start gap-1.5 p-2 bg-amber-50 dark:bg-amber-950/30 rounded-md border border-amber-100 dark:border-amber-900/50 ${hasMedia ? 'cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors' : ''}`}
         onClick={() => hasMedia && setDialogOpen(true)}
       >
         <Info className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -1591,7 +1591,7 @@ const RadioOptions = ({ category, options, formData, foundationPrice, handleRadi
             : (optionHasVariants && optionSelectedVariant ? optionSelectedVariant.price : optionBasePrice);
           
           return (
-            <div key={option.id} className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 border-amber-400' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
+            <div key={option.id} className={`relative flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-400 dark:border-amber-700' : 'bg-muted/30 border-border hover:bg-muted/50'}`} onClick={() => handleRadioChange(category.id, option.id)}>
               {/* Hint icon with media support */}
               <HintIcon 
                 hint={option.hint} 
@@ -1726,7 +1726,7 @@ const SummaryCard = ({
   
   return (
   <Card className="shadow-lg border-amber-200">
-    <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100">
+    <CardHeader className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-950/50 dark:to-orange-950/50">
       <CardTitle className="flex items-center gap-2 text-amber-800">
         <Calculator className="h-5 w-5" />
         {txt.summary}
@@ -1738,7 +1738,7 @@ const SummaryCard = ({
           {/* Scrollable area for model and options - fixed max height */}
           <div className="max-h-[35vh] overflow-y-auto space-y-4 pr-1 mb-4">
             {/* Selected Model */}
-            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-900/50">
               <div className="text-sm text-amber-700 font-medium">{txt.model}</div>
               <div className="font-medium">{model.name}</div>
               {/* Show variant if selected */}

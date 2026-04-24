@@ -238,3 +238,8 @@ code {
 html.dark {
   color-scheme: dark;
 }
+
+/* Prevent horizontal page scroll — wide content (header tabs) scrolls inside its own container */
+html, body {
+  overflow-x: hidden;
+}
