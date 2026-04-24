@@ -32,6 +32,7 @@ class AnalyticsSettings(BaseModel):
     countTaskAsAction: bool = True
     countStageChangeAsAction: bool = True
     countCommunicationAsAction: bool = True
+    excludeClosedFromSync: bool = True  # Skip closed/lost stages during sync (saves time + DB)
 
 
 # --- Settings Endpoints ---
@@ -194,6 +195,41 @@ async def purge_leads_before_start_date(start_date: str = None):
     return {"status": "ok", "startDate": start_date, "deletedLeads": lead_del.deleted_count}
 
 
+@router.get("/diagnose-sync")
+async def diagnose_sync():
+    """Show how many leads amoCRM returns vs what gets stored — helps explain large counts."""
+    settings = await get_analytics_settings()
+    pipeline_id = settings.get("pipelineId", "")
+    start = settings.get("analyticsStartDate") or "2026-01-01"
+    ts_from = int(datetime.fromisoformat(start).timestamp())
+    closed_lost_stages = set(str(x) for x in settings.get("closedLostStageIds", []))
+    closed_lost_stages.add("143")
+
+    # Pull leads (date filter) — uses the same helper as the real sync
+    leads = await _fetch_leads_for_pipeline(pipeline_id, ts_from, None)
+    # Re-filter client-side
+    filtered = [ld for ld in leads if (ld.get("created_at") or 0) >= ts_from]
+
+    by_status = {}
+    closed = 0
+    for ld in filtered:
+        sid = str(ld.get("status_id", ""))
+        by_status[sid] = by_status.get(sid, 0) + 1
+        if sid in closed_lost_stages:
+            closed += 1
+
+    return {
+        "pipelineId": pipeline_id,
+        "startDate": start,
+        "amoCRMReturned": len(leads),
+        "afterClientFilter": len(filtered),
+        "closedLostInResult": closed,
+        "wouldSyncIfExcludeClosed": len(filtered) - closed,
+        "byStatus": dict(sorted(by_status.items(), key=lambda x: -x[1])),
+        "excludeClosedFromSync": settings.get("excludeClosedFromSync", True),
+    }
+
+
 async def _get_default_date_from() -> str:
     """Return analyticsStartDate as ISO string to use as default lower bound in queries."""
     settings = await get_analytics_settings()
@@ -228,17 +264,36 @@ async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, dat
         # 1. Fetch leads list (fast — just lead metadata)
         await _update_sync_progress(sync_id, "загрузка списка сделок...")
         leads = await _fetch_leads_for_pipeline(pipeline_id, ts_from, ts_to)
+        amo_total = len(leads)
         # DEFENSIVE: amoCRM sometimes returns leads outside the filter window.
         # Re-filter client-side to guarantee we only ingest leads CREATED in range.
         if ts_from is not None:
-            before_filter = len(leads)
             leads = [ld for ld in leads if (ld.get("created_at") or 0) >= ts_from]
-            if before_filter != len(leads):
-                logger.info(f"Sync {sync_id}: dropped {before_filter - len(leads)} leads with created_at < {ts_from}")
         if ts_to is not None:
             leads = [ld for ld in leads if (ld.get("created_at") or 0) <= ts_to]
+
+        # Optionally drop closed/lost stages from the sync entirely (saves time + DB space).
+        # Driven by setting `excludeClosedFromSync` (default: True). Status 143 = system "Closed/Lost".
+        exclude_closed = settings.get("excludeClosedFromSync", True)
+        closed_lost_stages = set(str(x) for x in settings.get("closedLostStageIds", []))
+        closed_lost_stages.add("143")
+        skipped_closed = 0
+        if exclude_closed and closed_lost_stages:
+            kept = []
+            for ld in leads:
+                if str(ld.get("status_id", "")) in closed_lost_stages:
+                    skipped_closed += 1
+                else:
+                    kept.append(ld)
+            leads = kept
+
         total_leads = len(leads)
-        logger.info(f"Sync {sync_id}: {total_leads} leads after client-side created_at filter (ts_from={ts_from})")
+        diag_msg = (
+            f"amoCRM вернул {amo_total}, после фильтра по дате: {amo_total - (amo_total - len(leads) - skipped_closed)}, "
+            f"после исключения закрытых: {total_leads}"
+        )
+        logger.info(f"Sync {sync_id}: {diag_msg}")
+        await _update_sync_progress(sync_id, diag_msg)
 
         # 1b. Purge any previously-synced docs that are older than the start date.
         # This cleans up legacy data from earlier syncs when analyticsStartDate was different/absent.

@@ -447,19 +447,47 @@ const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
           <Input type="date" value={settings.analyticsStartDate || '2026-01-01'}
             onChange={e => setSettings(prev => ({ ...prev, analyticsStartDate: e.target.value }))}
             className="w-48" />
-          <div className="pt-2 border-t">
+          <div className="flex items-center gap-2 pt-1">
+            <Checkbox id="excludeClosedFromSync"
+              checked={settings.excludeClosedFromSync !== false}
+              onCheckedChange={v => setSettings(prev => ({ ...prev, excludeClosedFromSync: !!v }))}
+              data-testid="exclude-closed-checkbox"
+            />
+            <label htmlFor="excludeClosedFromSync" className="text-sm cursor-pointer">
+              Не загружать сделки на этапах <b>«Закрыто и не реализовано»</b>
+            </label>
+          </div>
+          <p className="text-[11px] text-muted-foreground -mt-2">Включено по умолчанию. Сильно сокращает объём синхронизации, если в воронке много закрытых сделок.</p>
+          <div className="pt-2 border-t flex flex-wrap gap-2">
             <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={async () => {
               if (!window.confirm('Удалить из базы все сделки, созданные до даты начала аналитики? Менеджерская статистика пересчитается при следующей синхронизации.')) return;
               try {
-                const r = await axios.post(`${API}/api/lead-analytics/purge-before-start-date`, null, {
+                const r = await axios.post(`${API_URL}/api/lead-analytics/purge-before-start-date`, null, {
                   params: { start_date: settings.analyticsStartDate || '2026-01-01' }
                 });
                 toast.success(`Удалено сделок: ${r.data.deletedLeads} (до ${r.data.startDate})`);
-              } catch(e) { toast.error(e.response?.data?.detail || 'Ошибка'); }
+              } catch(e) {
+                const msg = e.response?.data?.detail || e.message || 'Ошибка';
+                toast.error(`Не удалось удалить: ${msg}`);
+              }
             }} data-testid="purge-old-leads-btn">
               <Trash2 className="h-4 w-4 mr-1"/>Удалить старые сделки из базы
             </Button>
-            <p className="text-[11px] text-muted-foreground mt-1">Используйте после смены даты, если в базе остались сделки от предыдущих настроек.</p>
+            <Button size="sm" variant="outline" onClick={async () => {
+              try {
+                const r = await axios.get(`${API_URL}/api/lead-analytics/diagnose-sync`);
+                const d = r.data;
+                const lines = [
+                  `📥 amoCRM вернул: ${d.amoCRMReturned}`,
+                  `📅 После фильтра по дате (${d.startDate}): ${d.afterClientFilter}`,
+                  `🚫 Из них закрыто/потеряно: ${d.closedLostInResult}`,
+                  `✅ Будет синхронизировано: ${d.wouldSyncIfExcludeClosed}`,
+                ];
+                window.alert(lines.join('\n'));
+              } catch(e) { toast.error(e.response?.data?.detail || 'Ошибка диагностики'); }
+            }} data-testid="diagnose-sync-btn">
+              🔍 Проверить, сколько потянет
+            </Button>
           </div>
         </CardContent>
       </Card>
