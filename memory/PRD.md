@@ -70,6 +70,16 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - Frontend: Standalone "Анализ звонков" page (4 tabs: Sync, Managers, Calls, Rules), call detail with audio/transcript/scores
   - 7-point AI checklist: greeting, needs, presentation, objections, next_step, politeness, compliance
   - Pipeline/stage selection, language detection (pl/ru), translation, background processing
+- Call Analytics improvements (April 24, 2026)
+  - Live processing progress with auto-polling (3s during work, 15s idle) + progress bar
+  - Stricter sync filter: notes are imported as calls only if they have call-type OR real audio link OR duration>0 (phone alone no longer enough)
+  - /calls endpoint: `only_with_audio=true` by default — removes empty notes from list
+  - POST /call-analytics/calls/purge-empty — clean already-imported garbage
+  - Smart rule selection: auto-match by direction (inbound→"incoming", outbound→"cold_call") or `configJson.appliesTo`
+  - Each analyzed call now stores `rule_id_used` / `rule_name_used`
+  - NEW Manager Dashboard (GET /managers/{id}/dashboard): period stats, score distribution, avg per check-list category, top recurring issues, rule breakdown, last 50 call samples
+  - NEW AI verdict (POST /managers/{id}/summary): GPT-5.2 produces verdict/strengths/weaknesses/prioritised recommendations/trainingFocus/riskFlags from aggregated stats (cached 10 min)
+  - UI: click manager row → Manager Dashboard; "Звонки" button → raw call list; "AI-отчёт по периоду" button inside dashboard
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
@@ -79,6 +89,6 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
 - P2: Replace deprecated Google Maps Autocomplete component
 
 ## Credentials
-- Admin: admin / admin123
+- Admin: admin / 159357
 - Storekeeper: kladovshchik / kladovshchik123
 - Marketer: marketer / marketer123

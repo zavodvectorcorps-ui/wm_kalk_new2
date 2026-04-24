@@ -259,8 +259,283 @@ const SyncTab = () => {
   );
 };
 
+// ── MANAGER DASHBOARD ──
+const ManagerDashboard = ({ managerId, managerName, onBack, onViewCalls, onSelectCall }) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const [dateFrom, setDateFrom] = useState(monthAgo);
+  const [dateTo, setDateTo] = useState(today);
+  const [data, setData] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [genLoading, setGenLoading] = useState(false);
+
+  const loadDash = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await axios.get(`${API}/api/call-analytics/managers/${managerId}/dashboard`, {
+        params: { date_from: dateFrom, date_to: dateTo }
+      });
+      setData(r.data);
+    } catch (e) { toast.error('Ошибка загрузки'); }
+    finally { setLoading(false); }
+  }, [managerId, dateFrom, dateTo]);
+
+  useEffect(() => { loadDash(); setSummary(null); }, [loadDash]);
+
+  const genSummary = async () => {
+    setGenLoading(true);
+    try {
+      const r = await axios.post(`${API}/api/call-analytics/managers/${managerId}/summary`, null, {
+        params: { date_from: dateFrom, date_to: dateTo }
+      });
+      setSummary(r.data);
+      if (r.data.cached) toast.info('Отчёт из кэша (актуален 10 мин)');
+      else toast.success(`Отчёт готов · $${r.data.cost || 0}`);
+    } catch (e) { toast.error(e.response?.data?.detail || 'Ошибка'); }
+    finally { setGenLoading(false); }
+  };
+
+  if (loading) return (
+    <div className="space-y-3" data-testid="manager-dashboard-loading">
+      <Button variant="ghost" size="sm" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1"/>Назад</Button>
+      <Loader2 className="h-6 w-6 animate-spin mx-auto mt-8"/>
+    </div>
+  );
+
+  const d = data || {};
+  const checks = d.checks || [];
+  const dist = d.distribution || { high: 0, mid: 0, low: 0 };
+
+  return (
+    <div className="space-y-4" data-testid="manager-dashboard">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button variant="ghost" size="sm" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1"/>Назад</Button>
+        <h2 className="text-lg font-bold">{d.managerName || managerName}</h2>
+        <Badge variant="outline">{d.total || 0} проанализировано</Badge>
+        <div className="flex-1"/>
+        <Button variant="outline" size="sm" onClick={() => onViewCalls(managerId, d.managerName || managerName)}>
+          <List className="h-4 w-4 mr-1"/>Все звонки
+        </Button>
+      </div>
+
+      <Card className="border">
+        <CardContent className="p-3 flex flex-wrap items-end gap-2">
+          <div><label className="text-xs text-muted-foreground">С</label>
+            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 mt-1"/></div>
+          <div><label className="text-xs text-muted-foreground">По</label>
+            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 mt-1"/></div>
+          <Button size="sm" onClick={loadDash}><Filter className="h-4 w-4 mr-1"/>Применить</Button>
+          <div className="flex-1"/>
+          <Button size="sm" onClick={genSummary} disabled={genLoading || !d.total} data-testid="gen-summary-btn">
+            {genLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin"/> : <Zap className="h-4 w-4 mr-1"/>}
+            AI-отчёт по периоду
+          </Button>
+        </CardContent>
+      </Card>
+
+      {!d.total ? (
+        <Card className="border"><CardContent className="p-6 text-center text-muted-foreground">
+          Нет проанализированных звонков за период. Измените диапазон дат или запустите обработку во вкладке «Синхронизация».
+        </CardContent></Card>
+      ) : (
+        <>
+          {/* KPI row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Card className="border"><CardContent className="p-3">
+              <div className="text-xs text-muted-foreground">Средняя оценка</div>
+              <div className={`text-3xl font-bold ${scoreColor(d.avgScore)}`}>{d.avgScore ?? '—'}<span className="text-sm text-muted-foreground">/10</span></div>
+            </CardContent></Card>
+            <Card className="border"><CardContent className="p-3">
+              <div className="text-xs text-muted-foreground">Всего звонков</div>
+              <div className="text-3xl font-bold">{d.total}</div>
+              <div className="text-xs text-muted-foreground mt-1">вх: {d.inbound} · исх: {d.outbound}</div>
+            </CardContent></Card>
+            <Card className="border"><CardContent className="p-3">
+              <div className="text-xs text-muted-foreground">Средняя длительность</div>
+              <div className="text-3xl font-bold">{fmtDur(d.durationAvg)}</div>
+              <div className="text-xs text-muted-foreground mt-1">всего: {fmtDur(d.durationTotal)}</div>
+            </CardContent></Card>
+            <Card className={`border ${d.negativeCount > 0 ? 'border-red-200 bg-red-50/30' : ''}`}><CardContent className="p-3">
+              <div className="text-xs text-muted-foreground">Серьёзный негатив</div>
+              <div className={`text-3xl font-bold ${d.negativeCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{d.negativeCount}</div>
+              <div className="text-xs text-muted-foreground mt-1">{d.total ? Math.round(d.negativeCount / d.total * 100) : 0}% от звонков</div>
+            </CardContent></Card>
+          </div>
+
+          {/* Score distribution */}
+          <Card className="border">
+            <CardHeader className="pb-1"><CardTitle className="text-sm">Распределение оценок</CardTitle></CardHeader>
+            <CardContent className="p-3 space-y-2">
+              {[
+                { key: 'high', label: 'Высокие (≥8)', color: 'bg-emerald-500', count: dist.high },
+                { key: 'mid', label: 'Средние (5-7)', color: 'bg-amber-500', count: dist.mid },
+                { key: 'low', label: 'Низкие (<5)', color: 'bg-red-500', count: dist.low },
+              ].map(r => {
+                const pct = d.total ? Math.round(r.count / d.total * 100) : 0;
+                return (
+                  <div key={r.key} className="flex items-center gap-2 text-xs">
+                    <div className="w-28">{r.label}</div>
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full ${r.color}`} style={{ width: `${pct}%` }}/>
+                    </div>
+                    <div className="w-16 text-right tabular-nums">{r.count} · {pct}%</div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Check list averages */}
+          <Card className="border">
+            <CardHeader className="pb-1"><CardTitle className="text-sm">Средние баллы по чек-листу</CardTitle></CardHeader>
+            <CardContent className="p-3 space-y-1.5">
+              {checks.length ? checks.map(c => {
+                const pct = Math.round((c.avgScore / c.maxScore) * 100);
+                const color = c.avgScore >= 1.5 ? 'bg-emerald-500' : c.avgScore >= 1 ? 'bg-amber-500' : 'bg-red-500';
+                return (
+                  <div key={c.key} className="flex items-center gap-2 text-xs">
+                    <div className="w-44">{c.label}</div>
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full ${color}`} style={{ width: `${pct}%` }}/>
+                    </div>
+                    <div className="w-24 text-right tabular-nums">{c.avgScore.toFixed(2)}/{c.maxScore}</div>
+                  </div>
+                );
+              }) : <div className="text-xs text-muted-foreground">Нет данных</div>}
+            </CardContent>
+          </Card>
+
+          {/* Top issues & rule breakdown */}
+          <div className="grid md:grid-cols-2 gap-3">
+            {d.topIssues?.length > 0 && (
+              <Card className="border"><CardHeader className="pb-1"><CardTitle className="text-sm">Часто повторяющиеся проблемы</CardTitle></CardHeader>
+                <CardContent className="p-3">
+                  <ul className="text-xs space-y-1">
+                    {d.topIssues.slice(0, 8).map((i, idx) => (
+                      <li key={idx} className="flex justify-between gap-2">
+                        <span className="truncate">{i.issue}</span>
+                        <Badge variant="outline" className="text-[10px] shrink-0">{i.count}×</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent></Card>
+            )}
+            {d.byRule?.length > 0 && (
+              <Card className="border"><CardHeader className="pb-1"><CardTitle className="text-sm">Применённые правила</CardTitle></CardHeader>
+                <CardContent className="p-3">
+                  <ul className="text-xs space-y-1">
+                    {d.byRule.map((r, idx) => (
+                      <li key={idx} className="flex justify-between gap-2">
+                        <span>{r.rule}</span>
+                        <Badge variant="outline" className="text-[10px]">{r.count}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent></Card>
+            )}
+          </div>
+
+          {/* AI Summary */}
+          {summary?.analysis && (
+            <Card className="border border-indigo-200 bg-gradient-to-br from-indigo-50/40 to-white" data-testid="ai-summary">
+              <CardHeader className="pb-1">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-indigo-600"/>AI-отчёт за период
+                  <Badge variant="outline" className="text-[10px] ml-auto">на основе {summary.basedOnCalls} звонков</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3 text-sm">
+                {summary.analysis.verdict && (
+                  <div className="p-2.5 rounded bg-indigo-100/60 text-indigo-900 font-medium">{summary.analysis.verdict}</div>
+                )}
+                <div className="grid md:grid-cols-2 gap-3">
+                  {summary.analysis.strengths?.length > 0 && (
+                    <div>
+                      <div className="font-semibold text-emerald-700 mb-1 flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5"/>Сильные стороны</div>
+                      <ul className="list-disc list-inside space-y-0.5 text-xs">
+                        {summary.analysis.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {summary.analysis.weaknesses?.length > 0 && (
+                    <div>
+                      <div className="font-semibold text-amber-700 mb-1 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5"/>Слабые места</div>
+                      <ul className="list-disc list-inside space-y-0.5 text-xs">
+                        {summary.analysis.weaknesses.map((s, i) => <li key={i}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+                {summary.analysis.recommendations?.length > 0 && (
+                  <div>
+                    <div className="font-semibold text-blue-700 mb-1">Рекомендации</div>
+                    <div className="space-y-1.5">
+                      {summary.analysis.recommendations.map((r, i) => {
+                        const col = r.priority === 'high' ? 'border-red-300 bg-red-50/40' :
+                                    r.priority === 'medium' ? 'border-amber-300 bg-amber-50/40' :
+                                    'border-slate-200';
+                        const badge = r.priority === 'high' ? 'bg-red-500' :
+                                      r.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-400';
+                        return (
+                          <div key={i} className={`border rounded p-2 ${col}`}>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <Badge className={`${badge} text-white text-[10px]`}>{r.priority || 'med'}</Badge>
+                              <span className="font-medium text-xs">{r.title}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">{r.action}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {summary.analysis.trainingFocus && (
+                  <div className="p-2 rounded bg-blue-50 border border-blue-200 text-xs">
+                    <span className="font-semibold">Фокус обучения:</span> {summary.analysis.trainingFocus}
+                  </div>
+                )}
+                {summary.analysis.riskFlags?.length > 0 && (
+                  <div className="p-2 rounded bg-red-50 border border-red-200 text-xs">
+                    <div className="font-semibold text-red-700 mb-1">Риски:</div>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      {summary.analysis.riskFlags.map((r, i) => <li key={i}>{r}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Recent call samples */}
+          {d.callSamples?.length > 0 && (
+            <Card className="border">
+              <CardHeader className="pb-1"><CardTitle className="text-sm">Последние оценённые звонки</CardTitle></CardHeader>
+              <CardContent className="p-2 space-y-1">
+                {d.callSamples.slice(0, 10).map(s => (
+                  <div key={s.id} className={`flex items-center gap-2 p-2 rounded border text-xs cursor-pointer hover:bg-muted/30 ${scoreBg(s.score)}`} onClick={() => onSelectCall(s.id)}>
+                    <div className={`text-lg font-bold ${scoreColor(s.score)} w-8 text-center`}>{s.score ?? '—'}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium truncate">{s.clientName || '—'}</span>
+                        {s.hasNegative && <AlertTriangle className="h-3 w-3 text-red-500"/>}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate">{s.summary}</div>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground shrink-0">{fmtDate(s.datetime)} · {fmtDur(s.duration)}</div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 // ── MANAGERS TAB ──
-const ManagersTab = ({ onSelectManager }) => {
+const ManagersTab = ({ onSelectManager, onViewCalls }) => {
   const [managers, setManagers] = useState([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -280,10 +555,12 @@ const ManagersTab = ({ onSelectManager }) => {
 
   return (
     <div className="space-y-4" data-testid="managers-tab">
-      <div className="flex gap-2 items-end">
+      <div className="flex gap-2 items-end flex-wrap">
         <div><label className="text-xs text-muted-foreground">С</label><Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 mt-1"/></div>
         <div><label className="text-xs text-muted-foreground">По</label><Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 mt-1"/></div>
         <Button size="sm" onClick={fetch}><Filter className="h-4 w-4 mr-1"/>Применить</Button>
+        <div className="flex-1"/>
+        <span className="text-[11px] text-muted-foreground">Клик по строке → дашборд · «Звонки» → список</span>
       </div>
       {loading ? <Loader2 className="h-6 w-6 animate-spin mx-auto"/> : (
         <div className="overflow-x-auto">
@@ -296,10 +573,11 @@ const ManagersTab = ({ onSelectManager }) => {
               <th className="text-center py-2 px-3">Негатив</th>
               <th className="text-center py-2 px-3">Низкая оценка</th>
               <th className="text-center py-2 px-3">Время</th>
+              <th className="text-center py-2 px-3"></th>
             </tr></thead>
             <tbody>
               {managers.map(m => (
-                <tr key={m.managerId} className="border-b hover:bg-muted/30 cursor-pointer" onClick={() => onSelectManager(m.managerId, m.managerName)}>
+                <tr key={m.managerId} className="border-b hover:bg-muted/30 cursor-pointer" onClick={() => onSelectManager(m.managerId, m.managerName)} data-testid={`manager-row-${m.managerId}`}>
                   <td className="py-2 px-3 font-medium">{m.managerName}</td>
                   <td className="text-center py-2 px-3">{m.totalCalls}</td>
                   <td className="text-center py-2 px-3">{m.analyzedCalls}</td>
@@ -307,9 +585,14 @@ const ManagersTab = ({ onSelectManager }) => {
                   <td className="text-center py-2 px-3">{m.negativeCount > 0 ? <Badge variant="destructive">{m.negativeCount}</Badge> : '0'}</td>
                   <td className="text-center py-2 px-3">{m.lowScoreCount > 0 ? <Badge variant="outline" className="text-red-600">{m.lowScoreCount}</Badge> : '0'}</td>
                   <td className="text-center py-2 px-3 text-xs text-muted-foreground">{fmtDur(m.totalDuration)}</td>
+                  <td className="text-center py-2 px-3">
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); onViewCalls(m.managerId, m.managerName); }}>
+                      <List className="h-3 w-3 mr-1"/>Звонки
+                    </Button>
+                  </td>
                 </tr>
               ))}
-              {!managers.length && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Нет данных</td></tr>}
+              {!managers.length && <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">Нет данных</td></tr>}
             </tbody>
           </table>
         </div>
@@ -614,7 +897,8 @@ const RulesTab = () => {
 // ── MAIN COMPONENT ──
 const CallAnalyticsPage = () => {
   const [tab, setTab] = useState('sync');
-  const [selectedManager, setSelectedManager] = useState(null);
+  const [managerDashboard, setManagerDashboard] = useState(null); // { id, name }
+  const [managerCalls, setManagerCalls] = useState(null); // { id, name }
   const [selectedCall, setSelectedCall] = useState(null);
 
   const tabs = [
@@ -629,11 +913,21 @@ const CallAnalyticsPage = () => {
     return <CallDetail callId={selectedCall} onBack={() => setSelectedCall(null)} />;
   }
 
-  // Manager's calls
-  if (selectedManager) {
+  // Manager's call list
+  if (managerCalls) {
     return <CallsList
-      managerId={selectedManager.id} managerName={selectedManager.name}
-      onBack={() => setSelectedManager(null)} onSelectCall={setSelectedCall}
+      managerId={managerCalls.id} managerName={managerCalls.name}
+      onBack={() => setManagerCalls(null)} onSelectCall={setSelectedCall}
+    />;
+  }
+
+  // Manager dashboard
+  if (managerDashboard) {
+    return <ManagerDashboard
+      managerId={managerDashboard.id} managerName={managerDashboard.name}
+      onBack={() => setManagerDashboard(null)}
+      onViewCalls={(id, name) => { setManagerDashboard(null); setManagerCalls({ id, name }); }}
+      onSelectCall={setSelectedCall}
     />;
   }
 
@@ -651,7 +945,10 @@ const CallAnalyticsPage = () => {
       </div>
 
       {tab === 'sync' && <SyncTab />}
-      {tab === 'managers' && <ManagersTab onSelectManager={(id, name) => setSelectedManager({ id, name })} />}
+      {tab === 'managers' && <ManagersTab
+        onSelectManager={(id, name) => setManagerDashboard({ id, name })}
+        onViewCalls={(id, name) => setManagerCalls({ id, name })}
+      />}
       {tab === 'calls' && <CallsList onSelectCall={setSelectedCall} />}
       {tab === 'rules' && <RulesTab />}
     </div>

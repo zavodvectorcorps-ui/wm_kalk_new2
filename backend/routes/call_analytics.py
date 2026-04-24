@@ -830,6 +830,49 @@ async def analyze_call(call_id: str, background_tasks: BackgroundTasks):
     return {"status": "started", "callId": call_id}
 
 
+async def _pick_rule_for_call(call: dict) -> dict:
+    """Pick the best matching rule for a call.
+
+    Priority:
+      1. Explicit rule_id on the call.
+      2. Auto-match by direction using rule.configJson.appliesTo = 'inbound' | 'outbound'
+         or by known rule id ('incoming' for inbound, 'cold_call' for outbound).
+      3. Rule marked isDefault=True.
+      4. Any available rule.
+    """
+    if call.get("rule_id"):
+        r = await db[RULES_COL].find_one({"id": call["rule_id"]}, {"_id": 0})
+        if r:
+            return r
+
+    direction = (call.get("direction") or "").lower()
+    all_rules = await db[RULES_COL].find({}, {"_id": 0}).to_list(length=100)
+
+    # 2a. explicit appliesTo tag
+    for r in all_rules:
+        applies = str((r.get("configJson") or {}).get("appliesTo", "")).lower()
+        if direction and applies == direction:
+            return r
+
+    # 2b. well-known rule ids from the seed
+    if direction == "inbound":
+        for r in all_rules:
+            if r.get("id") == "incoming":
+                return r
+    elif direction == "outbound":
+        for r in all_rules:
+            if r.get("id") == "cold_call":
+                return r
+
+    # 3. default rule
+    for r in all_rules:
+        if r.get("isDefault"):
+            return r
+
+    # 4. any rule
+    return all_rules[0] if all_rules else {}
+
+
 async def _analyze_single(call_id: str):
     try:
         call = await db[CALLS_COL].find_one({"id": call_id})
@@ -840,12 +883,10 @@ async def _analyze_single(call_id: str):
         if not api_key:
             return
 
-        # Get rule
-        rule = None
-        if call.get("rule_id"):
-            rule = await db[RULES_COL].find_one({"id": call["rule_id"]}, {"_id": 0})
-        if not rule:
-            rule = await db[RULES_COL].find_one({"isDefault": True}, {"_id": 0})
+        # Pick the best matching rule (by direction / default / explicit)
+        rule = await _pick_rule_for_call(call)
+        rule_id_used = rule.get("id") if rule else None
+        rule_name_used = rule.get("name") if rule else None
 
         rules_json = json.dumps(rule.get("configJson", {}) if rule else {}, ensure_ascii=False)
 
@@ -910,6 +951,8 @@ async def _analyze_single(call_id: str):
             "summary_ru": analysis.get("summary_ru", ""),
             "key_issues_json": analysis.get("key_issues", []),
             "recommendations_json": analysis.get("recommendations", []),
+            "rule_id_used": rule_id_used,
+            "rule_name_used": rule_name_used,
             "analyzedAt": datetime.now(timezone.utc).isoformat(),
             "cost_analyze": _estimate_gpt_cost(user_prompt, text),
         }
@@ -1032,6 +1075,237 @@ async def get_manager_stats(date_from: str = None, date_to: str = None):
             "outbound": r["outbound"],
         })
     return {"managers": managers}
+
+
+# ── Manager Dashboard ─────────────────────────────
+
+CHECK_LABELS = {
+    "greeting": "Приветствие",
+    "needs": "Выявление потребностей",
+    "presentation": "Презентация",
+    "objections": "Работа с возражениями",
+    "next_step": "Закрытие / следующий шаг",
+    "politeness": "Вежливость",
+    "compliance": "Соответствие скрипту",
+}
+
+
+@router.get("/managers/{manager_id}/dashboard")
+async def manager_dashboard(manager_id: str, date_from: str = None, date_to: str = None):
+    """Aggregated per-manager stats over a period (no AI call here — just numbers)."""
+    q = {"manager_id": manager_id, "status": "analyzed"}
+    if date_from:
+        q["datetime"] = {"$gte": date_from}
+    if date_to:
+        q.setdefault("datetime", {})["$lte"] = date_to + "T23:59:59"
+
+    calls = await db[CALLS_COL].find(
+        q,
+        {"_id": 0, "audio_data": 0, "transcript_pl": 0, "transcript_ru": 0}
+    ).sort("datetime", -1).to_list(length=1000)
+
+    # Manager name (fallback: first call in whole DB)
+    manager_name = ""
+    if calls:
+        manager_name = calls[0].get("manager_name", "")
+    if not manager_name:
+        any_call = await db[CALLS_COL].find_one({"manager_id": manager_id}, {"manager_name": 1, "_id": 0})
+        manager_name = (any_call or {}).get("manager_name", f"ID:{manager_id}")
+
+    total = len(calls)
+    if total == 0:
+        return {
+            "managerId": manager_id, "managerName": manager_name,
+            "total": 0, "avgScore": None, "checks": [], "distribution": {},
+            "topIssues": [], "byRule": [], "durationAvg": 0, "negativeCount": 0,
+            "callSamples": [],
+        }
+
+    # Score distribution
+    dist = {"high": 0, "mid": 0, "low": 0}
+    score_sum, score_cnt = 0, 0
+    dur_sum = 0
+    negative = 0
+    inbound, outbound = 0, 0
+    issue_counter = {}
+    by_rule = {}
+    check_totals = {k: {"sum": 0, "cnt": 0} for k in CHECK_LABELS}
+
+    for c in calls:
+        score = c.get("score")
+        if score is not None:
+            score_sum += score
+            score_cnt += 1
+            if score >= 8: dist["high"] += 1
+            elif score >= 5: dist["mid"] += 1
+            else: dist["low"] += 1
+        dur_sum += c.get("duration_seconds", 0) or 0
+        if c.get("has_strong_negative"): negative += 1
+        d = (c.get("direction") or "").lower()
+        if d == "inbound": inbound += 1
+        elif d == "outbound": outbound += 1
+
+        checks = c.get("checks_json") or {}
+        for k in CHECK_LABELS:
+            v = checks.get(k)
+            if isinstance(v, dict) and v.get("score") is not None:
+                try:
+                    check_totals[k]["sum"] += float(v["score"])
+                    check_totals[k]["cnt"] += 1
+                except (TypeError, ValueError):
+                    pass
+
+        for issue in (c.get("key_issues_json") or []):
+            if isinstance(issue, str) and issue.strip():
+                key = issue.strip().lower()[:80]
+                issue_counter[key] = issue_counter.get(key, 0) + 1
+
+        rn = c.get("rule_name_used") or "—"
+        by_rule[rn] = by_rule.get(rn, 0) + 1
+
+    checks_out = []
+    for k, label in CHECK_LABELS.items():
+        t = check_totals[k]
+        if t["cnt"]:
+            checks_out.append({"key": k, "label": label, "avgScore": round(t["sum"] / t["cnt"], 2), "maxScore": 2, "count": t["cnt"]})
+
+    top_issues = sorted(issue_counter.items(), key=lambda x: -x[1])[:10]
+
+    # Lightweight samples (id + score + summary) — not full transcripts
+    samples = [
+        {
+            "id": c.get("id"), "datetime": c.get("datetime"),
+            "score": c.get("score"), "direction": c.get("direction"),
+            "clientName": c.get("client_name"), "duration": c.get("duration_seconds"),
+            "summary": (c.get("summary_ru") or "")[:300],
+            "hasNegative": c.get("has_strong_negative", False),
+        }
+        for c in calls[:50]
+    ]
+
+    return {
+        "managerId": manager_id,
+        "managerName": manager_name,
+        "total": total,
+        "avgScore": round(score_sum / score_cnt, 2) if score_cnt else None,
+        "durationAvg": int(dur_sum / total) if total else 0,
+        "durationTotal": dur_sum,
+        "negativeCount": negative,
+        "inbound": inbound,
+        "outbound": outbound,
+        "distribution": dist,
+        "checks": checks_out,
+        "topIssues": [{"issue": i, "count": c} for i, c in top_issues],
+        "byRule": [{"rule": k, "count": v} for k, v in sorted(by_rule.items(), key=lambda x: -x[1])],
+        "callSamples": samples,
+    }
+
+
+@router.post("/managers/{manager_id}/summary")
+async def manager_ai_summary(manager_id: str, date_from: str = None, date_to: str = None):
+    """Generate an AI verdict + recommendations for a manager over a period.
+
+    Cached for 10 minutes per (manager_id, date_from, date_to).
+    """
+    cache_key = f"{manager_id}|{date_from or ''}|{date_to or ''}"
+    cached = await db["call_analytics_summaries"].find_one({"key": cache_key}, {"_id": 0})
+    if cached:
+        age = (datetime.now(timezone.utc) - datetime.fromisoformat(cached["createdAt"])).total_seconds()
+        if age < 600:
+            return {**cached, "cached": True}
+
+    dash = await manager_dashboard(manager_id, date_from, date_to)
+    if dash["total"] == 0:
+        raise HTTPException(status_code=400, detail="Нет оценённых звонков за период")
+
+    api_key = _api_key()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Нет EMERGENT_LLM_KEY")
+
+    # Build a compact brief — don't dump full transcripts, just summaries + checks
+    checks_lines = "\n".join(
+        f"- {c['label']}: {c['avgScore']}/{c['maxScore']} (по {c['count']} звонкам)" for c in dash["checks"]
+    )
+    issues_lines = "\n".join(f"- {i['issue']} ({i['count']}×)" for i in dash["topIssues"][:8]) or "—"
+    samples_lines = "\n".join(
+        f"- [{s['score']}/10] {s['direction']} {s['clientName'] or '—'}: {s['summary']}"
+        for s in dash["callSamples"][:25]
+    )
+
+    prompt = f"""Проанализируй работу менеджера продаж за период и выдай отчёт.
+
+МЕНЕДЖЕР: {dash['managerName']}
+ПЕРИОД: {date_from or 'все'} — {date_to or 'сегодня'}
+
+СТАТИСТИКА:
+- Проанализировано звонков: {dash['total']}
+- Средняя оценка: {dash['avgScore']}/10
+- Средняя длительность: {dash['durationAvg']} сек
+- Входящих: {dash['inbound']} | Исходящих: {dash['outbound']}
+- Звонков с серьёзным негативом: {dash['negativeCount']}
+- Распределение оценок: высокие (≥8): {dash['distribution']['high']}, средние (5-7): {dash['distribution']['mid']}, низкие (<5): {dash['distribution']['low']}
+
+СРЕДНИЕ БАЛЛЫ ПО ЧЕК-ЛИСТУ:
+{checks_lines}
+
+ТОП ПРОБЛЕМ (повторяющиеся замечания):
+{issues_lines}
+
+ВЫДЕРЖКИ ИЗ ЗВОНКОВ (до 25 последних):
+{samples_lines[:8000]}
+
+ЗАДАЧА:
+Верни строгий JSON со следующими полями:
+{{
+  "verdict": "краткий общий вердикт 1-2 предложения",
+  "strengths": ["сильная сторона 1", "сильная сторона 2", "сильная сторона 3"],
+  "weaknesses": ["слабое место 1", "слабое место 2", "слабое место 3"],
+  "recommendations": [
+    {{"priority": "high|medium|low", "title": "название", "action": "что конкретно сделать"}},
+    ...до 5 штук
+  ],
+  "trainingFocus": "на чём сфокусировать обучение в ближайшие 2 недели",
+  "riskFlags": ["конкретный риск 1", ...] или []
+}}
+
+Пиши ТОЛЬКО JSON, без markdown и пояснений. Всё — на русском."""
+
+    try:
+        async with httpx.AsyncClient(timeout=120) as cl:
+            resp = await cl.post(
+                f"{EMERGENT_PROXY}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": "gpt-5.2", "messages": [
+                    {"role": "system", "content": "Ты — руководитель отдела продаж. Даёшь короткие, конкретные, действенные оценки работы менеджеров. Отвечаешь только JSON."},
+                    {"role": "user", "content": prompt},
+                ]},
+            )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"LLM {resp.status_code}: {resp.text[:200]}")
+        text = resp.json()["choices"][0]["message"]["content"]
+        start = text.find("{"); end = text.rfind("}") + 1
+        parsed = json.loads(text[start:end] if start >= 0 and end > start else text)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Manager summary failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    result = {
+        "key": cache_key,
+        "managerId": manager_id,
+        "managerName": dash["managerName"],
+        "dateFrom": date_from,
+        "dateTo": date_to,
+        "analysis": parsed,
+        "basedOnCalls": dash["total"],
+        "cost": _estimate_gpt_cost(prompt, text),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db["call_analytics_summaries"].update_one(
+        {"key": cache_key}, {"$set": result}, upsert=True
+    )
+    return {**result, "cached": False}
 
 
 # ── Rules CRUD ────────────────────────────────────
