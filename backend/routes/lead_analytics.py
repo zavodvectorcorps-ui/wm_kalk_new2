@@ -175,21 +175,23 @@ async def clear_all_analytics_data():
 
 
 @router.post("/purge-before-start-date")
-async def purge_leads_before_start_date():
+async def purge_leads_before_start_date(start_date: str = None):
     """Remove all analytics leads with createdAtTs before the configured analyticsStartDate.
 
     Use this after changing analyticsStartDate to clean up legacy data from older syncs.
+    Optional `start_date` query param overrides the saved setting.
     """
-    settings = await get_analytics_settings()
-    start = settings.get("analyticsStartDate")
-    if not start:
-        raise HTTPException(status_code=400, detail="analyticsStartDate не задана в настройках")
-    ts_from = int(datetime.fromisoformat(start).timestamp())
+    if not start_date:
+        settings = await get_analytics_settings()
+        start_date = settings.get("analyticsStartDate") or "2026-01-01"
+    try:
+        ts_from = int(datetime.fromisoformat(start_date).timestamp())
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Некорректный формат даты: {start_date} (нужно YYYY-MM-DD)")
 
     lead_del = await db.lead_analytics_leads.delete_many({"createdAtTs": {"$lt": ts_from}})
-    # Manager aggregates are rebuilt on each sync — just clear stale ones:
-    # we keep them; they'll be overwritten on the next sync.
-    return {"status": "ok", "startDate": start, "deletedLeads": lead_del.deleted_count}
+    # Manager aggregates are rebuilt on each sync.
+    return {"status": "ok", "startDate": start_date, "deletedLeads": lead_del.deleted_count}
 
 
 async def _get_default_date_from() -> str:

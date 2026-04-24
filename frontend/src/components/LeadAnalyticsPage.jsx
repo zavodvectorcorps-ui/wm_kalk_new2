@@ -451,7 +451,9 @@ const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
             <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={async () => {
               if (!window.confirm('Удалить из базы все сделки, созданные до даты начала аналитики? Менеджерская статистика пересчитается при следующей синхронизации.')) return;
               try {
-                const r = await axios.post(`${API}/api/lead-analytics/purge-before-start-date`);
+                const r = await axios.post(`${API}/api/lead-analytics/purge-before-start-date`, null, {
+                  params: { start_date: settings.analyticsStartDate || '2026-01-01' }
+                });
                 toast.success(`Удалено сделок: ${r.data.deletedLeads} (до ${r.data.startDate})`);
               } catch(e) { toast.error(e.response?.data?.detail || 'Ошибка'); }
             }} data-testid="purge-old-leads-btn">
@@ -850,7 +852,29 @@ const LeadAnalyticsPage = () => {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="h-9" onClick={() => {
+            const t = new Date().toISOString().slice(0, 10);
+            setDateFrom(t); setDateTo(t);
+          }} data-testid="period-today-btn">Сегодня</Button>
+          <Button variant="outline" size="sm" className="h-9" onClick={() => {
+            const now = new Date();
+            // Monday of current week
+            const day = now.getDay() || 7;
+            const monday = new Date(now); monday.setDate(now.getDate() - day + 1);
+            setDateFrom(monday.toISOString().slice(0, 10));
+            setDateTo(now.toISOString().slice(0, 10));
+          }} data-testid="period-week-btn">Эта неделя</Button>
+          <Button variant="outline" size="sm" className="h-9" onClick={() => {
+            const now = new Date();
+            const first = new Date(now.getFullYear(), now.getMonth(), 1);
+            setDateFrom(first.toISOString().slice(0, 10));
+            setDateTo(now.toISOString().slice(0, 10));
+          }} data-testid="period-month-btn">Этот месяц</Button>
+          <Button variant="ghost" size="sm" className="h-9 text-muted-foreground" onClick={() => {
+            setDateFrom(''); setDateTo('');
+          }} data-testid="period-clear-btn">Сбросить</Button>
+          <span className="w-px h-6 bg-border mx-1"/>
           <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 h-9" placeholder="От" />
           <span className="text-muted-foreground">—</span>
           <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 h-9" placeholder="До" />
