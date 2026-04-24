@@ -2,7 +2,7 @@
 
 ## Admin
 - Username: admin
-- Password: admin123
+- Password: 159357
 
 ## Storekeeper
 - Username: kladovshchik
