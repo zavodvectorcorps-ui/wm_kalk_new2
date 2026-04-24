@@ -575,17 +575,18 @@ async def _transcribe_single(call_id: str):
         if lang_lower in ("polish", "pl"):
             update["transcript_pl"] = transcript
             update["language"] = "pl"
-            translation = await _translate_to_russian(transcript)
-            update["transcript_ru"] = translation
+            # Diarize + translate to Russian
+            diarized_ru = await _diarize_and_translate(transcript, call, "pl")
+            update["transcript_ru"] = diarized_ru
         elif lang_lower in ("russian", "ru"):
-            update["transcript_ru"] = transcript
             update["language"] = "ru"
+            diarized = await _diarize_and_translate(transcript, call, "ru")
+            update["transcript_ru"] = diarized
         else:
-            # Other language — save as-is and translate
             update["transcript_pl"] = transcript
             update["language"] = lang_lower
-            translation = await _translate_to_russian(transcript)
-            update["transcript_ru"] = translation
+            diarized_ru = await _diarize_and_translate(transcript, call, lang_lower)
+            update["transcript_ru"] = diarized_ru
 
         await db[CALLS_COL].update_one({"id": call_id}, {"$set": update})
         logger.info(f"Transcribed call {call_id}: lang={language}, len={len(transcript)}")
@@ -614,6 +615,62 @@ async def _translate_to_russian(text: str) -> str:
     if resp.status_code == 200:
         return resp.json()["choices"][0]["message"]["content"]
     return text
+
+
+async def _diarize_and_translate(transcript: str, call: dict, source_lang: str) -> str:
+    """Use GPT to split transcript into dialog (M: manager / C: client) and translate to Russian."""
+    api_key = _api_key()
+    if not api_key:
+        return transcript
+
+    manager_name = call.get("manager_name", "Менеджер")
+    client_name = call.get("client_name", "Клиент")
+    direction = call.get("direction", "outbound")
+
+    prompt = f"""Ниже транскрипт телефонного звонка между менеджером и клиентом. Твоя задача:
+
+1. Разбей текст на реплики, определив кто говорит — менеджер (М) или клиент (К).
+2. {'Переведи каждую реплику на русский язык.' if source_lang != 'ru' else 'Оставь текст на русском.'}
+3. Верни результат в формате диалога:
+
+М: текст реплики менеджера
+К: текст реплики клиента
+М: следующая реплика
+...
+
+Контекст:
+- Менеджер: {manager_name}
+- Клиент: {client_name or 'неизвестен'}
+- Направление: {'исходящий (менеджер звонит клиенту)' if direction == 'outbound' else 'входящий (клиент звонит)'}
+- {'Исходящий звонок — первым обычно говорит клиент (берёт трубку), менеджер представляется.' if direction == 'outbound' else 'Входящий звонок — первым обычно говорит менеджер (принимает звонок).'}
+
+Правила:
+- Определяй спикера по контексту: менеджер представляется, предлагает продукт, задаёт вопросы о потребностях. Клиент отвечает на вопросы, задаёт вопросы о цене/сроках.
+- Если не можешь точно определить — используй лучшее предположение.
+- Не добавляй ничего от себя, только разметь и переведи.
+
+Транскрипт ({source_lang}):
+{transcript[:10000]}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=120) as cl:
+            resp = await cl.post(
+                f"{EMERGENT_PROXY}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={"model": "gpt-5.2", "messages": [
+                    {"role": "system", "content": "Ты — эксперт по диаризации телефонных разговоров. Разбиваешь транскрипт на реплики М (менеджер) и К (клиент). Отвечай только диалогом, без пояснений."},
+                    {"role": "user", "content": prompt}
+                ]}
+            )
+        if resp.status_code == 200:
+            return resp.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        logger.warning(f"Diarization failed for call {call.get('id')}: {e}")
+
+    # Fallback: just translate without diarization
+    if source_lang != "ru":
+        return await _translate_to_russian(transcript)
+    return transcript
 
 
 # ── AI Analysis ───────────────────────────────────
