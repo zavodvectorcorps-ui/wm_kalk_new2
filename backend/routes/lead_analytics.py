@@ -174,6 +174,30 @@ async def clear_all_analytics_data():
     return {"status": "ok", "deleted": results}
 
 
+@router.post("/purge-before-start-date")
+async def purge_leads_before_start_date():
+    """Remove all analytics leads with createdAtTs before the configured analyticsStartDate.
+
+    Use this after changing analyticsStartDate to clean up legacy data from older syncs.
+    """
+    settings = await get_analytics_settings()
+    start = settings.get("analyticsStartDate")
+    if not start:
+        raise HTTPException(status_code=400, detail="analyticsStartDate не задана в настройках")
+    ts_from = int(datetime.fromisoformat(start).timestamp())
+
+    lead_del = await db.lead_analytics_leads.delete_many({"createdAtTs": {"$lt": ts_from}})
+    # Manager aggregates are rebuilt on each sync — just clear stale ones:
+    # we keep them; they'll be overwritten on the next sync.
+    return {"status": "ok", "startDate": start, "deletedLeads": lead_del.deleted_count}
+
+
+async def _get_default_date_from() -> str:
+    """Return analyticsStartDate as ISO string to use as default lower bound in queries."""
+    settings = await get_analytics_settings()
+    return settings.get("analyticsStartDate") or None
+
+
 
 
 async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, date_to_str: str = None, force: bool = False):
@@ -197,8 +221,27 @@ async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, dat
         # 1. Fetch leads list (fast — just lead metadata)
         await _update_sync_progress(sync_id, "загрузка списка сделок...")
         leads = await _fetch_leads_for_pipeline(pipeline_id, ts_from, ts_to)
+        # DEFENSIVE: amoCRM sometimes returns leads outside the filter window.
+        # Re-filter client-side to guarantee we only ingest leads CREATED in range.
+        if ts_from is not None:
+            before_filter = len(leads)
+            leads = [ld for ld in leads if (ld.get("created_at") or 0) >= ts_from]
+            if before_filter != len(leads):
+                logger.info(f"Sync {sync_id}: dropped {before_filter - len(leads)} leads with created_at < {ts_from}")
+        if ts_to is not None:
+            leads = [ld for ld in leads if (ld.get("created_at") or 0) <= ts_to]
         total_leads = len(leads)
-        logger.info(f"Sync {sync_id}: fetched {total_leads} leads from amoCRM")
+        logger.info(f"Sync {sync_id}: {total_leads} leads after client-side created_at filter (ts_from={ts_from})")
+
+        # 1b. Purge any previously-synced docs that are older than the start date.
+        # This cleans up legacy data from earlier syncs when analyticsStartDate was different/absent.
+        if ts_from is not None:
+            old_purged = await db.lead_analytics_leads.delete_many({
+                "pipelineId": pipeline_id,
+                "createdAtTs": {"$lt": ts_from},
+            })
+            if old_purged.deleted_count:
+                logger.info(f"Sync {sync_id}: purged {old_purged.deleted_count} legacy leads before start date")
 
         # 2. Build cache of existing lead updated_at
         cached_updated = {}
@@ -537,6 +580,9 @@ async def _compute_manager_stats(sync_id: str, settings: dict):
 @router.get("/summary")
 async def get_summary(date_from: str = None, date_to: str = None):
     """Get summary metrics for the dashboard."""
+    # Fallback to analyticsStartDate so legacy docs never leak through
+    if not date_from:
+        date_from = await _get_default_date_from()
     query = {}
     if date_from:
         query["createdAt"] = {"$gte": date_from}
@@ -590,6 +636,9 @@ async def get_summary(date_from: str = None, date_to: str = None):
 @router.get("/managers")
 async def get_manager_stats(date_from: str = None, date_to: str = None):
     """Get per-manager statistics."""
+    # Always apply analyticsStartDate as lower bound so legacy data never leaks
+    if not date_from:
+        date_from = await _get_default_date_from()
     # Get latest sync
     last_sync = await db.lead_analytics_sync.find_one(
         {"status": "completed"}, {"_id": 0}, sort=[("completedAt", -1)]
@@ -652,6 +701,8 @@ async def get_manager_stats(date_from: str = None, date_to: str = None):
 @router.get("/problem-leads")
 async def get_problem_leads(date_from: str = None, date_to: str = None, limit: int = 100):
     """Get leads with problems (not processed, stalled, no progress). Excludes closed/lost."""
+    if not date_from:
+        date_from = await _get_default_date_from()
     query = {
         "processingStatus": {"$ne": "closed_lost"},
         "isClosedLost": {"$ne": True},
@@ -678,6 +729,8 @@ async def get_closed_lost_leads(
     manager_id: str = None, limit: int = 200, skip: int = 0
 ):
     """Get leads in closed/lost stages for monitoring."""
+    if not date_from:
+        date_from = await _get_default_date_from()
     query = {"processingStatus": "closed_lost"}
     if date_from:
         query["createdAt"] = {"$gte": date_from}
@@ -718,6 +771,8 @@ async def get_all_analytics_leads(
     limit: int = 200, skip: int = 0
 ):
     """Get all analyzed leads with filters."""
+    if not date_from:
+        date_from = await _get_default_date_from()
     query = {}
     if date_from:
         query["createdAt"] = {"$gte": date_from}

@@ -442,11 +442,23 @@ const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
       {/* Analytics Start Date */}
       <Card className="border border-blue-200">
         <CardHeader><CardTitle className="text-base">Дата начала аналитики</CardTitle></CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground mb-3">Сделки, созданные до этой даты, не загружаются при синхронизации. Позволяет исключить старые данные.</p>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">Сделки, <b>созданные</b> до этой даты, не загружаются при синхронизации и не учитываются в статистике. При следующей синхронизации старые записи будут удалены автоматически.</p>
           <Input type="date" value={settings.analyticsStartDate || '2026-01-01'}
             onChange={e => setSettings(prev => ({ ...prev, analyticsStartDate: e.target.value }))}
             className="w-48" />
+          <div className="pt-2 border-t">
+            <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={async () => {
+              if (!window.confirm('Удалить из базы все сделки, созданные до даты начала аналитики? Менеджерская статистика пересчитается при следующей синхронизации.')) return;
+              try {
+                const r = await axios.post(`${API}/api/lead-analytics/purge-before-start-date`);
+                toast.success(`Удалено сделок: ${r.data.deletedLeads} (до ${r.data.startDate})`);
+              } catch(e) { toast.error(e.response?.data?.detail || 'Ошибка'); }
+            }} data-testid="purge-old-leads-btn">
+              <Trash2 className="h-4 w-4 mr-1"/>Удалить старые сделки из базы
+            </Button>
+            <p className="text-[11px] text-muted-foreground mt-1">Используйте после смены даты, если в базе остались сделки от предыдущих настроек.</p>
+          </div>
         </CardContent>
       </Card>
 
