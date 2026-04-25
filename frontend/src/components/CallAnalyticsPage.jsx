@@ -254,6 +254,16 @@ const SyncTab = () => {
             }} data-testid="purge-empty-btn">
               <Trash2 className="h-4 w-4 mr-1"/> Очистить пустые
             </Button>
+            <Button size="sm" variant="ghost" className="text-violet-700 hover:text-violet-800 hover:bg-violet-50 dark:text-violet-300 dark:hover:bg-violet-950/40" onClick={async () => {
+              if (!window.confirm('Перезапустить диаризацию (М/К) и анализ для последних 100 звонков? Whisper НЕ перезапускается, только разметка диалога и AI-оценка. Это поможет улучшить разбиение спикеров после обновления промта.')) return;
+              try {
+                const r = await axios.post(`${API}/api/call-analytics/re-diarize-all`, null, { params: { limit: 100 } });
+                toast.success(`В очереди: ${r.data.queued} звонков на повторную разметку`);
+                setProcessRefresh(x => x + 1);
+              } catch(e) { toast.error('Ошибка'); }
+            }} data-testid="re-diarize-all-btn">
+              <Zap className="h-4 w-4 mr-1"/> Перезапустить М/К и анализ
+            </Button>
           </div>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
             Прогресс обновляется автоматически каждые 3 сек. пока идёт обработка. «Очистить пустые» убирает импортированные записи без аудио и длительности (обычно это системные заметки amoCRM, а не реальные звонки).
@@ -911,7 +921,17 @@ const CallDetail = ({ callId, onBack }) => {
 
   return (
     <div className="space-y-4" data-testid="call-detail">
-      <Button variant="ghost" size="sm" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1"/>Назад</Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={onBack}><ChevronLeft className="h-4 w-4 mr-1"/>Назад</Button>
+        <Button variant="outline" size="sm" onClick={async () => {
+          try {
+            await axios.post(`${API}/api/call-analytics/calls/${callId}/re-diarize`);
+            toast.success('Запущена повторная диаризация и анализ');
+          } catch(e) { toast.error(e.response?.data?.detail || 'Ошибка'); }
+        }} data-testid="re-diarize-btn">
+          <RefreshCw className="h-3.5 w-3.5 mr-1"/>Перезапустить разметку М/К
+        </Button>
+      </div>
 
       <Card className="border">
         <CardContent className="p-4">

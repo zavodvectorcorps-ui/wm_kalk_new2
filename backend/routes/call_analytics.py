@@ -840,11 +840,21 @@ async def _transcribe_single_impl(call_id: str):
             whisper_result = await client.audio.transcriptions.create(
                 model="whisper-1",
                 file=("call.mp3", audio_bytes),
-                response_format="verbose_json"
+                response_format="verbose_json",
+                timestamp_granularities=["segment"],
             )
 
             transcript = whisper_result.text or ""
             language = getattr(whisper_result, 'language', 'unknown') or 'unknown'
+            # Save Whisper segments — used by diarization for better speaker detection
+            segments = []
+            for s in (getattr(whisper_result, 'segments', None) or []):
+                seg = s if isinstance(s, dict) else (s.model_dump() if hasattr(s, 'model_dump') else dict(s))
+                segments.append({
+                    "start": seg.get("start"),
+                    "end": seg.get("end"),
+                    "text": seg.get("text", "").strip(),
+                })
         except Exception as whisper_err:
             error_msg = str(whisper_err)[:500]
             logger.error(f"Whisper error for {call_id}: {error_msg}")
@@ -854,7 +864,7 @@ async def _transcribe_single_impl(call_id: str):
             }})
             return
 
-        update = {"status": "transcribed", "language": language}
+        update = {"status": "transcribed", "language": language, "transcript_segments": segments}
         # Cost: Whisper = $0.006/min
         dur_min = (call.get("duration_seconds") or 60) / 60
         cost_whisper = round(dur_min * 0.006, 4)
@@ -864,19 +874,22 @@ async def _transcribe_single_impl(call_id: str):
         if lang_lower in ("polish", "pl"):
             update["transcript_pl"] = transcript
             update["language"] = "pl"
-            # Diarize + translate to Russian
-            diarized_ru = await _diarize_and_translate(transcript, call, "pl")
+            # Diarize + translate to Russian (pass segments for better chunking + speaker detection)
+            call_for_diar = {**call, "transcript_segments": segments}
+            diarized_ru = await _diarize_and_translate(transcript, call_for_diar, "pl")
             update["transcript_ru"] = diarized_ru
             cost_diarize = _estimate_gpt_cost(transcript, diarized_ru, "gpt-4o-mini")
         elif lang_lower in ("russian", "ru"):
             update["language"] = "ru"
-            diarized = await _diarize_and_translate(transcript, call, "ru")
+            call_for_diar = {**call, "transcript_segments": segments}
+            diarized = await _diarize_and_translate(transcript, call_for_diar, "ru")
             update["transcript_ru"] = diarized
             cost_diarize = _estimate_gpt_cost(transcript, diarized, "gpt-4o-mini")
         else:
             update["transcript_pl"] = transcript
             update["language"] = lang_lower
-            diarized_ru = await _diarize_and_translate(transcript, call, lang_lower)
+            call_for_diar = {**call, "transcript_segments": segments}
+            diarized_ru = await _diarize_and_translate(transcript, call_for_diar, lang_lower)
             update["transcript_ru"] = diarized_ru
             cost_diarize = _estimate_gpt_cost(transcript, diarized_ru, "gpt-4o-mini")
 
@@ -925,60 +938,224 @@ async def _translate_to_russian(text: str) -> str:
     return text
 
 
-async def _diarize_and_translate(transcript: str, call: dict, source_lang: str) -> str:
-    """Use GPT to split transcript into dialog (M: manager / C: client) and translate to Russian."""
+def _chunk_segments(segments: list, max_chars: int = 6000) -> list:
+    """Split Whisper segments into chunks of ~max_chars total text length, on segment boundaries."""
+    chunks, cur, cur_len = [], [], 0
+    for s in segments:
+        t = s.get("text", "")
+        if cur and cur_len + len(t) > max_chars:
+            chunks.append(cur)
+            cur, cur_len = [], 0
+        cur.append(s)
+        cur_len += len(t)
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
+async def _diarize_chunk(chunk_lines: str, call: dict, source_lang: str, prev_tail: str = "", chunk_idx: int = 0, total_chunks: int = 1) -> str:
+    """Diarize a single chunk (assumed to fit comfortably in the context window)."""
     api_key = _api_key()
     if not api_key:
-        return transcript
+        return chunk_lines
 
     manager_name = call.get("manager_name", "Менеджер")
     client_name = call.get("client_name", "Клиент")
     direction = call.get("direction", "outbound")
+    deal_name = call.get("deal_name", "")
 
-    prompt = f"""Ниже транскрипт телефонного звонка между менеджером и клиентом. Твоя задача:
+    translate_clause = "Переведи каждую реплику на русский язык." if source_lang != "ru" else "Оставь текст на русском."
+    open_clause = (
+        "Исходящий звонок — менеджер инициирует. После «алло» обычно говорит менеджер: представляется, спрашивает по теме."
+        if direction == "outbound"
+        else "Входящий звонок — менеджер принимает. Менеджер сразу здоровается («Добрый день, WM-Sauna, Иван слушает»). Клиент задаёт вопрос."
+    )
+    context_clause = f"\n\n[Контекст из предыдущего фрагмента — закончилось на: {prev_tail}]\n" if prev_tail else ""
 
-1. Разбей текст на реплики, определив кто говорит — менеджер (М) или клиент (К).
-2. {'Переведи каждую реплику на русский язык.' if source_lang != 'ru' else 'Оставь текст на русском.'}
-3. Верни результат в формате диалога:
+    prompt = f"""Перед тобой фрагмент {chunk_idx + 1}/{total_chunks} транскрипта телефонного звонка с таймкодами и сегментами от Whisper.
 
-М: текст реплики менеджера
-К: текст реплики клиента
-М: следующая реплика
-...
+ЗАДАЧА:
+1. Разбей текст на реплики менеджера (М) и клиента (К). Используй смену темы/паузу между сегментами как сильный сигнал смены спикера.
+2. {translate_clause}
+3. Верни ТОЛЬКО диалог в формате «М: ...» / «К: ...», по одной реплике на строку. Без таймкодов и пояснений.
 
-Контекст:
-- Менеджер: {manager_name}
-- Клиент: {client_name or 'неизвестен'}
-- Направление: {'исходящий (менеджер звонит клиенту)' if direction == 'outbound' else 'входящий (клиент звонит)'}
-- {'Исходящий звонок — первым обычно говорит клиент (берёт трубку), менеджер представляется.' if direction == 'outbound' else 'Входящий звонок — первым обычно говорит менеджер (принимает звонок).'}
+КОНТЕКСТ ЗВОНКА:
+- Менеджер: {manager_name} (компания WM-Sauna — продажа саун/балий/теплиц)
+- Клиент: {client_name or 'неизвестно'}
+- Сделка: {deal_name or '—'}
+- Направление: {direction}
+- {open_clause}
 
-Правила:
-- Определяй спикера по контексту: менеджер представляется, предлагает продукт, задаёт вопросы о потребностях. Клиент отвечает на вопросы, задаёт вопросы о цене/сроках.
-- Если не можешь точно определить — используй лучшее предположение.
-- Не добавляй ничего от себя, только разметь и переведи.
+ПРИЗНАКИ МЕНЕДЖЕРА:
+- Представляется компанией/именем
+- Уточняет потребности («какой размер? сколько человек? для дачи или дома?»)
+- Презентует продукт, цены, сроки доставки
+- Использует профессиональные термины (печь, парилка, кедр, осина, конструктив)
+- Договаривается о следующем шаге («давайте я отправлю КП», «когда удобно созвониться?»)
+- Прощается официально
 
-Транскрипт ({source_lang}):
-{transcript[:10000]}"""
+ПРИЗНАКИ КЛИЕНТА:
+- Спрашивает о цене, сроках, гарантии
+- Описывает свою ситуацию («у меня участок», «нужна для семьи»)
+- Возражает («дорого», «подумаю», «у конкурентов дешевле»)
+- Часто говорит короче и менее уверенно технически
+{context_clause}
+ФРАГМЕНТ ТРАНСКРИПТА (с таймкодами в секундах):
+{chunk_lines}
+
+Выдай результат — только реплики М: / К:, ничего лишнего."""
 
     try:
-        async with httpx.AsyncClient(timeout=120) as cl:
+        async with httpx.AsyncClient(timeout=180) as cl:
             resp = await cl.post(
                 f"{EMERGENT_PROXY}/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={"model": "gpt-4o-mini", "messages": [
-                    {"role": "system", "content": "Ты — эксперт по диаризации телефонных разговоров. Разбиваешь транскрипт на реплики М (менеджер) и К (клиент). Отвечай только диалогом, без пояснений."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": "Ты — эксперт по диаризации телефонных разговоров продажников. Твоя задача — точно определить кто говорит (М/К) и перевести при необходимости. Отвечаешь строго в формате диалога без пояснений."},
+                    {"role": "user", "content": prompt},
                 ]}
             )
         if resp.status_code == 200:
             return resp.json()["choices"][0]["message"]["content"]
+        logger.warning(f"Diarize chunk {chunk_idx}: {resp.status_code} {resp.text[:200]}")
     except Exception as e:
-        logger.warning(f"Diarization failed for call {call.get('id')}: {e}")
+        logger.warning(f"Diarize chunk {chunk_idx} failed: {e}")
+    return chunk_lines
 
-    # Fallback: just translate without diarization
-    if source_lang != "ru":
-        return await _translate_to_russian(transcript)
-    return transcript
+
+async def _diarize_and_translate(transcript: str, call: dict, source_lang: str) -> str:
+    """Diarize & translate the FULL transcript, chunking long calls so nothing is dropped.
+
+    Strategy:
+      - If we have Whisper segments saved on the call → split by segments (best, has timestamps).
+      - Else fall back to chunking raw text.
+      - Each chunk gets the tail of the previous chunk as context so speaker continuity holds.
+      - Chunks are diarized in parallel.
+    """
+    if not transcript or not transcript.strip():
+        return transcript
+
+    segments = call.get("transcript_segments") or []
+    chunks_lines = []  # list of strings — each is a chunk to send to GPT
+
+    if segments:
+        # Format each segment as "[mm:ss] text"
+        def fmt(s):
+            t = s.get("text", "").strip()
+            start = s.get("start") or 0
+            mm = int(start // 60)
+            ss = int(start % 60)
+            return f"[{mm:02d}:{ss:02d}] {t}"
+
+        groups = _chunk_segments(segments, max_chars=6000)
+        for grp in groups:
+            chunks_lines.append("\n".join(fmt(s) for s in grp))
+    else:
+        # Fallback: split raw text on ~6000 char boundaries (sentence-aware)
+        step = 6000
+        i = 0
+        while i < len(transcript):
+            end = min(i + step, len(transcript))
+            # Snap to nearest sentence end if not at the very end
+            if end < len(transcript):
+                for sep in [". ", "! ", "? ", "\n"]:
+                    p = transcript.rfind(sep, i, end)
+                    if p > i + step // 2:
+                        end = p + len(sep)
+                        break
+            chunks_lines.append(transcript[i:end])
+            i = end
+
+    total = len(chunks_lines)
+    if total == 0:
+        return transcript
+
+    logger.info(f"Diarizing call {call.get('id')}: {total} chunk(s), source_lang={source_lang}")
+
+    # Process chunks sequentially so each one can use previous tail as context
+    results = []
+    prev_tail = ""
+    for idx, chunk in enumerate(chunks_lines):
+        out = await _diarize_chunk(chunk, call, source_lang, prev_tail, idx, total)
+        results.append(out)
+        # Use last 2 dialog lines as context for the next chunk
+        last_lines = [ln for ln in out.strip().splitlines() if ln.strip()][-2:]
+        prev_tail = " | ".join(last_lines)[:300]
+
+    return "\n".join(results)
+
+
+@router.post("/calls/{call_id}/re-diarize")
+async def re_diarize_call(call_id: str, background_tasks: BackgroundTasks):
+    """Re-run diarization on an already-transcribed call without re-downloading audio.
+
+    Useful after improving the diarization prompt: existing calls can be quickly upgraded
+    without paying for Whisper again.
+    """
+    call = await db[CALLS_COL].find_one({"id": call_id})
+    if not call:
+        raise HTTPException(status_code=404, detail="Звонок не найден")
+    raw_transcript = call.get("transcript_pl") or call.get("transcript_ru")
+    if not raw_transcript:
+        raise HTTPException(status_code=400, detail="Нет транскрипта — сначала запустите транскрибацию")
+
+    async def _run():
+        lang = (call.get("language") or "ru").lower()
+        # If we have transcript_pl — diarize from PL source. Otherwise from RU.
+        source_lang = "pl" if call.get("transcript_pl") else "ru"
+        diarized = await _diarize_and_translate(raw_transcript, call, source_lang)
+        await db[CALLS_COL].update_one(
+            {"id": call_id},
+            {"$set": {
+                "transcript_ru": diarized,
+                "updatedAt": datetime.now(timezone.utc).isoformat(),
+                "re_diarized_at": datetime.now(timezone.utc).isoformat(),
+                # Reset analysis so it gets re-analyzed with the new diarization
+                "status": "transcribed",
+                "score": None, "checks_json": None, "summary_ru": None,
+                "key_issues_json": None, "recommendations_json": None,
+                "has_strong_negative": False,
+            }}
+        )
+        # Auto-analyze with the new diarization
+        await _analyze_single(call_id)
+
+    background_tasks.add_task(_run)
+    return {"status": "ok", "callId": call_id, "message": "Перезапущена диаризация и анализ"}
+
+
+@router.post("/re-diarize-all")
+async def re_diarize_all(background_tasks: BackgroundTasks, limit: int = 100):
+    """Re-diarize the most recent N transcribed calls in background."""
+    calls = await db[CALLS_COL].find(
+        {"$or": [{"transcript_pl": {"$nin": [None, ""]}}, {"transcript_ru": {"$nin": [None, ""]}}]},
+        {"_id": 0, "id": 1}
+    ).sort("datetime", -1).limit(limit).to_list(length=limit)
+    queued = 0
+    for c in calls:
+        cid = c["id"]
+        async def _wrap(call_id=cid):
+            call = await db[CALLS_COL].find_one({"id": call_id})
+            if not call:
+                return
+            source_lang = "pl" if call.get("transcript_pl") else "ru"
+            raw = call.get("transcript_pl") or call.get("transcript_ru") or ""
+            if not raw:
+                return
+            diarized = await _diarize_and_translate(raw, call, source_lang)
+            await db[CALLS_COL].update_one(
+                {"id": call_id},
+                {"$set": {
+                    "transcript_ru": diarized,
+                    "status": "transcribed",
+                    "updatedAt": datetime.now(timezone.utc).isoformat(),
+                    "re_diarized_at": datetime.now(timezone.utc).isoformat(),
+                }}
+            )
+            await _analyze_single(call_id)
+        background_tasks.add_task(_wrap)
+        queued += 1
+    return {"status": "ok", "queued": queued}
 
 
 # ── AI Analysis ───────────────────────────────────
