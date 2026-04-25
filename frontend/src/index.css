@@ -274,6 +274,32 @@ html.dark {
   color: rgb(226 232 240);
 }
 
+/* Pastel light badges / tinted rows (bg-*-50) — if dev forgot a dark variant,
+   soften them into transparent tinted overlays that stay readable. */
+.dark .bg-emerald-50:not([class*="dark:bg-"]),
+.dark .bg-green-50:not([class*="dark:bg-"]) {
+  background-color: rgb(6 78 59 / 0.3);
+}
+.dark .bg-amber-50:not([class*="dark:bg-"]),
+.dark .bg-yellow-50:not([class*="dark:bg-"]),
+.dark .bg-orange-50:not([class*="dark:bg-"]) {
+  background-color: rgb(120 53 15 / 0.3);
+}
+.dark .bg-red-50:not([class*="dark:bg-"]),
+.dark .bg-rose-50:not([class*="dark:bg-"]) {
+  background-color: rgb(127 29 29 / 0.3);
+}
+.dark .bg-blue-50:not([class*="dark:bg-"]),
+.dark .bg-sky-50:not([class*="dark:bg-"]),
+.dark .bg-indigo-50:not([class*="dark:bg-"]) {
+  background-color: rgb(30 58 138 / 0.3);
+}
+.dark .bg-purple-50:not([class*="dark:bg-"]),
+.dark .bg-violet-50:not([class*="dark:bg-"]),
+.dark .bg-pink-50:not([class*="dark:bg-"]) {
+  background-color: rgb(88 28 135 / 0.3);
+}
+
 /* Aggressive fallback: invert the native picker indicator entirely.
    Use !important because some component libraries (radix/shadcn) set conflicting styles. */
 .dark input[type="date"]::-webkit-calendar-picker-indicator,

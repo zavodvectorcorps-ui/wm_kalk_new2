@@ -85,7 +85,11 @@ const ProcessingStats = ({ refreshKey }) => {
 };
 const fmtDate = (d) => d ? new Date(d).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
 const scoreColor = (s) => s == null ? 'text-gray-400' : s >= 8 ? 'text-emerald-600' : s >= 5 ? 'text-amber-600' : 'text-red-600';
-const scoreBg = (s) => s == null ? 'bg-gray-100' : s >= 8 ? 'bg-emerald-50 border-emerald-200' : s >= 5 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
+const scoreBg = (s) => s == null
+  ? 'bg-gray-100 dark:bg-slate-800/60'
+  : s >= 8 ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/50'
+  : s >= 5 ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/50'
+  : 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800/50';
 
 // ── SYNC TAB ──
 const SyncTab = () => {
@@ -206,7 +210,7 @@ const SyncTab = () => {
             {settings.lastSyncAt && <span className="text-xs ml-2 text-muted-foreground">({fmtDate(settings.lastSyncAt)})</span>}
           </Button>
           {syncStatus && syncStatus.status !== 'never' && (
-            <div className={`text-sm p-2 rounded ${syncStatus.status === 'running' ? 'bg-blue-50' : syncStatus.status === 'completed' ? 'bg-emerald-50' : 'bg-red-50'}`}>
+            <div className={`text-sm p-2 rounded ${syncStatus.status === 'running' ? 'bg-blue-50 dark:bg-blue-950/40 dark:text-blue-100' : syncStatus.status === 'completed' ? 'bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-100' : 'bg-red-50 dark:bg-red-950/40 dark:text-red-100'}`}>
               {syncStatus.status === 'running' && <Loader2 className="h-3 w-3 animate-spin inline mr-1"/>}
               {syncStatus.progress || syncStatus.status}
               {syncStatus.status === 'completed' && syncStatus.imported != null && (
