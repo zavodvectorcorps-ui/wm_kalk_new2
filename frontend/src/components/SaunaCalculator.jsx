@@ -597,7 +597,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
           {/* Notes */}
           <Card className="shadow-md">
             <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-amber-200/40 dark:border-amber-700/20">
-              <CardTitle className="text-lg text-amber-800 dark:text-amber-300">{txt.notes}</CardTitle>
+              <CardTitle className="text-lg text-slate-800 dark:text-slate-100">{txt.notes}</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <Textarea
@@ -715,7 +715,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
 const CustomerInfoCard = ({ formData, setFormData, handleInputChange, txt }) => (
   <Card className="shadow-md">
     <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-amber-200/40 dark:border-amber-700/20">
-      <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-300">
+      <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-100">
         <User className="h-5 w-5" />
         {txt.customerInfo}
       </CardTitle>
@@ -861,7 +861,7 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
   return (
   <Card className="shadow-md">
     <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-amber-200/40 dark:border-amber-700/20">
-      <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-300">
+      <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-100">
         <Calculator className="h-5 w-5" />
         {txt.model} *
       </CardTitle>
@@ -1294,7 +1294,7 @@ const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, ha
   return (
     <Card className="shadow-md">
       <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-amber-200/40 dark:border-amber-700/20">
-        <CardTitle className="flex items-center gap-2 text-lg text-amber-800 dark:text-amber-300">
+        <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-slate-100">
           <Icon className="h-5 w-5" />
           {getCategoryName(category)}
         </CardTitle>
