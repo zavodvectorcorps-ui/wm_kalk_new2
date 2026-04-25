@@ -133,12 +133,29 @@ async def crm_auto_sync_scheduler():
                 await asyncio.sleep(60)
                 continue
 
-            # Check if sync is already running
+            # Check if sync is already running (with stale-detection)
             running = await db["sauna_crm_sync_status"].find_one({"status": "running"}, {"_id": 0})
             if running:
-                logger.info("CRM auto-sync: skipped, sync already running")
-                await asyncio.sleep(60)
-                continue
+                # If the previous sync's heartbeat is older than 5 min, it's dead — auto-reset.
+                from datetime import datetime as _dt, timezone as _tz
+                last_beat_iso = running.get("lastHeartbeat") or running.get("startedAt")
+                is_stale = False
+                try:
+                    if last_beat_iso:
+                        last_beat = _dt.fromisoformat(last_beat_iso.replace("Z", "+00:00"))
+                        age_sec = (_dt.now(_tz.utc) - last_beat).total_seconds()
+                        if age_sec > 300:
+                            is_stale = True
+                            logger.warning(f"CRM auto-sync: detected stale running sync (age={age_sec:.0f}s, syncId={running.get('syncId')}) — auto-resetting")
+                except Exception:
+                    is_stale = True
+
+                if is_stale:
+                    await db["sauna_crm_sync_status"].delete_many({})
+                else:
+                    logger.info("CRM auto-sync: skipped, sync already running")
+                    await asyncio.sleep(60)
+                    continue
 
             logger.info(f"CRM auto-sync: starting periodic sync (interval={interval}min)")
 
@@ -162,13 +179,26 @@ async def crm_auto_sync_scheduler():
             await db["sauna_crm_sync_status"].delete_many({})
             await db["sauna_crm_sync_status"].insert_one({
                 "syncId": sync_id, "status": "running", "startedAt": now,
+                "lastHeartbeat": now,
                 "imported": 0, "updated": 0, "errors": 0,
                 "totalStages": len(mapped_stages), "processedStages": 0,
                 "currentStage": "", "message": "Автосинхронизация..."
             })
 
-            await _run_sync_background(sync_id, crm_settings, amo_domain, amo_token)
-            logger.info(f"CRM auto-sync completed: {sync_id}")
+            # Hard timeout for the WHOLE sync — prevents the scheduler loop
+            # from blocking forever if a single batch hangs and saturates retries.
+            try:
+                await asyncio.wait_for(
+                    _run_sync_background(sync_id, crm_settings, amo_domain, amo_token),
+                    timeout=interval * 60 - 30  # finish before the next tick
+                )
+                logger.info(f"CRM auto-sync completed: {sync_id}")
+            except asyncio.TimeoutError:
+                logger.error(f"CRM auto-sync {sync_id} exceeded interval timeout — marking as error")
+                await db["sauna_crm_sync_status"].update_one(
+                    {"syncId": sync_id},
+                    {"$set": {"status": "error", "message": "Превышен лимит времени автосинка"}}
+                )
 
             await asyncio.sleep(interval * 60)
 

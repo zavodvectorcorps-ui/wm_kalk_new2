@@ -235,6 +235,45 @@ html.dark {
   color-scheme: dark !important;
 }
 
+/* Dark theme safety net for hardcoded gray text classes that lack `dark:` variants.
+   Lightens them just enough to be readable on dark backgrounds. */
+.dark .text-gray-900:not([class*="dark:text-"]),
+.dark .text-gray-800:not([class*="dark:text-"]),
+.dark .text-slate-900:not([class*="dark:text-"]),
+.dark .text-slate-800:not([class*="dark:text-"]),
+.dark .text-zinc-900:not([class*="dark:text-"]),
+.dark .text-zinc-800:not([class*="dark:text-"]) {
+  color: rgb(241 245 249); /* slate-100 */
+}
+
+.dark .text-gray-700:not([class*="dark:text-"]),
+.dark .text-gray-600:not([class*="dark:text-"]),
+.dark .text-slate-700:not([class*="dark:text-"]),
+.dark .text-slate-600:not([class*="dark:text-"]),
+.dark .text-zinc-700:not([class*="dark:text-"]),
+.dark .text-zinc-600:not([class*="dark:text-"]) {
+  color: rgb(203 213 225); /* slate-300 */
+}
+
+.dark .text-gray-500:not([class*="dark:text-"]),
+.dark .text-slate-500:not([class*="dark:text-"]),
+.dark .text-zinc-500:not([class*="dark:text-"]) {
+  color: rgb(148 163 184); /* slate-400 */
+}
+
+/* Hardcoded white backgrounds that don't declare a dark variant — soften them
+   so light cards/panels don't glare in dark mode. */
+.dark .bg-white:not([class*="dark:bg-"]) {
+  background-color: rgb(15 23 42 / 0.6); /* slate-900/60 */
+  color: rgb(241 245 249);
+}
+
+.dark .bg-gray-50:not([class*="dark:bg-"]),
+.dark .bg-slate-50:not([class*="dark:bg-"]) {
+  background-color: rgb(30 41 59 / 0.6); /* slate-800/60 */
+  color: rgb(226 232 240);
+}
+
 /* Aggressive fallback: invert the native picker indicator entirely.
    Use !important because some component libraries (radix/shadcn) set conflicting styles. */
 .dark input[type="date"]::-webkit-calendar-picker-indicator,
