@@ -39,6 +39,7 @@ const LayoutConfiguratorPage = lazy(() => import('./components/LayoutConfigurato
 const SalesPage = lazy(() => import('./components/SalesPage'));
 const LeadAnalyticsPage = lazy(() => import('./components/LeadAnalyticsPage'));
 const CallAnalyticsPage = lazy(() => import('./components/CallAnalyticsPage'));
+const PortfolioPage = lazy(() => import('./components/PortfolioPage'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -294,6 +295,16 @@ const AppContent = () => {
       <Suspense fallback={<PageLoader />}>
         <EmbedBaliaCalculator />
         <Toaster position="top-center" richColors />
+      </Suspense>
+    );
+  }
+
+  // Public portfolio/case-study page (no auth)
+  const isPortfolio = window.location.pathname.startsWith('/portfolio');
+  if (isPortfolio) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PortfolioPage />
       </Suspense>
     );
   }
@@ -816,3 +827,4 @@ function App() {
 }
 
 export default App;
+

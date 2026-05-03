@@ -108,7 +108,7 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - Persisted in localStorage; respects prefers-color-scheme on first visit
   - initTheme() called in index.js before render to prevent FOUC
 
-## Session 9 (Feb 2026) — amoCRM diagnostic + Production API URL fix
+## Session 9 (Feb 2026) — amoCRM diagnostic + Production API URL fix + Portfolio page
 - New endpoint `GET /api/integrations/amocrm/health` returns granular status:
   `ok / no_settings / unauthorized / forbidden / payment_required / api_error /
    timeout / domain_unreachable / unknown_error` with russian message + hint.
@@ -117,15 +117,21 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - CallAnalyticsPage SyncTab (data-testid: amocrm-check-btn / amocrm-health-error / amocrm-health-ok)
   - LeadAnalyticsPage SettingsTab — new "Подключение amoCRM" card on top
 - **CRITICAL fix**: production frontend was calling stale placeholder host
-  `spa-planner-replaced-1767401260.emergent.host` → ERR_NAME_NOT_RESOLVED on ALL API calls
-  (not only amoCRM). Root cause: many components used raw
-  `process.env.REACT_APP_BACKEND_URL` which got baked at build time as the placeholder.
+  `spa-planner-replaced-1767401260.emergent.host` → ERR_NAME_NOT_RESOLVED on ALL API calls.
   Fixed by importing smart `getApiUrl()` from `utils/api.js` (auto-detects
-  wm-kalkulator.pl / .emergent.host / .emergentagent.com origin) in:
-  CallAnalyticsPage, LeadAnalyticsPage, AdvancedManagerDashboard, ManagerEventsAnalytics,
-  PdfUploadDebugPage, ContentGeneratorPage, AdminHelpPage, LayoutConfiguratorPage,
-  PDFTemplateEditor, SalesTrackingPage, sauna/LayoutCatalog, layout-configurator/constants,
-  sauna-pricing/WizardStepsAdmin, SaunaCalculatorNew, App.js. yarn build verified clean.
+  wm-kalkulator.pl / .emergent.host / .emergentagent.com origin) in 14 components.
+- **Public portfolio/case-study page** at `/portfolio` (no auth, not in menu):
+  - File: `/app/frontend/src/components/PortfolioPage.jsx`
+  - Bilingual EN/RU with instant toggle (localStorage `portfolio-lang`)
+  - Dark theme with gradients/glass-morphism, animated backdrop (indigo+cyan+orange blur),
+    grain overlay, staggered card reveals.
+  - Sections: Hero with metrics (40+ endpoints, 8 integrations, 12k+ LOC, 9 modules),
+    Pitch, 8 Features, 7 Modules with real screenshots, 4 Engineering highlights
+    (context-aware AI chunking, anti-hang heartbeats, cost-aware caching, prod diagnostics),
+    4-column Stack (Frontend/Backend/Storage/AI&APIs).
+  - Screenshots in `/app/frontend/public/portfolio-screenshots/` (7 real captures
+    from preview env).
+  - Public route wired in App.js before auth check: `window.location.pathname.startsWith('/portfolio')`.
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
