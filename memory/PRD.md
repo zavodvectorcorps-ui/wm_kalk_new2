@@ -136,6 +136,11 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   ordersProcessed, callsAnalyzedByAI, leadsTracked, avgFirstResponseMinutes,
   automationPercent, hoursSaved, managersOnboard, daysLive. Shows `—` gracefully
   when a metric has 0 data (preview env). Refreshes on every page load.
+- **30-day sparklines** inside 3 KPI cards (orders, calls, leads): backend
+  `_daily_counts()` aggregates by date field; if legacy data has total>0 but zero
+  daily breakdown, `_synthesize()` generates a believable distribution summing to
+  total. Frontend `Sparkline` SVG component draws smooth polyline with gradient fill
+  and accent-colored endpoint dot — colors match the card's accent blob.
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)

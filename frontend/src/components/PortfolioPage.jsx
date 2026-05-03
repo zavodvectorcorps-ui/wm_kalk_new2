@@ -49,6 +49,38 @@ const CountUp = ({ value = 0, duration = 1600, decimals = 0, suffix = '', prefix
   return <span ref={ref} data-testid="countup-value">{prefix}{formatted}{suffix}</span>;
 };
 
+// Tiny SVG sparkline — 30 numbers → smooth trend line with gradient fill
+const Sparkline = ({ data, color = '#60a5fa', className = '' }) => {
+  if (!data || data.length === 0) return null;
+  const w = 120;
+  const h = 32;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const step = w / (data.length - 1 || 1);
+  const points = data.map((v, i) => {
+    const x = i * step;
+    const y = h - 4 - ((v - min) / range) * (h - 8);
+    return [x, y];
+  });
+  const pathLine = points.reduce((acc, [x, y], i) => acc + `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)} `, '');
+  const pathFill = pathLine + ` L ${w} ${h} L 0 ${h} Z`;
+  const gradId = `spark-grad-${color.replace('#','')}`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className={className} data-testid="sparkline">
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.45" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={pathFill} fill={`url(#${gradId})`} />
+      <path d={pathLine} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={points[points.length - 1][0]} cy={points[points.length - 1][1]} r="2.5" fill={color} />
+    </svg>
+  );
+};
+
 const CONTENT = {
   en: {
     nav: { features: 'Features', modules: 'Modules', stack: 'Stack', numbers: 'Numbers', live: 'Live' },
@@ -336,6 +368,8 @@ export default function PortfolioPage() {
             const raw = kpi ? kpi[c.key] : null;
             const value = raw == null ? 0 : raw;
             const hasValue = raw != null && raw > 0;
+            const trend = kpi?.trends?.[c.key];
+            const accent = ['#6366f1','#06b6d4','#10b981','#f59e0b','#ec4899','#8b5cf6','#3b82f6','#f97316'][i % 8];
             return (
               <div
                 key={c.key}
@@ -344,7 +378,7 @@ export default function PortfolioPage() {
               >
                 {/* subtle gradient accent */}
                 <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"
-                     style={{ background: ['#6366f1','#06b6d4','#10b981','#f59e0b','#ec4899','#8b5cf6','#3b82f6','#f97316'][i % 8] }} />
+                     style={{ background: accent }} />
                 <Icon className="h-5 w-5 text-slate-300 mb-4 relative z-10" />
                 <div className="text-3xl md:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400 relative z-10 leading-none">
                   {kpi === null ? (
@@ -355,7 +389,12 @@ export default function PortfolioPage() {
                     <span className="text-slate-600">—</span>
                   )}
                 </div>
-                <div className="text-xs uppercase tracking-[0.18em] text-slate-500 mt-3 relative z-10">{c.label}</div>
+                <div className="flex items-end justify-between mt-3 relative z-10 gap-2">
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{c.label}</div>
+                  {trend && trend.some(v => v > 0) && (
+                    <Sparkline data={trend} color={accent} className="opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+                  )}
+                </div>
               </div>
             );
           })}
