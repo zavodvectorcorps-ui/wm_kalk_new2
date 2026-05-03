@@ -7,7 +7,7 @@ Tests the specific scenarios mentioned in the review request
 import requests
 import json
 
-BACKEND_URL = "https://manager-kpi-hub.preview.emergentagent.com/api"
+BACKEND_URL = "https://lead-sync-hub-8.preview.emergentagent.com/api"
 
 def test_custom_category_flow():
     """Test the complete custom category creation flow as specified in review request"""

@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://manager-kpi-hub.preview.emergentagent.com
+Preview: https://lead-sync-hub-8.preview.emergentagent.com
 ```
 
 ---
