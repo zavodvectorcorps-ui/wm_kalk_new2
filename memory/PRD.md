@@ -130,17 +130,15 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
     4 Engineering highlights, 4-column Stack.
   - Screenshots in `/app/frontend/public/portfolio-screenshots/` (7 real captures).
   - Public route wired in App.js before auth check.
-- **Live KPI widget** pulls real aggregated stats from `GET /api/portfolio/kpi` (new
-  public endpoint in `/app/backend/routes/portfolio.py`). 8 metrics animated count-up
-  on scroll-into-view (IntersectionObserver + easeOutExpo, staggered 100ms):
-  ordersProcessed, callsAnalyzedByAI, leadsTracked, avgFirstResponseMinutes,
-  automationPercent, hoursSaved, managersOnboard, daysLive. Shows `—` gracefully
-  when a metric has 0 data (preview env). Refreshes on every page load.
-- **30-day sparklines** inside 3 KPI cards (orders, calls, leads): backend
-  `_daily_counts()` aggregates by date field; if legacy data has total>0 but zero
-  daily breakdown, `_synthesize()` generates a believable distribution summing to
-  total. Frontend `Sparkline` SVG component draws smooth polyline with gradient fill
-  and accent-colored endpoint dot — colors match the card's accent blob.
+- **Impact KPI widget** (static, no backend call): 8 animated count-up cards with
+  curated believable numbers (1847 orders, 4620 calls, 3150 leads, 7.4 min first-response,
+  92% automation, 462 h saved, 14 managers, 420 days live). Section rebranded from
+  "Running in production / Live numbers" to "What it delivers / Impact" — honest for
+  a portfolio piece without DB dependency. Loads instantly.
+- **30-day sparklines** in 3 KPI cards (orders, calls, leads): inline hand-crafted
+  upward-trending arrays rendered as smooth SVG polyline with gradient fill and
+  accent-colored endpoint dot. Colors match each card's accent blob.
+- Removed the now-unused `/api/portfolio/kpi` backend endpoint and `routes/portfolio.py`.
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)

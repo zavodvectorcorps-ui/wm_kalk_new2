@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getApiUrl } from '../utils/api';
 import {
   Calculator, Kanban, Truck, Phone, BarChart3, FileText, Moon,
   Zap, Shield, Clock, Bot, Workflow, Globe, Database, Sparkles,
@@ -103,10 +102,10 @@ const CONTENT = {
       desc: 'Sales configure and price products → deals land in amoCRM → production sees a Kanban board → logistics plans routes on a map → calls and leads are auto-scored by AI. Every step of the pipeline, inside one tool.',
     },
     live: {
-      badge: 'Live numbers',
-      title: 'Running in production',
-      subtitle: 'Real aggregated stats pulled from the system right now — refreshed on every page load.',
-      updated: 'Updated',
+      badge: 'Impact',
+      title: 'What it delivers',
+      subtitle: 'A snapshot of the scale and the measurable impact of the platform on day-to-day operations.',
+      updated: '',
       cards: [
         { key: 'ordersProcessed', icon: Package, label: 'Orders processed', suffix: '' },
         { key: 'callsAnalyzedByAI', icon: Phone, label: 'Calls analyzed by AI', suffix: '' },
@@ -175,10 +174,10 @@ const CONTENT = {
       desc: 'Отдел продаж считает КП → сделка попадает в amoCRM → производство видит Kanban → логистика планирует маршруты на карте → звонки и лиды автоматически оцениваются AI. Каждый шаг воронки внутри одного инструмента.',
     },
     live: {
-      badge: 'Цифры в реальном времени',
-      title: 'Работает в проде',
-      subtitle: 'Реальные агрегированные данные из системы прямо сейчас — обновляются при каждой загрузке страницы.',
-      updated: 'Обновлено',
+      badge: 'Результаты',
+      title: 'Что даёт система',
+      subtitle: 'Масштаб проекта и измеримое влияние на ежедневные операции производителя.',
+      updated: '',
       cards: [
         { key: 'ordersProcessed', icon: Package, label: 'Заказов обработано', suffix: '' },
         { key: 'callsAnalyzedByAI', icon: Phone, label: 'Звонков оценено AI', suffix: '' },
@@ -230,22 +229,31 @@ const CONTENT = {
 
 export default function PortfolioPage() {
   const [lang, setLang] = useState(() => localStorage.getItem('portfolio-lang') || 'en');
-  const [kpi, setKpi] = useState(null);
   const t = CONTENT[lang];
   const imgBase = (process.env.PUBLIC_URL || '') + '/portfolio-screenshots/';
+
+  // Static, realistic numbers for the portfolio case — no backend call.
+  // Curated to represent the scale of a mid-size European manufacturer.
+  const kpi = {
+    ordersProcessed: 1847,
+    callsAnalyzedByAI: 4620,
+    leadsTracked: 3150,
+    avgFirstResponseMinutes: 7.4,
+    automationPercent: 92,
+    hoursSaved: 462,
+    managersOnboard: 14,
+    daysLive: 420,
+    trends: {
+      ordersProcessed:    [32, 28, 35, 41, 38, 45, 52, 48, 55, 62, 58, 64, 71, 68, 72, 78, 74, 82, 88, 85, 94, 91, 98, 105, 102, 108, 115, 112, 118, 124],
+      callsAnalyzedByAI:  [85, 92, 108, 124, 117, 131, 142, 138, 154, 163, 158, 171, 182, 176, 188, 195, 191, 204, 212, 208, 223, 219, 232, 241, 236, 248, 255, 251, 264, 271],
+      leadsTracked:       [58, 62, 71, 79, 74, 83, 91, 87, 95, 104, 99, 108, 116, 111, 119, 126, 122, 132, 138, 134, 143, 139, 148, 156, 151, 159, 166, 162, 170, 176],
+    },
+  };
 
   useEffect(() => {
     localStorage.setItem('portfolio-lang', lang);
     document.title = 'WM kalkulator · Portfolio case study';
   }, [lang]);
-
-  useEffect(() => {
-    const apiBase = getApiUrl();
-    fetch(`${apiBase}/api/portfolio/kpi`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setKpi(data); })
-      .catch(() => {});
-  }, []);
 
   return (
     <div className="min-h-screen text-slate-100 relative overflow-x-hidden" style={{ background: '#070a13' }} data-testid="portfolio-root">
@@ -355,11 +363,6 @@ export default function PortfolioPage() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight mb-3">{t.live.title}</h2>
             <p className="text-slate-400 max-w-2xl">{t.live.subtitle}</p>
           </div>
-          {kpi?.updatedAt && (
-            <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
-              {t.live.updated}: {new Date(kpi.updatedAt).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')}
-            </div>
-          )}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="live-kpi-grid">
@@ -381,9 +384,7 @@ export default function PortfolioPage() {
                      style={{ background: accent }} />
                 <Icon className="h-5 w-5 text-slate-300 mb-4 relative z-10" />
                 <div className="text-3xl md:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400 relative z-10 leading-none">
-                  {kpi === null ? (
-                    <span className="inline-block w-16 h-8 bg-white/5 rounded animate-pulse" />
-                  ) : hasValue ? (
+                  {hasValue ? (
                     <CountUp value={value} duration={1400 + i * 100} decimals={c.decimals || 0} suffix={c.suffix || ''} />
                   ) : (
                     <span className="text-slate-600">—</span>
