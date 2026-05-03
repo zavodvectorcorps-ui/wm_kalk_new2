@@ -10,7 +10,8 @@ import {
   MessageSquare, TrendingUp, ChevronDown, ChevronUp, Flame, CircleDot, Trash2
 } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import { getApiUrl } from '../utils/api';
+const API_URL = getApiUrl();
 
 const fmtH = (h) => {
   if (h == null) return '—';

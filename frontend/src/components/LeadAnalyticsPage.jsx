@@ -16,7 +16,8 @@ import {
 import ManagerEventsAnalytics from './ManagerEventsAnalytics';
 import AdvancedManagerDashboard from './AdvancedManagerDashboard';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import { getApiUrl } from '../utils/api';
+const API_URL = getApiUrl();
 
 // Status config
 const STATUS_CONFIG = {

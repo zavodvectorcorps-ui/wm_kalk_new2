@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl } from '../utils/api';
+const API_URL = getApiUrl();
 
 const STATUS_COLORS = {
   'запланировано': 'bg-blue-100 text-blue-800',

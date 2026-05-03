@@ -13,7 +13,8 @@ import {
   BarChart3
 } from 'lucide-react';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+import { getApiUrl } from '../utils/api';
+const API = getApiUrl();
 const fmtDur = (s) => { if (!s) return '—'; const m = Math.floor(s/60); return `${m}:${String(s%60).padStart(2,'0')}`; };
 
 // ── PROCESSING STATS with live polling ──

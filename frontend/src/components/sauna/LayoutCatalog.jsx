@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { LayoutGrid, Check, ChevronDown, ChevronUp, Image as ImageIcon, Users, Maximize2, Home, Flame, DoorOpen, Upload, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl } from '../../utils/api';
+const API_URL = getApiUrl();
 
 export const LayoutCatalog = ({ 
   selectedSize, 

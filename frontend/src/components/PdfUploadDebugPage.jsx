@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl } from '../utils/api';
+const API_URL = getApiUrl();
 
 export default function PdfUploadDebugPage() {
   const [debugInfo, setDebugInfo] = useState(null);

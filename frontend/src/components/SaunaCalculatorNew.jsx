@@ -306,7 +306,13 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
   useEffect(() => {
     const loadWizardSteps = async () => {
       try {
-        const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+        const API_URL = (() => {
+          if (typeof window !== 'undefined') {
+            const o = window.location.origin;
+            if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o;
+          }
+          return process.env.REACT_APP_BACKEND_URL || '';
+        })();
         const response = await fetch(`${API_URL}/api/sauna/wizard-steps`);
         if (response.ok) {
           const steps = await response.json();

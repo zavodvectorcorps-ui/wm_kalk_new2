@@ -19,7 +19,8 @@ import {
   Magnet, CopyPlus, FileInput, LayoutGrid, SplitSquareVertical, X, Calculator
 } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl } from '../utils/api';
+const API_URL = getApiUrl();
 
 // A4 Landscape dimensions
 // A4 = 297mm x 210mm (landscape)

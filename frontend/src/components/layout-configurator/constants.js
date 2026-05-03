@@ -81,4 +81,5 @@ export const CANVAS_SERIALIZE_PROPS = [
   'left', 'top', 'width', 'height', 'scaleX', 'scaleY', 'angle'
 ];
 
-export const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl } from '../../utils/api';
+export const API_URL = getApiUrl();

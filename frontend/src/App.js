@@ -135,8 +135,14 @@ const AppContent = () => {
     const params = new URLSearchParams(window.location.search);
     const pathname = window.location.pathname;
     
-    // Helper to get API URL
-    const getApiUrl = () => process.env.REACT_APP_BACKEND_URL || '';
+    // Helper to get API URL — smart-detect production origin (avoids stale baked-in env)
+    const getApiUrl = () => {
+      if (typeof window !== 'undefined') {
+        const o = window.location.origin;
+        if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o;
+      }
+      return process.env.REACT_APP_BACKEND_URL || '';
+    };
     const API_URL = getApiUrl();
     
     // Handle direct calculator URLs: /sauna/calculator?edit=ORDER_ID or /balia/calculator?edit=ORDER_ID
@@ -244,7 +250,13 @@ const AppContent = () => {
     
     if ((pendingEditOrderId || pendingViewOrderId) && pendingCalcType) {
       const orderId = pendingEditOrderId || pendingViewOrderId;
-      const API_URL = process.env.REACT_APP_BACKEND_URL || '';
+      const API_URL = (() => {
+        if (typeof window !== 'undefined') {
+          const o = window.location.origin;
+          if (o.includes('wm-kalkulator.pl') || o.includes('.emergent.host') || o.includes('.emergentagent.com')) return o;
+        }
+        return process.env.REACT_APP_BACKEND_URL || '';
+      })();
       const endpoint = pendingCalcType === 'sauna' ? `/api/sauna/orders/${orderId}` : `/api/orders/${orderId}`;
       const pendingCrmLeadId = sessionStorage.getItem('pendingCrmLeadId');
       

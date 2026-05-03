@@ -15,7 +15,8 @@ import {
   Settings, Star, Award, ChevronDown, ChevronUp
 } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import { getApiUrl } from '../utils/api';
+const API_URL = getApiUrl();
 
 const formatHours = (h) => {
   if (h == null) return '—';

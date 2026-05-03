@@ -108,7 +108,7 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - Persisted in localStorage; respects prefers-color-scheme on first visit
   - initTheme() called in index.js before render to prevent FOUC
 
-## Session 9 (Feb 2026) — amoCRM diagnostic
+## Session 9 (Feb 2026) — amoCRM diagnostic + Production API URL fix
 - New endpoint `GET /api/integrations/amocrm/health` returns granular status:
   `ok / no_settings / unauthorized / forbidden / payment_required / api_error /
    timeout / domain_unreachable / unknown_error` with russian message + hint.
@@ -116,9 +116,16 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
 - "Проверить amoCRM" button + diagnostic banner in:
   - CallAnalyticsPage SyncTab (data-testid: amocrm-check-btn / amocrm-health-error / amocrm-health-ok)
   - LeadAnalyticsPage SettingsTab — new "Подключение amoCRM" card on top
-- Helps resolve the recurring "amoCRM не подключён" issue when a long-lived token
-  expires after 9 months — UI now shows exact reason (HTTP 401, expired token, etc.)
-  and direct hint how to regenerate the token.
+- **CRITICAL fix**: production frontend was calling stale placeholder host
+  `spa-planner-replaced-1767401260.emergent.host` → ERR_NAME_NOT_RESOLVED on ALL API calls
+  (not only amoCRM). Root cause: many components used raw
+  `process.env.REACT_APP_BACKEND_URL` which got baked at build time as the placeholder.
+  Fixed by importing smart `getApiUrl()` from `utils/api.js` (auto-detects
+  wm-kalkulator.pl / .emergent.host / .emergentagent.com origin) in:
+  CallAnalyticsPage, LeadAnalyticsPage, AdvancedManagerDashboard, ManagerEventsAnalytics,
+  PdfUploadDebugPage, ContentGeneratorPage, AdminHelpPage, LayoutConfiguratorPage,
+  PDFTemplateEditor, SalesTrackingPage, sauna/LayoutCatalog, layout-configurator/constants,
+  sauna-pricing/WizardStepsAdmin, SaunaCalculatorNew, App.js. yarn build verified clean.
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
