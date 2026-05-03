@@ -126,12 +126,16 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - Dark theme with gradients/glass-morphism, animated backdrop (indigo+cyan+orange blur),
     grain overlay, staggered card reveals.
   - Sections: Hero with metrics (40+ endpoints, 8 integrations, 12k+ LOC, 9 modules),
-    Pitch, 8 Features, 7 Modules with real screenshots, 4 Engineering highlights
-    (context-aware AI chunking, anti-hang heartbeats, cost-aware caching, prod diagnostics),
-    4-column Stack (Frontend/Backend/Storage/AI&APIs).
-  - Screenshots in `/app/frontend/public/portfolio-screenshots/` (7 real captures
-    from preview env).
-  - Public route wired in App.js before auth check: `window.location.pathname.startsWith('/portfolio')`.
+    Pitch, **Live KPI widget (new)**, 8 Features, 7 Modules with real screenshots,
+    4 Engineering highlights, 4-column Stack.
+  - Screenshots in `/app/frontend/public/portfolio-screenshots/` (7 real captures).
+  - Public route wired in App.js before auth check.
+- **Live KPI widget** pulls real aggregated stats from `GET /api/portfolio/kpi` (new
+  public endpoint in `/app/backend/routes/portfolio.py`). 8 metrics animated count-up
+  on scroll-into-view (IntersectionObserver + easeOutExpo, staggered 100ms):
+  ordersProcessed, callsAnalyzedByAI, leadsTracked, avgFirstResponseMinutes,
+  automationPercent, hoursSaved, managersOnboard, daysLive. Shows `—` gracefully
+  when a metric has 0 data (preview env). Refreshes on every page load.
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)

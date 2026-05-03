@@ -1,13 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { getApiUrl } from '../utils/api';
 import {
   Calculator, Kanban, Truck, Phone, BarChart3, FileText, Moon,
   Zap, Shield, Clock, Bot, Workflow, Globe, Database, Sparkles,
-  ArrowRight, ChevronDown, Check, Code2, Layers, Cpu
+  ArrowRight, Check, Code2, Layers, Cpu,
+  Package, Activity, TrendingUp, Timer, Users as UsersIcon
 } from 'lucide-react';
+
+// Animated count-up — triggers on scroll into view
+const CountUp = ({ value = 0, duration = 1600, decimals = 0, suffix = '', prefix = '' }) => {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef(null);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const el = ref.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !startedRef.current) {
+            startedRef.current = true;
+            const start = performance.now();
+            const from = 0;
+            const to = Number(value) || 0;
+            const tick = (now) => {
+              const elapsed = now - start;
+              const progress = Math.min(elapsed / duration, 1);
+              // easeOutExpo
+              const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+              setDisplay(from + (to - from) * eased);
+              if (progress < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+          }
+        });
+      },
+      { threshold: 0.25 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [value, duration]);
+
+  const formatted = decimals > 0
+    ? display.toFixed(decimals)
+    : Math.round(display).toLocaleString('en-US').replace(/,/g, ' ');
+
+  return <span ref={ref} data-testid="countup-value">{prefix}{formatted}{suffix}</span>;
+};
 
 const CONTENT = {
   en: {
-    nav: { features: 'Features', modules: 'Modules', stack: 'Stack', numbers: 'Numbers' },
+    nav: { features: 'Features', modules: 'Modules', stack: 'Stack', numbers: 'Numbers', live: 'Live' },
     hero: {
       badge: 'Case study · 2025 – 2026',
       title: 'WM kalkulator',
@@ -25,6 +69,22 @@ const CONTENT = {
     pitch: {
       title: 'One workspace for the whole manufacturer',
       desc: 'Sales configure and price products → deals land in amoCRM → production sees a Kanban board → logistics plans routes on a map → calls and leads are auto-scored by AI. Every step of the pipeline, inside one tool.',
+    },
+    live: {
+      badge: 'Live numbers',
+      title: 'Running in production',
+      subtitle: 'Real aggregated stats pulled from the system right now — refreshed on every page load.',
+      updated: 'Updated',
+      cards: [
+        { key: 'ordersProcessed', icon: Package, label: 'Orders processed', suffix: '' },
+        { key: 'callsAnalyzedByAI', icon: Phone, label: 'Calls analyzed by AI', suffix: '' },
+        { key: 'leadsTracked', icon: Activity, label: 'Leads tracked', suffix: '' },
+        { key: 'avgFirstResponseMinutes', icon: Timer, label: 'Avg first-response', suffix: ' min', decimals: 1 },
+        { key: 'automationPercent', icon: TrendingUp, label: 'Automation', suffix: '%' },
+        { key: 'hoursSaved', icon: Clock, label: 'Hours saved by AI', suffix: '' },
+        { key: 'managersOnboard', icon: UsersIcon, label: 'Managers onboard', suffix: '' },
+        { key: 'daysLive', icon: Sparkles, label: 'Days live', suffix: '' },
+      ],
     },
     features: [
       { icon: Calculator, title: 'Product configurator', desc: 'Step-by-step wizard for two product lines with live pricing, discounts, layout variants and auto-PDF commercial proposal.' },
@@ -63,7 +123,7 @@ const CONTENT = {
     footer: 'Built for a real European manufacturer · Private case study',
   },
   ru: {
-    nav: { features: 'Возможности', modules: 'Модули', stack: 'Стек', numbers: 'Цифры' },
+    nav: { features: 'Возможности', modules: 'Модули', stack: 'Стек', numbers: 'Цифры', live: 'Live' },
     hero: {
       badge: 'Кейс · 2025 – 2026',
       title: 'WM kalkulator',
@@ -81,6 +141,22 @@ const CONTENT = {
     pitch: {
       title: 'Одна система для всего производства',
       desc: 'Отдел продаж считает КП → сделка попадает в amoCRM → производство видит Kanban → логистика планирует маршруты на карте → звонки и лиды автоматически оцениваются AI. Каждый шаг воронки внутри одного инструмента.',
+    },
+    live: {
+      badge: 'Цифры в реальном времени',
+      title: 'Работает в проде',
+      subtitle: 'Реальные агрегированные данные из системы прямо сейчас — обновляются при каждой загрузке страницы.',
+      updated: 'Обновлено',
+      cards: [
+        { key: 'ordersProcessed', icon: Package, label: 'Заказов обработано', suffix: '' },
+        { key: 'callsAnalyzedByAI', icon: Phone, label: 'Звонков оценено AI', suffix: '' },
+        { key: 'leadsTracked', icon: Activity, label: 'Лидов отслежено', suffix: '' },
+        { key: 'avgFirstResponseMinutes', icon: Timer, label: 'Среднее время реакции', suffix: ' мин', decimals: 1 },
+        { key: 'automationPercent', icon: TrendingUp, label: 'Автоматизация', suffix: '%' },
+        { key: 'hoursSaved', icon: Clock, label: 'Часов сэкономлено AI', suffix: '' },
+        { key: 'managersOnboard', icon: UsersIcon, label: 'Менеджеров в системе', suffix: '' },
+        { key: 'daysLive', icon: Sparkles, label: 'Дней в продакшене', suffix: '' },
+      ],
     },
     features: [
       { icon: Calculator, title: 'Конфигуратор продукта', desc: 'Пошаговый визард для двух товарных линеек с живым пересчётом цены, скидками, вариантами планировки и авто-PDF коммерческим.' },
@@ -122,6 +198,7 @@ const CONTENT = {
 
 export default function PortfolioPage() {
   const [lang, setLang] = useState(() => localStorage.getItem('portfolio-lang') || 'en');
+  const [kpi, setKpi] = useState(null);
   const t = CONTENT[lang];
   const imgBase = (process.env.PUBLIC_URL || '') + '/portfolio-screenshots/';
 
@@ -129,6 +206,14 @@ export default function PortfolioPage() {
     localStorage.setItem('portfolio-lang', lang);
     document.title = 'WM kalkulator · Portfolio case study';
   }, [lang]);
+
+  useEffect(() => {
+    const apiBase = getApiUrl();
+    fetch(`${apiBase}/api/portfolio/kpi`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setKpi(data); })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen text-slate-100 relative overflow-x-hidden" style={{ background: '#070a13' }} data-testid="portfolio-root">
@@ -152,10 +237,13 @@ export default function PortfolioPage() {
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-[13px] text-slate-300">
+            <a href="#live" className="hover:text-white transition-colors flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {t.nav.live}
+            </a>
             <a href="#features" className="hover:text-white transition-colors">{t.nav.features}</a>
             <a href="#modules" className="hover:text-white transition-colors">{t.nav.modules}</a>
             <a href="#stack" className="hover:text-white transition-colors">{t.nav.stack}</a>
-            <a href="#numbers" className="hover:text-white transition-colors">{t.nav.numbers}</a>
           </nav>
           <div className="flex items-center gap-1 rounded-full border border-white/10 p-0.5 bg-white/5" data-testid="portfolio-lang-switch">
             {['en','ru'].map(L => (
@@ -218,6 +306,59 @@ export default function PortfolioPage() {
           <div className="md:w-2/3 pt-2">
             <p className="text-lg text-slate-300 leading-relaxed">{t.pitch.desc}</p>
           </div>
+        </div>
+      </section>
+
+      {/* Live KPI widget — pulled from the real system */}
+      <section id="live" className="max-w-6xl mx-auto px-6 py-20 border-t border-white/5">
+        <div className="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] uppercase tracking-[0.2em] text-emerald-300 mb-5" data-testid="live-badge">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+              </span>
+              {t.live.badge}
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight mb-3">{t.live.title}</h2>
+            <p className="text-slate-400 max-w-2xl">{t.live.subtitle}</p>
+          </div>
+          {kpi?.updatedAt && (
+            <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">
+              {t.live.updated}: {new Date(kpi.updatedAt).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')}
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="live-kpi-grid">
+          {t.live.cards.map((c, i) => {
+            const Icon = c.icon;
+            const raw = kpi ? kpi[c.key] : null;
+            const value = raw == null ? 0 : raw;
+            const hasValue = raw != null && raw > 0;
+            return (
+              <div
+                key={c.key}
+                data-testid={`kpi-${c.key}`}
+                className="group relative p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-sm hover:border-white/20 hover:from-white/[0.07] transition-all overflow-hidden"
+              >
+                {/* subtle gradient accent */}
+                <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"
+                     style={{ background: ['#6366f1','#06b6d4','#10b981','#f59e0b','#ec4899','#8b5cf6','#3b82f6','#f97316'][i % 8] }} />
+                <Icon className="h-5 w-5 text-slate-300 mb-4 relative z-10" />
+                <div className="text-3xl md:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400 relative z-10 leading-none">
+                  {kpi === null ? (
+                    <span className="inline-block w-16 h-8 bg-white/5 rounded animate-pulse" />
+                  ) : hasValue ? (
+                    <CountUp value={value} duration={1400 + i * 100} decimals={c.decimals || 0} suffix={c.suffix || ''} />
+                  ) : (
+                    <span className="text-slate-600">—</span>
+                  )}
+                </div>
+                <div className="text-xs uppercase tracking-[0.18em] text-slate-500 mt-3 relative z-10">{c.label}</div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
