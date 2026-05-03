@@ -2041,6 +2041,134 @@ async def get_pipelines():
         return {"error": str(e), "pipelines": []}
 
 
+@router.get("/health")
+async def get_amocrm_health():
+    """Detailed amoCRM connection diagnostic.
+    
+    Returns granular status: ok / no_settings / unauthorized / forbidden / 
+    domain_unreachable / timeout / unknown_error with hints on how to fix.
+    """
+    settings = get_amocrm_settings()
+    domain = (settings.get("amocrm_domain") or "").strip()
+    token = (settings.get("amocrm_token") or "").strip()
+    updated_at = settings.get("updated_at")
+    
+    base = {
+        "domain": domain,
+        "domain_set": bool(domain),
+        "token_set": bool(token),
+        "token_length": len(token) if token else 0,
+        "settings_updated_at": updated_at,
+    }
+    
+    if not domain or not token:
+        return {
+            **base,
+            "status": "no_settings",
+            "ok": False,
+            "http_status": None,
+            "message": "amoCRM не настроен — заполните домен и токен в настройках интеграции.",
+            "hint": "Откройте Интеграции → amoCRM → Настройки и введите поддомен (например, mycompany.amocrm.ru) и долгосрочный токен."
+        }
+    
+    url = f"https://{domain}/api/v4/account"
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client_http:
+            response = await client_http.get(url, headers=headers)
+            sc = response.status_code
+            
+            if sc == 200:
+                try:
+                    data = response.json()
+                except Exception:
+                    data = {}
+                return {
+                    **base,
+                    "status": "ok",
+                    "ok": True,
+                    "http_status": sc,
+                    "account_id": data.get("id"),
+                    "account_name": data.get("name"),
+                    "subdomain": data.get("subdomain"),
+                    "message": "amoCRM подключён успешно."
+                }
+            elif sc == 401:
+                return {
+                    **base,
+                    "status": "unauthorized",
+                    "ok": False,
+                    "http_status": sc,
+                    "message": "Токен amoCRM недействителен или истёк (401 Unauthorized).",
+                    "hint": (
+                        "Долгосрочный токен в amoCRM живёт 9 месяцев. "
+                        "Сгенерируйте новый: amoCRM → Настройки → Интеграции → "
+                        "Ваша интеграция → вкладка 'Ключи и доступы' → создать "
+                        "долгосрочный токен. Затем вставьте его в наших настройках."
+                    ),
+                    "response_body": (response.text or "")[:300]
+                }
+            elif sc == 403:
+                return {
+                    **base,
+                    "status": "forbidden",
+                    "ok": False,
+                    "http_status": sc,
+                    "message": "Доступ запрещён (403). Проверьте права интеграции в amoCRM.",
+                    "hint": "В amoCRM откройте интеграцию и убедитесь, что выданы все нужные права (сделки, контакты, события, звонки).",
+                    "response_body": (response.text or "")[:300]
+                }
+            elif sc == 402:
+                return {
+                    **base,
+                    "status": "payment_required",
+                    "ok": False,
+                    "http_status": sc,
+                    "message": "Тариф amoCRM не оплачен (402).",
+                    "hint": "Оплатите подписку amoCRM, чтобы вернуть доступ к API."
+                }
+            else:
+                return {
+                    **base,
+                    "status": "api_error",
+                    "ok": False,
+                    "http_status": sc,
+                    "message": f"amoCRM API вернул код {sc}.",
+                    "hint": "Проверьте домен интеграции и статус сервиса amoCRM.",
+                    "response_body": (response.text or "")[:300]
+                }
+    except httpx.TimeoutException:
+        return {
+            **base,
+            "status": "timeout",
+            "ok": False,
+            "http_status": None,
+            "message": "amoCRM не ответил за 8 секунд.",
+            "hint": "Возможно, проблема с сетью или amoCRM временно недоступен. Попробуйте ещё раз через минуту."
+        }
+    except httpx.ConnectError as e:
+        return {
+            **base,
+            "status": "domain_unreachable",
+            "ok": False,
+            "http_status": None,
+            "message": f"Не удалось подключиться к домену {domain}.",
+            "hint": "Проверьте правильность поддомена (без https:// и без слеша в конце). Пример корректного значения: mycompany.amocrm.ru",
+            "error_detail": str(e)[:200]
+        }
+    except Exception as e:
+        logger.error(f"amoCRM health check failed: {e}")
+        return {
+            **base,
+            "status": "unknown_error",
+            "ok": False,
+            "http_status": None,
+            "message": "Неизвестная ошибка при проверке amoCRM.",
+            "error_detail": str(e)[:200]
+        }
+
+
 @router.post("/upload-delivery-photo")
 async def upload_delivery_photo_to_amocrm(
     amocrm_id: str,

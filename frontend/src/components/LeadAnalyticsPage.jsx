@@ -403,6 +403,20 @@ const ClosedLostTab = ({ dateFrom, dateTo }) => {
 const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
   const [amoData, setAmoData] = useState({ pipelines: [], users: [] });
   const [loadingAmo, setLoadingAmo] = useState(false);
+  const [amoHealth, setAmoHealth] = useState(null);
+  const [checkingAmo, setCheckingAmo] = useState(false);
+
+  const checkAmoHealth = async () => {
+    setCheckingAmo(true);
+    try {
+      const r = await axios.get(`${API_URL}/api/integrations/amocrm/health`);
+      setAmoHealth(r.data);
+    } catch (e) {
+      setAmoHealth({ status: 'unknown_error', ok: false, message: e.message || 'Ошибка проверки' });
+    } finally {
+      setCheckingAmo(false);
+    }
+  };
 
   useEffect(() => {
     setLoadingAmo(true);
@@ -410,6 +424,7 @@ const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
       .then(r => setAmoData(r.data))
       .catch(() => {})
       .finally(() => setLoadingAmo(false));
+    checkAmoHealth();
   }, []);
 
   const selectedPipeline = amoData.pipelines.find(p => p.id === settings.pipelineId);
@@ -426,6 +441,51 @@ const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
 
   return (
     <div className="space-y-6 max-w-3xl" data-testid="settings-tab">
+      {/* amoCRM connection diagnostic */}
+      <Card className="border" data-testid="amocrm-diagnostic-card">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Подключение amoCRM</CardTitle>
+          <Button
+            data-testid="amocrm-check-btn"
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={checkAmoHealth}
+            disabled={checkingAmo}
+          >
+            {checkingAmo ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5"/> : <RefreshCw className="h-3.5 w-3.5 mr-1.5"/>}
+            Проверить amoCRM
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!amoHealth && <div className="text-xs text-muted-foreground">Загрузка статуса...</div>}
+          {amoHealth && amoHealth.ok && (
+            <div data-testid="amocrm-health-ok" className="text-xs rounded border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800/60 dark:text-emerald-200 text-emerald-800 p-3">
+              ✓ {amoHealth.account_name ? `Подключено к "${amoHealth.account_name}"` : 'amoCRM подключён'} ({amoHealth.domain})
+              <div className="text-[10px] opacity-70 pt-1">
+                Токен: {amoHealth.token_length} симв.
+                {amoHealth.settings_updated_at ? ` · Обновлено: ${new Date(amoHealth.settings_updated_at).toLocaleString('ru-RU')}` : ''}
+              </div>
+            </div>
+          )}
+          {amoHealth && !amoHealth.ok && (
+            <div data-testid="amocrm-health-error" className="text-xs rounded border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800/60 dark:text-red-200 text-red-800 p-3 space-y-1">
+              <div className="font-semibold">
+                {amoHealth.status}
+                {amoHealth.http_status ? ` (HTTP ${amoHealth.http_status})` : ''}
+              </div>
+              {amoHealth.message && <div>{amoHealth.message}</div>}
+              {amoHealth.hint && <div className="text-red-700 dark:text-red-300/90">💡 {amoHealth.hint}</div>}
+              <div className="text-[10px] opacity-70 pt-1">
+                Домен: <code>{amoHealth.domain || '—'}</code>
+                {' · '}Токен: {amoHealth.token_set ? `${amoHealth.token_length} симв.` : 'не задан'}
+                {amoHealth.settings_updated_at ? ` · Обновлено: ${new Date(amoHealth.settings_updated_at).toLocaleString('ru-RU')}` : ''}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Pipeline */}
       <Card className="border">
         <CardHeader><CardTitle className="text-base">Воронка amoCRM</CardTitle></CardHeader>

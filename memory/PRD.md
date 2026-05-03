@@ -108,6 +108,18 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   - Persisted in localStorage; respects prefers-color-scheme on first visit
   - initTheme() called in index.js before render to prevent FOUC
 
+## Session 9 (Feb 2026) — amoCRM diagnostic
+- New endpoint `GET /api/integrations/amocrm/health` returns granular status:
+  `ok / no_settings / unauthorized / forbidden / payment_required / api_error /
+   timeout / domain_unreachable / unknown_error` with russian message + hint.
+  Calls `GET /api/v4/account` to validate domain+token in 8s timeout.
+- "Проверить amoCRM" button + diagnostic banner in:
+  - CallAnalyticsPage SyncTab (data-testid: amocrm-check-btn / amocrm-health-error / amocrm-health-ok)
+  - LeadAnalyticsPage SettingsTab — new "Подключение amoCRM" card on top
+- Helps resolve the recurring "amoCRM не подключён" issue when a long-lived token
+  expires after 9 months — UI now shows exact reason (HTTP 401, expired token, etc.)
+  and direct hint how to regenerate the token.
+
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
 - P2: Fix unstable login sessions / deployment timeouts
