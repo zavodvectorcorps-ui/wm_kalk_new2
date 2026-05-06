@@ -261,10 +261,20 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
 // ---------------------------------------------------------------------------
 // Main wrapper
 // ---------------------------------------------------------------------------
-export default function DealerCalculatorWrapper({ initialDraft = null }) {
-  const [lastSavedOrder, setLastSavedOrder] = useState(null);
+export default function DealerCalculatorWrapper({ initialDraft = null, onDone = null }) {
+  const [lastSavedOrder, setLastSavedOrder] = useState(initialDraft);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const orderRef = useRef(null);
+  const orderRef = useRef(initialDraft);
+
+  // If we open the wrapper with an existing draft (Edytuj from Orders tab),
+  // start with the confirm dialog hidden — only show it after the user
+  // hits Save inside the calculator.
+  useEffect(() => {
+    if (initialDraft) {
+      orderRef.current = initialDraft;
+      setLastSavedOrder(initialDraft);
+    }
+  }, [initialDraft]);
 
   useEffect(() => {
     const dealerToken = getDealerToken() || '';
@@ -277,9 +287,8 @@ export default function DealerCalculatorWrapper({ initialDraft = null }) {
       onOrderSaved: (order) => {
         orderRef.current = order;
         setLastSavedOrder(order);
-        // Surface confirmation dialog only for new drafts (not for re-saves of confirmed orders)
+        // Surface confirmation dialog for any draft (newly saved or just updated).
         if ((order.status || 'draft') === 'draft') {
-          // small delay so the calculator's own toast lands first
           setTimeout(() => setConfirmOpen(true), 400);
         }
       },
@@ -289,18 +298,22 @@ export default function DealerCalculatorWrapper({ initialDraft = null }) {
 
   return (
     <div className="dealer-calc-wrapper" data-testid="dealer-calc-wrapper">
-      {/* Banner explaining draft/confirm flow */}
+      {/* Banner */}
       <div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/5 p-3 text-sm flex items-start gap-3">
         <FileText className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
         <div className="text-slate-200">
-          <div className="font-medium text-white">Kalkulator i Oferty</div>
+          <div className="font-medium text-white">
+            {initialDraft ? `Edycja wersji roboczej · ${initialDraft.id}` : 'Kalkulator i Oferty'}
+          </div>
           <div className="text-slate-400 text-xs mt-0.5">
-            Każdy projekt zapisywany jest jako <b>wersja robocza</b> i jest dostępny tylko dla Ciebie — firma WM otrzyma zamówienie dopiero po naciśnięciu „Potwierdź i wyślij” z numerem umowy. PDF możesz pobrać w dowolnym momencie.
+            {initialDraft
+              ? 'Zmień konfigurację i zapisz, następnie potwierdź zamówienie. Po potwierdzeniu zamówienie trafia do firmy WM i nie można go już edytować.'
+              : 'Każdy projekt zapisywany jest jako wersja robocza i jest dostępny tylko dla Ciebie — firma WM otrzyma zamówienie dopiero po naciśnięciu „Potwierdź i wyślij" z numerem umowy. PDF możesz pobrać w dowolnym momencie.'}
           </div>
         </div>
       </div>
 
-      {/* The full manager calculator, mounted as-is. The interceptor takes care of routing. */}
+      {/* The full manager calculator. `editingOrder` triggers edit mode in the hook. */}
       <SaunaCalculator editingOrder={initialDraft} />
 
       {confirmOpen && lastSavedOrder && (
@@ -310,6 +323,8 @@ export default function DealerCalculatorWrapper({ initialDraft = null }) {
           onConfirmed={(updated) => {
             setLastSavedOrder(updated);
             orderRef.current = updated;
+            setConfirmOpen(false);
+            onDone?.(updated);
           }}
         />
       )}

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Calculator as CalcIcon, Package, BarChart3, Settings, LogOut,
-  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle, FileText, Link2, Eye
+  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle, FileText, Link2, Eye, Pencil
 } from 'lucide-react';
 import { getApiUrl } from '../../utils/api';
 import { dealerAuthHeaders, clearDealerSession, getDealerInfo, fetchDealerMe } from '../../utils/dealerAuth';
@@ -155,7 +155,7 @@ function copyOfferLink(orderId) {
   return navigator.clipboard.writeText(link).then(() => link);
 }
 
-function OrdersTab() {
+function OrdersTab({ onEditDraft, reloadKey = 0 }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState(null);
@@ -167,7 +167,7 @@ function OrdersTab() {
       .then(r => setOrders(r.data.orders || []))
       .finally(() => setLoading(false));
   };
-  useEffect(() => { reload(); }, []);
+  useEffect(() => { reload(); }, [reloadKey]);
 
   const handleDownload = async (orderId, type = 'offer') => {
     setDownloadingId(orderId + ':' + type);
@@ -262,6 +262,18 @@ function OrdersTab() {
                     <td className="px-4 py-3 text-slate-400">{fmtDate(o.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex gap-1">
+                        {isDraft && (
+                          <button
+                            type="button"
+                            onClick={() => onEditDraft?.(o)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-500/40 text-emerald-300 text-xs hover:bg-emerald-500/10"
+                            data-testid={`dealer-order-edit-${o.id}`}
+                            title="Edytuj wersję roboczą i potwierdź"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edytuj
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={async () => {
@@ -526,14 +538,16 @@ function unkeyOf(k) {
 }
 
 // ==================== Calculator Tab ====================
-function CalculatorTab() {
-  return <DealerCalculatorWrapper />;
+function CalculatorTab({ editingDraft, onEditDone }) {
+  return <DealerCalculatorWrapper initialDraft={editingDraft} onDone={onEditDone} key={editingDraft?.id || 'new'} />;
 }
 
 // ==================== Main Dealer App ====================
 export default function DealerApp() {
-  const [tab, setTab] = useState('stats');
+  const [tab, setTab] = useState('calculator');
   const [dealer, setDealer] = useState(getDealerInfo());
+  const [editingDraft, setEditingDraft] = useState(null);
+  const [ordersReloadKey, setOrdersReloadKey] = useState(0);
 
   useEffect(() => {
     // refresh dealer info on mount
@@ -548,11 +562,22 @@ export default function DealerApp() {
     window.location.reload();
   };
 
+  const handleEditDraft = (draft) => {
+    setEditingDraft(draft);
+    setTab('calculator');
+  };
+
+  const handleEditDone = () => {
+    setEditingDraft(null);
+    setOrdersReloadKey((k) => k + 1);
+    setTab('orders');
+  };
+
   const tabs = useMemo(() => ([
-    { id: 'stats', label: 'Statystyki', icon: BarChart3 },
+    { id: 'calculator', label: 'Kalkulator', icon: CalcIcon },
     { id: 'orders', label: 'Zamówienia', icon: Package },
     { id: 'prices', label: 'Mój cennik', icon: Settings },
-    { id: 'calculator', label: 'Kalkulator', icon: CalcIcon },
+    { id: 'stats', label: 'Statystyki', icon: BarChart3 },
   ]), []);
 
   return (
@@ -603,9 +628,9 @@ export default function DealerApp() {
 
       <main className="relative z-10 max-w-6xl mx-auto px-6 py-8">
         {tab === 'stats' && <StatsTab />}
-        {tab === 'orders' && <OrdersTab />}
+        {tab === 'orders' && <OrdersTab onEditDraft={handleEditDraft} reloadKey={ordersReloadKey} />}
         {tab === 'prices' && <PricesTab />}
-        {tab === 'calculator' && <CalculatorTab />}
+        {tab === 'calculator' && <CalculatorTab editingDraft={editingDraft} onEditDone={handleEditDone} />}
       </main>
     </div>
   );
