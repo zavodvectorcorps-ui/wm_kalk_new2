@@ -316,6 +316,18 @@ Completed all three open items from Phase 2:
     Polish copy. All hardcoded Russian in DealerLogin / DealerApp /
     DealerCalculatorWrapper translated (login, tabs, KPIs, status badges,
     filters, confirm dialog).
+  - **Public offer link** (`/oferta/{order_id}`): customer-facing, no-auth
+    page (`components/PublicOfferPage.jsx`). Dealer copies link from a new
+    "Link" button next to every order; client opens the URL on mobile, sees
+    a clean branded summary (dealer name, model, options, total, dealer
+    notes) and clicks **"Potwierdzam zamówienie"** to signal agreement
+    + optional comment. Backend endpoints:
+    GET `/api/public/dealer-offer/{id}` (sanitized payload — no costPrice/
+    margin/dealerId/createdBy + tracks `clientWebViews`/`firstClientView`/
+    `lastClientView`), POST `/api/public/dealer-offer/{id}/confirm` (sets
+    `clientConfirmedByLink=True` + Telegram heads-up to company channel).
+    In the dealer Orders tab, new pills surface client engagement:
+    "👁 Otwarte (N)" when viewed, "✓ Klient potwierdził" once confirmed.
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)

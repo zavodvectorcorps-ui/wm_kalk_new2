@@ -595,3 +595,116 @@ async def admin_list_dealer_orders(
         {"_id": 0},
     ).sort("createdAt", -1).to_list(length=2000)
     return {"orders": orders}
+
+
+
+# ==========================================================================
+# PUBLIC OFFER LINK (no auth — clients of dealers view their KP)
+# ==========================================================================
+
+@router.get("/api/public/dealer-offer/{order_id}")
+async def public_get_dealer_offer(order_id: str):
+    """Public, no-auth view of a dealer's commercial offer.
+
+    Returns a sanitized payload (no internal IDs / costPrice / margin / dealer
+    contact info) so the dealer can share `https://<host>/oferta/{order_id}`
+    with their customer over messengers.
+
+    Side effect: increments `clientWebViews` and stamps `firstClientView` /
+    `lastClientView` on first viewing — gives the dealer (and us) a signal
+    that the customer actually opened the link.
+    """
+    order = await db.sauna_orders.find_one(
+        {"id": order_id},
+        {"_id": 0, "totalCost": 0, "margin": 0, "createdBy": 0,
+         "dealerUsername": 0, "dealerId": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Offer not found")
+
+    # Track view
+    now_iso = datetime.now(timezone.utc).isoformat()
+    inc_update = {
+        "$inc": {"clientWebViews": 1},
+        "$set": {"lastClientView": now_iso},
+    }
+    if not order.get("firstClientView"):
+        inc_update["$set"]["firstClientView"] = now_iso
+    try:
+        await db.sauna_orders.update_one({"id": order_id}, inc_update)
+    except Exception as e:
+        logger.warning(f"public offer view tracking failed: {e}")
+
+    # Look up the dealer for branding (name only, no phone/email)
+    dealer_brand = {}
+    if order.get("dealerName"):
+        dealer_brand["name"] = order["dealerName"]
+
+    return {
+        "id": order.get("id"),
+        "dealer": dealer_brand,
+        "customerName": order.get("customerName") or order.get("clientName") or "",
+        "modelName": order.get("modelName") or "",
+        "modelBasePrice": order.get("modelBasePrice"),
+        "variantName": order.get("variantName"),
+        "variantPrice": order.get("variantPrice"),
+        "options": order.get("options") or [],
+        "optionsTotal": order.get("optionsTotal"),
+        "subtotal": order.get("subtotal"),
+        "total": order.get("total"),
+        "notes": order.get("notes") or "",
+        "createdAt": order.get("createdAt"),
+        "status": order.get("status") or "draft",
+        "clientConfirmedByLink": bool(order.get("clientConfirmedByLink")),
+        "clientWebConfirmedAt": order.get("clientWebConfirmedAt"),
+    }
+
+
+@router.post("/api/public/dealer-offer/{order_id}/confirm")
+async def public_client_confirm_offer(order_id: str, payload: dict | None = None):
+    """The customer (no auth) clicks "Potwierdzam zamówienie" on the public KP.
+
+    Marks the order with `clientConfirmedByLink=True` + timestamp + optional
+    customer note. Notifies the company's Telegram channel so the dealer
+    sees that their customer has agreed before they manually flip the
+    internal status. The dealer must still hit "Potwierdź i wyślij" inside
+    their panel to officially submit to the main CRM.
+    """
+    payload = payload or {}
+    order = await db.sauna_orders.find_one(
+        {"id": order_id},
+        {"_id": 0, "totalCost": 0, "margin": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Offer not found")
+
+    if order.get("clientConfirmedByLink"):
+        return {"ok": True, "alreadyConfirmed": True}
+
+    update = {
+        "clientConfirmedByLink": True,
+        "clientWebConfirmedAt": datetime.now(timezone.utc).isoformat(),
+    }
+    note = (payload.get("note") or "").strip()
+    if note:
+        update["clientWebNote"] = note[:1000]
+
+    await db.sauna_orders.update_one({"id": order_id}, {"$set": update})
+
+    # Best-effort Telegram heads-up to the dealer's company channel
+    try:
+        from services.telegram_service import send_telegram_message
+        msg = (
+            "🟢 <b>Klient potwierdził ofertę przez link</b>\n"
+            f"🔢 <b>Nr:</b> {order_id}\n"
+            f"👤 <b>Klient:</b> {order.get('customerName') or '—'}\n"
+            f"🏢 <b>Dealer:</b> {order.get('dealerName') or '—'}\n"
+            f"💰 <b>Suma:</b> {int(order.get('total') or 0):,} PLN".replace(",", " ")
+        )
+        if note:
+            msg += f"\n💬 <b>Komentarz klienta:</b> {note[:300]}"
+        await send_telegram_message(msg)
+    except Exception as e:
+        logger.warning(f"Telegram on public client-confirm failed: {e}")
+
+    return {"ok": True}

@@ -42,6 +42,7 @@ const CallAnalyticsPage = lazy(() => import('./components/CallAnalyticsPage'));
 const PortfolioPage = lazy(() => import('./components/PortfolioPage'));
 const DealerEntry = lazy(() => import('./components/dealer'));
 const DealersHub = lazy(() => import('./components/DealersHub'));
+const PublicOfferPage = lazy(() => import('./components/PublicOfferPage'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -297,6 +298,16 @@ const AppContent = () => {
       <Suspense fallback={<PageLoader />}>
         <EmbedBaliaCalculator />
         <Toaster position="top-center" richColors />
+      </Suspense>
+    );
+  }
+
+  // Public offer page — dealer's customer opens shared link `/oferta/:id`
+  const isPublicOffer = window.location.pathname.startsWith('/oferta/');
+  if (isPublicOffer) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PublicOfferPage />
       </Suspense>
     );
   }

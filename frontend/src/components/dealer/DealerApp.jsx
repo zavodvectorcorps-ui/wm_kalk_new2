@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
+import { toast } from 'sonner';
 import {
   Calculator as CalcIcon, Package, BarChart3, Settings, LogOut,
-  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle, FileText
+  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle, FileText, Link2, Eye
 } from 'lucide-react';
 import { getApiUrl } from '../../utils/api';
 import { dealerAuthHeaders, clearDealerSession, getDealerInfo, fetchDealerMe } from '../../utils/dealerAuth';
@@ -107,6 +108,29 @@ function StatusBadge({ status }) {
   return <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Wersja robocza</span>;
 }
 
+function ClientLinkBadge({ order }) {
+  if (order?.clientConfirmedByLink) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" title={`Potwierdzone przez klienta ${order.clientWebConfirmedAt ? new Date(order.clientWebConfirmedAt).toLocaleString('pl-PL') : ''}`}>
+        ✓ Klient potwierdził
+      </span>
+    );
+  }
+  if (order?.clientWebViews) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30" title="Klient otworzył link">
+        <Eye className="h-2.5 w-2.5" /> Otwarte ({order.clientWebViews})
+      </span>
+    );
+  }
+  return null;
+}
+
+function copyOfferLink(orderId) {
+  const link = `${window.location.origin}/oferta/${orderId}`;
+  return navigator.clipboard.writeText(link).then(() => link);
+}
+
 function OrdersTab() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -200,7 +224,10 @@ function OrdersTab() {
                   <tr key={o.id} className="border-t border-white/5 hover:bg-white/[0.02]" data-testid={`dealer-order-${o.id}`}>
                     <td className="px-4 py-3">
                       <div className="font-mono text-xs text-slate-300">{o.id}</div>
-                      <div className="mt-1"><StatusBadge status={o.status} /></div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1">
+                        <StatusBadge status={o.status} />
+                        <ClientLinkBadge order={o} />
+                      </div>
                       {o.dealerContractNumber && (
                         <div className="text-[10px] text-slate-500 mt-0.5">№ {o.dealerContractNumber}</div>
                       )}
@@ -211,6 +238,23 @@ function OrdersTab() {
                     <td className="px-4 py-3 text-slate-400">{fmtDate(o.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex gap-1">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const link = await copyOfferLink(o.id);
+                              toast.success('Link skopiowany', { description: link });
+                            } catch (_e) {
+                              toast.error('Nie udało się skopiować linku');
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-orange-500/40 text-orange-300 text-xs hover:bg-orange-500/10"
+                          data-testid={`dealer-order-share-${o.id}`}
+                          title="Skopiuj publiczny link do oferty (do wysłania klientowi)"
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
+                          Link
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleDownload(o.id, 'offer')}
