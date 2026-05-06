@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { ClipboardList, BarChart3, DollarSign, Users, Waves, Flame, ArrowLeft, Database, Globe, Link, HelpCircle, Sparkles, Layout, Building2 } from 'lucide-react';
+import { ClipboardList, BarChart3, DollarSign, Users, Waves, Flame, ArrowLeft, Database, Globe, Link, HelpCircle, Sparkles, Layout } from 'lucide-react';
 import { AdminOrdersPage } from './AdminOrdersPage';
 import { StatisticsPage } from './StatisticsPage';
 import { BaliaPricingPage } from './BaliaPricingPage';
@@ -15,13 +15,11 @@ import { IntegrationsPage } from './IntegrationsPage';
 import AdminHelpPage from './AdminHelpPage';
 import ContentGeneratorPage from './ContentGeneratorPage';
 import LayoutConfiguratorPage from './LayoutConfiguratorPage';
-import DealersAdminPage from './DealersAdminPage';
-import DealerOrdersPage from './DealerOrdersPage';
 
-export const AdminPanel = ({ onBackToLanding, onEditInCalculator, initialTab }) => {
+export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
   const { i18n } = useTranslation();
   const { isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState(initialTab || 'orders');
+  const [activeTab, setActiveTab] = useState('orders');
   const [statsType, setStatsType] = useState('balia');
   const [pricesType, setPricesType] = useState('balia');
 
@@ -127,14 +125,6 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator, initialTab }) 
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">{txt.employees}</span>
             </TabsTrigger>
-            <TabsTrigger value="dealers" className="gap-2" data-testid="tab-dealers">
-              <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Дилеры</span>
-            </TabsTrigger>
-            <TabsTrigger value="dealer-orders" className="gap-2" data-testid="tab-dealer-orders">
-              <ClipboardList className="h-4 w-4" />
-              <span className="hidden sm:inline">Заказы дилеров</span>
-            </TabsTrigger>
             <TabsTrigger value="integrations" className="gap-2">
               <Link className="h-4 w-4" />
               <span className="hidden sm:inline">{txt.integrations}</span>
@@ -181,10 +171,6 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator, initialTab }) 
 
           <TabsContent value="employees">
             <UserManagement />
-          </TabsContent>
-
-          <TabsContent value="dealers">
-            <DealersAdminPage />
           </TabsContent>
 
           <TabsContent value="integrations">

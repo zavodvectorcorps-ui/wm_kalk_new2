@@ -10,7 +10,7 @@
 - Marketer: `marketer` / `marketer123`
 
 ## Dealer Portal access
-- Preview: https://lead-sync-hub-8.preview.emergentagent.com/dealer
+- Preview: https://dealer-hub-68.preview.emergentagent.com/dealer
 - Production after deploy: https://wm-kalkulator.pl/dealer
   (or on separate domain when DNS configured: dealer.wm-kalkulator.pl, wm-dealers.pl, etc.)
 

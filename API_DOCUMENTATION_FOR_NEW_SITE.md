@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://lead-sync-hub-8.preview.emergentagent.com
+Preview: https://dealer-hub-68.preview.emergentagent.com
 ```
 
 ---
