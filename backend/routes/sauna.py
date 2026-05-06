@@ -114,6 +114,10 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
     try:
         pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
         pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+        # Register family so reportlab can resolve <b>/<i> HTML tags inside Paragraphs
+        from reportlab.pdfbase.pdfmetrics import registerFontFamily
+        registerFontFamily('DejaVuSans', normal='DejaVuSans', bold='DejaVuSans-Bold',
+                           italic='DejaVuSans', boldItalic='DejaVuSans-Bold')
     except:
         pass
     

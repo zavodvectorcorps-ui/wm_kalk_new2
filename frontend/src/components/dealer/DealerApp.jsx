@@ -83,8 +83,32 @@ function KpiCard({ icon: Icon, label, value, color, testid }) {
 
 // ==================== Orders Tab ====================
 function downloadOrderPdf(orderId, type = 'offer') {
+  if (type === 'full') {
+    // Use the same public endpoint managers use — load the order, post it
+    // to /api/sauna/generate-pdf, get back a multi-page branded PDF.
+    return axios
+      .get(`${API}/api/dealer/sauna/orders/${orderId}`, { headers: dealerAuthHeaders() })
+      .then((orderResp) => {
+        const order = orderResp.data || {};
+        const pdfPayload = { ...order, orderId: order.id, language: 'pl' };
+        return axios.post(`${API}/api/sauna/generate-pdf`, pdfPayload, {
+          responseType: 'blob',
+        });
+      })
+      .then((r) => {
+        const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SAUNA_${orderId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      });
+  }
+  // Short offer PDF — backend dealer endpoint
   return axios
-    .get(`${API}/api/dealer/sauna/orders/${orderId}/pdf?type=${type}`, {
+    .get(`${API}/api/dealer/sauna/orders/${orderId}/pdf?type=offer`, {
       headers: dealerAuthHeaders(),
       responseType: 'blob',
     })
@@ -92,7 +116,7 @@ function downloadOrderPdf(orderId, type = 'offer') {
       const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${type === 'full' ? 'oferta-pelna' : 'oferta'}-${orderId}.pdf`;
+      a.download = `oferta-${orderId}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

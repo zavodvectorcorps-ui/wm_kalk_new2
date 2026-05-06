@@ -350,6 +350,7 @@ async def dealer_order_pdf(
     `type=offer` (default) — short 1-page commercial offer with dealer branding.
     `type=full`            — full multi-page sauna PDF (same template as managers use).
     """
+    pdf_type = (type or "offer").lower()
     order = await db.sauna_orders.find_one(
         {"id": order_id, "dealerId": dealer["id"]},
         {"_id": 0, "totalCost": 0, "margin": 0},
@@ -357,7 +358,6 @@ async def dealer_order_pdf(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    pdf_type = (type or "offer").lower()
     if pdf_type == "full":
         # Try to render the standard manager-style multi-page sauna PDF.
         try:
@@ -366,7 +366,11 @@ async def dealer_order_pdf(
             req = _dealer_order_to_pdf_request(order)
             pdf_bytes = await generate_sauna_pdf_bytes(SaunaPDFRequest(**req))
         except Exception as e:
-            logger.warning(f"Full sauna PDF failed for dealer order {order_id}: {e}")
+            import traceback as _tb
+            logger.warning(
+                "Full sauna PDF failed for dealer order %s: %s: %s\n%s",
+                order_id, e.__class__.__name__, e, _tb.format_exc()[-800:]
+            )
             from services.dealer_pdf import generate_dealer_offer_pdf
             pdf_bytes = generate_dealer_offer_pdf(order, dealer)
     else:
@@ -385,52 +389,65 @@ async def dealer_order_pdf(
 def _dealer_order_to_pdf_request(order: dict) -> dict:
     """Map a dealer order document into the SaunaPDFRequest shape.
 
-    The dealer flow stores options as a list (`options[*]` with optionId/quantity/etc),
-    while the manager PDF template expects `selections{}`/`quantities{}`/`selectedOptions[]`.
-    We do a best-effort conversion so the dealer can still hit "Скачать полный PDF".
+    Modern dealer orders (saved via the embedded SaunaCalculator) already
+    contain `selections{}` / `quantities{}` / `selectedOptions[]` in the same
+    shape as a regular manager order, so we pass those through as-is.
+    Legacy/simple dealer orders have an `options[]` list instead — we rebuild
+    selections/quantities from that as a fallback.
     """
-    options = order.get("options") or []
-    selections: dict = {}
-    quantities: dict = {}
-    selected_options: list = []
-    for o in options:
-        oid = o.get("optionId")
-        if not oid:
-            continue
-        qty = int(o.get("quantity") or 1)
-        if o.get("variantId") or o.get("optionVariantId"):
-            selections[oid] = o.get("variantId") or o.get("optionVariantId")
-        else:
-            selections[oid] = True
-        quantities[oid] = qty
-        selected_options.append({
-            "id": oid,
-            "name": o.get("optionName") or "",
-            "categoryName": o.get("categoryName") or "",
-            "price": int(o.get("price") or 0),
-            "quantity": qty,
-            "totalPrice": int(o.get("totalPrice") or 0),
-        })
+    selections = dict(order.get("selections") or {})
+    quantities = dict(order.get("quantities") or {})
+    selected_options = list(order.get("selectedOptions") or [])
+
+    # Legacy fallback — rebuild from a flat options[] list
+    if not selected_options and (order.get("options") or []):
+        for o in order["options"]:
+            oid = o.get("optionId")
+            if not oid:
+                continue
+            qty = int(o.get("quantity") or 1)
+            if o.get("variantId") or o.get("optionVariantId"):
+                selections[oid] = o.get("variantId") or o.get("optionVariantId")
+            else:
+                selections[oid] = True
+            quantities[oid] = qty
+            selected_options.append({
+                "id": oid,
+                "name": o.get("optionName") or "",
+                "categoryName": o.get("categoryName") or "",
+                "price": int(o.get("price") or 0),
+                "quantity": qty,
+                "totalPrice": int(o.get("totalPrice") or 0),
+            })
 
     return {
         "orderId": order.get("id", ""),
-        "fullName": order.get("customerName") or order.get("clientName") or order.get("fullName") or "—",
-        "phoneNumber": order.get("customerPhone") or order.get("phone") or order.get("phoneNumber") or "",
+        "fullName": order.get("fullName") or order.get("customerName") or order.get("clientName") or "—",
+        "phoneNumber": order.get("phoneNumber") or order.get("customerPhone") or order.get("phone") or "",
         "fullAddress": order.get("fullAddress") or order.get("address") or "",
-        "email": order.get("customerEmail") or order.get("email") or "",
+        "email": order.get("email") or order.get("customerEmail") or "",
         "orderDate": order.get("orderDate") or order.get("createdAt") or "",
-        "selectedModel": order.get("modelId") or order.get("selectedModel") or "",
-        "selectedModelVariant": order.get("variantId") or None,
-        "modelVariantName": order.get("variantName") or None,
+        "selectedModel": order.get("selectedModel") or order.get("modelId") or "",
+        "selectedModelVariant": order.get("selectedModelVariant") or order.get("variantId"),
+        "modelVariantName": order.get("modelVariantName") or order.get("variantName"),
         "modelName": order.get("modelName") or "",
-        "basePrice": int(order.get("modelBasePrice") or order.get("basePrice") or 0),
+        "modelImageUrl": order.get("modelImageUrl") or "",
+        "basePrice": int(order.get("basePrice") or order.get("modelBasePrice") or 0),
         "selections": selections,
         "quantities": quantities,
+        "variantSelections": order.get("variantSelections") or {},
+        "subSelections": order.get("subSelections") or {},
         "selectedOptions": selected_options,
         "notes": order.get("notes") or "",
         "optionsTotal": int(order.get("optionsTotal") or 0),
         "subtotal": float(order.get("subtotal") or order.get("total") or 0),
         "total": float(order.get("total") or 0),
+        "discountPercent": int(order.get("discountPercent") or 0),
+        "foundationPrice": int(order.get("foundationPrice") or 0),
+        "selectedLayoutId": order.get("selectedLayoutId"),
+        "selectedLayoutSize": order.get("selectedLayoutSize"),
+        "layoutImageUrl": order.get("layoutImageUrl"),
+        "capacity": order.get("capacity"),
         "language": "pl",
     }
 

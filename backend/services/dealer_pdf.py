@@ -120,9 +120,9 @@ def generate_dealer_offer_pdf(order: dict, dealer: dict) -> bytes:
     # ----- Customer block -----
     story.append(Paragraph("Klient", h2))
     client_rows = [
-        ["Imię i nazwisko:", order.get("customerName") or order.get("clientName") or "—"],
-        ["Telefon:", order.get("customerPhone") or order.get("phone") or "—"],
-        ["Email:", order.get("customerEmail") or order.get("email") or "—"],
+        ["Imię i nazwisko:", order.get("fullName") or order.get("customerName") or order.get("clientName") or "—"],
+        ["Telefon:", order.get("phoneNumber") or order.get("customerPhone") or order.get("phone") or "—"],
+        ["Email:", order.get("email") or order.get("customerEmail") or "—"],
     ]
     t = Table(client_rows, colWidths=[40 * mm, 120 * mm])
     t.setStyle(TableStyle([
@@ -139,20 +139,45 @@ def generate_dealer_offer_pdf(order: dict, dealer: dict) -> bytes:
     story.append(Paragraph("Konfiguracja sauny", h2))
     rows = [["Pozycja", "Ilość", "Cena"]]
 
-    base = int(order.get("modelBasePrice") or 0)
+    base = int(order.get("basePrice") or order.get("modelBasePrice") or 0)
     variant_price = int(order.get("variantPrice") or 0)
     model_name = order.get("modelName") or "Sauna"
+    variant_name = order.get("modelVariantName") or order.get("variantName")
     base_total = base + variant_price
-    rows.append([model_name, "1", _fmt_pln(base_total)])
+    if variant_name:
+        rows.append([f"{model_name} ({variant_name})", "1", _fmt_pln(base_total)])
+    else:
+        rows.append([model_name, "1", _fmt_pln(base_total)])
 
     options = order.get("options") or []
-    for o in options:
-        name = o.get("optionName") or "—"
-        if o.get("categoryName"):
-            name = f"{o['categoryName']} · {name}"
-        qty = int(o.get("quantity") or 1)
-        total = int(o.get("totalPrice") or ((o.get("price") or 0) * qty))
-        rows.append([name, str(qty), _fmt_pln(total)])
+    selected_options = order.get("selectedOptions") or []
+    # Build the items list — prefer richer `selectedOptions` (manager-style),
+    # fall back to legacy flat `options[]` for older dealer orders.
+    items: list[dict] = []
+    if selected_options:
+        for o in selected_options:
+            qty = int(o.get("quantity") or 1)
+            items.append({
+                "name": o.get("name") or o.get("optionName") or "—",
+                "categoryName": o.get("categoryName") or "",
+                "qty": qty,
+                "totalPrice": int(o.get("totalPrice") or (int(o.get("price") or 0) * qty)),
+            })
+    else:
+        for o in options:
+            qty = int(o.get("quantity") or 1)
+            items.append({
+                "name": o.get("optionName") or "—",
+                "categoryName": o.get("categoryName") or "",
+                "qty": qty,
+                "totalPrice": int(o.get("totalPrice") or (int(o.get("price") or 0) * qty)),
+            })
+
+    for it in items:
+        name = it["name"]
+        if it["categoryName"]:
+            name = f"{it['categoryName']} · {name}"
+        rows.append([name, str(it["qty"]), _fmt_pln(it["totalPrice"])])
 
     options_table = Table(rows, colWidths=[110 * mm, 20 * mm, 40 * mm], repeatRows=1)
     options_table.setStyle(TableStyle([
