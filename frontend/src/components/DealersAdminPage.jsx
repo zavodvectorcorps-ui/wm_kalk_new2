@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 const API = getApiUrl();
 
 const authHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

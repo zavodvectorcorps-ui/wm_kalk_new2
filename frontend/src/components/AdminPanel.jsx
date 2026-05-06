@@ -18,10 +18,10 @@ import LayoutConfiguratorPage from './LayoutConfiguratorPage';
 import DealersAdminPage from './DealersAdminPage';
 import DealerOrdersPage from './DealerOrdersPage';
 
-export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
+export const AdminPanel = ({ onBackToLanding, onEditInCalculator, initialTab }) => {
   const { i18n } = useTranslation();
   const { isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState(initialTab || 'orders');
   const [statsType, setStatsType] = useState('balia');
   const [pricesType, setPricesType] = useState('balia');
 

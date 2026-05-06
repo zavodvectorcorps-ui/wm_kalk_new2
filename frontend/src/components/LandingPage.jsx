@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, GraduationCap, TrendingUp, BarChart3, Phone } from 'lucide-react';
+import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, GraduationCap, TrendingUp, BarChart3, Phone, Building2 } from 'lucide-react';
 
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
@@ -35,6 +35,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       analyticsDesc: 'Контроль менеджеров, срочные действия, AI-анализ и сравнение',
       callAnalyticsTitle: 'Анализ звонков',
       callAnalyticsDesc: 'Транскрибация, AI-оценка и аналитика звонков менеджеров',
+      dealersTitle: 'Дилеры',
+      dealersDesc: 'Управление дилерской сетью: создание аккаунтов, прайсы и заказы дилеров',
       select: 'Выбрать',
       comingSoon: 'Скоро',
       noAccess: 'Нет доступа',
@@ -64,6 +66,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       analyticsDesc: 'Kontrola menedżerów, pilne działania, analiza AI i porównanie',
       callAnalyticsTitle: 'Analiza rozmów',
       callAnalyticsDesc: 'Transkrypcja, ocena AI i analityka rozmów menedżerów',
+      dealersTitle: 'Dealerzy',
+      dealersDesc: 'Zarządzanie siecią dealerów: konta, cenniki i zamówienia',
       select: 'Wybierz',
       comingSoon: 'Wkrótce',
       noAccess: 'Brak dostępu',
@@ -229,6 +233,33 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                     {txt.adminDesc}
                   </p>
                   <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-violet-500/50 text-violet-600 hover:bg-violet-500/10 hover:text-violet-600">
+                    {txt.select}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Dealers Card — admin only */}
+          {canAccessAdmin && (
+            <Card
+              data-testid="landing-dealers-card"
+              className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-orange-500/50"
+              onClick={() => onSelectCalculator('dealers')}
+            >
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors bg-orange-500/10 group-hover:bg-orange-500/20">
+                    <Building2 className="w-8 h-8 text-orange-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground mb-2">
+                    {txt.dealersTitle}
+                  </h2>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    {txt.dealersDesc}
+                  </p>
+                  <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-orange-500/50 text-orange-600 hover:bg-orange-500/10 hover:text-orange-600">
                     {txt.select}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
@@ -406,3 +437,4 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
     </div>
   );
 };
+

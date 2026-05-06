@@ -237,6 +237,16 @@ Completed all three open items from Phase 2:
 - Frontend hostname detection already covers `wm-dealer*`, `dealer.*`, `dealers.*`.
 - DNS step-by-step guide saved to `/app/memory/wm-dealers-pl-setup.md`.
 
+### 5. Hotfix (Feb 6, prod report) — Dealers landing tile + auth bug
+- **CRITICAL bug fix**: `DealersAdminPage.jsx` and `DealerOrdersPage.jsx` were reading
+  the auth token from `localStorage.getItem('token')`, but the AuthContext stores it
+  under `authToken`. Result: every dealer-admin API call returned 401 in production.
+  Fixed both to use `authToken`.
+- Added a dedicated **Dealers card on the landing page** (admin only, orange theme,
+  data-testid: `landing-dealers-card`). Click takes admin straight into Admin Panel
+  with the "Дилеры" tab pre-selected (new `initialTab` prop on `AdminPanel`).
+- Added missing PL translation keys: `dealersTitle: 'Dealerzy'`, `dealersDesc: '…'`.
+
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
 - P2: Fix unstable login sessions / deployment timeouts

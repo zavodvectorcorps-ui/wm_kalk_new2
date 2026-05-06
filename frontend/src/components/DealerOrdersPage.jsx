@@ -13,7 +13,7 @@ const fmtDate = (d) => {
 };
 
 const authHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

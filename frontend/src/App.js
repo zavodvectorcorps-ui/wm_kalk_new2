@@ -357,6 +357,15 @@ const AppContent = () => {
       return; // Don't navigate if not admin
     }
 
+    // Dealers tab inside admin panel - admin only
+    if (calculator === 'dealers') {
+      if (isAdmin && isAdmin()) {
+        setCurrentCalculator('admin-dealers');
+        return;
+      }
+      return;
+    }
+
     // Analytics - admin only
     if (calculator === 'analytics') {
       if (isAdmin && isAdmin()) {
@@ -827,6 +836,31 @@ const AppContent = () => {
           />
         </Suspense>
         
+        <Toaster position="top-right" richColors />
+      </div>
+    );
+  }
+
+  // Admin Panel — Dealers tab pre-opened
+  if (currentCalculator === 'admin-dealers' && isAdmin()) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <Header
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          isAdminAuthenticated={isAdmin()}
+          onAdminLogout={handleLogout}
+          showNavigation={false}
+          showUsers={false}
+          calculatorType="admin"
+        />
+        <Suspense fallback={<PageLoader />}>
+          <AdminPanel
+            onBackToLanding={handleBackToLanding}
+            onEditInCalculator={handleEditOrderInCalculator}
+            initialTab="dealers"
+          />
+        </Suspense>
         <Toaster position="top-right" richColors />
       </div>
     );
