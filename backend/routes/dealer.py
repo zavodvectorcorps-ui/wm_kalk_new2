@@ -106,8 +106,10 @@ async def _apply_overrides(prices_doc: dict, dealer_id: str) -> dict:
 async def dealer_get_prices(dealer: dict = Depends(get_current_dealer)):
     """Return sauna prices with this dealer's overrides applied. Removes costPrice fields
     (dealers must NOT see internal cost)."""
-    doc = await db.sauna_pricing.find_one({"_id": {"$exists": True}}, {"_id": 0}) \
-        or await db.sauna_pricing.find_one({}, {"_id": 0})
+    # Read from the same collection the admin uses (`sauna_prices`, _id="default").
+    doc = await db.sauna_prices.find_one({"_id": "default"})
+    if doc:
+        doc.pop("_id", None)
     if not doc:
         doc = {"models": [], "categories": [], "options": []}
     await _apply_overrides(doc, dealer["id"])
