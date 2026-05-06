@@ -243,9 +243,26 @@ Completed all three open items from Phase 2:
   under `authToken`. Result: every dealer-admin API call returned 401 in production.
   Fixed both to use `authToken`.
 - Added a dedicated **Dealers card on the landing page** (admin only, orange theme,
-  data-testid: `landing-dealers-card`). Click takes admin straight into Admin Panel
-  with the "Дилеры" tab pre-selected (new `initialTab` prop on `AdminPanel`).
+  data-testid: `landing-dealers-card`).
 - Added missing PL translation keys: `dealersTitle: 'Dealerzy'`, `dealersDesc: '…'`.
+
+### 6. Session 12 (Feb 6-7, 2026) — Dealers Hub + Order Prefix + amoCRM opt-out
+- **Standalone Dealers Hub** (`/app/frontend/src/components/DealersHub.jsx`):
+  admin clicks "Дилеры" card on landing → opens dedicated page with two tabs
+  ("Дилеры" / "Заказы дилеров"), fully decoupled from the main Admin Panel.
+  The `dealers`/`dealer_orders` tabs no longer appear inside `AdminPanel.jsx`.
+- **No amoCRM leads for dealer orders**: removed the amoCRM push block from
+  `routes/dealer.py::dealer_create_order`. Dealers run their own CRM; the main
+  company only sees the order in the internal Dealer Orders tab.
+- **Custom dealer order prefix**: new `orderPrefix` field on the Dealer model
+  (`models/dealer.py`). When a dealer submits an order, the id becomes
+  `{PREFIX}-XXXXXXXX` (e.g. `ABC-B8B2383C`) instead of the legacy `WMS-D-...`.
+  Empty prefix → fallback to `WMS-D`. Editable in the "Новый дилер" dialog
+  (uppercase-only, max 10 chars, regex `[A-Z0-9-]`). Prefix is shown in the
+  dealers table under the login row.
+- **Cost Price location answer (user Q)**: `costPrice` (себестоимость) is edited
+  in Admin Panel → Цены → Купели/Sauny (inside each model and option card).
+  The computed **Маржа** (margin) column is displayed in Admin → Заказы.
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)

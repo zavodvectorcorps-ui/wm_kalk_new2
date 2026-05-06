@@ -21,6 +21,7 @@ class Dealer(BaseModel):
     phone: Optional[str] = ""
     notes: Optional[str] = ""
     isActive: bool = True
+    orderPrefix: Optional[str] = ""  # custom prefix for dealer's order IDs, e.g. "ABC" -> "ABC-XXXXX"
     createdAt: str = Field(default_factory=_now_iso)
     updatedAt: str = Field(default_factory=_now_iso)
 
@@ -32,6 +33,7 @@ class DealerCreate(BaseModel):
     email: Optional[str] = ""
     phone: Optional[str] = ""
     notes: Optional[str] = ""
+    orderPrefix: Optional[str] = ""
 
 
 class DealerUpdate(BaseModel):
@@ -41,6 +43,7 @@ class DealerUpdate(BaseModel):
     notes: Optional[str] = None
     isActive: Optional[bool] = None
     password: Optional[str] = None  # if set, will rehash
+    orderPrefix: Optional[str] = None
 
 
 class DealerLogin(BaseModel):

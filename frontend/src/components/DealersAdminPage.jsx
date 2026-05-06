@@ -101,6 +101,9 @@ export default function DealersAdminPage() {
                   <td className="px-4 py-3">
                     <div className="font-medium">{d.name || '—'}</div>
                     <div className="text-xs text-muted-foreground font-mono">@{d.username}</div>
+                    {d.orderPrefix && (
+                      <div className="text-[11px] text-orange-600 font-mono mt-0.5">Префикс: {d.orderPrefix}-</div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     <div>{d.email || '—'}</div>
@@ -149,7 +152,7 @@ export default function DealersAdminPage() {
 }
 
 function CreateDealerDialog({ open, onClose }) {
-  const [data, setData] = useState({ username: '', password: '', name: '', email: '', phone: '' });
+  const [data, setData] = useState({ username: '', password: '', name: '', email: '', phone: '', orderPrefix: '' });
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -157,7 +160,7 @@ function CreateDealerDialog({ open, onClose }) {
     try {
       await axios.post(`${API}/api/admin/dealers`, data, { headers: authHeaders() });
       toast.success(`Дилер ${data.username} создан`);
-      setData({ username: '', password: '', name: '', email: '', phone: '' });
+      setData({ username: '', password: '', name: '', email: '', phone: '', orderPrefix: '' });
       onClose();
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Ошибка');
@@ -194,6 +197,17 @@ function CreateDealerDialog({ open, onClose }) {
               <Label>Телефон</Label>
               <Input value={data.phone} onChange={(e) => setData({ ...data, phone: e.target.value })} />
             </div>
+          </div>
+          <div>
+            <Label>Префикс заказа</Label>
+            <Input
+              value={data.orderPrefix}
+              onChange={(e) => setData({ ...data, orderPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '') })}
+              placeholder="Напр. ABC — номер заказа станет ABC-A1B2C3D4"
+              maxLength={10}
+              data-testid="create-dealer-prefix"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Необязательно. Если пусто — используется префикс WMS-D.</p>
           </div>
         </div>
         <DialogFooter>

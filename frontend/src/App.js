@@ -41,6 +41,7 @@ const LeadAnalyticsPage = lazy(() => import('./components/LeadAnalyticsPage'));
 const CallAnalyticsPage = lazy(() => import('./components/CallAnalyticsPage'));
 const PortfolioPage = lazy(() => import('./components/PortfolioPage'));
 const DealerEntry = lazy(() => import('./components/dealer'));
+const DealersHub = lazy(() => import('./components/DealersHub'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -841,7 +842,7 @@ const AppContent = () => {
     );
   }
 
-  // Admin Panel — Dealers tab pre-opened
+  // Admin Panel — Dealers Hub (standalone)
   if (currentCalculator === 'admin-dealers' && isAdmin()) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -855,11 +856,7 @@ const AppContent = () => {
           calculatorType="admin"
         />
         <Suspense fallback={<PageLoader />}>
-          <AdminPanel
-            onBackToLanding={handleBackToLanding}
-            onEditInCalculator={handleEditOrderInCalculator}
-            initialTab="dealers"
-          />
+          <DealersHub onBackToLanding={handleBackToLanding} />
         </Suspense>
         <Toaster position="top-right" richColors />
       </div>

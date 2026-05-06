@@ -158,13 +158,15 @@ async def dealer_put_overrides(
 @router.post("/api/dealer/sauna/orders")
 async def dealer_create_order(order: dict, dealer: dict = Depends(get_current_dealer)):
     """Dealer creates a sauna order. Stored in `sauna_orders` with dealer tag.
-    
-    Also pushes a lightweight note to amoCRM (if configured) tagged with the dealer name
-    so the manager sees it in the regular pipeline.
+
+    No amoCRM push is performed — dealers manage their own leads/CRM. The main company
+    sees these orders only in the internal Dealer Orders tab of the admin hub.
     """
     import uuid
     order_data = dict(order)
-    order_data["id"] = order_data.get("id") or f"WMS-D-{uuid.uuid4().hex[:10].upper()}"
+    # Use dealer's custom order prefix if set, otherwise fall back to legacy "WMS-D"
+    prefix = (dealer.get("orderPrefix") or "").strip().upper() or "WMS-D"
+    order_data["id"] = order_data.get("id") or f"{prefix}-{uuid.uuid4().hex[:8].upper()}"
     order_data["dealerId"] = dealer["id"]
     order_data["dealerName"] = dealer.get("name") or dealer["username"]
     order_data["dealerUsername"] = dealer["username"]
@@ -176,62 +178,6 @@ async def dealer_create_order(order: dict, dealer: dict = Depends(get_current_de
     order_data.pop("margin", None)
     await db.sauna_orders.insert_one(order_data)
     order_data.pop("_id", None)
-
-    # === Push to amoCRM (best-effort, don't fail order on amoCRM errors) ===
-    try:
-        from routes.amocrm import get_amocrm_settings, add_note_to_amocrm
-        import httpx
-        settings = get_amocrm_settings()
-        domain = (settings.get("amocrm_domain") or "").strip()
-        token = (settings.get("amocrm_token") or "").strip()
-        if domain and token:
-            customer_name = order_data.get("customerName") or order_data.get("clientName") or "Без имени"
-            customer_phone = order_data.get("customerPhone") or order_data.get("phone") or ""
-            model_name = order_data.get("modelName") or (order_data.get("model") or {}).get("name") or "Sauna"
-            total = int(order_data.get("total") or 0)
-            lead_name = f"[Дилер: {order_data['dealerName']}] {model_name} — {customer_name}"
-            # Create lead with tag
-            url = f"https://{domain}/api/v4/leads"
-            payload = [{
-                "name": lead_name,
-                "price": total,
-                "_embedded": {
-                    "tags": [
-                        {"name": "Dealer"},
-                        {"name": f"Dealer: {order_data['dealerName']}"},
-                    ],
-                },
-            }]
-            async with httpx.AsyncClient(timeout=8.0) as client_http:
-                r = await client_http.post(
-                    url,
-                    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                    json=payload,
-                )
-                if r.status_code in (200, 201):
-                    body = r.json()
-                    leads = (body.get("_embedded") or {}).get("leads") or []
-                    if leads:
-                        lead_id = leads[0].get("id")
-                        # Add a note with order details
-                        note = (
-                            f"📦 Заказ от дилера через WM-Dealers Portal\n"
-                            f"Дилер: {order_data['dealerName']} (@{order_data['dealerUsername']})\n"
-                            f"Заказ: {order_data['id']}\n"
-                            f"Клиент: {customer_name}{(' · ' + customer_phone) if customer_phone else ''}\n"
-                            f"Модель: {model_name}\n"
-                            f"Сумма: {total} PLN"
-                        )
-                        await add_note_to_amocrm(str(lead_id), note, domain, token)
-                        await db.sauna_orders.update_one(
-                            {"id": order_data["id"]},
-                            {"$set": {"amocrm_lead_id": str(lead_id)}}
-                        )
-                        order_data["amocrm_lead_id"] = str(lead_id)
-                else:
-                    logger.warning(f"amoCRM lead create for dealer order failed: {r.status_code} {r.text[:200]}")
-    except Exception as e:
-        logger.warning(f"amoCRM push for dealer order skipped: {e}")
 
     return {"ok": True, "order": order_data}
 
@@ -319,6 +265,7 @@ async def admin_create_dealer(body: DealerCreate, _: dict = Depends(get_admin_us
         email=(body.email or "").strip(),
         phone=(body.phone or "").strip(),
         notes=body.notes or "",
+        orderPrefix=(body.orderPrefix or "").strip().upper(),
     )
     doc = dealer.model_dump()
     await db.dealers.insert_one(doc)
