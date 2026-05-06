@@ -196,6 +196,21 @@ export const ModelEditDialog = memo(({
             </div>
           </div>
 
+          {/* Cost price (admin only) */}
+          <div className="space-y-2 rounded-md border border-amber-200 dark:border-amber-700/40 bg-amber-50/40 dark:bg-amber-950/20 p-3">
+            <Label className="flex items-center gap-2">
+              Себестоимость модели (PLN/€)
+              <span className="text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400">admin only</span>
+            </Label>
+            <Input
+              type="number"
+              data-testid="balia-model-cost-price"
+              value={formData.costPrice || 0}
+              onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) || 0 })}
+            />
+            <p className="text-[11px] text-muted-foreground">Используется только для расчёта маржи в CRM. Клиенты не видят.</p>
+          </div>
+
           {/* Hint fields - RU and PL */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

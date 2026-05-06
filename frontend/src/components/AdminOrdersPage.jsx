@@ -352,6 +352,9 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
                     <TableHead>{txt.responsible}</TableHead>
                     <TableHead>{t('date')}</TableHead>
                     <TableHead className="text-right">{t('total')}</TableHead>
+                    {isAdmin && isAdmin() && (
+                      <TableHead className="text-right text-amber-700 dark:text-amber-400" data-testid="admin-margin-column-header">Маржа</TableHead>
+                    )}
                     <TableHead className="text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -407,6 +410,22 @@ export const AdminOrdersPage = ({ onEditInCalculator }) => {
                             </span>
                           </div>
                         </TableCell>
+                        {isAdmin && isAdmin() && (
+                          <TableCell className="text-right" data-testid={`admin-margin-cell-${order.id}`}>
+                            {order.totalCost ? (
+                              <div className="text-sm">
+                                <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                  {formatPrice(Math.max(0, (order.total || 0) - order.totalCost), isSauna ? 'PLN' : (order.currency || 'EUR'))}
+                                </div>
+                                {order.total > 0 && (
+                                  <div className="text-[11px] text-muted-foreground">
+                                    {Math.round(((order.total - order.totalCost) / order.total) * 100)}% · с/с {formatPrice(order.totalCost, isSauna ? 'PLN' : (order.currency || 'EUR'))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : <span className="text-muted-foreground text-xs">—</span>}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
                             {/* Edit in Calculator */}

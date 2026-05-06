@@ -13,6 +13,7 @@ class SaunaModelVariant(BaseModel):
     nameRu: Optional[str] = ""  # Russian name
     namePl: Optional[str] = ""  # Polish name
     price: int = 0  # Price for this variant
+    costPrice: int = 0  # Cost price (Себестоимость) — admin only
     imageUrl: Optional[str] = ""  # Image for this variant
     hint: Optional[str] = ""  # Description (RU)
     hintPl: Optional[str] = ""  # Description (PL)
@@ -31,6 +32,7 @@ class SaunaModel(BaseModel):
     id: str
     name: str
     basePrice: int
+    costPrice: int = 0  # Cost price (Себестоимость) — admin only, used for margin calc
     foundationPrice: int = 0
     discount: int = 0
     imageUrl: str = ""
@@ -72,6 +74,7 @@ class OptionVariant(BaseModel):
     nameRu: Optional[str] = ""  # Russian name
     namePl: Optional[str] = ""  # Polish name (same as name)
     price: int = 0  # Full price for this variant (replaces option base price)
+    costPrice: int = 0  # Cost price (Себестоимость) — admin only
     imageUrl: Optional[str] = None  # Image for this variant
     techSpecCategoryId: Optional[str] = None  # Link to tech spec category
     techSpecId: Optional[str] = None  # Link to tech spec option
@@ -85,6 +88,7 @@ class SaunaOption(BaseModel):
     id: str
     name: str
     price: int = 0
+    costPrice: int = 0  # Cost price (Себестоимость) — admin only
     inputType: str = "radio"
     sortOrder: int = 1
     imageUrl: Optional[str] = None
@@ -282,6 +286,9 @@ class SaunaOrder(BaseModel):
     layoutConfigVariants: Optional[Dict[str, str]] = {}  # Applied variants: {optionId: variantId}
     layoutConfiguredAt: Optional[str] = None  # When layout was configured
     layoutConfiguredBy: Optional[str] = None  # Who configured it
+    # === COST/MARGIN (admin-only) ===
+    totalCost: Optional[int] = 0  # Sum of cost prices of all selected items (model + variant + options)
+    margin: Optional[float] = 0  # total - totalCost (after discounts)
 
 
 class SaunaPDFRequest(BaseModel):

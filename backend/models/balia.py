@@ -53,6 +53,7 @@ class BaliaModel(BaseModel):
     currency: Optional[str] = "EUR"
     sortOrder: Optional[int] = 0
     active: Optional[bool] = True
+    costPrice: Optional[float] = 0  # Cost price (Себестоимость) — admin only
     hint: Optional[str] = ""  # General model hint (RU)
     hintPl: Optional[str] = ""  # Polish hint
     hintImageUrl: Optional[str] = ""  # Image for hint
@@ -107,6 +108,7 @@ class CategoryOption(BaseModel):
     nameRu: Optional[str] = ""
     namePl: Optional[str] = ""
     price: Optional[float] = 0
+    costPrice: Optional[float] = 0  # Cost price (Себестоимость) — admin only
     imageUrl: Optional[str] = ""
     hint: Optional[str] = ""
     hintPl: Optional[str] = ""
@@ -293,6 +295,9 @@ class Order(BaseModel):
     updatedBy: Optional[str] = None  # Кто обновил
     # History of changes
     changeHistory: Optional[List[Dict[str, Any]]] = []  # История изменений
+    # === COST/MARGIN (admin-only) ===
+    totalCost: Optional[float] = 0  # Sum of cost prices of all selected items
+    margin: Optional[float] = 0  # total - totalCost (after discounts)
 
 
 class PDFRequest(BaseModel):

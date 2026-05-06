@@ -674,6 +674,28 @@ export const OrderFullEditModal = ({
                     <span>{text.total}:</span>
                     <span className="text-blue-600">{formatPrice(total)}</span>
                   </div>
+                  {isAdminUser && formData.totalCost ? (
+                    <div className="pt-3 mt-2 border-t border-amber-200/60 dark:border-amber-700/40 space-y-1.5" data-testid="margin-block">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400 font-semibold">
+                        Маржа · admin only
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Себестоимость:</span>
+                        <span className="font-medium">{formatPrice(formData.totalCost)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Маржа:</span>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400" data-testid="margin-value">
+                          {formatPrice(Math.max(0, (total || 0) - (formData.totalCost || 0)))}
+                          {total > 0 && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({Math.round(((total - formData.totalCost) / total) * 100)}%)
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </CardContent>
             </Card>

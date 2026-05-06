@@ -756,6 +756,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
               optionId: option.id,
               optionName: variantName ? `${option.name} (${variantName})` : option.name,
               price: finalPrice,
+              costPrice: option.costPrice || 0,
+              variantCostPrice: selectedVariant?.costPrice ?? null,
               quantity,
               totalPrice: finalPrice * quantity,
               imageUrl: finalImageUrl,
@@ -821,6 +823,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           optionId: option.id,
           optionName: variantName ? `${option.name} (${variantName})` : option.name,
           price: finalPrice,
+          costPrice: option.costPrice || 0,
+          variantCostPrice: selectedVariant?.costPrice ?? null,
           quantity,
           totalPrice: finalPrice * quantity,
           imageUrl: finalImageUrl,
@@ -876,7 +880,19 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       const effectiveModelName = modelVariant 
         ? `${model?.name || ''} (${modelVariant.namePl || modelVariant.name || ''})` 
         : (model?.name || '');
-      
+
+      // === COST PRICE CALCULATION (admin-only field) ===
+      // Sum: model.costPrice + variant.costPrice + sum(selectedOption.costPrice * qty)
+      const modelCost = (model?.costPrice || 0) + (modelVariant?.costPrice || 0);
+      const optionsCost = (selectedOptions || []).reduce((acc, opt) => {
+        const qty = opt.quantity || 1;
+        // If option has variant chosen, prefer variant cost; otherwise option's own cost
+        const cp = (opt.variantCostPrice != null ? opt.variantCostPrice : opt.costPrice) || 0;
+        return acc + cp * qty;
+      }, 0);
+      const totalCost = Math.round(modelCost + optionsCost);
+      const margin = Math.max(0, Math.round((total || 0) - totalCost));
+
       const orderData = {
         ...(orderId && { id: orderId }),
         fullName: formData.fullName,
@@ -902,6 +918,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         optionsTotal: calculateOptionsTotal(),
         subtotal,
         total,
+        totalCost,
+        margin,
         createdBy: user?.username || '',
         adminGifts,
         adminDiscountApproved: appliedDiscount > (prices.maxManagerDiscount || 10) && isAdminUser ? adminDiscountApproved : false,

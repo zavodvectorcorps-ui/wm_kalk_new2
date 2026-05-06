@@ -185,14 +185,29 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
                 </div>
               </div>
               
-              <div>
-                <Label className="text-xs">Цена (PLN)</Label>
-                <Input
-                  type="number"
-                  value={variant.price || 0}
-                  onChange={(e) => handleVariantChange(index, 'price', parseInt(e.target.value) || 0)}
-                  className="h-8 text-sm"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Цена (PLN)</Label>
+                  <Input
+                    type="number"
+                    value={variant.price || 0}
+                    onChange={(e) => handleVariantChange(index, 'price', parseInt(e.target.value) || 0)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs flex items-center gap-1.5">
+                    Себестоимость (PLN)
+                    <span className="text-[9px] uppercase tracking-wider text-amber-600 dark:text-amber-400">admin</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    data-testid={`variant-cost-price-${index}`}
+                    value={variant.costPrice || 0}
+                    onChange={(e) => handleVariantChange(index, 'costPrice', parseInt(e.target.value) || 0)}
+                    className="h-8 text-sm"
+                  />
+                </div>
               </div>
               
               {/* Descriptions as multiline textareas */}
@@ -495,6 +510,19 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
               onChange={(e) => setNewModel(prev => ({ ...prev, foundationPrice: e.target.value }))}
             />
           </div>
+        </div>
+        <div>
+          <Label className="flex items-center gap-2">
+            Себестоимость (PLN)
+            <span className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400">admin only</span>
+          </Label>
+          <Input
+            type="number"
+            data-testid="new-model-cost-price"
+            value={newModel.costPrice || 0}
+            onChange={(e) => setNewModel(prev => ({ ...prev, costPrice: parseInt(e.target.value) || 0 }))}
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">Используется только для расчёта маржи в CRM. Клиенты не видят.</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -826,6 +854,19 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
                 onChange={(e) => setEditingModel(prev => ({ ...prev, foundationPrice: parseInt(e.target.value) || 0 }))}
               />
             </div>
+          </div>
+          <div>
+            <Label className="flex items-center gap-2">
+              Себестоимость (PLN)
+              <span className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400">admin only</span>
+            </Label>
+            <Input
+              type="number"
+              data-testid="edit-model-cost-price"
+              value={editingModel.costPrice || 0}
+              onChange={(e) => setEditingModel(prev => ({ ...prev, costPrice: parseInt(e.target.value) || 0 }))}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Используется только для расчёта маржи в CRM. Клиенты не видят.</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

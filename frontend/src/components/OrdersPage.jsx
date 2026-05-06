@@ -503,6 +503,9 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                     <TableHead>{txt.createdBy}</TableHead>
                     <TableHead>{t('date')}</TableHead>
                     <TableHead className="text-right">{t('total')}</TableHead>
+                    {isAdmin && isAdmin() && (
+                      <TableHead className="text-right text-amber-700 dark:text-amber-400" data-testid="margin-column-header">Маржа</TableHead>
+                    )}
                     <TableHead className="text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -589,6 +592,25 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                           }
                         </div>
                       </TableCell>
+                      {isAdmin && isAdmin() && (
+                        <TableCell className="text-right" data-testid={`margin-cell-${order.id}`}>
+                          {order.totalCost ? (
+                            <div className="text-sm">
+                              <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                {isSauna
+                                  ? `${Math.max(0, (order.total || 0) - order.totalCost).toLocaleString('pl-PL', { maximumFractionDigits: 0 })}`
+                                  : `${Math.max(0, (order.total || 0) - order.totalCost).toFixed(0)}`}
+                                {isSauna ? ' PLN' : '€'}
+                              </div>
+                              {order.total > 0 && (
+                                <div className="text-[11px] text-muted-foreground">
+                                  {Math.round(((order.total - order.totalCost) / order.total) * 100)}%
+                                </div>
+                              )}
+                            </div>
+                          ) : <span className="text-muted-foreground text-xs">—</span>}
+                        </TableCell>
+                      )}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2 flex-wrap">
                           {/* Preview Button */}

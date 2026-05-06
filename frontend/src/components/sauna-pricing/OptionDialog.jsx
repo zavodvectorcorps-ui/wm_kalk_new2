@@ -108,13 +108,27 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
               placeholder="Piec Elektryczne 9 kW"
             />
           </div>
-          <div>
-            <Label>{txt.price}</Label>
-            <Input
-              type="number"
-              value={newOption.price}
-              onChange={(e) => setNewOption(prev => ({ ...prev, price: e.target.value }))}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>{txt.price}</Label>
+              <Input
+                type="number"
+                value={newOption.price}
+                onChange={(e) => setNewOption(prev => ({ ...prev, price: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label className="flex items-center gap-1.5">
+                Себестоимость (PLN)
+                <span className="text-[9px] uppercase tracking-wider text-amber-600 dark:text-amber-400">admin</span>
+              </Label>
+              <Input
+                type="number"
+                data-testid="new-option-cost-price"
+                value={newOption.costPrice || 0}
+                onChange={(e) => setNewOption(prev => ({ ...prev, costPrice: parseInt(e.target.value) || 0 }))}
+              />
+            </div>
           </div>
           <div>
             <Label>{txt.hint || 'Подсказка / Описание'}</Label>
@@ -456,13 +470,27 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 onChange={(e) => setEditingOption(prev => ({ ...prev, name: e.target.value }))}
               />
             </div>
-            <div>
-              <Label>{txt.price}</Label>
-              <Input
-                type="number"
-                value={editingOption.price}
-                onChange={(e) => setEditingOption(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>{txt.price}</Label>
+                <Input
+                  type="number"
+                  value={editingOption.price}
+                  onChange={(e) => setEditingOption(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <div>
+                <Label className="flex items-center gap-1.5">
+                  Себестоимость (PLN)
+                  <span className="text-[9px] uppercase tracking-wider text-amber-600 dark:text-amber-400">admin</span>
+                </Label>
+                <Input
+                  type="number"
+                  data-testid="edit-option-cost-price"
+                  value={editingOption.costPrice || 0}
+                  onChange={(e) => setEditingOption(prev => ({ ...prev, costPrice: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
             </div>
             <div>
               <Label>{txt.hint || 'Подсказка / Описание'}</Label>
@@ -924,6 +952,26 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                               data-testid={`variant-price-${idx}`}
                             />
                             <span className="text-lg font-bold text-amber-600">zł</span>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <span className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400 mr-1">с/с</span>
+                            <Input
+                              type="number"
+                              value={variant.costPrice || 0}
+                              onChange={(e) => {
+                                setEditingOption(prev => ({
+                                  ...prev,
+                                  variants: (prev.variants || prev.subOptions || []).map((v, i) =>
+                                    i === idx ? { ...v, costPrice: parseInt(e.target.value) || 0 } : v
+                                  ),
+                                  subOptions: []
+                                }));
+                              }}
+                              className="h-7 w-24 text-sm text-slate-600 dark:text-slate-300 border-amber-200 dark:border-amber-700/40 focus:border-amber-500 px-1"
+                              data-testid={`variant-cost-price-${idx}`}
+                              placeholder="0"
+                            />
+                            <span className="text-xs text-slate-500">zł</span>
                           </div>
                           <p className="text-xs text-gray-400 mt-1">
                             {variant.imageUrl ? '✓ Фото загружено' : '⚠ Добавьте фото для PDF'}

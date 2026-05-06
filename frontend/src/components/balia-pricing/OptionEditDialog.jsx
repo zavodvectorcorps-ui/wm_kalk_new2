@@ -219,6 +219,20 @@ export const OptionEditDialog = memo(({
               onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              Себестоимость ({currencySymbol})
+              <span className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400">admin only</span>
+            </Label>
+            <Input
+              type="number"
+              data-testid="balia-option-cost-price"
+              value={formData.costPrice || 0}
+              onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) || 0 })}
+            />
+            <p className="text-[11px] text-muted-foreground">Используется только для расчёта маржи в CRM.</p>
+          </div>
           
           {/* Color Preview for color options */}
           <div className="space-y-2">

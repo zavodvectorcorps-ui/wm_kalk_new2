@@ -140,6 +140,27 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   accent-colored endpoint dot. Colors match each card's accent blob.
 - Removed the now-unused `/api/portfolio/kpi` backend endpoint and `routes/portfolio.py`.
 
+## Session 9.5 (Feb 2026) — Cost price (Себестоимость) for margin tracking
+- Pydantic models extended with `costPrice` field (admin-only):
+  - `SaunaModel`, `SaunaModelVariant` (variant-level cost), `SaunaOption`,
+    `OptionVariant` (sub-option cost), `SaunaLayoutVariant`
+  - `BaliaModel`, `HeaterVariant`, `CategoryOption`
+  - `SaunaOrder` & `Order`: new fields `totalCost: int` + `margin: float`
+- Admin pricing UI updated to edit cost prices:
+  - sauna-pricing/`ModelDialog.jsx` — model basePrice + foundationPrice + **costPrice** + per-variant cost
+  - sauna-pricing/`OptionDialog.jsx` — option price + **costPrice** + per-variant sub-option cost
+  - balia-pricing/`ModelEditDialog.jsx` — model **costPrice** card
+  - balia-pricing/`OptionEditDialog.jsx` — option **costPrice** field
+- Admin-only display:
+  - `OrderFullEditModal.jsx` — new "Маржа · admin only" block under total: shows
+    себестоимость + маржа (PLN/€ + %)
+  - `AdminOrdersPage.jsx` & `OrdersPage.jsx` — new "Маржа" column visible only to
+    admin: green margin amount + percentage + cost (formatted PLN/€)
+- Order save (`useSaunaCalculator.js`): computes `totalCost` and `margin` client-side
+  from selected model/variant/options costPrices and sends with the order. Pydantic
+  passes through unchanged. Existing legacy orders show "—" (no costPrice yet).
+- Layout variant cost UI is data-model-ready but admin form not yet exposed (P3).
+
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
 - P2: Fix unstable login sessions / deployment timeouts
