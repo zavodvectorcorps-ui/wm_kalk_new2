@@ -149,11 +149,11 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
         },
         { headers: dealerAuthHeaders() },
       );
-      toast.success('Заказ подтверждён и отправлен в WM');
+      toast.success('Zamówienie potwierdzone i wysłane do WM');
       onConfirmed?.(r.data?.order || order);
       onClose();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || 'Не удалось подтвердить заказ');
+      toast.error(e?.response?.data?.detail || 'Nie udało się potwierdzić zamówienia');
     } finally {
       setSubmitting(false);
     }
@@ -165,10 +165,10 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            Подтвердить заказ
+            Potwierdź zamówienie
           </DialogTitle>
           <DialogDescription>
-            Подтверждение отправит этот заказ в основную CRM WM. После этого изменить заказ будет нельзя.
+            Potwierdzenie prześle to zamówienie do głównego systemu CRM WM. Po tym kroku zamówienia nie będzie można edytować.
           </DialogDescription>
         </DialogHeader>
 
@@ -183,19 +183,19 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
           </div>
 
           <div>
-            <Label htmlFor="dealer-contract-number">Номер договора с клиентом *</Label>
+            <Label htmlFor="dealer-contract-number">Numer umowy z klientem *</Label>
             <Input
               id="dealer-contract-number"
               value={contractNumber}
               onChange={(e) => setContractNumber(e.target.value)}
-              placeholder="напр. UM-2026/03/15"
+              placeholder="np. UM-2026/03/15"
               data-testid="dealer-contract-number-input"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="dealer-delivery-date">Срок поставки</Label>
+              <Label htmlFor="dealer-delivery-date">Termin dostawy</Label>
               <Input
                 id="dealer-delivery-date"
                 type="date"
@@ -214,34 +214,34 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
                   data-testid="dealer-client-confirmed"
                 />
                 <Label htmlFor="dealer-client-confirmed" className="text-sm font-normal cursor-pointer">
-                  Клиент подтвердил
+                  Klient potwierdził
                 </Label>
               </div>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="dealer-confirm-notes">Комментарий (необязательно)</Label>
+            <Label htmlFor="dealer-confirm-notes">Komentarz (opcjonalnie)</Label>
             <Textarea
               id="dealer-confirm-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="Любая дополнительная информация для производства…"
+              placeholder="Dodatkowe informacje dla produkcji…"
             />
           </div>
 
           {!canSubmit && (
             <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 rounded-md p-2">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>Чтобы отправить заказ, заполните номер договора и поставьте галочку «Клиент подтвердил».</span>
+              <span>Aby wysłać zamówienie, wpisz numer umowy i zaznacz „Klient potwierdził”.</span>
             </div>
           )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={submitting} data-testid="confirm-order-cancel">
-            Оставить как черновик
+            Zostaw jako wersja robocza
           </Button>
           <Button
             onClick={handleConfirm}
@@ -250,7 +250,7 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
             data-testid="confirm-order-submit"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
-            Подтвердить и отправить
+            Potwierdź i wyślij
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -269,7 +269,7 @@ export default function DealerCalculatorWrapper({ initialDraft = null }) {
   useEffect(() => {
     const dealerToken = getDealerToken() || '';
     if (!dealerToken) {
-      toast.error('Сессия дилера не найдена. Войдите заново.');
+      toast.error('Sesja dealera nie została znaleziona. Zaloguj się ponownie.');
       return;
     }
     const teardown = installInterceptor({
@@ -293,9 +293,9 @@ export default function DealerCalculatorWrapper({ initialDraft = null }) {
       <div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/5 p-3 text-sm flex items-start gap-3">
         <FileText className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
         <div className="text-slate-200">
-          <div className="font-medium text-white">Калькулятор и КП</div>
+          <div className="font-medium text-white">Kalkulator i Oferty</div>
           <div className="text-slate-400 text-xs mt-0.5">
-            Любой расчёт сохраняется как <b>черновик</b> и доступен только вам — компания WM получит заказ только после нажатия «Подтвердить и отправить» с номером договора. PDF можно скачать в любой момент.
+            Każdy projekt zapisywany jest jako <b>wersja robocza</b> i jest dostępny tylko dla Ciebie — firma WM otrzyma zamówienie dopiero po naciśnięciu „Potwierdź i wyślij” z numerem umowy. PDF możesz pobrać w dowolnym momencie.
           </div>
         </div>
       </div>

@@ -72,6 +72,8 @@ def format_order_notification(order: Dict[str, Any], order_type: str = 'balia', 
     
     if is_web_order:
         header = f"🌐 <b>NOWE ZAMÓWIENIE Z INTERNETU</b>\n📍 Kalkulator: <b>{type_name}</b>"
+    elif order.get('dealerOrder'):
+        header = f"🤝 <b>NOWE ZAMÓWIENIE OD DEALERA</b>\n📍 Kalkulator: <b>{type_name}</b>"
     else:
         header = f"{type_emoji} <b>NOWE ZAMÓWIENIE - {type_name}</b>"
     
@@ -115,11 +117,19 @@ def format_order_notification(order: Dict[str, Any], order_type: str = 'balia', 
         total_formatted = str(total)
     
     # Build message
+    dealer_block = ""
+    if order.get('dealerOrder'):
+        dealer_name = order.get('dealerName') or '—'
+        contract = order.get('dealerContractNumber') or ''
+        dealer_block = f"\n🏢 <b>Dealer:</b> {dealer_name}"
+        if contract:
+            dealer_block += f"\n📄 <b>Nr umowy:</b> {contract}"
+
     message = f"""{header}
 
 🔢 <b>Nr:</b> {order_id}
 👤 <b>Klient:</b> {customer_name}
-📞 <b>Tel:</b> {phone}
+📞 <b>Tel:</b> {phone}{dealer_block}
 
 {type_emoji} <b>Model:</b> {model_name}{heater_text}{options_text}
 

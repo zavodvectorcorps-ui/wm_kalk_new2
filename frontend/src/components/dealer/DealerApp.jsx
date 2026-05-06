@@ -29,28 +29,28 @@ function StatsTab() {
   }, []);
 
   if (loading) return <div className="flex items-center justify-center py-20 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /></div>;
-  if (!stats) return <div className="text-slate-400 py-10">Нет данных.</div>;
+  if (!stats) return <div className="text-slate-400 py-10">Brak danych.</div>;
 
   const maxWeek = Math.max(...(stats.weekly || []).map(w => w.count), 1);
 
   return (
     <div className="space-y-6" data-testid="dealer-stats">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard icon={ShoppingCart} label="Всего заказов" value={stats.totalOrders} color="#06b6d4" testid="stats-total-orders" />
-        <KpiCard icon={DollarSign} label="Общая сумма" value={fmtPLN(stats.totalValue)} color="#10b981" testid="stats-total-value" />
-        <KpiCard icon={TrendingUp} label="Средний чек" value={fmtPLN(stats.avgOrderValue)} color="#f59e0b" testid="stats-avg-order" />
+        <KpiCard icon={ShoppingCart} label="Wszystkie zamówienia" value={stats.totalOrders} color="#06b6d4" testid="stats-total-orders" />
+        <KpiCard icon={DollarSign} label="Łączna kwota" value={fmtPLN(stats.totalValue)} color="#10b981" testid="stats-total-value" />
+        <KpiCard icon={TrendingUp} label="Średnia wartość" value={fmtPLN(stats.avgOrderValue)} color="#f59e0b" testid="stats-avg-order" />
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white">Заказы по неделям</h3>
-          <span className="text-xs text-slate-500">последние 12 недель</span>
+          <h3 className="text-lg font-semibold text-white">Zamówienia tygodniowo</h3>
+          <span className="text-xs text-slate-500">ostatnie 12 tygodni</span>
         </div>
         <div className="flex items-end gap-2 h-40">
           {(stats.weekly || []).map((w) => {
             const h = (w.count / maxWeek) * 100;
             return (
-              <div key={w.week} className="flex-1 flex flex-col items-center gap-1" title={`${w.week}: ${w.count} заказ(ов) · ${fmtPLN(w.value)}`}>
+              <div key={w.week} className="flex-1 flex flex-col items-center gap-1" title={`${w.week}: ${w.count} zamówień · ${fmtPLN(w.value)}`}>
                 <div className="text-[10px] text-slate-500">{w.count || ''}</div>
                 <div
                   className="w-full rounded-t transition-all"
@@ -102,9 +102,9 @@ function downloadOrderPdf(orderId, type = 'offer') {
 function StatusBadge({ status }) {
   const s = (status || 'draft').toLowerCase();
   if (s === 'confirmed') {
-    return <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Подтверждён</span>;
+    return <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Potwierdzone</span>;
   }
-  return <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Черновик</span>;
+  return <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Wersja robocza</span>;
 }
 
 function OrdersTab() {
@@ -133,13 +133,13 @@ function OrdersTab() {
   };
 
   const handleDelete = async (orderId) => {
-    if (!window.confirm(`Удалить черновик ${orderId}?`)) return;
+    if (!window.confirm(`Usunąć wersję roboczą ${orderId}?`)) return;
     try {
       await axios.delete(`${API}/api/dealer/sauna/orders/${orderId}`, { headers: dealerAuthHeaders() });
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch (e) {
       // eslint-disable-next-line no-alert
-      alert(e?.response?.data?.detail || 'Не удалось удалить');
+      alert(e?.response?.data?.detail || 'Nie udało się usunąć');
     }
   };
 
@@ -154,7 +154,7 @@ function OrdersTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-slate-400">Фильтр:</span>
+        <span className="text-slate-400">Filtr:</span>
         {['all', 'draft', 'confirmed'].map((f) => (
           <button
             key={f}
@@ -166,31 +166,31 @@ function OrdersTab() {
                 : 'border-white/10 text-slate-300 hover:bg-white/5'
             }`}
           >
-            {f === 'all' ? 'Все' : f === 'draft' ? 'Черновики' : 'Подтверждённые'}
+            {f === 'all' ? 'Wszystkie' : f === 'draft' ? 'Wersje robocze' : 'Potwierdzone'}
           </button>
         ))}
-        <span className="ml-auto text-xs text-slate-500">всего: {orders.length}</span>
+        <span className="ml-auto text-xs text-slate-500">razem: {orders.length}</span>
       </div>
 
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-12 text-center" data-testid="dealer-orders-empty">
           <Package className="h-10 w-10 mx-auto text-slate-600 mb-4" />
           <div className="text-lg font-medium text-white mb-2">
-            {filter === 'all' ? 'Пока нет заказов' : filter === 'draft' ? 'Черновиков нет' : 'Подтверждённых заказов нет'}
+            {filter === 'all' ? 'Brak zamówień' : filter === 'draft' ? 'Brak wersji roboczych' : 'Brak potwierdzonych zamówień'}
           </div>
-          <div className="text-sm text-slate-400">Создайте новый расчёт во вкладке «Калькулятор».</div>
+          <div className="text-sm text-slate-400">Utwórz nowy projekt w zakładce „Kalkulator”.</div>
         </div>
       ) : (
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden" data-testid="dealer-orders-table">
           <table className="w-full text-sm">
             <thead className="bg-white/5 text-xs uppercase tracking-[0.18em] text-slate-400">
               <tr>
-                <th className="text-left px-4 py-3">Номер / Статус</th>
-                <th className="text-left px-4 py-3">Клиент</th>
-                <th className="text-left px-4 py-3">Модель</th>
-                <th className="text-right px-4 py-3">Сумма</th>
-                <th className="text-left px-4 py-3">Дата</th>
-                <th className="text-right px-4 py-3">Действия</th>
+                <th className="text-left px-4 py-3">Numer / Status</th>
+                <th className="text-left px-4 py-3">Klient</th>
+                <th className="text-left px-4 py-3">Model</th>
+                <th className="text-right px-4 py-3">Kwota</th>
+                <th className="text-left px-4 py-3">Data</th>
+                <th className="text-right px-4 py-3">Akcje</th>
               </tr>
             </thead>
             <tbody>
@@ -217,10 +217,10 @@ function OrdersTab() {
                           disabled={downloadingId === o.id + ':offer'}
                           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 text-slate-200 text-xs hover:bg-white/10 disabled:opacity-50"
                           data-testid={`dealer-order-pdf-${o.id}`}
-                          title="КП (короткое)"
+                          title="Oferta (krótka)"
                         >
                           {downloadingId === o.id + ':offer' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                          КП
+                          KP
                         </button>
                         <button
                           type="button"
@@ -228,10 +228,10 @@ function OrdersTab() {
                           disabled={downloadingId === o.id + ':full'}
                           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 text-slate-200 text-xs hover:bg-white/10 disabled:opacity-50"
                           data-testid={`dealer-order-pdf-full-${o.id}`}
-                          title="Полный PDF (как у менеджеров)"
+                          title="Pełny PDF (taki jak u menedżerów)"
                         >
                           {downloadingId === o.id + ':full' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                          Полный
+                          Pełny
                         </button>
                         {isDraft && (
                           <button
@@ -239,7 +239,7 @@ function OrdersTab() {
                             onClick={() => handleDelete(o.id)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 text-xs hover:bg-red-500/10"
                             data-testid={`dealer-order-delete-${o.id}`}
-                            title="Удалить черновик"
+                            title="Usuń wersję roboczą"
                           >
                             ✕
                           </button>
@@ -281,7 +281,7 @@ function PricesTab() {
       });
       setOverrides(map);
     } catch (e) {
-      setMsg(e?.response?.data?.detail || 'Ошибка загрузки');
+      setMsg(e?.response?.data?.detail || 'Błąd ładowania');
     } finally {
       setLoading(false);
     }
@@ -303,39 +303,39 @@ function PricesTab() {
         payload.overrides.push({ ...unkeyOf(key), price: num, dealerId: '' });
       }
       await axios.put(`${API}/api/dealer/sauna/overrides`, payload, { headers: dealerAuthHeaders() });
-      setMsg(`Сохранено (${payload.overrides.length} позиций)`);
+      setMsg(`Zapisano (${payload.overrides.length} pozycji)`);
       setTimeout(() => setMsg(''), 3000);
     } catch (e) {
-      setMsg(e?.response?.data?.detail || 'Ошибка сохранения');
+      setMsg(e?.response?.data?.detail || 'Błąd zapisu');
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) return <div className="flex items-center justify-center py-20 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /></div>;
-  if (!prices) return <div className="text-slate-400 py-10">Не удалось загрузить прайс.</div>;
+  if (!prices) return <div className="text-slate-400 py-10">Nie udało się załadować cennika.</div>;
 
   return (
     <div className="space-y-6" data-testid="dealer-prices-editor">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white mb-1">Мой прайс</h2>
-          <p className="text-sm text-slate-400">Установите свои цены. Пустое поле = используется базовая цена.</p>
+          <h2 className="text-xl font-bold text-white mb-1">Mój cennik</h2>
+          <p className="text-sm text-slate-400">Ustaw własne ceny. Puste pole = używana jest cena bazowa.</p>
         </div>
         <div className="flex gap-2 items-center">
           {msg && <span className="text-xs text-emerald-400 mr-2">{msg}</span>}
           <button onClick={load} className="px-3 py-2 rounded-lg border border-white/10 text-slate-300 text-sm hover:bg-white/5 flex items-center gap-2" data-testid="prices-reload">
-            <RefreshCw className="h-3.5 w-3.5" /> Обновить
+            <RefreshCw className="h-3.5 w-3.5" /> Odśwież
           </button>
           <button onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium flex items-center gap-2 disabled:opacity-50" data-testid="prices-save">
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Сохранить
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Zapisz
           </button>
         </div>
       </div>
 
       {/* Models */}
       <section>
-        <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3">Модели саун</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3">Modele saun</h3>
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] divide-y divide-white/5">
           {(prices.models || []).map((m) => (
             <div key={m.id} className="p-4">
@@ -345,7 +345,7 @@ function PricesTab() {
                   <div className="text-xs text-slate-500">id: {m.id}</div>
                 </div>
                 <PriceInput
-                  label="Базовая цена"
+                  label="Cena bazowa"
                   value={overrides[keyOf({ kind: 'model', modelId: m.id })] ?? ''}
                   placeholder={String(m.basePrice || 0)}
                   onChange={(v) => setPrice(keyOf({ kind: 'model', modelId: m.id }), v)}
@@ -358,7 +358,7 @@ function PricesTab() {
                     <div key={v.id} className="flex items-center gap-3 flex-wrap">
                       <div className="flex-1 min-w-[200px] text-sm text-slate-300">└ {v.name}</div>
                       <PriceInput
-                        label="Вариант"
+                        label="Wariant"
                         value={overrides[keyOf({ kind: 'model_variant', modelId: m.id, variantId: v.id })] ?? ''}
                         placeholder={String(v.price || 0)}
                         onChange={(val) => setPrice(keyOf({ kind: 'model_variant', modelId: m.id, variantId: v.id }), val)}
@@ -382,7 +382,7 @@ function PricesTab() {
         if (allOpts.length === 0) return null;
         return (
           <section>
-            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3">Опции</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3">Opcje</h3>
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] divide-y divide-white/5">
               {allOpts.map((o) => (
                 <div key={o.id} className="p-4">
@@ -392,7 +392,7 @@ function PricesTab() {
                       <div className="text-xs text-slate-500">id: {o.id}</div>
                     </div>
                     <PriceInput
-                      label="Цена"
+                      label="Cena"
                       value={overrides[keyOf({ kind: 'option', optionId: o.id })] ?? ''}
                       placeholder={String(o.price || 0)}
                       onChange={(v) => setPrice(keyOf({ kind: 'option', optionId: o.id }), v)}
@@ -405,7 +405,7 @@ function PricesTab() {
                         <div key={v.id} className="flex items-center gap-3 flex-wrap">
                           <div className="flex-1 min-w-[200px] text-sm text-slate-300">└ {v.name}</div>
                           <PriceInput
-                            label="Вариант"
+                            label="Wariant"
                             value={overrides[keyOf({ kind: 'option_variant', optionId: o.id, optionVariantId: v.id })] ?? ''}
                             placeholder={String(v.price || 0)}
                             onChange={(val) => setPrice(keyOf({ kind: 'option_variant', optionId: o.id, optionVariantId: v.id }), val)}
@@ -481,10 +481,10 @@ export default function DealerApp() {
   };
 
   const tabs = useMemo(() => ([
-    { id: 'stats', label: 'Статистика', icon: BarChart3 },
-    { id: 'orders', label: 'Заказы', icon: Package },
-    { id: 'prices', label: 'Мой прайс', icon: Settings },
-    { id: 'calculator', label: 'Калькулятор', icon: CalcIcon },
+    { id: 'stats', label: 'Statystyki', icon: BarChart3 },
+    { id: 'orders', label: 'Zamówienia', icon: Package },
+    { id: 'prices', label: 'Mój cennik', icon: Settings },
+    { id: 'calculator', label: 'Kalkulator', icon: CalcIcon },
   ]), []);
 
   return (
@@ -507,7 +507,7 @@ export default function DealerApp() {
             </div>
           </div>
           <button onClick={handleLogout} data-testid="dealer-logout" className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 text-sm text-slate-300 hover:bg-white/5">
-            <LogOut className="h-4 w-4" /> Выйти
+            <LogOut className="h-4 w-4" /> Wyloguj
           </button>
         </div>
       </header>

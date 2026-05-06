@@ -307,6 +307,15 @@ Completed all three open items from Phase 2:
     (`db.sauna_pricing` instead of `db.sauna_prices` with `_id="default"`).
     Fixed → dealer now sees full 13-models / 15-categories catalog with
     overrides applied and `costPrice` stripped.
+  - **Telegram notify on confirm**: `routes/dealer.py::dealer_confirm_order`
+    calls `services.telegram_service.notify_new_order` after confirm. Notifier
+    surfaces "🤝 NOWE ZAMÓWIENIE OD DEALERA" header + Dealer/Nr umowy block;
+    short offer PDF (`services/dealer_pdf.py`) is attached via `sendDocument`.
+  - **Dealer portal in Polish**: `components/dealer/index.jsx` forces
+    `i18n.changeLanguage('pl')`, so the embedded SaunaCalculator renders
+    Polish copy. All hardcoded Russian in DealerLogin / DealerApp /
+    DealerCalculatorWrapper translated (login, tabs, KPIs, status badges,
+    filters, confirm dialog).
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)

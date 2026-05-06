@@ -16,7 +16,7 @@ export default function DealerLogin({ onSuccess }) {
       const dealer = await dealerLogin(username.trim(), password);
       onSuccess?.(dealer);
     } catch (err) {
-      setError(err?.response?.data?.detail || 'Не удалось войти');
+      setError(err?.response?.data?.detail || 'Logowanie nie powiodło się');
     } finally {
       setLoading(false);
     }
@@ -35,18 +35,18 @@ export default function DealerLogin({ onSuccess }) {
             <Building2 className="h-5 w-5 text-white" />
           </div>
           <div>
-            <div className="text-xl font-bold text-white tracking-tight">WM Saunas · Dealer Portal</div>
-            <div className="text-xs text-slate-400">Кабинет дилера</div>
+            <div className="text-xl font-bold text-white tracking-tight">WM Saunas · Panel Dealera</div>
+            <div className="text-xs text-slate-400">Panel dealera</div>
           </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-8 shadow-2xl shadow-black/40">
-          <h1 className="text-2xl font-bold text-white mb-1">Вход</h1>
-          <p className="text-sm text-slate-400 mb-6">Используйте логин и пароль от вашей учётной записи дилера.</p>
+          <h1 className="text-2xl font-bold text-white mb-1">Logowanie</h1>
+          <p className="text-sm text-slate-400 mb-6">Wpisz login i hasło swojego konta dealerskiego.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">Логин</label>
+              <label className="block text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">Login</label>
               <input
                 type="text"
                 autoComplete="username"
@@ -59,7 +59,7 @@ export default function DealerLogin({ onSuccess }) {
               />
             </div>
             <div>
-              <label className="block text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">Пароль</label>
+              <label className="block text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">Hasło</label>
               <input
                 type="password"
                 autoComplete="current-password"
@@ -85,7 +85,7 @@ export default function DealerLogin({ onSuccess }) {
               className="w-full py-3 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              Войти в кабинет
+              Zaloguj się
             </button>
           </form>
         </div>

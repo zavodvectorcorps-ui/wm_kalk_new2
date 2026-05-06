@@ -267,6 +267,28 @@ async def dealer_confirm_order(order_id: str, payload: dict, dealer: dict = Depe
         {"id": order_id, "dealerId": dealer["id"]},
         {"_id": 0, "totalCost": 0, "margin": 0},
     )
+
+    # Notify the company's Telegram channel about the new confirmed dealer order
+    try:
+        from services.telegram_service import notify_new_order
+        notify_payload = dict(fresh or {})
+        # Map dealer fields to fields the notifier expects
+        notify_payload.setdefault("fullName", notify_payload.get("customerName") or notify_payload.get("clientName") or "—")
+        notify_payload.setdefault("phoneNumber", notify_payload.get("customerPhone") or notify_payload.get("phone") or "")
+        notify_payload["dealerOrder"] = True
+        notify_payload["dealerName"] = dealer.get("name") or dealer["username"]
+        notify_payload["dealerContractNumber"] = update.get("dealerContractNumber", "")
+        # Try to attach a short offer PDF too (best-effort)
+        pdf_bytes = None
+        try:
+            from services.dealer_pdf import generate_dealer_offer_pdf
+            pdf_bytes = generate_dealer_offer_pdf(notify_payload, dealer)
+        except Exception as pdf_err:
+            logger.warning(f"Dealer-confirm PDF generation skipped: {pdf_err}")
+        await notify_new_order(notify_payload, order_type="sauna", is_web_order=False, pdf_data=pdf_bytes)
+    except Exception as e:
+        logger.warning(f"Telegram notify on dealer-confirm failed for {order_id}: {e}")
+
     return {"ok": True, "order": fresh}
 
 
