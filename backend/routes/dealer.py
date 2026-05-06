@@ -160,10 +160,13 @@ async def dealer_put_overrides(
 
 @router.post("/api/dealer/sauna/orders")
 async def dealer_create_order(order: dict, dealer: dict = Depends(get_current_dealer)):
-    """Dealer creates a sauna order. Stored in `sauna_orders` with dealer tag.
+    """Dealer creates / saves a sauna order. Defaults to status='draft'.
 
-    No amoCRM push is performed — dealers manage their own leads/CRM. The main company
-    sees these orders only in the internal Dealer Orders tab of the admin hub.
+    Drafts are saved in `sauna_orders` for the dealer's own use (KP generation,
+    re-editing) but are filtered OUT of the main company's admin Dealer Orders
+    tab. Only orders with status='confirmed' are visible to the main company.
+
+    No amoCRM push is performed — dealers manage their own leads/CRM.
     """
     import uuid
     order_data = dict(order)
@@ -176,6 +179,13 @@ async def dealer_create_order(order: dict, dealer: dict = Depends(get_current_de
     order_data["createdBy"] = f"dealer:{dealer['username']}"
     order_data["createdAt"] = order_data.get("createdAt") or datetime.now(timezone.utc).isoformat()
     order_data["source"] = "dealer"
+    # Status: only "draft" or "confirmed" allowed; default to "draft"
+    status = (order_data.get("status") or "draft").lower()
+    if status not in ("draft", "confirmed"):
+        status = "draft"
+    order_data["status"] = status
+    if status == "confirmed":
+        order_data["confirmedAt"] = order_data.get("confirmedAt") or datetime.now(timezone.utc).isoformat()
     order_data.pop("_id", None)
     order_data.pop("totalCost", None)
     order_data.pop("margin", None)
@@ -185,32 +195,222 @@ async def dealer_create_order(order: dict, dealer: dict = Depends(get_current_de
     return {"ok": True, "order": order_data}
 
 
+@router.put("/api/dealer/sauna/orders/{order_id}")
+async def dealer_update_order(order_id: str, order: dict, dealer: dict = Depends(get_current_dealer)):
+    """Update a draft order (re-edit before confirming). Confirmed orders are immutable."""
+    existing = await db.sauna_orders.find_one(
+        {"id": order_id, "dealerId": dealer["id"]},
+        {"_id": 0},
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if (existing.get("status") or "draft") == "confirmed":
+        raise HTTPException(status_code=409, detail="Confirmed orders cannot be edited")
+
+    update = dict(order)
+    # Strip immutable / sensitive fields
+    for k in ("id", "dealerId", "dealerName", "dealerUsername", "createdBy",
+              "createdAt", "source", "status", "confirmedAt", "_id",
+              "totalCost", "margin", "dealerContractNumber"):
+        update.pop(k, None)
+    update["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    await db.sauna_orders.update_one(
+        {"id": order_id, "dealerId": dealer["id"]},
+        {"$set": update},
+    )
+    fresh = await db.sauna_orders.find_one(
+        {"id": order_id, "dealerId": dealer["id"]},
+        {"_id": 0, "totalCost": 0, "margin": 0},
+    )
+    return {"ok": True, "order": fresh}
+
+
+@router.post("/api/dealer/sauna/orders/{order_id}/confirm")
+async def dealer_confirm_order(order_id: str, payload: dict, dealer: dict = Depends(get_current_dealer)):
+    """Promote a draft order to status='confirmed'.
+
+    Required payload: {clientConfirmed: bool, dealerContractNumber: str}.
+    Once confirmed, the order becomes visible in the company's admin Dealer
+    Orders tab and cannot be edited by the dealer anymore.
+    """
+    if not payload.get("clientConfirmed"):
+        raise HTTPException(status_code=400, detail="clientConfirmed must be true")
+    contract_number = (payload.get("dealerContractNumber") or "").strip()
+    if not contract_number:
+        raise HTTPException(status_code=400, detail="dealerContractNumber is required")
+
+    existing = await db.sauna_orders.find_one(
+        {"id": order_id, "dealerId": dealer["id"]},
+        {"_id": 0, "status": 1},
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if (existing.get("status") or "draft") == "confirmed":
+        raise HTTPException(status_code=409, detail="Order already confirmed")
+
+    update = {
+        "status": "confirmed",
+        "clientConfirmed": True,
+        "dealerContractNumber": contract_number,
+        "confirmedAt": datetime.now(timezone.utc).isoformat(),
+    }
+    if payload.get("deliveryDate"):
+        update["deliveryDate"] = payload["deliveryDate"]
+    if payload.get("notes"):
+        update["confirmationNotes"] = payload["notes"]
+
+    await db.sauna_orders.update_one(
+        {"id": order_id, "dealerId": dealer["id"]},
+        {"$set": update},
+    )
+    fresh = await db.sauna_orders.find_one(
+        {"id": order_id, "dealerId": dealer["id"]},
+        {"_id": 0, "totalCost": 0, "margin": 0},
+    )
+    return {"ok": True, "order": fresh}
+
+
+@router.delete("/api/dealer/sauna/orders/{order_id}")
+async def dealer_delete_order(order_id: str, dealer: dict = Depends(get_current_dealer)):
+    """Delete a draft. Confirmed orders cannot be deleted."""
+    existing = await db.sauna_orders.find_one(
+        {"id": order_id, "dealerId": dealer["id"]},
+        {"_id": 0, "status": 1},
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if (existing.get("status") or "draft") == "confirmed":
+        raise HTTPException(status_code=409, detail="Confirmed orders cannot be deleted")
+    await db.sauna_orders.delete_one({"id": order_id, "dealerId": dealer["id"]})
+    return {"ok": True}
+
+
 @router.get("/api/dealer/sauna/orders")
-async def dealer_list_orders(dealer: dict = Depends(get_current_dealer)):
+async def dealer_list_orders(
+    status: str | None = None,
+    dealer: dict = Depends(get_current_dealer),
+):
+    """List dealer's own orders. Optional `?status=draft|confirmed` filter."""
+    query = {"dealerId": dealer["id"]}
+    if status in ("draft", "confirmed"):
+        # Treat missing status field as "draft" for legacy orders
+        if status == "draft":
+            query["$or"] = [{"status": "draft"}, {"status": {"$exists": False}}]
+        else:
+            query["status"] = "confirmed"
     orders = await db.sauna_orders.find(
-        {"dealerId": dealer["id"]},
+        query,
         {"_id": 0, "totalCost": 0, "margin": 0},
     ).sort("createdAt", -1).to_list(length=500)
     return {"orders": orders}
 
 
-@router.get("/api/dealer/sauna/orders/{order_id}/pdf")
-async def dealer_order_pdf(order_id: str, dealer: dict = Depends(get_current_dealer)):
-    """Generate and return a commercial-offer PDF for the dealer's own order."""
+@router.get("/api/dealer/sauna/orders/{order_id}")
+async def dealer_get_order(order_id: str, dealer: dict = Depends(get_current_dealer)):
+    """Fetch a single dealer order by id (e.g. to re-load a draft for editing)."""
     order = await db.sauna_orders.find_one(
         {"id": order_id, "dealerId": dealer["id"]},
         {"_id": 0, "totalCost": 0, "margin": 0},
     )
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    from services.dealer_pdf import generate_dealer_offer_pdf
-    pdf_bytes = generate_dealer_offer_pdf(order, dealer)
+    return order
+
+
+@router.get("/api/dealer/sauna/orders/{order_id}/pdf")
+async def dealer_order_pdf(
+    order_id: str,
+    type: str = "offer",
+    dealer: dict = Depends(get_current_dealer),
+):
+    """Generate a PDF for the dealer's order.
+
+    `type=offer` (default) — short 1-page commercial offer with dealer branding.
+    `type=full`            — full multi-page sauna PDF (same template as managers use).
+    """
+    order = await db.sauna_orders.find_one(
+        {"id": order_id, "dealerId": dealer["id"]},
+        {"_id": 0, "totalCost": 0, "margin": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    pdf_type = (type or "offer").lower()
+    if pdf_type == "full":
+        # Try to render the standard manager-style multi-page sauna PDF.
+        try:
+            from models.sauna import SaunaPDFRequest
+            from routes.sauna import generate_sauna_pdf_bytes
+            req = _dealer_order_to_pdf_request(order)
+            pdf_bytes = await generate_sauna_pdf_bytes(SaunaPDFRequest(**req))
+        except Exception as e:
+            logger.warning(f"Full sauna PDF failed for dealer order {order_id}: {e}")
+            from services.dealer_pdf import generate_dealer_offer_pdf
+            pdf_bytes = generate_dealer_offer_pdf(order, dealer)
+    else:
+        from services.dealer_pdf import generate_dealer_offer_pdf
+        pdf_bytes = generate_dealer_offer_pdf(order, dealer)
+
     safe_id = "".join(c for c in order_id if c.isalnum() or c in "-_") or "offer"
+    fname_prefix = "oferta-pelna" if pdf_type == "full" else "oferta"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="oferta-{safe_id}.pdf"'},
+        headers={"Content-Disposition": f'attachment; filename="{fname_prefix}-{safe_id}.pdf"'},
     )
+
+
+def _dealer_order_to_pdf_request(order: dict) -> dict:
+    """Map a dealer order document into the SaunaPDFRequest shape.
+
+    The dealer flow stores options as a list (`options[*]` with optionId/quantity/etc),
+    while the manager PDF template expects `selections{}`/`quantities{}`/`selectedOptions[]`.
+    We do a best-effort conversion so the dealer can still hit "Скачать полный PDF".
+    """
+    options = order.get("options") or []
+    selections: dict = {}
+    quantities: dict = {}
+    selected_options: list = []
+    for o in options:
+        oid = o.get("optionId")
+        if not oid:
+            continue
+        qty = int(o.get("quantity") or 1)
+        if o.get("variantId") or o.get("optionVariantId"):
+            selections[oid] = o.get("variantId") or o.get("optionVariantId")
+        else:
+            selections[oid] = True
+        quantities[oid] = qty
+        selected_options.append({
+            "id": oid,
+            "name": o.get("optionName") or "",
+            "categoryName": o.get("categoryName") or "",
+            "price": int(o.get("price") or 0),
+            "quantity": qty,
+            "totalPrice": int(o.get("totalPrice") or 0),
+        })
+
+    return {
+        "orderId": order.get("id", ""),
+        "fullName": order.get("customerName") or order.get("clientName") or order.get("fullName") or "—",
+        "phoneNumber": order.get("customerPhone") or order.get("phone") or order.get("phoneNumber") or "",
+        "fullAddress": order.get("fullAddress") or order.get("address") or "",
+        "email": order.get("customerEmail") or order.get("email") or "",
+        "orderDate": order.get("orderDate") or order.get("createdAt") or "",
+        "selectedModel": order.get("modelId") or order.get("selectedModel") or "",
+        "selectedModelVariant": order.get("variantId") or None,
+        "modelVariantName": order.get("variantName") or None,
+        "modelName": order.get("modelName") or "",
+        "basePrice": int(order.get("modelBasePrice") or order.get("basePrice") or 0),
+        "selections": selections,
+        "quantities": quantities,
+        "selectedOptions": selected_options,
+        "notes": order.get("notes") or "",
+        "optionsTotal": int(order.get("optionsTotal") or 0),
+        "subtotal": float(order.get("subtotal") or order.get("total") or 0),
+        "total": float(order.get("total") or 0),
+        "language": "pl",
+    }
 
 
 @router.get("/api/dealer/stats")
@@ -353,10 +553,23 @@ async def admin_put_dealer_overrides(
 
 
 @router.get("/api/admin/dealer-orders")
-async def admin_list_dealer_orders(_: dict = Depends(get_admin_user)):
-    """All orders created by any dealer (for the Dealer Orders tab in CRM)."""
+async def admin_list_dealer_orders(
+    status: str = "confirmed",
+    _: dict = Depends(get_admin_user),
+):
+    """List dealer orders. By default only `status=confirmed` (visible to the
+    company). Pass `?status=draft` or `?status=all` to override.
+    """
+    query: dict = {"dealerId": {"$exists": True, "$ne": None}}
+    s = (status or "confirmed").lower()
+    if s == "draft":
+        query["$or"] = [{"status": "draft"}, {"status": {"$exists": False}}]
+    elif s == "confirmed":
+        query["status"] = "confirmed"
+    # 'all' → no extra filter
+
     orders = await db.sauna_orders.find(
-        {"dealerId": {"$exists": True, "$ne": None}},
+        query,
         {"_id": 0},
     ).sort("createdAt", -1).to_list(length=2000)
     return {"orders": orders}

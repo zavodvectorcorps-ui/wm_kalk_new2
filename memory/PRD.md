@@ -278,6 +278,37 @@ Completed all three open items from Phase 2:
   in Sauna CRM lead card (since Session 12).
 
 ## Prioritized Backlog
+- 🔥 Session 12 — Dealer Calculator parity (Feb 7, 2026):
+  - **Same calculator as managers**: dealer panel now mounts the original
+    `SaunaCalculator` (2151 lines) as-is via `DealerCalculatorWrapper.jsx`.
+    Instead of forking the calculator code, we install scoped axios request
+    interceptors that rewrite `/api/sauna/prices` → `/api/dealer/sauna/prices`,
+    `POST /api/sauna/orders` → `POST /api/dealer/sauna/orders` (status=draft),
+    `PUT /api/sauna/orders/{id}` → `PUT /api/dealer/sauna/orders/{id}`, and
+    no-op every amoCRM / sauna-crm integration call. The interceptor is torn
+    down on unmount (scoped to the dealer screen).
+  - **Draft → Confirm flow**: every dealer save creates a `status=draft`
+    order, visible only to that dealer. After save, a `ConfirmOrderDialog`
+    surfaces — dealer enters "Номер договора с клиентом" + checks
+    "Клиент подтвердил", then `POST /api/dealer/sauna/orders/{id}/confirm`
+    flips status to `confirmed`. The main company's admin Dealer Orders tab
+    only lists `confirmed` orders by default (`?status=draft|all` to override).
+  - **Backend additions** (`routes/dealer.py`):
+    PUT `/api/dealer/sauna/orders/{id}` (drafts editable, confirmed locked),
+    POST `/api/dealer/sauna/orders/{id}/confirm` (requires contract number
+    + clientConfirmed=true), DELETE `/api/dealer/sauna/orders/{id}` (drafts
+    only), GET `/api/dealer/sauna/orders/{id}/pdf?type=offer|full` (offer =
+    short branded KP, full = standard manager template via mapping helper
+    `_dealer_order_to_pdf_request`).
+  - **Dealer Orders tab UI**: status badges (Черновик / Подтверждён),
+    filter pills (Все / Черновики / Подтверждённые), KP + Полный PDF
+    buttons, ✕ delete button for drafts.
+  - **Bug fix**: dealer prices were reading from wrong collection
+    (`db.sauna_pricing` instead of `db.sauna_prices` with `_id="default"`).
+    Fixed → dealer now sees full 13-models / 15-categories catalog with
+    overrides applied and `costPrice` stripped.
+
+## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
 - P2: Fix unstable login sessions / deployment timeouts
 - P2: Refactor monolithic files (amocrm.py >3300 lines, widget.py, sauna_crm.py, SaunaCRMPage.jsx)

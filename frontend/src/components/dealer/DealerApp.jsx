@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { getApiUrl } from '../../utils/api';
 import { dealerAuthHeaders, clearDealerSession, getDealerInfo, fetchDealerMe } from '../../utils/dealerAuth';
-import DealerCalculator from './DealerCalculator';
+import DealerCalculatorWrapper from './DealerCalculatorWrapper';
 
 const API = getApiUrl();
 
@@ -81,9 +81,9 @@ function KpiCard({ icon: Icon, label, value, color, testid }) {
 }
 
 // ==================== Orders Tab ====================
-function downloadOrderPdf(orderId) {
+function downloadOrderPdf(orderId, type = 'offer') {
   return axios
-    .get(`${API}/api/dealer/sauna/orders/${orderId}/pdf`, {
+    .get(`${API}/api/dealer/sauna/orders/${orderId}/pdf?type=${type}`, {
       headers: dealerAuthHeaders(),
       responseType: 'blob',
     })
@@ -91,7 +91,7 @@ function downloadOrderPdf(orderId) {
       const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `oferta-${orderId}.pdf`;
+      a.download = `${type === 'full' ? 'oferta-pelna' : 'oferta'}-${orderId}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -99,21 +99,32 @@ function downloadOrderPdf(orderId) {
     });
 }
 
+function StatusBadge({ status }) {
+  const s = (status || 'draft').toLowerCase();
+  if (s === 'confirmed') {
+    return <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Подтверждён</span>;
+  }
+  return <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">Черновик</span>;
+}
+
 function OrdersTab() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [filter, setFilter] = useState('all'); // all | draft | confirmed
 
-  useEffect(() => {
+  const reload = () => {
+    setLoading(true);
     axios.get(`${API}/api/dealer/sauna/orders`, { headers: dealerAuthHeaders() })
       .then(r => setOrders(r.data.orders || []))
       .finally(() => setLoading(false));
-  }, []);
+  };
+  useEffect(() => { reload(); }, []);
 
-  const handleDownload = async (orderId) => {
-    setDownloadingId(orderId);
+  const handleDownload = async (orderId, type = 'offer') => {
+    setDownloadingId(orderId + ':' + type);
     try {
-      await downloadOrderPdf(orderId);
+      await downloadOrderPdf(orderId, type);
     } catch (_e) {
       // silent
     } finally {
@@ -121,55 +132,127 @@ function OrdersTab() {
     }
   };
 
+  const handleDelete = async (orderId) => {
+    if (!window.confirm(`Удалить черновик ${orderId}?`)) return;
+    try {
+      await axios.delete(`${API}/api/dealer/sauna/orders/${orderId}`, { headers: dealerAuthHeaders() });
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    } catch (e) {
+      // eslint-disable-next-line no-alert
+      alert(e?.response?.data?.detail || 'Не удалось удалить');
+    }
+  };
+
+  const filtered = orders.filter((o) => {
+    if (filter === 'all') return true;
+    const s = (o.status || 'draft').toLowerCase();
+    return s === filter;
+  });
+
   if (loading) return <div className="flex items-center justify-center py-20 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /></div>;
 
-  if (orders.length === 0) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-12 text-center" data-testid="dealer-orders-empty">
-        <Package className="h-10 w-10 mx-auto text-slate-600 mb-4" />
-        <div className="text-lg font-medium text-white mb-2">Пока нет заказов</div>
-        <div className="text-sm text-slate-400">Создайте первый заказ во вкладке «Калькулятор».</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden" data-testid="dealer-orders-table">
-      <table className="w-full text-sm">
-        <thead className="bg-white/5 text-xs uppercase tracking-[0.18em] text-slate-400">
-          <tr>
-            <th className="text-left px-4 py-3">Номер</th>
-            <th className="text-left px-4 py-3">Клиент</th>
-            <th className="text-left px-4 py-3">Модель</th>
-            <th className="text-right px-4 py-3">Сумма</th>
-            <th className="text-left px-4 py-3">Дата</th>
-            <th className="text-right px-4 py-3">PDF</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((o) => (
-            <tr key={o.id} className="border-t border-white/5 hover:bg-white/[0.02]" data-testid={`dealer-order-${o.id}`}>
-              <td className="px-4 py-3 font-mono text-xs text-slate-300">{o.id}</td>
-              <td className="px-4 py-3 text-slate-200">{o.customerName || o.clientName || '—'}</td>
-              <td className="px-4 py-3 text-slate-300">{o.modelName || o.model?.name || '—'}</td>
-              <td className="px-4 py-3 text-right text-white font-medium">{fmtPLN(o.total)}</td>
-              <td className="px-4 py-3 text-slate-400">{fmtDate(o.createdAt)}</td>
-              <td className="px-4 py-3 text-right">
-                <button
-                  type="button"
-                  onClick={() => handleDownload(o.id)}
-                  disabled={downloadingId === o.id}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-slate-200 text-xs hover:bg-white/10 disabled:opacity-50"
-                  data-testid={`dealer-order-pdf-${o.id}`}
-                >
-                  {downloadingId === o.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-                  PDF
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-slate-400">Фильтр:</span>
+        {['all', 'draft', 'confirmed'].map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            data-testid={`filter-${f}`}
+            className={`px-3 py-1.5 rounded-lg text-xs uppercase tracking-wider border transition-colors ${
+              filter === f
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'border-white/10 text-slate-300 hover:bg-white/5'
+            }`}
+          >
+            {f === 'all' ? 'Все' : f === 'draft' ? 'Черновики' : 'Подтверждённые'}
+          </button>
+        ))}
+        <span className="ml-auto text-xs text-slate-500">всего: {orders.length}</span>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-12 text-center" data-testid="dealer-orders-empty">
+          <Package className="h-10 w-10 mx-auto text-slate-600 mb-4" />
+          <div className="text-lg font-medium text-white mb-2">
+            {filter === 'all' ? 'Пока нет заказов' : filter === 'draft' ? 'Черновиков нет' : 'Подтверждённых заказов нет'}
+          </div>
+          <div className="text-sm text-slate-400">Создайте новый расчёт во вкладке «Калькулятор».</div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden" data-testid="dealer-orders-table">
+          <table className="w-full text-sm">
+            <thead className="bg-white/5 text-xs uppercase tracking-[0.18em] text-slate-400">
+              <tr>
+                <th className="text-left px-4 py-3">Номер / Статус</th>
+                <th className="text-left px-4 py-3">Клиент</th>
+                <th className="text-left px-4 py-3">Модель</th>
+                <th className="text-right px-4 py-3">Сумма</th>
+                <th className="text-left px-4 py-3">Дата</th>
+                <th className="text-right px-4 py-3">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((o) => {
+                const isDraft = (o.status || 'draft').toLowerCase() === 'draft';
+                return (
+                  <tr key={o.id} className="border-t border-white/5 hover:bg-white/[0.02]" data-testid={`dealer-order-${o.id}`}>
+                    <td className="px-4 py-3">
+                      <div className="font-mono text-xs text-slate-300">{o.id}</div>
+                      <div className="mt-1"><StatusBadge status={o.status} /></div>
+                      {o.dealerContractNumber && (
+                        <div className="text-[10px] text-slate-500 mt-0.5">№ {o.dealerContractNumber}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-200">{o.customerName || o.clientName || o.fullName || '—'}</td>
+                    <td className="px-4 py-3 text-slate-300">{o.modelName || o.model?.name || '—'}</td>
+                    <td className="px-4 py-3 text-right text-white font-medium">{fmtPLN(o.total)}</td>
+                    <td className="px-4 py-3 text-slate-400">{fmtDate(o.createdAt)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(o.id, 'offer')}
+                          disabled={downloadingId === o.id + ':offer'}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 text-slate-200 text-xs hover:bg-white/10 disabled:opacity-50"
+                          data-testid={`dealer-order-pdf-${o.id}`}
+                          title="КП (короткое)"
+                        >
+                          {downloadingId === o.id + ':offer' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                          КП
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(o.id, 'full')}
+                          disabled={downloadingId === o.id + ':full'}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 text-slate-200 text-xs hover:bg-white/10 disabled:opacity-50"
+                          data-testid={`dealer-order-pdf-full-${o.id}`}
+                          title="Полный PDF (как у менеджеров)"
+                        >
+                          {downloadingId === o.id + ':full' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                          Полный
+                        </button>
+                        {isDraft && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(o.id)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-red-500/30 text-red-400 text-xs hover:bg-red-500/10"
+                            data-testid={`dealer-order-delete-${o.id}`}
+                            title="Удалить черновик"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -375,8 +458,8 @@ function unkeyOf(k) {
 }
 
 // ==================== Calculator Tab ====================
-function CalculatorTab({ onNavigateOrders }) {
-  return <DealerCalculator onCreated={() => onNavigateOrders?.()} />;
+function CalculatorTab() {
+  return <DealerCalculatorWrapper />;
 }
 
 // ==================== Main Dealer App ====================
@@ -454,7 +537,7 @@ export default function DealerApp() {
         {tab === 'stats' && <StatsTab />}
         {tab === 'orders' && <OrdersTab />}
         {tab === 'prices' && <PricesTab />}
-        {tab === 'calculator' && <CalculatorTab onNavigateOrders={() => setTab('orders')} />}
+        {tab === 'calculator' && <CalculatorTab />}
       </main>
     </div>
   );
