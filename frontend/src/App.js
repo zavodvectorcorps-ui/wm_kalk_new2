@@ -40,6 +40,7 @@ const SalesPage = lazy(() => import('./components/SalesPage'));
 const LeadAnalyticsPage = lazy(() => import('./components/LeadAnalyticsPage'));
 const CallAnalyticsPage = lazy(() => import('./components/CallAnalyticsPage'));
 const PortfolioPage = lazy(() => import('./components/PortfolioPage'));
+const DealerEntry = lazy(() => import('./components/dealer'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -305,6 +306,22 @@ const AppContent = () => {
     return (
       <Suspense fallback={<PageLoader />}>
         <PortfolioPage />
+      </Suspense>
+    );
+  }
+
+  // Dealer portal — activates on dealer subdomain/domain OR /dealer path
+  const host = (window.location.hostname || '').toLowerCase();
+  const isDealer =
+    host.startsWith('dealer.') ||
+    host.includes('wm-dealer') ||
+    host.includes('dealers.') ||
+    window.location.pathname.startsWith('/dealer');
+  if (isDealer) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <DealerEntry />
+        <Toaster position="top-center" richColors />
       </Suspense>
     );
   }

@@ -43,6 +43,7 @@ from routes.lead_analytics import router as lead_analytics_router
 from routes.manager_events_analytics import router as manager_events_router
 from routes.advanced_analytics import router as advanced_analytics_router
 from routes.call_analytics import router as call_analytics_router
+from routes.dealer import router as dealer_router
 
 # Configure logging
 logging.basicConfig(
@@ -106,6 +107,8 @@ app.include_router(lead_analytics_router, prefix="/api")
 app.include_router(manager_events_router, prefix="/api")
 app.include_router(advanced_analytics_router, prefix="/api")
 app.include_router(call_analytics_router, prefix="/api")
+# Dealer router has its own /api/... prefixes baked in
+app.include_router(dealer_router)
 
 # Initialize backup database reference
 from database import db

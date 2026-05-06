@@ -161,6 +161,50 @@ invoice_sent -> prepayment_received -> approved_by_production -> in_production -
   passes through unchanged. Existing legacy orders show "—" (no costPrice yet).
 - Layout variant cost UI is data-model-ready but admin form not yet exposed (P3).
 
+## Session 9.6 (Feb 2026) — Dealer Portal (Phase 2 MVP)
+Multi-tenant dealer portal live at `/dealer` path on any domain
+(auto-detects `dealer.*` subdomain, `wm-dealer*` host, `dealers.*` or `/dealer` path).
+
+### Backend (`/app/backend/routes/dealer.py` + `models/dealer.py` + `services/dealer_auth.py`)
+- New collections: `dealers` (bcrypt password) + `dealer_price_overrides`.
+- Dealer JWT with role=dealer: `POST /api/dealer/auth/login`, `GET /api/dealer/auth/me`.
+- Sauna prices with overrides applied: `GET /api/dealer/sauna/prices` (strips costPrice!).
+- Dealer price overrides CRUD: `GET/PUT /api/dealer/sauna/overrides` (bulk replace).
+- Dealer orders: `POST /api/dealer/sauna/orders` (auto-sets dealerId + dealerName),
+  `GET /api/dealer/sauna/orders` (filters by dealerId, strips totalCost/margin).
+- Dealer stats: `GET /api/dealer/stats` — total orders/value/avg + 12-week histogram.
+- Admin dealer mgmt: `GET/POST/PUT/DELETE /api/admin/dealers/*` (soft-delete = deactivate).
+- Admin override mgmt: `GET/PUT /api/admin/dealers/{id}/overrides` (admin pre-configures prices).
+- Admin all-dealer-orders: `GET /api/admin/dealer-orders`.
+
+### Frontend
+- `utils/dealerAuth.js` + `utils/isDealerMode.js` — JWT storage + hostname/path detection.
+- `components/dealer/DealerLogin.jsx` — branded orange login screen with glass-morphism.
+- `components/dealer/DealerApp.jsx` — full dashboard:
+  - **Статистика**: 3 KPI cards + 12-week bar histogram of own orders
+  - **Заказы**: filtered list of the dealer's own orders
+  - **Мой прайс**: editable table of sauna models + variants + options + sub-variants
+    with per-item price override inputs
+  - **Калькулятор**: placeholder for next iteration (dealer-context calculator)
+- `components/dealer/index.jsx` — routing between login/dashboard.
+- `App.js` — public dealer route wired before auth check.
+- Admin Panel: new **"Дилеры"** tab (`DealersAdminPage.jsx`):
+  - list with order count, status, contacts
+  - create dealer dialog (username/password/name/email/phone)
+  - deactivate / reactivate
+  - copy login link to clipboard
+  - set initial prices dialog (reuses override API) — admin pre-fills dealer's prices,
+    dealer can adjust them later.
+
+### Open items (Phase 2 continuation)
+- Wire the full `SaunaCalculatorNew` into the Dealer "Калькулятор" tab with
+  `DealerPricingContext` that swaps the prices endpoint + order-POST endpoint.
+- Tag dealer orders in amoCRM with dealer name.
+- New "Заказы дилеров" sub-tab in admin CRM (endpoint exists, UI pending).
+
+### Test credentials
+- Test dealer: `testdealer` / `dealer123` (preview DB) — see `memory/test_credentials.md`.
+
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
 - P2: Fix unstable login sessions / deployment timeouts
