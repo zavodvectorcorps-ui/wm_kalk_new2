@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import {
   Calculator as CalcIcon, Package, BarChart3, Settings, LogOut,
-  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle
+  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle, FileText
 } from 'lucide-react';
 import { getApiUrl } from '../../utils/api';
 import { dealerAuthHeaders, clearDealerSession, getDealerInfo, fetchDealerMe } from '../../utils/dealerAuth';
@@ -81,15 +81,45 @@ function KpiCard({ icon: Icon, label, value, color, testid }) {
 }
 
 // ==================== Orders Tab ====================
+function downloadOrderPdf(orderId) {
+  return axios
+    .get(`${API}/api/dealer/sauna/orders/${orderId}/pdf`, {
+      headers: dealerAuthHeaders(),
+      responseType: 'blob',
+    })
+    .then((r) => {
+      const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `oferta-${orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    });
+}
+
 function OrdersTab() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     axios.get(`${API}/api/dealer/sauna/orders`, { headers: dealerAuthHeaders() })
       .then(r => setOrders(r.data.orders || []))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDownload = async (orderId) => {
+    setDownloadingId(orderId);
+    try {
+      await downloadOrderPdf(orderId);
+    } catch (_e) {
+      // silent
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   if (loading) return <div className="flex items-center justify-center py-20 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /></div>;
 
@@ -113,6 +143,7 @@ function OrdersTab() {
             <th className="text-left px-4 py-3">Модель</th>
             <th className="text-right px-4 py-3">Сумма</th>
             <th className="text-left px-4 py-3">Дата</th>
+            <th className="text-right px-4 py-3">PDF</th>
           </tr>
         </thead>
         <tbody>
@@ -123,6 +154,18 @@ function OrdersTab() {
               <td className="px-4 py-3 text-slate-300">{o.modelName || o.model?.name || '—'}</td>
               <td className="px-4 py-3 text-right text-white font-medium">{fmtPLN(o.total)}</td>
               <td className="px-4 py-3 text-slate-400">{fmtDate(o.createdAt)}</td>
+              <td className="px-4 py-3 text-right">
+                <button
+                  type="button"
+                  onClick={() => handleDownload(o.id)}
+                  disabled={downloadingId === o.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-slate-200 text-xs hover:bg-white/10 disabled:opacity-50"
+                  data-testid={`dealer-order-pdf-${o.id}`}
+                >
+                  {downloadingId === o.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                  PDF
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -130,6 +173,8 @@ function OrdersTab() {
     </div>
   );
 }
+
+export { downloadOrderPdf };
 
 // ==================== Price Editor Tab ====================
 function PricesTab() {

@@ -1251,6 +1251,31 @@ const SaunaCRMPage = () => {
                         {calcOrder.total != null && <span>Сумма: {Number(calcOrder.total).toLocaleString()} PLN</span>}
                         {calcOrder.orderDate && <span>Дата: {new Date(calcOrder.orderDate).toLocaleDateString('ru-RU')}</span>}
                       </div>
+                      {calcOrder.totalCost != null && calcOrder.totalCost > 0 && (
+                        <div
+                          className="mt-2 p-2 rounded border border-amber-200 bg-amber-50/60 grid grid-cols-3 gap-2 text-[11px]"
+                          data-testid="crm-order-cost-block"
+                        >
+                          <div>
+                            <div className="text-muted-foreground">Себестоимость</div>
+                            <div className="font-semibold text-amber-800">{Number(calcOrder.totalCost).toLocaleString()} PLN</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Маржа</div>
+                            <div className="font-semibold text-emerald-700">
+                              {Math.max(0, Number(calcOrder.total || 0) - Number(calcOrder.totalCost || 0)).toLocaleString()} PLN
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Маржа %</div>
+                            <div className="font-semibold text-emerald-700">
+                              {calcOrder.total > 0
+                                ? Math.round(((calcOrder.total - calcOrder.totalCost) / calcOrder.total) * 100)
+                                : 0}%
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {calcOrder.techSpec && (
                         <div className="mt-2 flex items-center gap-1 text-xs text-amber-700">
                           <Wrench className="w-3 h-3" />

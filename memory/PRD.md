@@ -246,7 +246,7 @@ Completed all three open items from Phase 2:
   data-testid: `landing-dealers-card`).
 - Added missing PL translation keys: `dealersTitle: 'Dealerzy'`, `dealersDesc: '…'`.
 
-### 6. Session 12 (Feb 6-7, 2026) — Dealers Hub + Order Prefix + amoCRM opt-out
+### 6. Session 12 (Feb 6-7, 2026) — Dealers Hub + Order Prefix + amoCRM opt-out + Dealer PDF
 - **Standalone Dealers Hub** (`/app/frontend/src/components/DealersHub.jsx`):
   admin clicks "Дилеры" card on landing → opens dedicated page with two tabs
   ("Дилеры" / "Заказы дилеров"), fully decoupled from the main Admin Panel.
@@ -257,12 +257,25 @@ Completed all three open items from Phase 2:
 - **Custom dealer order prefix**: new `orderPrefix` field on the Dealer model
   (`models/dealer.py`). When a dealer submits an order, the id becomes
   `{PREFIX}-XXXXXXXX` (e.g. `ABC-B8B2383C`) instead of the legacy `WMS-D-...`.
-  Empty prefix → fallback to `WMS-D`. Editable in the "Новый дилер" dialog
-  (uppercase-only, max 10 chars, regex `[A-Z0-9-]`). Prefix is shown in the
+  Empty prefix → fallback to `WMS-D`. Editable in BOTH the "Новый дилер" dialog
+  and the new **"Редактировать" dialog** (Pencil icon in every dealer row).
+  Uppercase-only, max 10 chars, regex `[A-Z0-9-]`. Prefix is shown in the
   dealers table under the login row.
+- **Dealer commercial-offer PDF** (`services/dealer_pdf.py` +
+  `GET /api/dealer/sauna/orders/{id}/pdf`): minimal 1-page "Oferta handlowa"
+  branded with the dealer's company name/phone/email. Contains client info,
+  model + options table, totals, notes, 14-day validity footer.
+  DejaVuSans font registered for full Cyrillic/Polish support.
+  Auto-downloaded right after order submission in the dealer calculator, and
+  exposed as a "PDF" button next to every order in the dealer's Orders tab.
+- **costPrice visible in Sauna CRM lead card**: when admin opens a lead that is
+  linked to a calculator order, a new amber block shows
+  "Себестоимость / Маржа / Маржа %" calculated from `totalCost` — so managers
+  see margin at-a-glance without switching to the Admin Orders table.
 - **Cost Price location answer (user Q)**: `costPrice` (себестоимость) is edited
   in Admin Panel → Цены → Купели/Sauny (inside each model and option card).
-  The computed **Маржа** (margin) column is displayed in Admin → Заказы.
+  The computed **Маржа** (margin) column is displayed in Admin → Заказы **AND**
+  in Sauna CRM lead card (since Session 12).
 
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)

@@ -4,6 +4,7 @@ All dealer-facing endpoints live under /api/dealer/*.
 Admin-facing dealer management endpoints live under /api/admin/dealers/*.
 """
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 import logging
@@ -189,6 +190,25 @@ async def dealer_list_orders(dealer: dict = Depends(get_current_dealer)):
         {"_id": 0, "totalCost": 0, "margin": 0},
     ).sort("createdAt", -1).to_list(length=500)
     return {"orders": orders}
+
+
+@router.get("/api/dealer/sauna/orders/{order_id}/pdf")
+async def dealer_order_pdf(order_id: str, dealer: dict = Depends(get_current_dealer)):
+    """Generate and return a commercial-offer PDF for the dealer's own order."""
+    order = await db.sauna_orders.find_one(
+        {"id": order_id, "dealerId": dealer["id"]},
+        {"_id": 0, "totalCost": 0, "margin": 0},
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    from services.dealer_pdf import generate_dealer_offer_pdf
+    pdf_bytes = generate_dealer_offer_pdf(order, dealer)
+    safe_id = "".join(c for c in order_id if c.isalnum() or c in "-_") or "offer"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="oferta-{safe_id}.pdf"'},
+    )
 
 
 @router.get("/api/dealer/stats")

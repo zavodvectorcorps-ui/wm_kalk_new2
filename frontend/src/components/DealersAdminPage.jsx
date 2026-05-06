@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Building2, Plus, Trash2, Save, Loader2, Power, PowerOff, Copy, ShoppingCart } from 'lucide-react';
+import { Building2, Plus, Trash2, Save, Loader2, Power, PowerOff, Copy, ShoppingCart, Pencil } from 'lucide-react';
 import { getApiUrl } from '../utils/api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -19,6 +19,7 @@ export default function DealersAdminPage() {
   const [dealers, setDealers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [editDealer, setEditDealer] = useState(null); // dealer being edited
   const [pricesModal, setPricesModal] = useState(null); // {dealer}
 
   const load = useCallback(async () => {
@@ -122,6 +123,9 @@ export default function DealersAdminPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-1">
+                      <Button size="sm" variant="outline" onClick={() => setEditDealer(d)} title="Редактировать" data-testid={`edit-dealer-${d.id}`}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => copyLoginLink(d)} title="Скопировать ссылку для входа" data-testid={`copy-link-${d.id}`}>
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
@@ -141,6 +145,12 @@ export default function DealersAdminPage() {
       )}
 
       <CreateDealerDialog open={showCreate} onClose={() => { setShowCreate(false); load(); }} />
+      {editDealer && (
+        <EditDealerDialog
+          dealer={editDealer}
+          onClose={() => { setEditDealer(null); load(); }}
+        />
+      )}
       {pricesModal && (
         <DealerPricesDialog
           dealer={pricesModal.dealer}
@@ -215,6 +225,91 @@ function CreateDealerDialog({ open, onClose }) {
           <Button onClick={handleSave} disabled={saving || !data.username || !data.password} className="bg-orange-500 hover:bg-orange-600" data-testid="create-dealer-save">
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
             Создать
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditDealerDialog({ dealer, onClose }) {
+  const [data, setData] = useState({
+    name: dealer.name || '',
+    email: dealer.email || '',
+    phone: dealer.phone || '',
+    orderPrefix: dealer.orderPrefix || '',
+    password: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        orderPrefix: data.orderPrefix,
+      };
+      if (data.password && data.password.trim().length > 0) {
+        payload.password = data.password;
+      }
+      await axios.put(`${API}/api/admin/dealers/${dealer.id}`, payload, { headers: authHeaders() });
+      toast.success('Изменения сохранены');
+      onClose();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg" data-testid="edit-dealer-dialog">
+        <DialogHeader><DialogTitle>Редактировать дилера: @{dealer.username}</DialogTitle></DialogHeader>
+        <div className="space-y-3 py-2">
+          <div>
+            <Label>Название компании</Label>
+            <Input value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Email</Label>
+              <Input type="email" value={data.email} onChange={(e) => setData({ ...data, email: e.target.value })} />
+            </div>
+            <div>
+              <Label>Телефон</Label>
+              <Input value={data.phone} onChange={(e) => setData({ ...data, phone: e.target.value })} />
+            </div>
+          </div>
+          <div>
+            <Label>Префикс заказа</Label>
+            <Input
+              value={data.orderPrefix}
+              onChange={(e) => setData({ ...data, orderPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '') })}
+              placeholder="Напр. ABC — номер заказа станет ABC-XXXXXXXX"
+              maxLength={10}
+              data-testid="edit-dealer-prefix"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Пусто — используется префикс WMS-D. Меняется только для НОВЫХ заказов, старые остаются.</p>
+          </div>
+          <div>
+            <Label>Новый пароль (опционально)</Label>
+            <Input
+              type="text"
+              value={data.password}
+              onChange={(e) => setData({ ...data, password: e.target.value })}
+              placeholder="Оставьте пустым, чтобы не менять"
+              data-testid="edit-dealer-password"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Отмена</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-orange-500 hover:bg-orange-600" data-testid="edit-dealer-save">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+            Сохранить
           </Button>
         </DialogFooter>
       </DialogContent>

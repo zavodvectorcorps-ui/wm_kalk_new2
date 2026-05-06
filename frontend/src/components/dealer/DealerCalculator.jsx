@@ -144,8 +144,26 @@ export default function DealerCalculator({ onCreated }) {
       };
 
       const r = await axios.post(`${API}/api/dealer/sauna/orders`, payload, { headers: dealerAuthHeaders() });
-      toast.success(`Заказ ${r.data.order.id} создан${r.data.order.amocrm_lead_id ? ' и передан в amoCRM' : ''}`);
-      onCreated?.(r.data.order);
+      const createdOrder = r.data.order;
+      toast.success(`Заказ ${createdOrder.id} создан`);
+      // Auto-download offer PDF
+      try {
+        const pdfRes = await axios.get(`${API}/api/dealer/sauna/orders/${createdOrder.id}/pdf`, {
+          headers: dealerAuthHeaders(),
+          responseType: 'blob',
+        });
+        const url = window.URL.createObjectURL(new Blob([pdfRes.data], { type: 'application/pdf' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `oferta-${createdOrder.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      } catch (pdfErr) {
+        console.warn('PDF auto-download failed', pdfErr);
+      }
+      onCreated?.(createdOrder);
       // Reset form
       setStep(0);
       setCustomer({ name: '', phone: '', email: '', notes: '' });
