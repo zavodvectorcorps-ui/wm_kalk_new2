@@ -464,6 +464,9 @@ async def health_check():
 allowed_origins = [
     "https://wm-kalkulator.pl",
     "https://www.wm-kalkulator.pl",
+    "https://wm-dealers.pl",
+    "https://www.wm-dealers.pl",
+    "https://dealer.wm-kalkulator.pl",
     "https://spa-planner.emergent.host",
     "https://excel-mapping.emergent.host",
     "https://spa-planner-replaced-1767401260.emergent.host",

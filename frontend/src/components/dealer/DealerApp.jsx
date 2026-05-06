@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getApiUrl } from '../../utils/api';
 import { dealerAuthHeaders, clearDealerSession, getDealerInfo, fetchDealerMe } from '../../utils/dealerAuth';
+import DealerCalculator from './DealerCalculator';
 
 const API = getApiUrl();
 
@@ -328,22 +329,9 @@ function unkeyOf(k) {
   };
 }
 
-// ==================== Calculator Tab (minimal MVP) ====================
-function CalculatorTab() {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-12 text-center" data-testid="dealer-calculator-placeholder">
-      <CalcIcon className="h-10 w-10 mx-auto text-orange-400 mb-4" />
-      <div className="text-lg font-medium text-white mb-2">Калькулятор саун</div>
-      <div className="text-sm text-slate-400 max-w-md mx-auto mb-6">
-        Полнофункциональный пошаговый калькулятор с вашими ценами будет подключён на следующей итерации.
-        Пока вы можете настроить свой прайс во вкладке «Прайс» и посмотреть ваши заказы во вкладке «Заказы».
-      </div>
-      <div className="inline-flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full">
-        <AlertCircle className="h-3.5 w-3.5" />
-        MVP · coming next iteration
-      </div>
-    </div>
-  );
+// ==================== Calculator Tab ====================
+function CalculatorTab({ onNavigateOrders }) {
+  return <DealerCalculator onCreated={() => onNavigateOrders?.()} />;
 }
 
 // ==================== Main Dealer App ====================
@@ -421,7 +409,7 @@ export default function DealerApp() {
         {tab === 'stats' && <StatsTab />}
         {tab === 'orders' && <OrdersTab />}
         {tab === 'prices' && <PricesTab />}
-        {tab === 'calculator' && <CalculatorTab />}
+        {tab === 'calculator' && <CalculatorTab onNavigateOrders={() => setTab('orders')} />}
       </main>
     </div>
   );

@@ -205,6 +205,38 @@ Multi-tenant dealer portal live at `/dealer` path on any domain
 ### Test credentials
 - Test dealer: `testdealer` / `dealer123` (preview DB) — see `memory/test_credentials.md`.
 
+## Session 9.7 (Feb 2026) — Dealer Portal Phase 2 Part 2
+Completed all three open items from Phase 2:
+
+### 1. Working dealer calculator (`components/dealer/DealerCalculator.jsx`)
+- 4-step flow: Клиент → Модель → Опции → Заявка (review)
+- Loads prices from `/api/dealer/sauna/prices` (with overrides applied, costPrice stripped)
+- Live total recalc, supports radio variants + checkbox quantity options
+- Submit POSTs to `/api/dealer/sauna/orders` and shows toast with order number
+- Auto-navigates to "Заказы" tab after successful submit
+- Verified end-to-end: dealer fills form → order WMS-D-A41867EE1A created → 37 300 PLN
+
+### 2. "Заказы дилеров" admin tab (`components/DealerOrdersPage.jsx`)
+- Standalone admin tab with KPI cards (count / total value / total margin),
+  search by order/customer/dealer, filter by dealer
+- Columns: order id, dealer, customer + phone, model, total, **margin** (with %),
+  amoCRM lead link, created date
+- Wired into `AdminPanel.jsx` next to "Дилеры" tab.
+
+### 3. amoCRM auto-push for dealer orders (`routes/dealer.py`)
+- After saving the order in `sauna_orders`, dealer endpoint now best-effort pushes
+  to amoCRM `/api/v4/leads`:
+  - Lead name: `[Дилер: <name>] <Model> — <Customer>`
+  - Tags: `Dealer` + `Dealer: <name>` (so manager can filter in amoCRM)
+  - Adds a note with full order details (dealer, order id, customer phone, total)
+  - Stores `amocrm_lead_id` back on the order
+- Errors are logged but never block order creation.
+
+### 4. CORS + DNS instructions for `wm-dealers.pl`
+- Backend CORS now allows: `wm-dealers.pl`, `www.wm-dealers.pl`, `dealer.wm-kalkulator.pl`.
+- Frontend hostname detection already covers `wm-dealer*`, `dealer.*`, `dealers.*`.
+- DNS step-by-step guide saved to `/app/memory/wm-dealers-pl-setup.md`.
+
 ## Prioritized Backlog
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
 - P2: Fix unstable login sessions / deployment timeouts

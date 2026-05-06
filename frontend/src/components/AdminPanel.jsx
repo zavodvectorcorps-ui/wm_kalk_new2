@@ -16,6 +16,7 @@ import AdminHelpPage from './AdminHelpPage';
 import ContentGeneratorPage from './ContentGeneratorPage';
 import LayoutConfiguratorPage from './LayoutConfiguratorPage';
 import DealersAdminPage from './DealersAdminPage';
+import DealerOrdersPage from './DealerOrdersPage';
 
 export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
   const { i18n } = useTranslation();
@@ -129,6 +130,10 @@ export const AdminPanel = ({ onBackToLanding, onEditInCalculator }) => {
             <TabsTrigger value="dealers" className="gap-2" data-testid="tab-dealers">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Дилеры</span>
+            </TabsTrigger>
+            <TabsTrigger value="dealer-orders" className="gap-2" data-testid="tab-dealer-orders">
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">Заказы дилеров</span>
             </TabsTrigger>
             <TabsTrigger value="integrations" className="gap-2">
               <Link className="h-4 w-4" />
