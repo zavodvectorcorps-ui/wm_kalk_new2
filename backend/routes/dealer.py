@@ -591,6 +591,59 @@ async def admin_put_dealer_overrides(
     return {"ok": True, "count": len(body.overrides or [])}
 
 
+@router.get("/api/admin/dealer-orders/{order_id}/pdf")
+async def admin_dealer_order_pdf(
+    order_id: str,
+    type: str = "offer",
+    _: dict = Depends(get_admin_user),
+):
+    """Admin downloads a dealer order PDF — the same way the dealer himself can.
+
+    `type=offer` → short branded "Oferta handlowa" with the dealer's contacts.
+    `type=full`  → multi-page sauna PDF (manager template).
+    """
+    pdf_type = (type or "offer").lower()
+    order = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    dealer = None
+    if order.get("dealerId"):
+        dealer = await db.dealers.find_one({"id": order["dealerId"]}, {"_id": 0, "password": 0})
+    dealer = dealer or {
+        "name": order.get("dealerName") or "WM Saunas",
+        "username": order.get("dealerUsername") or "",
+        "email": "",
+        "phone": "",
+    }
+
+    if pdf_type == "full":
+        try:
+            from models.sauna import SaunaPDFRequest
+            from routes.sauna import generate_sauna_pdf_bytes
+            req = _dealer_order_to_pdf_request(order)
+            pdf_bytes = await generate_sauna_pdf_bytes(SaunaPDFRequest(**req))
+        except Exception as e:
+            import traceback as _tb
+            logger.warning(
+                "Admin full PDF failed for dealer order %s: %s: %s\n%s",
+                order_id, e.__class__.__name__, e, _tb.format_exc()[-800:],
+            )
+            from services.dealer_pdf import generate_dealer_offer_pdf
+            pdf_bytes = generate_dealer_offer_pdf(order, dealer)
+    else:
+        from services.dealer_pdf import generate_dealer_offer_pdf
+        pdf_bytes = generate_dealer_offer_pdf(order, dealer)
+
+    safe_id = "".join(c for c in order_id if c.isalnum() or c in "-_") or "offer"
+    fname_prefix = "oferta-pelna" if pdf_type == "full" else "oferta"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{fname_prefix}-{safe_id}.pdf"'},
+    )
+
+
 @router.get("/api/admin/dealer-orders")
 async def admin_list_dealer_orders(
     status: str = "confirmed",

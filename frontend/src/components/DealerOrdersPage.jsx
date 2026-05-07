@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Building2, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
+import { Building2, Loader2, ExternalLink, RefreshCw, FileText } from 'lucide-react';
 import { getApiUrl } from '../utils/api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { toast } from 'sonner';
 
 const API = getApiUrl();
 const fmtPLN = (n) => `${Math.round(Number(n) || 0).toLocaleString('pl-PL').replace(/,/g, ' ')} PLN`;
@@ -17,11 +18,60 @@ const authHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+async function downloadAdminPdf(orderId, type, order = null) {
+  if (type === 'full') {
+    // Use the same public endpoint managers use → identical multi-page PDF.
+    // Either reuse the order object we already have, or fetch it.
+    let payload = order;
+    if (!payload) {
+      const orderResp = await axios.get(`${API}/api/admin/dealer-orders`, { headers: authHeaders() });
+      payload = (orderResp.data?.orders || []).find((o) => o.id === orderId);
+    }
+    if (!payload) throw new Error('Order not found');
+    const pdfPayload = { ...payload, orderId: payload.id, language: 'pl' };
+    const r = await axios.post(`${API}/api/sauna/generate-pdf`, pdfPayload, { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SAUNA_${orderId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    return;
+  }
+  // Short branded "Oferta handlowa" — through admin endpoint
+  const r = await axios.get(`${API}/api/admin/dealer-orders/${orderId}/pdf?type=offer`, {
+    headers: authHeaders(),
+    responseType: 'blob',
+  });
+  const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `oferta-${orderId}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+}
+
 export default function DealerOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dealerFilter, setDealerFilter] = useState('all');
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const handleDownload = async (orderId, type, order = null) => {
+    setDownloadingId(`${orderId}:${type}`);
+    try {
+      await downloadAdminPdf(orderId, type, order);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Не удалось скачать PDF');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -126,6 +176,7 @@ export default function DealerOrdersPage() {
                 <th className="text-right px-4 py-3 text-amber-700 dark:text-amber-400">Маржа</th>
                 <th className="text-left px-4 py-3">amoCRM</th>
                 <th className="text-left px-4 py-3">Создан</th>
+                <th className="text-right px-4 py-3">PDF</th>
               </tr>
             </thead>
             <tbody>
@@ -142,6 +193,9 @@ export default function DealerOrdersPage() {
                     <td className="px-4 py-3">
                       <div>{o.customerName || '—'}</div>
                       <div className="text-[11px] text-muted-foreground">{o.customerPhone}</div>
+                      {o.dealerContractNumber && (
+                        <div className="text-[11px] text-amber-600 mt-0.5">№ {o.dealerContractNumber}</div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-sm">{o.modelName || '—'}</td>
                     <td className="px-4 py-3 text-right font-bold">{fmtPLN(o.total)}</td>
@@ -161,6 +215,32 @@ export default function DealerOrdersPage() {
                       ) : <span className="text-muted-foreground text-xs">—</span>}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(o.createdAt)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownload(o.id, 'offer')}
+                          disabled={downloadingId === `${o.id}:offer`}
+                          data-testid={`admin-pdf-offer-${o.id}`}
+                          title="КП (короткое, с брендингом дилера)"
+                        >
+                          {downloadingId === `${o.id}:offer` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                          КП
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownload(o.id, 'full', o)}
+                          disabled={downloadingId === `${o.id}:full`}
+                          data-testid={`admin-pdf-full-${o.id}`}
+                          title="Полный многостраничный PDF (как у менеджеров)"
+                        >
+                          {downloadingId === `${o.id}:full` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                          Полный
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
