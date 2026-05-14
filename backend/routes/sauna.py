@@ -1743,9 +1743,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     elements.append(list_table)
                     elements.append(Spacer(1, 12))
         
-        # ===== SECTION 3: All Available Options (Simple two-column layout without category grouping) =====
-        # Show ONLY options the client actually selected — listing everything available
-        # confused customers (they saw items without prices and thought they ordered them).
+        # ===== SECTION 3: "Dodatkowe wyposażenie do wyboru" =====
+        # Show only options the client did NOT select, with prices, as an upsell catalog.
+        # Marked clearly as "opcjonalnie" so the customer can't think they ordered them.
         selected_ids = set()
         for opt in (selected_options or []):
             oid = opt.get('optionId') or opt.get('id')
@@ -1763,17 +1763,30 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         except Exception:
             pass
 
+        # NON-selected options only (upsell catalog at the end).
+        # Also skip options without a flat price (variant-based pricing) — they would
+        # show without a price tag and reintroduce the same confusion.
         filtered_options = [
             opt for opt in all_available_options
-            if (opt.get('id') or opt.get('optionId')) in selected_ids
+            if (opt.get('id') or opt.get('optionId')) not in selected_ids
+            and int(opt.get('price') or 0) > 0
         ]
+
+        # Override section title for the upsell version
+        page2_options_title = "Dodatkowe wyposażenie do wyboru"
 
         # Start on a new page
         if filtered_options and page2_show_all_opts:
             elements.append(PageBreak())
-            elements.append(Paragraph(page2_options_title.upper(), 
-                ParagraphStyle('AllOptTitle', fontName='DejaVuSans-Bold', fontSize=12, 
-                              textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=8)))
+            elements.append(Paragraph(page2_options_title.upper(),
+                ParagraphStyle('AllOptTitle', fontName='DejaVuSans-Bold', fontSize=12,
+                              textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=4)))
+            # Small grey disclaimer right under the title
+            elements.append(Paragraph(
+                "Opcjonalnie · do dokupienia · ceny nie wliczone w aktualną ofertę",
+                ParagraphStyle('UpsellDisclaimer', fontName='DejaVuSans', fontSize=8,
+                               textColor=colors.HexColor('#888888'), alignment=TA_CENTER, spaceAfter=8)
+            ))
             elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
             elements.append(Spacer(1, 8))
             
