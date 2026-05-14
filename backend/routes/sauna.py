@@ -7,6 +7,7 @@ import io
 import os
 import logging
 import requests
+import re
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -1247,10 +1248,18 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 delivery_price = opt.get('price', 0) * opt.get('quantity', 1)
                 continue
             
+            # Skip options whose chosen variant is "Nie" / "Brak" / "Bez" — the
+            # customer explicitly opted OUT, so listing them under "WYBRANE OPCJE"
+            # confuses the reader. The frontend appends the variant name to the
+            # option name like "Szyba połpanoramiczna - Nie".
+            _opt_name_raw = (opt.get('optionName', '') or opt.get('name', '') or '').strip()
+            if re.search(r'[\-–—:]\s*(nie|brak|bez)\s*$', _opt_name_raw, flags=re.IGNORECASE):
+                continue
+            
             # Check if this option is a gift (including fundament)
             is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
             
-            name = opt.get('optionName', '') or opt.get('name', '')
+            name = _opt_name_raw
             
             # Rename fundament option for PDF display
             if category_id == 'fundament':
@@ -1299,12 +1308,15 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     if is_selected:
                         opt = next((o for o in category.get('options', []) if o.get('id') == opt_id), None)
                         if opt:
+                            _opt_name_raw = (opt.get('name', '') or '').strip()
+                            if re.search(r'[\-–—:]\s*(nie|brak|bez)\s*$', _opt_name_raw, flags=re.IGNORECASE):
+                                continue
                             price = opt.get('price', 0)
                             has_quantity = opt.get('hasQuantity', False)
                             quantity = quantities.get(opt_id, 1) if has_quantity else 1
                             total_price = price * quantity
                             
-                            name = opt.get('name', '')
+                            name = _opt_name_raw
                             # Rename fundament option for PDF display
                             if cat_id == 'fundament':
                                 name = 'Koszt fundamentu'
@@ -1324,12 +1336,15 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             else:
                 opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
                 if opt:
+                    _opt_name_raw = (opt.get('name', '') or '').strip()
+                    if re.search(r'[\-–—:]\s*(nie|brak|bez)\s*$', _opt_name_raw, flags=re.IGNORECASE):
+                        continue
                     price = opt.get('price', 0)
                     has_quantity = opt.get('hasQuantity', False)
                     quantity = quantities.get(selection, 1) if has_quantity else 1
                     total_price = price * quantity
                     
-                    name = opt.get('name', '')
+                    name = _opt_name_raw
                     # Rename fundament option for PDF display
                     if cat_id == 'fundament':
                         name = 'Koszt fundamentu'
