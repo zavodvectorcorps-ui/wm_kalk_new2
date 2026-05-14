@@ -533,11 +533,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     
     buffer = io.BytesIO()
     
-    try:
-        pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
-        pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
-    except Exception as e:
-        logger.warning(f"Could not register fonts: {e}")
+    from services.pdf_fonts import ensure_pdf_fonts
+    ensure_pdf_fonts()
     
     # Colors - use template colors or defaults
     BROWN = colors.HexColor(template_colors.get('primary', '#97724E'))
@@ -1747,8 +1744,32 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     elements.append(Spacer(1, 12))
         
         # ===== SECTION 3: All Available Options (Simple two-column layout without category grouping) =====
+        # Show ONLY options the client actually selected — listing everything available
+        # confused customers (they saw items without prices and thought they ordered them).
+        selected_ids = set()
+        for opt in (selected_options or []):
+            oid = opt.get('optionId') or opt.get('id')
+            if oid:
+                selected_ids.add(oid)
+        # Also derive from request.selections (calculator direct-generation fallback)
+        try:
+            for cat_id, sel in (request.selections or {}).items():
+                if isinstance(sel, dict):
+                    for opt_id, is_sel in sel.items():
+                        if is_sel:
+                            selected_ids.add(opt_id)
+                elif sel:
+                    selected_ids.add(sel)
+        except Exception:
+            pass
+
+        filtered_options = [
+            opt for opt in all_available_options
+            if (opt.get('id') or opt.get('optionId')) in selected_ids
+        ]
+
         # Start on a new page
-        if all_available_options and page2_show_all_opts:
+        if filtered_options and page2_show_all_opts:
             elements.append(PageBreak())
             elements.append(Paragraph(page2_options_title.upper(), 
                 ParagraphStyle('AllOptTitle', fontName='DejaVuSans-Bold', fontSize=12, 
@@ -1795,16 +1816,16 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             
             # Build rows of 2 options each
             option_rows = []
-            for i in range(0, len(all_available_options), 2):
+            for i in range(0, len(filtered_options), 2):
                 row_cells = []
                 
                 # First option
-                cell1 = await build_option_cell(all_available_options[i], 255)
+                cell1 = await build_option_cell(filtered_options[i], 255)
                 row_cells.append(cell1)
                 
                 # Second option (if exists)
-                if i + 1 < len(all_available_options):
-                    cell2 = await build_option_cell(all_available_options[i + 1], 255)
+                if i + 1 < len(filtered_options):
+                    cell2 = await build_option_cell(filtered_options[i + 1], 255)
                     row_cells.append(cell2)
                 else:
                     row_cells.append('')  # Empty cell for odd number of options
@@ -2054,11 +2075,8 @@ async def generate_tech_spec_pdf(request: dict):
 
     buffer = io.BytesIO()
 
-    try:
-        pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
-        pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
-    except Exception as e:
-        logger.warning(f"Could not register fonts: {e}")
+    from services.pdf_fonts import ensure_pdf_fonts
+    ensure_pdf_fonts()
 
     BROWN = colors.HexColor('#97724E')
     BROWN_LIGHT = colors.HexColor('#FAF6F0')
