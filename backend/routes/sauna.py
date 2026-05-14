@@ -1275,9 +1275,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             if is_gift:
                 # Show original price crossed out + gift label
                 price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
+            elif total_price > 0:
+                price_str = f"{total_price:,} PLN".replace(',', ' ')
             else:
-                # Don't show price for options with 0 price
-                price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else ''
+                # Free (included in base price) — highlight in green so the client
+                # sees that it's part of the package and not "missing"
+                price_str = '<font color="#16A34A"><b>GRATIS</b></font>'
             
             options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift, 'original_price': total_price})
     else:
@@ -1540,10 +1543,19 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             return (4, 125)
     
     # Only add Page 2 if enabled and we have content to show (layouts moved to page 1)
+    # NOTE: Don't fire PageBreak preemptively — each sub-section below now adds its
+    # own PageBreak only when it actually has content to render. Avoids blank pages
+    # when, e.g., variants are absent but upsell is present (or vice-versa).
     has_page2_content = (model_variants and page2_show_variants) or all_available_options
+    page2_break_emitted = False
+
+    def _emit_page2_break_if_needed():
+        nonlocal page2_break_emitted
+        if not page2_break_emitted:
+            elements.append(PageBreak())
+            page2_break_emitted = True
+
     if page2_enabled and has_page2_content:
-        elements.append(PageBreak())
-        
         # Helper function to load image for PDF card (uses cached load_image)
         async def load_card_image(image_url: str, max_width: int = 120, max_height: int = 90) -> RLImage:
             """Load and scale image for variant/option card"""
@@ -1574,6 +1586,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 logger.info(f"Variant {i}: name={v.get('namePl')}, relax={v.get('relaxRoomSize')}, steam={v.get('steamRoomSize')}, terrace={v.get('terraceSize')}, entrance={v.get('entranceSide')}")
         
         if model_variants and page2_show_variants:
+            _emit_page2_break_if_needed()
             elements.append(Paragraph(page2_variants_title.upper(), 
                 ParagraphStyle('Page2Title', fontName='DejaVuSans-Bold', fontSize=14, 
                               textColor=BROWN_DARK, alignment=TA_CENTER, spaceAfter=12)))
@@ -1700,6 +1713,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         
         # ===== SECTION 2: Plus-only categories (List format) =====
         if plus_only_categories and page2_show_plus_cats:
+            _emit_page2_break_if_needed()
             for category in plus_only_categories:
                 cat_name = category.get('name', '')
                 cat_options = category.get('options', [])
