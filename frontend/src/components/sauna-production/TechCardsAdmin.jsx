@@ -22,6 +22,7 @@ export default function TechCardsAdmin() {
   const [search, setSearch] = useState('');
   const [recomputing, setRecomputing] = useState(false);
   const [expanded, setExpanded] = useState({}); // modelId -> bool
+  const [marginMode, setMarginMode] = useState('dealer'); // 'dealer' | 'retail' | 'both'
 
   const load = async () => {
     setLoading(true);
@@ -127,7 +128,30 @@ export default function TechCardsAdmin() {
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Поиск по моделям и опциям..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9" data-testid="tech-cards-search" />
         </div>
-        <Button variant="outline" size="sm" onClick={recomputeAll} disabled={recomputing} className="ml-auto" data-testid="recompute-all-btn" title="Пересчитать все тех.карты">
+
+        {/* Margin mode toggle */}
+        <div className="inline-flex border rounded-md overflow-hidden h-9 text-xs" data-testid="margin-mode-toggle">
+          <button
+            onClick={() => setMarginMode('dealer')}
+            className={`px-3 ${marginMode === 'dealer' ? 'bg-emerald-100 text-emerald-800 font-semibold' : 'bg-white text-muted-foreground hover:bg-slate-50'}`}
+            data-testid="margin-mode-dealer"
+            title="Чистая маржа (для сравнения с дилерами)"
+          >Дилерская</button>
+          <button
+            onClick={() => setMarginMode('retail')}
+            className={`px-3 border-l ${marginMode === 'retail' ? 'bg-blue-100 text-blue-800 font-semibold' : 'bg-white text-muted-foreground hover:bg-slate-50'}`}
+            data-testid="margin-mode-retail"
+            title="Маржа с учётом розничных расходов"
+          >Розница</button>
+          <button
+            onClick={() => setMarginMode('both')}
+            className={`px-3 border-l ${marginMode === 'both' ? 'bg-orange-100 text-orange-800 font-semibold' : 'bg-white text-muted-foreground hover:bg-slate-50'}`}
+            data-testid="margin-mode-both"
+            title="Показать обе маржи"
+          >Обе</button>
+        </div>
+
+        <Button variant="outline" size="sm" onClick={recomputeAll} disabled={recomputing} data-testid="recompute-all-btn" title="Пересчитать все тех.карты">
           {recomputing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RotateCw className="w-4 h-4 mr-1" />}
           Пересчитать всё
         </Button>
@@ -149,6 +173,7 @@ export default function TechCardsAdmin() {
                 onClick={() => setTarget({ scope: 'model', modelId: m.id, name: m.name, retailPrice: m.basePrice })}
                 onToggle={(m.variants || []).length > 0 ? () => setExpanded({ ...expanded, [m.id]: !isExpanded }) : null}
                 expanded={isExpanded}
+                marginMode={marginMode}
               />
               {isExpanded && (m.variants || []).map((v) => {
                 const vCard = findCard('variant', m.id, v.id);
@@ -165,6 +190,7 @@ export default function TechCardsAdmin() {
                       scope: 'variant', modelId: m.id, variantId: v.id,
                       name: `${m.name} — ${v.name || v.namePl}`, retailPrice: retailFull,
                     })}
+                    marginMode={marginMode}
                   />
                 );
               })}
@@ -198,6 +224,7 @@ export default function TechCardsAdmin() {
                 onClick={openOption}
                 onToggle={hasVariants ? () => setExpanded({ ...expanded, [`opt-${o.id}`]: !isExpanded }) : null}
                 expanded={isExpanded}
+                marginMode={marginMode}
               />
               {isExpanded && (o.variants || []).map((ov) => {
                 const ovCard = findCard('option_variant', '', '', o.id, ov.id);
@@ -213,6 +240,7 @@ export default function TechCardsAdmin() {
                       scope: 'option_variant', optionId: o.id, optionVariantId: ov.id,
                       name: `${o.name} — ${ov.name || ov.namePl}`, retailPrice: ov.price,
                     })}
+                    marginMode={marginMode}
                   />
                 );
               })}
@@ -287,18 +315,25 @@ function SectionHeader({ title, className = '' }) {
   );
 }
 
-function TargetRow({ title, subtitle, retail, card, onClick, onToggle, expanded, indent }) {
+function TargetRow({ title, subtitle, retail, card, onClick, onToggle, expanded, indent, marginMode = 'dealer' }) {
   const hasCard = !!card?.id;
   const cost = card?.totalCost || 0;
   const retailBrutto = Number(retail) || 0;
   const retailNetto = retailBrutto > 0 ? retailBrutto / 1.23 : 0;
-  // Margin (VAT-aware) — backend already does the netto math, but recompute
-  // here too so a card whose retail in catalog changed since save still
-  // shows the up-to-date margin.
-  const margin = hasCard && retailNetto > 0 ? retailNetto - cost : null;
-  const marginPct = margin !== null && retailNetto > 0 ? (margin / retailNetto) * 100 : null;
-  const isLoss = margin !== null && margin < 0;
-  const isLowMargin = marginPct !== null && marginPct >= 0 && marginPct < 15;
+  // Dealer-style margin (cost-only, VAT-aware)
+  const dealerMargin = hasCard && retailNetto > 0 ? retailNetto - cost : null;
+  const dealerMarginPct = dealerMargin !== null && retailNetto > 0 ? (dealerMargin / retailNetto) * 100 : null;
+  // Retail-style margin (cost + retail extras)
+  const retailExtra = Number(card?.retailExtraCost || 0);
+  const retailMargin = dealerMargin !== null ? dealerMargin - retailExtra : null;
+  const retailMarginPct = retailMargin !== null && retailNetto > 0 ? (retailMargin / retailNetto) * 100 : null;
+
+  const showDealer = marginMode === 'dealer' || marginMode === 'both';
+  const showRetail = marginMode === 'retail' || marginMode === 'both';
+
+  // Choose what drives the "loss" red-row tint based on current mode.
+  const activeMargin = marginMode === 'retail' ? retailMargin : dealerMargin;
+  const isLoss = activeMargin !== null && activeMargin < 0;
 
   return (
     <div
@@ -316,8 +351,8 @@ function TargetRow({ title, subtitle, retail, card, onClick, onToggle, expanded,
         <div className="text-xs text-muted-foreground truncate">{subtitle}</div>
       </div>
 
-      {/* Numbers block — always 3 columns; for cards without tech-card only Розница is filled */}
-      <div className="hidden sm:grid grid-cols-3 gap-x-3 text-right shrink-0">
+      {/* Numbers block — desktop only (sm+) */}
+      <div className="hidden sm:grid gap-x-3 text-right shrink-0" style={{ gridTemplateColumns: `repeat(${2 + (showDealer ? 1 : 0) + (showRetail ? 1 : 0)}, minmax(100px, auto))` }}>
         <NumCell label="Розница" value={retailBrutto > 0 ? fmtMoney(retailBrutto) : '—'} subValue={retailBrutto > 0 ? `${fmtMoney(retailNetto)} netto` : null} />
         <NumCell
           label="Себест."
@@ -325,37 +360,29 @@ function TargetRow({ title, subtitle, retail, card, onClick, onToggle, expanded,
           valueClass={hasCard ? 'text-orange-600 font-bold' : 'text-muted-foreground'}
           subValue={hasCard ? 'netto' : null}
         />
-        <NumCell
-          label="Маржа"
-          value={margin === null ? '—' : fmtMoney(margin)}
-          valueClass={
-            margin === null
-              ? 'text-muted-foreground'
-              : isLoss
-                ? 'text-red-700 font-bold'
-                : isLowMargin
-                  ? 'text-amber-700 font-bold'
-                  : 'text-emerald-700 font-bold'
-          }
-          subValue={marginPct === null ? null : `${marginPct >= 0 ? '+' : ''}${marginPct.toFixed(1)}%`}
-          icon={
-            margin === null ? null
-              : isLoss ? <TrendingDown className="w-3 h-3" />
-              : isLowMargin ? <AlertTriangle className="w-3 h-3" />
-              : <TrendingUp className="w-3 h-3" />
-          }
-        />
+        {showDealer && (
+          <MarginCell label={marginMode === 'both' ? 'Маржа (дилер)' : 'Маржа'} margin={dealerMargin} pct={dealerMarginPct} accent="emerald" />
+        )}
+        {showRetail && (
+          <MarginCell
+            label={marginMode === 'both' ? 'Маржа (розн.)' : 'Маржа'}
+            margin={retailMargin}
+            pct={retailMarginPct}
+            accent="blue"
+            disabledHint={hasCard && retailExtra === 0 ? '= дилерской (нет розн. расходов)' : null}
+          />
+        )}
       </div>
 
-      {/* Mobile-only compact view */}
+      {/* Mobile compact */}
       <div className="sm:hidden text-right shrink-0">
         {hasCard ? (
           <>
             <div className="text-sm font-bold text-orange-600 font-mono">{fmtMoney(cost)}</div>
-            {margin !== null && (
-              <div className={`text-[11px] font-mono inline-flex items-center gap-0.5 justify-end ${isLoss ? 'text-red-700 font-bold' : isLowMargin ? 'text-amber-700' : 'text-emerald-700'}`}>
-                {isLoss ? <TrendingDown className="w-3 h-3" /> : isLowMargin ? <AlertTriangle className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-                {fmtMoney(margin)}
+            {activeMargin !== null && (
+              <div className={`text-[11px] font-mono inline-flex items-center gap-0.5 justify-end ${isLoss ? 'text-red-700 font-bold' : 'text-emerald-700'}`}>
+                {isLoss ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                {fmtMoney(activeMargin)}
               </div>
             )}
           </>
@@ -378,7 +405,29 @@ function TargetRow({ title, subtitle, retail, card, onClick, onToggle, expanded,
   );
 }
 
-function NumCell({ label, value, valueClass = 'font-mono', subValue, icon }) {
+function MarginCell({ label, margin, pct, accent, disabledHint }) {
+  if (margin === null) {
+    return <NumCell label={label} value="—" valueClass="text-muted-foreground" />;
+  }
+  const isLoss = margin < 0;
+  const isLow = !isLoss && pct !== null && pct < 15;
+  // Static class strings so Tailwind's JIT keeps them in the bundle.
+  const okClass = accent === 'blue' ? 'text-blue-700 font-bold' : 'text-emerald-700 font-bold';
+  const cls = isLoss ? 'text-red-700 font-bold' : isLow ? 'text-amber-700 font-bold' : okClass;
+  const icon = isLoss ? <TrendingDown className="w-3 h-3" /> : isLow ? <AlertTriangle className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />;
+  return (
+    <NumCell
+      label={label}
+      value={fmtMoney(margin)}
+      valueClass={cls}
+      icon={icon}
+      subValue={pct === null ? null : `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`}
+      subHint={disabledHint}
+    />
+  );
+}
+
+function NumCell({ label, value, valueClass = 'font-mono', subValue, icon, subHint }) {
   return (
     <div className="min-w-[100px]">
       <div className="text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">{label}</div>
@@ -387,6 +436,9 @@ function NumCell({ label, value, valueClass = 'font-mono', subValue, icon }) {
       </div>
       {subValue && (
         <div className="text-[10px] text-muted-foreground font-mono leading-tight">{subValue}</div>
+      )}
+      {subHint && (
+        <div className="text-[9px] text-muted-foreground italic leading-tight">{subHint}</div>
       )}
     </div>
   );
