@@ -382,6 +382,32 @@ Completed all three open items from Phase 2:
       per row. After rollback the row shows **«Откачен»** badge.
 - Tested: 12/12 backend pytest pass; frontend dialog verified live.
 
+## Session 13 — Margin Diff + Granular Access for Analytics/Calls/Dealers (Feb 16, 2026)
+
+- **Margin column in Dry-Run preview** for sauna prices import. Backend
+  `services/sauna_excel.py::diff_rows` now returns per-row
+  `margin: {oldAmount, newAmount, oldPct, newPct, delta}` and flags
+  `lowMargin=true` + `marginThreshold=15.0` when new margin% < 15.
+  Summary gained `marginAlerts` counter.
+- **Frontend** `PriceImportExport.jsx`: Dry-Run dialog shows a red banner
+  «Внимание: у N позиций маржа после импорта станет ниже 15%», a new
+  «Маржа» column with old (strikethrough) → new (red bold if low margin),
+  and a «Маржа <15%» summary chip.
+- **Granular per-section access** in Users / Работники page
+  (`UserManagement.jsx`):
+    - Refactored into `ACCESS_SECTIONS` array (single source of truth) —
+      Add + Edit dialogs and access badges all render from it.
+    - Added 3 missing sections: **Аналитика лидов** (`analytics`),
+      **Аналитика звонков** (`call_analytics`), **Дилеры** (`dealers`).
+    - `LandingPage.jsx` cards now appear for non-admins with those grants.
+    - `App.js` navigation gating updated to allow `hasAccess('analytics')`
+      / `call_analytics` / `dealers` in addition to `isAdmin()`.
+- **Backend** `routes/auth.py` refactored: `VALID_ACCESS_VALUES` and
+  `VALID_ROLES` now module-level constants + `_validate_access()` helper.
+  Fixes drift bug where PUT /api/users rejected new keys (POST accepted
+  them). Also added `marketer` to PUT's role whitelist.
+- Tested: 15/15 backend pytest pass; UI flows verified.
+
 ## Prioritized Backlog
 - P1: Telegram notification on negative AI score for calls
 - P1: Weekly AI digest (email/Telegram) for managers
