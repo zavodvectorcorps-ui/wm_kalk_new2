@@ -204,7 +204,7 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
                   <thead className="bg-slate-50 sticky top-0">
                     <tr className="text-left">
                       <th className="px-2 py-1.5">Компонент</th>
-                      <th className="px-2 py-1.5 w-20">Кол-во</th>
+                      <th className="px-2 py-1.5 w-28">Кол-во</th>
                       <th className="px-2 py-1.5 w-14">Ед.</th>
                       <th className="px-2 py-1.5 w-24">Цена/ед</th>
                       <th className="px-2 py-1.5 w-28 text-right">Сумма</th>
@@ -264,10 +264,12 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
                           <td className="px-2 py-1">
                             <Input
                               type="number"
-                              step="0.01"
+                              step="0.001"
+                              min="0"
                               value={it.qty}
                               onChange={(e) => updateItem(it.id, { qty: parseFloat(e.target.value) || 0 })}
-                              className="h-8 text-xs"
+                              className="h-8 text-xs text-right font-mono px-2"
+                              data-testid={`bom-qty-${it.id}`}
                             />
                           </td>
                           <td className="px-2 py-1 text-xs text-muted-foreground">{it.comp?.unit || '—'}</td>
