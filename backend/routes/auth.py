@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 VALID_ACCESS_VALUES = [
     "balia", "sauna", "logistics", "driver", "warehouse",
     "sauna_crm", "sauna_production", "training",
-    "analytics", "call_analytics", "dealers",
+    "analytics", "call_analytics", "dealers", "planner",
     "all",
 ]
 VALID_ROLES = [

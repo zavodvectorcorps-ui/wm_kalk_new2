@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, GraduationCap, TrendingUp, BarChart3, Phone, Building2 } from 'lucide-react';
+import { Waves, Flame, ArrowRight, Lock, Shield, Truck, User, Package, Kanban, GraduationCap, TrendingUp, BarChart3, Phone, Building2, ClipboardList } from 'lucide-react';
 
 export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const { i18n } = useTranslation();
@@ -37,6 +37,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       callAnalyticsDesc: 'Транскрибация, AI-оценка и аналитика звонков менеджеров',
       dealersTitle: 'Дилеры',
       dealersDesc: 'Управление дилерской сетью: создание аккаунтов, прайсы и заказы дилеров',
+      plannerTitle: 'Планнер',
+      plannerDesc: 'Внутренние задачи команды: канбан, чек-листы, дедлайны и история',
       select: 'Выбрать',
       comingSoon: 'Скоро',
       noAccess: 'Нет доступа',
@@ -68,6 +70,8 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
       callAnalyticsDesc: 'Transkrypcja, ocena AI i analityka rozmów menedżerów',
       dealersTitle: 'Dealerzy',
       dealersDesc: 'Zarządzanie siecią dealerów: konta, cenniki i zamówienia',
+      plannerTitle: 'Planer zadań',
+      plannerDesc: 'Wewnętrzne zadania zespołu: kanban, checklisty, terminy i historia',
       select: 'Wybierz',
       comingSoon: 'Wkrótce',
       noAccess: 'Brak dostępu',
@@ -89,6 +93,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const canAccessAnalytics = canAccessAdmin || (hasAccess && hasAccess('analytics'));
   const canAccessCallAnalytics = canAccessAdmin || (hasAccess && hasAccess('call_analytics'));
   const canAccessDealers = canAccessAdmin || (hasAccess && hasAccess('dealers'));
+  const canAccessPlanner = canAccessAdmin || (hasAccess && hasAccess('planner'));
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
@@ -358,7 +363,7 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
         )}
 
         {/* Third Row: Analytics */}
-        {(canAccessAnalytics || canAccessCallAnalytics || canAccessDealers) && (
+        {(canAccessAnalytics || canAccessCallAnalytics || canAccessDealers || canAccessPlanner) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mt-6">
             {canAccessAnalytics && (
             <Card 
@@ -431,6 +436,33 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                       {txt.dealersDesc}
                     </p>
                     <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-orange-500/50 text-orange-600 hover:bg-orange-500/10 hover:text-orange-600">
+                      {txt.select}
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Planner Card — admin or granted access */}
+            {canAccessPlanner && (
+              <Card
+                data-testid="landing-planner-card"
+                className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-rose-500/50"
+                onClick={() => onSelectCalculator('planner')}
+              >
+                <CardContent className="p-8">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors bg-rose-500/10 group-hover:bg-rose-500/20">
+                      <ClipboardList className="w-10 h-10 text-rose-500" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-foreground mb-3">
+                      {txt.plannerTitle}
+                    </h2>
+                    <p className="text-muted-foreground mb-6">
+                      {txt.plannerDesc}
+                    </p>
+                    <Button variant="outline" className="w-full gap-2 group-hover:gap-3 transition-all border-rose-500/50 text-rose-600 hover:bg-rose-500/10 hover:text-rose-600">
                       {txt.select}
                       <ArrowRight className="w-4 h-4" />
                     </Button>

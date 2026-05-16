@@ -42,6 +42,7 @@ const CallAnalyticsPage = lazy(() => import('./components/CallAnalyticsPage'));
 const PortfolioPage = lazy(() => import('./components/PortfolioPage'));
 const DealerEntry = lazy(() => import('./components/dealer'));
 const DealersHub = lazy(() => import('./components/DealersHub'));
+const PlannerPage = lazy(() => import('./components/PlannerPage'));
 const PublicOfferPage = lazy(() => import('./components/PublicOfferPage'));
 
 // Loading fallback component
@@ -391,6 +392,15 @@ const AppContent = () => {
     if (calculator === 'callAnalytics') {
       if ((isAdmin && isAdmin()) || hasAccess('call_analytics')) {
         setCurrentCalculator('callAnalytics');
+        return;
+      }
+      return;
+    }
+
+    // Planner - admin or granted access
+    if (calculator === 'planner') {
+      if ((isAdmin && isAdmin()) || hasAccess('planner')) {
+        setCurrentCalculator('planner');
         return;
       }
       return;
@@ -868,6 +878,27 @@ const AppContent = () => {
         />
         <Suspense fallback={<PageLoader />}>
           <DealersHub onBackToLanding={handleBackToLanding} />
+        </Suspense>
+        <Toaster position="top-right" richColors />
+      </div>
+    );
+  }
+
+  // Planner — standalone admin module
+  if (currentCalculator === 'planner' && (isAdmin() || hasAccess('planner'))) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <Header
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          isAdminAuthenticated={isAdmin()}
+          onAdminLogout={handleLogout}
+          showNavigation={false}
+          showUsers={false}
+          calculatorType="admin"
+        />
+        <Suspense fallback={<PageLoader />}>
+          <PlannerPage onBack={handleBackToLanding} />
         </Suspense>
         <Toaster position="top-right" richColors />
       </div>

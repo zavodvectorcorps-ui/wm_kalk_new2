@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table';
-import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye, Truck, Package, Kanban, GraduationCap, BarChart3, Phone, Building2 } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye, Truck, Package, Kanban, GraduationCap, BarChart3, Phone, Building2, ClipboardList } from 'lucide-react';
 import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
 
@@ -76,6 +76,7 @@ export const UserManagement = () => {
       accessAnalytics: 'Аналитика лидов',
       accessCallAnalytics: 'Аналитика звонков',
       accessDealers: 'Дилеры',
+      accessPlanner: 'Планнер',
       accessAll: 'Все разделы',
       role: 'Роль',
       admin: 'Администратор',
@@ -128,6 +129,7 @@ export const UserManagement = () => {
       accessAnalytics: 'Analityka leadów',
       accessCallAnalytics: 'Analityka połączeń',
       accessDealers: 'Dilerzy',
+      accessPlanner: 'Planer zadań',
       accessAll: 'Wszystkie sekcje',
       role: 'Rola',
       admin: 'Administrator',
@@ -181,6 +183,7 @@ export const UserManagement = () => {
     { key: 'analytics', label: txt.accessAnalytics, icon: BarChart3, iconClass: 'text-indigo-600', badgeClass: 'bg-indigo-100 text-indigo-700' },
     { key: 'call_analytics', label: txt.accessCallAnalytics, icon: Phone, iconClass: 'text-teal-600', badgeClass: 'bg-teal-100 text-teal-700' },
     { key: 'dealers', label: txt.accessDealers, icon: Building2, iconClass: 'text-orange-600', badgeClass: 'bg-orange-100 text-orange-700' },
+    { key: 'planner', label: txt.accessPlanner, icon: ClipboardList, iconClass: 'text-rose-600', badgeClass: 'bg-rose-100 text-rose-700' },
   ];
 
   const toggleAccess = (key, checked) => {

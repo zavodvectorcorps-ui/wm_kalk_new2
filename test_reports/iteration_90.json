@@ -1,0 +1,40 @@
+{
+  "summary": "End-to-end test of the new Planner module. Backend: 15/15 pytest tests PASS (directions seed, admin-only writes, tasks CRUD with history actions=created/status/title/priority/direction/assignee/due_date, invalid-status & empty-title 400s, completedAt set on done and cleared on revert, all filters status/priority/direction/assignee/mine/overdue/archived/search, comments add+edit+delete with author/admin permission checks, checklist add/toggle/delete with doneByUsername+doneAt, dashboard payload shape, filter-presets CRUD, planner access value accepted in POST and PUT /api/users, delete-task admin-only enforced). Frontend smoke (admin/admin123): landing-planner-card visible, navigation works, 6 tabs render (dashboard/all/mine/overdue/ideas/archive), view-table & view-board toggles present, QuickCreate Enter creates a task (submit disabled when title empty, enabled after typing), Table shows new row, Board renders 6 columns with card, Dashboard shows tiles (Всего активных=1, По статусам/По направлениям/Топ исполнителей), TaskDrawer opens via row click and shows status/priority/direction/assignee/dueDate selects + Чек-лист/Комментарии/История tabs + 'Удалить' button for admin. UserManagement testid presence was code-reviewed (not exercised live) - data-testid='add-access-planner' and 'edit-access-planner' aren't grep-confirmed; main agent should verify with own click-through.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PlannerPage (likely users/directions list)", "issue": "React 'Encountered two children with the same key' warning fires repeatedly with id e4d04ee8-517b-44eb-b4c7-734ad58e015b — same UUID rendered twice. Most probable cause: a Select/Dropdown rendering the user list (Ответственный / assignee filter) without de-duplicating or a duplicate users row in DB. Should be fixed by adding a Set-based dedupe on the .map() that builds <SelectItem key={id}> or by inspecting the response for duplicates.", "selector": "QuickCreate quick-create-assignee / TasksTable assignee select / TaskDrawer assignee select", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "TaskDrawer (Sheet)", "issues": ["Radix warns 'DialogContent requires a DialogTitle' — wrap title input or add a VisuallyHidden DialogTitle for a11y."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_planner.py",
+    "/app/test_reports/pytest/pytest_results_iteration90.xml"
+  ],
+  "action_items": [
+    "Investigate and fix the React duplicate-key warning (same UUID e4d04ee8...) — likely in a Select rendering users or directions; dedupe the list before .map() or check users collection for duplicate id.",
+    "Add a (Visually-hidden) DialogTitle to the TaskDrawer Sheet for screen-reader accessibility (Radix a11y warning).",
+    "(Optional) Verify add-access-planner / edit-access-planner data-testid attributes are actually wired in UserManagement.jsx (they were not grep-confirmed)."
+  ],
+  "critical_code_review_comments": [
+    "routes/planner.py list_tasks: when both `overdue=true` and an explicit `status=` filter are passed, the overdue branch overwrites q['status'] (last writer wins) — minor: acceptable since 'overdue' implies not-done semantically.",
+    "routes/planner.py list_tasks default: `if archived is None: q['archived']={'$ne':True}` but the default value is `False`, so the `None` branch is dead code (None never reaches it). Defaults still hide archived which is correct.",
+    "routes/planner.py update_task: when status reverts from 'done', completedAt is unconditionally cleared even if the user explicitly re-completes later — fine, matches spec.",
+    "routes/planner.py add_comment: history line stores newValue=text[:80] — good (avoids massive history rows).",
+    "routes/planner.py: filter_presets DELETE allows admin to delete any preset (q built without userId) — matches spec.",
+    "models/planner.py: TaskUpdate uses ConfigDict(extra='allow') — extra fields are silently accepted; consider 'ignore' or 'forbid' to prevent typos like 'satus' from being persisted in $set (currently they would be filtered by the explicit if-chain so it's safe, but extra='allow' is loose).",
+    "Frontend: duplicate-key warning indicates a real bug in list rendering — production users will see this in dev tools and it can cause UI glitches."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_planner.py (new — 15 tests, all green)"
+  ],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "core flows OK; 1 React warning + 1 a11y warning"},
+  "test_credentials": "admin / admin123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Tests create TEST_-prefixed tasks/comments/checklist items/users/directions/presets and tear them all down via fixtures or the finally cleanup. UI smoke task was deleted post-run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest is /app/backend/tests/test_planner.py — runs in ~10s and is fully self-cleaning. UI testids: landing-planner-card, planner-back, tab-{dashboard|all|mine|overdue|ideas|archive}, view-{table|board}, quick-create-bar, quick-create-title, quick-create-direction, quick-create-assignee, quick-create-due, quick-create-submit, tasks-table, task-row-{id}, tasks-board, board-col-{statusKey}, board-card-{id}. Two non-blocking warnings remain in console: React duplicate-key (same uuid in some list) and Radix DialogTitle missing on the TaskDrawer Sheet — flagged in action_items. UserManagement 'Планнер' checkbox testids (add-access-planner / edit-access-planner) were not live-tested; do that next iteration when re-checking."
+}
