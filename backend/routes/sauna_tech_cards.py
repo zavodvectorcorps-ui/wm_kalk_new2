@@ -8,6 +8,10 @@ When a component's unitPrice changes → all tech-cards containing it are
 recomputed; if `syncToCostPrice=true`, the result is written back to the
 target entity's costPrice in the sauna_prices doc.
 """
+"""Sauna Tech Cards (BOM) + Components — admin-only routes.
+
+Build marker: iter95.1 (2026-05-16 — force backend rebuild for export/import endpoints).
+"""
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
