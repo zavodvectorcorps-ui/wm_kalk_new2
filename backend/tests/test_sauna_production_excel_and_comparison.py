@@ -14,7 +14,8 @@ EXPECTED_COMP_HEADERS = [
 EXPECTED_CARD_HEADERS = [
     "cardId", "scope", "modelId", "variantId", "optionId", "optionVariantId",
     "componentId", "componentName", "qty", "itemNote",
-    "laborCost", "overheadPct", "manualAdjustment", "syncToCostPrice", "cardNote",
+    "laborCost", "overheadPct", "manualAdjustment", "retailExtraCost",
+    "syncToCostPrice", "cardNote",
 ]
 
 

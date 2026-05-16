@@ -32,7 +32,8 @@ COMP_HEADERS = [
 CARD_HEADERS = [
     "cardId", "scope", "modelId", "variantId", "optionId", "optionVariantId",
     "componentId", "componentName", "qty", "itemNote",
-    "laborCost", "overheadPct", "manualAdjustment", "syncToCostPrice", "cardNote",
+    "laborCost", "overheadPct", "manualAdjustment", "retailExtraCost",
+    "syncToCostPrice", "cardNote",
 ]
 
 VALID_SCOPES = ("model", "variant", "option", "option_variant")
@@ -109,6 +110,7 @@ def export_xlsx(components: list[dict], tech_cards: list[dict]) -> bytes:
                 card.get("laborCost") or 0,
                 card.get("overheadPct") or 0,
                 card.get("manualAdjustment") or 0,
+                card.get("retailExtraCost") or 0,
                 _bool(card.get("syncToCostPrice", True)),
                 _s(card.get("note")),
             ])
@@ -134,11 +136,12 @@ def export_xlsx(components: list[dict], tech_cards: list[dict]) -> bytes:
                     card.get("laborCost") or 0,
                     card.get("overheadPct") or 0,
                     card.get("manualAdjustment") or 0,
+                    card.get("retailExtraCost") or 0,
                     _bool(card.get("syncToCostPrice", True)),
                     _s(card.get("note")),
                 ]
             else:
-                row += ["", "", "", "", ""]
+                row += ["", "", "", "", "", ""]
             ws_t.append(row)
     _autosize(ws_t, CARD_HEADERS, {"componentName": 40, "cardNote": 36})
 
@@ -263,6 +266,7 @@ def _parse_cards(wb, errors: list[dict]) -> list[dict]:
                 "laborCost": None,
                 "overheadPct": None,
                 "manualAdjustment": None,
+                "retailExtraCost": None,
                 "syncToCostPrice": None,
                 "note": None,
             }
@@ -271,7 +275,8 @@ def _parse_cards(wb, errors: list[dict]) -> list[dict]:
         # Card-level fields: last non-empty wins
         for fld, parser in (
             ("laborCost", _num), ("overheadPct", _num),
-            ("manualAdjustment", _num), ("cardNote", _s),
+            ("manualAdjustment", _num), ("retailExtraCost", _num),
+            ("cardNote", _s),
         ):
             v = col(raw, fld)
             if v not in (None, ""):
@@ -372,7 +377,7 @@ def diff_cards(parsed: list[dict], existing: list[dict]) -> dict:
         changed: dict[str, dict] = {}
         if old_items != new_items:
             changed["items"] = {"old": len(old_items), "new": len(new_items)}
-        for fld in ("laborCost", "overheadPct", "manualAdjustment"):
+        for fld in ("laborCost", "overheadPct", "manualAdjustment", "retailExtraCost"):
             new = p.get(fld)
             if new is None:
                 continue
@@ -419,7 +424,7 @@ def merge_card(parsed: dict, existing: dict | None) -> dict:
          "qty": float(i["qty"]), "note": i.get("note", "")}
         for i in (parsed.get("items") or [])
     ]
-    for fld in ("laborCost", "overheadPct", "manualAdjustment"):
+    for fld in ("laborCost", "overheadPct", "manualAdjustment", "retailExtraCost"):
         if parsed.get(fld) is not None:
             base[fld] = float(parsed[fld])
     if parsed.get("syncToCostPrice") is not None:

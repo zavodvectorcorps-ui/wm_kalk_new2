@@ -23,6 +23,7 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
     laborCost: 0,
     overheadPct: 15,
     manualAdjustment: 0,
+    retailExtraCost: 0,
     syncToCostPrice: true,
     note: '',
   });
@@ -66,6 +67,7 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
               laborCost: r.data.laborCost || 0,
               overheadPct: r.data.overheadPct || 0,
               manualAdjustment: r.data.manualAdjustment || 0,
+              retailExtraCost: r.data.retailExtraCost || 0,
               syncToCostPrice: r.data.syncToCostPrice !== false,
               note: r.data.note || '',
             });
@@ -98,11 +100,12 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
     const overheadPct = Number(draft.overheadPct || 0);
     const overhead = materials * overheadPct / 100;
     const manual = Number(draft.manualAdjustment || 0);
+    const retailExtra = Math.max(0, Number(draft.retailExtraCost || 0));
     const total = materials + labor + overhead + manual;
     const retail = target.retailPrice || 0;
     const margin = retail - total;
     const marginPct = retail > 0 ? (margin / retail) * 100 : null;
-    return { enriched, materials, labor, overhead, manual, total, retail, margin, marginPct };
+    return { enriched, materials, labor, overhead, manual, retailExtra, total, retail, margin, marginPct };
   }, [draft, compMap, target.retailPrice]);
 
   // ---- actions ----
@@ -125,6 +128,7 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
         laborCost: Number(draft.laborCost) || 0,
         overheadPct: Number(draft.overheadPct) || 0,
         manualAdjustment: Number(draft.manualAdjustment) || 0,
+        retailExtraCost: Number(draft.retailExtraCost) || 0,
         syncToCostPrice: draft.syncToCostPrice,
         note: draft.note,
       }, { headers: authHeaders() });
@@ -161,6 +165,11 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
   const marginNetto = retailNetto - computed.total;
   const marginPctNetto = retailNetto > 0 ? (marginNetto / retailNetto) * 100 : null;
   const lowMarginNetto = marginPctNetto !== null && marginPctNetto < 15;
+  // Розничная маржа (учитывает доп. розничные расходы — доставку клиенту,
+  // упаковку, комиссии). НЕ влияет на дилерскую/«чистую» маржу.
+  const retailMarginNetto = marginNetto - computed.retailExtra;
+  const retailMarginPctNetto = retailNetto > 0 ? (retailMarginNetto / retailNetto) * 100 : null;
+  const lowRetailMargin = retailMarginPctNetto !== null && retailMarginPctNetto < 15;
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -305,6 +314,20 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
                   <label className="text-muted-foreground">Корректировка (zł)</label>
                   <Input type="number" value={draft.manualAdjustment} onChange={(e) => setDraft({ ...draft, manualAdjustment: parseFloat(e.target.value) || 0 })} className="h-7 w-28 text-xs text-right" data-testid="tech-card-adjustment" />
                 </div>
+                <div className="flex items-center justify-between text-xs">
+                  <label className="text-muted-foreground inline-flex items-center gap-1" title="Учитывается только в розничной марже. На дилерскую маржу не влияет.">
+                    Розн. расходы (zł)
+                    <span className="text-[10px] text-blue-600 px-1 border border-blue-200 rounded bg-blue-50">розница</span>
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={draft.retailExtraCost}
+                    onChange={(e) => setDraft({ ...draft, retailExtraCost: parseFloat(e.target.value) || 0 })}
+                    className="h-7 w-28 text-xs text-right"
+                    data-testid="tech-card-retail-extra"
+                  />
+                </div>
 
                 <div className="pt-2 border-t space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -322,14 +345,31 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
                         <span className="font-mono">{fmtMoney(retailNetto)}</span>
                       </div>
                       <div className={`flex items-center justify-between text-sm font-semibold ${lowMarginNetto ? 'text-red-600' : 'text-emerald-700'}`} data-testid="tech-card-margin">
-                        <span className="inline-flex items-center gap-1">
+                        <span className="inline-flex items-center gap-1" title="Используется в сравнении с дилерскими ценами (без розничных расходов)">
                           {lowMarginNetto ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
-                          Маржа (netto − cost)
+                          Маржа (для дилеров)
                         </span>
                         <span className="font-mono">
                           {fmtMoney(marginNetto)} ({marginPctNetto === null ? '—' : `${marginPctNetto.toFixed(1)}%`})
                         </span>
                       </div>
+                      {computed.retailExtra > 0 && (
+                        <>
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span>− розничные расходы</span>
+                            <span className="font-mono text-red-600">−{fmtMoney(computed.retailExtra)}</span>
+                          </div>
+                          <div className={`flex items-center justify-between text-sm font-semibold ${lowRetailMargin ? 'text-red-600' : 'text-blue-700'}`} data-testid="tech-card-retail-margin">
+                            <span className="inline-flex items-center gap-1" title="Маржа от розничной продажи (с учётом доставки/упаковки/комиссий)">
+                              {lowRetailMargin ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
+                              Маржа (розница)
+                            </span>
+                            <span className="font-mono">
+                              {fmtMoney(retailMarginNetto)} ({retailMarginPctNetto === null ? '—' : `${retailMarginPctNetto.toFixed(1)}%`})
+                            </span>
+                          </div>
+                        </>
+                      )}
                       {lowMarginNetto && (
                         <div className="text-[10px] text-red-700 flex items-center gap-1 mt-1">
                           <AlertTriangle className="w-3 h-3" />Маржа ниже 15% (от netto)

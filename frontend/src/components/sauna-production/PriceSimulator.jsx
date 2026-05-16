@@ -77,6 +77,36 @@ export default function PriceSimulator() {
   }, [prices]);
   const optById = useMemo(() => Object.fromEntries(allOptions.map((o) => [o.id, o])), [allOptions]);
 
+  // Auto-fill retail extra costs from saved tech-cards when configuration changes.
+  // Sum of all picked positions' retailExtraCost — user can still override manually.
+  useEffect(() => {
+    if (!cards || cards.length === 0) return;
+    let sum = 0;
+    const get = (scope, modelId2 = '', variantId2 = '', optionId2 = '', optionVariantId2 = '') => {
+      const key = [scope, modelId2, variantId2, optionId2, optionVariantId2].join('|');
+      return cardByKey.get(key);
+    };
+    if (model && !variant) {
+      sum += Number(get('model', model.id)?.retailExtraCost || 0);
+    } else if (model && variant) {
+      sum += Number(get('variant', model.id, variant.id)?.retailExtraCost || 0);
+    }
+    for (const opt of options) {
+      const o = optById[opt.optionId];
+      if (!o) continue;
+      const ov = (o.variants || []).find((v) => v.id === opt.optionVariantId);
+      const qty = Math.max(1, parseInt(opt.qty) || 1);
+      const card = ov
+        ? get('option_variant', '', '', o.id, ov.id)
+        : get('option', '', '', o.id);
+      sum += Number(card?.retailExtraCost || 0) * qty;
+    }
+    if (sum > 0) {
+      setRetailExtraInput(String(Math.round(sum)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelId, variantId, JSON.stringify(options.map((o) => [o.optionId, o.optionVariantId, o.qty])), cards.length]);
+
   // ---------- compute breakdown ----------
   const breakdown = useMemo(() => {
     const rows = [];

@@ -218,14 +218,21 @@ async def _compute_totals(card: dict) -> dict:
     overhead = round(materials * overhead_pct / 100.0, 2)
     manual = float(card.get("manualAdjustment") or 0)
     total = round(materials + labor + overhead + manual, 2)
+    # Розничные накладные расходы (доставка клиенту, упаковка для конечника,
+    # комиссия продавца). Учитываются только в розничной марже, не в дилерской.
+    retail_extra = float(card.get("retailExtraCost") or 0)
 
     meta = await _resolve_target_meta(card)
     retail_brutto = meta["retailPrice"]  # retail in sauna_prices is stored as gross/brutto (incl. VAT)
     # Cost prices are entered NET (without VAT). VAT in PL is 23%.
     vat_rate = 0.23
     retail_netto = round(retail_brutto / (1 + vat_rate), 2) if retail_brutto else 0
+    # Pure margin (used for dealer pricing comparisons; retail extra IGNORED)
     margin = round(retail_netto - total, 2) if retail_netto else 0
     margin_pct = round(margin * 100.0 / retail_netto, 1) if retail_netto > 0 else None
+    # Retail margin (CRM/orders): subtracts retail-only extras
+    retail_margin = round(margin - retail_extra, 2) if retail_netto else 0
+    retail_margin_pct = round(retail_margin * 100.0 / retail_netto, 1) if retail_netto > 0 else None
 
     return {
         "items": enriched_items,
@@ -235,11 +242,14 @@ async def _compute_totals(card: dict) -> dict:
         "overheadCost": overhead,
         "manualAdjustment": manual,
         "totalCost": int(round(total)),
+        "retailExtraCost": int(round(retail_extra)),
         "retailPrice": retail_brutto,
         "retailNetto": int(round(retail_netto)),
         "vatRate": vat_rate,
         "marginAmount": int(round(margin)),
         "marginPct": margin_pct,
+        "retailMarginAmount": int(round(retail_margin)),
+        "retailMarginPct": retail_margin_pct,
         "name": meta["name"],
     }
 
@@ -317,12 +327,15 @@ async def _recompute_and_sync(card_id: str):
         "overheadPct": totals["overheadPct"],
         "overheadCost": totals["overheadCost"],
         "manualAdjustment": totals["manualAdjustment"],
+        "retailExtraCost": totals["retailExtraCost"],
         "totalCost": totals["totalCost"],
         "retailPrice": totals["retailPrice"],
         "retailNetto": totals["retailNetto"],
         "vatRate": totals["vatRate"],
         "marginAmount": totals["marginAmount"],
         "marginPct": totals["marginPct"],
+        "retailMarginAmount": totals["retailMarginAmount"],
+        "retailMarginPct": totals["retailMarginPct"],
         "updatedAt": _now(),
     }
     await db.sauna_tech_cards.update_one({"id": card_id}, {"$set": set_doc})
@@ -389,6 +402,7 @@ async def upsert_tech_card(body: dict, _: dict = Depends(get_admin_user)):
         "laborCost": float(body.get("laborCost") or 0),
         "overheadPct": float(body.get("overheadPct") or 0),
         "manualAdjustment": float(body.get("manualAdjustment") or 0),
+        "retailExtraCost": float(body.get("retailExtraCost") or 0),
         "syncToCostPrice": bool(body.get("syncToCostPrice", True)),
         "note": body.get("note") or "",
         "updatedAt": _now(),
@@ -540,6 +554,7 @@ async def duplicate_tech_card(card_id: str, body: dict, _: dict = Depends(get_ad
         "laborCost": src.get("laborCost", 0),
         "overheadPct": src.get("overheadPct", 0),
         "manualAdjustment": src.get("manualAdjustment", 0),
+        "retailExtraCost": src.get("retailExtraCost", 0),
         "syncToCostPrice": src.get("syncToCostPrice", True),
         "note": f"Скопировано из {src.get('name') or src['id'][:8]}",
     }
