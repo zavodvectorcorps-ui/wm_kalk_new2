@@ -54,7 +54,13 @@ export default function PlannerPage({ onBack }) {
   const loadUsers = useCallback(async () => {
     try {
       const r = await axios.get(`${API}/api/users`, { headers: getAuthHeaders() });
-      setUsers((r.data || []).filter((u) => u.isActive !== false));
+      const seen = new Set();
+      const deduped = (r.data || []).filter((u) => {
+        if (!u?.id || seen.has(u.id)) return false;
+        seen.add(u.id);
+        return u.isActive !== false;
+      });
+      setUsers(deduped);
     } catch { /* ignore */ }
   }, []);
 

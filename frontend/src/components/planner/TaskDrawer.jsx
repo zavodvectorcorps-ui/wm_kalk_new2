@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Loader2, Save, Trash2, X, MessageSquare, ListChecks, Clock, Send, Pencil, CheckSquare, Square, Calendar as CalIcon, Archive } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '../ui/sheet';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -140,6 +141,9 @@ export default function TaskDrawer({ task, users, directions, currentUser, onClo
   return (
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto" data-testid="task-drawer">
+        <VisuallyHidden>
+          <SheetTitle>{draft.title || 'Задача'}</SheetTitle>
+        </VisuallyHidden>
         <SheetHeader className="pb-4 border-b">
           <div className="flex items-start gap-2">
             <span className="inline-block w-1.5 h-8 rounded shrink-0 mt-1" style={{ backgroundColor: dir.color }} />

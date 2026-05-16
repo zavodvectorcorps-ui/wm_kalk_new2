@@ -434,6 +434,41 @@ Completed all three open items from Phase 2:
       (переиспользует `DiffRow` — старое/новое + маржа).
 - Тестировано: 7/7 новых pytest + 12/12 регрессии прошли.
 
+## Session 15 — Planner Module (Tasks) (Feb 16, 2026)
+
+- **New module: «Планнер»** — внутренний task manager для команды.
+  Access-only key: `planner` (по умолчанию только админ).
+- **Backend** (`models/planner.py`, `routes/planner.py`, mounted with
+  `/api` prefix in `server.py`):
+    - Collections: `planner_tasks`, `planner_directions`,
+      `planner_filter_presets`.
+    - 8 справочных направлений сидятся при первом запросе (Сауны,
+      Теплицы, WM Finance, WM Kalkulator, Маркетинг, IT/Разработка,
+      Административное, Другое) — admin может редактировать.
+    - API:
+      - `GET/POST/PUT/DELETE /api/planner/tasks` (фильтры: status,
+        priority, direction, assignee, archived, search, mine, overdue)
+      - `POST/PUT/DELETE /api/planner/tasks/{id}/comments` (author/admin)
+      - `POST/PATCH/DELETE /api/planner/tasks/{id}/checklist`
+      - `GET /api/planner/dashboard` — агрегаты
+      - `GET/POST/PUT/DELETE /api/planner/directions` (POST/PUT/DELETE — admin)
+      - `GET/POST/DELETE /api/planner/filter-presets`
+    - История изменений (audit trail) автоматически пишется при смене
+      статуса, ответственного, дедлайна, приоритета, направления,
+      названия, комментариев, архивирования.
+- **Frontend** (`components/PlannerPage.jsx` + `components/planner/`):
+    - Карточка «Планнер» в third-row LandingPage (rose-цвет, ClipboardList).
+    - 6 вкладок: Дашборд / Все / Мои / Просрочено / Идеи / Архив.
+    - Переключатель **Таблица ↔ Доска** (канбан с native HTML5 DnD).
+    - Inline-edit статуса/приоритета/ответственного прямо в таблице.
+    - `TaskDrawer` (Sheet справа) — title/description, все свойства,
+      Чек-лист, Комментарии (CRUD), История (audit).
+    - QuickCreate bar (название + Enter), фильтры (статус, приоритет,
+      направление, ответственный), просрочки выделены красным.
+    - В `UserManagement.jsx` — новый чекбокс «Планнер» через
+      `ACCESS_SECTIONS` (без хардкода).
+- Тестировано: 15/15 backend pytest pass; frontend smoke OK.
+
 ## Prioritized Backlog
 - P1: Telegram notification on negative AI score for calls
 - P1: Weekly AI digest (email/Telegram) for managers
