@@ -45,6 +45,7 @@ from routes.advanced_analytics import router as advanced_analytics_router
 from routes.call_analytics import router as call_analytics_router
 from routes.dealer import router as dealer_router
 from routes.planner import router as planner_router
+from routes.sauna_tech_cards import router as sauna_tech_cards_router
 
 # Configure logging
 logging.basicConfig(
@@ -111,6 +112,7 @@ app.include_router(call_analytics_router, prefix="/api")
 # Dealer router has its own /api/... prefixes baked in
 app.include_router(dealer_router)
 app.include_router(planner_router, prefix="/api")
+app.include_router(sauna_tech_cards_router, prefix="/api")
 
 # Initialize backup database reference
 from database import db

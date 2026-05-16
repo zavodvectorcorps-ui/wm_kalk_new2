@@ -1,0 +1,429 @@
+"""Sauna Tech Cards & Components — cost-price BOM management.
+
+Two collections:
+  * sauna_components     — master catalog of raw components/materials.
+  * sauna_tech_cards     — BOM per scope (model/variant/option/option_variant).
+
+When a component's unitPrice changes → all tech-cards containing it are
+recomputed; if `syncToCostPrice=true`, the result is written back to the
+target entity's costPrice in the sauna_prices doc.
+"""
+from fastapi import APIRouter, HTTPException, Depends
+from datetime import datetime, timezone
+from typing import Optional, List
+import uuid
+import logging
+
+from database import db
+from services.auth_service import get_admin_user
+
+router = APIRouter(prefix="/sauna-production/cost", tags=["Sauna Tech Cards"])
+logger = logging.getLogger(__name__)
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _strip(d):
+    if d and "_id" in d:
+        d.pop("_id", None)
+    return d
+
+
+# ============================================================
+# COMPONENTS
+# ============================================================
+
+DEFAULT_COMPONENT_CATEGORIES = [
+    {"id": "wood",      "name": "Дерево",      "color": "#a16207"},
+    {"id": "metal",     "name": "Металл",      "color": "#64748b"},
+    {"id": "fasteners", "name": "Крепёж",      "color": "#475569"},
+    {"id": "electric",  "name": "Электрика",   "color": "#eab308"},
+    {"id": "heater",    "name": "Печь",        "color": "#dc2626"},
+    {"id": "glass",     "name": "Стекло",      "color": "#0ea5e9"},
+    {"id": "insulation","name": "Изоляция",    "color": "#f97316"},
+    {"id": "finishing", "name": "Отделка",     "color": "#10b981"},
+    {"id": "other",     "name": "Прочее",      "color": "#94a3b8"},
+]
+
+
+@router.get("/categories")
+async def list_categories(_: dict = Depends(get_admin_user)):
+    return {"items": DEFAULT_COMPONENT_CATEGORIES}
+
+
+@router.get("/components")
+async def list_components(_: dict = Depends(get_admin_user)):
+    items = await db.sauna_components.find({}, {"_id": 0}).sort([("category", 1), ("name", 1)]).to_list(length=5000)
+    return {"items": items, "count": len(items)}
+
+
+@router.post("/components")
+async def create_component(body: dict, _: dict = Depends(get_admin_user)):
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "Name required")
+    item = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "category": body.get("category") or "other",
+        "unit": body.get("unit") or "шт",
+        "unitPrice": float(body.get("unitPrice") or 0),
+        "supplier": body.get("supplier") or "",
+        "note": body.get("note") or "",
+        "isActive": bool(body.get("isActive", True)),
+        "createdAt": _now(),
+        "updatedAt": _now(),
+    }
+    await db.sauna_components.insert_one(item)
+    return _strip(item)
+
+
+@router.put("/components/{component_id}")
+async def update_component(component_id: str, body: dict, _: dict = Depends(get_admin_user)):
+    existing = await db.sauna_components.find_one({"id": component_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(404, "Component not found")
+    old_price = float(existing.get("unitPrice") or 0)
+    update = {}
+    for k in ("name", "category", "unit", "supplier", "note"):
+        if k in body and body[k] is not None:
+            update[k] = body[k]
+    if "unitPrice" in body and body["unitPrice"] is not None:
+        update["unitPrice"] = float(body["unitPrice"])
+    if "isActive" in body:
+        update["isActive"] = bool(body["isActive"])
+    update["updatedAt"] = _now()
+    await db.sauna_components.update_one({"id": component_id}, {"$set": update})
+
+    new_price = update.get("unitPrice", old_price)
+    affected = 0
+    if abs(new_price - old_price) > 1e-9:
+        # Recompute all tech-cards that use this component
+        affected_cards = await db.sauna_tech_cards.find(
+            {"items.componentId": component_id}, {"_id": 0}
+        ).to_list(length=5000)
+        for tc in affected_cards:
+            await _recompute_and_sync(tc["id"])
+            affected += 1
+    return {"ok": True, "affectedCards": affected, "priceChanged": abs(new_price - old_price) > 1e-9}
+
+
+@router.delete("/components/{component_id}")
+async def delete_component(component_id: str, _: dict = Depends(get_admin_user)):
+    # Check usage
+    in_use = await db.sauna_tech_cards.count_documents({"items.componentId": component_id})
+    if in_use > 0:
+        raise HTTPException(400, f"Компонент используется в {in_use} тех.карт(ах). Сначала удалите его из них.")
+    res = await db.sauna_components.delete_one({"id": component_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Component not found")
+    return {"ok": True}
+
+
+# ============================================================
+# TECH CARDS
+# ============================================================
+
+VALID_SCOPES = ("model", "variant", "option", "option_variant")
+
+
+async def _resolve_target_meta(card: dict) -> dict:
+    """Return {name, retailPrice} for the target entity from sauna_prices."""
+    prices = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
+    scope = card.get("scope")
+    model_id = card.get("modelId")
+    variant_id = card.get("variantId")
+    option_id = card.get("optionId")
+    option_variant_id = card.get("optionVariantId")
+
+    name = ""
+    retail = 0
+
+    if scope == "model":
+        for m in prices.get("models", []) or []:
+            if m.get("id") == model_id:
+                name = m.get("name") or model_id
+                retail = int(m.get("basePrice") or 0)
+                break
+    elif scope == "variant":
+        for m in prices.get("models", []) or []:
+            if m.get("id") == model_id:
+                for v in m.get("variants", []) or []:
+                    if v.get("id") == variant_id:
+                        name = f"{m.get('name','')} — {v.get('name','')}".strip(" —")
+                        retail = int(v.get("price") or 0) + int(m.get("basePrice") or 0)
+                        break
+    elif scope in ("option", "option_variant"):
+        opts = list(prices.get("options", []) or [])
+        for cat in prices.get("categories", []) or []:
+            opts.extend(cat.get("options", []) or [])
+        for o in opts:
+            if o.get("id") == option_id:
+                if scope == "option":
+                    name = o.get("name") or option_id
+                    retail = int(o.get("price") or 0)
+                else:
+                    for v in o.get("variants", []) or []:
+                        if v.get("id") == option_variant_id:
+                            name = f"{o.get('name','')} — {v.get('name','')}".strip(" —")
+                            retail = int(v.get("price") or 0)
+                            break
+                break
+    return {"name": name, "retailPrice": retail}
+
+
+async def _compute_totals(card: dict) -> dict:
+    components_ids = [it.get("componentId") for it in (card.get("items") or []) if it.get("componentId")]
+    by_id = {}
+    if components_ids:
+        cursor = db.sauna_components.find({"id": {"$in": components_ids}}, {"_id": 0})
+        for c in await cursor.to_list(length=1000):
+            by_id[c["id"]] = c
+
+    materials = 0.0
+    enriched_items = []
+    for it in (card.get("items") or []):
+        comp = by_id.get(it.get("componentId"))
+        unit_price = float(comp.get("unitPrice") or 0) if comp else 0
+        qty = float(it.get("qty") or 0)
+        line_total = round(unit_price * qty, 2)
+        materials += line_total
+        enriched_items.append({
+            **it,
+            "componentName": (comp or {}).get("name", ""),
+            "componentCategory": (comp or {}).get("category", ""),
+            "unit": (comp or {}).get("unit", ""),
+            "unitPrice": unit_price,
+            "lineTotal": line_total,
+            "missing": comp is None,
+        })
+
+    labor = float(card.get("laborCost") or 0)
+    overhead_pct = float(card.get("overheadPct") or 0)
+    overhead = round(materials * overhead_pct / 100.0, 2)
+    manual = float(card.get("manualAdjustment") or 0)
+    total = round(materials + labor + overhead + manual, 2)
+
+    meta = await _resolve_target_meta(card)
+    retail = meta["retailPrice"]
+    margin = round(retail - total, 2) if retail else 0
+    margin_pct = round(margin * 100.0 / retail, 1) if retail > 0 else None
+
+    return {
+        "items": enriched_items,
+        "materialsCost": round(materials, 2),
+        "laborCost": labor,
+        "overheadPct": overhead_pct,
+        "overheadCost": overhead,
+        "manualAdjustment": manual,
+        "totalCost": int(round(total)),
+        "retailPrice": retail,
+        "marginAmount": int(round(margin)),
+        "marginPct": margin_pct,
+        "name": meta["name"],
+    }
+
+
+async def _sync_cost_price_to_sauna_prices(card: dict, total_cost: int):
+    """Write totalCost into the target entity's costPrice field in sauna_prices."""
+    scope = card.get("scope")
+    model_id = card.get("modelId")
+    variant_id = card.get("variantId")
+    option_id = card.get("optionId")
+    option_variant_id = card.get("optionVariantId")
+
+    prices = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
+    models = list(prices.get("models", []) or [])
+    categories = list(prices.get("categories", []) or [])
+    options = list(prices.get("options", []) or [])
+
+    changed = False
+    if scope == "model":
+        for m in models:
+            if m.get("id") == model_id:
+                if int(m.get("costPrice") or 0) != total_cost:
+                    m["costPrice"] = total_cost; changed = True
+                break
+    elif scope == "variant":
+        for m in models:
+            if m.get("id") == model_id:
+                for v in m.get("variants", []) or []:
+                    if v.get("id") == variant_id:
+                        if int(v.get("costPrice") or 0) != total_cost:
+                            v["costPrice"] = total_cost; changed = True
+                        break
+                break
+    elif scope in ("option", "option_variant"):
+        target_opt = None
+        for o in options:
+            if o.get("id") == option_id:
+                target_opt = o; break
+        if target_opt is None:
+            for cat in categories:
+                for o in (cat.get("options") or []):
+                    if o.get("id") == option_id:
+                        target_opt = o; break
+                if target_opt:
+                    break
+        if target_opt:
+            if scope == "option":
+                if int(target_opt.get("costPrice") or 0) != total_cost:
+                    target_opt["costPrice"] = total_cost; changed = True
+            else:
+                for v in (target_opt.get("variants") or []):
+                    if v.get("id") == option_variant_id:
+                        if int(v.get("costPrice") or 0) != total_cost:
+                            v["costPrice"] = total_cost; changed = True
+                        break
+
+    if changed:
+        await db.sauna_prices.update_one(
+            {"_id": "default"},
+            {"$set": {"models": models, "categories": categories, "options": options}},
+            upsert=True,
+        )
+    return changed
+
+
+async def _recompute_and_sync(card_id: str):
+    card = await db.sauna_tech_cards.find_one({"id": card_id}, {"_id": 0})
+    if not card:
+        return None
+    totals = await _compute_totals(card)
+    set_doc = {
+        "name": totals["name"],
+        "materialsCost": totals["materialsCost"],
+        "laborCost": totals["laborCost"],
+        "overheadPct": totals["overheadPct"],
+        "overheadCost": totals["overheadCost"],
+        "manualAdjustment": totals["manualAdjustment"],
+        "totalCost": totals["totalCost"],
+        "retailPrice": totals["retailPrice"],
+        "marginAmount": totals["marginAmount"],
+        "marginPct": totals["marginPct"],
+        "updatedAt": _now(),
+    }
+    await db.sauna_tech_cards.update_one({"id": card_id}, {"$set": set_doc})
+    synced = False
+    if card.get("syncToCostPrice"):
+        synced = await _sync_cost_price_to_sauna_prices(card, totals["totalCost"])
+    return {"card": {**card, **set_doc}, "synced": synced}
+
+
+@router.get("/tech-cards")
+async def list_tech_cards(modelId: Optional[str] = None, _: dict = Depends(get_admin_user)):
+    q = {}
+    if modelId:
+        q["modelId"] = modelId
+    items = await db.sauna_tech_cards.find(q, {"_id": 0}).sort("updatedAt", -1).to_list(length=2000)
+    return {"items": items, "count": len(items)}
+
+
+@router.get("/tech-cards/{card_id}")
+async def get_tech_card(card_id: str, _: dict = Depends(get_admin_user)):
+    card = await db.sauna_tech_cards.find_one({"id": card_id}, {"_id": 0})
+    if not card:
+        raise HTTPException(404, "Tech card not found")
+    # Always return enriched items with current unitPrice
+    totals = await _compute_totals(card)
+    return {**card, **totals}
+
+
+@router.post("/tech-cards")
+async def upsert_tech_card(body: dict, _: dict = Depends(get_admin_user)):
+    """Create or update a tech card. Idempotent by (scope, modelId, variantId, optionId, optionVariantId)."""
+    scope = body.get("scope") or "model"
+    if scope not in VALID_SCOPES:
+        raise HTTPException(400, f"scope must be one of {VALID_SCOPES}")
+    if not body.get("modelId") and scope in ("model", "variant"):
+        raise HTTPException(400, "modelId required for model/variant scope")
+    if scope in ("option", "option_variant") and not body.get("optionId"):
+        raise HTTPException(400, "optionId required for option scope")
+
+    key = {
+        "scope": scope,
+        "modelId": body.get("modelId") or "",
+        "variantId": body.get("variantId") or "",
+        "optionId": body.get("optionId") or "",
+        "optionVariantId": body.get("optionVariantId") or "",
+    }
+    existing = await db.sauna_tech_cards.find_one(key, {"_id": 0})
+
+    items = []
+    for it in (body.get("items") or []):
+        comp_id = (it.get("componentId") or "").strip()
+        if not comp_id:
+            continue
+        items.append({
+            "id": it.get("id") or str(uuid.uuid4()),
+            "componentId": comp_id,
+            "qty": float(it.get("qty") or 0),
+            "note": it.get("note") or "",
+        })
+
+    doc = {
+        **key,
+        "items": items,
+        "laborCost": float(body.get("laborCost") or 0),
+        "overheadPct": float(body.get("overheadPct") or 0),
+        "manualAdjustment": float(body.get("manualAdjustment") or 0),
+        "syncToCostPrice": bool(body.get("syncToCostPrice", True)),
+        "note": body.get("note") or "",
+        "updatedAt": _now(),
+    }
+    if existing:
+        card_id = existing["id"]
+        await db.sauna_tech_cards.update_one({"id": card_id}, {"$set": doc})
+    else:
+        card_id = str(uuid.uuid4())
+        doc["id"] = card_id
+        doc["createdAt"] = _now()
+        await db.sauna_tech_cards.insert_one(doc)
+
+    result = await _recompute_and_sync(card_id)
+    return result["card"] if result else doc
+
+
+@router.delete("/tech-cards/{card_id}")
+async def delete_tech_card(card_id: str, _: dict = Depends(get_admin_user)):
+    res = await db.sauna_tech_cards.delete_one({"id": card_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Tech card not found")
+    return {"ok": True}
+
+
+@router.post("/tech-cards/recompute-all")
+async def recompute_all(_: dict = Depends(get_admin_user)):
+    cards = await db.sauna_tech_cards.find({}, {"_id": 0, "id": 1}).to_list(length=5000)
+    n = 0
+    for c in cards:
+        await _recompute_and_sync(c["id"])
+        n += 1
+    return {"ok": True, "recomputed": n}
+
+
+@router.get("/dashboard")
+async def cost_dashboard(_: dict = Depends(get_admin_user)):
+    """Compact stats for the cost-cards page."""
+    total_components = await db.sauna_components.count_documents({})
+    total_cards = await db.sauna_tech_cards.count_documents({})
+    # Average margin across cards that have retail > 0
+    cursor = db.sauna_tech_cards.find(
+        {"retailPrice": {"$gt": 0}}, {"_id": 0, "marginPct": 1, "marginAmount": 1, "totalCost": 1, "retailPrice": 1}
+    )
+    pcts = []
+    low = 0
+    async for c in cursor:
+        if c.get("marginPct") is not None:
+            pcts.append(c["marginPct"])
+            if c["marginPct"] < 15:
+                low += 1
+    avg = round(sum(pcts) / len(pcts), 1) if pcts else None
+    return {
+        "totalComponents": total_components,
+        "totalCards": total_cards,
+        "avgMarginPct": avg,
+        "lowMarginCards": low,
+    }

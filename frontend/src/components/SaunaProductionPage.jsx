@@ -12,11 +12,14 @@ import {
   Hammer, Calendar as CalendarIcon, ChevronLeft, ChevronRight,
   RefreshCw, Settings, FileText, FileDown, Trash2,
   Phone, Clock, User, ExternalLink, Loader2, Plus, X, Search,
-  Package, Wrench, Download, Eye, List, MessageSquare, Save, Pencil, ArrowUpDown
+  Package, Wrench, Download, Eye, List, MessageSquare, Save, Pencil, ArrowUpDown,
+  Calculator, Layers
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
 import axios from 'axios';
+import TechCardsAdmin from './sauna-production/TechCardsAdmin';
+import ComponentsAdmin from './sauna-production/ComponentsAdmin';
 
 const API_URL = getApiUrl();
 
@@ -562,6 +565,8 @@ const SaunaProductionPage = ({ onBack }) => {
           <TabsTrigger value="calendar" className="gap-2" data-testid="prod-view-calendar"><CalendarIcon className="w-4 h-4" />Календарь</TabsTrigger>
           <TabsTrigger value="kanban" className="gap-2" data-testid="prod-view-kanban"><Package className="w-4 h-4" />Канбан</TabsTrigger>
           <TabsTrigger value="list" className="gap-2" data-testid="prod-view-list"><List className="w-4 h-4" />Список</TabsTrigger>
+          <TabsTrigger value="techcards" className="gap-2" data-testid="prod-view-techcards"><Calculator className="w-4 h-4" />Тех.карты</TabsTrigger>
+          <TabsTrigger value="components" className="gap-2" data-testid="prod-view-components"><Layers className="w-4 h-4" />Комплектующие</TabsTrigger>
         </TabsList>
 
         {/* Calendar View */}
@@ -732,6 +737,16 @@ const SaunaProductionPage = ({ onBack }) => {
         {/* Production List View */}
         <TabsContent value="list">
           <ProductionListTab orders={orders} stages={stages} authHeaders={authHeaders} onUpdated={fetchOrders} />
+        </TabsContent>
+
+        {/* Tech Cards (cost-price BOM) */}
+        <TabsContent value="techcards">
+          <TechCardsAdmin />
+        </TabsContent>
+
+        {/* Components catalog */}
+        <TabsContent value="components">
+          <ComponentsAdmin />
         </TabsContent>
       </Tabs>
 

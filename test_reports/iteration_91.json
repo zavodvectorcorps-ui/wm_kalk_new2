@@ -1,0 +1,32 @@
+{
+  "summary": "End-to-end test of the new Sauna BOM cost-price calculator (Тех.карты + Комплектующие). Backend pytest: 28 PASSED / 1 SKIPPED / 0 FAILED (skip is because seed prices doc has no option_variant). Verified: auth-required on all /api/sauna-production/cost/* endpoints (401 without token); components CRUD with defaults (category=other, unit=шт, unitPrice=0); name-required validation (400); categories endpoint; unitPrice change triggers auto-recompute (priceChanged=true, affectedCards>=1); component used in tech-card cannot be deleted (400 'используется'); tech-card scope validation (foobar→400, model/variant without modelId→400, option without optionId→400); idempotent upsert by composite key; totalCost formula verified (35×100 + 10% + 2500 labor = 6350, then 50×100 + 10% + 2500 = 8000); costPrice sync to sauna_prices for model, variant, and option scopes (re-read via /api/sauna/prices and asserted value); enriched GET returns componentName/unit/unitPrice/lineTotal/missing; recompute-all returns ok; dashboard returns all 4 fields; 404 on missing card. Frontend smoke (admin/admin123, via Polish login form): landed on Производство саун page; ALL 5 sub-tab testids visible (prod-view-calendar/kanban/list/techcards/components); Components tab — search/table/add visible, dialog opens, created TEST_UI_BRUS @42.5, search filters table to find it, edit opens dialog and shows amber 'пересчит...' warning on price change; Tech.карты tab — list renders, recompute-all-btn visible, 67 'Открыть/Создать' buttons (models+variants), editor opens with totals/labor/overhead/adjustment/total/sync/save testids all visible, 'Строка' adds BOM row live; cleanup deleted TEST_UI_BRUS; zero console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_tech_cards.py",
+    "/app/test_reports/pytest/pytest_results_iteration91.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes/sauna_tech_cards.py _sync_cost_price_to_sauna_prices: when scope='option' and optionId exists in BOTH flat options[] and inside categories[].options[] (unlikely but possible if data ever drifts), only the flat one is updated (target_opt assignment short-circuits). Defensive logic could update both — minor.",
+    "routes/sauna_tech_cards.py upsert_tech_card: items whose componentId is empty are silently dropped (good), but no warning is returned to the client when items were filtered. Consider returning a 'skippedItems' count for UX.",
+    "routes/sauna_tech_cards.py _resolve_target_meta: variant 'retail' uses `int(v.get('price') or 0) + int(m.get('basePrice') or 0)` — this assumes variant.price is an *additive* delta. Verify this matches how the rest of the app treats variant pricing (most calculators in this codebase treat variant.price as absolute). If absolute, the margin computation for variant scope will be off by basePrice.",
+    "Dashboard avgMarginPct returns null when no cards have retail>0 — matches spec; but lowMarginCards counts only cards with marginPct<15 AND not None, which silently excludes cards without retail. Acceptable.",
+    "Tech-card upsert key uses empty-string fallback for missing IDs (variantId/optionId='') — works but a doc with scope='model' & variantId='' could in theory collide with a future scope='variant' where variantId is missing; controllers already reject that case with 400 so it's safe.",
+    "Frontend: 67 'Открыть/Создать' buttons on the Тех.карты tab — for installations with many models the page may grow large; consider virtualisation or per-model lazy expansion later. Not blocking."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_tech_cards.py (new — 29 tests, 28 pass + 1 conditional skip)"
+  ],
+  "success_rate": {"backend": "100% (28/28 executed, 1 skipped due to seed data)", "frontend": "100% on smoke flows, no console errors"},
+  "test_credentials": "admin / admin123 (preview DB)",
+  "seed_data_creation": "Tests prefix all data with 'TEST_' and tear it down in a module-scope autouse fixture: deletes the test component(s) and any tech-cards created (model/variant/option). UI smoke test deletes its TEST_UI_BRUS via the Components UI at end.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression file: /app/backend/tests/test_sauna_tech_cards.py (runs in ~5s, idempotent, self-cleaning). Auth token field in /api/auth/login response is 'token' (NOT 'access_token'). Tech-card upsert is keyed by (scope, modelId, variantId, optionId, optionVariantId) — re-POSTing same combo updates the same doc. Sync writes integer-rounded totalCost into sauna_prices[*].costPrice (model/variant/option/option_variant). UI testids: prod-view-{calendar|kanban|list|techcards|components}; Components: components-search, components-table, component-add, component-row-{id}, component-edit-{id}, component-delete-{id}, component-dialog, component-name, component-category, component-unit, component-price, component-save; Tech-cards list: tech-cards-search, recompute-all-btn, tech-cards-list, target-row-*, tech-card-open-*; Editor: tech-card-dialog, bom-add-item, bom-row-{id}, bom-remove-{id}, tech-card-totals, tech-card-labor, tech-card-overhead, tech-card-adjustment, tech-card-total, tech-card-margin, tech-card-sync, tech-card-save, tech-card-delete.",
+  "rca of the issue": "N/A — feature works as specified."
+}
