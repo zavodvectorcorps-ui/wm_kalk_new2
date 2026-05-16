@@ -329,14 +329,48 @@ Completed all three open items from Phase 2:
     In the dealer Orders tab, new pills surface client engagement:
     "👁 Otwarte (N)" when viewed, "✓ Klient potwierdził" once confirmed.
 
+## Session 11 — Excel/CSV Export & Import for Sauna Prices (Feb 16, 2026)
+
+- **Bulk price management via Excel/CSV** for both base sauna prices and
+  per-dealer overrides, with mandatory Dry-Run/Diff preview before commit.
+- Backend (`services/sauna_excel.py` + `routes/sauna_crud.py`):
+    - `GET /api/sauna/prices/export?format=xlsx|csv[&dealerId=…]` — single
+      `Prices` sheet with columns: `type`, `id`, `parentId`, `category`,
+      `name`, `price`, `costPrice`, `description`, `isActive`, `imageUrl`.
+      Adds an 11th `dealerPrice` column when a dealer is selected.
+    - `POST /api/sauna/prices/import/dry-run` — parses XLSX/CSV, returns
+      `{summary: {added, modified, unchanged, errors, overrides_changed},
+      rows: [...]}`. **No DB writes.**
+    - `POST /api/sauna/prices/import/commit` — upserts base prices doc and,
+      if a `dealerId` is supplied, only those rows with a non-empty
+      `dealerPrice` are upserted into `dealer_price_overrides` (empty cell =
+      leave override untouched, per user spec).
+    - Empty `id` cells are treated as new entities (UUID assigned). Admin
+      auth required.
+- Frontend (`components/sauna-pricing/PriceImportExport.jsx`):
+    - Reusable Export (xlsx/csv dropdown) + Import button bar.
+    - Modal **«Предпросмотр импорта»** showing summary chips and
+      strikethrough old → new per-field diffs, "Скрыть без изменений"
+      toggle, dynamic «Применить (N изменений)» button (disabled when 0).
+    - Mounted in: `SaunaPricingPage` header, `DealersAdminPage` header
+      (global base prices), and inside `DealerPricesDialog`
+      (dealer-scoped with `dealerPrice` column auto-included).
+- Tested: 15/15 backend pytest cases pass (auth gating, xlsx/csv round-trip,
+  dealer-scoped diff, empty-dealerPrice no-op, blank rows, invalid file).
+
 ## Prioritized Backlog
+- P1: Telegram notification on negative AI score for calls
+- P1: Weekly AI digest (email/Telegram) for managers
+- P1: SLA real-time alerts (untouched leads)
 - P1: Fix automatic variant application in LayoutConfiguratorPage.jsx (recurring, 5 reports)
 - P2: Fix unstable login sessions / deployment timeouts
-- P2: Refactor monolithic files (amocrm.py >3300 lines, widget.py, sauna_crm.py, SaunaCRMPage.jsx)
+- P2: Refactor monolithic files (amocrm.py >3300 lines, sauna.py >2400, useSaunaCalculator.js >1400, sauna_excel.py ~700)
+- P2: Export to Excel/CSV for calls and leads tables
 - P2: UI for backup import/restore from file
-- P2: Replace deprecated Google Maps Autocomplete component
+- P3: Replace deprecated Google Maps Autocomplete component
 
 ## Credentials
-- Admin: admin / 159357
+- Admin: admin / admin123 (legacy 159357 may also work)
 - Storekeeper: kladovshchik / kladovshchik123
 - Marketer: marketer / marketer123
+- Test Dealer: testdealer / dealer123  (id=2710dcf7-a971-4124-ab3e-1e0a401f5c11)
