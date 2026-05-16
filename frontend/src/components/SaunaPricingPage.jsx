@@ -10,6 +10,7 @@ import { Save, Loader2, Flame, Eye, User, FileText, Settings, Percent, TrendingU
 import { CustomerFieldsManager } from './CustomerFieldsManager';
 import { TechSpecAdminPage } from './TechSpecAdminPage';
 import { WizardStepsAdmin } from './sauna-pricing/WizardStepsAdmin';
+import PriceImportExport from './sauna-pricing/PriceImportExport';
 
 import { 
   useSaunaPricing, 
@@ -96,18 +97,21 @@ export const SaunaPricingPage = () => {
           )}
         </h1>
         {canEdit() && (
-          <Button
-            onClick={handleSaveAll}
-            disabled={saving}
-            className="bg-amber-600 hover:bg-amber-700"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            {txt.saveAll}
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <PriceImportExport onImported={() => window.location.reload()} />
+            <Button
+              onClick={handleSaveAll}
+              disabled={saving}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {txt.saveAll}
+            </Button>
+          </div>
         )}
       </div>
 

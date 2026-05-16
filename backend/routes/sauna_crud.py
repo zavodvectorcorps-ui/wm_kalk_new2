@@ -1,8 +1,18 @@
 """CRUD operations for sauna models, categories, and options."""
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends, UploadFile, File, Form, Query
+from fastapi.responses import StreamingResponse
+from datetime import datetime, timezone
+from urllib.parse import quote
+import io
+import logging
+
 from database import db
 from models.sauna import SaunaModel, SaunaOption, SaunaCategory, SaunaPriceData
 from data.sauna_defaults import default_sauna_prices
+from services.auth_service import get_admin_user
+from services import sauna_excel
+
+logger = logging.getLogger(__name__)
 
 # No prefix - will be included in main sauna router
 router = APIRouter(tags=["Sauna CRUD"])
@@ -38,6 +48,164 @@ async def update_sauna_prices(prices: SaunaPriceData):
         upsert=True
     )
     return {"message": "Sauna prices updated successfully"}
+
+
+# =============================================
+# EXCEL / CSV EXPORT & IMPORT (admin only)
+# =============================================
+
+async def _load_prices_doc() -> dict:
+    doc = await db.sauna_prices.find_one({"_id": "default"})
+    if not doc:
+        await db.sauna_prices.insert_one({"_id": "default", **default_sauna_prices})
+        doc = dict(default_sauna_prices)
+    else:
+        doc.pop("_id", None)
+    return doc
+
+
+async def _load_overrides(dealer_id: str) -> list[dict]:
+    return await db.dealer_price_overrides.find(
+        {"dealerId": dealer_id}, {"_id": 0}
+    ).to_list(length=10000)
+
+
+@router.get("/prices/export")
+async def export_sauna_prices(
+    format: str = Query("xlsx", pattern="^(xlsx|csv)$"),
+    dealerId: str | None = None,
+    _: dict = Depends(get_admin_user),
+):
+    """Export sauna prices to XLSX or CSV.
+
+    Optional `dealerId` adds a `dealerPrice` column populated from
+    `dealer_price_overrides`.
+    """
+    doc = await _load_prices_doc()
+    overrides = None
+    dealer_name = ""
+    if dealerId:
+        dealer = await db.dealers.find_one({"id": dealerId})
+        if not dealer:
+            raise HTTPException(404, "Dealer not found")
+        dealer_name = (dealer.get("username") or dealerId).replace(" ", "_")
+        overrides = await _load_overrides(dealerId)
+
+    if format == "csv":
+        data = sauna_excel.export_csv(doc, overrides)
+        media_type = "text/csv; charset=utf-8"
+        ext = "csv"
+    else:
+        data = sauna_excel.export_xlsx(doc, overrides)
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ext = "xlsx"
+
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    suffix = f"_{dealer_name}" if dealer_name else ""
+    filename = f"sauna_prices{suffix}_{ts}.{ext}"
+    safe_filename = quote(filename)
+
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f"attachment; filename=\"{filename}\"; filename*=UTF-8''{safe_filename}"
+        },
+    )
+
+
+@router.post("/prices/import/dry-run")
+async def dry_run_import_sauna_prices(
+    file: UploadFile = File(...),
+    dealerId: str | None = Form(None),
+    _: dict = Depends(get_admin_user),
+):
+    """Parse the uploaded file and return a diff vs current DB. Does NOT write anything."""
+    content = await file.read()
+    if not content:
+        raise HTTPException(400, "Empty file")
+    try:
+        parsed = sauna_excel.parse_file(file.filename or "", content)
+    except Exception as e:
+        logger.exception("Failed to parse uploaded prices file")
+        raise HTTPException(400, f"Failed to parse file: {e}")
+
+    doc = await _load_prices_doc()
+    overrides_lookup = None
+    include_dealer = False
+    if dealerId:
+        if not await db.dealers.find_one({"id": dealerId}):
+            raise HTTPException(404, "Dealer not found")
+        include_dealer = True
+        overrides_lookup = sauna_excel.build_overrides_lookup(
+            await _load_overrides(dealerId)
+        )
+
+    result = sauna_excel.diff_rows(doc, parsed, overrides_lookup, include_dealer)
+    result["totalRows"] = len(parsed)
+    result["dealerId"] = dealerId
+    return result
+
+
+@router.post("/prices/import/commit")
+async def commit_import_sauna_prices(
+    file: UploadFile = File(...),
+    dealerId: str | None = Form(None),
+    _: dict = Depends(get_admin_user),
+):
+    """Apply the uploaded file's changes to DB (base prices + optional dealer overrides)."""
+    content = await file.read()
+    if not content:
+        raise HTTPException(400, "Empty file")
+    try:
+        parsed = sauna_excel.parse_file(file.filename or "", content)
+    except Exception as e:
+        logger.exception("Failed to parse uploaded prices file")
+        raise HTTPException(400, f"Failed to parse file: {e}")
+
+    doc = await _load_prices_doc()
+    include_dealer = bool(dealerId)
+    if include_dealer and not await db.dealers.find_one({"id": dealerId}):
+        raise HTTPException(404, "Dealer not found")
+
+    updated_doc, override_changes, summary = sauna_excel.apply_rows(
+        doc, parsed, include_dealer
+    )
+
+    # Write base prices
+    updated_doc.pop("_id", None)
+    await db.sauna_prices.update_one(
+        {"_id": "default"},
+        {"$set": updated_doc},
+        upsert=True,
+    )
+
+    # Upsert dealer overrides (only those present in file)
+    upserted = 0
+    if include_dealer and override_changes:
+        now = datetime.now(timezone.utc).isoformat()
+        for ov in override_changes:
+            filt = {
+                "dealerId": dealerId,
+                "kind": ov["kind"],
+                "modelId": ov.get("modelId"),
+                "variantId": ov.get("variantId"),
+                "optionId": ov.get("optionId"),
+                "optionVariantId": ov.get("optionVariantId"),
+            }
+            set_doc = {**filt, "price": ov["price"], "updatedAt": now}
+            await db.dealer_price_overrides.update_one(
+                filt, {"$set": set_doc}, upsert=True
+            )
+            upserted += 1
+
+    return {
+        "ok": True,
+        "summary": summary,
+        "overridesUpserted": upserted,
+        "totalRows": len(parsed),
+        "dealerId": dealerId,
+    }
 
 
 # =============================================

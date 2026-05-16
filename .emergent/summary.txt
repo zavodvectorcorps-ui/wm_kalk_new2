@@ -1,148 +1,168 @@
-<analysis>**original_problem_statement:** Build a Modular Sauna Configurator with comprehensive CRM, production management, logistics, and amoCRM integration. Add a separate multi-tenant Dealer Portal (wm-dealers.pl) allowing dealers to configure orders with their own pricing, track their orders, and submit them directly to the main CRM. PRODUCT REQUIREMENTS also include tracking cost price (себестоимость) to calculate margins, a public portfolio page, and detailed sales/call analytics.
+<analysis>**original_problem_statement:** Build a Modular Sauna Configurator with comprehensive CRM, production management, logistics, and amoCRM integration. Add a separate multi-tenant Dealer Portal allowing dealers to configure orders, track them, and submit them. PRODUCT REQUIREMENTS now also include an Excel Export/Import feature to bulk-manage base sauna prices and dealer-specific price overrides with a dry-run (diff) preview.
 
-**User's preferred language**: Russian (INSTRUCT next agent to respond in Russian only).
+**User's preferred language**: Russian (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in **Russian** only).
 
 **what currently exists?** 
-A highly mature React/FastAPI application. Recently added a public  page with static KPIs. Phase 1 cost-price tracking () and margin (Маржа) calculation implemented across Sauna/Balia models. Phase 2 MVP Dealer portal added, including independent login, dashboard, custom pricing, and order submission. Fixed global  resolution and amoCRM diagnostics.
+A highly mature React/FastAPI application. The multi-tenant Dealer Portal is fully functional and translated to Polish. It features exact parity with the Manager's Sauna Calculator (via an Axios interceptor ), draft vs. confirmed order workflows, Telegram notifications upon dealer confirmation, and a public URL feature () for dealer clients. Professional PDF generation has been heavily optimized: selected options are filtered correctly, unselected options are pushed to an Upsell section at the end with prices, zero-cost options are highlighted green as GRATIS, and font rendering issues (DejaVuSans) have been permanently fixed by downloading  files directly.
 
 **Last working item**:
-    - **Last item agent was working**: Separating the Dealers and Dealer Orders tabs from the main Admin Panel into their own dedicated Dealers Hub accessible from the bottom row of the Landing Page. The agent removed the tabs from  but needs to ensure the new routing and component ( or similar) is fully wired in .
-    - **Status**: IN PROGRESS
+    - **Last item agent was working**: Gathering exact requirements for the bulk Excel Export/Import feature for Sauna Prices (Base prices + Dealer Overrides). The user provided their preferences via the  tool just before the session ended.
+    - **Status**: NOT STARTED
     - **Agent Testing Done**: N
-    - **Which testing method agent to use?**: screenshot tool (Frontend UI verification)
+    - **Which testing method agent to use?**: both (Backend testing agent for parsing/diffing logic, screenshot tool for the dry-run UI).
     - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: Wiring of standalone Dealers Admin Hub (P0)
-     - Attempted fixes: Agent removed  and  from  and moved the Dealers card to the bottom row in .
-     - Next debug checklist: Check  for . Ensure it properly loads the Admin Dealers management UI (a unified component holding both  and ) instead of crashing or showing nothing.
-     - Why fix this issue and what will be achieved with the fix?: Fulfills the user's request to isolate dealer management from the main admin panel.
-     - Status: IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on other issue: None
+  *No pending bugs at hand. Move directly to the new task.*
 
 **In progress Task List**:
-  Task 1: Stop creating amoCRM leads for dealer orders (P0)
-     - Where to resume:  (or wherever dealer orders are processed).
-     - What will be achieved with this?: Dealers manage their own leads; the main company only needs the final order in the internal mini-CRM, preventing amoCRM clutter.
-     - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix?: Backend
-     - Blocked on something: None
-
-  Task 2: Custom order name prefix for dealers (P0)
-     - Where to resume:  and . Add  (string) to the Dealer model and UI, and use it when generating the order ID (e.g., instead of , use ).
-     - What will be achieved with this?: Allows tracking which dealer submitted which order easily via the order number.
+  Task 1: Excel Export/Import for Sauna Prices & Dealer Overrides (P0)
+     - Where to resume: Create backend endpoints for Excel/CSV export and import parsing ( and  are already installed). Build UI components for the Dry-run/Diff preview.
+     - What will be achieved with this?: Allows the admin to bulk-edit base prices, , descriptions, and  states. It also allows bulk uploading dealer-specific overrides via a  column without clicking through the UI manually.
      - Status: NOT STARTED
      - Should Test frontend/backend/both after fix?: Both
      - Blocked on something: None
-
-  Task 3: Answer user's question about Cost Price location (P0)
-     - Where to resume: Just reply to the user in the next message.
-     - What will be achieved with this?: Clarifies that  (себестоимость) is edited in Admin Panel -> Configurator -> Edit Model/Option, and the resulting Margin (Маржа) is displayed in the Admin Orders list.
-     - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix?: NA
-     - Blocked on something: None
+     - *Note on User Requirements (from ask_human)*: 
+        1) Support both Excel and CSV. 
+        2) Include extended columns: , , , . 
+        3) Use one unified table for dealer overrides by adding a  column for a specific dealer. 
+        4) Must have a Dry-run feature: show a UI diff of what will change before confirming the import. 
+        5) Add Export/Import buttons to both the Admin Configurator and the Dealers Admin Page.
 
 **Upcoming and Future Tasks**
     - P1: Implement Telegram notifications for critical calls (e.g., negative AI score).
     - P1: Weekly AI digest via email/Telegram for managers.
     - P1: SLA real-time alerts (notify if lead is untouched for X hours).
-    - P2: Refactor monolithic files ( > 3300 lines,  > 1600 lines). Break into modular files.
+    - P2: Refactor monolithic files ( > 3300 lines, ,  > 2400 lines). Break into modular files.
     - P2: Export to Excel/CSV for calls and leads tables.
     - P2: UI for backup import/restore from a file.
     - P3: Replace deprecated Google Maps Autocomplete component.
 
 **Completed work in this session**
-- Fixed  resolution across all React components (removed hardcoded placeholders). (DONE)
-- Added amoCRM diagnostic check (). (DONE)
-- Created  public page with static KPIs and sparklines. (DONE)
-- Added  to Pydantic models and frontend editors (Sauna & Balia). (DONE)
-- Added margin calculation column (Маржа) to Admin Orders table. (DONE)
-- Phase 2 MVP: Dealer Portal created (, ), Admin Dealer creation built, Dealer Order submission flow integrated. (DONE)
-- Moved Dealers landing card to the bottom row in . (DONE)
+- Wired standalone Dealers Admin Hub and fixed order routing. (DONE)
+- Added  and  calculation to Sauna CRM lead cards. (DONE)
+- Reused manager's  for dealers via  interceptor. (DONE)
+- Fully translated the Dealer Portal UI to Polish. (DONE)
+- Added Telegram notification upon dealer order confirmation. (DONE)
+- Created Public Offer Page () for dealer clients with read receipts. (DONE)
+- Fixed missing  in container by creating  to persist  files. (DONE)
+- Made Calculator the default first tab in Dealer portal and enabled Draft editing. (DONE)
+- Refactored PDF generation: filtered Nie/Brak options, created a dodatkowe wyposażenie (Upsell) section for unselected items, and styled 0-cost items as GRATIS. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   Issue 1: amocrm.py and sauna_crm.py are too large and hard to maintain.
-   - Debug checklist: Break files down into a modular directory structure.
-   - Why to solve this issue and what will be achieved with this?: Prevents future bugs and makes the codebase maintainable.
+   Issue 1: Monolithic architecture in specific backend files.
+   - Debug checklist:  (2400+ lines) and  (1400+ lines) are becoming too large.
+   - Why to solve this issue and what will be achieved with this?: Maintainability and lower risk of regression.
    - Should Test frontend/backend/both after fix: Both
    - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Sync tasks hanging indefinitely.
-  - Recurrence count: ~3
-  - Status: RESOLVED
+  - Issue recurrence in previous fork: Container resets wiping out apt 2.6.1 (arm64)
+Usage: apt-get [options] command
+       apt-get [options] install|remove pkg1 [pkg2 ...]
+       apt-get [options] source pkg1 [pkg2 ...]
+
+apt-get is a command line interface for retrieval of packages
+and information about them from authenticated sources and
+for installation, upgrade and removal of packages together
+with their dependencies.
+
+Most used commands:
+  update - Retrieve new lists of packages
+  upgrade - Perform an upgrade
+  install - Install new packages (pkg is libc6 not libc6.deb)
+  reinstall - Reinstall packages (pkg is libc6 not libc6.deb)
+  remove - Remove packages
+  purge - Remove packages and config files
+  autoremove - Remove automatically all unused packages
+  dist-upgrade - Distribution upgrade, see apt-get(8)
+  dselect-upgrade - Follow dselect selections
+  build-dep - Configure build-dependencies for source packages
+  satisfy - Satisfy dependency strings
+  clean - Erase downloaded archive files
+  autoclean - Erase old downloaded archive files
+  check - Verify that there are no broken dependencies
+  source - Download source archives
+  download - Download the binary package into the current directory
+  changelog - Download and display the changelog for the given package
+
+See apt-get(8) for more information about the available commands.
+Configuration options and syntax is detailed in apt.conf(5).
+Information about how to configure sources can be found in sources.list(5).
+Package and version choices can be expressed via apt_preferences(5).
+Security details are available in apt-secure(8).
+                                        This APT has Super Cow Powers. installed packages (specifically  for ReportLab).
+  - Recurrence count: 1
+  - Status: RESOLVED (Agent downloaded  files directly to the codebase via  to bypass OS-level dependencies).
 
 **Code Architecture**
-React frontend + FastAPI backend + MongoDB
-- : New endpoints for dealer auth, prices, and order submission.
-- : New Pydantic models for dealers.
-- : Contains , , .
-- : Main routing logic.
+React frontend + FastAPI backend + MongoDB.
+- : Dealer APIs.
+- : PDF generation and calculator logic.
+- : Intercepts manager API calls and routes them to dealer endpoints.
 
 **Key Technical Concepts**
-React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), amoCRM API, Multi-tenant Architecture (Dealers), JWT Auth.
+React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), ReportLab (PDFs), Axios Interceptors, Pandas/Openpyxl (for upcoming Excel task).
 
 **key DB schema**
   - : 
-  -  / : 
+  - : 
+  - : 
+  - : 
 
 **changes in tech stack**
-- None in this session.
+-  and  are confirmed installed in the environment for the new Excel feature.
 
-**All files of reference**
-  -  (Routing updates)
-  -  (Reorganized tiles)
-  -  (Removed Dealer tabs)
-  -  (Dealer endpoints)
-  -  (Dealer schemas)
-  -  &  (Added )
+**All files of reference** 
+  -  (Created)
+  -  (Created - API Interceptor)
+  -  (Created - Client-facing URL)
+  -  (Created - Font manager for PDFs)
+  -  (Heavily modified for PDF generation)
+  -  (Modified for Polish translation & Tabs)
+  -  (Updated)
 
 **Areas that need refactoring**
- (>3400 lines) and  (>1600 lines).
+ is extremely large.  is also growing rapidly.
 
 **key api endpoints**
   - 
   - 
   - 
   - 
+  - 
+  - 
 
 **Critical Info for New Agent**
-- **LANGUAGE**: Reply strictly in Russian.
-- **PREVIEW VS PRODUCTION**: The user has deployed the app to production (). Any changes made in this workspace apply to the PREVIEW environment only. Do not proactively announce this unless the user mentions an issue that only occurs on production.
-- **AUTH CREDENTIALS**: Admin login was updated. Correct credentials are  / . The token key is  in . 
+- **LANGUAGE:** Reply strictly in Russian.
+- **ENVIRONMENT:** The user actively checks changes on their live production URL (). Any changes you make only apply to the **preview environment** (e.g., ). If the user reports a bug, always clarify if they are seeing it in preview or production.
+- **EXCEL IMPORT/EXPORT TASK:** Read the user's last  responses in the history carefully. You need to implement a Dry-Run/Diff view on the frontend before committing the Excel import to the database.
 
 **documents and test reports created in this job**
-  -  (Updated)
-  -  (Updated)
-  -  (Created DNS instructions)
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. *User*: Asked for animated KPI widget for the portfolio.
-2. *Agent*: Added live KPI route and React component.
-3. *User*: Asked to replace live data with static hardcoded data (to avoid load times).
-4. *Agent*: Replaced with static data and removed backend route.
-5. *User*: Requested Phase 1 (cost prices) and Phase 2 (Dealer portal).
-6. *Agent*: Delivered Phase 1 (cost prices) and Phase 2 MVP.
-7. *User*: Confirmed wm-dealers.pl domain bought, requested part 2.
-8. *Agent*: Built full Dealer Calculator flow and integrated with amoCRM.
-9. *System*: Deployment notification. User sent 401 log for  and asked to move Dealer tab to a separate block on Landing page.
-10. *User* (LATEST): 1) Move dealer card to bottom row, 2) Make Dealers/Dealer Orders tabs ONLY available there, 3) Do NOT create amoCRM deals for dealer orders, 4) Add custom dealer order prefix, 5) Ask where cost price is currently displayed.
-*(Pending)*: Agent partially reorganized the UI but needs to finish routing the Dealers Hub. Tasks 3, 4, and 5 have not been started.
+1. *User*: Pointed out that options marked Nie (No) were still appearing in the selected PDF table.
+2. *Agent*: Added regex filter to remove declined options.
+3. *User*: Asked to mark zero-cost options as GRATIS and fix a blank page bug in the PDF.
+4. *Agent*: Fixed  logic and styled zero-cost options green.
+5. *User* (LATEST): I want to export all sauna prices to Excel to analyze and bulk-import them. Including dealer overrides. Must work for admin and dealers.
+6. *Agent*: Sent an  to clarify Excel columns, override format, and dry-run expectations.
+7. *User*: Answered : Yes to both Excel/CSV, add ///, use a  column for overrides, enforce a dry-run diff UI before importing, and add buttons to both Admin Configurator and Dealers page.
+*(Pending)*: Implement the Excel/CSV Export and Import with Dry-Run diffing.
 
 **Project Health Check:**
-Healthy. No broken dependencies.
+Healthy.
 
 **3rd Party Integrations**
   - amoCRM — requires User API credentials.
   - Binotel API — requires User API credentials.
-  - OpenAI GPT-5.2 & GPT-4o-mini — uses Emergent LLM Key
-  - OpenAI Whisper — uses Emergent LLM Key
+  - OpenAI GPT-5.2 & GPT-4o-mini — uses Emergent LLM Key.
+  - Telegram — uses User Bot Token (Implemented this session for dealer orders).
   - Cloudinary — configured via 
 
 **Testing status**
-  - Testing agent used after significant changes: NO
+  - Testing agent used after significant changes: NO (Main agent self-tested extensively via bash/curl and screenshots).
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
   - Known regressions: None
@@ -152,4 +172,4 @@ Healthy. No broken dependencies.
   - Dealer:  / 
 
 **What agent forgot to execute**
-The agent was in the middle of isolating the Dealers Hub in the frontend.  and  tabs were removed from , but the agent hasn't yet created/wired the replacement component ( or similar) in  to render when the Admin clicks the Dealers card on the landing page. Furthermore, the agent didn't touch the backend to remove the amoCRM API calls for dealer orders or implement the custom  logic requested in the final prompt. Be sure to answer the user's question about the cost prices.</analysis>
+The agent paused and gathered perfect requirements for the P0 Excel Export/Import feature but did not write any code for it yet. The next agent should immediately begin implementing the backend / logic and the frontend Dry-Run UI for Sauna Prices.</analysis>

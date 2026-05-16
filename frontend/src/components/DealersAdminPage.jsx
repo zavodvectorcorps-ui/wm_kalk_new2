@@ -7,6 +7,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { toast } from 'sonner';
+import PriceImportExport from './sauna-pricing/PriceImportExport';
 
 const API = getApiUrl();
 
@@ -72,9 +73,12 @@ export default function DealersAdminPage() {
             Управление дилерскими аккаунтами. Каждый дилер получает свой кабинет по ссылке /dealer и может устанавливать свои цены.
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-orange-500 hover:bg-orange-600" data-testid="create-dealer-btn">
-          <Plus className="h-4 w-4 mr-1" /> Новый дилер
-        </Button>
+        <div className="flex items-center gap-2">
+          <PriceImportExport />
+          <Button onClick={() => setShowCreate(true)} className="bg-orange-500 hover:bg-orange-600" data-testid="create-dealer-btn">
+            <Plus className="h-4 w-4 mr-1" /> Новый дилер
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -374,7 +378,16 @@ function DealerPricesDialog({ dealer, onClose }) {
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" data-testid="dealer-prices-dialog">
-        <DialogHeader><DialogTitle>Цены дилера: {dealer.name || dealer.username}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <div className="flex items-center justify-between gap-4">
+            <DialogTitle>Цены дилера: {dealer.name || dealer.username}</DialogTitle>
+            <PriceImportExport
+              dealerId={dealer.id}
+              dealerName={dealer.name || dealer.username}
+              onImported={() => window.location.reload()}
+            />
+          </div>
+        </DialogHeader>
         {loading ? (
           <div className="py-10 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : !prices ? (

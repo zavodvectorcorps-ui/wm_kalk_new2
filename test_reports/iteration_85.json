@@ -1,0 +1,31 @@
+{
+  "summary": "Tested Excel/CSV Export/Import for sauna prices and dealer overrides (iteration 85). 15/15 backend pytest cases passed including auth gating, xlsx/csv export, dealer-scoped export, dry-run unchanged/modified/empty/invalid file, commit with revert, dealer-override upsert, and empty-dealerPrice no-op. Frontend verified: Export/Import buttons mounted in Sauna Pricing page and Dealers admin page; dry-run dialog renders with summary chips, diff rows, hide-unchanged toggle, and dynamic 'Применить (N)' button.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_excel_import_export.py",
+    "/app/test_reports/pytest/pytest_results_iteration85.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "diff_rows duplicate-key handling decrements 'unchanged' counter only conditionally — when duplicate appears AFTER first being counted as added/modified the counter is not reverted (minor; will under-report errors when duplicates exist). Consider tracking the prior status to revert correctly.",
+    "Export of options omits the 'category' column when option lives at top level (flat options[]). This is intentional (parentId=''), but worth documenting in the file header comment for dealer-facing imports.",
+    "apply_rows ignores rows whose `parentId` points to a missing category for new options — silently increments error counter. Consider returning structured row-level errors from commit similar to dry-run for parity.",
+    "sauna_excel.py is 700 lines — close to the file-size threshold; consider splitting export/diff/apply into separate modules."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_excel_import_export.py",
+    "/app/test_reports/iteration_85.json"
+  ],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100% (verified flows)"},
+  "test_credentials": "admin / admin123 ; testdealer dealer_id=2710dcf7-a971-4124-ab3e-1e0a401f5c11",
+  "seed_data_creation": "Test created and then reverted one model basePrice via xlsx round-trip; created and removed a dealer-price override for testdealer (set to 99999 then test_commit_empty_dealerprice_is_noop ran with blanks — override remains at 99999 in DB after test run; main agent may want to clear if needed).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Sauna Excel/CSV import/export endpoints under /api/sauna/prices/{export,import/dry-run,import/commit}. Admin auth required (Bearer). Export with ?dealerId=... adds 'dealerPrice' as 11th column. Dry-run never writes; commit upserts base prices doc and dealer_price_overrides only for rows with non-empty dealerPrice. UI: PriceImportExport.jsx is mounted on SaunaPricingPage header, DealersAdminPage header, and inside DealerPricesDialog. Russian-labeled buttons in UI: 'Экспорт' / 'Импорт'. data-testids: export-prices-btn, import-prices-btn, export-xlsx, export-csv, import-file-input, dry-run-dialog, dry-run-commit, dry-run-cancel, hide-unchanged-toggle, diff-row-{added|modified|unchanged|error}. Verified flows: xlsx round-trip (no changes => unchanged), modified xlsx row produces 'modified' status with price diff old/new, CSV with new model + bad type → 1 added + 1 error in dry-run dialog. Dealer override upsert and no-op-on-empty verified via API tests.",
+  "rca of the issue": "No issues found — feature complete and behaves per spec."
+}
