@@ -13,7 +13,7 @@ import {
   RefreshCw, Settings, FileText, FileDown, Trash2,
   Phone, Clock, User, ExternalLink, Loader2, Plus, X, Search,
   Package, Wrench, Download, Eye, List, MessageSquare, Save, Pencil, ArrowUpDown,
-  Calculator, Layers, ShoppingCart
+  Calculator, Layers, ShoppingCart, LineChart
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -21,6 +21,7 @@ import axios from 'axios';
 import TechCardsAdmin from './sauna-production/TechCardsAdmin';
 import ComponentsAdmin from './sauna-production/ComponentsAdmin';
 import ProcurementForecast from './sauna-production/ProcurementForecast';
+import PriceSimulator from './sauna-production/PriceSimulator';
 
 const API_URL = getApiUrl();
 
@@ -569,6 +570,7 @@ const SaunaProductionPage = ({ onBack }) => {
           <TabsTrigger value="techcards" className="gap-2" data-testid="prod-view-techcards"><Calculator className="w-4 h-4" />Тех.карты</TabsTrigger>
           <TabsTrigger value="components" className="gap-2" data-testid="prod-view-components"><Layers className="w-4 h-4" />Комплектующие</TabsTrigger>
           <TabsTrigger value="procurement" className="gap-2" data-testid="prod-view-procurement"><ShoppingCart className="w-4 h-4" />Закупка</TabsTrigger>
+          <TabsTrigger value="simulator" className="gap-2" data-testid="prod-view-simulator"><LineChart className="w-4 h-4" />Симулятор цен</TabsTrigger>
         </TabsList>
 
         {/* Calendar View */}
@@ -754,6 +756,10 @@ const SaunaProductionPage = ({ onBack }) => {
         {/* Procurement forecast */}
         <TabsContent value="procurement">
           <ProcurementForecast />
+        </TabsContent>
+
+        <TabsContent value="simulator">
+          <PriceSimulator />
         </TabsContent>
       </Tabs>
 

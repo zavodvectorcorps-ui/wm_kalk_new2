@@ -213,9 +213,12 @@ async def _compute_totals(card: dict) -> dict:
     total = round(materials + labor + overhead + manual, 2)
 
     meta = await _resolve_target_meta(card)
-    retail = meta["retailPrice"]
-    margin = round(retail - total, 2) if retail else 0
-    margin_pct = round(margin * 100.0 / retail, 1) if retail > 0 else None
+    retail_brutto = meta["retailPrice"]  # retail in sauna_prices is stored as gross/brutto (incl. VAT)
+    # Cost prices are entered NET (without VAT). VAT in PL is 23%.
+    vat_rate = 0.23
+    retail_netto = round(retail_brutto / (1 + vat_rate), 2) if retail_brutto else 0
+    margin = round(retail_netto - total, 2) if retail_netto else 0
+    margin_pct = round(margin * 100.0 / retail_netto, 1) if retail_netto > 0 else None
 
     return {
         "items": enriched_items,
@@ -225,7 +228,9 @@ async def _compute_totals(card: dict) -> dict:
         "overheadCost": overhead,
         "manualAdjustment": manual,
         "totalCost": int(round(total)),
-        "retailPrice": retail,
+        "retailPrice": retail_brutto,
+        "retailNetto": int(round(retail_netto)),
+        "vatRate": vat_rate,
         "marginAmount": int(round(margin)),
         "marginPct": margin_pct,
         "name": meta["name"],
@@ -307,6 +312,8 @@ async def _recompute_and_sync(card_id: str):
         "manualAdjustment": totals["manualAdjustment"],
         "totalCost": totals["totalCost"],
         "retailPrice": totals["retailPrice"],
+        "retailNetto": totals["retailNetto"],
+        "vatRate": totals["vatRate"],
         "marginAmount": totals["marginAmount"],
         "marginPct": totals["marginPct"],
         "updatedAt": _now(),

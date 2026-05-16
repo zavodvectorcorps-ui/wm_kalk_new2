@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Calculator, Loader2, RotateCw, TrendingDown, TrendingUp, ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { Calculator, Loader2, RotateCw, TrendingDown, TrendingUp, ChevronDown, ChevronRight, Search, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { toast } from 'sonner';
 import TechCardEditor from './TechCardEditor';
 import { COST_BASE, API, authHeaders, fmtMoney } from './costConstants';
@@ -17,6 +18,7 @@ export default function TechCardsAdmin() {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [target, setTarget] = useState(null);  // currently editing
+  const [variantPrompt, setVariantPrompt] = useState(null); // {option, scope:'option'} when user clicks option-with-variants
   const [search, setSearch] = useState('');
   const [recomputing, setRecomputing] = useState(false);
   const [expanded, setExpanded] = useState({}); // modelId -> bool
@@ -176,14 +178,24 @@ export default function TechCardsAdmin() {
           const optCard = findCard('option', '', '', o.id);
           const hasVariants = (o.variants || []).length > 0;
           const isExpanded = !!expanded[`opt-${o.id}`];
+          const openOption = () => {
+            // If the option has variants, suggest creating per-variant tech-cards
+            // so the calculator picks up the right cost per selection.
+            if (hasVariants && !optCard) {
+              setVariantPrompt({ option: o });
+              setExpanded({ ...expanded, [`opt-${o.id}`]: true });
+              return;
+            }
+            setTarget({ scope: 'option', optionId: o.id, name: o.name, retailPrice: o.price });
+          };
           return (
             <div key={o.id} className="border rounded-md bg-card overflow-hidden">
               <TargetRow
                 title={o.name}
-                subtitle={`${o._catName ? o._catName + ' · ' : ''}${fmtMoney(o.price)}`}
+                subtitle={`${o._catName ? o._catName + ' · ' : ''}${fmtMoney(o.price)}${hasVariants ? ` · ${o.variants.length} вар.` : ''}`}
                 retail={o.price}
                 card={optCard}
-                onClick={() => setTarget({ scope: 'option', optionId: o.id, name: o.name, retailPrice: o.price })}
+                onClick={openOption}
                 onToggle={hasVariants ? () => setExpanded({ ...expanded, [`opt-${o.id}`]: !isExpanded }) : null}
                 expanded={isExpanded}
               />
@@ -216,6 +228,52 @@ export default function TechCardsAdmin() {
           onClose={() => setTarget(null)}
           onSaved={() => load()}
         />
+      )}
+
+      {variantPrompt && (
+        <Dialog open={true} onOpenChange={() => setVariantPrompt(null)}>
+          <DialogContent className="max-w-md" data-testid="variant-prompt-dialog">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-amber-700">
+                <AlertTriangle className="w-5 h-5" />
+                У опции есть варианты
+              </DialogTitle>
+              <DialogDescription>
+                У опции <b>«{variantPrompt.option.name}»</b> {variantPrompt.option.variants.length} вариант(ов):
+                <ul className="mt-2 ml-3 list-disc text-xs">
+                  {variantPrompt.option.variants.slice(0, 6).map((v) => (
+                    <li key={v.id}>{v.name || v.namePl} <span className="text-muted-foreground">— {fmtMoney(v.price)}</span></li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs">
+                  Когда менеджер выбирает в калькуляторе конкретный вариант, в заказ идёт цена именно этого варианта.
+                  Поэтому тех.карту лучше делать <b>отдельно для каждого варианта</b> — тогда себестоимость заказа будет точной.
+                </p>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Open base-option editor (no variant)
+                  setTarget({ scope: 'option', optionId: variantPrompt.option.id, name: variantPrompt.option.name, retailPrice: variantPrompt.option.price });
+                  setVariantPrompt(null);
+                }}
+                data-testid="variant-prompt-base"
+              >
+                Всё равно создать базовую
+              </Button>
+              <Button
+                onClick={() => setVariantPrompt(null)}
+                className="bg-orange-500 hover:bg-orange-600"
+                data-testid="variant-prompt-ok"
+              >
+                <ArrowRight className="w-4 h-4 mr-1" />
+                Хорошо, выберу вариант ниже
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

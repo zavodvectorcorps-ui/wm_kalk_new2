@@ -153,6 +153,14 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
 
   const lowMargin = computed.marginPct !== null && computed.marginPct < 15;
   const staleCount = computed.enriched.filter((it) => it.componentId && !it.comp).length;
+  // Retail prices in sauna_prices are stored as BRUTTO (incl. VAT 23%).
+  // Component cost prices are entered NET. Compute margin against netto.
+  const VAT = 0.23;
+  const retailBrutto = target.retailPrice || 0;
+  const retailNetto = retailBrutto / (1 + VAT);
+  const marginNetto = retailNetto - computed.total;
+  const marginPctNetto = retailNetto > 0 ? (marginNetto / retailNetto) * 100 : null;
+  const lowMarginNetto = marginPctNetto !== null && marginPctNetto < 15;
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -304,21 +312,25 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
                   {target.retailPrice > 0 && (
                     <>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Розница</span>
-                        <span className="font-mono">{fmtMoney(target.retailPrice)}</span>
+                        <span className="text-muted-foreground">Розница brutto (с НДС 23%)</span>
+                        <span className="font-mono">{fmtMoney(retailBrutto)}</span>
                       </div>
-                      <div className={`flex items-center justify-between text-sm font-semibold ${lowMargin ? 'text-red-600' : 'text-emerald-700'}`} data-testid="tech-card-margin">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Розница netto (без НДС)</span>
+                        <span className="font-mono">{fmtMoney(retailNetto)}</span>
+                      </div>
+                      <div className={`flex items-center justify-between text-sm font-semibold ${lowMarginNetto ? 'text-red-600' : 'text-emerald-700'}`} data-testid="tech-card-margin">
                         <span className="inline-flex items-center gap-1">
-                          {lowMargin ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
-                          Маржа
+                          {lowMarginNetto ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
+                          Маржа (netto − cost)
                         </span>
                         <span className="font-mono">
-                          {fmtMoney(computed.margin)} ({computed.marginPct === null ? '—' : `${computed.marginPct.toFixed(1)}%`})
+                          {fmtMoney(marginNetto)} ({marginPctNetto === null ? '—' : `${marginPctNetto.toFixed(1)}%`})
                         </span>
                       </div>
-                      {lowMargin && (
+                      {lowMarginNetto && (
                         <div className="text-[10px] text-red-700 flex items-center gap-1 mt-1">
-                          <AlertTriangle className="w-3 h-3" />Маржа ниже 15%
+                          <AlertTriangle className="w-3 h-3" />Маржа ниже 15% (от netto)
                         </div>
                       )}
                     </>
