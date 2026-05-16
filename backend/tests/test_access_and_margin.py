@@ -4,6 +4,7 @@ import io
 import os
 import pytest
 import requests
+import jwt as pyjwt
 from openpyxl import Workbook
 
 def _load_frontend_env():
@@ -66,9 +67,10 @@ def test_create_user_accepts_new_access_values(auth_headers, access_value):
 @pytest.mark.parametrize("access_value", [
     ["analytics"], ["call_analytics"], ["dealers"],
     ["analytics", "call_analytics", "dealers"],
+    ["call_analytics", "dealers", "sauna"],  # mix new + legacy
 ])
 def test_update_user_accepts_new_access_values(auth_headers, access_value):
-    uname = f"TEST_put_acc_{access_value[0]}"
+    uname = f"TEST_put_acc_{'_'.join(access_value)[:25]}"
     # create
     r = requests.post(f"{BASE_URL}/api/users", headers=auth_headers,
                       json={"username": uname, "password": "pw123456",
@@ -84,6 +86,91 @@ def test_update_user_accepts_new_access_values(auth_headers, access_value):
         r3 = requests.get(f"{BASE_URL}/api/users", headers=auth_headers).json()
         u = next((x for x in r3 if x["id"] == uid), None)
         assert u is not None and u["access"] == access_value
+    finally:
+        requests.delete(f"{BASE_URL}/api/users/{uid}", headers=auth_headers)
+
+
+# ----- Invalid access value rejected with helpful error mentioning new values -----
+
+def test_update_user_rejects_invalid_access_with_full_list(auth_headers):
+    uname = "TEST_put_invalid_access"
+    r = requests.post(f"{BASE_URL}/api/users", headers=auth_headers,
+                      json={"username": uname, "password": "pw123456",
+                            "access": ["balia"], "role": "employee"})
+    assert r.status_code == 200, r.text
+    uid = r.json()["id"]
+    try:
+        r2 = requests.put(f"{BASE_URL}/api/users/{uid}", headers=auth_headers,
+                          json={"access": ["invalid_key"]})
+        assert r2.status_code == 400, f"Expected 400, got {r2.status_code}: {r2.text}"
+        detail = r2.json().get("detail", "")
+        # Must include the new valid keys in the error message
+        for k in ("analytics", "call_analytics", "dealers"):
+            assert k in detail, f"Error detail must mention '{k}': {detail}"
+    finally:
+        requests.delete(f"{BASE_URL}/api/users/{uid}", headers=auth_headers)
+
+
+# ----- PUT role=marketer now accepted (was previously rejected) -----
+
+def test_update_user_accepts_marketer_role(auth_headers):
+    uname = "TEST_put_marketer_role"
+    r = requests.post(f"{BASE_URL}/api/users", headers=auth_headers,
+                      json={"username": uname, "password": "pw123456",
+                            "access": ["balia"], "role": "employee"})
+    assert r.status_code == 200, r.text
+    uid = r.json()["id"]
+    try:
+        r2 = requests.put(f"{BASE_URL}/api/users/{uid}", headers=auth_headers,
+                          json={"role": "marketer"})
+        assert r2.status_code == 200, f"PUT role=marketer failed: {r2.status_code} {r2.text}"
+        assert r2.json()["role"] == "marketer"
+        # verify persisted
+        users = requests.get(f"{BASE_URL}/api/users", headers=auth_headers).json()
+        u = next((x for x in users if x["id"] == uid), None)
+        assert u is not None and u["role"] == "marketer"
+    finally:
+        requests.delete(f"{BASE_URL}/api/users/{uid}", headers=auth_headers)
+
+
+# ----- E2E: create non-admin with access=['analytics'], login, decode JWT, verify claim -----
+
+def test_e2e_analytics_user_jwt_contains_access_claim(auth_headers):
+    uname = "TEST_e2e_analytics_user"
+    pw = "pw123456"
+    # cleanup any leftover
+    users = requests.get(f"{BASE_URL}/api/users", headers=auth_headers).json()
+    for u in users:
+        if u["username"] == uname:
+            requests.delete(f"{BASE_URL}/api/users/{u['id']}", headers=auth_headers)
+
+    r = requests.post(f"{BASE_URL}/api/users", headers=auth_headers,
+                      json={"username": uname, "password": pw,
+                            "access": ["analytics"], "role": "employee"})
+    assert r.status_code == 200, r.text
+    uid = r.json()["id"]
+    try:
+        # Login as new user
+        r2 = requests.post(f"{BASE_URL}/api/auth/login",
+                           json={"username": uname, "password": pw})
+        assert r2.status_code == 200, f"Login failed: {r2.status_code} {r2.text}"
+        data = r2.json()
+        assert "token" in data
+        assert data["user"]["access"] == ["analytics"]
+        assert data["user"]["role"] == "employee"
+
+        # Decode JWT WITHOUT verification (we only care about claims content)
+        payload = pyjwt.decode(data["token"], options={"verify_signature": False})
+        assert "access" in payload, f"JWT payload missing 'access' claim: {payload}"
+        assert payload["access"] == ["analytics"], f"JWT access claim wrong: {payload['access']}"
+        assert payload["username"] == uname
+        assert payload["role"] == "employee"
+
+        # /api/auth/me should also report access=['analytics']
+        me = requests.get(f"{BASE_URL}/api/auth/me",
+                          headers={"Authorization": f"Bearer {data['token']}"})
+        assert me.status_code == 200, me.text
+        assert me.json()["access"] == ["analytics"]
     finally:
         requests.delete(f"{BASE_URL}/api/users/{uid}", headers=auth_headers)
 

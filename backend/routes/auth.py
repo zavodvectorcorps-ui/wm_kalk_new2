@@ -20,6 +20,33 @@ router = APIRouter(tags=["Authentication"])
 import logging
 logger = logging.getLogger(__name__)
 
+# Module-level constants — keep POST and PUT validators in sync.
+VALID_ACCESS_VALUES = [
+    "balia", "sauna", "logistics", "driver", "warehouse",
+    "sauna_crm", "sauna_production", "training",
+    "analytics", "call_analytics", "dealers",
+    "all",
+]
+VALID_ROLES = [
+    "admin", "employee", "observer",
+    "driver", "warehouse", "storekeeper", "marketer",
+]
+
+
+def _validate_access(value):
+    if isinstance(value, list):
+        for acc in value:
+            if acc not in VALID_ACCESS_VALUES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid access value: {acc}. Must be one of: {VALID_ACCESS_VALUES}",
+                )
+    elif value not in VALID_ACCESS_VALUES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Access must be one of: {VALID_ACCESS_VALUES}",
+        )
+
 
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
@@ -87,16 +114,10 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
         raise HTTPException(status_code=400, detail="Username already exists")
     
     # Validate access - can be string or array
-    valid_access_values = ["balia", "sauna", "logistics", "driver", "warehouse", "sauna_crm", "sauna_production", "training", "analytics", "call_analytics", "dealers", "all"]
-    if isinstance(user_data.access, list):
-        for acc in user_data.access:
-            if acc not in valid_access_values:
-                raise HTTPException(status_code=400, detail=f"Invalid access value: {acc}. Must be one of: {valid_access_values}")
-    elif user_data.access not in valid_access_values:
-        raise HTTPException(status_code=400, detail=f"Access must be one of: {valid_access_values}")
+    _validate_access(user_data.access)
     
-    if user_data.role not in ["admin", "employee", "observer", "driver", "warehouse", "storekeeper", "marketer"]:
-        raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee', 'observer', 'driver', 'warehouse', 'storekeeper' or 'marketer'")
+    if user_data.role not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail=f"Role must be one of: {VALID_ROLES}")
     
     # Only super-admin (username: 'admin') can create users with 'admin' role
     if user_data.role == "admin" and admin.get("username") != "admin":
@@ -149,18 +170,12 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
     
     if user_data.access:
         # Validate access - can be string or array
-        valid_access_values = ["balia", "sauna", "logistics", "driver", "warehouse", "sauna_crm", "sauna_production", "training", "all"]
-        if isinstance(user_data.access, list):
-            for acc in user_data.access:
-                if acc not in valid_access_values:
-                    raise HTTPException(status_code=400, detail=f"Invalid access value: {acc}. Must be one of: {valid_access_values}")
-        elif user_data.access not in valid_access_values:
-            raise HTTPException(status_code=400, detail=f"Access must be one of: {valid_access_values}")
+        _validate_access(user_data.access)
         update_data["access"] = user_data.access
     
     if user_data.role:
-        if user_data.role not in ["admin", "employee", "observer", "driver", "warehouse", "storekeeper"]:
-            raise HTTPException(status_code=400, detail="Role must be 'admin', 'employee', 'observer', 'driver', 'warehouse' or 'storekeeper'")
+        if user_data.role not in VALID_ROLES:
+            raise HTTPException(status_code=400, detail=f"Role must be one of: {VALID_ROLES}")
         # Only super-admin can assign admin role
         if user_data.role == "admin" and admin.get("username") != "admin":
             raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")

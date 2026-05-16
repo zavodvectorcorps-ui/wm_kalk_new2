@@ -1,0 +1,32 @@
+{
+  "summary": "Re-test PASSED. auth.py fix verified — VALID_ACCESS_VALUES and VALID_ROLES are now module-level constants used by both POST and PUT via _validate_access(). All 6 review-request scenarios + 9 regression tests pass (15/15 pytest). PUT /api/users/{id} now accepts analytics/call_analytics/dealers individually and in combinations (incl. mix with legacy 'sauna'). Invalid access keys still rejected with 400 + full helpful detail listing all 12 valid values. PUT role=marketer now succeeds (previously rejected). End-to-end JWT test: created employee with access=['analytics'], logged in, decoded JWT — payload.access == ['analytics'] and /api/auth/me agrees, so frontend hasAccess('analytics') will return true. Margin dry-run regression also still passes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_access_and_margin.py",
+    "/app/test_reports/pytest/pytest_results_iteration88.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "auth.py refactor is clean — module-level VALID_ACCESS_VALUES + VALID_ROLES + _validate_access() helper now prevent the drift bug from re-occurring. Good fix.",
+    "Minor consistency note: get_admin_user() in services/auth_service.py accepts roles ['admin', 'super-admin'] but 'super-admin' is not in VALID_ROLES; either remove that branch or add 'super-admin' as an explicit role.",
+    "Pre-existing carry-over from prior iteration (not regressed by this fix): UserManagement.jsx getAccessBadge() default English labels and React 'two children with the same key' console warning on Users tab."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_access_and_margin.py"
+  ],
+  "success_rate": {"backend": "100% (15/15 pytest)", "frontend": "not tested (skipped per request)"},
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "Test users prefixed TEST_ are created and torn down inside each test (try/finally). No persistent seed data left behind. Verified by re-running suite — second run also 15/15.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Auth access/role validators are now centralised in /app/backend/routes/auth.py (VALID_ACCESS_VALUES, VALID_ROLES, _validate_access). Future additions of access keys or roles only need to update these two constants. The expanded /app/backend/tests/test_access_and_margin.py is the canonical regression for this area — covers POST+PUT for all new access values, marketer role, invalid value error message content, and JWT claim end-to-end.",
+  "rca of the issue": "Original bug was duplicated literal lists in POST (auth.py:90) and PUT (auth.py:152) — PUT's copy was forgotten when analytics/call_analytics/dealers were added, and marketer role was similarly missed. Fix verified: single source of truth at top of file, helper function for access validation, role membership check uses VALID_ROLES in both handlers. Reproduction now returns 200 where it returned 400. No further action needed."
+}
