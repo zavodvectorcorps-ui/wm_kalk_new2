@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Building2, Plus, Trash2, Save, Loader2, Power, PowerOff, Copy, ShoppingCart, Pencil } from 'lucide-react';
+import { Building2, Plus, Trash2, Save, Loader2, Power, PowerOff, Copy, ShoppingCart, Pencil, LineChart, Users } from 'lucide-react';
 import { getApiUrl } from '../utils/api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { toast } from 'sonner';
 import PriceImportExport from './sauna-pricing/PriceImportExport';
+import DealerComparisonPage from './DealerComparisonPage';
 
 const API = getApiUrl();
 
@@ -83,69 +85,82 @@ export default function DealersAdminPage() {
 
       {loading ? (
         <div className="py-20 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
-      ) : dealers.length === 0 ? (
-        <div className="rounded-lg border p-10 text-center text-muted-foreground" data-testid="dealers-empty">
-          <Building2 className="h-10 w-10 mx-auto mb-4 opacity-40" />
-          <div>Дилеров пока нет. Создайте первого!</div>
-        </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-xs uppercase tracking-[0.15em] text-muted-foreground">
-              <tr>
-                <th className="text-left px-4 py-3">Логин / Компания</th>
-                <th className="text-left px-4 py-3">Контакты</th>
-                <th className="text-right px-4 py-3">Заказов</th>
-                <th className="text-left px-4 py-3">Статус</th>
-                <th className="text-right px-4 py-3">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dealers.map((d) => (
-                <tr key={d.id} className="border-t hover:bg-muted/20" data-testid={`dealer-row-${d.id}`}>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{d.name || '—'}</div>
-                    <div className="text-xs text-muted-foreground font-mono">@{d.username}</div>
-                    {d.orderPrefix && (
-                      <div className="text-[11px] text-orange-600 font-mono mt-0.5">Префикс: {d.orderPrefix}-</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    <div>{d.email || '—'}</div>
-                    <div>{d.phone || '—'}</div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="inline-flex items-center gap-1 text-sm font-semibold">
-                      <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
-                      {d.orderCount || 0}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {d.isActive
-                      ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><Power className="h-3 w-3" /> Активен</span>
-                      : <span className="inline-flex items-center gap-1 text-xs text-red-500"><PowerOff className="h-3 w-3" /> Отключён</span>}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="inline-flex gap-1">
-                      <Button size="sm" variant="outline" onClick={() => setEditDealer(d)} title="Редактировать" data-testid={`edit-dealer-${d.id}`}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => copyLoginLink(d)} title="Скопировать ссылку для входа" data-testid={`copy-link-${d.id}`}>
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setPricesModal({ dealer: d })} title="Настроить цены" data-testid={`prices-${d.id}`}>
-                        Цены
-                      </Button>
-                      <Button size="sm" variant={d.isActive ? 'outline' : 'default'} onClick={() => toggleActive(d)} data-testid={`toggle-${d.id}`}>
-                        {d.isActive ? <Trash2 className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Tabs defaultValue="list" className="space-y-3">
+          <TabsList>
+            <TabsTrigger value="list" className="gap-1" data-testid="dealers-tab-list"><Users className="w-4 h-4" />Список</TabsTrigger>
+            <TabsTrigger value="comparison" className="gap-1" data-testid="dealers-tab-comparison"><LineChart className="w-4 h-4" />Сравнение цен</TabsTrigger>
+          </TabsList>
+          <TabsContent value="list">
+            {dealers.length === 0 ? (
+              <div className="rounded-lg border p-10 text-center text-muted-foreground" data-testid="dealers-empty">
+                <Building2 className="h-10 w-10 mx-auto mb-4 opacity-40" />
+                <div>Дилеров пока нет. Создайте первого!</div>
+              </div>
+            ) : (
+              <div className="rounded-lg border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-4 py-3">Логин / Компания</th>
+                      <th className="text-left px-4 py-3">Контакты</th>
+                      <th className="text-right px-4 py-3">Заказов</th>
+                      <th className="text-left px-4 py-3">Статус</th>
+                      <th className="text-right px-4 py-3">Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dealers.map((d) => (
+                      <tr key={d.id} className="border-t hover:bg-muted/20" data-testid={`dealer-row-${d.id}`}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{d.name || '—'}</div>
+                          <div className="text-xs text-muted-foreground font-mono">@{d.username}</div>
+                          {d.orderPrefix && (
+                            <div className="text-[11px] text-orange-600 font-mono mt-0.5">Префикс: {d.orderPrefix}-</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                          <div>{d.email || '—'}</div>
+                          <div>{d.phone || '—'}</div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="inline-flex items-center gap-1 text-sm font-semibold">
+                            <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
+                            {d.orderCount || 0}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {d.isActive
+                            ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><Power className="h-3 w-3" /> Активен</span>
+                            : <span className="inline-flex items-center gap-1 text-xs text-red-500"><PowerOff className="h-3 w-3" /> Отключён</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="inline-flex gap-1">
+                            <Button size="sm" variant="outline" onClick={() => setEditDealer(d)} title="Редактировать" data-testid={`edit-dealer-${d.id}`}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => copyLoginLink(d)} title="Скопировать ссылку для входа" data-testid={`copy-link-${d.id}`}>
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setPricesModal({ dealer: d })} title="Настроить цены" data-testid={`prices-${d.id}`}>
+                              Цены
+                            </Button>
+                            <Button size="sm" variant={d.isActive ? 'outline' : 'default'} onClick={() => toggleActive(d)} data-testid={`toggle-${d.id}`}>
+                              {d.isActive ? <Trash2 className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="comparison">
+            <DealerComparisonPage />
+          </TabsContent>
+        </Tabs>
       )}
 
       <CreateDealerDialog open={showCreate} onClose={() => { setShowCreate(false); load(); }} />

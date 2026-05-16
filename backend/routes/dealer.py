@@ -512,6 +512,88 @@ async def admin_list_dealers(_: dict = Depends(get_admin_user)):
     return {"dealers": dealers}
 
 
+@router.get("/api/admin/dealers/comparison")
+async def admin_dealers_comparison(_: dict = Depends(get_admin_user)):
+    """Pricing comparison across all dealers.
+
+    Returns one row per catalog position (model / model_variant / option /
+    option_variant) with the base retail brutto and each dealer's override
+    (or null if the dealer uses the base price).
+    """
+    prices = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
+    dealers = await db.dealers.find(
+        {"isActive": {"$ne": False}}, {"_id": 0, "password": 0},
+    ).sort("name", 1).to_list(length=500)
+    overrides = await db.dealer_price_overrides.find({}, {"_id": 0}).to_list(length=20000)
+
+    # Build override lookup: {dealerId: {(kind,modelId,variantId,optionId,optionVariantId): price}}
+    ov_by_dealer: dict[str, dict] = {}
+    for o in overrides:
+        ov_by_dealer.setdefault(o.get("dealerId"), {})[(
+            o.get("kind"),
+            o.get("modelId") or "",
+            o.get("variantId") or "",
+            o.get("optionId") or "",
+            o.get("optionVariantId") or "",
+        )] = int(o.get("price") or 0)
+
+    rows: list[dict] = []
+
+    def push(kind, model_id, variant_id, option_id, option_variant_id, name, retail):
+        key = (kind, model_id or "", variant_id or "", option_id or "", option_variant_id or "")
+        per_dealer = []
+        prices_set: list[int] = []
+        for d in dealers:
+            p = ov_by_dealer.get(d["id"], {}).get(key)
+            per_dealer.append({"dealerId": d["id"], "dealerName": d.get("name") or d.get("username"), "price": p})
+            if p is not None:
+                prices_set.append(p)
+        rows.append({
+            "kind": kind,
+            "modelId": model_id, "variantId": variant_id,
+            "optionId": option_id, "optionVariantId": option_variant_id,
+            "name": name,
+            "retailBrutto": int(retail or 0),
+            "dealers": per_dealer,
+            "minDealerPrice": min(prices_set) if prices_set else None,
+            "maxDealerPrice": max(prices_set) if prices_set else None,
+            "avgDealerPrice": int(round(sum(prices_set) / len(prices_set))) if prices_set else None,
+            "overrideCount": len(prices_set),
+        })
+
+    # Models + variants
+    for m in (prices.get("models") or []):
+        push("model", m.get("id"), None, None, None, m.get("name") or m.get("id"), m.get("basePrice"))
+        for v in (m.get("variants") or []):
+            push(
+                "model_variant", m.get("id"), v.get("id"), None, None,
+                f"{m.get('name','?')} — {v.get('name') or v.get('namePl') or v.get('id','?')}",
+                int(m.get("basePrice") or 0) + int(v.get("price") or 0),
+            )
+
+    # Options (top-level + nested)
+    all_opts = list(prices.get("options") or [])
+    for cat in (prices.get("categories") or []):
+        for o in (cat.get("options") or []):
+            all_opts.append({**o, "_catName": cat.get("name") or ""})
+    for o in all_opts:
+        cat_prefix = f"{o.get('_catName')} · " if o.get("_catName") else ""
+        push("option", None, None, o.get("id"), None, f"{cat_prefix}{o.get('name','?')}", o.get("price"))
+        for ov in (o.get("variants") or []):
+            push(
+                "option_variant", None, None, o.get("id"), ov.get("id"),
+                f"{cat_prefix}{o.get('name','?')} — {ov.get('name') or ov.get('namePl') or ov.get('id','?')}",
+                ov.get("price"),
+            )
+
+    return {
+        "dealers": [{"id": d["id"], "name": d.get("name") or d.get("username"),
+                     "username": d.get("username"), "isActive": d.get("isActive", True)} for d in dealers],
+        "rows": rows,
+        "totalRows": len(rows),
+    }
+
+
 @router.post("/api/admin/dealers")
 async def admin_create_dealer(body: DealerCreate, _: dict = Depends(get_admin_user)):
     uname = body.username.strip().lower()

@@ -1,0 +1,28 @@
+{
+  "summary": "Iteration 95 — Excel round-trip (components+tech-cards) + dealer-pricing comparison. Backend 13/13 new + 25/25 regression PASS. Frontend: both new flows fully verified end-to-end. Export downloads .xlsx with correct filename pattern; import dialog opens, runs dry-run on round-trip, shows DiffSection with +0/0/53 counters and Изменений нет, commit-btn correctly disabled. Dealer Comparison tab renders all 5 testids (page/search/only-overrides/csv/table), 82 rows shown, CSV download fires with filename dealer_prices_2026-05-16.csv, and a dealer override (99 999 zł vs base 19 880 zł) is rendered with red tinting per spec.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_production_excel_and_comparison.py",
+    "/app/test_reports/pytest/iter95_excel_comparison.xml",
+    "/app/test_reports/pytest/iter95_regression.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "sauna_production_excel.diff_components: numeric comparison uses _norm_num(v or 0) which treats None and 0 as equal. Good — fixes the false-positive flagged in the iteration note.",
+    "import-commit upserts components by id first then by case-insensitive name — duplicate names with different ids will silently merge. Consider a warning in the dry-run diff when name-collision happens across ids.",
+    "GET /api/admin/dealers/comparison aggregates options from prices.options + prices.categories[].options into one list; if the same option id appears in both (theoretical) it would yield two rows. Worth de-duping by id.",
+    "Comparison endpoint loads ALL overrides (limit 20000); for very large dealer counts an indexed Mongo aggregation pipeline would scale better.",
+    "Frontend ImportExportButtons: dropping non-xlsx into the file input still calls /import-dry-run and surfaces a 400 — could short-circuit client-side by validating accept=.xlsx (currently the input has accept attribute but drag-drop bypass is still possible)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_production_excel_and_comparison.py (new — 13 pytest cases covering export shape, round-trip dry-run, validation errors, commit persistence, dealer comparison endpoint)"
+  ],
+  "success_rate": {"backend": "100% (13/13 new + 25/25 regression)", "frontend": "100% (export, import round-trip, dealer comparison + CSV all verified)"},
+  "test_credentials": "admin / admin123 (preview env)",
+  "seed_data_creation": "test_commit_edited_unit_price_persists mutates+reverts a single existing component's unitPrice (idempotent; no orphan data left).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Combined regression suite: pytest backend/tests/test_sauna_production_excel_and_comparison.py backend/tests/test_dealer_overrides_upsert.py backend/tests/test_sauna_stock_and_option_forecast.py backend/tests/test_sauna_tech_card_vat.py — all PASS as of iter 95. The frontend Components tab in the Russian preview is labeled 'Комплектующие' (not 'Компоненты') — use that getByText label when navigating in Playwright.",
+  "rca of the issue": "N/A — features work as spec."
+}

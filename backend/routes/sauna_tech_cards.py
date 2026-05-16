@@ -8,14 +8,17 @@ When a component's unitPrice changes → all tech-cards containing it are
 recomputed; if `syncToCostPrice=true`, the result is written back to the
 target entity's costPrice in the sauna_prices doc.
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 from typing import Optional, List
 import uuid
 import logging
+import io
 
 from database import db
 from services.auth_service import get_admin_user
+from services import sauna_production_excel as prod_xlsx
 
 router = APIRouter(prefix="/sauna-production/cost", tags=["Sauna Tech Cards"])
 logger = logging.getLogger(__name__)
@@ -775,3 +778,121 @@ async def list_all_stock_movements(_: dict = Depends(get_admin_user)):
         {}, {"_id": 0},
     ).sort("at", -1).limit(200).to_list(length=200)
     return {"items": items, "count": len(items)}
+
+
+# ============================================================
+# EXPORT / IMPORT — components + tech-cards bundle
+# ============================================================
+
+@router.get("/export")
+async def export_components_and_cards(_: dict = Depends(get_admin_user)):
+    """Download a two-sheet XLSX containing all components + tech-cards."""
+    comps = await db.sauna_components.find({}, {"_id": 0}).sort([("category", 1), ("name", 1)]).to_list(length=10000)
+    cards = await db.sauna_tech_cards.find({}, {"_id": 0}).sort("updatedAt", -1).to_list(length=10000)
+    blob = prod_xlsx.export_xlsx(comps, cards)
+    fname = f"sauna_production_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M')}.xlsx"
+    return StreamingResponse(
+        io.BytesIO(blob),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={fname}"},
+    )
+
+
+@router.post("/import-dry-run")
+async def import_dry_run(file: UploadFile = File(...), _: dict = Depends(get_admin_user)):
+    """Parse the uploaded XLSX and return a diff preview (no DB writes)."""
+    if not (file.filename or "").lower().endswith(".xlsx"):
+        raise HTTPException(400, "Only .xlsx files are supported")
+    blob = await file.read()
+    try:
+        parsed_comps, parsed_cards, errors = prod_xlsx.parse_xlsx(blob)
+    except Exception as e:
+        raise HTTPException(400, f"Failed to parse file: {e}")
+    existing_comps = await db.sauna_components.find({}, {"_id": 0}).to_list(length=10000)
+    existing_cards = await db.sauna_tech_cards.find({}, {"_id": 0}).to_list(length=10000)
+    return {
+        "components": prod_xlsx.diff_components(parsed_comps, existing_comps),
+        "techCards": prod_xlsx.diff_cards(parsed_cards, existing_cards),
+        "errors": errors,
+        "summary": {
+            "componentsParsed": len(parsed_comps),
+            "techCardsParsed": len(parsed_cards),
+            "errorsCount": len(errors),
+        },
+    }
+
+
+@router.post("/import-commit")
+async def import_commit(file: UploadFile = File(...), _: dict = Depends(get_admin_user)):
+    """Apply the uploaded XLSX to DB: upserts components and tech-cards.
+
+    Components: matched by id first, else by case-insensitive name.
+    Tech-cards: matched by id first, else by (scope, modelId, variantId, optionId, optionVariantId).
+    """
+    if not (file.filename or "").lower().endswith(".xlsx"):
+        raise HTTPException(400, "Only .xlsx files are supported")
+    blob = await file.read()
+    parsed_comps, parsed_cards, errors = prod_xlsx.parse_xlsx(blob)
+
+    existing_comps = await db.sauna_components.find({}, {"_id": 0}).to_list(length=10000)
+    comp_by_id = {c["id"]: c for c in existing_comps if c.get("id")}
+    comp_by_name = {(c.get("name") or "").strip().lower(): c for c in existing_comps if c.get("name")}
+
+    comp_added = 0
+    comp_updated = 0
+    now = _now()
+    for parsed in parsed_comps:
+        existing = comp_by_id.get(parsed.get("id"))
+        if not existing and parsed.get("name"):
+            existing = comp_by_name.get(parsed["name"].strip().lower())
+        merged = prod_xlsx.merge_component(parsed, existing)
+        merged["updatedAt"] = now
+        if not existing:
+            merged.setdefault("createdAt", now)
+            await db.sauna_components.insert_one(dict(merged))
+            comp_added += 1
+        else:
+            await db.sauna_components.update_one(
+                {"id": existing["id"]}, {"$set": {k: v for k, v in merged.items() if k != "id"}}
+            )
+            comp_updated += 1
+
+    existing_cards = await db.sauna_tech_cards.find({}, {"_id": 0}).to_list(length=10000)
+    card_by_id = {c["id"]: c for c in existing_cards if c.get("id")}
+    card_by_key = {
+        (c.get("scope"), c.get("modelId") or "", c.get("variantId") or "",
+         c.get("optionId") or "", c.get("optionVariantId") or ""): c
+        for c in existing_cards
+    }
+
+    card_added = 0
+    card_updated = 0
+    for parsed in parsed_cards:
+        existing = card_by_id.get(parsed.get("id")) if parsed.get("id") else None
+        if not existing:
+            key = (
+                parsed["scope"], parsed.get("modelId") or "",
+                parsed.get("variantId") or "", parsed.get("optionId") or "",
+                parsed.get("optionVariantId") or "",
+            )
+            existing = card_by_key.get(key)
+        merged = prod_xlsx.merge_card(parsed, existing)
+        merged["updatedAt"] = now
+        if not existing:
+            merged.setdefault("createdAt", now)
+            await db.sauna_tech_cards.insert_one(dict(merged))
+            card_added += 1
+        else:
+            await db.sauna_tech_cards.update_one(
+                {"id": existing["id"]}, {"$set": {k: v for k, v in merged.items() if k != "id"}}
+            )
+            card_updated += 1
+        # Recompute totals + sync cost-price if enabled
+        await _recompute_and_sync(merged["id"])
+
+    return {
+        "ok": True,
+        "components": {"added": comp_added, "updated": comp_updated},
+        "techCards": {"added": card_added, "updated": card_updated},
+        "errors": errors,
+    }

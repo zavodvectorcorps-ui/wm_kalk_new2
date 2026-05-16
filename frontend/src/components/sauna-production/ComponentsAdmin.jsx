@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
 import { COST_BASE, authHeaders, COMPONENT_CATEGORIES, CAT_BY_ID, UNITS, fmtMoney, fmtNumber } from './costConstants';
+import ImportExportButtons from './ImportExportButtons';
 
 const EMPTY = { name: '', category: 'wood', unit: 'шт', unitPrice: 0, supplier: '', note: '', isActive: true, stockCurrent: 0, stockMin: 0 };
 
@@ -108,6 +109,7 @@ export default function ComponentsAdmin() {
         <Button onClick={() => setEditing({ ...EMPTY })} className="bg-orange-500 hover:bg-orange-600 h-9 ml-auto" data-testid="component-add">
           <Plus className="w-4 h-4 mr-1" /> Добавить компонент
         </Button>
+        <ImportExportButtons onImported={load} />
       </div>
 
       {loading ? (
