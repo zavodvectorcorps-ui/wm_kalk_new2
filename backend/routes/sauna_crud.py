@@ -211,6 +211,12 @@ async def commit_import_sauna_prices(
             )
             upserted += 1
 
+    # Capture AFTER-state for diff view (uses the updated_doc + post-upsert overrides)
+    snapshot_after_prices = updated_doc
+    snapshot_after_overrides = (
+        await _load_overrides(dealerId) if include_dealer else None
+    )
+
     # Persist audit entry
     history_id = str(_uuid.uuid4())
     await db.sauna_price_import_history.insert_one({
@@ -225,6 +231,8 @@ async def commit_import_sauna_prices(
         "totalRows": len(parsed),
         "snapshotPrices": snapshot_prices,
         "snapshotOverrides": snapshot_overrides,
+        "snapshotAfterPrices": snapshot_after_prices,
+        "snapshotAfterOverrides": snapshot_after_overrides,
         "rolledBack": False,
     })
 
@@ -266,10 +274,55 @@ async def list_import_history(
     cursor = db.sauna_price_import_history.find(
         {"dealerId": dealerId},
         # exclude heavy snapshot blobs in list view
-        {"_id": 0, "snapshotPrices": 0, "snapshotOverrides": 0},
+        {"_id": 0, "snapshotPrices": 0, "snapshotOverrides": 0,
+         "snapshotAfterPrices": 0, "snapshotAfterOverrides": 0},
     ).sort("timestamp", -1).limit(limit)
     items = await cursor.to_list(length=limit)
     return {"items": items, "dealerId": dealerId}
+
+
+@router.get("/prices/import/history/{history_id}/diff")
+async def get_import_history_diff(
+    history_id: str,
+    _: dict = Depends(get_admin_user),
+):
+    """Return the before→after diff for this specific commit.
+
+    For older entries that pre-date snapshotAfter capture, falls back to
+    comparing the BEFORE snapshot vs CURRENT live prices (with a flag so
+    the UI can label it accordingly).
+    """
+    entry = await db.sauna_price_import_history.find_one({"id": history_id}, {"_id": 0})
+    if not entry:
+        raise HTTPException(404, "History entry not found")
+
+    before = entry.get("snapshotPrices") or {}
+    before_ov = entry.get("snapshotOverrides")
+    after = entry.get("snapshotAfterPrices")
+    after_ov = entry.get("snapshotAfterOverrides")
+    is_fallback = False
+
+    # Fallback for legacy entries written before snapshotAfter existed
+    if after is None:
+        is_fallback = True
+        after = await _load_prices_doc()
+        after_ov = await _load_overrides(entry["dealerId"]) if entry.get("dealerId") else None
+
+    include_dealer = entry.get("dealerId") is not None
+    result = sauna_excel.snapshot_diff(
+        before, after,
+        before_overrides=before_ov, after_overrides=after_ov,
+        include_dealer_price=include_dealer,
+    )
+    result["historyId"] = history_id
+    result["isFallback"] = is_fallback
+    result["timestamp"] = entry.get("timestamp")
+    result["filename"] = entry.get("filename")
+    result["adminUsername"] = entry.get("adminUsername")
+    result["dealerId"] = entry.get("dealerId")
+    result["dealerName"] = entry.get("dealerName")
+    result["rolledBack"] = entry.get("rolledBack", False)
+    return result
 
 
 @router.post("/prices/import/history/{history_id}/rollback")

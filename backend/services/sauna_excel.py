@@ -514,9 +514,133 @@ def diff_rows(prices_doc: dict, parsed_rows: list[dict],
 
 
 # ----------------------------------------------------------------------------
-# COMMIT — apply parsed rows
+# SNAPSHOT DIFF — compare two prices docs (used by history-entry diff view)
 # ----------------------------------------------------------------------------
 
+def _row_key(r: dict) -> tuple:
+    """Unique key for a row from `_build_rows`: (type, id, parentId)."""
+    return (r.get("type"), r.get("id"), r.get("parentId") or "")
+
+
+def snapshot_diff(before_prices: dict | None, after_prices: dict | None,
+                  before_overrides: list[dict] | None = None,
+                  after_overrides: list[dict] | None = None,
+                  include_dealer_price: bool = False) -> dict:
+    """Diff two snapshots of the prices document.
+
+    Returns the same shape as `diff_rows`:
+      {"summary": {added, modified, removed, unchanged, marginAlerts}, "rows": [...]}
+
+    Row statuses:
+      - "added"     — present in AFTER, not in BEFORE
+      - "modified"  — present in both, at least one field changed
+      - "removed"   — present in BEFORE, not in AFTER
+      - "unchanged" — present in both, identical
+    """
+    before_prices = before_prices or {}
+    after_prices = after_prices or {}
+
+    before_lookup = build_overrides_lookup(before_overrides or []) if include_dealer_price else None
+    after_lookup = build_overrides_lookup(after_overrides or []) if include_dealer_price else None
+
+    before_rows = {_row_key(r): r for r in _build_rows(before_prices, before_lookup, include_dealer_price)}
+    after_rows = {_row_key(r): r for r in _build_rows(after_prices, after_lookup, include_dealer_price)}
+
+    all_keys = list(dict.fromkeys(list(before_rows.keys()) + list(after_rows.keys())))
+
+    summary = {"added": 0, "modified": 0, "removed": 0, "unchanged": 0, "marginAlerts": 0}
+    MARGIN_ALERT_PCT = 15.0
+    out: list[dict] = []
+
+    fields = ("name", "price", "costPrice", "description", "isActive", "imageUrl")
+    if include_dealer_price:
+        fields = fields + ("dealerPrice",)
+
+    for k in all_keys:
+        b = before_rows.get(k)
+        a = after_rows.get(k)
+        row_type, rid, parent_id = k
+
+        # Pick a row to display the entity meta from (prefer "after" — current state)
+        meta_src = a or b or {}
+        result: dict[str, Any] = {
+            "type": row_type,
+            "id": rid,
+            "parentId": parent_id,
+            "name": meta_src.get("name", ""),
+            "status": "unchanged",
+            "diff": {},
+            "error": "",
+            "margin": {},
+        }
+
+        if b is None and a is not None:
+            result["status"] = "added"
+            result["diff"] = {f: {"old": None, "new": a.get(f)} for f in fields if a.get(f) not in (None, "", 0)}
+            summary["added"] += 1
+        elif a is None and b is not None:
+            result["status"] = "removed"
+            result["diff"] = {f: {"old": b.get(f), "new": None} for f in fields if b.get(f) not in (None, "", 0)}
+            summary["removed"] += 1
+        else:
+            # Both present — compute field diffs
+            diff = {}
+            for f in fields:
+                bv, av = b.get(f), a.get(f)
+                # Treat empty/None as equal
+                if (bv or None) != (av or None):
+                    diff[f] = {"old": bv, "new": av}
+            if diff:
+                result["status"] = "modified"
+                result["diff"] = diff
+                summary["modified"] += 1
+            else:
+                summary["unchanged"] += 1
+
+        # Margin
+        def _to_int(v):
+            try:
+                return int(v) if v is not None and v != "" else None
+            except (TypeError, ValueError):
+                return None
+
+        old_p = _to_int(b.get("price")) if b else None
+        old_c = _to_int(b.get("costPrice")) if b else None
+        new_p = _to_int(a.get("price")) if a else None
+        new_c = _to_int(a.get("costPrice")) if a else None
+
+        def _margin(p, c):
+            return None if p is None or c is None else int(p) - int(c)
+
+        def _margin_pct(p, c):
+            if p is None or c is None or int(p) <= 0:
+                return None
+            return round((int(p) - int(c)) * 100.0 / int(p), 1)
+
+        m_old = _margin(old_p, old_c)
+        m_new = _margin(new_p, new_c)
+        mp_old = _margin_pct(old_p, old_c)
+        mp_new = _margin_pct(new_p, new_c)
+        result["margin"] = {
+            "oldAmount": m_old,
+            "newAmount": m_new,
+            "oldPct": mp_old,
+            "newPct": mp_new,
+            "delta": (m_new - m_old) if (m_old is not None and m_new is not None) else None,
+        }
+        if mp_new is not None and mp_new < MARGIN_ALERT_PCT and result["status"] in ("added", "modified") and (new_p or 0) > 0:
+            result["lowMargin"] = True
+            result["marginThreshold"] = MARGIN_ALERT_PCT
+            summary["marginAlerts"] += 1
+
+        out.append(result)
+
+    return {"summary": summary, "rows": out}
+
+
+# ----------------------------------------------------------------------------
+# COMMIT — apply parsed rows
+# ----------------------------------------------------------------------------
 def apply_rows(prices_doc: dict, parsed_rows: list[dict],
                include_dealer_price: bool = False) -> tuple[dict, list[dict], dict]:
     """Return (updated_prices_doc, dealer_override_changes, summary).

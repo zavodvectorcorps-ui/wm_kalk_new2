@@ -1,0 +1,38 @@
+{
+  "summary": "Backend feature tested in depth via a new dedicated pytest file. All 7 new diff-endpoint tests PASS plus 12/12 pre-existing history regression tests still PASS. Verified: (1) admin auth required on the new GET /sauna/prices/import/history/{id}/diff (401/403 without token), (2) fresh-commit diff returns isFallback=false with summary keys {added, modified, removed, unchanged, marginAlerts} and modified=1 / added=0 / removed=0 / unchanged>0 for a single-row change, (3) the modified row's diff block contains price.{old,new} AND costPrice.{old,new} with correct values + correct margin.newAmount = newPrice-newCost and a numeric newPct, (4) history LIST endpoint excludes snapshotPrices/snapshotOverrides/snapshotAfterPrices/snapshotAfterOverrides blobs, (5) unknown id -> 404, (6) legacy fallback: $unset snapshotAfterPrices on an entry then call diff -> isFallback=true and the same modified row still surfaces, (7) NEW 'removed' status: injected an entry whose before-snapshot has a model absent from after-snapshot -> summary.removed==1 and the row has diff.price.old=10000 / diff.price.new=None. Frontend code review confirmed STATUS_META.removed entry, view-diff-{id} testids, history-diff-dialog testid, summary chips for Добавлено/Изменено/Удалено/Без изм./Маржа<15%, and Hide-unchanged toggle wired through DiffRow reuse. Live UI navigation to the import-export panel could not be reached from the admin landing page in this preview (the /admin route redirects to the service selector and 'Sauna' card goes to the calculator, not Cennik panel) — code-level review used in its place. Loop-prevention triggered after 3 navigation attempts.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/admin landing", "issues": ["Sauna 'Wybierz' button takes admin to the customer-facing kalkulator (/admin) instead of the pricing/import-export panel; testing agents and admins need a clear path to PriceImportExport.jsx (e.g., a Cennik admin entry). Not a regression but worth surfacing."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_price_import_diff.py",
+    "/app/backend/tests/test_sauna_price_import_history.py",
+    "/app/test_reports/pytest/pytest_results_iteration89.xml"
+  ],
+  "action_items": [
+    "(Optional UX) Surface the PriceImportExport / History panel via a clear admin nav entry — current admin landing has no direct link, making it harder to reach the new Изменения button.",
+    "(Optional polish) Consider adding a route like /admin/cennik that lands directly on PriceImportExport so testers and admins can deep-link."
+  ],
+  "critical_code_review_comments": [
+    "snapshot_diff is cleanly implemented and re-uses _build_rows so output shape matches dry-run diff exactly — good consistency.",
+    "Commit endpoint persists snapshotAfterPrices BEFORE dealer-override upserts run for the global path (dealerId=None) — fine because for global commits after_overrides==None anyway. For dealer-scoped commits snapshotAfterOverrides is captured AFTER the upsert loop, which is correct.",
+    "List endpoint projection correctly excludes all four snapshot blobs ({snapshotPrices:0, snapshotOverrides:0, snapshotAfterPrices:0, snapshotAfterOverrides:0}).",
+    "Legacy fallback branch (after is None) correctly toggles isFallback=true and uses current live state — verified end-to-end via the $unset test.",
+    "Minor: snapshot_diff treats falsy values (None/''/0) as equal in the 'added'/'removed' diff filter (line 579/583). For the 'modified' branch it uses `(bv or None) != (av or None)`, which means transitions like '' -> 0 or 0 -> '' will NOT be reported as changes. Probably acceptable for the diff view, but worth noting.",
+    "Minor: in commit_import the line `snapshot_after_prices = updated_doc` stores a reference, not a deep copy — fine here because updated_doc is no longer mutated after, but a deepcopy would be defensive against future refactors."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_price_import_diff.py (new)"
+  ],
+  "success_rate": {"backend": "100% (7/7 new + 12/12 regression)", "frontend": "code-level only — runtime smoke blocked by admin navigation"},
+  "test_credentials": "admin / admin123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "All test data is created and torn down within tests (TEST_HIST_* + TEST_REMOVED_* prefixes, deleted in finally). Two fresh history entries are created per run via real /import/commit (price+costPrice bump on first model) — these accumulate in sauna_price_import_history but are auto-capped to 50 by the existing retention logic.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The new diff endpoint test file is /app/backend/tests/test_sauna_price_import_diff.py. It loads env from /app/frontend/.env + /app/backend/.env so it can run without REACT_APP_BACKEND_URL env-var. Tests cover: auth, fresh-commit modified row, list excludes blobs, 404, legacy fallback (via direct Mongo $unset), and removed status (via injected synthetic history entry). The frontend testids to use are: view-diff-{historyId} (button in HistoryDialog), history-diff-dialog (the inner Dialog). To actually reach the UI: login as admin then look for the Cennik / PriceImportExport panel — note that from /admin the Sauna 'Wybierz' card routes to the calculator, not the pricing admin. The pricing/import-export view lives inside the admin pricing tab (data-testid components in /app/frontend/src/components/sauna-pricing/PriceImportExport.jsx).",
+  "rca of the issue": "N/A — this iteration is a feature-test, not a bug fix. Implementation is correct per spec."
+}

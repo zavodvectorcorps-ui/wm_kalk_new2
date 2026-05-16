@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Download, Upload, FileSpreadsheet, FileText, Loader2, AlertTriangle, CheckCircle2, Pencil, FilePlus2, X, History, Undo2 } from 'lucide-react';
+import { Download, Upload, FileSpreadsheet, FileText, Loader2, AlertTriangle, CheckCircle2, Pencil, FilePlus2, X, History, Undo2, Eye, Minus } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -22,6 +22,7 @@ const authHeaders = () => {
 const STATUS_META = {
   added: { color: 'bg-emerald-100 text-emerald-700 border-emerald-300', icon: FilePlus2, label: 'Добавлено' },
   modified: { color: 'bg-amber-100 text-amber-800 border-amber-300', icon: Pencil, label: 'Изменено' },
+  removed: { color: 'bg-red-100 text-red-700 border-red-300', icon: Minus, label: 'Удалено' },
   unchanged: { color: 'bg-slate-100 text-slate-600 border-slate-200', icon: CheckCircle2, label: 'Без изменений' },
   error: { color: 'bg-red-100 text-red-700 border-red-300', icon: AlertTriangle, label: 'Ошибка' },
 };
@@ -207,6 +208,7 @@ function HistoryDialog({ dealerId, dealerName, onClose, onRolledBack }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rollingId, setRollingId] = useState(null);
+  const [diffEntry, setDiffEntry] = useState(null); // {entry} for the diff sub-dialog
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -309,25 +311,37 @@ function HistoryDialog({ dealerId, dealerName, onClose, onRolledBack }) {
                         </div>
                       </td>
                       <td className="px-3 py-2 text-right">
-                        {h.rolledBack ? (
-                          <Badge variant="outline" className="text-slate-500 border-slate-300">
-                            Откачен
-                          </Badge>
-                        ) : (
+                        <div className="inline-flex items-center gap-1">
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={rollingId === h.id}
-                            onClick={() => handleRollback(h.id)}
-                            data-testid={`rollback-${h.id}`}
-                            className="border-red-300 text-red-600 hover:bg-red-50"
+                            onClick={() => setDiffEntry(h)}
+                            data-testid={`view-diff-${h.id}`}
+                            title="Посмотреть, что изменил этот импорт"
                           >
-                            {rollingId === h.id
-                              ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                              : <Undo2 className="h-3 w-3 mr-1" />}
-                            Откатить
+                            <Eye className="h-3 w-3 mr-1" />
+                            Изменения
                           </Button>
-                        )}
+                          {h.rolledBack ? (
+                            <Badge variant="outline" className="text-slate-500 border-slate-300">
+                              Откачен
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={rollingId === h.id}
+                              onClick={() => handleRollback(h.id)}
+                              data-testid={`rollback-${h.id}`}
+                              className="border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                              {rollingId === h.id
+                                ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                : <Undo2 className="h-3 w-3 mr-1" />}
+                              Откатить
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -339,6 +353,128 @@ function HistoryDialog({ dealerId, dealerName, onClose, onRolledBack }) {
 
         <DialogFooter className="pt-3 border-t">
           <Button variant="outline" onClick={onClose} data-testid="history-close">
+            <X className="h-4 w-4 mr-1" /> Закрыть
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+
+      {diffEntry && (
+        <HistoryDiffDialog
+          entry={diffEntry}
+          onClose={() => setDiffEntry(null)}
+        />
+      )}
+    </Dialog>
+  );
+}
+
+function HistoryDiffDialog({ entry, onClose }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [hideUnchanged, setHideUnchanged] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(
+          `${API}/api/sauna/prices/import/history/${entry.id}/diff`,
+          { headers: authHeaders() },
+        );
+        if (!cancelled) setData(res.data);
+      } catch (e) {
+        toast.error(e?.response?.data?.detail || 'Не удалось загрузить diff');
+        onClose();
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [entry.id, onClose]);
+
+  const s = data?.summary || {};
+  const total = (s.added || 0) + (s.modified || 0) + (s.removed || 0) + (s.unchanged || 0);
+  const visibleRows = (data?.rows || []).filter((r) => !hideUnchanged || r.status !== 'unchanged');
+  const marginAlerts = s.marginAlerts || 0;
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col" data-testid="history-diff-dialog">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5 text-slate-600" />
+            Что изменил этот импорт
+            {entry.rolledBack && (
+              <Badge variant="outline" className="ml-2 border-slate-300 text-slate-500">Откачен</Badge>
+            )}
+          </DialogTitle>
+          <DialogDescription>
+            <span className="font-mono">{entry.filename || '—'}</span>
+            {' · '}
+            {entry.adminUsername}
+            {' · '}
+            {entry.timestamp ? new Date(entry.timestamp).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+            {data?.isFallback && (
+              <span className="block mt-1 text-amber-700 text-xs">
+                ⚠ У этой записи нет снимка ПОСЛЕ коммита (legacy). Показано сравнение с ТЕКУЩИМ состоянием прайса —
+                может включать изменения, сделанные ПОСЛЕ этого импорта.
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        ) : (
+          <>
+            {marginAlerts > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-red-300 bg-red-50 text-red-700 text-xs">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>В этом коммите у {marginAlerts} позиций маржа стала ниже 15% — они выделены красным.</span>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2 py-2">
+              <SummaryChip label="Добавлено" value={s.added || 0} color="emerald" />
+              <SummaryChip label="Изменено" value={s.modified || 0} color="amber" />
+              <SummaryChip label="Удалено" value={s.removed || 0} color="red" />
+              <SummaryChip label="Без изм." value={s.unchanged || 0} color="slate" />
+              {marginAlerts > 0 && <SummaryChip label="Маржа <15%" value={marginAlerts} color="red" />}
+              <SummaryChip label="Всего" value={total} color="slate" />
+              <label className="ml-auto inline-flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hideUnchanged}
+                  onChange={(e) => setHideUnchanged(e.target.checked)}
+                />
+                Скрыть «без изменений»
+              </label>
+            </div>
+
+            <div className="flex-1 overflow-auto border rounded-md">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr className="text-left">
+                    <th className="px-2 py-2 w-28">Статус</th>
+                    <th className="px-2 py-2 w-32">Тип</th>
+                    <th className="px-2 py-2">ID / Имя</th>
+                    <th className="px-2 py-2">Изменения</th>
+                    <th className="px-2 py-2 w-32">Маржа</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRows.length === 0 ? (
+                    <tr><td colSpan={5} className="px-2 py-8 text-center text-muted-foreground">Нет строк для отображения</td></tr>
+                  ) : visibleRows.map((r, idx) => <DiffRow key={idx} row={r} />)}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        <DialogFooter className="pt-3 border-t">
+          <Button variant="outline" onClick={onClose}>
             <X className="h-4 w-4 mr-1" /> Закрыть
           </Button>
         </DialogFooter>
