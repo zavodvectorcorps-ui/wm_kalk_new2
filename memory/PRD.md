@@ -637,5 +637,45 @@ Completed all three open items from Phase 2:
 ### Тесты
 - `/app/backend/tests/test_dealer_overrides_upsert.py` — 7/7 PASSED
   (empty, insert, modify, no-wipe, invalid-kind, unknown-dealer, auth).
+
+## Session — Excel I/O + Dealer Comparison (May 16, 2026, late evening)
+
+### Components + Tech-cards Excel Export/Import
+- Один XLSX-файл с двумя листами: **Components** и **TechCards**.
+- Сервис `services/sauna_production_excel.py`:
+  - `export_xlsx(components, tech_cards)` — генерирует workbook с оранжевыми заголовками,
+    компоненты в `Components` (id|name|category|unit|unitPrice|supplier|note|stockCurrent|stockMin|isActive),
+    тех.карты — flattened в `TechCards` (cardId|scope|modelId|variantId|optionId|optionVariantId|componentId|componentName|qty|itemNote|laborCost|overheadPct|manualAdjustment|syncToCostPrice|cardNote).
+  - `parse_xlsx(blob)` — читает оба листа, возвращает `(components, cards, errors)`.
+  - `diff_components` / `diff_cards` — генерирует add/update/unchanged. Numeric-safe (None == 0).
+  - `merge_component` / `merge_card` — слияние перед upsert.
+- Эндпоинты в `routes/sauna_tech_cards.py`:
+  - `GET /api/sauna-production/cost/export` — file download.
+  - `POST /api/sauna-production/cost/import-dry-run` — превью без записи.
+  - `POST /api/sauna-production/cost/import-commit` — upsert всё + recompute_and_sync на каждую touched тех.карту.
+- UI: `ImportExportButtons.jsx` рядом с «Добавить компонент» в `ComponentsAdmin`.
+  Диалог импорта показывает DiffSection для каждого листа с зелёными/синими бейджами,
+  кнопка «Применить» дизейблится при 0 изменений; после коммита — экран успеха.
+
+### Dealer Pricing Comparison
+- `GET /api/admin/dealers/comparison` — возвращает таблицу:
+  каталог × дилеры. На каждой строке retailBrutto + per-dealer price (или null) +
+  min/avg/max/overrideCount.
+- UI: новая вкладка «Сравнение цен» в `DealersAdminPage` (рядом со «Списком»).
+- `DealerComparisonPage.jsx`:
+  - Поиск по имени, фильтр по типу (model / model_variant / option / option_variant),
+    переключатель «Только с overrides».
+  - Цветовая подсветка ячеек: зелёный = дешевле розницы (интенсивность зависит от %),
+    красный = дороже, серый «база» = нет override.
+  - Иконка ↑/↓ и tooltip со скидкой/наценкой в %.
+  - Кнопка экспорта в CSV (Excel-friendly UTF-8 BOM + `;`).
+
+### Тесты
+- Backend `test_sauna_production_excel_and_comparison.py` — 13/13 PASSED.
+  Покрывает: export shape (2 sheets, headers), round-trip dry-run (0 add/update/52 unchanged),
+  validation errors (invalid file, missing name), commit persistence, dealer comparison
+  endpoint (rows, kinds, dealer override flags).
+- Регрессия 25/25 PASSED (`test_dealer_overrides_upsert`, `test_sauna_tech_card_vat`,
+  `test_sauna_stock_and_option_forecast`).
 - Marketer: marketer / marketer123
 - Test Dealer: testdealer / dealer123  (id=sauna-config-5)
