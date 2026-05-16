@@ -469,6 +469,41 @@ Completed all three open items from Phase 2:
       `ACCESS_SECTIONS` (без хардкода).
 - Тестировано: 15/15 backend pytest pass; frontend smoke OK.
 
+## Session 16 — Sauna Tech-Cards & Components BOM (Feb 16, 2026)
+
+- **Внутренний калькулятор себестоимости саун** в разделе «Производство саун».
+- Backend (`routes/sauna_tech_cards.py`):
+    - 2 коллекции: `sauna_components` (база комплектующих с unitPrice),
+      `sauna_tech_cards` (BOM-карта на каждую модель/вариант/опцию/вариант
+      опции с items + laborCost + overheadPct + manualAdjustment).
+    - Endpoints: `GET/POST/PUT/DELETE /api/sauna-production/cost/components`,
+      `GET/POST/DELETE /api/sauna-production/cost/tech-cards`,
+      `POST /tech-cards/recompute-all`, `GET /dashboard`, `GET /categories`.
+    - **Авто-пересчёт**: при изменении `unitPrice` компонента ВСЕ
+      содержащие его тех.карты пересчитываются автоматически.
+    - **Авто-синхронизация**: если `syncToCostPrice=true` (по умолчанию),
+      итоговая себестоимость записывается в поле `costPrice` соответствующей
+      позиции `sauna_prices` (т.е. сразу используется в Excel-импорте и
+      дилерских заказах).
+    - Защита: компонент нельзя удалить, если он используется в тех.карте
+      (400 с сообщением).
+- Frontend — 2 новые вкладки в `SaunaProductionPage`:
+    - **Тех.карты** (`TechCardsAdmin.jsx` + `TechCardEditor.jsx`):
+      раскрываемый список моделей+вариантов+опций, каждая строка
+      показывает себестоимость и маржу. Клик → диалог-редактор с
+      live-пересчётом: материалы / работа / накладные% / корректировка =
+      итого, рядом розница и маржа (красная если <15%). Переключатель
+      «Записывать costPrice в прайс».
+    - **Комплектующие** (`ComponentsAdmin.jsx`): CRUD каталога с
+      поиском и фильтром по 9 категориям (Дерево / Металл / Крепёж /
+      Электрика / Печь / Стекло / Изоляция / Отделка / Прочее).
+      Изменение цены показывает предупреждение «все тех.карты
+      пересчитаются» и при сохранении возвращает `affectedCards`.
+- Тестировано: 28/28 backend pytest pass (auth, CRUD, валидации,
+  scope-ы model/variant/option, sync во все 4 типа позиций, формула
+  total = materials + labor + materials*ohPct/100 + manual). Frontend
+  smoke по admin/admin123 без console errors.
+
 ## Prioritized Backlog
 - P1: Telegram notification on negative AI score for calls
 - P1: Weekly AI digest (email/Telegram) for managers
