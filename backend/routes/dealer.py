@@ -591,6 +591,64 @@ async def admin_put_dealer_overrides(
     return {"ok": True, "count": len(body.overrides or [])}
 
 
+@router.post("/api/admin/dealers/{dealer_id}/overrides/upsert")
+async def admin_upsert_dealer_overrides(
+    dealer_id: str,
+    body: dict,
+    _: dict = Depends(get_admin_user),
+):
+    """Add or update specific dealer overrides without wiping the rest.
+
+    Matches existing overrides on (dealerId, kind, modelId, variantId, optionId, optionVariantId)
+    and replaces the price; inserts new ones if not found.
+    """
+    if not await db.dealers.find_one({"id": dealer_id}):
+        raise HTTPException(404, "Dealer not found")
+    raw_list = (body or {}).get("overrides") or []
+    if not isinstance(raw_list, list) or not raw_list:
+        return {"ok": True, "upserted": 0, "modified": 0, "inserted": 0}
+
+    now = datetime.now(timezone.utc).isoformat()
+    modified = 0
+    inserted = 0
+    for raw in raw_list:
+        if not isinstance(raw, dict):
+            continue
+        kind = (raw.get("kind") or "").strip()
+        if kind not in ("model", "model_variant", "option", "option_variant"):
+            raise HTTPException(400, f"Invalid kind: {kind!r}")
+        try:
+            price = int(raw.get("price") or 0)
+        except (TypeError, ValueError):
+            raise HTTPException(400, "price must be an integer")
+        doc = {
+            "dealerId": dealer_id,
+            "kind": kind,
+            "modelId": raw.get("modelId") or None,
+            "variantId": raw.get("variantId") or None,
+            "optionId": raw.get("optionId") or None,
+            "optionVariantId": raw.get("optionVariantId") or None,
+            "price": price,
+            "updatedAt": now,
+        }
+        key = {
+            "dealerId": dealer_id,
+            "kind": doc["kind"],
+            "modelId": doc["modelId"],
+            "variantId": doc["variantId"],
+            "optionId": doc["optionId"],
+            "optionVariantId": doc["optionVariantId"],
+        }
+        res = await db.dealer_price_overrides.update_one(
+            key, {"$set": doc}, upsert=True,
+        )
+        if res.upserted_id is not None:
+            inserted += 1
+        elif res.modified_count > 0:
+            modified += 1
+    return {"ok": True, "upserted": inserted + modified, "modified": modified, "inserted": inserted}
+
+
 @router.get("/api/admin/dealer-orders/{order_id}/pdf")
 async def admin_dealer_order_pdf(
     order_id: str,

@@ -611,5 +611,31 @@ Completed all three open items from Phase 2:
 ## Credentials
 - Admin: admin / admin123 (legacy 159357 may also work)
 - Storekeeper: kladovshchik / kladovshchik123
+
+## Session — Apply-to-dealer from Simulator (May 16, 2026, evening)
+
+### Архитектура цен (уточнение для PRD)
+- `sauna_prices` (один документ) — базовая розница brutto + costPrice netto.
+- `dealer_price_overrides` — индивидуальные дилерские цены, по записи на
+  каждую модель/вариант/опцию для каждого дилера. Применяются поверх базы в
+  `/api/dealer/sauna/prices`; `costPrice` дилеру не виден (зачищается).
+
+### Новый backend endpoint
+- `POST /api/admin/dealers/{dealer_id}/overrides/upsert`
+  Body: `{overrides: [{kind, modelId?, variantId?, optionId?, optionVariantId?, price}]}`
+  Делает upsert на ключ (dealerId+kind+modelId+variantId+optionId+optionVariantId).
+  В отличие от существующего PUT — НЕ затирает остальные overrides дилера.
+  Возвращает `{ok, upserted, inserted, modified}`.
+
+### UI: «Применить к дилеру…» в PriceSimulator
+- Когда задана дилерская цена → кнопка `sim-apply-dealer`.
+- Диалог `apply-dealer-dialog` показывает таблицу-предпросмотр всех позиций
+  с дилерской ценой = `retail × (dealer_brutto / retail_brutto)` (пропорциональный
+  дисконт). Выбор дилера из списка → один клик — overrides записаны.
+- Зелёный success-state с кратким отчётом.
+
+### Тесты
+- `/app/backend/tests/test_dealer_overrides_upsert.py` — 7/7 PASSED
+  (empty, insert, modify, no-wipe, invalid-kind, unknown-dealer, auth).
 - Marketer: marketer / marketer123
 - Test Dealer: testdealer / dealer123  (id=sauna-config-5)

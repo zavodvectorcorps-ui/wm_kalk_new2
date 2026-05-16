@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Loader2, Plus, Trash2, Sparkles, Info } from 'lucide-react';
+import { Loader2, Plus, Trash2, Sparkles, Info, Send, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { Badge } from '../ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { toast } from 'sonner';
 import { COST_BASE, API, authHeaders, fmtMoney } from './costConstants';
 
@@ -30,6 +31,7 @@ export default function PriceSimulator() {
   const [options, setOptions] = useState([]); // [{_id, optionId, optionVariantId, qty}]
   const [dealerInput, setDealerInput] = useState('');
   const [dealerMode, setDealerMode] = useState('brutto'); // 'brutto' | 'netto'
+  const [applyOpen, setApplyOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -348,6 +350,17 @@ export default function PriceSimulator() {
                     ⚠ Цена ниже себестоимости — продажа в убыток
                   </div>
                 )}
+
+                <Button
+                  size="sm"
+                  className="w-full mt-2 bg-blue-600 hover:bg-blue-700"
+                  onClick={() => setApplyOpen(true)}
+                  disabled={breakdown.rows.length === 0 || dealer.brutto <= 0}
+                  data-testid="sim-apply-dealer"
+                >
+                  <Send className="w-3.5 h-3.5 mr-1.5" />
+                  Применить к дилеру…
+                </Button>
               </div>
             ) : (
               <div className="text-xs text-muted-foreground pt-2">Введите цену, которую вы готовы дать дилеру.</div>
@@ -375,7 +388,210 @@ export default function PriceSimulator() {
           </div>
         </div>
       )}
+
+      {applyOpen && dealer && (
+        <ApplyToDealerDialog
+          options={options}
+          optById={optById}
+          model={model}
+          variant={variant}
+          breakdown={breakdown}
+          dealer={dealer}
+          onClose={() => setApplyOpen(false)}
+        />
+      )}
     </div>
+  );
+}
+
+function ApplyToDealerDialog({ options, optById, model, variant, breakdown, dealer, onClose }) {
+  const [dealers, setDealers] = useState([]);
+  const [dealerId, setDealerId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(null); // {upserted, inserted, modified}
+
+  // Build the override rows from breakdown.
+  // Each row's dealer price = retail × (dealerBrutto / retailBrutto)  → proportional discount.
+  const ratio = breakdown.retailBrutto > 0 ? dealer.brutto / breakdown.retailBrutto : 0;
+  const overrides = useMemo(() => {
+    const list = [];
+    // Model row
+    if (model && !variant) {
+      list.push({
+        kind: 'model',
+        modelId: model.id,
+        variantId: null, optionId: null, optionVariantId: null,
+        retail: model.basePrice || 0,
+        price: Math.round((model.basePrice || 0) * ratio),
+        name: model.name,
+      });
+    } else if (model && variant) {
+      list.push({
+        kind: 'model_variant',
+        modelId: model.id, variantId: variant.id,
+        optionId: null, optionVariantId: null,
+        retail: (model.basePrice || 0) + (variant.price || 0),
+        price: Math.round(((model.basePrice || 0) + (variant.price || 0)) * ratio),
+        name: `${model.name} — ${variant.name || variant.namePl}`,
+      });
+    }
+    // Options
+    for (const opt of options) {
+      const o = optById[opt.optionId];
+      if (!o) continue;
+      const ov = (o.variants || []).find((v) => v.id === opt.optionVariantId);
+      if (ov) {
+        list.push({
+          kind: 'option_variant',
+          modelId: null, variantId: null,
+          optionId: o.id, optionVariantId: ov.id,
+          retail: ov.price || 0,
+          price: Math.round((ov.price || 0) * ratio),
+          name: `${o.name} — ${ov.name || ov.namePl}`,
+        });
+      } else {
+        list.push({
+          kind: 'option',
+          modelId: null, variantId: null,
+          optionId: o.id, optionVariantId: null,
+          retail: o.price || 0,
+          price: Math.round((o.price || 0) * ratio),
+          name: o.name,
+        });
+      }
+    }
+    return list;
+  }, [model, variant, options, optById, ratio]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await axios.get(`${API}/api/admin/dealers`, { headers: authHeaders() });
+        setDealers(r.data?.dealers || []);
+      } catch (e) {
+        toast.error('Не удалось загрузить список дилеров');
+      } finally { setLoading(false); }
+    })();
+  }, []);
+
+  const submit = async () => {
+    if (!dealerId) return toast.error('Выберите дилера');
+    setBusy(true);
+    try {
+      const payload = {
+        overrides: overrides.map((o) => ({
+          kind: o.kind,
+          modelId: o.modelId,
+          variantId: o.variantId,
+          optionId: o.optionId,
+          optionVariantId: o.optionVariantId,
+          price: o.price,
+        })),
+      };
+      const r = await axios.post(
+        `${API}/api/admin/dealers/${dealerId}/overrides/upsert`,
+        payload,
+        { headers: authHeaders() },
+      );
+      setDone(r.data);
+      toast.success(`Записано ${r.data.upserted} позиций (нов.: ${r.data.inserted}, обнов.: ${r.data.modified})`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка');
+    } finally { setBusy(false); }
+  };
+
+  const selectedDealer = dealers.find((d) => d.id === dealerId);
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl" data-testid="apply-dealer-dialog">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Send className="w-5 h-5 text-blue-600" />Применить дилерскую цену</DialogTitle>
+          <DialogDescription>
+            Цена будет распределена <b>пропорционально</b> по каждой позиции:
+            каждой позиции присваивается дилерская цена = <code className="px-1 bg-slate-100 rounded">retail × {(ratio || 0).toFixed(4)}</code>.
+            Это эквивалент скидки {((1 - ratio) * 100).toFixed(1)}% от розницы на весь набор.
+          </DialogDescription>
+        </DialogHeader>
+
+        {done ? (
+          <div className="flex flex-col items-center gap-2 py-6 text-center" data-testid="apply-dealer-done">
+            <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            <div className="font-medium">Готово</div>
+            <div className="text-sm text-muted-foreground">
+              Записано {done.upserted} позиций для дилера <b className="text-foreground">{selectedDealer?.name || selectedDealer?.username}</b>:
+              <br />новых: {done.inserted}, обновлённых: {done.modified}.
+            </div>
+            <div className="text-xs text-muted-foreground mt-2">
+              Дилер увидит новые цены при следующем входе или обновлении калькулятора.
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <label className="text-xs font-medium">Дилер</label>
+              {loading ? (
+                <div className="py-3 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-orange-500" /></div>
+              ) : (
+                <Select value={dealerId || '__none__'} onValueChange={(v) => setDealerId(v === '__none__' ? '' : v)}>
+                  <SelectTrigger data-testid="apply-dealer-select"><SelectValue placeholder="Выберите дилера..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— не выбран —</SelectItem>
+                    {dealers.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name || d.username} <span className="text-muted-foreground">({d.username})</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="border rounded-md max-h-[280px] overflow-y-auto mt-2">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr className="text-left">
+                    <th className="px-3 py-1.5">Позиция</th>
+                    <th className="px-3 py-1.5 w-24">Тип</th>
+                    <th className="px-3 py-1.5 w-28 text-right">Розница</th>
+                    <th className="px-3 py-1.5 w-28 text-right">Дилеру</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overrides.map((o, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="px-3 py-1.5">{o.name}</td>
+                      <td className="px-3 py-1.5"><Badge variant="outline" className="text-[10px]">{o.kind}</Badge></td>
+                      <td className="px-3 py-1.5 text-right font-mono">{fmtMoney(o.retail)}</td>
+                      <td className="px-3 py-1.5 text-right font-mono font-semibold text-blue-700">{fmtMoney(o.price)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="text-[11px] text-muted-foreground bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 mt-2">
+              ℹ Существующие записи дилера для этих позиций будут <b>заменены</b>. Остальные overrides дилера (на другие модели/опции) останутся как есть.
+            </div>
+          </>
+        )}
+
+        <DialogFooter>
+          {done ? (
+            <Button onClick={onClose} data-testid="apply-dealer-close">Закрыть</Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={onClose}>Отмена</Button>
+              <Button onClick={submit} disabled={busy || !dealerId || overrides.length === 0} className="bg-blue-600 hover:bg-blue-700" data-testid="apply-dealer-submit">
+                {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+                Применить ({overrides.length})
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
