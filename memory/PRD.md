@@ -358,6 +358,30 @@ Completed all three open items from Phase 2:
 - Tested: 15/15 backend pytest cases pass (auth gating, xlsx/csv round-trip,
   dealer-scoped diff, empty-dealerPrice no-op, blank rows, invalid file).
 
+## Session 12 — Import History + 1-Click Rollback (Feb 16, 2026)
+
+- **Audit log + rollback** for every Excel/CSV import. Each commit now
+  snapshots the full `sauna_prices` doc and (if scoped) the dealer's
+  `dealer_price_overrides` *before* writing, into a new
+  `sauna_price_import_history` collection.
+- Backend endpoints (admin-only, `routes/sauna_crud.py`):
+    - `GET /api/sauna/prices/import/history?dealerId=…&limit=N` — list
+      entries sorted by timestamp DESC; snapshot blobs excluded from list
+      payload for performance.
+    - `POST /api/sauna/prices/import/history/{id}/rollback` — restores
+      prices doc and (for dealer-scoped entries) wipes & reinserts the
+      override snapshot. Marks the entry `rolledBack=true`; 2nd call → 400.
+    - `DELETE /api/sauna/prices/import/history/{id}` — hard delete (+ snapshot).
+    - Commit response now includes `historyId`.
+    - Auto-prune: scope is capped at 50 entries; oldest are dropped on next
+      commit.
+- Frontend (`PriceImportExport.jsx`):
+    - New **«История»** button next to Импорт/Экспорт.
+    - **HistoryDialog** lists entries with date, admin, filename, summary
+      chips (+N / ~N / errors / overrides), and a red **«Откатить»** button
+      per row. After rollback the row shows **«Откачен»** badge.
+- Tested: 12/12 backend pytest pass; frontend dialog verified live.
+
 ## Prioritized Backlog
 - P1: Telegram notification on negative AI score for calls
 - P1: Weekly AI digest (email/Telegram) for managers
