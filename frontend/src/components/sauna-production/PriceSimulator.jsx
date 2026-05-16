@@ -32,6 +32,9 @@ export default function PriceSimulator() {
   const [dealerInput, setDealerInput] = useState('');
   const [dealerMode, setDealerMode] = useState('brutto'); // 'brutto' | 'netto'
   const [applyOpen, setApplyOpen] = useState(false);
+  // Розничные накладные расходы (доставка курьером клиенту, упаковка, комиссия
+  // продавца и пр.) — отнимаются только из розничной маржи, не из дилерской.
+  const [retailExtraInput, setRetailExtraInput] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -136,11 +139,12 @@ export default function PriceSimulator() {
     const retailBrutto = rows.reduce((s, r) => s + r.retailBrutto, 0);
     const retailNetto = retailBrutto / (1 + VAT);
     const cost = rows.reduce((s, r) => s + r.costNetto, 0);
-    const margin = retailNetto - cost;
+    const retailExtra = Math.max(0, parseFloat(retailExtraInput) || 0);
+    const margin = retailNetto - cost - retailExtra;
     const marginPct = retailNetto > 0 ? (margin / retailNetto) * 100 : null;
     const missingCards = rows.filter((r) => !r.hasCard).length;
-    return { rows, retailBrutto, retailNetto, cost, margin, marginPct, missingCards };
-  }, [model, variant, options, optById, cardByKey]);
+    return { rows, retailBrutto, retailNetto, cost, retailExtra, margin, marginPct, missingCards };
+  }, [model, variant, options, optById, cardByKey, retailExtraInput]);
 
   // ---------- dealer-price math ----------
   const dealer = useMemo(() => {
@@ -291,9 +295,31 @@ export default function PriceSimulator() {
             <SumRow label="Розница brutto (с НДС 23%)" value={breakdown.retailBrutto} />
             <SumRow label="Розница netto (без НДС)" value={breakdown.retailNetto} subtle />
             <SumRow label="Себестоимость (netto)" value={breakdown.cost} subtle />
+
+            <div className="pt-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Розничные накладные расходы (netto)
+              </label>
+              <Input
+                type="number"
+                step="100"
+                placeholder="Доставка клиенту, упаковка, комиссия продавца..."
+                value={retailExtraInput}
+                onChange={(e) => setRetailExtraInput(e.target.value)}
+                className="h-9 mt-1 font-mono"
+                data-testid="sim-retail-extra"
+              />
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Расходы, которые возникают только при розничной продаже. Из дилерской маржи <b>не вычитаются</b> — для честного сравнения.
+              </div>
+            </div>
+            {breakdown.retailExtra > 0 && (
+              <SumRow label="− розничные расходы" value={-breakdown.retailExtra} subtle color="red" />
+            )}
+
             <div className="border-t pt-2 mt-1">
               <SumRow
-                label="Маржа (netto − cost)"
+                label="Маржа (netto − cost − расходы)"
                 value={breakdown.margin}
                 pct={breakdown.marginPct}
                 color={breakdown.marginPct !== null && breakdown.marginPct < 15 ? 'red' : 'emerald'}
@@ -305,6 +331,9 @@ export default function PriceSimulator() {
           {/* Dealer */}
           <div className="border-2 border-blue-200 rounded-lg bg-blue-50/30 p-4 space-y-2" data-testid="simulator-dealer">
             <div className="text-xs font-semibold uppercase text-blue-700">Дилерская цена</div>
+            <div className="text-[10px] text-blue-700/80 -mt-1">
+              Маржа считается от чистой себестоимости (без розничных расходов).
+            </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Цена для дилера ({dealerMode === 'brutto' ? 'brutto, с НДС' : 'netto, без НДС'})</label>
               <div className="flex items-center gap-2 mt-1">
