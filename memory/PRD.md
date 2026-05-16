@@ -543,4 +543,4 @@ Completed all three open items from Phase 2:
 - Admin: admin / admin123 (legacy 159357 may also work)
 - Storekeeper: kladovshchik / kladovshchik123
 - Marketer: marketer / marketer123
-- Test Dealer: testdealer / dealer123  (id=2710dcf7-a971-4124-ab3e-1e0a401f5c11)
+- Test Dealer: testdealer / dealer123  (id=sauna-config-5)

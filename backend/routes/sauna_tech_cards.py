@@ -72,6 +72,8 @@ async def create_component(body: dict, _: dict = Depends(get_admin_user)):
         "unitPrice": float(body.get("unitPrice") or 0),
         "supplier": body.get("supplier") or "",
         "note": body.get("note") or "",
+        "stockCurrent": float(body.get("stockCurrent") or 0),
+        "stockMin": float(body.get("stockMin") or 0),
         "isActive": bool(body.get("isActive", True)),
         "createdAt": _now(),
         "updatedAt": _now(),
@@ -92,6 +94,10 @@ async def update_component(component_id: str, body: dict, _: dict = Depends(get_
             update[k] = body[k]
     if "unitPrice" in body and body["unitPrice"] is not None:
         update["unitPrice"] = float(body["unitPrice"])
+    if "stockCurrent" in body and body["stockCurrent"] is not None:
+        update["stockCurrent"] = float(body["stockCurrent"])
+    if "stockMin" in body and body["stockMin"] is not None:
+        update["stockMin"] = float(body["stockMin"])
     if "isActive" in body:
         update["isActive"] = bool(body["isActive"])
     update["updatedAt"] = _now()

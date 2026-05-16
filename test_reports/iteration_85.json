@@ -22,7 +22,7 @@
     "/app/test_reports/iteration_85.json"
   ],
   "success_rate": {"backend": "100% (15/15)", "frontend": "100% (verified flows)"},
-  "test_credentials": "admin / admin123 ; testdealer dealer_id=2710dcf7-a971-4124-ab3e-1e0a401f5c11",
+  "test_credentials": "admin / admin123 ; testdealer dealer_id=sauna-config-5",
   "seed_data_creation": "Test created and then reverted one model basePrice via xlsx round-trip; created and removed a dealer-price override for testdealer (set to 99999 then test_commit_empty_dealerprice_is_noop ran with blanks — override remains at 99999 in DB after test run; main agent may want to clear if needed).",
   "retest_needed": false,
   "main_agent_can_self_test": true,
