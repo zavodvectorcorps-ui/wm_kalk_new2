@@ -408,6 +408,32 @@ Completed all three open items from Phase 2:
   them). Also added `marketer` to PUT's role whitelist.
 - Tested: 15/15 backend pytest pass; UI flows verified.
 
+## Session 14 — Per-commit Snapshot Diff in Import History (Feb 16, 2026)
+
+- **Что именно изменил этот импорт** — новая возможность в диалоге Истории.
+- Backend (`services/sauna_excel.py`):
+    - `snapshot_diff(before, after)` — переиспользует `_build_rows()`,
+      делает key-based join по `(type, id, parentId)`. Поддерживает новый
+      статус **`removed`** (для записей, которые были до коммита и
+      исчезли после).
+- Backend (`routes/sauna_crud.py`):
+    - При коммите теперь сохраняются ОБА снимка: `snapshotPrices` (до)
+      и `snapshotAfterPrices` (после) + аналогичные для dealer overrides.
+    - Новый эндпоинт `GET /api/sauna/prices/import/history/{id}/diff`
+      возвращает структуру `{summary: {added,modified,removed,unchanged,
+      marginAlerts}, rows, isFallback}`. Включает маржинальные
+      предупреждения и dealer-price diff для dealer-scoped записей.
+    - Legacy fallback: если у старой записи нет `snapshotAfterPrices`,
+      сравнение делается с ТЕКУЩИМ состоянием прайса + `isFallback=true`
+      с предупреждением в UI.
+    - List endpoint исключает все 4 snapshot blobs из ответа.
+- Frontend (`PriceImportExport.jsx`):
+    - В каждой строке Истории — кнопка **«Изменения»** (Eye-иконка).
+    - Открывает `HistoryDiffDialog` с шапкой (файл + админ + дата), чипами
+      сводки, баннером low-margin (если есть) и таблицей diff
+      (переиспользует `DiffRow` — старое/новое + маржа).
+- Тестировано: 7/7 новых pytest + 12/12 регрессии прошли.
+
 ## Prioritized Backlog
 - P1: Telegram notification on negative AI score for calls
 - P1: Weekly AI digest (email/Telegram) for managers
