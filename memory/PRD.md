@@ -560,6 +560,40 @@ Completed all three open items from Phase 2:
 - В `ComponentsAdmin`:
   - Новая колонка «Остаток / Мин.» с подсветкой при `stock ≤ stockMin`.
   - Кнопка `component-stock-{id}` открывает `StockDialog` с формой и историей.
+
+## Session — VAT-aware margins + Price Simulator (May 16, 2026, p.m.)
+
+### НДС 23% корректировка во всех расчётах маржи
+- Розничные цены в `sauna_prices` хранятся как **brutto** (с НДС).
+- Себестоимость по тех.картам — **netto**.
+- В `_compute_totals` (`sauna_tech_cards.py`) теперь возвращаются:
+  `retailPrice` (brutto), `retailNetto`, `vatRate=0.23`,
+  `marginAmount` и `marginPct` пересчитаны на netto:
+  `margin = retail/1.23 − cost`, `marginPct = margin / (retail/1.23)`.
+- Поля `retailNetto` и `vatRate` персистятся в документе при `upsert` /
+  `recompute-all`, так что dashboard и margin-leaderboard сразу показывают
+  корректные значения.
+- В `TechCardEditor`: панель «Себестоимость» теперь показывает
+  «Розница brutto (с НДС 23%)» и «Розница netto (без НДС)» отдельно;
+  лейбл маржи: «Маржа (netto − cost)».
+
+### Симулятор цен (PriceSimulator.jsx, новая вкладка)
+- `SaunaProductionPage` → вкладка «Симулятор цен» (data-testid `prod-view-simulator`).
+- Конфигурация: модель + опц. вариант + N опций с вариантами и qty.
+- Расшифровка по позициям: brutto / cost-netto + бейдж «без тех.карты».
+- Итоги для розницы: brutto / netto / cost / margin (+ %).
+- Дилерская цена: редактируемое поле + toggle brutto/netto +
+  быстрые пресеты −10/−15/−20/−25/−30% от розницы; считается дилерская
+  маржа netto, помечается красным если уход в минус.
+- Расчёты client-side из `/sauna/prices` + `/sauna-production/cost/tech-cards`;
+  не пишет в БД — чистый «what-if».
+
+### Подсказка для опций с вариантами
+- `TechCardsAdmin`: при попытке создать тех.карту на опцию, у которой есть
+  варианты и пока нет своей карты — открывается dialog `variant-prompt-dialog`
+  со списком вариантов и кнопками «Хорошо, выберу вариант ниже» и
+  «Всё равно создать базовую».
+- Тестировано: backend 6/6 новых VAT pytest + 47/47 регрессии (53/53).
   - Поля `stockCurrent` / `stockMin` в диалоге редактирования компонента.
 - Тестировано: 19/19 новых backend pytest (test_sauna_stock_and_option_forecast.py).
 
