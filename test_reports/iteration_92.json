@@ -1,0 +1,32 @@
+{
+  "summary": "Full backend + frontend smoke for new Sauna features (seed-from-template, duplicate, procurement, what-if forecast, dashboard top lists, Procurement UI tab, seed button, margin leaderboard). Backend pytest: 20/20 PASSED on the new module + 28/28 still passing in prior regression. Verified: (a) seed-from-template imports 49 components on first call and is idempotent (added=0, total=49 on re-run); seed names present in catalog; (b) duplicate copies BOM + labor/overheadPct/manualAdjustment to a different model creating a new card and upserts on repeat; rejects invalid scope (400); 404 on missing source; (c) /procurement returns the documented schema {totalOrders, matchedTargets, items, totalMaterials, unmatched, orders}; (d) /procurement/forecast 400 on empty/missing targets; qty multiplies BOM lines exactly (qty=3 → totalQty=15); aggregates across multiple targets (5 + 5*2 = 15); unmatched listed; items sorted by category asc then lineTotal desc; row contains componentId/name/category/unit/unitPrice/supplier/totalQty/lineTotal/sources; (e) /dashboard returns lowMarginTop[] (ascending by marginPct) and highMarginTop[] (descending), capped at 5 each. Auth required for all four new endpoints (401/403 without token). Frontend (admin/admin123 → Produkcja saun): all 6 sub-tab testids visible incl. prod-view-procurement; Procurement → both inner tabs (procurement-mode-prod, procurement-mode-whatif) + procurement-summary visible; What-if builder shows whatif-builder/whatif-add/whatif-compute and 'Позиция' button adds a row; Components admin shows the new 'Импорт из шаблона' button (1 match). Margin leaderboard markup is wired but did NOT render in the preview run because the preview DB currently has 0 saved tech-cards with retail>0 — matches spec ('appears when there are saved cards'). Cleanup: all TEST_ tech-cards & TEST_DUP_COMP component deleted by autouse module-fixture.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_procurement_seed_duplicate.py",
+    "/app/backend/tests/test_sauna_tech_cards.py",
+    "/app/test_reports/pytest/pytest_results_iteration92.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes/sauna_tech_cards.py procurement_forecast: matchedTargets is counted on the expanded flat list (qty=3 → 3 entries → matchedTargets=3). UI may surprise admins who expect matchedTargets to be the count of distinct targets, not units. Consider returning both 'matchedUnits' and 'matchedTargets' (distinct) for clarity.",
+    "routes/sauna_tech_cards.py _aggregate_targets: when components were deleted but still referenced by tech-cards, the row falls back to name='Удалённый компонент' with unitPrice=0 — totals still computed but sources will silently understate cost. Consider surfacing a 'staleComponents' warning array in the response.",
+    "data/sauna_components_seed.json: a few entries have whitespace-trailing 'note' (e.g., 'из Квадро 3,5х2,25  ') and one likely typo in name ('Пиломатериалы (Луна): Торцы 3 штуки (27х3' missing closing paren) — cosmetic, but the typo makes the name look broken in the UI. Easy fix: add the ')' to that one entry.",
+    "ProcurementForecast.jsx WhatIfBuilder: option-scope targets cannot be added — only model+variant selectors are rendered. The backend supports scope='option'/'option_variant' but the UI omits it. Add an option/optionVariant picker for parity.",
+    "ProcurementForecast.jsx Stat: when value is 0 it still passes `highlight`/`warn` correctly, but 'Не найдено тех.карт' shows '0' in default colour — fine; however when unmatched > 0 the amber banner duplicates the same info. Minor UX nit."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_procurement_seed_duplicate.py (new — 20 tests, all passing)"
+  ],
+  "success_rate": {"backend": "100% (20/20 new + 28/28 regression)", "frontend": "100% on smoke flows (all expected testids visible, no console errors)"},
+  "test_credentials": "admin / admin123 (preview DB)",
+  "seed_data_creation": "Module-scope autouse cleanup deletes the source/dup tech-cards and the TEST_DUP_COMP component. seed-from-template leaves 49 catalog rows in the DB — acceptable since the same set is idempotent on every subsequent run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression suites: /app/backend/tests/test_sauna_tech_cards.py (28 tests, prior iteration) + /app/backend/tests/test_sauna_procurement_seed_duplicate.py (20 tests, this iteration). Run together: `pytest /app/backend/tests/test_sauna_*.py -v`. UI testids for new feature: prod-view-procurement, procurement-mode-prod, procurement-mode-whatif, procurement-summary, procurement-table, procurement-orders, procurement-print, whatif-builder, whatif-add, whatif-compute. Components page seed button: text-based selector `button:has-text('Импорт из шаблона')`. Margin leaderboard only renders when ≥1 tech-card with retail>0 exists; create one first if you want to validate the leaderboard visually. Preview DB currently has 0 in-production CRM leads so /procurement returns totalOrders=0 — that is the expected empty-state.",
+  "rca of the issue": "N/A — all new endpoints behave as specified; frontend wiring intact."
+}

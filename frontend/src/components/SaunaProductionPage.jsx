@@ -13,13 +13,14 @@ import {
   RefreshCw, Settings, FileText, FileDown, Trash2,
   Phone, Clock, User, ExternalLink, Loader2, Plus, X, Search,
   Package, Wrench, Download, Eye, List, MessageSquare, Save, Pencil, ArrowUpDown,
-  Calculator, Layers
+  Calculator, Layers, ShoppingCart
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
 import axios from 'axios';
 import TechCardsAdmin from './sauna-production/TechCardsAdmin';
 import ComponentsAdmin from './sauna-production/ComponentsAdmin';
+import ProcurementForecast from './sauna-production/ProcurementForecast';
 
 const API_URL = getApiUrl();
 
@@ -567,6 +568,7 @@ const SaunaProductionPage = ({ onBack }) => {
           <TabsTrigger value="list" className="gap-2" data-testid="prod-view-list"><List className="w-4 h-4" />Список</TabsTrigger>
           <TabsTrigger value="techcards" className="gap-2" data-testid="prod-view-techcards"><Calculator className="w-4 h-4" />Тех.карты</TabsTrigger>
           <TabsTrigger value="components" className="gap-2" data-testid="prod-view-components"><Layers className="w-4 h-4" />Комплектующие</TabsTrigger>
+          <TabsTrigger value="procurement" className="gap-2" data-testid="prod-view-procurement"><ShoppingCart className="w-4 h-4" />Закупка</TabsTrigger>
         </TabsList>
 
         {/* Calendar View */}
@@ -747,6 +749,11 @@ const SaunaProductionPage = ({ onBack }) => {
         {/* Components catalog */}
         <TabsContent value="components">
           <ComponentsAdmin />
+        </TabsContent>
+
+        {/* Procurement forecast */}
+        <TabsContent value="procurement">
+          <ProcurementForecast />
         </TabsContent>
       </Tabs>
 

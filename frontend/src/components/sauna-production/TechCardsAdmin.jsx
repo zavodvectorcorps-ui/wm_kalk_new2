@@ -14,6 +14,7 @@ import { COST_BASE, API, authHeaders, fmtMoney } from './costConstants';
 export default function TechCardsAdmin() {
   const [prices, setPrices] = useState(null);
   const [cards, setCards] = useState([]);
+  const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [target, setTarget] = useState(null);  // currently editing
   const [search, setSearch] = useState('');
@@ -23,12 +24,14 @@ export default function TechCardsAdmin() {
   const load = async () => {
     setLoading(true);
     try {
-      const [pricesRes, cardsRes] = await Promise.all([
+      const [pricesRes, cardsRes, dashRes] = await Promise.all([
         axios.get(`${API}/api/sauna/prices`),
         axios.get(`${COST_BASE}/tech-cards`, { headers: authHeaders() }),
+        axios.get(`${COST_BASE}/dashboard`, { headers: authHeaders() }),
       ]);
       setPrices(pricesRes.data || {});
       setCards(cardsRes.data.items || []);
+      setDashboard(dashRes.data || null);
     } catch (e) {
       toast.error('Ошибка загрузки');
     } finally {
@@ -86,6 +89,37 @@ export default function TechCardsAdmin() {
 
   return (
     <div className="space-y-3">
+      {dashboard && dashboard.totalCards > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="margin-leaderboard">
+          <div className="border rounded-lg bg-card p-3">
+            <div className="text-xs font-semibold text-red-700 mb-2 inline-flex items-center gap-1">
+              <TrendingDown className="w-3.5 h-3.5" /> Самая низкая маржа
+            </div>
+            {(dashboard.lowMarginTop || []).length === 0 ? (
+              <div className="text-xs text-muted-foreground">Нет данных</div>
+            ) : (dashboard.lowMarginTop || []).slice(0, 5).map((c) => (
+              <div key={c.modelId + c.variantId + c.optionId} className="flex items-center justify-between py-1 text-xs border-b last:border-b-0">
+                <span className="truncate">{c.name || '—'}</span>
+                <span className={`font-mono font-semibold ${c.marginPct < 15 ? 'text-red-600' : 'text-amber-700'}`}>{c.marginPct?.toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+          <div className="border rounded-lg bg-card p-3">
+            <div className="text-xs font-semibold text-emerald-700 mb-2 inline-flex items-center gap-1">
+              <TrendingUp className="w-3.5 h-3.5" /> Самая высокая маржа
+            </div>
+            {(dashboard.highMarginTop || []).length === 0 ? (
+              <div className="text-xs text-muted-foreground">Нет данных</div>
+            ) : (dashboard.highMarginTop || []).slice(0, 5).map((c) => (
+              <div key={c.modelId + c.variantId + c.optionId} className="flex items-center justify-between py-1 text-xs border-b last:border-b-0">
+                <span className="truncate">{c.name || '—'}</span>
+                <span className="font-mono font-semibold text-emerald-700">{c.marginPct?.toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[220px] max-w-md">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

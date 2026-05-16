@@ -1,0 +1,492 @@
+[
+  {
+    "name": "Пиломатериалы (Луна): Каркас",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1785.0,
+    "unitPriceEur": 420.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Торцы 2  штуки (27х2)",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1785.0,
+    "unitPriceEur": 420.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Лаги",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1317.5,
+    "unitPriceEur": 310.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Наличник, брусок",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1530.0,
+    "unitPriceEur": 360.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Полки: Полки одноуровневые стандарт прямые 2 скамьи (м.п. Ольха)",
+    "category": "wood",
+    "unit": "м",
+    "unitPrice": 12.11,
+    "unitPriceEur": 2.85,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Полки: Полки одноуровневые стандарт угловые 2 скамьи",
+    "category": "wood",
+    "unit": "м",
+    "unitPrice": 12.11,
+    "unitPriceEur": 2.85,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Полки: Полки двухуровневые прямые 4 скамьи",
+    "category": "wood",
+    "unit": "м",
+    "unitPrice": 12.11,
+    "unitPriceEur": 2.85,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Полки: Полки двухуровневые угловые 3 скамьи",
+    "category": "wood",
+    "unit": "м",
+    "unitPrice": 12.11,
+    "unitPriceEur": 2.85,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Полки: Полки двухуровневые угловые 4 скамьи",
+    "category": "wood",
+    "unit": "м",
+    "unitPrice": 12.11,
+    "unitPriceEur": 2.85,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Полки: Зашивка полков",
+    "category": "wood",
+    "unit": "м",
+    "unitPrice": 12.11,
+    "unitPriceEur": 2.85,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Полки: Кв/м",
+    "category": "wood",
+    "unit": "м",
+    "unitPrice": 21.97,
+    "unitPriceEur": 5.17,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Полки: л",
+    "category": "wood",
+    "unit": "м",
+    "unitPrice": 12.32,
+    "unitPriceEur": 2.9,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Лента",
+    "category": "fasteners",
+    "unit": "шт",
+    "unitPrice": 701.25,
+    "unitPriceEur": 165.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Метизы: 120мм",
+    "category": "fasteners",
+    "unit": "шт",
+    "unitPrice": 90.02,
+    "unitPriceEur": 21.18,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Метизы: Остальное",
+    "category": "fasteners",
+    "unit": "шт",
+    "unitPrice": 90.02,
+    "unitPriceEur": 21.18,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Двери: Стеклянная",
+    "category": "glass",
+    "unit": "шт",
+    "unitPrice": 500.65,
+    "unitPriceEur": 117.8,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Двери: Деревянная",
+    "category": "glass",
+    "unit": "шт",
+    "unitPrice": 850.0,
+    "unitPriceEur": 200.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Окна: Форточка 50х50",
+    "category": "glass",
+    "unit": "шт",
+    "unitPrice": 510.0,
+    "unitPriceEur": 120.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Окна: Полупанорама",
+    "category": "glass",
+    "unit": "шт",
+    "unitPrice": 361.25,
+    "unitPriceEur": 85.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Окна: Панорама",
+    "category": "glass",
+    "unit": "шт",
+    "unitPrice": 709.75,
+    "unitPriceEur": 167.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Электро Харвия 9 квт",
+    "category": "heater",
+    "unit": "м²",
+    "unitPrice": 1445.0,
+    "unitPriceEur": 340.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Электро Харвия цилиндро 9 квт",
+    "category": "heater",
+    "unit": "м²",
+    "unitPrice": 1661.75,
+    "unitPriceEur": 391.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Электро Сава Совия 12 квт",
+    "category": "heater",
+    "unit": "м²",
+    "unitPrice": 1687.25,
+    "unitPriceEur": 397.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Электро Эос 10.5 квт",
+    "category": "heater",
+    "unit": "м²",
+    "unitPrice": 2809.25,
+    "unitPriceEur": 661.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Управление печью wi-fi",
+    "category": "heater",
+    "unit": "шт",
+    "unitPrice": 425.0,
+    "unitPriceEur": 100.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Дровяная Сваро 12 квт",
+    "category": "heater",
+    "unit": "м²",
+    "unitPrice": 1347.25,
+    "unitPriceEur": 317.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Дровяная Этна 12 12 квт",
+    "category": "heater",
+    "unit": "м²",
+    "unitPrice": 1530.0,
+    "unitPriceEur": 360.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Дровяная Харвия m3sl 16,5 квт",
+    "category": "heater",
+    "unit": "м²",
+    "unitPrice": 3060.0,
+    "unitPriceEur": 720.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Нержавейка (дымоход без бака)",
+    "category": "heater",
+    "unit": "шт",
+    "unitPrice": 552.5,
+    "unitPriceEur": 130.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Печи: Нержавейка (дымоход с баком)",
+    "category": "heater",
+    "unit": "шт",
+    "unitPrice": 743.75,
+    "unitPriceEur": 175.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Камни: Камни для электро",
+    "category": "heater",
+    "unit": "кг",
+    "unitPrice": 3.44,
+    "unitPriceEur": 0.81,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Камни: Камни для дровяной",
+    "category": "heater",
+    "unit": "кг",
+    "unitPrice": 3.44,
+    "unitPriceEur": 0.81,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Электрика: Блок (трансформатор)",
+    "category": "electric",
+    "unit": "шт",
+    "unitPrice": 76.97,
+    "unitPriceEur": 18.11,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Электрика: Лед лента",
+    "category": "fasteners",
+    "unit": "м",
+    "unitPrice": 18.49,
+    "unitPriceEur": 4.35,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Электрика: Профиль",
+    "category": "electric",
+    "unit": "м",
+    "unitPrice": 2.97,
+    "unitPriceEur": 0.7,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Электрика: Кабель",
+    "category": "electric",
+    "unit": "м",
+    "unitPrice": 6.38,
+    "unitPriceEur": 1.5,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Электрика: Изолятор",
+    "category": "electric",
+    "unit": "шт",
+    "unitPrice": 1.78,
+    "unitPriceEur": 0.42,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Электрика: Выключатель",
+    "category": "electric",
+    "unit": "шт",
+    "unitPrice": 12.54,
+    "unitPriceEur": 2.95,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Электрика: Розетка",
+    "category": "electric",
+    "unit": "шт",
+    "unitPrice": 17.0,
+    "unitPriceEur": 4.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Электрика: Светильник интерьер",
+    "category": "electric",
+    "unit": "шт",
+    "unitPrice": 38.25,
+    "unitPriceEur": 9.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Электрика: Светильник улица",
+    "category": "electric",
+    "unit": "шт",
+    "unitPrice": 63.75,
+    "unitPriceEur": 15.0,
+    "supplier": "",
+    "note": "из Квадро 2х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Торцы 2  штуки (27х3)",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1785.0,
+    "unitPriceEur": 420.0,
+    "supplier": "",
+    "note": "из Квадро (1П) 3х2,25 ",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Торцы 3  штуки (27х3)",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1785.0,
+    "unitPriceEur": 420.0,
+    "supplier": "",
+    "note": "из Квадро (2П) 3х2,25",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Торцы 3 штуки (27х3)",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1785.0,
+    "unitPriceEur": 420.0,
+    "supplier": "",
+    "note": "из Квадро 3,5х2,25  ",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Торцы 2 штуки (27х2)",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1785.0,
+    "unitPriceEur": 420.0,
+    "supplier": "",
+    "note": "из Викинг 2х2   ",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Торцы 3 штуки (27х3",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1785.0,
+    "unitPriceEur": 420.0,
+    "supplier": "",
+    "note": "из Викинг 2х3",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Торцы 2 штуки (29х2)",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1785.0,
+    "unitPriceEur": 420.0,
+    "supplier": "",
+    "note": "из Парус 2х2,4    ",
+    "isActive": true
+  },
+  {
+    "name": "отливы",
+    "category": "other",
+    "unit": "шт",
+    "unitPrice": 255.0,
+    "unitPriceEur": 60.0,
+    "supplier": "",
+    "note": "из Парус 2х2,4    ",
+    "isActive": true
+  },
+  {
+    "name": "Пиломатериалы (Луна): Торцы 3 штуки (29х3)",
+    "category": "wood",
+    "unit": "м³",
+    "unitPrice": 1785.0,
+    "unitPriceEur": 420.0,
+    "supplier": "",
+    "note": "из Парус 3х2,4  ",
+    "isActive": true
+  }
+]

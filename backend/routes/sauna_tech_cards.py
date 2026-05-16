@@ -411,19 +411,275 @@ async def cost_dashboard(_: dict = Depends(get_admin_user)):
     total_cards = await db.sauna_tech_cards.count_documents({})
     # Average margin across cards that have retail > 0
     cursor = db.sauna_tech_cards.find(
-        {"retailPrice": {"$gt": 0}}, {"_id": 0, "marginPct": 1, "marginAmount": 1, "totalCost": 1, "retailPrice": 1}
+        {"retailPrice": {"$gt": 0}}, {"_id": 0, "marginPct": 1, "marginAmount": 1, "totalCost": 1, "retailPrice": 1, "name": 1, "scope": 1, "modelId": 1, "variantId": 1, "optionId": 1}
     )
     pcts = []
     low = 0
+    cards = []
     async for c in cursor:
         if c.get("marginPct") is not None:
             pcts.append(c["marginPct"])
+            cards.append(c)
             if c["marginPct"] < 15:
                 low += 1
     avg = round(sum(pcts) / len(pcts), 1) if pcts else None
+    # Top-5 low margin
+    low_margin_top = sorted(cards, key=lambda x: x["marginPct"])[:5]
+    high_margin_top = sorted(cards, key=lambda x: -x["marginPct"])[:5]
     return {
         "totalComponents": total_components,
         "totalCards": total_cards,
         "avgMarginPct": avg,
         "lowMarginCards": low,
+        "lowMarginTop": low_margin_top,
+        "highMarginTop": high_margin_top,
     }
+
+
+# ============================================================
+# SEED — bulk-import default components from packaged template
+# ============================================================
+
+@router.post("/components/seed-from-template")
+async def seed_components_from_template(_: dict = Depends(get_admin_user)):
+    """Bulk-import a starter catalog of ~49 components extracted from the
+    user's pricing spreadsheet (Себес Сауны.xlsx). Adds only components that
+    don't already exist by exact name match. Idempotent.
+    """
+    import json
+    import os
+    seed_path = os.path.join(os.path.dirname(__file__), "..", "data", "sauna_components_seed.json")
+    if not os.path.exists(seed_path):
+        raise HTTPException(404, "Seed file not found")
+    with open(seed_path, "r", encoding="utf-8") as f:
+        items = json.load(f)
+    existing_names = set()
+    cursor = db.sauna_components.find({}, {"_id": 0, "name": 1})
+    async for c in cursor:
+        existing_names.add((c.get("name") or "").lower())
+    added = 0
+    for it in items:
+        name = (it.get("name") or "").strip()
+        if not name or name.lower() in existing_names:
+            continue
+        doc = {
+            "id": str(uuid.uuid4()),
+            "name": name,
+            "category": it.get("category") or "other",
+            "unit": it.get("unit") or "шт",
+            "unitPrice": float(it.get("unitPrice") or 0),
+            "supplier": it.get("supplier") or "",
+            "note": it.get("note") or "",
+            "isActive": bool(it.get("isActive", True)),
+            "createdAt": _now(),
+            "updatedAt": _now(),
+        }
+        await db.sauna_components.insert_one(doc)
+        added += 1
+    return {"ok": True, "added": added, "skipped": len(items) - added, "total": len(items)}
+
+
+# ============================================================
+# DUPLICATE — copy a tech card to another scope target
+# ============================================================
+
+@router.post("/tech-cards/{card_id}/duplicate")
+async def duplicate_tech_card(card_id: str, body: dict, _: dict = Depends(get_admin_user)):
+    """Copy this card's BOM + labor + overhead onto a new target.
+
+    Body: { scope, modelId?, variantId?, optionId?, optionVariantId? }
+    Returns the newly created / updated tech card.
+    """
+    src = await db.sauna_tech_cards.find_one({"id": card_id}, {"_id": 0})
+    if not src:
+        raise HTTPException(404, "Source tech card not found")
+    scope = body.get("scope") or src["scope"]
+    if scope not in VALID_SCOPES:
+        raise HTTPException(400, f"scope must be one of {VALID_SCOPES}")
+
+    new_items = []
+    for it in (src.get("items") or []):
+        new_items.append({
+            "id": str(uuid.uuid4()),
+            "componentId": it.get("componentId"),
+            "qty": it.get("qty"),
+            "note": it.get("note") or "",
+        })
+
+    target_key = {
+        "scope": scope,
+        "modelId": body.get("modelId") or "",
+        "variantId": body.get("variantId") or "",
+        "optionId": body.get("optionId") or "",
+        "optionVariantId": body.get("optionVariantId") or "",
+    }
+
+    payload = {
+        **target_key,
+        "items": new_items,
+        "laborCost": src.get("laborCost", 0),
+        "overheadPct": src.get("overheadPct", 0),
+        "manualAdjustment": src.get("manualAdjustment", 0),
+        "syncToCostPrice": src.get("syncToCostPrice", True),
+        "note": f"Скопировано из {src.get('name') or src['id'][:8]}",
+    }
+    return await upsert_tech_card(payload, _)
+
+
+# ============================================================
+# PROCUREMENT — shopping list from active production orders
+# ============================================================
+
+def _extract_targets_from_lead(lead: dict) -> list[dict]:
+    """Return [{scope, modelId, variantId?, optionId?, optionVariantId?}] for one in-production lead.
+
+    Looks for model+options in several common locations to be robust against
+    schema drift across leads.
+    """
+    targets: list[dict] = []
+    cd = lead.get("calculatorData") or lead.get("config") or {}
+    model_id = lead.get("modelId") or cd.get("modelId") or cd.get("model_id") or ""
+    variant_id = lead.get("variantId") or cd.get("variantId") or cd.get("variant_id") or ""
+    if model_id:
+        if variant_id:
+            targets.append({"scope": "variant", "modelId": model_id, "variantId": variant_id})
+        else:
+            targets.append({"scope": "model", "modelId": model_id})
+
+    # Options can be dict {optionId: variantId|true} or list of ids
+    opts = cd.get("selectedOptions") or cd.get("options") or lead.get("selectedOptions") or {}
+    if isinstance(opts, dict):
+        for oid, ov in opts.items():
+            if not oid or oid == "false" or ov in (False, None):
+                continue
+            if isinstance(ov, str) and ov not in ("true", "True"):
+                targets.append({"scope": "option_variant", "optionId": oid, "optionVariantId": ov})
+            else:
+                targets.append({"scope": "option", "optionId": oid})
+    elif isinstance(opts, list):
+        for oid in opts:
+            if oid:
+                targets.append({"scope": "option", "optionId": oid})
+    return targets
+
+
+async def _aggregate_targets(targets: list[dict]) -> dict:
+    """Sum BOM items across multiple (scope, key, qty=1) targets.
+
+    Returns {totalCost, items: [{componentId, name, category, unit, totalQty, unitPrice, lineTotal, sources: [{name, qty}]}]}
+    """
+    keys = [
+        {
+            "scope": t.get("scope"),
+            "modelId": t.get("modelId") or "",
+            "variantId": t.get("variantId") or "",
+            "optionId": t.get("optionId") or "",
+            "optionVariantId": t.get("optionVariantId") or "",
+        }
+        for t in targets
+    ]
+    if not keys:
+        return {"items": [], "totalMaterials": 0, "matchedTargets": 0, "unmatched": []}
+
+    cards: list[dict] = []
+    unmatched: list[dict] = []
+    for t, k in zip(targets, keys):
+        card = await db.sauna_tech_cards.find_one(k, {"_id": 0})
+        if card:
+            cards.append({"target": t, "card": card})
+        else:
+            unmatched.append(t)
+
+    component_ids = set()
+    for entry in cards:
+        for it in (entry["card"].get("items") or []):
+            if it.get("componentId"):
+                component_ids.add(it["componentId"])
+    comps_by_id = {}
+    if component_ids:
+        cursor = db.sauna_components.find({"id": {"$in": list(component_ids)}}, {"_id": 0})
+        for c in await cursor.to_list(length=5000):
+            comps_by_id[c["id"]] = c
+
+    agg: dict[str, dict] = {}
+    for entry in cards:
+        card = entry["card"]
+        card_name = card.get("name") or ""
+        qty_multiplier = float(entry["target"].get("qty") or 1)
+        for it in (card.get("items") or []):
+            cid = it.get("componentId")
+            if not cid:
+                continue
+            line_qty = float(it.get("qty") or 0) * qty_multiplier
+            comp = comps_by_id.get(cid, {})
+            if cid not in agg:
+                agg[cid] = {
+                    "componentId": cid,
+                    "name": comp.get("name", "Удалённый компонент"),
+                    "category": comp.get("category", "other"),
+                    "unit": comp.get("unit", ""),
+                    "unitPrice": float(comp.get("unitPrice") or 0),
+                    "supplier": comp.get("supplier") or "",
+                    "totalQty": 0.0,
+                    "sources": [],
+                }
+            agg[cid]["totalQty"] += line_qty
+            agg[cid]["sources"].append({"target": card_name or "?", "qty": line_qty})
+
+    items: list[dict] = []
+    total_materials = 0.0
+    for cid, row in agg.items():
+        line_total = round(row["totalQty"] * row["unitPrice"], 2)
+        row["totalQty"] = round(row["totalQty"], 3)
+        row["lineTotal"] = line_total
+        total_materials += line_total
+        items.append(row)
+    items.sort(key=lambda r: (r["category"], -r["lineTotal"]))
+
+    return {
+        "items": items,
+        "totalMaterials": round(total_materials, 2),
+        "matchedTargets": len(cards),
+        "unmatched": unmatched,
+    }
+
+
+@router.get("/procurement")
+async def procurement_from_production(_: dict = Depends(get_admin_user)):
+    """Aggregate BOM from ALL leads currently in-production."""
+    leads = await db.sauna_crm_leads.find({"inProduction": True}, {"_id": 0}).to_list(length=2000)
+    targets: list[dict] = []
+    by_order: list[dict] = []
+    for lead in leads:
+        ts = _extract_targets_from_lead(lead)
+        targets.extend(ts)
+        by_order.append({
+            "leadId": lead.get("id"),
+            "clientName": lead.get("clientName") or "",
+            "modelName": lead.get("modelName") or "",
+            "stageId": lead.get("productionStageId") or lead.get("stageId") or "",
+            "readyDate": lead.get("readyDate") or "",
+            "targets": len(ts),
+        })
+    result = await _aggregate_targets(targets)
+    result["orders"] = by_order
+    result["totalOrders"] = len(leads)
+    return result
+
+
+@router.post("/procurement/forecast")
+async def procurement_forecast(body: dict, _: dict = Depends(get_admin_user)):
+    """Manual what-if forecast.
+
+    Body: { targets: [{scope, modelId?, variantId?, optionId?, optionVariantId?, qty:int}] }
+    """
+    raw = body.get("targets") or []
+    if not isinstance(raw, list) or len(raw) == 0:
+        raise HTTPException(400, "targets must be a non-empty array")
+    flat: list[dict] = []
+    for t in raw:
+        qty = max(1, int(t.get("qty") or 1))
+        for _ in range(qty):
+            flat.append({k: v for k, v in t.items() if k != "qty"})
+    result = await _aggregate_targets(flat)
+    return result

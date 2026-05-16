@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, Loader2, Save, X, Calculator, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, Save, X, Calculator, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Copy } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
@@ -320,11 +320,14 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
         )}
 
         <DialogFooter className="pt-3 border-t mt-2 flex-row justify-between sm:justify-between">
-          <div>
+          <div className="flex gap-2">
             {card?.id && (
               <Button variant="outline" size="sm" onClick={remove} className="border-red-300 text-red-600 hover:bg-red-50" data-testid="tech-card-delete">
                 <Trash2 className="w-4 h-4 mr-1" /> Удалить
               </Button>
+            )}
+            {card?.id && (
+              <DuplicateButton card={card} prices={prices} onDuplicated={() => { onSaved?.(); onClose(); }} />
             )}
           </div>
           <div className="flex gap-2">
@@ -346,5 +349,93 @@ function TotalRow({ label, value, subtle }) {
       <span>{label}</span>
       <span className="font-mono">{fmtMoney(value)}</span>
     </div>
+  );
+}
+
+function DuplicateButton({ card, prices, onDuplicated }) {
+  const [open, setOpen] = useState(false);
+  const [scope, setScope] = useState('model');
+  const [modelId, setModelId] = useState('');
+  const [variantId, setVariantId] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const model = (prices?.models || []).find((m) => m.id === modelId);
+
+  const submit = async () => {
+    if (!modelId) return toast.error('Выберите модель');
+    setBusy(true);
+    try {
+      await axios.post(`${COST_BASE}/tech-cards/${card.id}/duplicate`, {
+        scope,
+        modelId,
+        variantId: scope === 'variant' ? variantId : '',
+      }, { headers: authHeaders() });
+      toast.success('Тех.карта скопирована');
+      setOpen(false);
+      onDuplicated?.();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка копирования');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} data-testid="tech-card-duplicate-btn">
+        <Copy className="w-4 h-4 mr-1" /> Скопировать
+      </Button>
+      {open && (
+        <Dialog open={true} onOpenChange={setOpen}>
+          <DialogContent className="max-w-md" data-testid="duplicate-dialog">
+            <DialogHeader>
+              <DialogTitle>Скопировать тех.карту</DialogTitle>
+              <DialogDescription>Все компоненты, работа, накладные и корректировки будут перенесены на новую цель.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium">Куда копируем</label>
+                <Select value={scope} onValueChange={(v) => { setScope(v); setVariantId(''); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="model">На модель целиком</SelectItem>
+                    <SelectItem value="variant">На вариант модели</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium">Модель</label>
+                <Select value={modelId || '__none__'} onValueChange={(v) => setModelId(v === '__none__' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="Выбрать..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— не выбрана —</SelectItem>
+                    {(prices?.models || []).map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {scope === 'variant' && model && (
+                <div>
+                  <label className="text-xs font-medium">Вариант</label>
+                  <Select value={variantId || '__none__'} onValueChange={(v) => setVariantId(v === '__none__' ? '' : v)}>
+                    <SelectTrigger><SelectValue placeholder="Выбрать..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— не выбран —</SelectItem>
+                      {(model.variants || []).map((v) => <SelectItem key={v.id} value={v.id}>{v.name || v.namePl}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
+              <Button onClick={submit} disabled={busy || !modelId} className="bg-orange-500 hover:bg-orange-600" data-testid="duplicate-submit">
+                {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Copy className="w-4 h-4 mr-1" />}
+                Копировать
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }

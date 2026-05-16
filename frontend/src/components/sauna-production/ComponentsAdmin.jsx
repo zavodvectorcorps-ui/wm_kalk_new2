@@ -85,6 +85,24 @@ export default function ComponentsAdmin() {
             {COMPONENT_CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          onClick={async () => {
+            if (!window.confirm('Импортировать ~49 компонентов из шаблона (из файла «Себес Сауны.xlsx»)? Уже существующие по названию будут пропущены.')) return;
+            try {
+              const r = await axios.post(`${COST_BASE}/components/seed-from-template`, {}, { headers: authHeaders() });
+              toast.success(`Добавлено ${r.data.added}, пропущено ${r.data.skipped}`);
+              load();
+            } catch (e) {
+              toast.error(e?.response?.data?.detail || 'Ошибка импорта');
+            }
+          }}
+          className="h-9"
+          data-testid="components-seed"
+          title="Импорт компонентов из готового шаблона"
+        >
+          <Plus className="w-4 h-4 mr-1" /> Импорт из шаблона
+        </Button>
         <Button onClick={() => setEditing({ ...EMPTY })} className="bg-orange-500 hover:bg-orange-600 h-9 ml-auto" data-testid="component-add">
           <Plus className="w-4 h-4 mr-1" /> Добавить компонент
         </Button>
