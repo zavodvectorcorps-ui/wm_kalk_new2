@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Download, Upload, FileSpreadsheet, FileText, Loader2, AlertTriangle, CheckCircle2, Pencil, FilePlus2, X } from 'lucide-react';
+import { Download, Upload, FileSpreadsheet, FileText, Loader2, AlertTriangle, CheckCircle2, Pencil, FilePlus2, X, History, Undo2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -41,6 +41,7 @@ export default function PriceImportExport({ dealerId = null, dealerName = '', on
   const [uploading, setUploading] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [hideUnchanged, setHideUnchanged] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Dry-run result
   const [dryRun, setDryRun] = useState(null); // {summary, rows, totalRows, dealerId, _file}
@@ -156,6 +157,17 @@ export default function PriceImportExport({ dealerId = null, dealerName = '', on
           {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
           Импорт
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowHistory(true)}
+          className="border-slate-300 text-slate-700 hover:bg-slate-50"
+          data-testid="history-prices-btn"
+          title="История импортов и откат"
+        >
+          <History className="h-4 w-4 mr-1" />
+          История
+        </Button>
         <input
           ref={fileInput}
           type="file"
@@ -178,7 +190,175 @@ export default function PriceImportExport({ dealerId = null, dealerName = '', on
           onCommit={handleCommit}
         />
       )}
+
+      {showHistory && (
+        <HistoryDialog
+          dealerId={dealerId}
+          dealerName={dealerName}
+          onClose={() => setShowHistory(false)}
+          onRolledBack={() => onImported?.()}
+        />
+      )}
     </>
+  );
+}
+
+function HistoryDialog({ dealerId, dealerName, onClose, onRolledBack }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [rollingId, setRollingId] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: '50' });
+      if (dealerId) params.set('dealerId', dealerId);
+      const res = await axios.get(`${API}/api/sauna/prices/import/history?${params}`, {
+        headers: authHeaders(),
+      });
+      setItems(res.data.items || []);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Не удалось загрузить историю');
+    } finally {
+      setLoading(false);
+    }
+  }, [dealerId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleRollback = async (id) => {
+    if (!window.confirm('Откатить этот импорт? Текущие значения будут заменены снимком до коммита.')) return;
+    setRollingId(id);
+    try {
+      await axios.post(
+        `${API}/api/sauna/prices/import/history/${id}/rollback`,
+        {},
+        { headers: authHeaders() },
+      );
+      toast.success('Откат выполнен');
+      onRolledBack?.();
+      load();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка отката');
+    } finally {
+      setRollingId(null);
+    }
+  };
+
+  const fmtDate = (iso) => {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+    } catch { return iso; }
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col" data-testid="history-dialog">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <History className="h-5 w-5 text-slate-600" />
+            История импортов
+            {dealerId && (
+              <Badge variant="outline" className="ml-2 border-orange-300 text-orange-700">
+                Дилер: {dealerName || dealerId}
+              </Badge>
+            )}
+          </DialogTitle>
+          <DialogDescription>
+            Снимок состояния прайса до каждого импорта. Любой коммит можно откатить за один клик.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-auto border rounded-md">
+          {loading ? (
+            <div className="py-12 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
+          ) : items.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground text-sm">
+              Импортов пока не было
+            </div>
+          ) : (
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50 sticky top-0">
+                <tr className="text-left">
+                  <th className="px-3 py-2">Дата</th>
+                  <th className="px-3 py-2">Кто</th>
+                  <th className="px-3 py-2">Файл</th>
+                  <th className="px-3 py-2">Сводка</th>
+                  <th className="px-3 py-2 text-right">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((h) => {
+                  const s = h.summary || {};
+                  return (
+                    <tr key={h.id} className="border-t align-top hover:bg-slate-50/50" data-testid={`history-row-${h.id}`}>
+                      <td className="px-3 py-2 whitespace-nowrap">{fmtDate(h.timestamp)}</td>
+                      <td className="px-3 py-2 font-medium">{h.adminUsername || '—'}</td>
+                      <td className="px-3 py-2 font-mono text-[11px] break-all">{h.filename || '—'}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          {s.added ? <Tag color="emerald">+{s.added}</Tag> : null}
+                          {s.modified ? <Tag color="amber">~{s.modified}</Tag> : null}
+                          {s.errors ? <Tag color="red">!{s.errors}</Tag> : null}
+                          {h.overridesUpserted ? <Tag color="orange">оверр. {h.overridesUpserted}</Tag> : null}
+                          {!s.added && !s.modified && !s.errors && !h.overridesUpserted ? (
+                            <span className="text-slate-400">без изменений</span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {h.rolledBack ? (
+                          <Badge variant="outline" className="text-slate-500 border-slate-300">
+                            Откачен
+                          </Badge>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={rollingId === h.id}
+                            onClick={() => handleRollback(h.id)}
+                            data-testid={`rollback-${h.id}`}
+                            className="border-red-300 text-red-600 hover:bg-red-50"
+                          >
+                            {rollingId === h.id
+                              ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              : <Undo2 className="h-3 w-3 mr-1" />}
+                            Откатить
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <DialogFooter className="pt-3 border-t">
+          <Button variant="outline" onClick={onClose} data-testid="history-close">
+            <X className="h-4 w-4 mr-1" /> Закрыть
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Tag({ color, children }) {
+  const palettes = {
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    amber:   'bg-amber-50 text-amber-700 border-amber-200',
+    slate:   'bg-slate-50 text-slate-600 border-slate-200',
+    red:     'bg-red-50 text-red-700 border-red-200',
+    orange:  'bg-orange-50 text-orange-700 border-orange-200',
+  };
+  return (
+    <span className={`inline-flex items-center text-[11px] px-1.5 py-0.5 rounded border ${palettes[color] || palettes.slate}`}>
+      {children}
+    </span>
   );
 }
 

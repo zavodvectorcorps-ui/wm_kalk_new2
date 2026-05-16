@@ -1,0 +1,26 @@
+{
+  "summary": "Backend + frontend testing of Sauna Price Import HISTORY + ROLLBACK feature. 12/12 backend pytest cases passed covering auth gating, list (sorted desc, no snapshot blobs, dealer-scoped), rollback (price restore, override restore, double-rollback 400, unknown id 404), DELETE, and that commit returns historyId. Frontend: 'История' button shown next to Импорт/Экспорт on SaunaPricingPage (Ceny > Sauny), opens history-dialog with 6 entries listing date, adminUsername, filename, summary chip. Откачен badge correctly rendered on all rolled-back rows (rolledBack flag from backend reflected in UI).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_price_import_history.py",
+    "/app/test_reports/pytest/pytest_results_iteration86.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Cap-50 history prune in commit_import_sauna_prices deletes oldest entries regardless of their rolledBack state — could prune an entry mid-investigation; consider preferring to prune rolledBack==true entries first.",
+    "DELETE endpoint allows deleting non-rolled-back entries which loses snapshots; consider blocking or warning unless rolledBack."
+  ],
+  "updated_files": ["/app/backend/tests/test_sauna_price_import_history.py"],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "100%"},
+  "test_credentials": "admin / admin123 (preview env)",
+  "seed_data_creation": "Tests create temporary history entries via commit, then rollback to keep DB clean.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests cover global + dealer-scoped flows. Frontend was verified at Panel Administracyjny -> Ceny -> Sauny: the History button + dialog work. Active rollback buttons cannot be exercised live unless a fresh commit happens (all current entries were rolled back by tests). To exercise the rollback click flow end-to-end, do a fresh CSV/Excel import via UI first.",
+  "rca of the issue": "N/A - no bugs found"
+}
