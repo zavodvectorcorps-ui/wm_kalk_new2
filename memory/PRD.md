@@ -528,6 +528,41 @@ Completed all three open items from Phase 2:
   расширенного `/dashboard`.
 - Тестировано: 20/20 новых backend pytest + 28/28 регрессии прошли.
 
+## Session — 4-Part Refinement (May 16, 2026)
+
+### Planner Kanban refactor (TasksBoard.jsx)
+- Колонки доски теперь группируются по **направлениям/категориям** (Сауны, Теплицы,
+  WM Finance, WM Kalkulator, Маркетинг, IT, Административное, Другое), а не по статусам.
+- Перетаскивание карточки между колонками меняет `businessDirection` (PUT).
+- Inline-чекбокс на каждой мини-карточке (data-testid `board-card-toggle-{id}`)
+  переключает `status` между `done` и `planned`.
+- На карточке показывается описание (line-clamp-2) и статус-бейдж для всего, кроме done.
+- В QuickCreate и TaskDrawer опция «не назначен» переименована в **«Общая задача»**.
+
+### Tech Card — stale-component warning (TechCardEditor.jsx)
+- Каждая строка BOM с несуществующим componentId подсвечена красным,
+  показывается inline-предупреждение «Компонент удалён из базы».
+- Сверху диалога — баннер `tech-card-stale-banner` со счётчиком устаревших позиций.
+
+### Procurement What-If — поддержка опций (ProcurementForecast.jsx)
+- Раздельные кнопки «Добавить Модель» / «Добавить Опцию» (`whatif-add-model` / `whatif-add-option`).
+- Для опций — селект опции (с группировкой по категории) + опциональный вариант опции.
+- Backend `/procurement/forecast` уже принимает `scope=option|option_variant`.
+
+### Manual stock deduction (sauna_tech_cards.py + ComponentsAdmin.jsx)
+- Новые backend-эндпоинты:
+  - `POST /api/sauna-production/cost/components/{id}/stock-adjust` —
+    type `in` / `out` / `set`, qty, note. Возвращает `{ok, movement, stockCurrent}`.
+  - `GET  /api/sauna-production/cost/components/{id}/stock-movements` — история по компоненту.
+  - `GET  /api/sauna-production/cost/stock-movements` — глобальная лента (200 последних).
+- Новая коллекция MongoDB `sauna_stock_movements` хранит аудит-лог
+  (componentId, type, qty, before, after, note, actor, at).
+- В `ComponentsAdmin`:
+  - Новая колонка «Остаток / Мин.» с подсветкой при `stock ≤ stockMin`.
+  - Кнопка `component-stock-{id}` открывает `StockDialog` с формой и историей.
+  - Поля `stockCurrent` / `stockMin` в диалоге редактирования компонента.
+- Тестировано: 19/19 новых backend pytest (test_sauna_stock_and_option_forecast.py).
+
 ## Prioritized Backlog
 - P1: Telegram notification on negative AI score for calls
 - P1: Weekly AI digest (email/Telegram) for managers
