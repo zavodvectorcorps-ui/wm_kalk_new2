@@ -318,7 +318,10 @@ def diff_rows(prices_doc: dict, parsed_rows: list[dict],
       }
     """
     out_rows: list[dict] = []
-    summary = {"added": 0, "modified": 0, "unchanged": 0, "errors": 0, "overrides_changed": 0}
+    summary = {"added": 0, "modified": 0, "unchanged": 0, "errors": 0, "overrides_changed": 0, "marginAlerts": 0}
+
+    # Threshold below which we flag the row as "low margin" (visual warning).
+    MARGIN_ALERT_PCT = 15.0
 
     seen_keys = set()
 
@@ -461,6 +464,50 @@ def diff_rows(prices_doc: dict, parsed_rows: list[dict],
             # adjust counters: if we already incremented added/modified/unchanged above, revert
         else:
             seen_keys.add(key)
+
+        # ---- Margin computation (price - costPrice) ----
+        if existing is None:
+            old_price_for_margin = None
+            old_cost_for_margin = None
+        else:
+            old_price_for_margin = int((existing.get("basePrice") if row_type == "model" else existing.get("price")) or 0)
+            old_cost_for_margin = int(existing.get("costPrice") or 0)
+        new_price_for_margin = price if price is not None else old_price_for_margin
+        new_cost_for_margin = cost_price if cost_price is not None else old_cost_for_margin
+
+        def _margin(p, c):
+            if p is None or c is None:
+                return None
+            return int(p) - int(c)
+
+        def _margin_pct(p, c):
+            if p is None or c is None or int(p) <= 0:
+                return None
+            return round((int(p) - int(c)) * 100.0 / int(p), 1)
+
+        margin_old = _margin(old_price_for_margin, old_cost_for_margin)
+        margin_new = _margin(new_price_for_margin, new_cost_for_margin)
+        margin_pct_old = _margin_pct(old_price_for_margin, old_cost_for_margin)
+        margin_pct_new = _margin_pct(new_price_for_margin, new_cost_for_margin)
+        result["margin"] = {
+            "oldAmount": margin_old,
+            "newAmount": margin_new,
+            "oldPct": margin_pct_old,
+            "newPct": margin_pct_new,
+            "delta": (margin_new - margin_old) if (margin_old is not None and margin_new is not None) else None,
+        }
+
+        # Flag low margin (only on the new values, when result has a real price)
+        if (
+            margin_pct_new is not None
+            and margin_pct_new < MARGIN_ALERT_PCT
+            and result["status"] in ("added", "modified")
+            and (new_price_for_margin or 0) > 0
+        ):
+            result["lowMargin"] = True
+            result["marginThreshold"] = MARGIN_ALERT_PCT
+            summary["marginAlerts"] += 1
+
         out_rows.append(result)
 
     return {"summary": summary, "rows": out_rows}

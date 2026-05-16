@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table';
-import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye, Truck, Package, Kanban, GraduationCap, BarChart3 } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye, Truck, Package, Kanban, GraduationCap, BarChart3, Phone, Building2 } from 'lucide-react';
 import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
 
@@ -73,6 +73,9 @@ export const UserManagement = () => {
       accessSaunaCrm: 'CRM саун',
       accessSaunaProduction: 'Производство саун',
       accessTraining: 'Обучение',
+      accessAnalytics: 'Аналитика лидов',
+      accessCallAnalytics: 'Аналитика звонков',
+      accessDealers: 'Дилеры',
       accessAll: 'Все разделы',
       role: 'Роль',
       admin: 'Администратор',
@@ -122,6 +125,9 @@ export const UserManagement = () => {
       accessSaunaCrm: 'CRM saun',
       accessSaunaProduction: 'Produkcja saun',
       accessTraining: 'Szkolenia',
+      accessAnalytics: 'Analityka leadów',
+      accessCallAnalytics: 'Analityka połączeń',
+      accessDealers: 'Dilerzy',
       accessAll: 'Wszystkie sekcje',
       role: 'Rola',
       admin: 'Administrator',
@@ -160,6 +166,30 @@ export const UserManagement = () => {
 
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';
   const txt = texts[lang];
+
+  // Single source of truth — adding a new section here makes it appear in
+  // both Add+Edit dialogs and in the access badges automatically.
+  const ACCESS_SECTIONS = [
+    { key: 'balia', label: txt.accessBalia, icon: Waves, iconClass: 'text-blue-500', badgeClass: '' },
+    { key: 'sauna', label: txt.accessSauna, icon: Flame, iconClass: 'text-orange-500', badgeClass: 'bg-orange-100 text-orange-700' },
+    { key: 'logistics', label: txt.accessLogistics, icon: Truck, iconClass: 'text-teal-500', badgeClass: 'bg-teal-100 text-teal-700' },
+    { key: 'driver', label: txt.accessDriver, icon: Truck, iconClass: 'text-green-500', badgeClass: 'bg-green-100 text-green-700' },
+    { key: 'warehouse', label: txt.accessWarehouse, icon: Package, iconClass: 'text-amber-500', badgeClass: 'bg-amber-100 text-amber-700' },
+    { key: 'sauna_crm', label: txt.accessSaunaCrm, icon: Flame, iconClass: 'text-rose-500', badgeClass: 'bg-rose-100 text-rose-700' },
+    { key: 'sauna_production', label: txt.accessSaunaProduction, icon: Kanban, iconClass: 'text-pink-500', badgeClass: 'bg-pink-100 text-pink-700' },
+    { key: 'training', label: txt.accessTraining, icon: GraduationCap, iconClass: 'text-indigo-500', badgeClass: 'bg-indigo-100 text-indigo-700' },
+    { key: 'analytics', label: txt.accessAnalytics, icon: BarChart3, iconClass: 'text-indigo-600', badgeClass: 'bg-indigo-100 text-indigo-700' },
+    { key: 'call_analytics', label: txt.accessCallAnalytics, icon: Phone, iconClass: 'text-teal-600', badgeClass: 'bg-teal-100 text-teal-700' },
+    { key: 'dealers', label: txt.accessDealers, icon: Building2, iconClass: 'text-orange-600', badgeClass: 'bg-orange-100 text-orange-700' },
+  ];
+
+  const toggleAccess = (key, checked) => {
+    const cur = Array.isArray(formData.access) ? formData.access : [formData.access];
+    const next = checked
+      ? [...cur.filter((a) => a !== 'all' && a !== key), key]
+      : cur.filter((a) => a !== key);
+    setFormData({ ...formData, access: next });
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -307,54 +337,15 @@ export const UserManagement = () => {
       }
       return (
         <div className="flex flex-wrap gap-1">
-          {access.includes('balia') && (
-            <Badge variant="secondary" className="gap-1">
-              <Waves className="w-3 h-3" />
-              Balia
-            </Badge>
-          )}
-          {access.includes('sauna') && (
-            <Badge variant="secondary" className="gap-1 bg-orange-100 text-orange-700">
-              <Flame className="w-3 h-3" />
-              Sauna
-            </Badge>
-          )}
-          {access.includes('logistics') && (
-            <Badge variant="secondary" className="gap-1 bg-teal-100 text-teal-700">
-              <Truck className="w-3 h-3" />
-              Logistics
-            </Badge>
-          )}
-          {access.includes('driver') && (
-            <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700">
-              <Truck className="w-3 h-3" />
-              Driver
-            </Badge>
-          )}
-          {access.includes('sauna_crm') && (
-            <Badge variant="secondary" className="gap-1 bg-rose-100 text-rose-700">
-              <Flame className="w-3 h-3" />
-              {txt.accessSaunaCrm}
-            </Badge>
-          )}
-          {access.includes('sauna_production') && (
-            <Badge variant="secondary" className="gap-1 bg-pink-100 text-pink-700">
-              <Kanban className="w-3 h-3" />
-              {txt.accessSaunaProduction}
-            </Badge>
-          )}
-          {access.includes('warehouse') && (
-            <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-700">
-              <Package className="w-3 h-3" />
-              {txt.accessWarehouse}
-            </Badge>
-          )}
-          {access.includes('training') && (
-            <Badge variant="secondary" className="gap-1 bg-indigo-100 text-indigo-700">
-              <GraduationCap className="w-3 h-3" />
-              {txt.accessTraining}
-            </Badge>
-          )}
+          {ACCESS_SECTIONS.filter((s) => access.includes(s.key)).map((s) => {
+            const Icon = s.icon;
+            return (
+              <Badge key={s.key} variant="secondary" className={`gap-1 ${s.badgeClass}`}>
+                <Icon className="w-3 h-3" />
+                {s.label}
+              </Badge>
+            );
+          })}
         </div>
       );
     }
@@ -610,135 +601,25 @@ export const UserManagement = () => {
             </div>
             <div className="space-y-2">
               <Label>{txt.access}</Label>
-              <div className="space-y-3 p-3 border rounded-md">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="add-access-balia"
-                    checked={formData.access.includes('balia')}
-                    onCheckedChange={(checked) => {
-                      const newAccess = checked 
-                        ? [...formData.access, 'balia']
-                        : formData.access.filter(a => a !== 'balia');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="add-access-balia" className="flex items-center gap-2 cursor-pointer">
-                    <Waves className="w-4 h-4 text-blue-500" />
-                    {txt.accessBalia}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="add-access-sauna"
-                    checked={formData.access.includes('sauna')}
-                    onCheckedChange={(checked) => {
-                      const newAccess = checked 
-                        ? [...formData.access, 'sauna']
-                        : formData.access.filter(a => a !== 'sauna');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="add-access-sauna" className="flex items-center gap-2 cursor-pointer">
-                    <Flame className="w-4 h-4 text-orange-500" />
-                    {txt.accessSauna}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="add-access-logistics"
-                    checked={formData.access.includes('logistics')}
-                    onCheckedChange={(checked) => {
-                      const newAccess = checked 
-                        ? [...formData.access, 'logistics']
-                        : formData.access.filter(a => a !== 'logistics');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="add-access-logistics" className="flex items-center gap-2 cursor-pointer">
-                    <Truck className="w-4 h-4 text-teal-500" />
-                    {txt.accessLogistics}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="add-access-driver"
-                    checked={formData.access.includes('driver')}
-                    onCheckedChange={(checked) => {
-                      const newAccess = checked 
-                        ? [...formData.access, 'driver']
-                        : formData.access.filter(a => a !== 'driver');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="add-access-driver" className="flex items-center gap-2 cursor-pointer">
-                    <Truck className="w-4 h-4 text-green-500" />
-                    {txt.accessDriver}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="add-access-sauna-crm"
-                    checked={formData.access.includes('sauna_crm')}
-                    onCheckedChange={(checked) => {
-                      const newAccess = checked 
-                        ? [...formData.access, 'sauna_crm']
-                        : formData.access.filter(a => a !== 'sauna_crm');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="add-access-sauna-crm" className="flex items-center gap-2 cursor-pointer">
-                    <Flame className="w-4 h-4 text-rose-500" />
-                    {txt.accessSaunaCrm}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="add-access-sauna-production"
-                    checked={formData.access.includes('sauna_production')}
-                    onCheckedChange={(checked) => {
-                      const newAccess = checked 
-                        ? [...formData.access, 'sauna_production']
-                        : formData.access.filter(a => a !== 'sauna_production');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="add-access-sauna-production" className="flex items-center gap-2 cursor-pointer">
-                    <Kanban className="w-4 h-4 text-pink-500" />
-                    {txt.accessSaunaProduction}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="add-access-warehouse"
-                    checked={formData.access.includes('warehouse')}
-                    onCheckedChange={(checked) => {
-                      const newAccess = checked 
-                        ? [...formData.access, 'warehouse']
-                        : formData.access.filter(a => a !== 'warehouse');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="add-access-warehouse" className="flex items-center gap-2 cursor-pointer">
-                    <Package className="w-4 h-4 text-amber-500" />
-                    {txt.accessWarehouse}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="add-access-training"
-                    checked={formData.access.includes('training')}
-                    onCheckedChange={(checked) => {
-                      const newAccess = checked 
-                        ? [...formData.access, 'training']
-                        : formData.access.filter(a => a !== 'training');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="add-access-training" className="flex items-center gap-2 cursor-pointer">
-                    <GraduationCap className="w-4 h-4 text-indigo-500" />
-                    {txt.accessTraining}
-                  </label>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border rounded-md">
+                {ACCESS_SECTIONS.map((s) => {
+                  const Icon = s.icon;
+                  const isChecked = Array.isArray(formData.access) && formData.access.includes(s.key);
+                  return (
+                    <div key={s.key} className="flex items-center gap-3">
+                      <Checkbox
+                        id={`add-access-${s.key}`}
+                        checked={isChecked}
+                        onCheckedChange={(c) => toggleAccess(s.key, c)}
+                        data-testid={`add-access-${s.key}`}
+                      />
+                      <label htmlFor={`add-access-${s.key}`} className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Icon className={`w-4 h-4 ${s.iconClass}`} />
+                        {s.label}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -843,143 +724,25 @@ export const UserManagement = () => {
             </div>
             <div className="space-y-2">
               <Label>{txt.access}</Label>
-              <div className="space-y-3 p-3 border rounded-md">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="edit-access-balia"
-                    checked={Array.isArray(formData.access) && formData.access.includes('balia')}
-                    onCheckedChange={(checked) => {
-                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
-                      const newAccess = checked 
-                        ? [...currentAccess.filter(a => a !== 'all'), 'balia']
-                        : currentAccess.filter(a => a !== 'balia');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="edit-access-balia" className="flex items-center gap-2 cursor-pointer">
-                    <Waves className="w-4 h-4 text-blue-500" />
-                    {txt.accessBalia}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="edit-access-sauna"
-                    checked={Array.isArray(formData.access) && formData.access.includes('sauna')}
-                    onCheckedChange={(checked) => {
-                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
-                      const newAccess = checked 
-                        ? [...currentAccess.filter(a => a !== 'all'), 'sauna']
-                        : currentAccess.filter(a => a !== 'sauna');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="edit-access-sauna" className="flex items-center gap-2 cursor-pointer">
-                    <Flame className="w-4 h-4 text-orange-500" />
-                    {txt.accessSauna}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="edit-access-logistics"
-                    checked={Array.isArray(formData.access) && formData.access.includes('logistics')}
-                    onCheckedChange={(checked) => {
-                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
-                      const newAccess = checked 
-                        ? [...currentAccess.filter(a => a !== 'all'), 'logistics']
-                        : currentAccess.filter(a => a !== 'logistics');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="edit-access-logistics" className="flex items-center gap-2 cursor-pointer">
-                    <Truck className="w-4 h-4 text-teal-500" />
-                    {txt.accessLogistics}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="edit-access-driver"
-                    checked={Array.isArray(formData.access) && formData.access.includes('driver')}
-                    onCheckedChange={(checked) => {
-                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
-                      const newAccess = checked 
-                        ? [...currentAccess.filter(a => a !== 'all'), 'driver']
-                        : currentAccess.filter(a => a !== 'driver');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="edit-access-driver" className="flex items-center gap-2 cursor-pointer">
-                    <Truck className="w-4 h-4 text-green-500" />
-                    {txt.accessDriver}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="edit-access-sauna-crm"
-                    checked={Array.isArray(formData.access) && formData.access.includes('sauna_crm')}
-                    onCheckedChange={(checked) => {
-                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
-                      const newAccess = checked 
-                        ? [...currentAccess.filter(a => a !== 'all'), 'sauna_crm']
-                        : currentAccess.filter(a => a !== 'sauna_crm');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="edit-access-sauna-crm" className="flex items-center gap-2 cursor-pointer">
-                    <Flame className="w-4 h-4 text-rose-500" />
-                    {txt.accessSaunaCrm}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="edit-access-sauna-production"
-                    checked={Array.isArray(formData.access) && formData.access.includes('sauna_production')}
-                    onCheckedChange={(checked) => {
-                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
-                      const newAccess = checked 
-                        ? [...currentAccess.filter(a => a !== 'all'), 'sauna_production']
-                        : currentAccess.filter(a => a !== 'sauna_production');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="edit-access-sauna-production" className="flex items-center gap-2 cursor-pointer">
-                    <Kanban className="w-4 h-4 text-pink-500" />
-                    {txt.accessSaunaProduction}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="edit-access-warehouse"
-                    checked={Array.isArray(formData.access) && formData.access.includes('warehouse')}
-                    onCheckedChange={(checked) => {
-                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
-                      const newAccess = checked 
-                        ? [...currentAccess.filter(a => a !== 'all'), 'warehouse']
-                        : currentAccess.filter(a => a !== 'warehouse');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="edit-access-warehouse" className="flex items-center gap-2 cursor-pointer">
-                    <Package className="w-4 h-4 text-amber-500" />
-                    {txt.accessWarehouse}
-                  </label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="edit-access-training"
-                    checked={Array.isArray(formData.access) && formData.access.includes('training')}
-                    onCheckedChange={(checked) => {
-                      const currentAccess = Array.isArray(formData.access) ? formData.access : [formData.access];
-                      const newAccess = checked 
-                        ? [...currentAccess.filter(a => a !== 'all'), 'training']
-                        : currentAccess.filter(a => a !== 'training');
-                      setFormData({ ...formData, access: newAccess });
-                    }}
-                  />
-                  <label htmlFor="edit-access-training" className="flex items-center gap-2 cursor-pointer">
-                    <GraduationCap className="w-4 h-4 text-indigo-500" />
-                    {txt.accessTraining}
-                  </label>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border rounded-md">
+                {ACCESS_SECTIONS.map((s) => {
+                  const Icon = s.icon;
+                  const isChecked = Array.isArray(formData.access) && formData.access.includes(s.key);
+                  return (
+                    <div key={s.key} className="flex items-center gap-3">
+                      <Checkbox
+                        id={`edit-access-${s.key}`}
+                        checked={isChecked}
+                        onCheckedChange={(c) => toggleAccess(s.key, c)}
+                        data-testid={`edit-access-${s.key}`}
+                      />
+                      <label htmlFor={`edit-access-${s.key}`} className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Icon className={`w-4 h-4 ${s.iconClass}`} />
+                        {s.label}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

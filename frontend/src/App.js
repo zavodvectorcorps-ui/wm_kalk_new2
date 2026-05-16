@@ -369,27 +369,27 @@ const AppContent = () => {
       return; // Don't navigate if not admin
     }
 
-    // Dealers tab inside admin panel - admin only
+    // Dealers tab inside admin panel - admin or granted access
     if (calculator === 'dealers') {
-      if (isAdmin && isAdmin()) {
+      if ((isAdmin && isAdmin()) || hasAccess('dealers')) {
         setCurrentCalculator('admin-dealers');
         return;
       }
       return;
     }
 
-    // Analytics - admin only
+    // Analytics - admin or granted access
     if (calculator === 'analytics') {
-      if (isAdmin && isAdmin()) {
+      if ((isAdmin && isAdmin()) || hasAccess('analytics')) {
         setCurrentCalculator('analytics');
         return;
       }
       return;
     }
 
-    // Call Analytics - admin only
+    // Call Analytics - admin or granted access
     if (calculator === 'callAnalytics') {
-      if (isAdmin && isAdmin()) {
+      if ((isAdmin && isAdmin()) || hasAccess('call_analytics')) {
         setCurrentCalculator('callAnalytics');
         return;
       }
@@ -854,7 +854,7 @@ const AppContent = () => {
   }
 
   // Admin Panel — Dealers Hub (standalone)
-  if (currentCalculator === 'admin-dealers' && isAdmin()) {
+  if (currentCalculator === 'admin-dealers' && (isAdmin() || hasAccess('dealers'))) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
         <Header

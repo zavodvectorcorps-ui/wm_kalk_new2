@@ -86,6 +86,9 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
   const canAccessSaunaProduction = hasAccess ? hasAccess('sauna_production') : false;
   const canAccessTraining = hasAccess ? hasAccess('training') : false;
   const canAccessAdmin = isAdmin && isAdmin();
+  const canAccessAnalytics = canAccessAdmin || (hasAccess && hasAccess('analytics'));
+  const canAccessCallAnalytics = canAccessAdmin || (hasAccess && hasAccess('call_analytics'));
+  const canAccessDealers = canAccessAdmin || (hasAccess && hasAccess('dealers'));
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
@@ -355,8 +358,9 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
         )}
 
         {/* Third Row: Analytics */}
-        {canAccessAdmin && (
+        {(canAccessAnalytics || canAccessCallAnalytics || canAccessDealers) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mt-6">
+            {canAccessAnalytics && (
             <Card 
               className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-indigo-500/50"
               onClick={() => onSelectCalculator('analytics')}
@@ -380,7 +384,9 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                 </div>
               </CardContent>
             </Card>
+            )}
 
+            {canAccessCallAnalytics && (
             <Card 
               className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-teal-500/50"
               onClick={() => onSelectCalculator('callAnalytics')}
@@ -404,9 +410,10 @@ export const LandingPage = ({ onSelectCalculator, hasAccess }) => {
                 </div>
               </CardContent>
             </Card>
+            )}
 
-            {/* Dealers Card — admin only, lives in the bottom row */}
-            {canAccessAdmin && (
+            {/* Dealers Card — admin or granted access */}
+            {canAccessDealers && (
               <Card
                 data-testid="landing-dealers-card"
                 className="group transition-all duration-300 border-2 cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-orange-500/50"

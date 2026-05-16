@@ -367,6 +367,7 @@ function DryRunDialog({ dryRun, isDealerMode, dealerName, hideUnchanged, setHide
   const total = (s.added || 0) + (s.modified || 0) + (s.unchanged || 0) + (s.errors || 0);
   const hasChanges = (s.added || 0) + (s.modified || 0) > 0;
   const visibleRows = (dryRun.rows || []).filter((r) => !hideUnchanged || r.status !== 'unchanged');
+  const marginAlerts = s.marginAlerts || 0;
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
@@ -386,6 +387,16 @@ function DryRunDialog({ dryRun, isDealerMode, dealerName, hideUnchanged, setHide
           </DialogDescription>
         </DialogHeader>
 
+        {marginAlerts > 0 && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-red-300 bg-red-50 text-red-700 text-xs" data-testid="margin-alert-banner">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>
+              <b>Внимание:</b> у {marginAlerts}{' '}
+              {marginAlerts === 1 ? 'позиции' : 'позиций'} маржа после импорта станет ниже 15% — выделены красным ниже.
+            </span>
+          </div>
+        )}
+
         {/* Summary */}
         <div className="flex flex-wrap gap-2 py-2">
           <SummaryChip label="Добавлено" value={s.added || 0} color="emerald" />
@@ -393,6 +404,7 @@ function DryRunDialog({ dryRun, isDealerMode, dealerName, hideUnchanged, setHide
           <SummaryChip label="Без изм." value={s.unchanged || 0} color="slate" />
           {s.errors > 0 && <SummaryChip label="Ошибки" value={s.errors} color="red" />}
           {isDealerMode && <SummaryChip label="Оверрайды" value={s.overrides_changed || 0} color="orange" />}
+          {marginAlerts > 0 && <SummaryChip label="Маржа <15%" value={marginAlerts} color="red" />}
           <SummaryChip label="Всего строк" value={total} color="slate" />
           <label className="ml-auto inline-flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
             <input
@@ -414,11 +426,12 @@ function DryRunDialog({ dryRun, isDealerMode, dealerName, hideUnchanged, setHide
                 <th className="px-2 py-2 w-32">Тип</th>
                 <th className="px-2 py-2">ID / Имя</th>
                 <th className="px-2 py-2">Изменения</th>
+                <th className="px-2 py-2 w-32">Маржа</th>
               </tr>
             </thead>
             <tbody>
               {visibleRows.length === 0 ? (
-                <tr><td colSpan={4} className="px-2 py-8 text-center text-muted-foreground">Нет строк для отображения</td></tr>
+                <tr><td colSpan={5} className="px-2 py-8 text-center text-muted-foreground">Нет строк для отображения</td></tr>
               ) : visibleRows.map((r, idx) => <DiffRow key={idx} row={r} />)}
             </tbody>
           </table>
@@ -463,8 +476,11 @@ function DiffRow({ row }) {
   const meta = STATUS_META[row.status] || STATUS_META.unchanged;
   const Icon = meta.icon;
   const diffEntries = Object.entries(row.diff || {});
+  const m = row.margin || {};
+  const lowMargin = !!row.lowMargin;
+  const showMargin = m.oldAmount !== null && m.oldAmount !== undefined || m.newAmount !== null && m.newAmount !== undefined;
   return (
-    <tr className="border-t align-top hover:bg-slate-50/50" data-testid={`diff-row-${row.status}`}>
+    <tr className={`border-t align-top hover:bg-slate-50/50 ${lowMargin ? 'bg-red-50/40' : ''}`} data-testid={`diff-row-${row.status}`}>
       <td className="px-2 py-2">
         <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded border ${meta.color}`}>
           <Icon className="h-3 w-3" />
@@ -495,7 +511,40 @@ function DiffRow({ row }) {
           </ul>
         )}
       </td>
+      <td className="px-2 py-2 text-[11px] font-mono whitespace-nowrap" data-testid={`margin-cell-${row.id || row.type}`}>
+        {showMargin ? (
+          <MarginCell margin={m} lowMargin={lowMargin} />
+        ) : (
+          <span className="text-slate-300">—</span>
+        )}
+      </td>
     </tr>
+  );
+}
+
+function MarginCell({ margin, lowMargin }) {
+  const oldPct = margin.oldPct;
+  const newPct = margin.newPct;
+  const oldAmt = margin.oldAmount;
+  const newAmt = margin.newAmount;
+  const delta = margin.delta;
+  const changed = delta !== null && delta !== undefined && delta !== 0;
+  const newColor = lowMargin
+    ? 'text-red-700 font-bold'
+    : (changed && delta < 0 ? 'text-amber-700' : 'text-emerald-700');
+  return (
+    <div className="space-y-0.5 leading-tight">
+      {changed && oldAmt !== null && oldAmt !== undefined ? (
+        <div className="text-slate-400 line-through">
+          {oldAmt} ({oldPct !== null && oldPct !== undefined ? `${oldPct}%` : '—'})
+        </div>
+      ) : null}
+      <div className={newColor}>
+        {newAmt !== null && newAmt !== undefined ? newAmt : '—'}
+        {newPct !== null && newPct !== undefined ? ` (${newPct}%)` : ''}
+        {lowMargin && <AlertTriangle className="inline h-3 w-3 ml-1 -mt-0.5" />}
+      </div>
+    </div>
   );
 }
 

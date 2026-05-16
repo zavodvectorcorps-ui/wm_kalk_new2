@@ -1,0 +1,39 @@
+{
+  "summary": "Tested MARGIN dry-run feature + new access values (analytics/call_analytics/dealers). Backend: 7/11 pytest cases passed. Found CRITICAL bug — PUT /api/users/{id} does NOT accept new access values (analytics, call_analytics, dealers) because /app/backend/routes/auth.py line 152 valid_access_values list was not updated when POST endpoint at line 90 was. Returns 400 'Invalid access value'. POST works correctly. Frontend: confirmed UserManagement Add+Edit dialogs both render all 11 access checkboxes including 'Analityka leadów' (analytics), 'Analityka połączeń' (call_analytics), 'Dilerzy' (dealers) with correct data-testids. Margin dry-run backend verified: row {price:13000, costPrice:12500} → margin object {oldAmount:null,newAmount:500,newPct:3.8}, lowMargin=true, marginThreshold=15.0, summary.marginAlerts=1. Roundtrip export→reimport of unchanged file produces marginAlerts=0 as expected.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "PUT /api/users/{id}", "issue": "valid_access_values list at /app/backend/routes/auth.py line 152 is missing 'analytics', 'call_analytics', 'dealers'. Editing any user and granting these new permissions returns 400 'Invalid access value: analytics. Must be one of: [balia, sauna, logistics, driver, warehouse, sauna_crm, sauna_production, training, all]'. Admins can create users with these access keys (POST works) but CANNOT edit them — breaks the UI flow described in this review request.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Edit user → grant analytics/call_analytics/dealers access", "issue": "UI shows the new checkboxes and lets admin toggle them, but submitting the form will fail with toast.error because PUT /api/users/{id} rejects the values. User sees generic 'Произошла ошибка' instead of useful feedback. Same root cause as backend critical bug.", "affected_selectors": ["edit-access-analytics", "edit-access-call_analytics", "edit-access-dealers"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_access_and_margin.py",
+    "/app/test_reports/pytest/pytest_results_iteration87.xml"
+  ],
+  "action_items": [
+    "FIX /app/backend/routes/auth.py line 152: add 'analytics', 'call_analytics', 'dealers' to valid_access_values in update_user() to mirror create_user() at line 90. Also consider extracting this list to a module-level constant (VALID_ACCESS_VALUES) to prevent future drift between POST/PUT validators.",
+    "Allowed roles list in update_user() (line 162) is also missing 'marketer' that is present in create_user (line 98). Same drift pattern; align both lists.",
+    "Minor React console warning observed on Users tab: 'Encountered two children with the same key' (pre-existing, not part of this review)."
+  ],
+  "critical_code_review_comments": [
+    "auth.py duplicates the valid_access_values literal between POST (line 90) and PUT (line 152). Already drifted (PUT missing 3 values + 'marketer' role). Refactor to module-level constants VALID_ACCESS_VALUES and VALID_ROLES used by both handlers.",
+    "sauna_excel.py MARGIN_ALERT_PCT=15.0 is hardcoded; consider env var or admin-config so threshold can be tuned without redeploy.",
+    "PriceImportExport.jsx DiffRow.showMargin operator precedence: `m.oldAmount !== null && m.oldAmount !== undefined || m.newAmount !== null && m.newAmount !== undefined` — works due to operator precedence but should be wrapped in parens for readability and to avoid future regression.",
+    "UserManagement.jsx getAccessBadge() legacy default labels are hardcoded English ('Balia', 'Sauna', 'Logistics') instead of using i18n txt strings, inconsistent with the rest of the file."
+  ],
+  "updated_files": ["/app/backend/tests/test_access_and_margin.py"],
+  "success_rate": {"backend": "64% (7/11 pytest)", "frontend": "100% (UI elements present)"},
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "Test users prefixed with TEST_ are created and immediately deleted within each test (cleanup in fixture/finally blocks). One unchanged dry-run test exports current prices and re-uploads, no DB mutation.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "After main agent fixes auth.py PUT validator, re-run /app/backend/tests/test_access_and_margin.py — all 11 tests should pass. Margin feature + frontend UI for 11 access checkboxes already verified working. Did not test the LandingPage card-visibility flow for non-admin users with analytics/dealers access (blocked by PUT bug + token budget); recommend that scenario be exercised once backend is patched.",
+  "rca of the issue": "Root cause: when adding new access keys 'analytics', 'call_analytics', 'dealers' the developer updated valid_access_values in create_user() (auth.py:90) but missed the second copy in update_user() (auth.py:152). Both endpoints validate independently with their own literal lists; no shared constant. Reproduction: 1) Login as admin. 2) PUT /api/users/{any_user_id} with {\"access\":[\"analytics\"]} → 400. Mitigation: extract to module-level VALID_ACCESS_VALUES tuple and reference it from both handlers."
+}
