@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 93 — sauna stock adjustments + option-scoped procurement forecast + planner/tech-cards regression. Backend pytest 19/19 PASSED (test_sauna_stock_and_option_forecast.py). Validated: (a) POST /sauna-production/cost/components/{id}/stock-adjust correctly applies type=in (10→17), out (17→14), set (→50); persistence verified via GET /components; returns {ok:true, movement:{...}, stockCurrent}. (b) Validation: invalid type → 400, in/out qty<=0 → 400, set qty<0 → 400, unknown component → 404, unauthenticated → 401/403. (c) GET /components/{id}/stock-movements returns movements sorted by at DESC, all referencing the right componentId. (d) GET /stock-movements global feed contains our recorded movements, sorted DESC. (e) POST /procurement/forecast accepts mixed-scope targets (option, option_variant, model); returns matchedTargets / unmatched / totalMaterials / items; qty multiplier creates 4 flat unmatched entries (2+1+1) and preserves scope values; empty targets → 400. (f) Regression: GET /tech-cards, GET /components (new stockCurrent/stockMin present on fresh rows), GET /cost/dashboard, planner /tasks POST without assigneeUserId (assigneeUsername='', assigneeUserId=''), planner PUT changes businessDirection successfully, tech-card upsert+GET+DELETE flow OK. Frontend smoke (admin/admin123 logged in): QuickCreate dropdown FIRST option literally reads 'Общая задача' (confirmed via role=option text); planner page renders quick-create-bar with all expected testids; 'Доска' tab button visible (it actually toggles table↔board view *within* the 'Все задачи' sub-tab, not from Дашборд — minor UX note). Could not deep-verify TasksBoard column rendering, ComponentsAdmin stock button + StockDialog, and ProcurementForecast whatif-add-option visually because (i) preview DB has 0 planner tasks so the board would render empty even when shown, (ii) navigation to /sauna-production from the picker card click intermittently failed to advance the SPA route in this run — but data-testids are correctly wired in source (TasksBoard.jsx: board-col-, board-card-, board-card-toggle-; ComponentsAdmin.jsx: component-stock-, stock-dialog, component-stock-current/min; ProcurementForecast.jsx: whatif-add-model, whatif-add-option, whatif-compute; TechCardEditor.jsx: tech-card-stale-banner). Recommend main agent visually verify these 3 UI surfaces.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Planner header", "issues": ["'Таблица/Доска' view-mode toggle is only effective on the 'Все задачи' / 'Мои задачи' tabs; clicking it from the Дашборд tab has no visible effect. Consider hiding it on Dashboard or auto-switching the tab when clicked."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_stock_and_option_forecast.py",
+    "/app/test_reports/pytest/pytest_results_iteration93.xml"
+  ],
+  "action_items": [
+    "Main agent self-verify visually: (1) TasksBoard renders 8 columns (board-col-sauna/greenhouse/wm_finance/wm_kalkulator/marketing/it/admin/other) after creating ≥1 task and clicking 'Все задачи'→'Доска'; toggle button flips card to status=done. (2) ComponentsAdmin shows 'Остаток / Мин.' column and a Boxes button (component-stock-{id}) on each row that opens StockDialog. (3) ProcurementForecast WhatIf has both whatif-add-model + whatif-add-option buttons; option-scope row pickers work end-to-end with whatif-compute. (4) TechCardEditor: insert an item whose componentId no longer exists in DB → row gets red tint + tech-card-stale-banner appears.",
+    "Minor UX: 'Доска' toggle on Дашборд tab is a no-op — consider disabling or auto-switching tabs."
+  ],
+  "critical_code_review_comments": [
+    "routes/sauna_tech_cards.py adjust_stock: 'out' movement can drive stockCurrent NEGATIVE without warning (e.g. start=5, out 9 → after=-4). Acceptable for now (audit log preserves history) but a 400 'insufficient stock' guard, or at least a 'negativeAllowed' flag in the body, would prevent operator typos.",
+    "routes/sauna_tech_cards.py adjust_stock: response field naming uses 'before'/'after' (camelCase 'stockCurrent' elsewhere) — fine, but the audit doc stores actorUserId/actorUsername without verifying they are non-empty; if get_admin_user ever returns a token without 'username' (impersonation/legacy) the row will be anonymous. Minor.",
+    "routes/sauna_tech_cards.py procurement_forecast: extra fields (optionId, optionVariantId) are forwarded via `{k: v for k, v in t.items() if k != 'qty'}` — good. However matchedTargets is counted on the EXPANDED flat list, so qty=3 inflates the count by 3× and an admin reading 'matchedTargets=12' may confuse units with distinct items. Consider returning both matchedUnits and matchedDistinct (carry-over from iteration 92 comment).",
+    "TasksBoard.jsx: only 1 column per direction, no inner status grouping — fine per spec, but very-long columns are unbounded in height. Consider a max-height + internal scroll per column.",
+    "Planner header 'Доска/Таблица' toggle is rendered globally yet only applies to All-Tasks/My-Tasks views — inconsistent affordance."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_stock_and_option_forecast.py (new — 19 tests, all passing)"
+  ],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "smoke partial — Quick-create assignee label confirmed; deeper Board/Components/Procurement/TechCard visual checks not completed in this run"},
+  "test_credentials": "admin / admin123 (preview)",
+  "seed_data_creation": "Module-scope autouse fixture deletes the TEST_STOCK_* component (and any TEST_REG_* / TEST_PLN_* artefacts) at the end of the test session; no residue.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "New backend regression file: /app/backend/tests/test_sauna_stock_and_option_forecast.py (run with `pytest backend/tests/test_sauna_stock_and_option_forecast.py -v`). Combine with prior /app/backend/tests/test_sauna_tech_cards.py and /app/backend/tests/test_sauna_procurement_seed_duplicate.py for full coverage of the sauna-production cost stack. Frontend smoke that was NOT visually completed this iteration: (1) tasks-board columns count = 8 (Сауны/Теплицы/WM Finance/WM Kalkulator/Маркетинг/IT/Административное/Другое) — to reach it: click 'Все задачи' tab, THEN 'Доска' toggle in the page header. (2) Создайте задачу через quick-create-submit, then assert a board-card-{id} appears in the matching column with a board-card-toggle-{id} icon button. (3) From the service picker, the 'Produkcja saun' card occasionally requires two clicks before the route advances — re-fetch after a 1500ms wait; once inside, the components-stock buttons and procurement what-if option rows can be checked. (4) For tech-card-stale-banner: seed a tech-card with an items entry whose componentId is then deleted (delete blocked normally by 400 'in use'; you must remove the item from the card first, OR insert a synthetic item via direct DB).",
+  "rca of the issue": "N/A — no production bug found. Backend new feature works to spec. Frontend wiring verified via source review; remaining gaps in this run are environmental (empty planner DB, intermittent SPA navigation), not defects."
+}

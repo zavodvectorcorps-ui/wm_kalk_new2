@@ -5,7 +5,6 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
-import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 import { COST_BASE, API, authHeaders, CAT_BY_ID, fmtMoney, fmtNumber } from './costConstants';
 
@@ -13,7 +12,8 @@ import { COST_BASE, API, authHeaders, CAT_BY_ID, fmtMoney, fmtNumber } from './c
  * ProcurementForecast — shopping list aggregator.
  * Two modes:
  *   • Auto (from production) — pulls from CRM leads with inProduction=true.
- *   • What-if — admin manually picks N model+option targets with qty.
+ *   • What-if — admin manually picks N targets with qty. Each row can be a
+ *     model (+ variant) or an option (+ variant).
  */
 export default function ProcurementForecast() {
   const [mode, setMode] = useState('production');
@@ -103,6 +103,17 @@ function ProductionList() {
   );
 }
 
+/** Flatten option list from prices (top-level + nested under categories). */
+function collectAllOptions(prices) {
+  const out = [];
+  if (!prices) return out;
+  for (const o of (prices.options || [])) out.push(o);
+  for (const cat of (prices.categories || [])) {
+    for (const o of (cat.options || [])) out.push({ ...o, _catName: cat.name });
+  }
+  return out;
+}
+
 function WhatIfBuilder() {
   const [prices, setPrices] = useState(null);
   const [targets, setTargets] = useState([]);
@@ -113,7 +124,16 @@ function WhatIfBuilder() {
     axios.get(`${API}/api/sauna/prices`).then((r) => setPrices(r.data)).catch(() => {});
   }, []);
 
-  const addTarget = () => setTargets([...targets, { _id: Math.random().toString(36).slice(2), scope: 'model', modelId: '', variantId: '', qty: 1 }]);
+  const allOptions = useMemo(() => collectAllOptions(prices), [prices]);
+
+  const addModelTarget = () => setTargets([
+    ...targets,
+    { _id: Math.random().toString(36).slice(2), kind: 'model', scope: 'model', modelId: '', variantId: '', qty: 1 },
+  ]);
+  const addOptionTarget = () => setTargets([
+    ...targets,
+    { _id: Math.random().toString(36).slice(2), kind: 'option', scope: 'option', optionId: '', optionVariantId: '', qty: 1 },
+  ]);
   const removeTarget = (id) => setTargets(targets.filter((t) => t._id !== id));
   const updateTarget = (id, patch) => setTargets(targets.map((t) => t._id === id ? { ...t, ...patch } : t));
 
@@ -130,9 +150,15 @@ function WhatIfBuilder() {
           modelId: t.modelId || '',
           variantId: t.variantId || '',
           optionId: t.optionId || '',
+          optionVariantId: t.optionVariantId || '',
           qty: t.qty || 1,
         })).filter((t) => t.modelId || t.optionId),
       };
+      if (payload.targets.length === 0) {
+        toast.error('Выберите модель или опцию в каждой позиции');
+        setComputing(false);
+        return;
+      }
       const r = await axios.post(`${COST_BASE}/procurement/forecast`, payload, { headers: authHeaders() });
       setResult(r.data);
     } catch (e) {
@@ -146,35 +172,20 @@ function WhatIfBuilder() {
     <div className="space-y-3">
       <div className="border rounded-lg bg-card p-3 space-y-2" data-testid="whatif-builder">
         <div className="text-sm font-medium">Позиции для расчёта</div>
-        {targets.length === 0 && <div className="text-xs text-muted-foreground py-2">Добавьте позиции и нажмите «Рассчитать»</div>}
-        {targets.map((t) => {
-          const model = prices?.models?.find((m) => m.id === t.modelId);
-          return (
-            <div key={t._id} className="flex flex-wrap items-center gap-2 text-xs">
-              <Select value={t.modelId || '__none__'} onValueChange={(v) => updateTarget(t._id, { modelId: v === '__none__' ? '' : v, variantId: '' })}>
-                <SelectTrigger className="h-8 w-[240px]"><SelectValue placeholder="Модель..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— модель не выбрана —</SelectItem>
-                  {(prices?.models || []).map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {model && (model.variants || []).length > 0 && (
-                <Select value={t.variantId || '__base__'} onValueChange={(v) => updateTarget(t._id, { variantId: v === '__base__' ? '' : v, scope: v === '__base__' ? 'model' : 'variant' })}>
-                  <SelectTrigger className="h-8 w-[200px]"><SelectValue placeholder="Вариант..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__base__">База (без варианта)</SelectItem>
-                    {(model.variants || []).map((v) => <SelectItem key={v.id} value={v.id}>{v.name || v.namePl}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
-              <Input type="number" min={1} value={t.qty || 1} onChange={(e) => updateTarget(t._id, { qty: parseInt(e.target.value) || 1 })} className="h-8 w-20" placeholder="шт" />
-              <button onClick={() => removeTarget(t._id)} className="text-slate-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
-            </div>
-          );
-        })}
-        <div className="flex gap-2 pt-1">
-          <Button size="sm" variant="outline" onClick={addTarget} data-testid="whatif-add"><Plus className="w-3.5 h-3.5 mr-1" />Позиция</Button>
-          <Button size="sm" onClick={compute} disabled={computing || targets.length === 0} className="bg-orange-500 hover:bg-orange-600" data-testid="whatif-compute">
+        {targets.length === 0 && <div className="text-xs text-muted-foreground py-2">Добавьте модель или опцию и нажмите «Рассчитать»</div>}
+        {targets.map((t) => (
+          t.kind === 'option'
+            ? <OptionRow key={t._id} t={t} options={allOptions} onUpdate={(p) => updateTarget(t._id, p)} onRemove={() => removeTarget(t._id)} />
+            : <ModelRow key={t._id} t={t} prices={prices} onUpdate={(p) => updateTarget(t._id, p)} onRemove={() => removeTarget(t._id)} />
+        ))}
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button size="sm" variant="outline" onClick={addModelTarget} data-testid="whatif-add-model">
+            <Plus className="w-3.5 h-3.5 mr-1" />Модель
+          </Button>
+          <Button size="sm" variant="outline" onClick={addOptionTarget} data-testid="whatif-add-option">
+            <Plus className="w-3.5 h-3.5 mr-1" />Опция
+          </Button>
+          <Button size="sm" onClick={compute} disabled={computing || targets.length === 0} className="bg-orange-500 hover:bg-orange-600 ml-auto" data-testid="whatif-compute">
             {computing ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Calculator className="w-3.5 h-3.5 mr-1" />}
             Рассчитать
           </Button>
@@ -191,6 +202,64 @@ function WhatIfBuilder() {
           <ProcurementTable items={result.items} />
         </>
       )}
+    </div>
+  );
+}
+
+function ModelRow({ t, prices, onUpdate, onRemove }) {
+  const model = prices?.models?.find((m) => m.id === t.modelId);
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="whatif-row-model">
+      <span className="px-2 py-0.5 text-[10px] rounded border bg-blue-50 text-blue-700 border-blue-200">Модель</span>
+      <Select value={t.modelId || '__none__'} onValueChange={(v) => onUpdate({ modelId: v === '__none__' ? '' : v, variantId: '', scope: 'model' })}>
+        <SelectTrigger className="h-8 w-[240px]"><SelectValue placeholder="Модель..." /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__">— модель не выбрана —</SelectItem>
+          {(prices?.models || []).map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      {model && (model.variants || []).length > 0 && (
+        <Select value={t.variantId || '__base__'} onValueChange={(v) => onUpdate({ variantId: v === '__base__' ? '' : v, scope: v === '__base__' ? 'model' : 'variant' })}>
+          <SelectTrigger className="h-8 w-[200px]"><SelectValue placeholder="Вариант..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__base__">База (без варианта)</SelectItem>
+            {(model.variants || []).map((v) => <SelectItem key={v.id} value={v.id}>{v.name || v.namePl}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      )}
+      <Input type="number" min={1} value={t.qty || 1} onChange={(e) => onUpdate({ qty: parseInt(e.target.value) || 1 })} className="h-8 w-20" placeholder="шт" />
+      <button onClick={onRemove} className="text-slate-400 hover:text-red-600" title="Убрать позицию"><Trash2 className="w-3.5 h-3.5" /></button>
+    </div>
+  );
+}
+
+function OptionRow({ t, options, onUpdate, onRemove }) {
+  const option = options.find((o) => o.id === t.optionId);
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="whatif-row-option">
+      <span className="px-2 py-0.5 text-[10px] rounded border bg-purple-50 text-purple-700 border-purple-200">Опция</span>
+      <Select value={t.optionId || '__none__'} onValueChange={(v) => onUpdate({ optionId: v === '__none__' ? '' : v, optionVariantId: '', scope: 'option' })}>
+        <SelectTrigger className="h-8 w-[280px]"><SelectValue placeholder="Опция..." /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none__">— опция не выбрана —</SelectItem>
+          {options.map((o) => (
+            <SelectItem key={o.id} value={o.id}>
+              {o._catName ? `${o._catName} · ` : ''}{o.name || o.namePl || o.id}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {option && (option.variants || []).length > 0 && (
+        <Select value={t.optionVariantId || '__base__'} onValueChange={(v) => onUpdate({ optionVariantId: v === '__base__' ? '' : v, scope: v === '__base__' ? 'option' : 'option_variant' })}>
+          <SelectTrigger className="h-8 w-[200px]"><SelectValue placeholder="Вариант опции..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__base__">База (без варианта)</SelectItem>
+            {(option.variants || []).map((v) => <SelectItem key={v.id} value={v.id}>{v.name || v.namePl}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      )}
+      <Input type="number" min={1} value={t.qty || 1} onChange={(e) => onUpdate({ qty: parseInt(e.target.value) || 1 })} className="h-8 w-20" placeholder="шт" />
+      <button onClick={onRemove} className="text-slate-400 hover:text-red-600" title="Убрать позицию"><Trash2 className="w-3.5 h-3.5" /></button>
     </div>
   );
 }

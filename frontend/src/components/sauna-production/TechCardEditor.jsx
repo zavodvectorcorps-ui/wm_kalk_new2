@@ -152,6 +152,7 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
   };
 
   const lowMargin = computed.marginPct !== null && computed.marginPct < 15;
+  const staleCount = computed.enriched.filter((it) => it.componentId && !it.comp).length;
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -171,6 +172,16 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
         {loading ? (
           <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-orange-500" /></div>
         ) : (
+          <>
+            {staleCount > 0 && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-md border border-red-300 bg-red-50 text-red-800 text-xs mb-2" data-testid="tech-card-stale-banner">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <b>{staleCount}</b> {staleCount === 1 ? 'компонент удалён' : 'компонента(-ов) удалено'} из базы. Их стоимость учтена как <b>0&nbsp;zł</b>, что искажает себестоимость.
+                  Замените или удалите подсвеченные строки.
+                </div>
+              </div>
+            )}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 overflow-hidden">
             {/* BOM table — main column */}
             <div className="lg:col-span-2 flex flex-col gap-2 overflow-hidden">
@@ -199,19 +210,35 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
                       </td></tr>
                     ) : computed.enriched.map((it) => {
                       const cat = it.comp ? (CAT_BY_ID[it.comp.category] || CAT_BY_ID.other) : null;
+                      const isStale = !!it.componentId && !it.comp;
                       return (
-                        <tr key={it.id} className="border-t hover:bg-slate-50/70" data-testid={`bom-row-${it.id}`}>
+                        <tr
+                          key={it.id}
+                          className={`border-t hover:bg-slate-50/70 ${isStale ? 'bg-red-50/60' : ''}`}
+                          data-testid={`bom-row-${it.id}`}
+                        >
                           <td className="px-2 py-1">
+                            {isStale && (
+                              <div className="flex items-center gap-1 text-[10px] text-red-700 font-medium mb-0.5" data-testid={`bom-stale-${it.id}`}>
+                                <AlertTriangle className="w-3 h-3" />
+                                Компонент удалён из базы — обновите или удалите строку
+                              </div>
+                            )}
                             <Select
                               value={it.componentId || '__none__'}
                               onValueChange={(v) => updateItem(it.id, { componentId: v === '__none__' ? '' : v })}
                             >
-                              <SelectTrigger className="h-8 text-xs">
+                              <SelectTrigger className={`h-8 text-xs ${isStale ? 'border-red-400' : ''}`}>
                                 <SelectValue placeholder="Выберите компонент">
                                   {it.comp ? (
                                     <span className="inline-flex items-center gap-1">
                                       {cat && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color }} />}
                                       {it.comp.name}
+                                    </span>
+                                  ) : isStale ? (
+                                    <span className="inline-flex items-center gap-1 text-red-700">
+                                      <AlertTriangle className="w-3 h-3" />
+                                      Удалённый компонент ({(it.componentId || '').slice(0, 8)})
                                     </span>
                                   ) : null}
                                 </SelectValue>
@@ -317,6 +344,7 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
               />
             </div>
           </div>
+          </>
         )}
 
         <DialogFooter className="pt-3 border-t mt-2 flex-row justify-between sm:justify-between">

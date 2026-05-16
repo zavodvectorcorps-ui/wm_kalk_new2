@@ -689,3 +689,82 @@ async def procurement_forecast(body: dict, _: dict = Depends(get_admin_user)):
             flat.append({k: v for k, v in t.items() if k != "qty"})
     result = await _aggregate_targets(flat)
     return result
+
+
+# ============================================================
+# STOCK MOVEMENTS — manual inventory adjustments
+# ============================================================
+
+VALID_MOVEMENT_TYPES = ("in", "out", "set")
+
+
+@router.post("/components/{component_id}/stock-adjust")
+async def adjust_stock(component_id: str, body: dict, user: dict = Depends(get_admin_user)):
+    """Manually adjust a component's stockCurrent.
+
+    Body: { type: "in"|"out"|"set", qty: float, note?: str }
+      * in  — add qty to stockCurrent (e.g. delivery received)
+      * out — subtract qty from stockCurrent (e.g. used in production)
+      * set — overwrite stockCurrent with qty (e.g. after inventory audit)
+    Records a movement document for the audit log.
+    """
+    comp = await db.sauna_components.find_one({"id": component_id}, {"_id": 0})
+    if not comp:
+        raise HTTPException(404, "Component not found")
+    mtype = (body.get("type") or "").lower()
+    if mtype not in VALID_MOVEMENT_TYPES:
+        raise HTTPException(400, f"type must be one of {VALID_MOVEMENT_TYPES}")
+    try:
+        qty = float(body.get("qty"))
+    except (TypeError, ValueError):
+        raise HTTPException(400, "qty must be a number")
+    if mtype in ("in", "out") and qty <= 0:
+        raise HTTPException(400, "qty must be > 0 for in/out movements")
+    if mtype == "set" and qty < 0:
+        raise HTTPException(400, "qty cannot be negative for set movement")
+
+    before = float(comp.get("stockCurrent") or 0)
+    if mtype == "in":
+        after = before + qty
+    elif mtype == "out":
+        after = before - qty
+    else:
+        after = qty
+
+    await db.sauna_components.update_one(
+        {"id": component_id},
+        {"$set": {"stockCurrent": after, "updatedAt": _now()}},
+    )
+    movement = {
+        "id": str(uuid.uuid4()),
+        "componentId": component_id,
+        "componentName": comp.get("name") or "",
+        "type": mtype,
+        "qty": qty,
+        "before": before,
+        "after": after,
+        "note": (body.get("note") or "").strip(),
+        "actorUserId": user.get("sub") or user.get("id") or "",
+        "actorUsername": user.get("username") or "",
+        "at": _now(),
+    }
+    await db.sauna_stock_movements.insert_one(dict(movement))
+    movement.pop("_id", None)
+    return {"ok": True, "movement": movement, "stockCurrent": after}
+
+
+@router.get("/components/{component_id}/stock-movements")
+async def list_stock_movements(component_id: str, _: dict = Depends(get_admin_user)):
+    items = await db.sauna_stock_movements.find(
+        {"componentId": component_id}, {"_id": 0},
+    ).sort("at", -1).limit(200).to_list(length=200)
+    return {"items": items, "count": len(items)}
+
+
+@router.get("/stock-movements")
+async def list_all_stock_movements(_: dict = Depends(get_admin_user)):
+    """Recent stock movements across all components (last 200)."""
+    items = await db.sauna_stock_movements.find(
+        {}, {"_id": 0},
+    ).sort("at", -1).limit(200).to_list(length=200)
+    return {"items": items, "count": len(items)}

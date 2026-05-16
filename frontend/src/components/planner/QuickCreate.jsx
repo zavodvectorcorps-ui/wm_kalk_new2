@@ -58,9 +58,9 @@ export default function QuickCreate({ users, directions, defaultDirection, onCre
         </SelectContent>
       </Select>
       <Select value={assignee || '__none__'} onValueChange={(v) => setAssignee(v === '__none__' ? '' : v)}>
-        <SelectTrigger className="w-[160px] h-9" data-testid="quick-create-assignee"><SelectValue placeholder="Ответственный" /></SelectTrigger>
+        <SelectTrigger className="w-[180px] h-9" data-testid="quick-create-assignee"><SelectValue placeholder="Ответственный" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="__none__">— не назначен —</SelectItem>
+          <SelectItem value="__none__">Общая задача</SelectItem>
           {(users || []).map((u) => <SelectItem key={u.id} value={u.id}>{u.username}</SelectItem>)}
         </SelectContent>
       </Select>

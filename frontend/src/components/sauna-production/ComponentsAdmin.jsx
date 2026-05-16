@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Plus, Pencil, Trash2, Search, Loader2, Save, X, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Loader2, Save, X, AlertTriangle, Boxes, History, ArrowUpCircle, ArrowDownCircle, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
+import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
-import { COST_BASE, authHeaders, COMPONENT_CATEGORIES, CAT_BY_ID, UNITS, fmtMoney } from './costConstants';
+import { COST_BASE, authHeaders, COMPONENT_CATEGORIES, CAT_BY_ID, UNITS, fmtMoney, fmtNumber } from './costConstants';
 
-const EMPTY = { name: '', category: 'wood', unit: 'шт', unitPrice: 0, supplier: '', note: '', isActive: true };
+const EMPTY = { name: '', category: 'wood', unit: 'шт', unitPrice: 0, supplier: '', note: '', isActive: true, stockCurrent: 0, stockMin: 0 };
 
 /**
  * ComponentsAdmin — CRUD for the materials/components master catalog.
@@ -20,6 +21,7 @@ export default function ComponentsAdmin() {
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [editing, setEditing] = useState(null);
+  const [stockOn, setStockOn] = useState(null);   // component for stock-adjust dialog
 
   const load = async () => {
     setLoading(true);
@@ -119,15 +121,19 @@ export default function ComponentsAdmin() {
                 <th className="px-3 py-2">Название</th>
                 <th className="px-3 py-2 w-20">Ед.</th>
                 <th className="px-3 py-2 w-32">Цена за ед.</th>
-                <th className="px-3 py-2 w-40">Поставщик</th>
-                <th className="px-3 py-2 w-24"></th>
+                <th className="px-3 py-2 w-40">Остаток / Мин.</th>
+                <th className="px-3 py-2 w-32">Поставщик</th>
+                <th className="px-3 py-2 w-32"></th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Нет компонентов. Нажмите «Добавить компонент».</td></tr>
+                <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">Нет компонентов. Нажмите «Добавить компонент».</td></tr>
               ) : filtered.map((c) => {
                 const cat = CAT_BY_ID[c.category] || CAT_BY_ID.other;
+                const stock = Number(c.stockCurrent || 0);
+                const min = Number(c.stockMin || 0);
+                const lowStock = min > 0 && stock <= min;
                 return (
                   <tr key={c.id} className="border-t hover:bg-slate-50/70" data-testid={`component-row-${c.id}`}>
                     <td className="px-3 py-2">
@@ -139,9 +145,18 @@ export default function ComponentsAdmin() {
                     <td className="px-3 py-2 font-medium">{c.name}{c.note && <span className="block text-xs text-muted-foreground">{c.note}</span>}</td>
                     <td className="px-3 py-2 text-xs">{c.unit}</td>
                     <td className="px-3 py-2 font-mono">{fmtMoney(c.unitPrice)}</td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex items-center gap-1.5 text-xs ${lowStock ? 'text-red-600 font-semibold' : ''}`}>
+                        {lowStock && <AlertTriangle className="w-3 h-3" />}
+                        <span className="font-mono">{fmtNumber(stock, 2)}</span>
+                        {min > 0 && <span className="text-muted-foreground">/ {fmtNumber(min, 2)}</span>}
+                        <span className="text-muted-foreground">{c.unit}</span>
+                      </span>
+                    </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">{c.supplier || '—'}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button onClick={() => setEditing(c)} className="text-slate-500 hover:text-slate-700 p-1" data-testid={`component-edit-${c.id}`}><Pencil className="w-3.5 h-3.5" /></button>
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
+                      <button onClick={() => setStockOn(c)} className="text-slate-500 hover:text-orange-600 p-1" title="Изменить остаток" data-testid={`component-stock-${c.id}`}><Boxes className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setEditing(c)} className="text-slate-500 hover:text-slate-700 p-1 ml-1" data-testid={`component-edit-${c.id}`}><Pencil className="w-3.5 h-3.5" /></button>
                       <button onClick={() => remove(c)} className="text-slate-500 hover:text-red-600 p-1 ml-1" data-testid={`component-delete-${c.id}`}><Trash2 className="w-3.5 h-3.5" /></button>
                     </td>
                   </tr>
@@ -153,6 +168,7 @@ export default function ComponentsAdmin() {
       )}
 
       {editing && <ComponentDialog item={editing} onClose={() => setEditing(null)} onSave={save} />}
+      {stockOn && <StockDialog item={stockOn} onClose={() => setStockOn(null)} onChanged={(updated) => { setStockOn(null); if (updated) load(); }} />}
     </div>
   );
 }
@@ -201,6 +217,16 @@ function ComponentDialog({ item, onClose, onSave }) {
               </div>
             )}
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium">Остаток на складе</label>
+              <Input type="number" step="0.01" value={d.stockCurrent ?? 0} onChange={(e) => set('stockCurrent', parseFloat(e.target.value) || 0)} data-testid="component-stock-current" />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Минимальный остаток</label>
+              <Input type="number" step="0.01" value={d.stockMin ?? 0} onChange={(e) => set('stockMin', parseFloat(e.target.value) || 0)} data-testid="component-stock-min" />
+            </div>
+          </div>
           <div>
             <label className="text-xs font-medium">Поставщик</label>
             <Input value={d.supplier || ''} onChange={(e) => set('supplier', e.target.value)} />
@@ -215,6 +241,160 @@ function ComponentDialog({ item, onClose, onSave }) {
           <Button onClick={() => onSave(d)} disabled={!d.name?.trim()} className="bg-orange-500 hover:bg-orange-600" data-testid="component-save">
             <Save className="w-4 h-4 mr-1" />Сохранить
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+/**
+ * StockDialog — manual in/out/set adjustments + last 20 movements log.
+ */
+function StockDialog({ item, onClose, onChanged }) {
+  const [type, setType] = useState('in');
+  const [qty, setQty] = useState(1);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [moves, setMoves] = useState([]);
+  const [loadingMoves, setLoadingMoves] = useState(true);
+  const [stockNow, setStockNow] = useState(Number(item.stockCurrent || 0));
+
+  const loadMoves = async () => {
+    setLoadingMoves(true);
+    try {
+      const r = await axios.get(`${COST_BASE}/components/${item.id}/stock-movements`, { headers: authHeaders() });
+      setMoves(r.data.items || []);
+    } catch (e) {
+      // silent
+    } finally {
+      setLoadingMoves(false);
+    }
+  };
+  useEffect(() => { loadMoves(); /* eslint-disable-next-line */ }, [item.id]);
+
+  const submit = async () => {
+    const n = parseFloat(qty);
+    if (!isFinite(n) || (type !== 'set' && n <= 0)) {
+      toast.error('Введите положительное количество');
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await axios.post(
+        `${COST_BASE}/components/${item.id}/stock-adjust`,
+        { type, qty: n, note: (note || '').trim() },
+        { headers: authHeaders() },
+      );
+      setStockNow(r.data.stockCurrent);
+      setQty(1); setNote('');
+      toast.success(`Остаток обновлён: ${fmtNumber(r.data.stockCurrent, 2)} ${item.unit}`);
+      loadMoves();
+      onChanged?.(true);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const previewAfter = (() => {
+    const n = parseFloat(qty);
+    if (!isFinite(n)) return stockNow;
+    if (type === 'in') return stockNow + n;
+    if (type === 'out') return stockNow - n;
+    return n;
+  })();
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl" data-testid="stock-dialog">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Boxes className="w-5 h-5 text-orange-600" />Изменить остаток · {item.name}</DialogTitle>
+          <DialogDescription>
+            Текущий остаток: <b className="text-foreground font-mono">{fmtNumber(stockNow, 2)} {item.unit}</b>
+            {item.stockMin > 0 && <> · Минимум: <b className="text-foreground font-mono">{fmtNumber(item.stockMin, 2)} {item.unit}</b></>}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Adjustment form */}
+          <div className="space-y-3 border rounded-md p-3 bg-slate-50/40">
+            <div className="text-xs font-semibold uppercase text-muted-foreground">Новая операция</div>
+            <div>
+              <label className="text-xs font-medium">Тип операции</label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger data-testid="stock-type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in"><span className="inline-flex items-center gap-1.5"><ArrowUpCircle className="w-3.5 h-3.5 text-emerald-600" />Пополнение (приход)</span></SelectItem>
+                  <SelectItem value="out"><span className="inline-flex items-center gap-1.5"><ArrowDownCircle className="w-3.5 h-3.5 text-red-600" />Списание (расход)</span></SelectItem>
+                  <SelectItem value="set"><span className="inline-flex items-center gap-1.5"><RefreshCw className="w-3.5 h-3.5 text-blue-600" />Установить точное значение</span></SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium">Количество ({item.unit})</label>
+              <Input type="number" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)} data-testid="stock-qty" />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Примечание (необязательно)</label>
+              <Textarea
+                placeholder="Напр.: приход от поставщика, инвентаризация, списано на заказ #42…"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="min-h-[60px] text-sm"
+                data-testid="stock-note"
+              />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              После операции остаток станет:{' '}
+              <b className={`font-mono ${previewAfter < 0 ? 'text-red-600' : 'text-foreground'}`}>{fmtNumber(previewAfter, 2)} {item.unit}</b>
+              {previewAfter < 0 && <span className="text-red-600 ml-2">⚠ уйдёт в минус</span>}
+            </div>
+            <Button onClick={submit} disabled={busy} className="bg-orange-500 hover:bg-orange-600 w-full" data-testid="stock-submit">
+              {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+              Применить
+            </Button>
+          </div>
+
+          {/* Movement history */}
+          <div className="border rounded-md p-3 bg-card max-h-[420px] overflow-y-auto">
+            <div className="text-xs font-semibold uppercase text-muted-foreground mb-2 inline-flex items-center gap-1.5"><History className="w-3.5 h-3.5" />История</div>
+            {loadingMoves ? (
+              <div className="py-4 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-orange-500" /></div>
+            ) : moves.length === 0 ? (
+              <div className="text-xs text-muted-foreground text-center py-4">История пуста</div>
+            ) : (
+              <div className="space-y-1.5">
+                {moves.map((m) => {
+                  const icon = m.type === 'in'
+                    ? <ArrowUpCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                    : m.type === 'out'
+                      ? <ArrowDownCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+                      : <RefreshCw className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />;
+                  return (
+                    <div key={m.id} className="flex items-start gap-2 text-xs border-b last:border-b-0 pb-1.5">
+                      {icon}
+                      <div className="flex-1 min-w-0">
+                        <div>
+                          <span className="font-mono">{m.type === 'set' ? '=' : m.type === 'in' ? '+' : '−'}{fmtNumber(m.qty, 2)} {item.unit}</span>
+                          <span className="text-muted-foreground"> · {fmtNumber(m.before, 2)} → <b className="text-foreground">{fmtNumber(m.after, 2)}</b></span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {m.actorUsername || '—'} · {new Date(m.at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          {m.note && <span className="block italic">«{m.note}»</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}><X className="w-4 h-4 mr-1" />Закрыть</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
