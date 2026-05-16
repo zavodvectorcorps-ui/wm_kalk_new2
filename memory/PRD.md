@@ -504,6 +504,30 @@ Completed all three open items from Phase 2:
   total = materials + labor + materials*ohPct/100 + manual). Frontend
   smoke по admin/admin123 без console errors.
 
+## Session 17 — Procurement Forecast + Seed + Duplicate (Feb 16, 2026)
+
+- **One-click импорт компонентов** из файла «Себес Сауны.xlsx» —
+  49 уникальных позиций с EUR×4.25 → PLN, разложенных по 9 категориям и
+  единицам измерения (м³ для пиломатериалов, м для полок и т.п.).
+  `POST /api/sauna-production/cost/components/seed-from-template` —
+  идемпотентен (по name).
+- **Прогноз закупки** — новая вкладка «Закупка» с 2 режимами:
+    - **По активным заказам**: `GET /procurement` агрегирует BOM по всем
+      `sauna_crm_leads` с `inProduction=true` (читает modelId/variantId
+      из нескольких распространённых полей: lead.modelId, calculatorData.modelId,
+      config.modelId; selectedOptions поддерживает dict+list форматы).
+    - **What-if**: `POST /procurement/forecast` с `targets[{scope, modelId,
+      variantId?, qty}]` — для ручных оценок «что заказать на 5 саун».
+    - Результат: список компонентов сгруппированных по категориям с
+      totalQty, lineTotal, поставщиком + кнопка «Печать».
+- **Дублирование тех.карты**: `POST /tech-cards/{id}/duplicate` копирует
+  BOM + работу + накладные на другую цель. UI: кнопка «Скопировать» в
+  редакторе тех.карты.
+- **Margin leaderboard**: на вкладке «Тех.карты» сверху — топ-5 с самой
+  низкой маржой (красный) и топ-5 с самой высокой (зелёный) по данным
+  расширенного `/dashboard`.
+- Тестировано: 20/20 новых backend pytest + 28/28 регрессии прошли.
+
 ## Prioritized Backlog
 - P1: Telegram notification on negative AI score for calls
 - P1: Weekly AI digest (email/Telegram) for managers

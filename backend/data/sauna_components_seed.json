@@ -416,7 +416,7 @@
     "unitPrice": 1785.0,
     "unitPriceEur": 420.0,
     "supplier": "",
-    "note": "из Квадро (1П) 3х2,25 ",
+    "note": "из Квадро (1П) 3х2,25",
     "isActive": true
   },
   {
@@ -436,7 +436,7 @@
     "unitPrice": 1785.0,
     "unitPriceEur": 420.0,
     "supplier": "",
-    "note": "из Квадро 3,5х2,25  ",
+    "note": "из Квадро 3,5х2,25",
     "isActive": true
   },
   {
@@ -446,11 +446,11 @@
     "unitPrice": 1785.0,
     "unitPriceEur": 420.0,
     "supplier": "",
-    "note": "из Викинг 2х2   ",
+    "note": "из Викинг 2х2",
     "isActive": true
   },
   {
-    "name": "Пиломатериалы (Луна): Торцы 3 штуки (27х3",
+    "name": "Пиломатериалы (Луна): Торцы 3 штуки (27х3)",
     "category": "wood",
     "unit": "м³",
     "unitPrice": 1785.0,
@@ -466,7 +466,7 @@
     "unitPrice": 1785.0,
     "unitPriceEur": 420.0,
     "supplier": "",
-    "note": "из Парус 2х2,4    ",
+    "note": "из Парус 2х2,4",
     "isActive": true
   },
   {
@@ -476,7 +476,7 @@
     "unitPrice": 255.0,
     "unitPriceEur": 60.0,
     "supplier": "",
-    "note": "из Парус 2х2,4    ",
+    "note": "из Парус 2х2,4",
     "isActive": true
   },
   {
@@ -486,7 +486,7 @@
     "unitPrice": 1785.0,
     "unitPriceEur": 420.0,
     "supplier": "",
-    "note": "из Парус 3х2,4  ",
+    "note": "из Парус 3х2,4",
     "isActive": true
   }
 ]
